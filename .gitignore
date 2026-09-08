@@ -20,3 +20,6 @@ upstream/
 # Python leaves these beside tools/.
 __pycache__/
 *.pyc
+
+# Claude Code's per-project directory.
+.claude/

@@ -13,7 +13,7 @@ and deleted.
 Vim 9.2 (upstream patch level 1037) as **one translation unit**. That number
 moves: the input is cloned fresh, upstream keeps patching, and **Phase 1 is
 where this line gets updated** — from `version.c`, not from memory. `vim.c` is
-181,845 lines and is the whole editor; one `gcc` invocation builds it in about
+181,844 lines and is the whole editor; one `gcc` invocation builds it in about
 8 seconds, into a standalone static binary.
 
 **`vim.c` is produced, not edited into shape.** `GOAL.md` is the process that
@@ -66,13 +66,14 @@ CLAUDE.md  GOAL.md  LICENSE  .gitignore
 `tools/` is the only tracked subdirectory and has a `README.md` of its own.
 Nothing in it is part of the build; the build reads `vim.c` and nothing else.
 
-Four things appear untracked, and `.gitignore` names all four and nothing
-else: `vim`, which the build adds and `clean` removes; `.reference/`, a frozen
+Four things a pass produces appear untracked, and `.gitignore` names them:
+`vim`, which the build adds and `clean` removes; `.reference/`, a frozen
 copy of this tree with the recorded baselines beside it (see below);
 `TRANSCRIPT.md`, which `/export` writes whenever this file is updated; and
 `upstream/`, the pristine vim tree a pass clones in, works on and deletes —
 8,581 files that must never reach a commit, and which do not exist between
-passes. The `.gitignore` upstream shipped named 91 paths, of which two still
+passes. It also names what the tools and the editors leave lying about:
+`*.swp`, `__pycache__/`, `*.pyc` and `.claude/`. The `.gitignore` upstream shipped named 91 paths, of which two still
 existed — `src/testdir/`, `runtime/doc/tags-*`, `nsis/icons/*` and the rest
 went with the tree they belonged to.
 
@@ -337,9 +338,9 @@ enough to keep them in a file this size.
 The other 27 lines are seven notes, at the seven places where the code alone
 would mislead: the file header, the constants hoisted out of struct bodies, the
 three macros the headers read before they are included, `format_arg` on `_()`,
-the character arrays that replaced stringification, `typed_ahead()` on why
-`'lazyredraw'` must not peek at input, and the compiled-in mappings on why
-their left-hand sides are universal character names. Each says why the thing is
+the character arrays that replaced stringification, the two command lists that
+designated initialisers keep aligned, and the three `pum_set_*` functions that
+were written out because C cannot paste tokens. Each says why the thing is
 shaped as it is, which nothing in the C can.
 
 **File-local names are global now.** Two former files cannot both have a static
@@ -370,12 +371,12 @@ is the first thing to put back, above the first `#include`.** `_XOPEN_SOURCE
 700` was upstream's, for `strptime()` and `mkdtemp()`; the other three were for
 nanosecond timestamps in `struct stat`.
 
-The 3,432 `#define`s became:
+The 3,433 `#define`s became:
 
 | | how many |
 | --- | --- |
-| deleted, nothing mentioned them | 911 |
-| enumerators (`enum { … }`, `enum : long { … }`) | 1,444 |
+| deleted, nothing mentioned them | 909 |
+| enumerators (`enum { … }`, `enum : long { … }`) | 1,443 |
 | expanded at the use site | 1,027 macros |
 | `static inline` function | 2 (`_`, `NGETTEXT`) |
 | character arrays | 3 (the version strings) |
@@ -391,9 +392,9 @@ initialiser or a static initialiser, and these do.
 
 `main()` is the only symbol with external linkage. `nm` on a build made without
 `-s` is the check — the shipped binary is stripped and `nm` says "no symbols" —
-and the only other globals are the C runtime's. Everything else is `static` — 4,199
-declarations, of which 2,869 are the former `proto/*.pro` block near the top of
-the file.
+and the only other globals are the C runtime's. Everything else is `static` — 4,288
+declarations, of which 1,993 are the former `proto/*.pro` block near the top of
+the file, the rest of that block having gone to the dead-code sweep.
 
 **A *function* definition following a `static` declaration inherits internal
 linkage**, which is why three thousand definitions say nothing about it.
@@ -415,7 +416,7 @@ nothing and cannot.**
 **A later phase undoes this, every time.** Bracing is Phase 7 and macro
 expansion is Phase 9, and expansion pastes in `for` headers of its own: the
 `FOR_ALL_*` loop macros become `for (...) for (...) if (...) { }` on one line.
-This pass found **1,557 bodies not on a line of their own and 1,564 not
+This pass found **1,542 bodies not on a line of their own and 1,564 not
 braced** after Phase 9, and an earlier one shipped them, because nothing
 re-checked the invariant after the phase that broke it. **The canonicalizers
 are cheap and idempotent — re-run them all to a fixpoint at the end**:
@@ -438,16 +439,17 @@ alone; they run on `continue` too.
 
 ### No comments, no tabs
 
-Beyond the banners and the five notes above there are none: 39,906 comments
-went, a fifth of the tree. That was a deliberate trade and some of what went was
+Beyond the banners and the seven notes above there are none: 39,648 comments
+went, taking 51,452 lines with them — a fifth of the tree. That was a deliberate trade and some of what went was
 load-bearing knowledge the code does not state — why `CMD_SIZE` must come last,
 what the `\%f)` regexp atom means. **It is not in this repository's history**,
 so read it in upstream, which a pass clones fresh and the banners name, rather
 than expecting `git blame` to have it. There are
-22 further `/*` and `//` in the file and every one is inside a string literal:
-`'comments'` defaults, `pack/*/start/*` globs, a `://` scheme test.
+295 further occurrences of `/*` and `//`, on 16 lines, and every one is inside a
+string literal: `'comments'` defaults, `pack/*/start/*` globs, a `://` scheme
+test.
 
-Not one tab either; 261,991 were expanded at the 8-column stops they were
+Not one tab either; 261,321 were expanded at the 8-column stops they were
 written for, so the file renders identically at any `'tabstop'`. **Two** were
 data rather than layout and are spelled `\t`: one in the `b:undo_ftplugin`
 command string in `trigger_undo_ftplugin()`, and one inside the default
@@ -455,8 +457,8 @@ command string in `trigger_undo_ftplugin()`, and one inside the default
 
 Upstream is `noet`, so anything imported from there needs expanding first.
 
-**The paragraphing was never lost.** 17,265 blank lines, 9.5% of the file and
-**5.18 per function** — the density of a build that kept its comments. Every
+**The paragraphing was never lost.** 17,264 blank lines, 9.5% of the file and
+**5.21 per function** — the density of a build that kept its comments. Every
 function is separated from the next, every declaration block from its body, no
 run of two blank lines anywhere and none after an opening brace.
 
@@ -472,19 +474,22 @@ The line-preserving rule is equivalent to the standard's exactly when **no
 multi-line comment has code on both sides of it**. `tools/decomment.py` checks
 and refuses otherwise; in this tree the count is zero.
 
-**No `do { ... } while (0)` remains.** All 1,764 that macro expansion left
+**No `do { ... } while (0)` remains.** All 1,757 that macro expansion left
 behind are unwrapped. It needs **brace matching, not a regex**: 18 lines carry
 two wrappers, one nested inside the other, and the spelling varies between
 `while (0);` and `while (0) ;`. Check first that no body holds a `break` or
 `continue`, which would bind to a different loop once the wrapper is gone.
 
 Unlike bracing, this **does** change code generation: at `-O0` the never-taken
-`while (0)` test is a real branch and `.text` shrinks — by 64 bytes here. What
-must not change is **data**, and the check for that is the *strings*, not the
-section: every string in `.rodata` is identical, while 337 four-byte words in
-it move, because a switch jump table's entries are relative offsets into the
-`.text` that shrank. `.data` differs only in pointers, each moved by one of two
-amounts matching the code removed before it.
+`while (0)` test is a real branch, and the code before a pointer's target
+shrinks. What must not change is **data**, and the check for that is the
+*strings*, not the section. This pass measured `.rodata` byte-identical, its
+strings identical, and `.data` differing only in **876 pointers, every one
+moved by exactly −12 bytes** — the section sizes and addresses did not move at
+all, the shrinkage being absorbed by alignment padding. An earlier pass
+measured a 64-byte `.text` shrink and 337 four-byte words moving in `.rodata`,
+because a switch jump table's entries are relative offsets into `.text`; expect
+the shape of the answer, not the numbers.
 
 ## Deliberate divergences from upstream
 
