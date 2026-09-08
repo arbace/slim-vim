@@ -16,10 +16,16 @@ missing file.
 - **Not a fork, and nothing is rebranded.** The program is vim, the binary is
   `vim`, and `$VIM`, `$VIMRUNTIME`, `~/.vimrc` and every string are upstream's.
   Whatever you call the checkout directory is not a name this tree uses.
-- **Not a feature-stripped vim.** No feature was removed to get here. `:help`,
-  `:hardcopy`, the non-UTF-8 encodings, locale and iconv are all still present.
-  The build is upstream's `tiny` configuration plus `+extra_search`; the
-  reduction is in *files and preprocessor*, not in what the editor can do.
+- **Not a feature-stripped vim.** No feature was removed to get here: the
+  reduction is in *files and preprocessor*, not in what the editor can do. The
+  build is upstream's `tiny` configuration plus `+extra_search`.
+- **But it does not behave like a stock vim.** It ships no vimrc, so what one
+  would have said is compiled in instead: eighteen option defaults — among them
+  `tabstop=4`, `shiftwidth=4`, `softtabstop=4`, `expandtab`, `autoindent`,
+  `nocompatible`, `hlsearch` and `ruler` — plus four mappings, with bracketed
+  paste never enabled. `-u NONE` does not undo any of it; these are the
+  defaults. `CLAUDE.md` lists them all and says which half of each `{vi, vim}`
+  pair was edited.
 - **Not one command.** `GOAL.md` is a prompt for an agent, executed phase by
   phase with verification at every boundary. There is no `run.sh`.
 
