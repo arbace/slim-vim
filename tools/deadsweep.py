@@ -74,6 +74,31 @@ def function_extent(lines, lineno):
     return None
 
 
+def declaration_extent(lines, lineno):
+    """(first, last) line indices of the declaration reported at lineno.
+
+    "Delete the line" is wrong for the 39 file-scope tables whose initialiser
+    starts on the *next* line -- `static char *(features[]) =` followed by a
+    brace block, or base64_table followed by its string.  Deleting only the
+    first line leaves the initialiser behind as a bare expression, and the
+    error surfaces as "expected identifier or '(' before string constant".
+    Run to where the declaration actually ends: depth back to zero and a
+    terminating semicolon.
+    """
+    i = lineno - 1
+    depth = 0
+    j = i
+    while j < len(lines):
+        b = cutil.blank(lines[j])
+        depth += b.count('{') - b.count('}') + b.count('(') - b.count(')')
+        if depth <= 0 and b.rstrip().endswith(';'):
+            return (i, j)
+        j += 1
+        if j - i > 4000:            # runaway: decline rather than guess
+            return None
+    return None
+
+
 def main():
     path = sys.argv[1]
     lines = open(path, encoding='utf-8', errors='surrogateescape').read().split('\n')
@@ -91,8 +116,12 @@ def main():
             else:
                 counts['other'] += 1
         elif DEAD_VARIABLE.search(text):
-            kill.add(lineno - 1)
-            counts['var'] += 1
+            e = declaration_extent(lines, lineno)
+            if e:
+                kill.update(range(e[0], e[1] + 1))
+                counts['var'] += 1
+            else:
+                counts['other'] += 1
         else:
             counts['other'] += 1
     out = [l for i, l in enumerate(lines) if i not in kill]
