@@ -310,10 +310,19 @@ are Phase 1, where behaviour changes and where the baselines are recorded, and
 `-static -s` is Phase 3, with the rest of the makefile. A bare run of Phases
 0-9 reproduces this tree, not a plainer one.
 
-**`.reference/` is optional.** It is gitignored, so a fresh clone has none;
-`refcheck.sh` says so and exits 0, and the pass is checked by `verify.sh`
-against the baselines as usual. The first pass in a fresh tree produces the
-thing every later pass compares against.
+**`.reference/` is produced, not required.** It is gitignored, so a checkout
+that has never run a pass has none, and that is the ordinary starting state
+rather than something missing. `refcheck.sh` reports "nothing compared" and
+exits 0; Phase 1 records the baselines; the pass ends by writing `.reference/`
+for the next one.
+
+**The first pass proves less than every pass after it, and it is worth being
+plain about which.** It still proves the tree is internally consistent — it
+builds, `-Wall -Wextra` is silent, every canonicalisation pass is a no-op, no
+enumerator moved, the command table regenerates byte for byte. What it cannot
+prove is that the *editor* is the one a previous pass produced, because the
+recordings it checks against are its own. From the second pass on it can, and
+that is the strongest check in this document.
 
 ### The tools already exist
 
@@ -324,9 +333,12 @@ what to check them against if they are not. `create_cmdidxs.py` in particular
 was made shape-agnostic precisely so it survives the merge.
 
 The baselines in `.reference/baselines/` are the other thing that does not come
-from `upstream/`. They are recordings of the Phase 1 binary, and Phase 1 is the
-only place behaviour changes, so a pass either reproduces them or has gone
-wrong. Re-record only when Phase 1 itself is deliberately changed.
+from `upstream/`, and the only thing in the repository that no commit can
+reconstruct. They are recordings of the Phase 1 binary, and Phase 1 is the only
+place behaviour changes, so a pass either reproduces them or has gone wrong.
+Re-record only when Phase 1 itself is deliberately changed — and if this tree is
+ever moved, `baselines/` is the one directory worth carrying over, because
+everything else is `git archive` and an 8-second build.
 
 If a phase goes wrong, `git reset --hard` to its last good commit and redo it —
 that is rule 7, and it is cheap because every phase is one commit.
@@ -565,7 +577,18 @@ keeps hidden definitions for options a build lacks; `:match` and `:nohlsearch`
 go from exit 1 to exit 0 and are the real evidence.
 
 **Record every baseline from the Phase 1 binary** — three identical runs each,
-or it is not a baseline — and note what the recordings now encode: the ten
+or it is not a baseline.
+
+**If `.reference/baselines/` already exists, compare before you overwrite.** An
+older set is the only evidence that this pass produced the same editor as the
+last one, and re-recording over it destroys that evidence in the one moment it
+could have been used. Diff the new recordings against the old first: all four
+should be byte-identical, and if any is not, the cause is either something you
+changed in Phase 1 on purpose or an upstream patch that reached code this
+configuration compiles — name which, in the commit, before replacing anything.
+If there is no older set, record and carry on; that is a first pass.
+
+Note what the recordings encode: the ten
 terminals with six fallback rows among them, and an editor with the vimrc
 already in it, so `nocompatible` makes `u` multi-level and `softtabstop` makes
 a Tab four spaces.
@@ -1283,13 +1306,15 @@ source, the binary (tier 1, same file name, pinned epoch), the documents and
 whether baselines are there, and exits non-zero on any difference in the first
 two.
 
-**`.reference/` is optional and its absence is not a failure.** It is
-gitignored, so a fresh clone has none and a first pass produces the thing it
-would have been compared against. `refcheck.sh` says so and exits 0; the rest
-of the verification is unchanged either way. Never skip `verify.sh` because
-`refcheck.sh` was clean — one compares against the last pass, the other against
-recorded behaviour, and a pass that reproduced last time's mistake exactly
-would satisfy the first.
+**A missing `.reference/` is the ordinary starting state.** It is gitignored and
+produced, so a checkout that has never run a pass has none; `refcheck.sh`
+reports "nothing compared" and exits 0, and the rest of the verification is
+unchanged. Never skip `verify.sh` because `refcheck.sh` was clean — one compares
+against the last pass, the other against recorded behaviour, and a pass that
+reproduced last time's mistake exactly would satisfy the first.
 
-Then fold the run's log into this file and delete it, and refresh `.reference/`
-so the next pass has this one to compare against.
+Then fold the run's log into this file and delete it, and write `.reference/` —
+`vim.c`, the binary built with `SOURCE_DATE_EPOCH=0`, the documents and
+`baselines/` — so the next pass has this one to compare against. That last step
+is what turns a self-certifying first pass into a checkable second one, so it is
+not optional even though nothing fails without it.

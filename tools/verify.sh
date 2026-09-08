@@ -9,6 +9,15 @@
 # change that could renumber something.
 set -e
 base=${1:?usage: verify.sh <baselines-dir> [--enums]}
+
+# There is nothing to verify before a pass has produced one.  Say so rather than
+# reporting a build failure, which is what an absent vim.c otherwise looks like.
+if [ ! -f vim.c ]; then
+    echo "  vim.c        absent -- nothing has been produced to verify yet"
+    echo "               (a pass writes it; see GOAL.md)"
+    exit 2
+fi
+
 tmp=$(mktemp -d)
 fail=0
 
@@ -16,7 +25,7 @@ fail=0
 # through `set -e` and leave the script dying with no output at all.
 if ! make clean >/dev/null 2>&1 || ! make >"$tmp/build.log" 2>&1; then
     echo "  build        FAILED"
-    grep -E 'error|Error' "$tmp/build.log" | head -10 | sed 's/^/      /'
+    [ -f "$tmp/build.log" ] && grep -E 'error|Error' "$tmp/build.log" | head -10 | sed 's/^/      /'
     rm -rf "$tmp"
     exit 1
 fi

@@ -157,7 +157,10 @@ to miss, so `~root/` expands).
 ## Testing
 
 There is no upstream test suite in play. Four harnesses stand in for it, all in
-`tools/`; the baselines they are compared against are in `.reference/baselines/`.
+`tools/`; the baselines they are compared against are in `.reference/baselines/`,
+which **a pass records in Phase 1 and a fresh checkout does not have**. Until one
+has run there is nothing to compare against — the harnesses still run, they just
+have no older recording to disagree with.
 
 **`tools/verify.sh .reference/baselines` runs all of them concurrently and gives
 one verdict, in about 18 seconds** — eight of them the build. Use it after any
@@ -165,20 +168,25 @@ change; add `--enums` for the DWARF check. It is proven to fail on a broken
 build, on a behaviour change and on a blank line landing in the generated
 command table.
 
-### `.reference/` is the frozen state, and it is gitignored
+### `.reference/` is the frozen state, gitignored, and optional
 
 A copy of `vim.c`, the binary built from it, the two documents, `Makefile`,
-`LICENSE`, `.gitignore` and `baselines/`. It is not tracked, so it does not follow a
-checkout, and there is nothing outside this repository any more.
+`LICENSE`, `.gitignore` and `baselines/`. **It is not tracked and it is not a
+precondition**: a pass produces it, so a checkout that has never run one has no
+`.reference/` at all and everything here describes what exists afterwards.
 
-Only two things in it are irreplaceable. **`baselines/`** is *data* — what the
-harnesses recorded from the Phase 1 binary, the last build that changed
-behaviour on purpose — and everything since has been required to match it, so
-regenerating it from the current binary would destroy the only independent
-evidence there is, and **the one thing in this repository that no commit can
-reconstruct** — a pass records it in Phase 1, but only a pass that has one to
-compare against can prove the editor did not move. Everything else in
-`.reference/` is `git archive HEAD` and an 8-second build.
+**`baselines/` is the only part that matters, and the only part no commit can
+reconstruct.** It is *data* — what the harnesses recorded from the Phase 1
+binary, the last build that changes behaviour on purpose — and every phase since
+has been required to match it. Everything else in `.reference/` is
+`git archive HEAD` and an 8-second build.
+
+**Never regenerate it from the current binary**, which would make the comparison
+self-fulfilling. A pass records it in Phase 1 either way, but the recording only
+proves something when there is an older one to compare it against first: the
+first pass in a fresh checkout is self-certifying on behaviour, and every pass
+after it is not. That is the whole reason to keep this directory across passes,
+and the reason it is the one thing worth copying if this tree is ever moved.
 
 `vim` there is built with `SOURCE_DATE_EPOCH=0`, so it is reproducible byte for
 byte and usable as the left-hand side of a tier 1 check:
@@ -742,9 +750,9 @@ rm -rf upstream                            # nothing of it is kept
 
 `upstream/` is a **staging directory, not a checkout of anything**. It is
 gitignored, so its 8,581 files cannot reach a commit, and it does not exist
-between passes. `tools/` and `.reference/baselines/` stay in this repository
-and are what the pass is run with and checked against; nothing in `upstream/`
-survives it.
+between passes. `tools/` is what the pass is run with; `.reference/baselines/`,
+once a pass has made it, is what the next one is checked against. Nothing in
+`upstream/` survives.
 
 **`upstream/.git` goes before anything else is touched, and that remote is
 never written to.** `github.com/arbace/vim` is read-only input; `--depth 1`
@@ -764,12 +772,12 @@ only by what upstream changed — usually nothing. The tool reports the source,
 the binary (tier 1), the documents and whether baselines are present, and exits
 non-zero on a source or binary difference.
 
-**A missing `.reference/` is not a failure.** It is gitignored, so a fresh
-clone has none and a first pass produces the thing later passes compare
-against; `refcheck.sh` says so and exits 0. It never replaces `verify.sh`
-either — one compares against the last pass, the other against recorded
-behaviour, and a pass that reproduced last time's mistake exactly would satisfy
-the first.
+**A missing `.reference/` is the normal starting state, not a failure.** It is
+gitignored and produced, so a fresh checkout has none; `refcheck.sh` says
+"nothing compared" and exits 0, and the pass is checked by `verify.sh` against
+the baselines Phase 1 records. It never replaces `verify.sh` either — one
+compares against the last pass, the other against recorded behaviour, and a pass
+that reproduced last time's mistake exactly would satisfy the first.
 
 **Everything this tree has is in the phases.** The terminal-table reduction,
 the compiled-in vimrc and the `'lazyredraw'` fix are Phase 1, because Phase 1
