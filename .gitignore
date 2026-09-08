@@ -1,0 +1,22 @@
+# The build's one product.
+vim
+
+# The frozen snapshot of this tree, plus the harness baselines.  Data, and a
+# copy of what git already has -- not source.  See CLAUDE.md.
+.reference/
+
+# The exported session transcript, written by /export whenever CLAUDE.md is
+# updated.  Half a megabyte of conversation; the reasoning that matters is in
+# the commit messages.
+TRANSCRIPT.md
+
+# The pristine vim tree a pass clones in, works on and deletes.  8,581 files
+# that must never reach a commit.  See GOAL.md.
+upstream/
+
+# Editing this tree with the editor it builds.
+*.swp
+
+# Python leaves these beside tools/.
+__pycache__/
+*.pyc
