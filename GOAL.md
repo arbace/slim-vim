@@ -127,6 +127,11 @@ below actually requires. Feature removal is a separate project afterwards.
   Phase 0.
 - **No `-g`.** DWARF records a line number for everything, so with debug info a
   blank line moves the binary although no token did.
+- **`SOURCE_DATE_EPOCH`, and there are two values in play.** `refcheck.sh`
+  rebuilds with `SOURCE_DATE_EPOCH=0` because that is what `.reference/vim` was
+  built with, while `tools/build.sh` pins `1700000000` for comparing two of your
+  own builds. Mixing them produces a difference at byte 745 that is the
+  timestamp and nothing else.
 - **`SOURCE_DATE_EPOCH`.** `version.c` embeds `__DATE__` and `__TIME__`, so any
   two builds differ. This looks like a choice between the version banner and the
   cheapest verification tier, and it is not: **gcc honours `SOURCE_DATE_EPOCH`
@@ -282,15 +287,15 @@ is an ordinary pass or one that needs thought:
   deliberate change: establish what moved against the *previous* binary before
   re-recording, and say in the commit which upstream patch caused it.
 
-At the time of writing the input is **9.2.1037** where the previous pass's was
-9.2.1036, and the delta was the ordinary case: 153 paths differed, 147 of them
-under `runtime/`; of the six that survived Phase 2, `evalfunc.c` and `list.c`
-are `+eval` and `version.c` is the patch table. `regexp_bt.c` and
-`regexp_nfa.c` were byte-identical, so the delimiter atoms patch was present
-and unchanged. The pass then reproduced all four baselines exactly and the
-finished `vim.c` differed from the previous one only in formatting and in that
-one patch-table line. **Expect this paragraph to be stale** — re-measure rather
-than trusting it, and update it in the same pass.
+At the time of writing the input is **9.2.1037**, the same patch level as the
+previous pass's input, so the delta is nil and this is the most ordinary case
+there is. The pass reproduced all four baselines byte for byte, and the finished
+`vim.c` differed from the previous one by a single line — a stray blank line the
+earlier pass had left before `init_mappings()`'s closing brace — while the
+**binary came out byte-identical**, 2,208,088 bytes. That is the first time the
+end-to-end check has had both halves available here, and it is what the whole
+workflow is for. **Expect this paragraph to be stale** — re-measure rather than
+trusting it, and update it in the same pass.
 
 **Phase 1 updates the patch level in `CLAUDE.md`**, from `version.c` rather
 than from memory. It is the one number in that file which changes for a reason
@@ -618,7 +623,9 @@ carried forward from a previous pass, since the clone is where the authoritative
 copy is.
 
 **Measure the keep-set with `-MD` and use the `.d` files alone.** They record
-every file the compiler opened, which is the question being asked. Do *not*
+every file the compiler opened, which is the question being asked.
+**`tools/keepset.py` still advertises the union in its own docstring**, so call
+`from_depfiles()` and ignore `from_make()` rather than running its `main()`. Do *not*
 union them with make's expanded prerequisite list: `make -p` returns the whole
 rule database, including rules for the GUI, perl, wayland and libvterm this
 build never reaches — 441 entries against 254, and the extra 187 are junk. The
@@ -639,7 +646,10 @@ remove. It reached a fixpoint in one round.
 
 **Removing a `.c` takes five edits, and the fifth is not in the makefile.** The
 `SRC` list, the `OBJ` list, the `.pro` list, its build rule, its proto rule —
-and the `#include` of its `.pro` in `proto.h`. That last one is what bites: the
+and the `#include` of its `.pro` in `proto.h`, which `dropsrc.py` does *not*
+touch. **`proto.h` writes them `"clientserver.pro"`, not `"proto/clientserver.pro"`**
+(the path came from `-Iproto`), so grepping for the latter finds nothing and
+reports the job done. That last one is what bites: the
 makefile edits all succeed and the build then fails in every remaining
 translation unit at once with `fatal error: clientserver.pro: No such file or
 directory`. Tell a build rule from a dependency-only rule by whether a
@@ -657,8 +667,11 @@ whole line.
 Five things must go before `make` will run at all, and the first is nominally
 Phase 3's:
 
-- the hand-written dependency block, all 178 dependency-only rules of it, now
-  naming headers that do not exist;
+- the hand-written dependency block — 176 dependency-only rules in this run,
+  told from build rules by whether a tab-indented recipe follows — now naming
+  headers that do not exist;
+- `TOOLS = xxd/xxd$(EXEEXT)` and the xxd build rule, or the default target
+  stops at *No rule to make target 'xxd/xxd.c'*;
 - `include Make_all.mak` and `include testdir/Make_all.mak`, which carried only
   `TAGS_FILES` and the test name lists;
 - `$(TERM_DEPS)` and `$(XDIFF_INCL)` on the `terminal.o` and `diff.o` rules;
@@ -955,8 +968,11 @@ Two more things this phase has to do deliberately:
   `-lintl` in strings that `:version` prints. Make them name the command that is
   actually run.
 
-**The cmdidxs canary will break here, which is the canary working.** It picked
-its parser by file name, and there is only one file now. Make it shape-agnostic
+**The cmdidxs canary will break here, which is the canary working.** In this
+run it broke on a single stray blank line the merge left inside the block:
+check that the *numbers* it generates match the ones in place, then `--update`
+to restore the canonical form. It also picked its parser by file name, and
+there is only one file now. Make it shape-agnostic
 — try both parsers, take whichever finds at least 100 names — teach it that the
 600 EXCMD rows appear **twice**, and have it check itself in place between the
 `begin`/`end ex_cmdidxs.h` banners.
@@ -987,8 +1003,11 @@ fix was the whole recovery.
 6. **One declarator per declaration** (262), so the unused-variable sweep
    deletes a line instead of rewriting one. Be conservative: no top-level
    parenthesis, and every declarator after the type must look like one.
-7. **Hoist comma operators out of `for` init clauses** (14) — but **not when the
-   init clause declares**. `for (int i = n - 1, j = m - 1; ...)` scopes `i` and
+7. **Hoist comma operators out of `for` init clauses** — 15 clauses have one,
+   and this run hoisted 12 — but **not when the init clause declares**, and not
+   when the clause contains a call or a cast, which the previous pass also
+   declined. Hoist every initialiser *but the last*, so `for (n1 = 0, n2 = 0; …)`
+   becomes `n1 = 0;` and `for (n2 = 0; …)`. `for (int i = n - 1, j = m - 1; ...)` scopes `i` and
    `j` to the loop, and hoisting widens that to the enclosing block, which is a
    change and not a formatting one.
 
@@ -1025,6 +1044,16 @@ Leave increment clauses alone; they run on `continue` too.
   the top" is O(n²) and does not finish on this file.
 - A pass that declines a construct must put its input back **exactly** as it
   found it. One re-indented what it could not join and broke the cmdidxs canary.
+- **`brace.py` prints its do-terminator count first**, so a fixpoint loop that
+  reads the first number out of each pass's output never converges — it sees a
+  constant 33 for ever. Read the *second* line for the count that matters.
+- **Self-test every detector on an input whose answer you know**, before
+  trusting a zero. Two written in this run reported "nothing to do" while being
+  simply wrong: one took the paren depth *at* the `(` (0) instead of inside it
+  (1) and so never found the `;` delimiting a `for` init clause; the other
+  anchored on `^vim\.c:` while being handed an absolute path, and printed
+  "0 remaining" with 37 warnings standing. Neither wrote anything, which is the
+  only reason they were cheap.
 
 ## Phase 8 — internal linkage, then dead code to a fixpoint
 
@@ -1054,6 +1083,18 @@ inherits internal linkage**, so three thousand definitions need no edit.
   for `rename`, so `static int mch_rename(...)` declares libc's `rename` static.
   Any prototype whose name is a macro defined earlier in the file is a
   declaration of the expansion, not of itself.
+- **Two prototypes carry their attribute on a *continuation* line.** That line
+  ends in `;`, so a pass that inserts `static` before "the line ending in `;`"
+  produces `static ATTRIBUTE_FORMAT_PRINTF(3, 0);`. Put the keyword at the
+  start of the declaration.
+- **`EXTERN` is what makes the globals external, and it has to become
+  `static`.** Do it textually: expanding it as a macro pads every one of the
+  1,055 sites with a space on each side and leaves ` static  int p_ai;`.
+  `PLURAL_MSG` is the same shape — it emits a bare `char var[]`, which leaves
+  two error strings external.
+- **`nm` the *object*, not the linked binary.** A static musl binary defines
+  1,400-odd symbols of its own and buries the answer; `gcc -c` then
+  `nm --extern-only --defined-only` prints exactly `main`.
 
 `nm` is the check: `main` and the C runtime, nothing else.
 
@@ -1073,6 +1114,14 @@ callees.
   noticed; recovery was rule 7.
 - **`-Wunused-const-variable=` carries a trailing `=`**, so a pattern anchored
   on `variable]` silently misses every unused constant.
+- **An unused *variable* is not one line.** 39 file-scope tables put their
+  initialiser on the *next* line — `static char *(features[]) =` then a brace
+  block, `base64_table` then its string — so deleting the reported line leaves
+  the initialiser behind as a bare expression, and gcc says *expected identifier
+  or '(' before string constant* somewhere unrelated. `deadsweep.py` now runs to
+  the declaration's real end (depth zero and a terminating `;`); do not instead
+  join every line ending in `=`, of which the finished file legitimately has
+  161.
 - Types: no flag exists. Compute **reachability, not reference counts** — a
   mention inside another type definition is not a use, and two types naming each
   other keep each other alive for ever. Roots are mentions outside *every* type
@@ -1224,9 +1273,12 @@ Re-canonicalising is free to verify: it changes no tokens' meaning, so `.text`,
 did.
 
 **This is the one step in Phase 9 that tier 1 does not cover.** At `-O0` the
-never-taken `while (0)` test is a real branch, and `.text` shrinks — by 64 bytes
-here. What must not change is *data*, so compare `.rodata` and `.data`, written
-to real files.
+never-taken `while (0)` test is a real branch and code disappears. What must not
+change is *data*, so compare `.rodata` and `.data`, written to real files.
+**Expect the shape of the answer, not the numbers**: one run measured a 64-byte
+`.text` shrink with 337 words moving in `.rodata`, and the next measured
+`.rodata` byte-identical, unchanged section sizes and addresses, and `.data`
+differing in 876 pointers every one of which moved by exactly −12.
 
 **Do not expect `.rodata` byte-identical — compare its *strings*.** A previous
 run's did come out identical and the rule was written down as if that were a

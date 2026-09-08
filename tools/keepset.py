@@ -1,9 +1,15 @@
 """The set of files the build actually reads.  Measured, not guessed.
 
-Two sources, unioned:
-  * every path in the .d files a -MD build wrote -- what the compiler opened;
-  * make's own expanded prerequisite list -- a file can be a prerequisite the
-    compiler never opens (xdiff.h is one).
+**Use `from_depfiles()` alone.**  The .d files record what the compiler opened,
+which is the question being asked.  `from_make()` is kept for comparison and
+must NOT be unioned with it: make's rule database answers a different question
+and drags in rules for the GUI, perl, wayland and libvterm this build never
+reaches -- 133 extra entries against 254 real ones in the last run.  And
+xdiff.h, the classic example of a prerequisite the compiler never opens, is in
+fact opened, by vim.h, for mmfile_t.
+
+The makefile's own needs are three named files (Makefile, config.mk,
+create_cmdidxs.py), not a set to compute.
 
 Usage: keepset.py <srcdir> <objdir>
 """

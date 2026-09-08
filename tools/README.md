@@ -62,7 +62,10 @@ it refuses outright if any multi-line comment has code on both sides.
 
 ## Auditing
 
-`deadsweep.py` (delete what `-Wall -Wextra` names, once) · `typereach.py`
+`deadsweep.py` (delete what `-Wall -Wextra` names, once — it keys on the
+warning *option*, never the sentence, and deletes a variable's whole
+declaration rather than its first line, because 39 file-scope tables put the
+initialiser on the next one) · `typereach.py`
 (type definitions nothing outside a type definition mentions)
 
 ## The passes a run needs
