@@ -38,8 +38,8 @@ The configuration is `tiny`, no GUI, no terminal library, **plus
 `+extra_search`** — which upstream has no configure flag for.
 
 **This repository holds the process, not the product.** Between passes it is
-four things — `.gitignore`, this file, `GOAL.md` and `tools/` — and `vim.c`, the
-`Makefile` and `LICENSE` appear when a pass produces them. A checkout that has
+five things — `.gitignore`, `README.md`, this file, `GOAL.md` and `tools/` — and
+`vim.c`, the `Makefile` and `LICENSE` appear when a pass produces them. A checkout that has
 never run one has no editor in it, and everything below describes what a pass
 makes rather than what is necessarily on disk right now.
 
@@ -52,16 +52,20 @@ it is the only one.
 
 ## Layout
 
-Forty tracked files once a pass has run: six at the root, and 34 in `tools/` —
-33 passes and harnesses plus a `README.md`. Three of the six (`vim.c`,
-`Makefile`, `LICENSE`) are products; the other three and `tools/` are the seed.
+Forty-one tracked files once a pass has run: seven at the root, and 34 in
+`tools/` — 33 passes and harnesses plus a `README.md`. Three of the seven
+(`vim.c`, `Makefile`, `LICENSE`) are products; the other four and `tools/` are
+the seed.
 
 ```
 vim.c        the editor, headers and forward declarations included
 Makefile     24 lines, two targets
 tools/       the harnesses, and the passes that produced vim.c
-CLAUDE.md  GOAL.md  LICENSE  .gitignore
+README.md  CLAUDE.md  GOAL.md  LICENSE  .gitignore
 ```
+
+`README.md` is the front door and carries no figures; this file and `GOAL.md`
+are the authority, which is what keeps a third description from drifting.
 
 `tools/` is the only tracked subdirectory and has a `README.md` of its own.
 Nothing in it is part of the build; the build reads `vim.c` and nothing else.

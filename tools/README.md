@@ -84,7 +84,8 @@ five of its mentions) · `splice.py` (translation phase 2) · `merge.py` ·
 `toenum.py` · `expand.py` · `reblank.py` (recover paragraphing, if it is ever
 lost again)
 
-`GOAL.md` describes what each phase uses them for.
+`GOAL.md` describes what each phase uses them for; `README.md` at the root is
+the front door to both.
 
 Gone for good: `rename.bat`, which was **upstream's** — a Win32 build helper
 that survived every pruning pass because Vim's own tree has a `tools/` too.

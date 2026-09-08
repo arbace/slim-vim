@@ -53,9 +53,9 @@ One file, `vim.c`, that `gcc -O0` compiles into a working `vim`. No second
 source file, no header, no generated file, no build script, no preprocessor
 beyond `#include` of system headers.
 
-The tree ends as `LICENSE`, `Makefile`, `vim.c`, `CLAUDE.md`, `GOAL.md`,
-`.gitignore` and a `tools/` directory holding the harnesses and the passes that
-did the work. Keep the tools in the repository, not in a scratchpad: a
+The tree ends as `LICENSE`, `Makefile`, `vim.c`, `README.md`, `CLAUDE.md`,
+`GOAL.md`, `.gitignore` and a `tools/` directory holding the harnesses and the
+passes that did the work. Keep the tools in the repository, not in a scratchpad: a
 scratchpad does not survive the session, and `CLAUDE.md` will end up naming
 things that no longer exist.
 
@@ -237,8 +237,8 @@ up its history and every pass is an ordinary commit on the working branch.
 
 ### What this repository holds between passes
 
-Four things, and they are the whole seed: `.gitignore`, `CLAUDE.md`, this file
-and `tools/`. **`vim.c`, the `Makefile` and `LICENSE` are products** — the first
+Five things, and they are the whole seed: `.gitignore`, `README.md`,
+`CLAUDE.md`, this file and `tools/`. **`vim.c`, the `Makefile` and `LICENSE` are products** — the first
 two are written by Phases 3 and 6, the third is copied from the clone — so a
 checkout that has never run a pass has no editor in it, and that is the intended
 state rather than a missing file.

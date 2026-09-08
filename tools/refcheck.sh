@@ -62,7 +62,7 @@ fi
 
 # --- the documents and the makefile ---------------------------------------
 same=; diffr=
-for f in Makefile CLAUDE.md GOAL.md LICENSE; do
+for f in Makefile README.md CLAUDE.md GOAL.md LICENSE; do
     if [ ! -f "$ref/$f" ]; then diffr="$diffr $f(absent)"
     elif cmp -s "$f" "$ref/$f"; then same="$same $f"
     else diffr="$diffr $f"; fi
