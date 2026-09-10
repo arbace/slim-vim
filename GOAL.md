@@ -250,6 +250,11 @@ is the intended state rather than a missing file. The makefile that Phase 3
 writes is **scaffolding inside `upstream/`** for Phases 3 through 8 and dies
 with it.
 
+`upstream.sha` is neither: it is a **record**, written by the makefile after a
+pass succeeds and committed with the `vim.c` it describes. It is tracked
+because it is what the next `make` compares the branch head against, and a
+checkout without one would run a whole pass to reproduce a tree it already has.
+
 `CLAUDE.md` describes the tree a pass produces. Before the first pass it reads
 as a specification and afterwards as a description, and rule 5 is what keeps it
 the latter: each phase edits the sentences its own work made wrong.
@@ -367,6 +372,74 @@ everything else is `git archive` and an 8-second build.
 
 If a phase goes wrong, `git reset --hard` to its last good commit and redo it —
 that is rule 7, and it is cheap because every phase is one commit.
+
+## Where the hour goes, and what replaces the agent
+
+**Measured, on the first pass the makefile drove: 67 minutes, of which under
+two are machine time.** Every compile in the whole pass adds to roughly 100
+seconds; `gcc -E` over 67 units is 0.15 s, `expand.py` over a five-megabyte
+file is 8.4 s, `resolve.py` is 3 s. Everything else was an agent reading,
+deciding and typing.
+
+| phase | elapsed | what dominated |
+| --- | --- | --- |
+| 0 reference, tools, harness | 2 m 57 s | reading this file; two builds |
+| 1 freeze the configuration | 13 m 12 s | the terminal tables (4 m), the option defaults (2 m) |
+| 2 prune the tree | 4 m 39 s | four rounds of build, read the one error, fix the makefile |
+| 3 one Makefile | 47 s | — |
+| 4 line-level normalisations | 1 m 20 s | three tool calls |
+| 5 resolve conditionals | 3 m 14 s | writing the preprocess-and-tally driver |
+| 6 merge | 3 m 36 s | reading the reference for the four renames |
+| 7 canonicalise | 2 m 15 s | six tier-1 builds at 8 s each |
+| 8 internal linkage, dead code | 6 m 33 s | eight full `-Wall` compiles, 4 m of machine time |
+| 9 leave the preprocessor behind | 16 m 9 s | a five-minute reset, then the version strings and the X-macro |
+| documents, `.reference/`, verification | ~12 m | writing the two documents |
+
+**The target is under five minutes, deterministically.** That is not reached by
+prompting better; it is reached by moving phases out of the agent and into
+programs in `tools/` that this repository's `Makefile` drives as subtasks with
+declared inputs and outputs — which is also what makes them parallelisable.
+
+**Almost every "judgement call" in a pass is a lookup, not a decision.** The
+answer already exists, in `.reference/vim.c` or in gcc's own diagnostics, and
+the cost is finding it. gcc named, unprompted and in order: the four
+`+extra_search` edits, the link error from dropping the terminal library, the
+thirteen symbols still external after Phase 8, the 879 dead prototypes, the
+three `getline_opt_T` conversions, the three `_()` casts, the three
+`STRLEN_LITERAL` sites the character arrays broke, and all 37 fall-through
+labels. **A pass driven by "compile, read the first error, apply the rule for
+that error class, repeat" would be nearly the whole process**, and each class's
+rule fits in a paragraph. That is probably a shorter route to an agentless pass
+than rewriting each phase as a large deterministic program.
+
+The three changes measured to be worth the most, in order:
+
+1. **`tools/renames.txt` and a `tools/refgrep.py` — about 8 minutes.** Four
+   decisions in a pass cannot be derived from the tree at all: which side of a
+   name collision to rename (Phase 6, four of them, plus `RE_WHITE` in Phase
+   9), and the formatting conventions a previous pass settled. Every one is
+   answered by grepping `.reference/vim.c`, and every one costs minutes of
+   navigating 181,844 lines. A checked-in `renames.txt` removes the first class
+   and makes an *unlisted* collision a loud failure; `refgrep.py <symbol>`,
+   printing the reference's version of a named function or table, removes the
+   second.
+2. **Phases 0, 2, 3, 4 and 7 as makefile targets — about 12 minutes, and no
+   agent at all.** Phase 0 is thirty lines of shell. Phase 3 is `ls *.c`, `ls
+   *.h` and two fixed rules. Phase 4 is three tool invocations and two `grep
+   -c`. Phase 7 is a fixpoint loop over seven idempotent tools — and that loop,
+   `tools/canon.sh`, is what Phase 9 has to call as well, so writing it once
+   pays twice. Phase 2 is nine mechanical subtasks whose only difficulty is
+   ordering, and the ordering is written down below. What is left for an agent
+   is Phase 1's terminal tables and compiled-in vimrc — both of which want to
+   be **data**, a `defaults.txt` of `option:vi:vim` rows and a `terminals.txt`
+   — and Phase 9's version-string and X-macro rewrites.
+3. **`deadsweep.py --fixpoint` — about 3 minutes.** Phase 8's eight rounds are
+   eight full `-Wall -Wextra` compiles of a 177,000-line file, and the tool
+   re-runs `gcc` itself while the driving loop recompiles to check. Rounds four
+   through seven deleted 143 lines between them across four compiles. Looping
+   inside the tool halves the compiles and removes the loop from the caller.
+   `-fsyntax-only` is not the shortcut — it does not report
+   `-Wunused-function`.
 
 ## Phase 0 — reference, tools, harness
 

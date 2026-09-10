@@ -4,11 +4,15 @@
 pristine [vim](https://github.com/vim/vim) tree into a single C file, `vim.c`,
 that one `gcc` invocation compiles into a working, standalone `vim`.
 
-**Between passes there is no editor here.** `vim.c`, the `Makefile` and
-`LICENSE` are *products* — they appear when you run a pass and are regenerated
-from upstream the next time. A checkout containing only `.gitignore`,
+**Between passes there is no editor here.** `vim.c` and `LICENSE` are
+*products* — they appear when you run a pass and are regenerated from upstream
+the next time. A checkout containing only `.gitignore`, `Makefile`,
 `README.md`, `CLAUDE.md`, `GOAL.md` and `tools/` is the intended state, not a
 missing file.
+
+**The `Makefile` is the seed, not a product**, and it is what runs a pass:
+`vim.c` depends on the upstream branch head, which every `make` asks
+`git ls-remote` for and compares against the committed `upstream.sha`.
 
 **Built for Alpine Linux and musl.** The compile line is `-O0 -static -s` and
 nothing else: musl's libm is part of libc, and musl declares everything
@@ -27,28 +31,31 @@ them — and `-lm` — put back; `CLAUDE.md` says where.
   `tabstop=4`, `shiftwidth=4`, `expandtab`, `autoindent`, `nocompatible`,
   `hlsearch` and `ruler` — plus four mappings, with bracketed paste never
   enabled. `-u NONE` does not undo any of it. `CLAUDE.md` lists them all.
-- **Not one command.** `GOAL.md` is a prompt for an agent, run phase by phase
-  with verification at every boundary. There is no `run.sh`.
+- **Not yet deterministic.** `make` runs the pass, but what it runs is an
+  agent — one `claude -p` carrying `GOAL.md` — and it takes about an hour, of
+  which only a couple of minutes are the machine. Moving that work into
+  ordinary programs under `tools/`, driven as makefile subtasks, is the
+  direction of travel; `GOAL.md` measures where the hour goes and says which
+  phases go first.
 
 ## Running a pass
 
-Read `GOAL.md` first — all of it. The ordering is the point.
-
 ```sh
-git clone --branch regexp-delimiter-atoms --depth 1 \
-    https://github.com/arbace/vim upstream
-rm -rf upstream/.git                  # immediately: that remote is read-only input
-#   ... GOAL.md Phases 0-9 run inside upstream/ ...
-#   ... vim.c, the Makefile and LICENSE move to the repository root ...
-rm -rf upstream                       # nothing else of it is kept
+make
 ```
 
-`upstream/` is a gitignored staging directory that does not exist between
-passes, and everything this tree has is produced by those phases — there is no
-list of extras to re-apply afterwards. Then build and check:
+That is the whole of it. `make` asks `git ls-remote` for the upstream branch
+head; when it matches `upstream.sha` it just compiles the committed `vim.c` in
+about eight seconds, and when it does not it clones `upstream/`, deletes its
+`.git` immediately because that remote is read-only input, runs the pass,
+deletes `upstream/` and records the new sha. Nothing of the clone survives, and
+everything this tree has is produced by the phases — there is no list of extras
+to re-apply afterwards.
+
+Read `GOAL.md` before you expect to follow along. The ordering is the point.
+Then check the result:
 
 ```sh
-make                                  # one gcc invocation
 tools/verify.sh .reference/baselines  # behaviour, Ex sweep, pty, terminals, warnings
 tools/refcheck.sh                     # this pass against the previous pass's output
 ```

@@ -60,20 +60,26 @@ it is the only one.
 
 ## Layout
 
-Forty-one tracked files once a pass has run: seven at the root, and 34 in
-`tools/` — 33 passes and harnesses plus a `README.md`. Two of the seven
-(`vim.c`, `LICENSE`) are products; the other five and `tools/` are the seed.
+Forty-two tracked files once a pass has run: eight at the root, and 34 in
+`tools/` — 33 passes and harnesses plus a `README.md`. Two of the eight
+(`vim.c`, `LICENSE`) are products, `upstream.sha` is a record, and the other
+five and `tools/` are the seed.
 
 ```
 vim.c        the editor, headers and forward declarations included
 Makefile     the seed: builds vim.c, and produces it when upstream moves
+upstream.sha the commit vim.c was produced from
 tools/       the harnesses, and the passes that produced vim.c
 README.md  CLAUDE.md  GOAL.md  LICENSE  .gitignore
 ```
 
-`upstream.sha` appears beside them, untracked: the makefile writes it after a
-pass succeeds, and it is the only thing that decides whether the next `make`
-runs one.
+**`upstream.sha` is tracked, and that is load-bearing rather than tidy.** It is
+what `make` compares the branch head against, so a checkout without one has
+nothing to compare and fires a whole pass on a tree that is already correct —
+which is the same hazard, arriving by a different route, that made the
+dependency content-based instead of a timestamp. The makefile writes it after a
+pass succeeds; committing it alongside the `vim.c` it describes is what keeps
+the next `make` cheap.
 
 `README.md` is the front door and carries no figures; this file and `GOAL.md`
 are the authority, which is what keeps a third description from drifting.
@@ -789,6 +795,11 @@ It writes `PROGRESS.md` as it works — a log for the next iteration of this
 process, aimed at replacing as much of the pass as possible with deterministic
 programs in `tools/` — and that log is folded into the two documents and
 deleted.
+
+**A pass costs 67 minutes, of which under two are machine time.** That is the
+first measurement taken with the makefile driving it, and it is the number the
+work from here is against: see *Where the hour goes* in `GOAL.md` for the
+per-phase breakdown and which phases stop needing an agent at all.
 
 `upstream/` is a **staging directory, not a checkout of anything**. It is
 gitignored, so its 8,581 files cannot reach a commit, and it does not exist
