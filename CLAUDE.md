@@ -60,16 +60,17 @@ it is the only one.
 
 ## Layout
 
-Forty-two tracked files once a pass has run: eight at the root, and 34 in
-`tools/` — 33 passes and harnesses plus a `README.md`. Two of the eight
-(`vim.c`, `LICENSE`) are products, `upstream.sha` is a record, and the other
-five and `tools/` are the seed.
+Fifty-one tracked files once a pass has run: nine at the root, and 42 in
+`tools/` — 41 passes, harnesses and phase programs plus a `README.md`. Two of
+the nine (`vim.c`, `LICENSE`) are products, `upstream.sha` is a record, and the
+other six and `tools/` are the seed.
 
 ```
 vim.c        the editor, headers and forward declarations included
 Makefile     the seed: builds vim.c, and produces it when upstream moves
+pass.mk      the pass itself: ten phases as make targets
 upstream.sha the commit vim.c was produced from
-tools/       the harnesses, and the passes that produced vim.c
+tools/       the harnesses, the passes, and the phases that are programs
 README.md  CLAUDE.md  GOAL.md  LICENSE  .gitignore
 ```
 
@@ -93,11 +94,12 @@ copy of this tree with the recorded baselines beside it (see below);
 `TRANSCRIPT.md`, which `/export` writes whenever this file is updated;
 `upstream/`, the pristine vim tree a pass clones in, works on and deletes —
 8,581 files that must never reach a commit, and which do not exist between
-passes; and `PROGRESS.md` and `pass.log`, which a pass writes as it works —
-the log of the `claude -p` stream, and the insight log whose contents are
-folded into `GOAL.md`, this file and `tools/` and then deleted. `upstream.sha`
-is deliberately *not* ignored: it is the record of what `vim.c` was produced
-from. `.gitignore` also names what the tools and the editors leave lying
+passes; `.build/`, the phase boundaries a pass leaves behind — a tar and a
+content digest per phase, plus each phase agent's stream and its elapsed
+seconds; and `PROGRESS.md`, the transient insight log whose contents are folded
+into `GOAL.md` and this file and then deleted. `upstream.sha` is deliberately
+*not* ignored: it is the record of what `vim.c` was produced from.
+`.gitignore` also names what the tools and the editors leave lying
 about: `*.swp`, `__pycache__/`, `*.pyc` and `.claude/`. The `.gitignore` upstream shipped named 91 paths, of which two still
 existed — `src/testdir/`, `runtime/doc/tags-*`, `nsis/icons/*` and the rest
 went with the tree they belonged to.
@@ -788,18 +790,47 @@ make                 # ls-remote, compare against upstream.sha, and if they
                      # claude -p over GOAL.md, rm -rf upstream/, record the sha
 ```
 
-The agent that runs inside that recipe is handed `upstream/` already cloned
-with its `.git` already gone, is told never to touch the root `Makefile`, and
-moves exactly two files to the root when it is done: `vim.c` and `LICENSE`.
-It writes `PROGRESS.md` as it works — a log for the next iteration of this
-process, aimed at replacing as much of the pass as possible with deterministic
-programs in `tools/` — and that log is folded into the two documents and
-deleted.
+**The pass is `pass.mk`, and it is ten make targets, not one agent.** A phase's
+prerequisite is the previous phase's boundary, so `make` sequences them — and a
+phase is run by a **program** if `tools/phase<N>.sh` exists and by an **agent**
+if it does not. Converting a phase is therefore adding a file; nothing else
+changes, and the pass runs end to end at every point in between.
 
-**A pass costs 67 minutes, of which under two are machine time.** That is the
-first measurement taken with the makefile driving it, and it is the number the
-work from here is against: see *Where the hour goes* in `GOAL.md` for the
-per-phase breakdown and which phases stop needing an agent at all.
+Each phase is a pure function of its input: the recipe restores the previous
+boundary into `upstream/` before running, so a phase cannot inherit anything
+from a run that went wrong. A **boundary** is a tar (the restore point:
+everything) beside a **content digest** (the meaning: a sha256 over every
+source file's own sha256, with `objects/`, the built binary and `config.log`
+excluded — that last one carries a timestamp, and a boundary containing it
+would never equal itself twice).
+
+```sh
+make repass          # force a pass on a tree whose sha already matches
+make phase-4         # re-run one phase from the previous boundary
+make replay-3        # put upstream/ back to what phase 4 receives
+make times           # where this pass's seconds went
+make promote-4       # make an advisory boundary a hard check
+```
+
+That is what makes the deterministic rewrite affordable: **converting a phase
+costs seconds, not an hour** — restore the previous boundary, run the program,
+compare the next digest. No agent, no full pass.
+
+A recorded boundary is one of two things, and the difference is deliberate. An
+**advisory** one came from an agent, which is not required to be
+byte-reproducible mid-pass, and a mismatch is a report. A **check** was
+promoted after a deterministic run passed end to end, and a mismatch is a
+failure. Promoting a boundary from the run it is meant to check would make it
+agree with itself, which is the `.reference/` mistake in a smaller shape.
+
+**A pass cost 67 minutes when one agent did all of it, under two of them
+machine time**, and `GOAL.md`'s *Where the hour goes* has the per-phase
+breakdown. Phase 0 is now a program: **30 seconds against 2 m 57 s**.
+
+The document update is conditional. A pass that reproduced the previous `vim.c`
+byte for byte made no sentence here wrong, so `docs-if-changed` asks `git` —
+`vim.c` is tracked — and only calls an agent when there is a real difference to
+describe.
 
 `upstream/` is a **staging directory, not a checkout of anything**. It is
 gitignored, so its 8,581 files cannot reach a commit, and it does not exist

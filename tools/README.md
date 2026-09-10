@@ -60,6 +60,39 @@ the 245 banners with it. It is here for the rule it enforces, which nothing
 else records: a comment becomes one space **plus the newlines it spanned**, and
 it refuses outright if any multi-line comment has code on both sides.
 
+## Driving a pass
+
+`pass.mk` at the root sequences the ten phases; these are what it calls, and
+none of them knows anything about the phases themselves.
+
+- **`runphase.sh <n> <work> <build>`** — run phase *n* by program if
+  `tools/phase<n>.sh` exists and by agent if it does not, and record which and
+  how long. **Converting a phase is adding a file**; nothing else changes.
+- **`agentphase.sh <n> <work>`** — one `claude -p` scoped to a single phase,
+  handed the tree at that phase's input and forbidden everything outside it.
+  The prompt is assembled invariant-first, phase-text-last, so the ten phase
+  agents share one cached prefix instead of making ten.
+- **`agentdocs.sh`** — the document update, run only when `vim.c` actually
+  changed. A pass that reproduced the previous one made no sentence wrong.
+- **`snapshot.sh`**, **`restore.sh`** — a boundary is a tar (the restore point,
+  everything) plus a content digest (the meaning: sources, no `objects/`, no
+  `config.log`, which carries a timestamp and would make no boundary ever equal
+  itself twice).
+- **`oracle.sh <n>`** — compare a boundary against the recorded one. An
+  agent-recorded boundary is *advisory* and a mismatch is a report; a boundary
+  promoted after an end-to-end verified run is a *check* and a mismatch is a
+  failure.
+
+## Phases that are programs
+
+- **`phase0.sh`** — configure, build, delete the asserts, rebuild, and check
+  the harness disagrees with the baselines in exactly the six cases Phase 1
+  owns. 30 s, against 2 m 57 s of agent. Uses `dropasserts.py`.
+- **`dropasserts.py`** — the eight `assert()` calls and the `<assert.h>` that
+  declares them, found from the **objects** (`nm -u` for `__assert_fail`),
+  because a grep over the sources matches vim's own `in_assert_fails` and gets
+  the count wrong.
+
 ## Auditing
 
 `deadsweep.py` (delete what `-Wall -Wextra` names, once — it keys on the

@@ -85,7 +85,12 @@ below actually requires. Feature removal is a separate project afterwards.
 2. **Write the parsing helpers once**, in Phase 0, and import them everywhere.
 3. **Never parse C with a regex over the whole file.** Extract the construct by
    brace or paren matching, operate on that, write it back.
-4. **One commit per step**, with prose: why, what was measured, how it was
+4. **A phase's record is its boundary, not a commit.** `upstream/` is
+   gitignored, so a per-phase commit carries no tracked change — nine of the
+   ten in the last agent-run pass were empty commits whose whole content was
+   their message. `pass.mk` records a content digest at every boundary
+   instead, which is a better record because something can be checked against
+   it. Commit at the end, with prose: why, what was measured, how it was
    checked, what was deliberately left out.
 5. **Write `CLAUDE.md` incrementally, from Phase 1 onward** — not once at the
    end. Record what a phase established and every trap it hit, while the reason
@@ -268,12 +273,31 @@ make                 # and that is the whole of it
 **The root `Makefile` runs the pass, and it is part of the seed rather than a
 product.** It asks `git ls-remote` for the branch head, compares it against
 `upstream.sha`, and when they differ clones `upstream/`, deletes
-`upstream/.git`, hands the process to one `claude -p`, deletes `upstream/` and
-records the sha — only after the pass has left a `vim.c`, so a failure leaves
-the record alone and the next `make` retries. An agent running the pass is
-therefore handed `upstream/` already cloned and `.git` already gone, must never
-write over the root `Makefile`, and moves **exactly two** files to the root:
-`vim.c` and `LICENSE`.
+`upstream/.git`, runs the pass, deletes `upstream/` and records the sha — only
+after the pass has left a `vim.c`, so a failure leaves the record alone and the
+next `make` retries.
+
+**The pass itself is `pass.mk`: these ten phases, as ten make targets.** A
+phase's prerequisite is the previous phase's boundary, and its recipe restores
+that boundary into `upstream/` first, so every phase is a pure function of its
+input rather than of whatever the last attempt left behind.
+
+**A phase is run by a program if `tools/phase<N>.sh` exists, and by an agent if
+it does not.** That is the whole dispatch, and it is what makes this document's
+own obsolescence incremental: converting a phase is adding a file, the pass
+still runs end to end, and the phase that changed can be checked against the
+boundary the agent recorded. An agent running a phase is handed `upstream/` at
+exactly that phase's input, is confined to it — not the root `Makefile`, not
+`pass.mk`, not `tools/`, not this file — and does **that phase only**.
+
+The last phase leaves **exactly two** files for the root: `vim.c` and
+`LICENSE`.
+
+Three targets are worth knowing while working on this: `make repass` forces a
+pass when `upstream.sha` already matches, which is every run during
+development; `make phase-4` re-runs one phase from the previous boundary;
+`make replay-3` puts `upstream/` back to what phase 4 receives, which is how a
+phase is debugged without replaying the hour before it.
 
 `upstream/` is a **staging directory, not a checkout of anything**. It is
 gitignored, so its 8,581 files cannot reach a commit, and it does not exist
@@ -383,7 +407,7 @@ deciding and typing.
 
 | phase | elapsed | what dominated |
 | --- | --- | --- |
-| 0 reference, tools, harness | 2 m 57 s | reading this file; two builds |
+| 0 reference, tools, harness | 2 m 57 s | reading this file; two builds — **now a program, 30 s** |
 | 1 freeze the configuration | 13 m 12 s | the terminal tables (4 m), the option defaults (2 m) |
 | 2 prune the tree | 4 m 39 s | four rounds of build, read the one error, fix the makefile |
 | 3 one Makefile | 47 s | — |
@@ -442,6 +466,13 @@ The three changes measured to be worth the most, in order:
    `-Wunused-function`.
 
 ## Phase 0 — reference, tools, harness
+
+**This phase is a program: `tools/phase0.sh`, 30 seconds against the 2 m 57 s
+an agent took.** What follows is what it does and why, which is still worth
+reading — it is the specification the program was written from, and what to
+check it against when upstream moves. It configures, builds, deletes the
+asserts with `tools/dropasserts.py`, builds again, and requires the harness to
+differ from the recorded baselines in exactly the six cases Phase 1 owns.
 
 **Do not write the tools again.** They are in `tools/` in this repository and
 the pass does not touch them; the specifications below are what to build from

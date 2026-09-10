@@ -31,12 +31,12 @@ them — and `-lm` — put back; `CLAUDE.md` says where.
   `tabstop=4`, `shiftwidth=4`, `expandtab`, `autoindent`, `nocompatible`,
   `hlsearch` and `ruler` — plus four mappings, with bracketed paste never
   enabled. `-u NONE` does not undo any of it. `CLAUDE.md` lists them all.
-- **Not yet deterministic.** `make` runs the pass, but what it runs is an
-  agent — one `claude -p` carrying `GOAL.md` — and it takes about an hour, of
-  which only a couple of minutes are the machine. Moving that work into
-  ordinary programs under `tools/`, driven as makefile subtasks, is the
-  direction of travel; `GOAL.md` measures where the hour goes and says which
-  phases go first.
+- **Not yet deterministic, and becoming so one phase at a time.** The pass is
+  ten make targets in `pass.mk`. A phase runs as a **program** if
+  `tools/phase<N>.sh` exists and as an **agent** if it does not, so converting
+  one is adding a file and the pass runs end to end throughout. An agent-run
+  pass takes about an hour, only a couple of minutes of which are the machine;
+  `GOAL.md` measures where that hour goes and which phases go first.
 
 ## Running a pass
 
@@ -51,6 +51,18 @@ about eight seconds, and when it does not it clones `upstream/`, deletes its
 deletes `upstream/` and records the new sha. Nothing of the clone survives, and
 everything this tree has is produced by the phases — there is no list of extras
 to re-apply afterwards.
+
+Each phase leaves a **boundary** behind — a restorable snapshot and a content
+digest — which is what makes the deterministic rewrite affordable: converting a
+phase means restoring the previous boundary, running the new program and
+comparing the next digest, in seconds rather than an hour.
+
+```sh
+make repass          # force a pass when upstream has not moved
+make phase-4         # re-run one phase from the previous boundary
+make replay-3        # put upstream/ back to what phase 4 receives
+make times           # where this pass's seconds went
+```
 
 Read `GOAL.md` before you expect to follow along. The ordering is the point.
 Then check the result:

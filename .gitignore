@@ -14,11 +14,14 @@ TRANSCRIPT.md
 # 8,581 files that must never reach a commit.  See GOAL.md.
 upstream/
 
-# What a pass leaves behind: the agent's raw stream, and the insight log it
-# keeps as it works.  PROGRESS.md is transient by design -- its insights are
-# folded into GOAL.md, CLAUDE.md and tools/, and then it goes.
+# What a pass leaves behind: phase snapshots, boundary digests, per-phase agent
+# streams and timings.  .build/ is a restore point and a development asset --
+# converting a phase to a program means restoring the previous boundary and
+# comparing the next -- but it is data, not source, and a new pass discards it.
+.build/
+
+# The transient insight log, folded into GOAL.md and CLAUDE.md and then deleted.
 PROGRESS.md
-pass.log
 
 # Editing this tree with the editor it builds.
 *.swp
