@@ -451,8 +451,18 @@ minutes, of which Phase 8 is two thirds. The binary came out byte-identical to
 the committed one; `vim.c` differed by 49 lines, all of them Phase 8 noise.
 
 **What is left is not writing programs but shrinking them.** `make residue`
-scores it: Phase 9 is 33,670 lines of recorded diff, Phase 1 is 797 lines of
-deliberate patch, and everything else computes what it does.
+scores it. Phase 9's synthesised diff has been taken from 33,670 lines to
+**134** by replacing it with rules, and the phase from 943 seconds to 34; what
+remains there is what this document already says cannot be mechanical -- the 37
+fall-through attributes, the three `pum_set_*` functions, the version strings.
+Phase 1 is 797 lines of deliberate patch, which is the right answer for edits
+the tree cannot state. Everything else computes what it does.
+
+**A pass is about ten minutes now**, and Phase 8 is two thirds of it, being
+compile-bound: the static loop plus eight sweep rounds, each running gcc twice
+over a 177,000-line file. That is where the next minute comes from --
+`deadsweep.py --fixpoint`, and caching the warning list between the tool's own
+gcc run and the loop's check.
 
 **Partitioning the pass made it slower, and by how much is worth knowing:
 phases 1-8 took 73.0 minutes as nine separate agents against 35.6 as one.**
@@ -1404,6 +1414,13 @@ check compared `st.st_mtime` against `time(NULL) - sinfo.uptime` with `uptime`
 unsigned, making the subtraction unsigned and liable to wrap.
 
 ## Phase 9 — leave the preprocessor behind
+
+**This phase is a program: `tools/phase9.sh`, 34 seconds against 943.** Delete
+the unused macros in one round, split the `EXCMD` X-macro by its `#undef`
+regions, make `_()` and `NGETTEXT` inline functions, convert what can be an
+enumerator, expand the rest, unwrap the `do { } while (0)` wrappers, re-run the
+Phase 7 canonicalisers to a fixpoint, and apply 134 lines of residue for what
+is genuinely a decision. What follows is what each of those means and why.
 
 Every `#define` goes. **Count them with `^[[:space:]]*#[[:space:]]*define`, never
 `^#define`** — whitespace between `#` and the keyword is insignificant to C, and

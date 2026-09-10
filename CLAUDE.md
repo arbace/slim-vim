@@ -253,21 +253,37 @@ transformation over every line of a shape — does not care. So:
   0      program             0  computed
   1      program           797  a deliberate patch: the edits are fixed
   2..8   program             0  computed
-  9      program        33,670  synthesised from one tier-1 run
-         total          34,467
+  9      program           134  what is genuinely a decision
+         total             931
 ```
 
 Phase 1's 797 lines are not a failure to understand it — its content genuinely
 *is* a set of fixed edits, and the tree cannot state them. That is the one
 place a patch is the right answer rather than a placeholder. Phase 9's 33,670
-are the opposite: a recording, produced automatically the first time it ran,
-and the whole of the work left to do.
+were the opposite: a recording of 33,670 lines, produced automatically the
+first time it ran. Replacing it with rules took it to **134**, and what is left
+is exactly what `GOAL.md` says cannot be mechanical — 37 fall-through
+attributes, the three `pum_set_*` functions written out because C cannot paste
+tokens, the version strings — plus twelve empty banner pairs that could still
+go. A 251-fold shrink, and the phase went from 943 seconds to **34**.
 
-**A pass costs 24 minutes**, measured with nine phases as programs and Phase 9
-at tier 1: 31 s, 20 s, 6 s, 1 s, 0 s (cached), 12 s, 11 s, 40 s, 385 s, and
-943 s for the agent. Without that agent — which is where the synthesised
-program now puts it — the same pass is **under nine minutes**, and Phase 8 is
-two thirds of it, being compile-bound.
+The rules that did it are worth naming, because each was a *general* fact the
+tree could state rather than a special case. `ex_cmds.h` is inlined twice with
+`EXCMD` meaning two different things either side of an `#undef`, and an
+expander keyed by name takes the second body for both — so the two definitions
+are split by their `#undef` region first, and then the enum and the table each
+expand from their own. `_()` and `NGETTEXT` are excluded from expansion because
+`format_arg` is what keeps `-Wformat` seeing through them, so the check there is
+that the *warning set* is unchanged rather than that it builds. And macros are
+deleted before conversion in exactly one round, because the round count decides
+how many constants ever reach `toenum.py`.
+
+**A pass costs about ten minutes** with every phase a program: 31 s, 20 s, 6 s,
+1 s, 63 s, 12 s, 11 s, 40 s, 385 s, 34 s. It cost 24 minutes with Phase 9 at
+tier 1, and 67 when one agent did all of it. **Phase 8 is now two thirds of the
+total**, being compile-bound — the static loop plus eight sweep rounds, each
+running gcc twice over a 177,000-line file — and is where the next minute comes
+from.
 
 **The last pass produced a binary byte-identical to the committed one** and a
 `vim.c` differing by 49 lines, all of it Phase 8: a redundant `static` on

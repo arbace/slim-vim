@@ -15,7 +15,7 @@ every macro looked up in a dict; a pass per macro over a five-megabyte file
 would be five gigabytes of scanning.  Bodies are expanded too, so the rounds
 converge and the #defines can all go at the end.
 
-Usage: expand.py <file> [rounds]
+Usage: expand.py [--keep=NAME,...] <file> [rounds]
 """
 import re
 import sys
@@ -100,10 +100,20 @@ def one_round(text, table):
 
 
 def main():
-    path = sys.argv[1]
-    rounds = int(sys.argv[2]) if len(sys.argv) > 2 else 12
+    args = [a for a in sys.argv[1:] if not a.startswith('--keep=')]
+    # Names that must survive as names.  _() and NGETTEXT() become inline
+    # functions carrying format_arg, which is what keeps -Wformat seeing
+    # through them; expanding them instead builds cleanly and loses the
+    # diagnostics silently.
+    keep = set()
+    for a in sys.argv[1:]:
+        if a.startswith('--keep='):
+            keep.update(a[len('--keep='):].split(','))
+    path = args[0]
+    rounds = int(args[1]) if len(args) > 1 else 12
     defs = macros.parse(path)
-    table = {name: (params, body) for _, name, params, body in defs}
+    table = {name: (params, body) for _, name, params, body in defs
+             if name not in keep}
     lines = open(path, encoding='utf-8', errors='surrogateescape').read().split('\n')
     dropped = {ln for ln, _, _, _ in defs}
     text = '\n'.join(l for i, l in enumerate(lines) if (i + 1) not in dropped)

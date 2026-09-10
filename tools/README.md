@@ -127,6 +127,10 @@ each reproduces that boundary byte for byte.
   units. **8 s against 7 m 00 s.** 8,251 conditional groups become 17.
 - **`phase7.sh`** — the seven canonicalisers to a joint fixpoint, checked by
   tier 1. **40 s against 5 m 24 s.** Uses `canon.sh`.
+- **`phase9.sh`** — delete, split the X-macro, convert, expand, unwrap,
+  canonicalise. **34 s against 943 s**, with a 134-line residue where it began
+  as a 33,670-line recording. Uses `dropmacros.py`, `xmacro9.py`,
+  `gettext9.py`, `toenum.py`, `expand.py`, `undowhile.py` and `canon.sh`.
 
 - **`dropasserts.py`** — the eight `assert()` calls and the `<assert.h>` that
   declares them, found from the **objects** (`nm -u` for `__assert_fail`),
@@ -143,6 +147,21 @@ each reproduces that boundary byte for byte.
 - **`blankruns.py`**, **`forcomma.py`** — collapse runs of blank lines; hoist
   comma operators out of `for` init clauses, declining the ones that *declare*
   (hoisting would widen the scope) or contain a call.
+- **`dropmacros.py`** — delete the `#define`s nothing mentions, in **exactly
+  one round**. Iterating finds 48 more and produces a permanently different
+  `vim.c`, because the round count decides how many constants ever reach
+  `toenum.py` — 1,444 enumerators against 1,410.
+- **`xmacro9.py`** — `ex_cmds.h` is inlined twice with `EXCMD` meaning two
+  different things either side of an `#undef`, and an expander keyed by name
+  takes the second body for both — which puts 600 struct initialisers inside
+  `enum CMD_index`. It splits the two definitions by their `#undef` region,
+  rewrites the row body as a designated initialiser, and adds the
+  `static_assert` that catches a dropped last row.
+- **`gettext9.py`** — `_()` and `NGETTEXT` become inline functions rather than
+  being expanded, because `format_arg` is what keeps `-Wformat`,
+  `-Wformat-security` and `-Wformat-nonliteral` seeing through them. Expanding
+  them builds cleanly and loses the diagnostics silently, so the check is that
+  the warning set is unchanged.
 - **`undefs.py`** + **`renames.txt`** — remove `#undef`, splitting any macro
   that was defined twice into two names from the table. It refuses on an
   unlisted one rather than guessing, which is how it found `PLURAL_MSG` (two
