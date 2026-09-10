@@ -1,123 +1,98 @@
 # Vim as one translation unit
 
-**Experimental.** This repository holds a **process**, not a product: it turns a
-pristine [vim](https://github.com/vim/vim) tree into a single C file, `vim.c`,
-that one `gcc` invocation compiles into a working, standalone `vim`.
+> One C file. One `gcc` invocation. A standalone `vim`.
 
-**Between passes there is no editor here.** `vim.c` and `LICENSE` are
-*products* — they appear when you run a pass and are regenerated from upstream
-the next time. A checkout containing only `.gitignore`, `Makefile`,
-`README.md`, `CLAUDE.md`, `GOAL.md` and `tools/` is the intended state, not a
-missing file.
-
-**The `Makefile` is the seed, not a product**, and it is what runs a pass:
-`vim.c` depends on the upstream branch head, which every `make` asks
-`git ls-remote` for and compares against the committed `upstream.sha`.
-
-**Built for Alpine Linux and musl.** The compile line is `-O0 -static -s` and
-nothing else: musl's libm is part of libc, and musl declares everything
-unconditionally, so upstream's feature-test macros are gone. Another libc wants
-them — and `-lm` — put back; `CLAUDE.md` says where.
-
-### What it is not
-
-- **Not a fork, and nothing is rebranded.** The program is vim, the binary is
-  `vim`, and `$VIM`, `$VIMRUNTIME`, `~/.vimrc` and every string are upstream's.
-- **Not a feature-stripped vim.** The reduction is in *files and preprocessor*,
-  not in what the editor can do. The build is upstream's `tiny` configuration
-  plus `+extra_search`.
-- **But it does not behave like a stock vim.** It ships no vimrc, so what one
-  would have said is compiled in instead: eighteen option defaults — among them
-  `tabstop=4`, `shiftwidth=4`, `expandtab`, `autoindent`, `nocompatible`,
-  `hlsearch` and `ruler` — plus four mappings, with bracketed paste never
-  enabled. `-u NONE` does not undo any of it. `CLAUDE.md` lists them all.
-- **Not one program but three, per phase.** See *The three-tier memoize*
-  below: the pass falls through a cached result, a deterministic program, and
-  an agent, in that order. Nine of the ten phases have a program.
-
-## Running a pass
+**Experimental.** This repository is a **process**, not a product: it turns a
+pristine [vim](https://github.com/vim/vim) tree into a single `vim.c` — and
+`vim.c` is a *function of upstream*, memoized in three tiers by a makefile.
 
 ```sh
-make
+make        # that is the whole of it
 ```
 
-That is the whole of it. `make` asks `git ls-remote` for the upstream branch
-head; when it matches `upstream.sha` it just compiles the committed `vim.c` in
-about eight seconds, and when it does not it clones `upstream/`, deletes its
-`.git` immediately because that remote is read-only input, runs the pass,
-deletes `upstream/` and records the new sha. Nothing of the clone survives, and
-everything this tree has is produced by the phases — there is no list of extras
-to re-apply afterwards.
+`make` asks `git ls-remote` what upstream's branch head is. If it matches the
+committed `upstream.sha`, it compiles `vim.c` and stops. If it does not, it runs
+a pass: clone, transform in ten phases, delete the clone, record the new sha.
 
-```sh
-make repass          # force a pass when upstream has not moved
-make phase-4         # re-run one phase from the previous boundary
-make replay-3        # put upstream/ back to what phase 4 receives
-make times           # where this pass's seconds went
-make residue         # how much of each phase is still a recorded diff
-make refpass         # the whole pass as one agent, into a directory of its own
-make compare         # that answer against this one
-```
+---
 
 ## The three-tier memoize
 
-**`vim.c` is a function of upstream, and this repository is that function,
-memoized.** The pass is ten phases, `p_N = f_N(p_{N-1})`, and each phase has
-three implementations that are tried in order:
+The pass is ten phases, `pₙ = fₙ(pₙ₋₁)`. Each falls through three
+implementations, cheapest first:
 
-| tier | what it is | what it can do |
-| --- | --- | --- |
-| **3** | the cached **result** for this input | nothing; it is an answer |
-| **2** | a deterministic **program** | exactly what it was written for |
-| **1** | an **agent**, scoped to one phase | cope with something it has not seen |
-
-Tier 3 is keyed by content — the input boundary's digest and the
-implementation's digest together — so a cached result answers exactly one
-question, and editing one phase re-runs that phase and the ones after it rather
-than all ten. A phase that costs a minute cold costs a fifth of a second warm.
-
-Tier 1 is slow and cannot be checked against itself: two agent runs on the same
-input have been measured to differ. **What makes it pay is what it leaves
-behind** — the difference between the two boundaries it produced is written out
-as a patch, and a phase with no program gets one that applies it. So the same
-input never costs an agent twice, and every phase acquires a fast path the
-first time it is ever run.
-
-That synthesised patch is a working tier 2 and a poor one: it reproduces one
-transformation of one input and breaks the moment upstream edits a line it
-touches. **Replacing it with rules — a computed set, a table, a transformation
-over every line of a shape — is the work, and the size of what is left is the
-score.** `make residue` keeps it. Zero means a phase is understood; a thousand
-lines means it is remembered.
-
-When a program fails, that is the construct working rather than an error: the
-pass falls through to the agent, which produces an answer, and a repair step
-then fixes the *program* so the next upstream change costs less than this one
-did.
-
-Read `GOAL.md` before you expect to follow along. The ordering is the point.
-Then check the result:
-
-```sh
-tools/verify.sh .reference/baselines  # behaviour, Ex sweep, pty, terminals, warnings
-tools/refcheck.sh                     # this pass against the previous pass's output
+```
+   ┌──────────────────────────────────────────────────────┐
+   │  tier 3   the cached result for this exact input     │  instant
+   │  tier 2   a deterministic program                    │  seconds
+   │  tier 1   an agent, scoped to one phase              │  minutes
+   └──────────────────────────────────────────────────────┘
+      ▲                                                   │
+      └───── every tier-1 run leaves a tier 2 behind ─────┘
 ```
 
-`verify.sh` compares the editor's *behaviour* against recordings made by an
-earlier pass; `refcheck.sh` compares the *source and binary* against that pass's
-output. Neither substitutes for the other, and both are inert on a first run,
-which is self-certifying.
+**Tier 3** is keyed by content — the input boundary's digest and the
+implementation's digest — so editing one phase re-runs that phase and the ones
+after it, never all ten.
+
+**Tier 1** is slow and cannot be checked against itself: two agent runs on
+identical input have been measured to differ. What makes it pay is what it
+leaves behind. The difference between the boundaries it produced is written out
+as a patch, so a phase acquires a fast path the first time it is ever run.
+
+**That patch is a working tier 2 and a poor one.** It reproduces one
+transformation of one input and breaks the moment upstream edits a line it
+touches. Replacing it with rules is the work; what will not reduce to a rule is
+the score — `make residue`. Zero means a phase is *understood*; a thousand
+lines, that it is only *remembered*. All ten are programs today.
+
+A program that fails is the construct working, not an error: the pass falls
+through to the agent, and a repair step then fixes the **program**, so the next
+upstream change costs less than this one did.
+
+---
+
+## What it is, and is not
+
+| | |
+| --- | --- |
+| **Not a fork** | The program is vim. `$VIM`, `$VIMRUNTIME`, `~/.vimrc` and every string are upstream's. Nothing is rebranded. |
+| **Not stripped** | No feature was removed — `:help`, `:hardcopy`, the encodings, locale and iconv are all here. The build is upstream's `tiny` plus `+extra_search`. |
+| **Not stock, though** | It ships no vimrc, so one is compiled in: `tabstop=4`, `expandtab`, `autoindent`, `nocompatible`, `hlsearch`, `ruler` and more, plus a handful of mappings. `-u NONE` undoes none of it. |
+| **Not portable yet** | Alpine and musl: `-O0 -static -s`, no feature-test macros, no `-lm`. Another libc wants them back. |
+| **Not an editor between passes** | `vim.c` and `LICENSE` are products; `Makefile`, `GOAL.md`, `CLAUDE.md`, `tools/` and `.gitignore` are the seed. |
+
+---
+
+## Commands
+
+| | |
+| --- | --- |
+| `make repass` | force a pass when upstream has not moved |
+| `make phase-4` | re-run one phase from the previous boundary |
+| `make replay-3` | put `upstream/` back to what phase 4 receives |
+| `make times` · `make residue` | where the seconds went · how much is still a recorded diff |
+| `make refpass` · `make compare` | the whole pass as one agent · that answer against this one |
+| `tools/verify.sh .reference/baselines` | behaviour, Ex sweep, pty, terminals, warnings |
+| `tools/refcheck.sh` | this pass's source and binary against the last one's |
+
+`verify.sh` checks *behaviour* against recordings; `refcheck.sh` checks *bytes*
+against the previous output. Neither substitutes for the other, and both are
+inert on a first run — which is self-certifying.
+
+---
 
 ## Where to read what
 
 | | |
 | --- | --- |
-| `GOAL.md` | the process: ten phases, the traps each hits, why the order is what it is |
-| `CLAUDE.md` | the result: what `vim.c` is, how it is built and verified, every deliberate divergence from upstream |
-| `tools/README.md` | the harnesses and passes, and what each is for |
+| **`GOAL.md`** | the process — ten phases, the traps each hits, why the order is what it is |
+| **`CLAUDE.md`** | the result — what `vim.c` is, how it is built and verified, every divergence from upstream |
+| **`tools/README.md`** | the harnesses and passes, and what each is for |
 
-Those two documents are the authority. This file carries no figures that would
-go stale; `CLAUDE.md`'s numbers are measurements, re-taken every pass.
+Those are the authority. This file carries no figures, so a third description
+cannot drift from them; `CLAUDE.md`'s numbers are measurements, re-taken every
+pass.
 
 ## Licence
 
