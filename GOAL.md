@@ -293,6 +293,20 @@ exactly that phase's input, is confined to it — not the root `Makefile`, not
 The last phase leaves **exactly two** files for the root: `vim.c` and
 `LICENSE`.
 
+**A boundary an agent recorded is advisory; one a program recorded and a
+verified pass promoted is a check.** That distinction is not caution, it is
+measured: re-running Phase 5 with an agent on identical input produced a
+different `edit.c` from the same agent's earlier run. The finished `vim.c` is
+required to be byte-identical and is; the middle of a pass is not, until a
+program is what makes it. So a mismatch against an advisory boundary is
+information, and a mismatch against a check is a failure.
+
+**Writing a phase program starts with the boundary diff, not with this
+document.** `.build/p2.tar` against `.build/p3.tar` says exactly what Phase 3
+did, in files rather than prose, and all four converted so far were written
+that way in minutes. What this document is for is the *why* — which of those
+edits is load-bearing, and which of them is a trap that a diff cannot show you.
+
 Three targets are worth knowing while working on this: `make repass` forces a
 pass when `upstream.sha` already matches, which is every run during
 development; `make phase-4` re-runs one phase from the previous boundary;
@@ -407,17 +421,34 @@ deciding and typing.
 
 | phase | elapsed | what dominated |
 | --- | --- | --- |
-| 0 reference, tools, harness | 2 m 57 s | reading this file; two builds — **now a program, 30 s** |
-| 1 freeze the configuration | 13 m 12 s | the terminal tables (4 m), the option defaults (2 m) |
-| 2 prune the tree | 4 m 39 s | four rounds of build, read the one error, fix the makefile |
-| 3 one Makefile | 47 s | — |
-| 4 line-level normalisations | 1 m 20 s | three tool calls |
-| 5 resolve conditionals | 3 m 14 s | writing the preprocess-and-tally driver |
-| 6 merge | 3 m 36 s | reading the reference for the four renames |
-| 7 canonicalise | 2 m 15 s | six tier-1 builds at 8 s each |
-| 8 internal linkage, dead code | 6 m 33 s | eight full `-Wall` compiles, 4 m of machine time |
-| 9 leave the preprocessor behind | 16 m 9 s | a five-minute reset, then the version strings and the X-macro |
-| documents, `.reference/`, verification | ~12 m | writing the two documents |
+| phase | one agent, whole pass | one agent per phase | **as a program** |
+| --- | --- | --- | --- |
+| 0 reference, tools, harness | 2 m 57 s | — | **32 s** |
+| 1 freeze the configuration | 13 m 12 s | 17 m 16 s | |
+| 2 prune the tree | 4 m 39 s | 7 m 13 s | |
+| 3 one Makefile | 47 s | 7 m 02 s | **1 s** |
+| 4 line-level normalisations | 1 m 20 s | 5 m 41 s | **63 s** |
+| 5 resolve conditionals | 3 m 14 s | 7 m 00 s | |
+| 6 merge | 3 m 36 s | 10 m 15 s | |
+| 7 canonicalise | 2 m 15 s | 5 m 24 s | **40 s** |
+| 8 internal linkage, dead code | 6 m 33 s | 13 m 09 s | |
+| 9 leave the preprocessor behind | 16 m 9 s | 16 m 26 s | |
+| documents, `.reference/`, verification | ~12 m | conditional | |
+
+**Partitioning the pass made it slower, and by how much is worth knowing:
+phases 1-8 took 73.0 minutes as nine separate agents against 35.6 as one.**
+Every phase agent opened with eight to twelve tool calls of pure
+re-orientation — `ls`, the head of this file, `cat pass.mk`, `cat
+tools/README.md`, reading the source of tools it was about to run — and Phase
+3, whose whole work is `ls *.c`, `ls *.h` and two fixed rules, went from 47
+seconds to seven minutes. One agent paid that cost once and amortised it over
+ten phases; nine agents paid it nine times. `agentphase.sh` now hands a phase
+its orientation in the prompt instead, invariant-first so the ten phases share
+one cached prefix.
+
+**That cost is temporary and the boundaries are not.** A phase that becomes a
+program is a phase that stops paying it at all, and the four converted so far
+run in 2 m 16 s against the 21 m 04 s the same four cost as separate agents.
 
 **The target is under five minutes, deterministically.** That is not reached by
 prompting better; it is reached by moving phases out of the agent and into
@@ -857,6 +888,11 @@ already happened when the script raised — rule 9.
 
 ## Phase 3 — one Makefile, nothing generated
 
+**This phase is a program: `tools/phase3.sh`, 1 second against 7 minutes.** It
+unwraps `HAVE_CONFIG_H` with `tools/unwrapif.py`, names the 97 `.pro` includes
+by path, points `xdiff.h` at `vim.h`, installs `tools/templates/upstream.mk`
+and drops `config.mk`. What follows is what it does and why.
+
 One small makefile, two targets, `vim` and `clean`. No dependency block, no
 shell script, no `CPPFLAGS` or `LDLIBS`. 3,570 lines become about 24.
 
@@ -929,6 +965,10 @@ Two things make that slow to diagnose, and both are worth knowing up front:
   a balanced file. The compiler is the authority.
 
 ## Phase 4 — the cheap line-level normalisations
+
+**This phase is a program: `tools/phase4.sh`, 63 seconds against 5 m 41 s.**
+splice, untab, decomment, in that order, and it refuses if the blank-line count
+moves. What follows is what it does and why.
 
 None of these needs to understand C, so do them now, per file, in parallel.
 
@@ -1152,6 +1192,11 @@ there is only one file now. Make it shape-agnostic
 `begin`/`end ex_cmdidxs.h` banners.
 
 ## Phase 7 — canonicalise, before anything reads C syntax
+
+**This phase is a program: `tools/phase7.sh`, 40 seconds against 5 m 24 s.** It
+builds tier 1's left-hand side first, runs `tools/canon.sh` to a joint fixpoint
+(six rounds here), and requires the binary to come out byte-identical. What
+follows is what it does and why.
 
 **Everything after this point needs to know where a condition, a body and a
 statement begin and end.** Make it syntactic and the tools stop parsing C; leave

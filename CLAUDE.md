@@ -60,10 +60,10 @@ it is the only one.
 
 ## Layout
 
-Fifty-one tracked files once a pass has run: nine at the root, and 42 in
-`tools/` — 41 passes, harnesses and phase programs plus a `README.md`. Two of
-the nine (`vim.c`, `LICENSE`) are products, `upstream.sha` is a record, and the
-other six and `tools/` are the seed.
+Fifty-nine tracked files once a pass has run: nine at the root, and 50 under
+`tools/` — 48 passes, harnesses and phase programs, a `README.md`, and one file
+in `tools/templates/`. Two of the nine (`vim.c`, `LICENSE`) are products,
+`upstream.sha` is a record, and the other six and `tools/` are the seed.
 
 ```
 vim.c        the editor, headers and forward declarations included
@@ -85,7 +85,9 @@ the next `make` cheap.
 `README.md` is the front door and carries no figures; this file and `GOAL.md`
 are the authority, which is what keeps a third description from drifting.
 
-`tools/` is the only tracked subdirectory and has a `README.md` of its own.
+`tools/` is the only tracked subdirectory at the root and has a `README.md` of
+its own; `tools/templates/` beneath it holds the makefile Phase 3 installs into
+the staging tree.
 Nothing in it is part of the build; the build reads `vim.c` and nothing else.
 
 Six things a pass produces appear untracked, and `.gitignore` names them:
@@ -825,7 +827,13 @@ agree with itself, which is the `.reference/` mistake in a smaller shape.
 
 **A pass cost 67 minutes when one agent did all of it, under two of them
 machine time**, and `GOAL.md`'s *Where the hour goes* has the per-phase
-breakdown. Phase 0 is now a program: **30 seconds against 2 m 57 s**.
+breakdown, including the finding that splitting it into one agent per phase
+made it *slower* — 89 minutes — because each agent re-orients from scratch.
+
+**Four phases are programs, and they run in 2 m 16 s against the 21 m 04 s the
+same four cost as agents**: Phase 0 (32 s), Phase 3 (1 s), Phase 4 (63 s) and
+Phase 7 (40 s). Each reproduces, byte for byte, the boundary the agent it
+replaced had recorded.
 
 The document update is conditional. A pass that reproduced the previous `vim.c`
 byte for byte made no sentence here wrong, so `docs-if-changed` asks `git` —

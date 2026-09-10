@@ -56,10 +56,67 @@ Rules, all of them absolute:
   the harness can restore the input and retry, and a clean failure is worth
   more than a partial success it cannot tell apart from a whole one.
 
-Read GOAL.md's ground rules and verification tiers if you need them; the phase
-text below is authoritative for what to do, and the rest of that file is
-context.  Its numbers are measurements from previous passes: reproduce them
-where they are stated, and say so when yours differ.
+WHERE THINGS ARE.  This is the orientation; do not go and rediscover it.  The
+first pass to run phases separately spent four to five minutes per phase on
+exactly that -- ls, the first 120 lines of GOAL.md, cat pass.mk, cat
+tools/README.md, reading the source of tools it was about to run -- and turned
+a 47-second phase into seven minutes.
+
+  cwd                  the repository root.  Stay in it; use paths.
+  upstream/            the tree you transform.  Before phase 2 the C sources are
+                       in upstream/src with proto/*.pro and objects/ beside
+                       them; phase 2 flattens it, and from then on everything
+                       sits directly in upstream/.
+  building it          make -C upstream/src -j\$(nproc)   before phase 3
+                       make -C upstream -j\$(nproc)       from phase 3 on
+                       NEVER cd into it and run make: the repository root has a
+                       makefile whose default target is also 'vim', so a cd
+                       that does not stick rebuilds THAT and reports success
+                       while the tree under test is untouched.
+  tools/               run from the root, with paths into upstream/.  They take
+                       file lists on the command line and do nothing at import.
+  .reference/baselines what the Phase 1 binary did, recorded.  behaviour.py,
+                       exsweep.py, ptycheck.py and termcheck.py compare to it.
+  .build/pN.tar        the tree each earlier phase left, if you need to look.
+
+THE TOOLS.  All of them exist.  Do not read their source before running them,
+and do not write your own version of one:
+
+  cutil.py         blank literals or comments preserving offsets, match braces
+                   and parens, per-character depth, split on a top-level
+                   operator, find and delete a function by name
+  splice.py        backslash continuations      untab.py       tabs at 8-col stops
+  decomment.py     a comment becomes one space plus the newlines it spanned
+  keepset.py       what the compiler opens      dropsrc.py     a source and its mentions
+  cond.py          conditional groups as a tree macros.py      parse the #defines
+  plant.py         mark every branch            resolve.py     keep the ones that survive
+  merge.py         67 files into one            toenum.py      #define to enumerator
+  expand.py        expand a macro at its uses   reblank.py     recover paragraphing
+  canon.sh         the seven canonicalisers to a joint fixpoint -- blankruns,
+                   joinparens, splitheads, brace, onestmt, onedecl, forcomma
+  deadsweep.py     delete what -Wall names      typereach.py   dead type definitions
+  create_cmdidxs.py  the command lookup table, --check or --update
+  build.sh         a reproducible build for tier 1 (pins SOURCE_DATE_EPOCH)
+  tier2.py         compare two preprocessed files as token streams
+  enumvals.sh      every enumerator and its value, from DWARF
+  verify.sh refcheck.sh behaviour.py exsweep.py ptycheck.py termcheck.py
+
+VERIFICATION.  Pick the cheapest that applies.  Pure formatting: the binary is
+byte-identical, via build.sh, which pins the timestamp __DATE__ would otherwise
+move.  Token-preserving: the token stream is identical, via tier2.py -- and
+check the warnings too, since a token-neutral change can still be wrong.
+Anything else: the harnesses against .reference/baselines.  Blank lines are
+what no tier can see; count them when you touch paragraphing.
+
+If you need a program that does not exist, write it into .build/newtools/ and
+say so in your final output, so it can be kept.  Two tools written into /tmp by
+an earlier phase were nearly lost with it.
+
+The phase text below is complete and authoritative.  GOAL.md is 1,400 lines
+describing ten phases, nine of which are not yours -- open it only if the phase
+text names a section you actually need, and never read it front to back.  Its
+numbers are measurements from previous passes: reproduce them where they are
+stated, and say so when yours differ.
 
 When you are done, print one line per thing you changed and the measurements
 the phase text asks for.  Nothing else.

@@ -32,7 +32,14 @@ mkdir -p "$(dirname "$tar_out")"
 # Anything that survives into vim.c stays counted -- auto/config.h and
 # auto/pathdef.c are generated too, but Phase 1 freezes them as sources and
 # their content is part of the answer.
-exclude='/objects/|/auto/config\.(log|status|cache)$|\.(o|d)$|/src/vim$'
+#
+# The built binary is excluded wherever it is -- ./src/vim before Phase 2
+# flattens the tree and ./vim after it -- and not merely because it is derived.
+# version.c embeds __DATE__ and __TIME__, so two builds of identical sources
+# are different files, and a boundary counting the binary is never equal to
+# itself twice.  (The pass builds without SOURCE_DATE_EPOCH on purpose: an
+# ordinary build should record the real time.  Tier 1 pins it separately.)
+exclude='/objects/|/auto/config\.(log|status|cache)$|\.(o|d)$|/vim$'
 
 # find | sort makes the order the tree's, not the filesystem's.
 ( cd "$dir" && find . -type f ! -path './.git/*' -print0 \

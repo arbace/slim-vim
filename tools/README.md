@@ -85,13 +85,41 @@ none of them knows anything about the phases themselves.
 
 ## Phases that are programs
 
+Each was written by diffing the two boundaries the agent left — `p2.tar`
+against `p3.tar` says exactly what Phase 3 did, with no prose in between — and
+each reproduces that boundary byte for byte.
+
 - **`phase0.sh`** — configure, build, delete the asserts, rebuild, and check
   the harness disagrees with the baselines in exactly the six cases Phase 1
-  owns. 30 s, against 2 m 57 s of agent. Uses `dropasserts.py`.
+  owns. **32 s against 2 m 57 s.** Uses `dropasserts.py`.
+- **`phase3.sh`** — unwrap `HAVE_CONFIG_H`, name the 97 `.pro` includes by
+  path, point `xdiff.h` at `vim.h`, install the makefile, drop `config.mk`.
+  **1 s against 7 m 02 s.** Uses `unwrapif.py` and `templates/upstream.mk`.
+- **`phase4.sh`** — splice, untab, decomment, and require the blank-line count
+  not to move. **63 s against 5 m 41 s.**
+- **`phase7.sh`** — the seven canonicalisers to a joint fixpoint, checked by
+  tier 1. **40 s against 5 m 24 s.** Uses `canon.sh`.
+
 - **`dropasserts.py`** — the eight `assert()` calls and the `<assert.h>` that
   declares them, found from the **objects** (`nm -u` for `__assert_fail`),
   because a grep over the sources matches vim's own `in_assert_fails` and gets
   the count wrong.
+- **`unwrapif.py`** — delete a conditional group's two directives and keep its
+  body, by **matching** rather than substituting. Deleting `#ifdef
+  HAVE_CONFIG_H` alone leaves its `#endif` to close `#ifndef VIM__H` three
+  thousand lines early, and gcc then reports a redeclared enumerator in
+  `termdefs.h`. It refuses when the group has an `#else`.
+- **`canon.sh`** — the seven canonicalisers to a joint fixpoint, looping until
+  the file stops changing. Stronger than running each once, and Phase 9 calls
+  it too, because macro expansion re-breaks exactly what Phase 7 fixed.
+- **`blankruns.py`**, **`forcomma.py`** — collapse runs of blank lines; hoist
+  comma operators out of `for` init clauses, declining the ones that *declare*
+  (hoisting would widen the scope) or contain a call.
+- **`templates/upstream.mk`** — the 65-line makefile Phase 3 installs into the
+  staging tree, checked in rather than written each pass. It uses `$(wildcard)`
+  and so bakes in no file list; keeping it as text also stops a pass rewriting
+  its prose slightly differently every time, which is a boundary difference
+  that means nothing and has to be explained anyway.
 
 ## Auditing
 
