@@ -206,7 +206,7 @@ record:
 	    echo "  record       p$$p advisory: $$(cut -c1-12 $(BUILD)/p$$p.sha256)"; \
 	done
 
-# Where the time went, from what runphase.sh recorded.
+# Where the time went, from what memo.sh recorded.
 .PHONY: times
 times:
 	@total=0; for p in $(PHASES); do \

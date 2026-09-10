@@ -81,9 +81,10 @@ themselves.
 - **`repair.sh`** — after the fast path failed and the agent succeeded: fix the
   *program*, not the symptom, and say plainly when a change genuinely needs
   judgement.
-- **`runphase.sh <n> <work> <build>`** — the pre-memoize dispatcher, kept
-  because it is the whole idea in eight lines: program if one exists, agent if
-  not.
+- **`preflight.sh`** — what a pass needs on this machine, asked before the
+  clone rather than ten minutes in: the GNU userland the phase programs assume
+  (`sed -i`, `mv -t`, `nm --defined-only`), the toolchain, and — only if some
+  phase still lacks a program — a `claude` that can actually authenticate.
 - **`agentphase.sh <n> <work>`** — one `claude -p` scoped to a single phase,
   handed the tree at that phase's input and forbidden everything outside it.
   The prompt is assembled invariant-first, phase-text-last, so the ten phase
@@ -189,6 +190,16 @@ lost again)
 
 `GOAL.md` describes what each phase uses them for; `README.md` at the root is
 the front door to both.
+
+**Some of these are currently reached by nothing, and that is not a reason to
+delete them.** `undowhile.py`, `toenum.py` and `reblank.py` are unreferenced
+today because Phase 9 is a *synthesised patch* — a recording of what an agent
+did, which swallowed the work those tools used to do. They come back into use
+the moment that patch is replaced by rules, which is the whole of the remaining
+work. This is the same trap Phase 0 warns about in a new shape: a tool can look
+dead because the current implementation does not reach it, and two were once
+deleted for exactly that reason and had to be written again from memory. The
+test is "does the process need it", not "does anything call it today".
 
 Gone for good: `rename.bat`, which was **upstream's** — a Win32 build helper
 that survived every pruning pass because Vim's own tree has a `tools/` too.
