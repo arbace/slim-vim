@@ -1,5 +1,5 @@
 # The build's one product.
-vim
+slim-vim
 
 # The frozen snapshot of this tree, plus the harness baselines.  Data, and a
 # copy of what git already has -- not source.  See CLAUDE.md.

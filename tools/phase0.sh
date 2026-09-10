@@ -1,9 +1,9 @@
 #!/bin/sh
-# Phase 0 -- reference, tools, harness.  See GOAL.md.
+# Phase 0 -- reference, tools, harness.  See SLIM-GOAL.md.
 #
 # Usage: tools/phase0.sh <work-dir>       (run from the repository root)
 #
-# The phase that GOAL.md describes at greatest length is the one that needs an
+# The phase that SLIM-GOAL.md describes at greatest length is the one that needs an
 # agent least: the tools already exist in tools/ and the pass does not write
 # them, so what is left here is configure, build, delete the asserts, build
 # again, and check the harness against the previous pass's recordings.

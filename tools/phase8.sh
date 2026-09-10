@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 8 -- internal linkage, then dead code to a fixpoint.  See GOAL.md.
+# Phase 8 -- internal linkage, then dead code to a fixpoint.  See SLIM-GOAL.md.
 #
 # Usage: tools/phase8.sh <work-dir>       (run from the repository root)
 #
@@ -158,7 +158,7 @@ while :; do
 done
 
 # --- the two warnings that are findings, not dead code --------------------
-# GOAL.md predicts both, and both were there.  They are the reason the sweep is
+# SLIM-GOAL.md predicts both, and both were there.  They are the reason the sweep is
 # not a delete-everything-it-names loop: a warning can be the compiler noticing
 # a bug rather than noticing something unused.
 #

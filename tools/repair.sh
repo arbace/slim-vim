@@ -4,7 +4,7 @@
 # Usage: tools/repair.sh          (run from the repository root)
 #
 # Called when the phase programs failed, the whole-pass agent succeeded, and
-# there is now a correct vim.c that the programs could not produce.  That gap
+# there is now a correct slim-vim.c that the programs could not produce.  That gap
 # is the most informative thing this process ever produces: something in
 # upstream moved under a patch, a pattern or a count, and the agent worked out
 # what to do about it.  Absorbing that silently would mean paying the same
@@ -34,7 +34,7 @@ What is in front of you:
 - .build/ref/vim.c is the correct answer, produced by the agent, and
   .build/ref/PROGRESS.md is its account of what upstream changed and what it
   did about it.  Read that first; it is written for you.
-- The repository's vim.c is now that answer, already copied into place.
+- The repository's slim-vim.c is now that answer, already copied into place.
 
 What to do:
 
@@ -53,13 +53,13 @@ What to do:
    agent for that phase alone.  A phase that honestly needs judgement is a
    better outcome than a program that guesses.
 4. Re-run the phase you fixed -- `make phase-<N>` -- and then the ones after
-   it, and require the final vim.c to match .build/ref/vim.c byte for byte.
-   `cmp vim.c .build/ref/vim.c` is the test.
-5. Update GOAL.md where the process description is now wrong, and write a note
+   it, and require the final slim-vim.c to match .build/ref/vim.c byte for byte.
+   `cmp slim-vim.c .build/ref/vim.c` is the test.
+5. Update SLIM-GOAL.md where the process description is now wrong, and write a note
    into .build/repairs/ saying what upstream changed, what you changed, and how
    you verified it.
 
-Do not edit vim.c by hand, and do not weaken a check to make a phase pass.  A
+Do not edit slim-vim.c by hand, and do not weaken a check to make a phase pass.  A
 check that was removed to get green is worse than the failure it hid.
 PREAMBLE
 )

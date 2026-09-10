@@ -71,7 +71,7 @@ fi
 
 cat > "$prog" <<EOF
 #!/bin/sh
-# Phase $phase -- SYNTHESISED from a tier-1 run.  See GOAL.md for what the
+# Phase $phase -- SYNTHESISED from a tier-1 run.  See SLIM-GOAL.md for what the
 # phase means; this file only reproduces what an agent did once.
 #
 # Usage: tools/phase$phase.sh <work-dir>

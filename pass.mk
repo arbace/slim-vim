@@ -69,7 +69,7 @@ clone:
 	@rm -rf $(WORK) $(BUILD)
 	@mkdir -p $(BUILD)
 	@date +%s > $(BUILD)/pass-start
-	@printf '\n\033[1m  slim-vim\033[0m  a pass: ten phases, upstream to vim.c\n'
+	@printf '\n\033[1m  slim-vim\033[0m  a pass: ten phases, upstream to slim-vim.c\n'
 	@printf '  %-12s %s\n' "started" "`date -Is`"
 	@git clone --quiet --branch $(UPSTREAM_BRANCH) --depth 1 $(UPSTREAM_URL) $(WORK)
 	@rm -rf $(WORK)/.git
@@ -77,7 +77,7 @@ clone:
 
 # Force a pass on a tree whose upstream.sha already matches -- which is what
 # every run during development is, since the point is to reproduce the same
-# vim.c by different means.  It deliberately does not write upstream.sha: only
+# slim-vim.c by different means.  It deliberately does not write upstream.sha: only
 # the real dependency does that.
 .PHONY: repass
 repass: clone
@@ -96,7 +96,7 @@ repass: clone
 #
 # It uses a work directory and an output directory of its own, so it never
 # touches the fast path's boundaries -- and it is forbidden to write the
-# repository's vim.c, because having a second answer to compare against the
+# repository's slim-vim.c, because having a second answer to compare against the
 # committed one is the entire point.
 REFWORK = upstream-ref
 
@@ -113,13 +113,13 @@ REFWORK = upstream-ref
 .PHONY: passorref
 passorref:
 	@if $(MAKE) --no-print-directory pass; then \
-	    echo "  workflow     the fast path produced vim.c"; \
+	    echo "  workflow     the fast path produced slim-vim.c"; \
 	else \
 	    echo "  workflow     the fast path FAILED -- falling back to the agent"; \
 	    $(MAKE) --no-print-directory refpass; \
-	    cp $(BUILD)/ref/vim.c vim.c; \
+	    cp $(BUILD)/ref/vim.c slim-vim.c; \
 	    cp $(BUILD)/ref/LICENSE LICENSE; \
-	    echo "  workflow     the reference path produced vim.c; repairing the fast path"; \
+	    echo "  workflow     the reference path produced slim-vim.c; repairing the fast path"; \
 	    tools/repair.sh; \
 	fi
 
@@ -143,35 +143,35 @@ refpass:
 .PHONY: compare
 compare:
 	@test -f $(BUILD)/ref/vim.c || { echo "  compare      no reference answer -- run make refpass"; exit 1; }
-	@if cmp -s vim.c $(BUILD)/ref/vim.c; then \
-	    echo "  compare      identical -- both paths produced the same vim.c"; \
+	@if cmp -s slim-vim.c $(BUILD)/ref/vim.c; then \
+	    echo "  compare      identical -- both paths produced the same slim-vim.c"; \
 	else \
-	    echo "  compare      DIFFERS -- fast path $$(grep -c '' vim.c) lines, reference $$(grep -c '' $(BUILD)/ref/vim.c)"; \
-	    echo "               +$$(diff vim.c $(BUILD)/ref/vim.c | grep -c '^>') -$$(diff vim.c $(BUILD)/ref/vim.c | grep -c '^<') against the committed one"; \
-	    echo "               diff vim.c $(BUILD)/ref/vim.c   -- and read $(BUILD)/ref/PROGRESS.md"; \
+	    echo "  compare      DIFFERS -- fast path $$(grep -c '' slim-vim.c) lines, reference $$(grep -c '' $(BUILD)/ref/vim.c)"; \
+	    echo "               +$$(diff slim-vim.c $(BUILD)/ref/vim.c | grep -c '^>') -$$(diff slim-vim.c $(BUILD)/ref/vim.c | grep -c '^<') against the committed one"; \
+	    echo "               diff slim-vim.c $(BUILD)/ref/vim.c   -- and read $(BUILD)/ref/PROGRESS.md"; \
 	fi
 
 # --- what a pass is -------------------------------------------------------
 .PHONY: pass
 pass: $(BUILD)/p9.sha256
-	@cp $(WORK)/vim.c vim.c
+	@cp $(WORK)/vim.c slim-vim.c
 	@cp $(WORK)/LICENSE LICENSE
 	@echo
-	@printf '  %-12s %s lines, and LICENSE beside it\n' "vim.c" \
-	    "`grep -c '' vim.c | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"
+	@printf '  %-12s %s lines, and LICENSE beside it\n' "slim-vim.c" \
+	    "`grep -c '' slim-vim.c | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"
 	@if [ -f $(BUILD)/pass-start ]; then 	    t=$$((`date +%s` - `cat $(BUILD)/pass-start`)); 	    printf '  %-12s %d phases in %dm%02ds -- make times, make residue\n' 	        "pass" 10 "$$((t / 60))" "$$((t % 60))"; 	 else 	    printf '  %-12s ten phases -- make times, make residue\n' "pass"; 	 fi
 
 # The documents, and only when there is something to describe.  A pass that
-# reproduced the previous vim.c byte for byte made no sentence wrong, and an
+# reproduced the previous slim-vim.c byte for byte made no sentence wrong, and an
 # agent rewriting them anyway costs twelve minutes to confirm that nothing
-# happened.  git is what knows: vim.c is tracked, so "did this pass change the
+# happened.  git is what knows: slim-vim.c is tracked, so "did this pass change the
 # editor" is one command and not a judgement.
 .PHONY: docs-if-changed
 docs-if-changed:
-	@if git diff --quiet -- vim.c 2>/dev/null; then \
-	    echo "  documents    vim.c unchanged -- nothing to describe"; \
+	@if git diff --quiet -- slim-vim.c 2>/dev/null; then \
+	    echo "  documents    slim-vim.c unchanged -- nothing to describe"; \
 	else \
-	    echo "  documents    vim.c changed -- updating"; \
+	    echo "  documents    slim-vim.c changed -- updating"; \
 	    tools/agentdocs.sh; \
 	fi
 
@@ -189,7 +189,7 @@ $(PHASES:%=replay-%): replay-%:
 	@echo "  replay       $(WORK)/ is the tree after phase $*"
 
 # Promote an agent-recorded boundary to a hard check.  Only after a pass whose
-# vim.c and behaviour verified end to end: a boundary promoted from the run it
+# slim-vim.c and behaviour verified end to end: a boundary promoted from the run it
 # is meant to check would agree with itself.
 .PHONY: $(PHASES:%=promote-%)
 $(PHASES:%=promote-%): promote-%:
@@ -230,7 +230,7 @@ residue:
 
 # What a pass would need on this machine, asked before it starts rather than
 # ten minutes in.  The ordinary case -- sha matches, compile the committed
-# vim.c -- reaches none of it.
+# slim-vim.c -- reaches none of it.
 .PHONY: preflight
 preflight:
 	@tools/preflight.sh

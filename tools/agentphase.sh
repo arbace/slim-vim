@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run ONE phase of GOAL.md with an agent, and nothing else.
+# Run ONE phase of SLIM-GOAL.md with an agent, and nothing else.
 #
 # Usage: tools/agentphase.sh <phase> <workdir>
 #
@@ -18,7 +18,7 @@ set -o pipefail         # or the tee below reports its own success as claude's
 phase=${1:?usage: agentphase.sh <phase> <workdir>}
 work=${2:?}
 
-goal=GOAL.md
+goal=SLIM-GOAL.md
 [ -f "$goal" ] || { echo "agentphase: no $goal here"; exit 1; }
 
 # The phase's own section: from its heading to the next top-level heading.
@@ -31,7 +31,7 @@ section=$(awk -v p="^## Phase $phase " '
 [ -n "$section" ] || { echo "agentphase: no '## Phase $phase' in $goal"; exit 1; }
 
 PROMPT=$(cat <<PREAMBLE
-You are running exactly one phase of the process in GOAL.md, unattended.
+You are running exactly one phase of the process in SLIM-GOAL.md, unattended.
 Nobody is watching: never ask a question, never wait for input, never stop to
 propose a plan.  Decide and proceed.
 
@@ -44,7 +44,7 @@ Rules, all of them absolute:
   one, and do not "while I am here" anything.  A harness runs the phases; you
   are one step of it.
 - Do not modify anything outside $work/.  Not the root Makefile, not tools/,
-  not GOAL.md, not CLAUDE.md, not .reference/, not .build/.  They are the
+  not SLIM-GOAL.md, not CLAUDE.md, not .reference/, not .build/.  They are the
   harness that invoked you.
 - Do not commit, and do not run git at all outside $work/.  The harness records
   this phase's boundary as a content digest, which is a better record than an
@@ -58,7 +58,7 @@ Rules, all of them absolute:
 
 WHERE THINGS ARE.  This is the orientation; do not go and rediscover it.  The
 first pass to run phases separately spent four to five minutes per phase on
-exactly that -- ls, the first 120 lines of GOAL.md, cat pass.mk, cat
+exactly that -- ls, the first 120 lines of SLIM-GOAL.md, cat pass.mk, cat
 tools/README.md, reading the source of tools it was about to run -- and turned
 a 47-second phase into seven minutes.
 
@@ -112,7 +112,7 @@ If you need a program that does not exist, write it into .build/newtools/ and
 say so in your final output, so it can be kept.  Two tools written into /tmp by
 an earlier phase were nearly lost with it.
 
-The phase text below is complete and authoritative.  GOAL.md is 1,400 lines
+The phase text below is complete and authoritative.  SLIM-GOAL.md is 1,400 lines
 describing ten phases, nine of which are not yours -- open it only if the phase
 text names a section you actually need, and never read it front to back.  Its
 numbers are measurements from previous passes: reproduce them where they are

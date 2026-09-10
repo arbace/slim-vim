@@ -1,8 +1,8 @@
-# GOAL.md — reduce vim to one translation unit
+# SLIM-GOAL.md — reduce vim to one translation unit
 
 A prompt for a fresh agent. The input is a pristine vim tree cloned into
 `upstream/` and stripped of its git metadata; see *Setting up*. The output is
-`vim.c`, the `Makefile` and `LICENSE` at the repository root, and `upstream/` is
+`slim-vim.c`, the `Makefile` and `LICENSE` at the repository root, and `upstream/` is
 deleted.
 
 Read all of it before starting. The ordering is the point: four phases exist
@@ -59,21 +59,23 @@ source file, no header, no generated file, no build script, no preprocessor
 beyond `#include` of system headers.
 
 The tree ends as `LICENSE`, `Makefile`, `vim.c`, `README.md`, `CLAUDE.md`,
-`GOAL.md`, `.gitignore` and a `tools/` directory holding the harnesses and the
+`SLIM-GOAL.md`, `.gitignore` and a `tools/` directory holding the harnesses and the
 passes that did the work. Keep the tools in the repository, not in a scratchpad: a
 scratchpad does not survive the session, and `CLAUDE.md` will end up naming
 things that no longer exist.
 
-**There is no rebranding.** The program, the binary, the single translation
-unit, the banner, `$VIM`, `$VIMRUNTIME`, `~/.vimrc` and every string are vim,
-exactly as upstream wrote them, and no other product name appears anywhere in
-the tree. Whatever the checkout directory is called is not one of them. The
-makefile rule is `vim: vim.c`.
+**Nothing inside the C is renamed.** The banner, `$VIM`, `$VIMRUNTIME`,
+`~/.vimrc`, `VIMNAME` and every string are vim exactly as upstream wrote them.
+What carries this repository's name is the two files a pass delivers —
+`slim-vim.c` and the `slim-vim` it compiles to — and nothing else.
 
-There is no collision to worry about: upstream has no `vim.c`, and `VIMNAME` is
-already `vim`, so the executable's name needs no change at all. `vim.h` and
-`vim.c` coexist only between Phase 6 creating the merged file and the same phase
-deleting the header it absorbed.
+**Inside `upstream/` the merged file is still `vim.c`.** That tree is upstream's
+and it is deleted at the end of every pass; the rename happens when the product
+is copied to the root. Keeping it that way costs nothing and buys a great deal:
+every recorded phase boundary is a digest over file names, so renaming there
+would invalidate all ten of them and the Phase 9 residue patch with them.
+`vim.h` and `vim.c` coexist only between Phase 6 creating the merged file and
+the same phase deleting the header it absorbed.
 
 **Do not remove features.** No `:help`, no `:hardcopy`, no encodings, no
 commands. The only edits before the single TU exists are the ones the process
@@ -256,7 +258,7 @@ writes is **scaffolding inside `upstream/`** for Phases 3 through 8 and dies
 with it.
 
 `upstream.sha` is neither: it is a **record**, written by the makefile after a
-pass succeeds and committed with the `vim.c` it describes. It is tracked
+pass succeeds and committed with the `slim-vim.c` it describes. It is tracked
 because it is what the next `make` compares the branch head against, and a
 checkout without one would run a whole pass to reproduce a tree it already has.
 
@@ -290,7 +292,7 @@ boundary the agent recorded. An agent running a phase is handed `upstream/` at
 exactly that phase's input, is confined to it — not the root `Makefile`, not
 `pass.mk`, not `tools/`, not this file — and does **that phase only**.
 
-The last phase leaves **exactly two** files for the root: `vim.c` and
+The last phase leaves **exactly two** files for the root: `slim-vim.c` and
 `LICENSE`.
 
 **The whole pass by one agent is still available, and is kept on purpose.**
@@ -355,7 +357,7 @@ At the time of writing the input is **9.2.1037**, the same patch level as the
 previous pass's input, so the delta is nil and this is the most ordinary case
 there is. Measuring it is two commands and 2 s:
 `grep -oP '^\s+\K[0-9]+(?=,)' upstream/src/version.c | head -1`, and `cmp
-vim.c .reference/vim.c`.
+slim-vim.c .reference/slim-vim.c`.
 
 The pass of 2026-09-10 reproduced all four baselines byte for byte **and the
 finished `vim.c` byte for byte**, 181,844 lines, with the binary identical at
@@ -375,7 +377,7 @@ outside this repository.
 
 ### The end-to-end check this buys
 
-`.reference/vim.c` is the previous pass's output. A pass is finished when the
+`.reference/slim-vim.c` is the previous pass's output. A pass is finished when the
 new one **differs from it only by what upstream changed**, and for a `tiny`
 build that is expected to be nothing at all. `tools/refcheck.sh` runs the
 comparison and is the last act of producing `vim.c`; see *Done when*.
@@ -448,7 +450,7 @@ deciding and typing.
 still running as an agent, and Phase 9's own program was synthesised from that
 run -- so the next pass has no agent in it at all and should come in under nine
 minutes, of which Phase 8 is two thirds. The binary came out byte-identical to
-the committed one; `vim.c` differed by 49 lines, all of them Phase 8 noise.
+the committed one; `slim-vim.c` differed by 49 lines, all of them Phase 8 noise.
 
 **What is left is not writing programs but shrinking them.** `make residue`
 scores it. Phase 9's synthesised diff has been taken from 33,670 lines to
@@ -485,7 +487,7 @@ programs in `tools/` that this repository's `Makefile` drives as subtasks with
 declared inputs and outputs — which is also what makes them parallelisable.
 
 **Almost every "judgement call" in a pass is a lookup, not a decision.** The
-answer already exists, in `.reference/vim.c` or in gcc's own diagnostics, and
+answer already exists, in `.reference/slim-vim.c` or in gcc's own diagnostics, and
 the cost is finding it. gcc named, unprompted and in order: the four
 `+extra_search` edits, the link error from dropping the terminal library, the
 thirteen symbols still external after Phase 8, the 879 dead prototypes, the
@@ -502,7 +504,7 @@ The three changes measured to be worth the most, in order:
    decisions in a pass cannot be derived from the tree at all: which side of a
    name collision to rename (Phase 6, four of them, plus `RE_WHITE` in Phase
    9), and the formatting conventions a previous pass settled. Every one is
-   answered by grepping `.reference/vim.c`, and every one costs minutes of
+   answered by grepping `.reference/slim-vim.c`, and every one costs minutes of
    navigating 181,844 lines. A checked-in `renames.txt` removes the first class
    and makes an *unlisted* collision a loud failure; `refgrep.py <symbol>`,
    printing the reference's version of a named function or table, removes the
@@ -829,7 +831,7 @@ before any of this started.
 **`LICENSE` comes from `upstream/`, and is the one file kept from it for its own
 sake.** Clause II.1 requires Vim's licence to be included unmodified in a
 modified Vim, and the file headers that carried the attribution go with the
-comments in Phase 4. Copy it to the root alongside `vim.c` at the end of the
+comments in Phase 4. Copy it to the root alongside `slim-vim.c` at the end of the
 pass and keep it byte-identical to the clone's — never hand-edited, and never
 carried forward from a previous pass, since the clone is where the authoritative
 copy is.
@@ -1621,7 +1623,7 @@ once:
 
 ## Done when
 
-- `make clean && make` produces `vim` from `vim.c` alone, in about 8 s;
+- `make clean && make` produces `slim-vim` from `slim-vim.c` alone, in about 8 s;
 - `behaviour.py`, the Ex-command sweep, the pty session and the terminal table are
   identical to the Phase 1 baseline;
 - `-Wall -Wextra` is silent — reports *nothing at all*;
@@ -1642,7 +1644,7 @@ once:
 tools/refcheck.sh          # brief report against .reference/, if there is one
 ```
 
-`.reference/vim.c` *is* the previous pass's output, so a new one should differ
+`.reference/slim-vim.c` *is* the previous pass's output, so a new one should differ
 from it only by what upstream changed — nothing at all, when the delta was
 confined to code this configuration does not compile, and otherwise a diff you
 can name the upstream patch for. **A difference is a result, not a failure**:

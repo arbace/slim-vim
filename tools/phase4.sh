@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 4 -- the cheap line-level normalisations.  See GOAL.md.
+# Phase 4 -- the cheap line-level normalisations.  See SLIM-GOAL.md.
 #
 # Usage: tools/phase4.sh <work-dir>       (run from the repository root)
 #

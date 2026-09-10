@@ -4,21 +4,21 @@
 # Usage: tools/agentdocs.sh
 #
 # Run only when there is something to describe.  A pass that reproduced the
-# previous vim.c byte for byte has, by definition, made no statement in
-# CLAUDE.md or GOAL.md wrong, and the twelve minutes an agent spends rewriting
+# previous slim-vim.c byte for byte has, by definition, made no statement in
+# CLAUDE.md or SLIM-GOAL.md wrong, and the twelve minutes an agent spends rewriting
 # them are twelve minutes spent confirming that nothing happened.  The caller
 # decides; this script assumes the decision was yes.
 set -eu
 set -o pipefail
 
 PROMPT=$(cat <<'PREAMBLE'
-A pass has just produced a vim.c that differs from the one committed here, and
+A pass has just produced a slim-vim.c that differs from the one committed here, and
 you are updating the documents to match.  Unattended: never ask a question,
 decide and proceed.
 
 What is in front of you:
 
-- `git diff -- vim.c` is what changed, and `upstream.sha` against its committed
+- `git diff -- slim-vim.c` is what changed, and `upstream.sha` against its committed
   value is why.  Establish what upstream patch caused it before writing a word;
   a difference is a result, not a failure, and the commit has to name its
   cause.
@@ -36,7 +36,7 @@ What to do:
    this change made wrong; do not append a section that disagrees with an
    earlier one.  Its figures are measurements -- re-measure them, and say what
    you measured.  The patch level comes from version.c, not from memory.
-2. Edit GOAL.md only where the process itself turned out to be wrong, missing
+2. Edit SLIM-GOAL.md only where the process itself turned out to be wrong, missing
    or misordered.  It is the process, not a changelog.
 3. Leave README.md alone unless something in it is now false.  It carries no
    figures on purpose.

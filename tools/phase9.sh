@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 9 -- leave the preprocessor behind.  See GOAL.md.
+# Phase 9 -- leave the preprocessor behind.  See SLIM-GOAL.md.
 #
 # Usage: tools/phase9.sh <work-dir>       (run from the repository root)
 #
@@ -52,7 +52,7 @@ python3 tools/expand.py --keep=_,NGETTEXT "$f"
 python3 tools/undowhile.py "$f"
 
 # Expansion pastes in `for` headers of its own, so the Phase 7 invariants are
-# broken again by the time we get here.  This is GOAL.md rule 9: an invariant
+# broken again by the time we get here.  This is SLIM-GOAL.md rule 9: an invariant
 # nothing re-checks is not an invariant, and 1,558 unbraced bodies once sat in
 # a file whose documentation said every body was braced.
 tools/canon.sh "$f"

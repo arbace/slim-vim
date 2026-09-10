@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 5 -- resolve every conditional directive by marker counting.  See GOAL.md.
+# Phase 5 -- resolve every conditional directive by marker counting.  See SLIM-GOAL.md.
 #
 # Usage: tools/phase5.sh <work-dir>       (run from the repository root)
 #

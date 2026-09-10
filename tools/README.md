@@ -1,6 +1,6 @@
 # tools/
 
-The harnesses that check `vim.c` and the passes that keep it in shape. They
+The harnesses that check `slim-vim.c` and the passes that keep it in shape. They
 lived in a session scratchpad through the run, which is why `CLAUDE.md` used to
 name things that were not in the repository; they are here now.
 
@@ -76,7 +76,7 @@ themselves.
 - **`synth.sh <n> <build>`** — memoize an agent's *behaviour* as code: diff the
   two boundaries, write `patches/p<n>-residue.patch`, and write a
   `phase<n>.sh` that applies it if the phase had none.
-- **`phasename.sh <n>`** — what a phase is called, read out of `GOAL.md`'s
+- **`phasename.sh <n>`** — what a phase is called, read out of `SLIM-GOAL.md`'s
   headings, so the progress log and the document cannot disagree.
 - **`residue.sh`** — the scoreboard. How much of each phase is still a recorded
   diff rather than a rule, which is the number to drive down.
@@ -91,7 +91,7 @@ themselves.
   handed the tree at that phase's input and forbidden everything outside it.
   The prompt is assembled invariant-first, phase-text-last, so the ten phase
   agents share one cached prefix instead of making ten.
-- **`agentdocs.sh`** — the document update, run only when `vim.c` actually
+- **`agentdocs.sh`** — the document update, run only when `slim-vim.c` actually
   changed. A pass that reproduced the previous one made no sentence wrong.
 - **`snapshot.sh`**, **`restore.sh`** — a boundary is a tar (the restore point,
   everything) plus a content digest (the meaning: sources, no `objects/`, no
@@ -151,7 +151,7 @@ each reproduces that boundary byte for byte.
   (hoisting would widen the scope) or contain a call.
 - **`dropmacros.py`** — delete the `#define`s nothing mentions, in **exactly
   one round**. Iterating finds 48 more and produces a permanently different
-  `vim.c`, because the round count decides how many constants ever reach
+  `slim-vim.c`, because the round count decides how many constants ever reach
   `toenum.py` — 1,444 enumerators against 1,410.
 - **`xmacro9.py`** — `ex_cmds.h` is inlined twice with `EXCMD` meaning two
   different things either side of an `#undef`, and an expander keyed by name
@@ -195,12 +195,12 @@ initialiser on the next one) · `typereach.py`
 
 ## The passes a run needs
 
-These cannot run against the *finished* `vim.c` — it has no separate sources, no
+These cannot run against the *finished* `slim-vim.c` — it has no separate sources, no
 directives and no macros left — and they were once deleted for exactly that
 reason. Every one of them is needed by a pass, because a pass works on the tree
 before those things are gone, and two had to be rewritten from memory when they
 turned out to be missing. **The test is "does the process need it", not "does it
-run against `vim.c`".**
+run against `slim-vim.c`".**
 
 `keepset.py` (what the compiler opens) · `dropsrc.py` (remove a source and all
 five of its mentions) · `splice.py` (translation phase 2) · `merge.py` ·
@@ -209,13 +209,13 @@ five of its mentions) · `splice.py` (translation phase 2) · `merge.py` ·
 `toenum.py` · `expand.py` · `reblank.py` (recover paragraphing, if it is ever
 lost again)
 
-`GOAL.md` describes what each phase uses them for; `README.md` at the root is
+`SLIM-GOAL.md` describes what each phase uses them for; `README.md` at the root is
 the front door to both.
 
 **A tool that nothing calls is not necessarily dead, and this repository has
 now watched that happen twice.** Phase 0 warns about the first form: a pass
 needs `merge.py`, `plant.py` and the rest, none of which can run against the
-*finished* `vim.c`, and two were once deleted for looking unused and had to be
+*finished* `slim-vim.c`, and two were once deleted for looking unused and had to be
 written again from memory.
 
 The second form appeared when Phase 9 was a synthesised patch — a recording of

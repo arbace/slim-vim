@@ -4,11 +4,11 @@
 # it is part of the seed, alongside .gitignore, README.md, CLAUDE.md, GOAL.md
 # and tools/, and it is what drives a pass.  A pass must never write over it.
 #
-# vim.c depends on upstream, which is a remote, so the dependency is the branch
+# slim-vim.c depends on upstream, which is a remote, so the dependency is the branch
 # head at github.com/arbace/vim -- consulted on every make, whether it has
 # moved or not.  It cannot be a timestamp: git clone writes every file at
 # checkout time in arbitrary order, so a stamp file landing a second after
-# vim.c would fire a whole pass on a tree that is exactly right.  What decides
+# slim-vim.c would fire a whole pass on a tree that is exactly right.  What decides
 # is content -- the sha recorded in upstream.sha, which is written only after a
 # pass has succeeded, so a failed pass leaves the record alone and the next
 # make retries.
@@ -31,7 +31,7 @@
 # -l for INTERP and readelf -d for NEEDED are the check, never ldd, which
 # prints a musl line for a static-PIE that is not a dependency.
 #
-# One gcc invocation.  vim.c includes no local header, so it depends on nothing
+# One gcc invocation.  slim-vim.c includes no local header, so it depends on nothing
 # but itself and the upstream it was produced from; there is no dependency
 # block and no object phase, and "make clean && make" is a real from-scratch
 # rebuild.
@@ -49,14 +49,14 @@ include pass.mk
 # sees pass.mk's -- so without this line a bare `make` builds the first phase
 # boundary instead of the editor, and says "no upstream/" on a tree that needs
 # nothing.  Naming it is also just true: `make` here has always meant `make
-# vim`.
-.DEFAULT_GOAL := vim
+# slim-vim`.
+.DEFAULT_GOAL := slim-vim
 
 # Announced rather than echoed.  make's own echo prints the command and nothing
 # else; what is worth knowing is that it finished, how big the result is, and
 # that it really is standalone -- readelf, never ldd, which prints a musl line
 # for a static-PIE that is not a dependency.
-vim: vim.c
+slim-vim: slim-vim.c
 	@printf '  %-12s %s\n' "compiling" "$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<"
 	@t0=`date +%s`; $(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<; \
 	 printf '  %-12s %s bytes, static-PIE, %ss\n' "$@" \
@@ -65,14 +65,14 @@ vim: vim.c
 
 # A phony prerequisite, so the freshness question is asked on every make; the
 # answer is decided inside the recipe by content, never by a timestamp.  When
-# the recipe leaves vim.c alone, make re-stats it, sees it unmoved, and does
+# the recipe leaves slim-vim.c alone, make re-stats it, sees it unmoved, and does
 # not relink vim either.
 #
 # The recursive make is what runs the pass.  SLIM_VIM_PASS is passed down for
 # the same reason it is tested at the top: the phases build the editor
 # constantly, and a `make` from inside one must not come back here and ask
 # github what the branch head is.
-vim.c: force
+slim-vim.c: force
 	@set -e; set -o pipefail; \
 	if [ -n "$$SLIM_VIM_PASS" ]; then \
 	    echo "  upstream     not probed -- already inside a pass"; \
@@ -80,14 +80,14 @@ vim.c: force
 	fi; \
 	live=`GIT_TERMINAL_PROMPT=0 timeout 60 git ls-remote $(UPSTREAM_URL) $(UPSTREAM_BRANCH) 2>/dev/null | cut -f1` || true; \
 	if [ -z "$$live" ]; then \
-	    echo "  upstream     UNREACHABLE -- building the committed vim.c"; \
+	    echo "  upstream     UNREACHABLE -- building the committed slim-vim.c"; \
 	    exit 0; \
 	fi; \
 	if [ -f $@ ] && [ "$$live" = "`cat upstream.sha 2>/dev/null`" ]; then \
-	    printf '  %-12s %s unchanged -- vim.c is current\n' "upstream" "`echo $$live | cut -c1-12`"; \
+	    printf '  %-12s %s unchanged -- slim-vim.c is current\n' "upstream" "`echo $$live | cut -c1-12`"; \
 	    exit 0; \
 	fi; \
-	printf '  %-12s %s -- moved; vim.c must be produced\n' "upstream" "`echo $$live | cut -c1-12`"; \
+	printf '  %-12s %s -- moved; slim-vim.c must be produced\n' "upstream" "`echo $$live | cut -c1-12`"; \
 	tools/preflight.sh; \
 	$(MAKE) --no-print-directory clone; \
 	start=`date +%s`; \
@@ -103,7 +103,7 @@ vim.c: force
 	echo "$$live" > upstream.sha
 
 clean:
-	rm -f vim
+	rm -f slim-vim
 
 force: ;
 

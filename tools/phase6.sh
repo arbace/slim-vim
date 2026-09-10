@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 6 -- merge 162 files into one translation unit.  See GOAL.md.
+# Phase 6 -- merge 162 files into one translation unit.  See SLIM-GOAL.md.
 #
 # Usage: tools/phase6.sh <work-dir>       (run from the repository root)
 #

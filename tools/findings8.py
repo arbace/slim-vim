@@ -5,7 +5,7 @@ Usage:
     python3 tools/findings8.py <vim.c>
 
 The dead-code sweep is not a delete-everything-gcc-names loop, and these are
-why.  Both were predicted by GOAL.md and both were there.
+why.  Both were predicted by SLIM-GOAL.md and both were there.
 
 `:winpos` parses two numbers that nothing reads any more.  The variables go --
 but `getdigits()` advances the pointer it is given, so the CALLS have to stay:

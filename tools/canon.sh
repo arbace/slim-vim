@@ -4,7 +4,7 @@
 # Usage: tools/canon.sh <file>        (paths are relative to the repository root)
 #
 # The seven passes are not independent, and running each once is not enough --
-# which is GOAL.md rule 9, and it cost two whole runs to learn.  Bracing ran
+# which is SLIM-GOAL.md rule 9, and it cost two whole runs to learn.  Bracing ran
 # before macro expansion, expansion pasted in `for` headers of its own, and
 # 1,558 unbraced bodies sat in a file whose documentation said every body was
 # braced.  Within this phase the same thing happens on a smaller scale: the

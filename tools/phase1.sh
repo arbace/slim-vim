@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 1 -- freeze the configuration.  See GOAL.md.
+# Phase 1 -- freeze the configuration.  See SLIM-GOAL.md.
 #
 # Usage: tools/phase1.sh <work-dir>       (run from the repository root)
 #
@@ -51,7 +51,7 @@ base=.reference/baselines
 if ! patch -p1 -d "$work" --forward --silent < tools/patches/phase1.patch; then
     echo "  patch        FAILED -- upstream has moved under one of these hunks."
     echo "               That is a result, not a breakage: see which hunk, and"
-    echo "               carry the edit forward in GOAL.md's Phase 1 terms."
+    echo "               carry the edit forward in SLIM-GOAL.md's Phase 1 terms."
     exit 1
 fi
 echo "  patch        $(grep -c '^--- a/' tools/patches/phase1.patch) files, $(grep -c '^[+-][^+-]' tools/patches/phase1.patch) changed lines"

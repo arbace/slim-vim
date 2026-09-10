@@ -11,10 +11,10 @@ set -e
 base=${1:?usage: verify.sh <baselines-dir> [--enums]}
 
 # There is nothing to verify before a pass has produced one.  Say so rather than
-# reporting a build failure, which is what an absent vim.c otherwise looks like.
-if [ ! -f vim.c ]; then
-    echo "  vim.c        absent -- nothing has been produced to verify yet"
-    echo "               (a pass writes it; see GOAL.md)"
+# reporting a build failure, which is what an absent slim-vim.c otherwise looks like.
+if [ ! -f slim-vim.c ]; then
+    echo "  slim-vim.c   absent -- nothing has been produced to verify yet"
+    echo "               (a pass writes it; see SLIM-GOAL.md)"
     exit 2
 fi
 
@@ -42,23 +42,23 @@ run() {
 }
 
 check_behaviour() {
-    python3 tools/behaviour.py ./vim "$tmp/t" >/dev/null && diff -rq "$base/behaviour" "$tmp/t"
+    python3 tools/behaviour.py ./slim-vim "$tmp/t" >/dev/null && diff -rq "$base/behaviour" "$tmp/t"
 }
 check_exsweep() {
-    python3 tools/exsweep.py ./vim vim.c "$tmp/s" >/dev/null && diff "$base/ref-exsweep.txt" "$tmp/s"
+    python3 tools/exsweep.py ./slim-vim slim-vim.c "$tmp/s" >/dev/null && diff "$base/ref-exsweep.txt" "$tmp/s"
 }
 check_pty() {
-    python3 tools/ptycheck.py ./vim "$tmp/y" >/dev/null && diff "$base/ref-pty.txt" "$tmp/y"
+    python3 tools/ptycheck.py ./slim-vim "$tmp/y" >/dev/null && diff "$base/ref-pty.txt" "$tmp/y"
 }
 check_term() {
-    python3 tools/termcheck.py ./vim "$tmp/m" >/dev/null && diff "$base/ref-term.txt" "$tmp/m"
+    python3 tools/termcheck.py ./slim-vim "$tmp/m" >/dev/null && diff "$base/ref-term.txt" "$tmp/m"
 }
 check_enums() {
     # Enumerators legitimately disappear when a dead type goes, so the set is
     # not the invariant.  The invariant is that every name present in both
     # dumps has the same value: deleting an enumerator renumbers the ones after
     # it, and several enums index a parallel table.
-    ./tools/enumvals.sh vim.c "$tmp/e" || return 1
+    ./tools/enumvals.sh slim-vim.c "$tmp/e" || return 1
     python3 - "$base/enumerators.txt" "$tmp/e" <<'PY'
 import sys
 def load(p):
@@ -77,10 +77,10 @@ check_behaviour >"$tmp/o.behaviour" 2>&1 & p1=$!
 check_exsweep >"$tmp/o.exsweep" 2>&1 & p2=$!
 check_pty     >"$tmp/o.pty"     2>&1 & p3=$!
 check_term    >"$tmp/o.term"    2>&1 & p4=$!
-python3 tools/create_cmdidxs.py vim.c --check >"$tmp/o.cmdidxs" 2>&1 & p5=$!
+python3 tools/create_cmdidxs.py slim-vim.c --check >"$tmp/o.cmdidxs" 2>&1 & p5=$!
 # gcc exits 0 with warnings, so exit status is no check at all here: the
 # requirement is that it says *nothing*.
-( gcc -c -O0 -Wall -Wextra -Wno-unused-parameter -o /dev/null vim.c 2>&1 \
+( gcc -c -O0 -Wall -Wextra -Wno-unused-parameter -o /dev/null slim-vim.c 2>&1 \
     | tee "$tmp/o.warnings" | grep -q . && exit 1 || exit 0 ) & p6=$!
 if [ "$2" = --enums ] || [ "$1" = --enums ]; then
     check_enums >"$tmp/o.enums" 2>&1 & p7=$!

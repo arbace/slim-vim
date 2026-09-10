@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 3 -- one Makefile, nothing generated.  See GOAL.md.
+# Phase 3 -- one Makefile, nothing generated.  See SLIM-GOAL.md.
 #
 # Usage: tools/phase3.sh <work-dir>       (run from the repository root)
 #

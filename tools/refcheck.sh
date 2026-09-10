@@ -1,7 +1,7 @@
 #!/bin/sh
-# Compare a freshly produced vim.c against the previous pass's frozen copy.
+# Compare a freshly produced slim-vim.c against the previous pass's frozen copy.
 #
-# This is the end-to-end check the workflow buys: .reference/vim.c IS the last
+# This is the end-to-end check the workflow buys: .reference/slim-vim.c IS the last
 # pass's output, so a new one should differ only by what upstream changed --
 # for a tiny build, usually nothing at all.
 #
@@ -25,32 +25,32 @@ compared=0
 report() { printf '  %-12s %s\n' "$1" "$2"; }
 
 # --- the source -----------------------------------------------------------
-if [ ! -f "$ref/vim.c" ]; then
+if [ ! -f "$ref/slim-vim.c" ]; then
     report source "absent from $ref/"
-elif cmp -s vim.c "$ref/vim.c"; then
+elif cmp -s slim-vim.c "$ref/slim-vim.c"; then
     compared=$((compared + 1))
-    report source "identical -- $(grep -c '' vim.c) lines, byte for byte"
+    report source "identical -- $(grep -c '' slim-vim.c) lines, byte for byte"
 else
     compared=$((compared + 1))
-    add=$(diff "$ref/vim.c" vim.c | grep -c '^>')
-    del=$(diff "$ref/vim.c" vim.c | grep -c '^<')
-    report source "differs -- +$add -$del lines against $(grep -c '' "$ref/vim.c")"
+    add=$(diff "$ref/slim-vim.c" slim-vim.c | grep -c '^>')
+    del=$(diff "$ref/slim-vim.c" slim-vim.c | grep -c '^<')
+    report source "differs -- +$add -$del lines against $(grep -c '' "$ref/slim-vim.c")"
     fail=1
 fi
 
 # --- the binary, tier 1 ---------------------------------------------------
 # Same file name or __FILE__ differs; pinned epoch or __DATE__/__TIME__ do.
-if [ ! -f "$ref/vim" ]; then
+if [ ! -f "$ref/slim-vim" ]; then
     report binary "absent from $ref/"
 else
     tmp=$(mktemp -d)
-    cp vim.c "$tmp/vim.c"
-    if ( cd "$tmp" && SOURCE_DATE_EPOCH=0 gcc -O0 -static -s -o vim vim.c 2>/dev/null ); then
+    cp slim-vim.c "$tmp/slim-vim.c"
+    if ( cd "$tmp" && SOURCE_DATE_EPOCH=0 gcc -O0 -static -s -o slim-vim slim-vim.c 2>/dev/null ); then
         compared=$((compared + 1))
-        if cmp -s "$tmp/vim" "$ref/vim"; then
-            report binary "identical -- $(stat -c%s "$tmp/vim") bytes, tier 1"
+        if cmp -s "$tmp/slim-vim" "$ref/slim-vim"; then
+            report binary "identical -- $(stat -c%s "$tmp/slim-vim") bytes, tier 1"
         else
-            report binary "differs -- $(stat -c%s "$tmp/vim") vs $(stat -c%s "$ref/vim") bytes"
+            report binary "differs -- $(stat -c%s "$tmp/slim-vim") vs $(stat -c%s "$ref/slim-vim") bytes"
             fail=1
         fi
     else
@@ -62,7 +62,7 @@ fi
 
 # --- the documents and the makefile ---------------------------------------
 same=; diffr=
-for f in Makefile README.md CLAUDE.md GOAL.md LICENSE; do
+for f in Makefile README.md CLAUDE.md SLIM-GOAL.md LICENSE; do
     if [ ! -f "$ref/$f" ]; then diffr="$diffr $f(absent)"
     elif cmp -s "$f" "$ref/$f"; then same="$same $f"
     else diffr="$diffr $f"; fi

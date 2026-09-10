@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 2 -- prune the tree to what the compiler opens.  See GOAL.md.
+# Phase 2 -- prune the tree to what the compiler opens.  See SLIM-GOAL.md.
 #
 # Usage: tools/phase2.sh <work-dir>       (run from the repository root)
 #
@@ -16,7 +16,7 @@
 #     wayland and libvterm this build never reaches -- 441 entries against 254,
 #     and the extra 187 are junk.
 #
-# The order matters and GOAL.md is emphatic about it: drop the empty objects
+# The order matters and SLIM-GOAL.md is emphatic about it: drop the empty objects
 # FIRST, then measure the keep-set once.  Measuring before the drop answers a
 # question about a tree that is about to change.
 #

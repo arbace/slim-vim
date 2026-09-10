@@ -3,30 +3,38 @@
 Guidance for Claude Code (claude.ai/code) working in this repository.
 
 **This file describes the tree as it now is.** If the two disagree, this file is
-wrong — fix it. `GOAL.md` is a different document: the process that produced this
+wrong — fix it. `SLIM-GOAL.md` is a different document: the process that produced this
 tree from a pristine vim, written to be handed to an agent that has no tree yet.
-Nothing here is a record of how the work went; that log was folded into `GOAL.md`
+Nothing here is a record of how the work went; that log was folded into `SLIM-GOAL.md`
 and deleted.
 
 ## What this is
 
 Vim 9.2 (upstream patch level 1037) as **one translation unit**. That number
 moves: the input is cloned fresh, upstream keeps patching, and **Phase 1 is
-where this line gets updated** — from `version.c`, not from memory. `vim.c` is
+where this line gets updated** — from `version.c`, not from memory. `slim-vim.c` is
 181,844 lines and is the whole editor; one `gcc` invocation builds it in about
 8 seconds, into a standalone static binary.
 
-**`vim.c` is produced, not edited into shape.** `GOAL.md` is the process that
+**`slim-vim.c` is produced, not edited into shape.** `SLIM-GOAL.md` is the process that
 turns a pristine vim tree into it, and the input is cloned fresh each time from
 `github.com/arbace/vim`, branch `regexp-delimiter-atoms`. See *Regenerate
-vim.c from upstream*. Editing `vim.c` directly is fine — but a change worth
-keeping belongs in `GOAL.md` too, in the phase that owns it, or the next pass
+slim-vim.c from upstream*. Editing `slim-vim.c` directly is fine — but a change worth
+keeping belongs in `SLIM-GOAL.md` too, in the phase that owns it, or the next pass
 silently drops it.
 
-**Nothing is rebranded.** The program is vim, the binary is `vim`, and `$VIM`,
-`$VIMRUNTIME`, `~/.vimrc` and every string are upstream's. Whatever the
-checkout directory happens to be called is not a name this repository uses
-anywhere.
+**The files are named `slim-vim`; the program is not.** `slim-vim.c` and the
+`slim-vim` it compiles to are named for this repository, and that is the whole
+extent of it: inside the C, `$VIM`, `$VIMRUNTIME`, `~/.vimrc`, `VIMNAME`, the
+banner and every string are upstream's, untouched. A rename there would be a
+fork; a rename of the file is a file name.
+
+**A vim binary's own name changes what it does**, so the new one was checked
+rather than assumed. `parse_command_name()` reads `argv[0]`: a leading `r` is
+restricted mode, `e` selects evim, `g` the GUI, and `view`, `vim`, `diff` and
+`ex` prefixes each change the mode again. `slim-vim` matches none of them and
+falls through to plain vim — verified by running both names side by side, where
+`:r !echo` works and `readonly` is off under each.
 
 **No feature was removed to get here**, which is the whole difference between
 this tree and a stripped-down fork: `:help`, `:hardcopy`, the non-UTF-8
@@ -38,8 +46,8 @@ The configuration is `tiny`, no GUI, no terminal library, **plus
 `+extra_search`** — which upstream has no configure flag for.
 
 **This repository holds the process, not the product.** Between passes it is
-six things — `.gitignore`, `Makefile`, `README.md`, this file, `GOAL.md` and
-`tools/` — and `vim.c` and `LICENSE` appear when a pass produces them. A
+six things — `.gitignore`, `Makefile`, `README.md`, this file, `SLIM-GOAL.md` and
+`tools/` — and `slim-vim.c` and `LICENSE` appear when a pass produces them. A
 checkout that has never run one has no editor in it, and everything below
 describes what a pass makes rather than what is necessarily on disk right now.
 
@@ -49,30 +57,30 @@ thing here that is not upstream's and not produced. `make` asks
 and when they differ clones `upstream/`, deletes its `.git`, runs one
 `claude -p` carrying the process, deletes `upstream/` and records the sha. A
 pass must never write over it, and the only two files a pass moves to the root
-are `vim.c` and `LICENSE`.
+are `slim-vim.c` and `LICENSE`.
 
 It was started from a finished tree without the history that produced it, so
 `git log` reaches back only as far as this repository's first commit. Everything
-that history used to be consulted for is written down instead: `GOAL.md` is the
+that history used to be consulted for is written down instead: `SLIM-GOAL.md` is the
 process, this file is what the result is and why. From here on every commit
 message states the reasoning and how it was verified — that is the record, and
 it is the only one.
 
 ## Layout
 
-Eighty-six tracked files once a pass has run: nine at the root, and 77 under
+Eighty-seven tracked files once a pass has run: nine at the root, and 78 under
 `tools/` — the passes, the harnesses, the ten phases' programs, the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
-`patches/` and `templates/`. Two of the nine (`vim.c`, `LICENSE`) are products,
+`patches/` and `templates/`. Two of the nine (`slim-vim.c`, `LICENSE`) are products,
 `upstream.sha` is a record, and the other six and `tools/` are the seed.
 
 ```
-vim.c        the editor, headers and forward declarations included
-Makefile     the seed: builds vim.c, and produces it when upstream moves
-pass.mk      the pass itself: ten phases as make targets
-upstream.sha the commit vim.c was produced from
-tools/       the harnesses, the passes, and the phases that are programs
-README.md  CLAUDE.md  GOAL.md  LICENSE  .gitignore
+slim-vim.c     the editor, headers and forward declarations included
+Makefile       the seed: builds slim-vim.c, and produces it when upstream moves
+pass.mk        the pass itself: ten phases as make targets
+upstream.sha   the commit slim-vim.c was produced from
+tools/         the harnesses, the passes, and the phases that are programs
+README.md  CLAUDE.md  SLIM-GOAL.md  LICENSE  .gitignore
 ```
 
 **`upstream.sha` is tracked, and that is load-bearing rather than tidy.** It is
@@ -80,16 +88,16 @@ what `make` compares the branch head against, so a checkout without one has
 nothing to compare and fires a whole pass on a tree that is already correct —
 which is the same hazard, arriving by a different route, that made the
 dependency content-based instead of a timestamp. The makefile writes it after a
-pass succeeds; committing it alongside the `vim.c` it describes is what keeps
+pass succeeds; committing it alongside the `slim-vim.c` it describes is what keeps
 the next `make` cheap.
 
-`README.md` is the front door and carries no figures; this file and `GOAL.md`
+`README.md` is the front door and carries no figures; this file and `SLIM-GOAL.md`
 are the authority, which is what keeps a third description from drifting.
 
 `tools/` is the only tracked subdirectory at the root and has a `README.md` of
 its own; `tools/templates/` beneath it holds the makefile Phase 3 installs into
 the staging tree.
-Nothing in it is part of the build; the build reads `vim.c` and nothing else.
+Nothing in it is part of the build; the build reads `slim-vim.c` and nothing else.
 
 Six things a pass produces appear untracked, and `.gitignore` names them:
 `vim`, which the build adds and `clean` removes; `.reference/`, a frozen
@@ -100,8 +108,8 @@ copy of this tree with the recorded baselines beside it (see below);
 passes; `.build/`, the phase boundaries a pass leaves behind — a tar and a
 content digest per phase, plus each phase agent's stream and its elapsed
 seconds; and `PROGRESS.md`, the transient insight log whose contents are folded
-into `GOAL.md` and this file and then deleted. `upstream.sha` is deliberately
-*not* ignored: it is the record of what `vim.c` was produced from.
+into `SLIM-GOAL.md` and this file and then deleted. `upstream.sha` is deliberately
+*not* ignored: it is the record of what `slim-vim.c` was produced from.
 `.gitignore` also names what the tools and the editors leave lying
 about: `*.swp`, `__pycache__/`, `*.pyc` and `.claude/`. The `.gitignore` upstream shipped named 91 paths, of which two still
 existed — `src/testdir/`, `runtime/doc/tags-*`, `nsis/icons/*` and the rest
@@ -127,25 +135,25 @@ Two targets you would type, `vim` and `clean`. Everything upstream had —
 `src/`. `all` went with them: it is a convention for builds with more than one
 product, and this one has `vim`.
 
-**`vim` depends on `vim.c`, and `vim.c` depends on upstream**, which is a
+**`vim` depends on `slim-vim.c`, and `slim-vim.c` depends on upstream**, which is a
 remote rather than a file: every `make` asks `git ls-remote` for the branch
 head and compares it against `upstream.sha`. It cannot be a timestamp — `git
 clone` writes every file at checkout time in arbitrary order, so a stamp
-landing a second after `vim.c` would fire a multi-hour pass on a tree that is
+landing a second after `slim-vim.c` would fire a multi-hour pass on a tree that is
 exactly right. When the sha matches, or the remote is unreachable, `make`
-builds the committed `vim.c` and says so in one line. When it does not, the
+builds the committed `slim-vim.c` and says so in one line. When it does not, the
 recipe clones `upstream/`, deletes its `.git` immediately, runs the pass, and
-writes `upstream.sha` only after the pass has left a `vim.c` behind, so a
+writes `upstream.sha` only after the pass has left a `slim-vim.c` behind, so a
 failed pass leaves the record alone and the next `make` retries.
 
 **There is no configure and nothing is generated.** `configure`, `configure.ac`,
 `config.h.in`, `config.mk.in`, `osdef.sh`, `pathdef.sh`, `link.sh` and
-`toolcheck` are gone. What they used to emit is ordinary text inside `vim.c`,
+`toolcheck` are gone. What they used to emit is ordinary text inside `slim-vim.c`,
 under its `config.h`, `osdef.h` and `pathdef.c` banners. To change the build,
 edit those.
 
 The build runs no shell script, writes no source, and has no object phase: one
-`gcc` invocation turns `vim.c` straight into `vim`, which is the whole of
+`gcc` invocation turns `slim-vim.c` straight into `vim`, which is the whole of
 `clean`'s job to remove. `make clean && make` is a real from-scratch rebuild and
 it is one command. `-j` has nothing left to parallelise.
 
@@ -199,11 +207,11 @@ to miss, so `~root/` expands).
 
 ## The three-tier memoize
 
-**`vim.c` is a function of upstream, and this repository is that function,
+**`slim-vim.c` is a function of upstream, and this repository is that function,
 memoized.** Everything else here follows from taking that literally.
 
 ```
-vim.c = F(upstream@sha)          decomposed as    p_N = f_N(p_{N-1})
+slim-vim.c = F(upstream@sha)          decomposed as    p_N = f_N(p_{N-1})
 ```
 
 Each phase `f_N` has three implementations, at three costs, and a pass falls
@@ -262,7 +270,7 @@ Phase 1's 797 lines are not a failure to understand it — its content genuinely
 place a patch is the right answer rather than a placeholder. Phase 9's 33,670
 were the opposite: a recording of 33,670 lines, produced automatically the
 first time it ran. Replacing it with rules took it to **134**, and what is left
-is exactly what `GOAL.md` says cannot be mechanical — 37 fall-through
+is exactly what `SLIM-GOAL.md` says cannot be mechanical — 37 fall-through
 attributes, the three `pum_set_*` functions written out because C cannot paste
 tokens, the version strings — plus twelve empty banner pairs that could still
 go. A 251-fold shrink, and the phase went from 943 seconds to **34**.
@@ -286,7 +294,7 @@ running gcc twice over a 177,000-line file — and is where the next minute come
 from.
 
 **The last pass produced a binary byte-identical to the committed one** and a
-`vim.c` differing by 49 lines, all of it Phase 8: a redundant `static` on
+`slim-vim.c` differing by 49 lines, all of it Phase 8: a redundant `static` on
 definitions whose earlier prototype already gives them internal linkage, and
 one dead prototype kept. Neither changes the program — `-s` strips the symbol
 table, so the two compile to the same bytes — and the committed form is the
@@ -302,7 +310,7 @@ a change genuinely needs judgement, in which case that one phase reverts to an
 agent and the other nine do not.
 
 **The top level is already an instance of this.** `upstream.sha` is tier 3 of
-`F` itself: when the branch head matches, the cached `vim.c` is returned and
+`F` itself: when the branch head matches, the cached `slim-vim.c` is returned and
 nothing runs at all.
 
 ## Testing
@@ -321,7 +329,7 @@ command table.
 
 ### `.reference/` is the frozen state, gitignored, and optional
 
-A copy of `vim.c`, the binary built from it, the two documents, `Makefile`,
+A copy of `slim-vim.c`, the binary built from it, the two documents, `Makefile`,
 `LICENSE`, `.gitignore` and `baselines/`. **It is not tracked and it is not a
 precondition**: a pass produces it, so a checkout that has never run one has no
 `.reference/` at all and everything here describes what exists afterwards.
@@ -343,7 +351,7 @@ and the reason it is the one thing worth copying if this tree is ever moved.
 byte and usable as the left-hand side of a tier 1 check:
 
 ```sh
-SOURCE_DATE_EPOCH=0 gcc -O0 -static -s -o /tmp/t/vim vim.c
+SOURCE_DATE_EPOCH=0 gcc -O0 -static -s -o /tmp/t/vim slim-vim.c
 cmp /tmp/t/vim .reference/vim
 ```
 
@@ -375,7 +383,7 @@ differ and nothing else. A test suite that cannot fail is not evidence.
 
 **`tools/create_cmdidxs.py`** regenerates what upstream generates with
 `create_cmdidxs.vim`, which needs a vim with `+eval` and this build has none.
-`python3 tools/create_cmdidxs.py vim.c --check` verifies the table in place, between
+`python3 tools/create_cmdidxs.py slim-vim.c --check` verifies the table in place, between
 the `begin`/`end ex_cmdidxs.h` banners; `--update` rewrites it. It refuses to
 generate anything from a parse that finds fewer than 100 command names, because
 a regex that stops matching otherwise yields a plausible-looking all-zero index.
@@ -389,8 +397,14 @@ re-indents a line of it, shows up here rather than as a wrong answer later.
 shell-out fails, `e` selects evim, `g` the GUI, and `view`/`ex` prefixes change
 the mode again. A reference binary saved as `ref` made `:%!sort` and
 `:r !echo` fail against a binary that was byte-identical to one called `vim`.
-Every harness stages the binary under test into a temp directory as `vim`.
-**Never name a vim binary anything else.**
+Every harness stages the binary under test into a temp directory as `vim`,
+whatever it was called outside — so the recorded baselines always describe
+`argv[0] == "vim"`, and renaming the product could not silently move them.
+
+**The product is `slim-vim`, and that name was checked rather than assumed.**
+It matches none of the prefixes above and falls through to plain vim: run side
+by side against the same binary named `vim`, `:r !echo` works and `readonly` is
+off under both. Any *other* name still needs the same check before it is used.
 
 **Anything about terminals, mappings, screen drawing or `:set` reporting needs a
 real pty** — `-e -s` never initialises the terminal and reports empty values.
@@ -461,11 +475,11 @@ Three checks that pass while doing nothing:
 And one thing no tier can see: **blank lines, indentation and paragraphing.** A
 pass that touches those needs a count of them as its own check.
 
-## The shape of vim.c
+## The shape of slim-vim.c
 
 ### One translation unit, one namespace
 
-`vim.c` is what were 67 `.c` files, 30 `.h` and 66 `proto/*.pro`, in the order
+`slim-vim.c` is what were 67 `.c` files, 30 `.h` and 66 `proto/*.pro`, in the order
 the preprocessor used to paste them: sources alphabetically with `main.c` last,
 and **`main()` is literally the last thing in the file**, its closing brace the
 final line.
@@ -507,12 +521,12 @@ compiled separately, and are inlined here like any other file.
 
 ### There is no preprocessor left
 
-Every directive in `vim.c` is one of **41 `#include`s of a system header**, and
+Every directive in `slim-vim.c` is one of **41 `#include`s of a system header**, and
 they are the first thing in the file. No `#define`, no `#undef`, no `#if`,
 `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif`, `#pragma` or `#line`.
 Preprocessing this file does nothing but paste in libc.
 
-That the includes can come first is only possible because nothing in `vim.c` is
+That the includes can come first is only possible because nothing in `slim-vim.c` is
 read by a header. The five feature-test macros (`_XOPEN_SOURCE`, `_BSD_SOURCE`,
 `_SVID_SOURCE`, `_DEFAULT_SOURCE`, `_REENTRANT`) were the only candidates, and
 deleting them left the preprocessed output byte-identical — musl declares
@@ -551,7 +565,7 @@ linkage**, which is why three thousand definitions say nothing about it.
 **Objects do not inherit**: a file-scope object with no storage class has
 external linkage whatever a prior declaration said, and gcc rejects the pair.
 
-The forward declarations are what keep definition order inside `vim.c` from
+The forward declarations are what keep definition order inside `slim-vim.c` from
 mattering. About half are redundant — the definition already precedes every use
 — and could go; the rest are load-bearing.
 
@@ -793,7 +807,7 @@ One command, and everything is in one file with internal linkage, so a function
 or object the compiler cannot see used is not used:
 
 ```sh
-gcc -c -O0 -Wall -Wextra -Wno-unused-parameter -o /dev/null vim.c
+gcc -c -O0 -Wall -Wextra -Wno-unused-parameter -o /dev/null slim-vim.c
 ```
 
 **It reports nothing at all**, and that is the point: the sweep is a boolean,
@@ -838,7 +852,7 @@ original value explicitly, then check with DWARF, which records every enumerator
 and its value:
 
 ```sh
-tools/enumvals.sh vim.c before.txt      # dump, make the change, dump again
+tools/enumvals.sh slim-vim.c before.txt      # dump, make the change, dump again
 ```
 
 Dump before and after; every name present in both must have the same value.
@@ -874,10 +888,10 @@ which the 600-command sweep catches.
 
 A third table is *derived*: what was `ex_cmdidxs.h` maps first and second letter
 to a position in `cmdnames[]`, so removing an entry shifts every later index. It
-lives between marker comments in `vim.c`:
+lives between marker comments in `slim-vim.c`:
 
 ```sh
-python3 tools/create_cmdidxs.py vim.c --check   # or --update to rewrite it
+python3 tools/create_cmdidxs.py slim-vim.c --check   # or --update to rewrite it
 ```
 
 Two traps if you ever remove a command:
@@ -889,16 +903,16 @@ Two traps if you ever remove a command:
   everything starting with `help`, because it sorts under `l`. Grep for the
   *handler* name (`ex_helpgrep`), not the command name.
 
-### Regenerate vim.c from upstream
+### Regenerate slim-vim.c from upstream
 
-`vim.c` is not maintained by editing it into a new shape; it is **produced**,
-and `GOAL.md` is the process that produces it. **The makefile runs the pass**,
+`slim-vim.c` is not maintained by editing it into a new shape; it is **produced**,
+and `SLIM-GOAL.md` is the process that produces it. **The makefile runs the pass**,
 so there is nothing to type but `make`:
 
 ```sh
 make                 # ls-remote, compare against upstream.sha, and if they
                      # differ: clone upstream/, rm -rf upstream/.git, run one
-                     # claude -p over GOAL.md, rm -rf upstream/, record the sha
+                     # claude -p over SLIM-GOAL.md, rm -rf upstream/, record the sha
 ```
 
 **The pass is `pass.mk`, and it is ten make targets, not one agent.** A phase's
@@ -935,7 +949,7 @@ failure. Promoting a boundary from the run it is meant to check would make it
 agree with itself, which is the `.reference/` mistake in a smaller shape.
 
 **A pass cost 67 minutes when one agent did all of it, under two of them
-machine time**, and `GOAL.md`'s *Where the hour goes* has the per-phase
+machine time**, and `SLIM-GOAL.md`'s *Where the hour goes* has the per-phase
 breakdown, including the finding that splitting it into one agent per phase
 made it *slower* — 89 minutes — because each agent re-orients from scratch.
 
@@ -949,14 +963,14 @@ out identical either way.
 
 **The whole pass by one agent is kept, and is not a fallback but a pair.**
 `make refpass` runs it into a work directory of its own and `make compare` puts
-its `vim.c` beside this one's. The programs are fast and brittle — each written
+its `slim-vim.c` beside this one's. The programs are fast and brittle — each written
 against one upstream — and the agent is slow and can think. When upstream moves
 under a patch, the reference path is what still produces an answer, and the
 difference between the two is the specification for repairing the fast path.
 
-The document update is conditional. A pass that reproduced the previous `vim.c`
+The document update is conditional. A pass that reproduced the previous `slim-vim.c`
 byte for byte made no sentence here wrong, so `docs-if-changed` asks `git` —
-`vim.c` is tracked — and only calls an agent when there is a real difference to
+`slim-vim.c` is tracked — and only calls an agent when there is a real difference to
 describe.
 
 `upstream/` is a **staging directory, not a checkout of anything**. It is
@@ -975,7 +989,7 @@ by mistake.
 **The end check is a whole-process diff, and it runs automatically:**
 
 ```sh
-tools/refcheck.sh          # the last act of producing vim.c
+tools/refcheck.sh          # the last act of producing slim-vim.c
 ```
 
 `.reference/vim.c` *is* the previous pass's output, so a new one should differ
@@ -997,7 +1011,7 @@ is Phase 3, on the scaffolding makefile that lives inside `upstream/` and dies
 with it — the root `Makefile` is the seed and no phase writes it. There is no
 list of extras to re-apply afterwards — a bare run of Phases 0-9 reproduces
 this tree, not a plainer one, and that is what makes the comparison worth
-running. It has been run: the pass of 2026-09-10 reproduced `vim.c` **byte for
+running. It has been run: the pass of 2026-09-10 reproduced `slim-vim.c` **byte for
 byte** against the previous one, 181,844 lines, and the binary with it,
 2,208,088 bytes.
 
@@ -1015,7 +1029,7 @@ is spent *here*: there are no conditionals, every caller is visible, and unused
 means unused. It still applies to anything imported, where the `#ifdef`s are
 real.
 
-If you ever have to resolve conditionals again, `GOAL.md` Phase 5 has the
+If you ever have to resolve conditionals again, `SLIM-GOAL.md` Phase 5 has the
 method, and it is not the obvious one.
 
 ## Keeping this file current
@@ -1029,7 +1043,7 @@ said 165 files and `proto/` while its later one said one translation unit. Each
 time the cost was a reader trusting it.
 
 **A pass does not start this file from scratch.** It carries forward, and every
-phase edits the sentences its work made wrong — which is `GOAL.md` rule 5, and
+phase edits the sentences its work made wrong — which is `SLIM-GOAL.md` rule 5, and
 the reason the rule exists is the third failure above: a file written by
 appending one section per phase ends up describing several trees at once. The
 reasoning that does not belong here belongs in the commit messages, one per

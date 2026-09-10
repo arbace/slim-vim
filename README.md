@@ -3,15 +3,15 @@
 > One C file. One `gcc` invocation. A standalone `vim`.
 
 **Experimental.** This repository is a **process**, not a product: it turns a
-pristine [vim](https://github.com/vim/vim) tree into a single `vim.c` — and
-`vim.c` is a *function of upstream*, memoized in three tiers by a makefile.
+pristine [vim](https://github.com/vim/vim) tree into a single `slim-vim.c` — and
+`slim-vim.c` is a *function of upstream*, memoized in three tiers by a makefile.
 
 ```sh
 make        # that is the whole of it
 ```
 
 `make` asks `git ls-remote` what upstream's branch head is. If it matches the
-committed `upstream.sha`, it compiles `vim.c` and stops. If it does not, it runs
+committed `upstream.sha`, it compiles `slim-vim.c` and stops. If it does not, it runs
 a pass: clone, transform in ten phases, delete the clone, record the new sha.
 
 ---
@@ -56,11 +56,11 @@ upstream change costs less than this one did.
 
 | | |
 | --- | --- |
-| **Not a fork** | The program is vim. `$VIM`, `$VIMRUNTIME`, `~/.vimrc` and every string are upstream's. Nothing is rebranded. |
+| **Not a fork** | Only the two delivered files carry this repository's name. Inside the C, `$VIM`, `$VIMRUNTIME`, `~/.vimrc`, `VIMNAME` and every string are upstream's, untouched. |
 | **Not stripped** | No feature was removed — `:help`, `:hardcopy`, the encodings, locale and iconv are all here. The build is upstream's `tiny` plus `+extra_search`. |
 | **Not stock, though** | It ships no vimrc, so one is compiled in: `tabstop=4`, `expandtab`, `autoindent`, `nocompatible`, `hlsearch`, `ruler` and more, plus a handful of mappings. `-u NONE` undoes none of it. |
 | **Not portable yet** | Alpine and musl: `-O0 -static -s`, no feature-test macros, no `-lm`. Another libc wants them back. |
-| **Not an editor between passes** | `vim.c` and `LICENSE` are products; `Makefile`, `GOAL.md`, `CLAUDE.md`, `tools/` and `.gitignore` are the seed. |
+| **Not an editor between passes** | `slim-vim.c` and `LICENSE` are products; `Makefile`, `SLIM-GOAL.md`, `CLAUDE.md`, `tools/` and `.gitignore` are the seed. |
 
 ---
 
@@ -86,8 +86,8 @@ inert on a first run — which is self-certifying.
 
 | | |
 | --- | --- |
-| **`GOAL.md`** | the process — ten phases, the traps each hits, why the order is what it is |
-| **`CLAUDE.md`** | the result — what `vim.c` is, how it is built and verified, every divergence from upstream |
+| **`SLIM-GOAL.md`** | the process — ten phases, the traps each hits, why the order is what it is |
+| **`CLAUDE.md`** | the result — what `slim-vim.c` is, how it is built and verified, every divergence from upstream |
 | **`tools/README.md`** | the harnesses and passes, and what each is for |
 
 Those are the authority. This file carries no figures, so a third description

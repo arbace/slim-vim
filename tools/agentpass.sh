@@ -1,5 +1,5 @@
 #!/bin/sh
-# The whole pass, by one agent, from GOAL.md.  The reference path.
+# The whole pass, by one agent, from SLIM-GOAL.md.  The reference path.
 #
 # Usage: tools/agentpass.sh <work-dir>      (run from the repository root)
 #
@@ -15,14 +15,14 @@
 #
 #   make          the fast path.  Ten phases, seven of them programs.
 #   make refpass  this one.  One agent, no phase boundaries, ~70 minutes.
-#   make compare  the two vim.c files against each other.
+#   make compare  the two slim-vim.c files against each other.
 #
 # When the fast path fails and this one succeeds, the difference between the
 # two answers is the specification for repairing the fast path.  When both
 # succeed and the answers differ, one of them is wrong and the boundary digests
 # say where to look.
 #
-# It writes into the work directory only.  In particular it does NOT put vim.c
+# It writes into the work directory only.  In particular it does NOT put slim-vim.c
 # at the repository root: the whole value here is having a second answer to
 # compare against the committed one, and an agent that overwrote it would
 # destroy the comparison it was run for.
@@ -33,11 +33,11 @@ work=${1:?usage: agentpass.sh <work-dir>}
 mkdir -p .build/ref
 
 PROMPT=$(cat <<PREAMBLE
-You are running one whole pass of the process in GOAL.md, unattended.  Nobody
+You are running one whole pass of the process in SLIM-GOAL.md, unattended.  Nobody
 is watching: never ask a question, never wait for input, never stop to propose
 a plan.  Decide and proceed.
 
-Read GOAL.md in full before starting, then CLAUDE.md.  GOAL.md is the process;
+Read SLIM-GOAL.md in full before starting, then CLAUDE.md.  SLIM-GOAL.md is the process;
 CLAUDE.md describes the tree it produces.  The ordering of the phases is the
 point.
 
@@ -46,9 +46,9 @@ tools/ -- tools/phase0.sh, phase1.sh and so on -- and a makefile runs them.
 You are not running those and you are not bound by them.  You are here because
 they cannot think: they were written against one upstream, and when upstream
 moves, a patch stops applying or a count comes out wrong and they stop.  You
-work the phases out from GOAL.md as written and carry their intent forward onto
+work the phases out from SLIM-GOAL.md as written and carry their intent forward onto
 whatever upstream now is.  If you find that a phase's intent no longer matches
-what GOAL.md literally says, follow the intent and say so clearly at the end --
+what SLIM-GOAL.md literally says, follow the intent and say so clearly at the end --
 that difference is the most valuable thing you will produce.
 
 You may READ tools/ freely; the harnesses are yours to use and the phase
@@ -63,29 +63,29 @@ Five things this invocation fixes:
    $work/ either; the makefile does that when you exit 0.
 
 2. Write ONLY inside $work/.  Not the root Makefile, not pass.mk, not tools/,
-   not GOAL.md, not CLAUDE.md, not .reference/, not .build/ -- and above all
-   NOT the vim.c at the repository root.  That file is the fast path's answer
+   not SLIM-GOAL.md, not CLAUDE.md, not .reference/, not .build/ -- and above all
+   NOT the slim-vim.c at the repository root.  That file is the fast path's answer
    and this run exists to be compared against it; overwriting it destroys the
-   comparison.  Leave your vim.c and LICENSE in $work/ and the makefile will
+   comparison.  Leave your slim-vim.c and LICENSE in $work/ and the makefile will
    collect them.
 
 3. Do not commit, and do not run git outside $work/.
 
 4. Keep .build/ref/PROGRESS.md as you work -- one section per phase, appended,
    never rewritten.  Record elapsed time per phase, what you did, every place
-   GOAL.md turned out to be wrong or incomplete, and -- most valuable of all --
+   SLIM-GOAL.md turned out to be wrong or incomplete, and -- most valuable of all --
    anything upstream has changed that a program written against the previous
    upstream would have got wrong.  Be specific and quantitative.
 
 5. At the end, print: total elapsed, the per-phase breakdown, whether the
    verification passed, and a plain statement of anything that differed from
-   what GOAL.md predicts.
+   what SLIM-GOAL.md predicts.
 
-Verify as GOAL.md says: tools/verify.sh against .reference/baselines if that
+Verify as SLIM-GOAL.md says: tools/verify.sh against .reference/baselines if that
 directory exists, the -Wall -Wextra sweep printing nothing at all,
 tools/create_cmdidxs.py --check, and every Phase 7 canonicaliser reporting zero
 at the end.  Do not run tools/refcheck.sh -- it compares against the repository
-root's vim.c, which is not yours to be judged against here; the makefile does
+root's slim-vim.c, which is not yours to be judged against here; the makefile does
 that comparison afterwards.
 PREAMBLE
 )
