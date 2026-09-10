@@ -16,9 +16,11 @@
 # obviously wrong rather than plausibly right.
 
 case ${1:-slim} in
-    slim) PIPE=slim; TAG=p; IMPL=phase; DOC=SLIM-GOAL.md
-          PWORK=upstream; PBUILD=.build ;;
+    slim) PIPE=slim; TAG=p; IMPL=slim ; DOC=SLIM-GOAL.md
+          PWORK=upstream; PBUILD=.build
+          PHASE_LIST="0 1 2 3 4 5 6 7 8 9" ;;
     pure) PIPE=pure; TAG=q; IMPL=pure;  DOC=PURE-GOAL.md
-          PWORK=pure;     PBUILD=.build-pure ;;
+          PWORK=pure;     PBUILD=.build-pure
+          PHASE_LIST="0 1" ;;
     *)    echo "pipeline: no such pipeline: $1" >&2; return 1 2>/dev/null || exit 1 ;;
 esac

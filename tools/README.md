@@ -67,7 +67,7 @@ it refuses outright if any multi-line comment has code on both sides.
 themselves.
 
 - **`memo.sh <n> <work> <build>`** — the driver. Tier 3 (a cached result for
-  this exact input and implementation), else tier 2 (`tools/phase<n>.sh`), else
+  this exact input and implementation), else tier 2 (`tools/slim<n>.sh`), else
   tier 1 (an agent) — and an agent run always leaves a tier 2 behind, so the
   same input never costs an agent twice.
 - **`implhash.sh <n>`** — half the cache key: the phase's program plus every
@@ -111,7 +111,7 @@ each reproduces that boundary byte for byte.
 - **`phase0.sh`** — configure, build, delete the asserts, rebuild, and check
   the harness disagrees with the baselines in exactly the six cases Phase 1
   owns. **32 s against 2 m 57 s.** Uses `dropasserts.py`.
-- **`phase1.sh`** — apply `patches/phase1.patch`, delete the configure
+- **`phase1.sh`** — apply `patches/slim1.patch`, delete the configure
   machinery, rebuild, and run all four harnesses against the baselines. **18 s
   against 17 m 16 s.** This is the phase that changes behaviour, so it is also
   the phase that pins it.

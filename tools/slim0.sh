@@ -1,7 +1,7 @@
 #!/bin/sh
 # Phase 0 -- reference, tools, harness.  See SLIM-GOAL.md.
 #
-# Usage: tools/phase0.sh <work-dir>       (run from the repository root)
+# Usage: tools/slim0.sh <work-dir>       (run from the repository root)
 #
 # The phase that SLIM-GOAL.md describes at greatest length is the one that needs an
 # agent least: the tools already exist in tools/ and the pass does not write

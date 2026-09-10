@@ -1,7 +1,7 @@
 #!/bin/sh
 # Phase 2 -- prune the tree to what the compiler opens.  See SLIM-GOAL.md.
 #
-# Usage: tools/phase2.sh <work-dir>       (run from the repository root)
+# Usage: tools/slim2.sh <work-dir>       (run from the repository root)
 #
 # 8,574 files become 165, and almost none of that is a list to maintain: what
 # survives is COMPUTED, twice over, by asking the compiler.

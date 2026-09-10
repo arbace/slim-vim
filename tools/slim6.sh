@@ -1,7 +1,7 @@
 #!/bin/sh
 # Phase 6 -- merge 162 files into one translation unit.  See SLIM-GOAL.md.
 #
-# Usage: tools/phase6.sh <work-dir>       (run from the repository root)
+# Usage: tools/slim6.sh <work-dir>       (run from the repository root)
 #
 # The collisions have to be found BEFORE the merge, because afterwards there
 # are no per-file objects left to compare.  `nm --defined-only` over them names

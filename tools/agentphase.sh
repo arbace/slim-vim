@@ -3,7 +3,7 @@
 #
 # Usage: tools/agentphase.sh <phase> <workdir>
 #
-# This is the fallback for a phase that has no tools/phase<N>.sh yet.  Every
+# This is the fallback for a phase that has no tools/<pipeline><N>.sh yet.  Every
 # phase that grows one stops coming through here, and the day none of them does
 # is the day the pass is deterministic.
 #

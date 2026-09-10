@@ -1,7 +1,7 @@
 #!/bin/sh
 # Phase 5 -- resolve every conditional directive by marker counting.  See SLIM-GOAL.md.
 #
-# Usage: tools/phase5.sh <work-dir>       (run from the repository root)
+# Usage: tools/slim5.sh <work-dir>       (run from the repository root)
 #
 # 8,251 conditional groups become 17, and a third of the tree goes with them.
 # The rule the whole phase turns on: DO NOT EVALUATE THE CONDITIONS.  Plant a

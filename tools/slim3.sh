@@ -1,7 +1,7 @@
 #!/bin/sh
 # Phase 3 -- one Makefile, nothing generated.  See SLIM-GOAL.md.
 #
-# Usage: tools/phase3.sh <work-dir>       (run from the repository root)
+# Usage: tools/slim3.sh <work-dir>       (run from the repository root)
 #
 # Five edits, all mechanical, and the boundary diff between phase 2 and phase 3
 # is exactly these: vim.h, xdiff.h, proto.h, a new Makefile and no more

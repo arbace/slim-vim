@@ -75,7 +75,7 @@ cat > "$prog" <<EOF
 # Phase $phase -- SYNTHESISED from a tier-1 run.  See SLIM-GOAL.md for what the
 # phase means; this file only reproduces what an agent did once.
 #
-# Usage: tools/phase$phase.sh <work-dir>
+# Usage: tools/slim$phase.sh <work-dir>
 #
 # This is tier 2 in its degenerate form: a patch, and nothing else.  It is
 # correct for the input it was recorded from and it will fail on any upstream

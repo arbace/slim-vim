@@ -11,7 +11,7 @@
 #     This is what makes re-running a pass free, and what makes editing one
 #     phase re-run that phase and the ones after it, rather than all ten.
 #
-#   TIER 2, the CODE.  tools/phase<N>.sh: a deterministic program.  Fast,
+#   TIER 2, the CODE.  tools/<pipeline><N>.sh: a deterministic program.  Fast,
 #     checkable, and brittle exactly where upstream is free to move.  Its
 #     degenerate form is a patch, which tools/synth.sh can write automatically
 #     from what tier 1 did; improving it means replacing patch with algorithm,

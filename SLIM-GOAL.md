@@ -284,7 +284,7 @@ phase's prerequisite is the previous phase's boundary, and its recipe restores
 that boundary into `upstream/` first, so every phase is a pure function of its
 input rather than of whatever the last attempt left behind.
 
-**A phase is run by a program if `tools/phase<N>.sh` exists, and by an agent if
+**A phase is run by a program if `tools/<pipeline><N>.sh` exists, and by an agent if
 it does not.** That is the whole dispatch, and it is what makes this document's
 own obsolescence incremental: converting a phase is adding a file, the pass
 still runs end to end, and the phase that changed can be checked against the
@@ -529,7 +529,7 @@ The three changes measured to be worth the most, in order:
 
 ## Phase 0 — reference, tools, harness
 
-**This phase is a program: `tools/phase0.sh`, 30 seconds against the 2 m 57 s
+**This phase is a program: `tools/slim0.sh`, 30 seconds against the 2 m 57 s
 an agent took.** What follows is what it does and why, which is still worth
 reading — it is the specification the program was written from, and what to
 check it against when upstream moves. It configures, builds, deletes the
@@ -637,9 +637,9 @@ later phase and costs a bisect.
 
 ## Phase 1 — freeze the configuration
 
-**This phase is a program: `tools/phase1.sh`, 18 seconds against 17 minutes.**
+**This phase is a program: `tools/slim1.sh`, 18 seconds against 17 minutes.**
 Everything it does is a fixed edit to a fixed upstream file, so it is a
-checked-in patch -- `tools/patches/phase1.patch`, 1,297 lines across 13 files --
+checked-in patch -- `tools/patches/slim1.patch`, 1,297 lines across 13 files --
 plus twelve deletions, and then all four harnesses against the recorded
 baselines. What it costs instead is honesty about drift: when upstream moves
 under a hunk the patch fails at that hunk, which is exactly when a human should
@@ -817,7 +817,7 @@ rule 7, and it is cheaper than it sounds.
 
 ## Phase 2 — prune the tree
 
-**This phase is a program: `tools/phase2.sh`, 4 seconds against 7 m 13 s.** It
+**This phase is a program: `tools/slim2.sh`, 4 seconds against 7 m 13 s.** It
 installs `tools/templates/pruned.mk` rather than performing surgery on
 upstream's 4,910-line makefile -- Phase 3 replaces the makefile anyway, so
 nothing that surgery produced survives one more phase, and the fork bomb below
@@ -933,7 +933,7 @@ already happened when the script raised — rule 9.
 
 ## Phase 3 — one Makefile, nothing generated
 
-**This phase is a program: `tools/phase3.sh`, 1 second against 7 minutes.** It
+**This phase is a program: `tools/slim3.sh`, 1 second against 7 minutes.** It
 unwraps `HAVE_CONFIG_H` with `tools/unwrapif.py`, names the 97 `.pro` includes
 by path, points `xdiff.h` at `vim.h`, installs `tools/templates/upstream.mk`
 and drops `config.mk`. What follows is what it does and why.
@@ -1011,7 +1011,7 @@ Two things make that slow to diagnose, and both are worth knowing up front:
 
 ## Phase 4 — the cheap line-level normalisations
 
-**This phase is a program: `tools/phase4.sh`, 63 seconds against 5 m 41 s.**
+**This phase is a program: `tools/slim4.sh`, 63 seconds against 5 m 41 s.**
 splice, untab, decomment, in that order, and it refuses if the blank-line count
 moves. What follows is what it does and why.
 
@@ -1108,7 +1108,7 @@ to land near nine tenths of the density of a build that never lost them.
 
 ## Phase 5 — resolve every conditional directive
 
-**This phase is a program: `tools/phase5.sh`, 8 seconds against 7 minutes.**
+**This phase is a program: `tools/slim5.sh`, 8 seconds against 7 minutes.**
 plant, tally, resolve, remove `#undef`, then tier 2 across all 67 units. What
 follows is what it does and why.
 
@@ -1242,7 +1242,7 @@ there is only one file now. Make it shape-agnostic
 
 ## Phase 7 — canonicalise, before anything reads C syntax
 
-**This phase is a program: `tools/phase7.sh`, 40 seconds against 5 m 24 s.** It
+**This phase is a program: `tools/slim7.sh`, 40 seconds against 5 m 24 s.** It
 builds tier 1's left-hand side first, runs `tools/canon.sh` to a joint fixpoint
 (six rounds here), and requires the binary to come out byte-identical. What
 follows is what it does and why.
@@ -1417,7 +1417,7 @@ unsigned, making the subtraction unsigned and liable to wrap.
 
 ## Phase 9 — leave the preprocessor behind
 
-**This phase is a program: `tools/phase9.sh`, 34 seconds against 943.** Delete
+**This phase is a program: `tools/slim9.sh`, 34 seconds against 943.** Delete
 the unused macros in one round, split the `EXCMD` X-macro by its `#undef`
 regions, make `_()` and `NGETTEXT` inline functions, convert what can be an
 enumerator, expand the rest, unwrap the `do { } while (0)` wrappers, re-run the

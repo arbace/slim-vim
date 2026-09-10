@@ -1,7 +1,7 @@
 #!/bin/sh
 # Phase 7 -- canonicalise, before anything reads C syntax.  See SLIM-GOAL.md.
 #
-# Usage: tools/phase7.sh <work-dir>       (run from the repository root)
+# Usage: tools/slim7.sh <work-dir>       (run from the repository root)
 #
 # Seven passes, run to a joint fixpoint by tools/canon.sh: collapse blank runs,
 # join parenthesised groups onto one line, split control-statement heads, brace

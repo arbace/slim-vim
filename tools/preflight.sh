@@ -54,7 +54,7 @@ done
 # --- an agent, only if a phase still needs one ----------------------------
 missing=
 for p in 0 1 2 3 4 5 6 7 8 9; do
-    [ -x "tools/phase$p.sh" ] || missing="$missing $p"
+    [ -x "tools/slim$p.sh" ] || missing="$missing $p"
 done
 
 if [ -z "$missing" ]; then

@@ -26,7 +26,7 @@ proceed, never ask.
 
 What is in front of you:
 
-- slim.mk runs ten phases.  A phase is a program if tools/phase<N>.sh exists
+- slim.mk runs ten phases.  A phase is a program if tools/<pipeline><N>.sh exists
   and an agent otherwise.  One of the programs failed; its output says which
   and why.
 - .build/p*.sha256 are the boundaries the fast path reached before it stopped.
@@ -49,7 +49,7 @@ What to do:
    boundary with `make replay-<N-1>`, apply what the reference answer implies,
    and diff.  Prefer a rule the compiler or the tree can state over a constant.
 3. If the change genuinely cannot be expressed as a program, say so plainly and
-   leave that phase's tools/phase<N>.sh deleted, so slim.mk falls back to an
+   leave that phase's tools/<pipeline><N>.sh deleted, so slim.mk falls back to an
    agent for that phase alone.  A phase that honestly needs judgement is a
    better outcome than a program that guesses.
 4. Re-run the phase you fixed -- `make phase-<N>` -- and then the ones after

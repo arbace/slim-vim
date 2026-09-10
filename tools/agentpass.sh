@@ -42,7 +42,7 @@ CLAUDE.md describes the tree it produces.  The ordering of the phases is the
 point.
 
 You are the REFERENCE PATH.  Most of this process now exists as programs in
-tools/ -- tools/phase0.sh, phase1.sh and so on -- and a makefile runs them.
+tools/ -- tools/slim0.sh, phase1.sh and so on -- and a makefile runs them.
 You are not running those and you are not bound by them.  You are here because
 they cannot think: they were written against one upstream, and when upstream
 moves, a patch stops applying or a count comes out wrong and they stop.  You

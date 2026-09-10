@@ -1,7 +1,7 @@
 #!/bin/sh
 # Phase 4 -- the cheap line-level normalisations.  See SLIM-GOAL.md.
 #
-# Usage: tools/phase4.sh <work-dir>       (run from the repository root)
+# Usage: tools/slim4.sh <work-dir>       (run from the repository root)
 #
 # Three passes over every source, in this order, none of which understands C:
 # splice out backslash continuations, expand tabs at the 8-column stops they

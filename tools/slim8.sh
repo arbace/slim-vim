@@ -1,7 +1,7 @@
 #!/bin/sh
 # Phase 8 -- internal linkage, then dead code to a fixpoint.  See SLIM-GOAL.md.
 #
-# Usage: tools/phase8.sh <work-dir>       (run from the repository root)
+# Usage: tools/slim8.sh <work-dir>       (run from the repository root)
 #
 # Before the macro work, not after: every macro deleted here is one that does
 # not have to be converted in Phase 9.

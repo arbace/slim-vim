@@ -15,7 +15,7 @@
 #
 # The pass itself is in slim.mk: ten phases, each a make target whose
 # prerequisite is the previous phase's boundary.  A phase is run by a program
-# if tools/phase<N>.sh exists and by an agent if it does not, so converting a
+# if tools/<pipeline><N>.sh exists and by an agent if it does not, so converting a
 # phase to a deterministic one is adding a file rather than editing anything
 # here.  That conversion is the direction of travel; GOAL.md measures where the
 # hour goes and what each phase is worth.

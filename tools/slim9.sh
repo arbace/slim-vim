@@ -1,7 +1,7 @@
 #!/bin/sh
 # Phase 9 -- leave the preprocessor behind.  See SLIM-GOAL.md.
 #
-# Usage: tools/phase9.sh <work-dir>       (run from the repository root)
+# Usage: tools/slim9.sh <work-dir>       (run from the repository root)
 #
 # This replaces the patch that a tier-1 run synthesised.  What is algorithmic
 # is done by rules here; whatever is left over is applied at the end from

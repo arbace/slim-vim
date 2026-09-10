@@ -45,7 +45,7 @@ $(PUREBUILD)/input.sha256: slim-vim.c tools/templates/pure.mk
 # The same content-keyed dependency the other pipeline uses, for the same
 # reason: pure-vim.c and slim-vim.c are both tracked, and a fresh clone writes
 # them at checkout time in arbitrary order, so an mtime dependency would run a
-# pure pass on a tree that is exactly right.  pure.sha records the slim-vim.c
+# pure pass on a tree that is exactly right.  slim.sha records the slim-vim.c
 # this pure-vim.c was produced from.
 pure-vim: pure-vim.c
 	@printf '  %-12s %s\n' "compiling" "$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<"
@@ -57,13 +57,13 @@ pure-vim: pure-vim.c
 pure-vim.c: force
 	@set -e; \
 	live=`sha256sum slim-vim.c | cut -c1-64`; \
-	if [ -f $@ ] && [ "$$live" = "`cat pure.sha 2>/dev/null`" ]; then \
+	if [ -f $@ ] && [ "$$live" = "`cat slim.sha 2>/dev/null`" ]; then \
 	    printf '  %-12s %s unchanged -- pure-vim.c is current\n' "slim-vim.c" "`echo $$live | cut -c1-12`"; \
 	    exit 0; \
 	fi; \
 	printf '  %-12s %s -- pure-vim.c must be produced\n' "slim-vim.c" "`echo $$live | cut -c1-12`"; \
 	$(MAKE) --no-print-directory pure-pass; \
-	echo "$$live" > pure.sha
+	echo "$$live" > slim.sha
 
 # --- what a pure pass is --------------------------------------------------
 .PHONY: pure-pass
@@ -72,6 +72,28 @@ pure-pass: $(PUREBUILD)/q1.sha256
 	@echo
 	@printf '  %-12s %s lines, from slim-vim.c\n' "pure-vim.c" \
 	    "`grep -c '' pure-vim.c | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"
+
+# The same per-phase handles slim.mk has: re-run one, or put the work directory
+# back to what a phase receives.  Their absence was an asymmetry rather than a
+# decision -- the boundaries were always there, with nothing to reach them by.
+.PHONY: $(PUREPHASES:%=pure-phase-%)
+$(PUREPHASES:%=pure-phase-%): pure-phase-%:
+	@rm -f $(PUREBUILD)/q$*.sha256
+	@$(MAKE) --no-print-directory $(PUREBUILD)/q$*.sha256
+
+.PHONY: $(PUREPHASES:%=pure-replay-%)
+$(PUREPHASES:%=pure-replay-%): pure-replay-%:
+	@tools/restore.sh $(PUREBUILD)/q$*.tar $(PUREWORK)
+	@echo "  replay       $(PUREWORK)/ is the tree after pure phase $*"
+
+.PHONY: pure-times
+pure-times:
+	@total=0; for q in $(PUREPHASES); do \
+	    [ -f $(PUREBUILD)/q$$q.seconds ] || continue; \
+	    s=$$(cat $(PUREBUILD)/q$$q.seconds); total=$$((total + s)); \
+	    printf '  pure %-6s %4s s  by %s\n' "$$q" "$$s" "$$(cat $(PUREBUILD)/q$$q.kind)"; \
+	done; \
+	printf '  %-12s %4s s\n' "total" "$$total"
 
 # Force one when the recorded input digest already matches.
 .PHONY: repure

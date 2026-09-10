@@ -82,7 +82,7 @@ Makefile       the seed: builds both, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), ten phases as make targets
 pure.mk        pure-vim.c = G(slim-vim.c), the same construct
 upstream.sha   the commit slim-vim.c was produced from
-pure.sha       the slim-vim.c pure-vim.c was produced from
+slim.sha       the slim-vim.c pure-vim.c was produced from
 tools/         the harnesses, the passes, and the phases that are programs
 README.md  CLAUDE.md  SLIM-GOAL.md  PURE-GOAL.md  LICENSE  .gitignore
 ```
@@ -233,7 +233,7 @@ through them in order:
 | tier | what it is | cost | what it can do |
 | --- | --- | --- | --- |
 | **3** | the **result** — the boundary itself | 0.17 s | nothing; it is an answer |
-| **2** | the **code** — `tools/phase<N>.sh` | 1–380 s | exactly what it was written for |
+| **2** | the **code** — `tools/<pipeline><N>.sh` | 1–380 s | exactly what it was written for |
 | **1** | the **agent** — `claude -p`, one phase | 5–17 min | cope with something it has not seen |
 
 **Tier 3 is keyed by content, not by time.** The key is the input boundary's
@@ -930,7 +930,7 @@ make                 # ls-remote, compare against upstream.sha, and if they
 
 **The pass is `slim.mk`, and it is ten make targets, not one agent.** A phase's
 prerequisite is the previous phase's boundary, so `make` sequences them — and a
-phase is run by a **program** if `tools/phase<N>.sh` exists and by an **agent**
+phase is run by a **program** if `tools/<pipeline><N>.sh` exists and by an **agent**
 if it does not. Converting a phase is therefore adding a file; nothing else
 changes, and the pass runs end to end at every point in between.
 
