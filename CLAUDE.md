@@ -60,7 +60,7 @@ it is the only one.
 
 ## Layout
 
-Eighty-three tracked files once a pass has run: nine at the root, and 74 under
+Eighty-six tracked files once a pass has run: nine at the root, and 77 under
 `tools/` — the passes, the harnesses, the ten phases' programs, the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Two of the nine (`vim.c`, `LICENSE`) are products,

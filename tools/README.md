@@ -210,15 +210,20 @@ lost again)
 `GOAL.md` describes what each phase uses them for; `README.md` at the root is
 the front door to both.
 
-**Some of these are currently reached by nothing, and that is not a reason to
-delete them.** `undowhile.py`, `toenum.py` and `reblank.py` are unreferenced
-today because Phase 9 is a *synthesised patch* — a recording of what an agent
-did, which swallowed the work those tools used to do. They come back into use
-the moment that patch is replaced by rules, which is the whole of the remaining
-work. This is the same trap Phase 0 warns about in a new shape: a tool can look
-dead because the current implementation does not reach it, and two were once
-deleted for exactly that reason and had to be written again from memory. The
-test is "does the process need it", not "does anything call it today".
+**A tool that nothing calls is not necessarily dead, and this repository has
+now watched that happen twice.** Phase 0 warns about the first form: a pass
+needs `merge.py`, `plant.py` and the rest, none of which can run against the
+*finished* `vim.c`, and two were once deleted for looking unused and had to be
+written again from memory.
+
+The second form appeared when Phase 9 was a synthesised patch — a recording of
+what an agent did, which swallowed the work `undowhile.py` and `toenum.py` used
+to do, leaving both referenced by nothing. Replacing that recording with rules
+brought them straight back into use, which is the clearest evidence available
+that the residue really was standing in for algorithms rather than for nothing.
+`reblank.py` is still waiting its turn.
+
+The test is "does the process need it", not "does anything call it today".
 
 Gone for good: `rename.bat`, which was **upstream's** — a Win32 build helper
 that survived every pruning pass because Vim's own tree has a `tools/` too.
