@@ -22,6 +22,11 @@ upstream-ref/
 # comparing the next -- but it is data, not source, and a new pass discards it.
 .build/
 
+# Tier 3 of the memoize: phase results, keyed by input digest and
+# implementation digest together.  Pure cache -- content-keyed, so it cannot go
+# stale, and deleting it costs only the time to recompute.
+.cache/
+
 # The transient insight log, folded into GOAL.md and CLAUDE.md and then deleted.
 PROGRESS.md
 

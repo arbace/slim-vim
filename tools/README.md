@@ -60,14 +60,30 @@ the 245 banners with it. It is here for the rule it enforces, which nothing
 else records: a comment becomes one space **plus the newlines it spanned**, and
 it refuses outright if any multi-line comment has code on both sides.
 
-## Driving a pass
+## The three-tier memoize
 
-`pass.mk` at the root sequences the ten phases; these are what it calls, and
-none of them knows anything about the phases themselves.
+`pass.mk` sequences the ten phases; these implement the memoize described in
+`CLAUDE.md` and `README.md`. None of them knows anything about the phases
+themselves.
 
-- **`runphase.sh <n> <work> <build>`** — run phase *n* by program if
-  `tools/phase<n>.sh` exists and by agent if it does not, and record which and
-  how long. **Converting a phase is adding a file**; nothing else changes.
+- **`memo.sh <n> <work> <build>`** — the driver. Tier 3 (a cached result for
+  this exact input and implementation), else tier 2 (`tools/phase<n>.sh`), else
+  tier 1 (an agent) — and an agent run always leaves a tier 2 behind, so the
+  same input never costs an agent twice.
+- **`implhash.sh <n>`** — half the cache key: the phase's program plus every
+  tool, patch, table and template it names, one level of indirection deep.
+  Narrow on purpose, so editing `resolve.py` re-runs phase 5 and not all ten.
+- **`synth.sh <n> <build>`** — memoize an agent's *behaviour* as code: diff the
+  two boundaries, write `patches/p<n>-residue.patch`, and write a
+  `phase<n>.sh` that applies it if the phase had none.
+- **`residue.sh`** — the scoreboard. How much of each phase is still a recorded
+  diff rather than a rule, which is the number to drive down.
+- **`repair.sh`** — after the fast path failed and the agent succeeded: fix the
+  *program*, not the symptom, and say plainly when a change genuinely needs
+  judgement.
+- **`runphase.sh <n> <work> <build>`** — the pre-memoize dispatcher, kept
+  because it is the whole idea in eight lines: program if one exists, agent if
+  not.
 - **`agentphase.sh <n> <work>`** — one `claude -p` scoped to a single phase,
   handed the tree at that phase's input and forbidden everything outside it.
   The prompt is assembled invariant-first, phase-text-last, so the ten phase

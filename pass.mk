@@ -49,8 +49,7 @@ $(BUILD)/p9.sha256: $(BUILD)/p8.sha256
 # prerequisite's name with .sha256 swapped for .tar.
 $(BUILD)/p%.sha256:
 	@tools/restore.sh $(patsubst %.sha256,%.tar,$<) $(WORK)
-	@tools/runphase.sh $* $(WORK) $(BUILD)
-	@tools/snapshot.sh $(WORK) $(BUILD)/p$*.tar $(BUILD)/p$*.sha256
+	@tools/memo.sh $* $(WORK) $(BUILD)
 	@tools/oracle.sh $* $(BUILD) $(ORACLE)
 
 # --- the input ------------------------------------------------------------
@@ -217,6 +216,17 @@ times:
 	done; \
 	printf '  %-12s %4s s  (%s m)\n' "total" "$$total" "$$((total / 60))"
 
+# How much of each phase is still a recorded diff rather than a rule.
+.PHONY: residue
+residue:
+	@tools/residue.sh
+
 .PHONY: clean-pass
 clean-pass:
 	rm -rf $(BUILD)
+
+# The tier-3 cache is keyed by content, so it never goes stale -- but it does
+# grow, and throwing it away costs only the time to recompute.
+.PHONY: clean-cache
+clean-cache:
+	rm -rf .cache

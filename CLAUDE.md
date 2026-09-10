@@ -60,9 +60,10 @@ it is the only one.
 
 ## Layout
 
-Fifty-nine tracked files once a pass has run: nine at the root, and 50 under
-`tools/` — 48 passes, harnesses and phase programs, a `README.md`, and one file
-in `tools/templates/`. Two of the nine (`vim.c`, `LICENSE`) are products,
+Eighty-one tracked files once a pass has run: nine at the root, and 72 under
+`tools/` — the passes, the harnesses, the ten phases' programs, the memoize
+driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
+`patches/` and `templates/`. Two of the nine (`vim.c`, `LICENSE`) are products,
 `upstream.sha` is a record, and the other six and `tools/` are the seed.
 
 ```
@@ -195,6 +196,81 @@ What usually makes a static musl binary a lie is `dlopen()`, and there is none.
 The two libc facilities commonly stubbed out in static builds both work here:
 `iconv_open()` (musl's tables are compiled in) and `getpwnam()` (musl has no NSS
 to miss, so `~root/` expands).
+
+## The three-tier memoize
+
+**`vim.c` is a function of upstream, and this repository is that function,
+memoized.** Everything else here follows from taking that literally.
+
+```
+vim.c = F(upstream@sha)          decomposed as    p_N = f_N(p_{N-1})
+```
+
+Each phase `f_N` has three implementations, at three costs, and a pass falls
+through them in order:
+
+| tier | what it is | cost | what it can do |
+| --- | --- | --- | --- |
+| **3** | the **result** — the boundary itself | 0.17 s | nothing; it is an answer |
+| **2** | the **code** — `tools/phase<N>.sh` | 1–380 s | exactly what it was written for |
+| **1** | the **agent** — `claude -p`, one phase | 5–17 min | cope with something it has not seen |
+
+**Tier 3 is keyed by content, not by time.** The key is the input boundary's
+digest and the implementation's digest together — `tools/implhash.sh` hashes
+the phase's program plus every tool, patch, table and template it names — so a
+cached result answers exactly one question: *this implementation, applied to
+this input*. Measured: Phase 4 costs 63 s cold and **0.17 s** cached; editing
+its program changes the key and it runs again; reverting the edit restores the
+old key and it is cached again. That is stronger than a timestamp, and it is
+what makes editing one phase re-run that phase and the ones after it rather
+than all ten.
+
+**Tier 1 is not a function, and is never treated as one.** Two agent runs on
+identical input have been measured to differ — Phase 5 produced a different
+`edit.c` the second time. Its result is cached, but its boundary is *advisory*
+and never a check.
+
+**The point of tier 1 is what it leaves behind.** When an agent runs,
+`tools/synth.sh` diffs the two boundaries and writes the difference out as
+`tools/patches/p<N>-residue.patch`, plus a `phase<N>.sh` that applies it if the
+phase had no program at all. So the same input never costs an agent twice, and
+a phase acquires a fast path the first time it is ever run. A cached agent
+answer saves one repetition; a *synthesised program* saves every future one.
+
+**The synthesised form is a legitimate tier 2 and a poor one**, and the
+difference is the whole of the remaining work. A patch reproduces one
+transformation of one input, says nothing about why, and fails the moment
+upstream edits a line it touches. A rule — a computed set, a table, a
+transformation over every line of a shape — does not care. So:
+
+> **The residual patch size is the measure of how well a phase is understood.**
+> Zero means the phase is understood. A thousand lines means it is remembered.
+
+`make residue` is the scoreboard. As of this writing:
+
+```
+  phase  tier          residue  notes
+  0      program             0  computed
+  1      program           797  a deliberate patch: the edits are fixed
+  2..8   program             0  computed
+  9      agent               -  no program yet; one tier-1 run synthesises one
+```
+
+Phase 1's 797 lines are not a failure to understand it — its content genuinely
+*is* a set of fixed edits, and the tree cannot state them. That is the one
+place a patch is the right answer rather than a placeholder.
+
+**A tier-2 failure is not an error, it is the construct working.** The pass
+falls through to tier 1, which produces an answer and a new patch; `make`
+wraps that as `passorref`, and `tools/repair.sh` then hands the failing phase,
+its error and the agent's account to an agent whose job is to fix the
+*program* — preferring a computed rule over a constant, and saying plainly when
+a change genuinely needs judgement, in which case that one phase reverts to an
+agent and the other nine do not.
+
+**The top level is already an instance of this.** `upstream.sha` is tier 3 of
+`F` itself: when the branch head matches, the cached `vim.c` is returned and
+nothing runs at all.
 
 ## Testing
 

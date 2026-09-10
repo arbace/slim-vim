@@ -31,16 +31,9 @@ them — and `-lm` — put back; `CLAUDE.md` says where.
   `tabstop=4`, `shiftwidth=4`, `expandtab`, `autoindent`, `nocompatible`,
   `hlsearch` and `ruler` — plus four mappings, with bracketed paste never
   enabled. `-u NONE` does not undo any of it. `CLAUDE.md` lists them all.
-- **Becoming deterministic one phase at a time.** The pass is ten make targets
-  in `pass.mk`. A phase runs as a **program** if `tools/phase<N>.sh` exists and
-  as an **agent** if it does not, so converting one is adding a file and the
-  pass runs end to end throughout. Seven of the ten are programs now.
-- **Two paths, kept as a pair.** `make` is the fast one. `make refpass` runs
-  the whole pass as a single agent, the way it used to work, into a directory
-  of its own; `make compare` puts the two answers side by side. The programs
-  are fast and brittle — each written against one upstream — and the agent is
-  slow and can think, so when upstream moves under a patch, the reference path
-  is what still produces an answer to repair the fast one against.
+- **Not one program but three, per phase.** See *The three-tier memoize*
+  below: the pass falls through a cached result, a deterministic program, and
+  an agent, in that order. Nine of the ten phases have a program.
 
 ## Running a pass
 
@@ -56,17 +49,51 @@ deletes `upstream/` and records the new sha. Nothing of the clone survives, and
 everything this tree has is produced by the phases — there is no list of extras
 to re-apply afterwards.
 
-Each phase leaves a **boundary** behind — a restorable snapshot and a content
-digest — which is what makes the deterministic rewrite affordable: converting a
-phase means restoring the previous boundary, running the new program and
-comparing the next digest, in seconds rather than an hour.
-
 ```sh
 make repass          # force a pass when upstream has not moved
 make phase-4         # re-run one phase from the previous boundary
 make replay-3        # put upstream/ back to what phase 4 receives
 make times           # where this pass's seconds went
+make residue         # how much of each phase is still a recorded diff
+make refpass         # the whole pass as one agent, into a directory of its own
+make compare         # that answer against this one
 ```
+
+## The three-tier memoize
+
+**`vim.c` is a function of upstream, and this repository is that function,
+memoized.** The pass is ten phases, `p_N = f_N(p_{N-1})`, and each phase has
+three implementations that are tried in order:
+
+| tier | what it is | what it can do |
+| --- | --- | --- |
+| **3** | the cached **result** for this input | nothing; it is an answer |
+| **2** | a deterministic **program** | exactly what it was written for |
+| **1** | an **agent**, scoped to one phase | cope with something it has not seen |
+
+Tier 3 is keyed by content — the input boundary's digest and the
+implementation's digest together — so a cached result answers exactly one
+question, and editing one phase re-runs that phase and the ones after it rather
+than all ten. A phase that costs a minute cold costs a fifth of a second warm.
+
+Tier 1 is slow and cannot be checked against itself: two agent runs on the same
+input have been measured to differ. **What makes it pay is what it leaves
+behind** — the difference between the two boundaries it produced is written out
+as a patch, and a phase with no program gets one that applies it. So the same
+input never costs an agent twice, and every phase acquires a fast path the
+first time it is ever run.
+
+That synthesised patch is a working tier 2 and a poor one: it reproduces one
+transformation of one input and breaks the moment upstream edits a line it
+touches. **Replacing it with rules — a computed set, a table, a transformation
+over every line of a shape — is the work, and the size of what is left is the
+score.** `make residue` keeps it. Zero means a phase is understood; a thousand
+lines means it is remembered.
+
+When a program fails, that is the construct working rather than an error: the
+pass falls through to the agent, which produces an answer, and a repair step
+then fixes the *program* so the next upstream change costs less than this one
+did.
 
 Read `GOAL.md` before you expect to follow along. The ordering is the point.
 Then check the result:
