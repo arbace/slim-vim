@@ -110050,9 +110050,6 @@ static struct vimoption options[] =
     {"maxsearchcount", "msc", P_NUM|P_VI_DEF,
                             (char_u *)&p_msc, PV_NONE, did_set_maxsearchcount, NULL,
                             {(char_u *)99L, (char_u *)0L}   },
-    {"menuitems",   "mis",  P_NUM|P_VI_DEF,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)25L, (char_u *)0L}   },
     {"mesg",        NULL,   P_BOOL|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -110481,32 +110478,6 @@ static struct vimoption options[] =
     {"sourceany",   NULL,   P_BOOL|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"spell",       NULL,   P_BOOL|P_VI_DEF|P_RWIN|P_HLONLY,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"spellcapcheck", "spc", P_STRING|P_ALLOCED|P_VI_DEF|P_RBUF|P_HLONLY,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
-    {"spellfile",   "spf",  P_STRING|P_EXPAND|P_ALLOCED|P_VI_DEF|P_SECURE
-                                                                  |P_ONECOMMA,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
-    {"spelllang",   "spl",  P_STRING|P_ALLOCED|P_VI_DEF|P_ONECOMMA
-                                                     |P_RBUF|P_HLONLY|P_EXPAND,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
-    {"spelloptions", "spo",  P_STRING|P_ALLOCED|P_VI_DEF
-                                           |P_ONECOMMA|P_NODUP|P_RBUF|P_HLONLY,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
-    {"spellsuggest", "sps", P_STRING|P_VI_DEF|P_EXPAND|P_SECURE|P_ONECOMMA,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
     {"splitbelow",  "sb",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_sb, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -111855,8 +111826,6 @@ static char *modeline_whitelist[] =
     "shiftwidth",
     "smartindent",
     "softtabstop",
-    "spell",
-    "spelllang",
     "tabstop",
     "textwidth",
     "varsofttabstop",
