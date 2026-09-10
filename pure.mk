@@ -1,6 +1,6 @@
 # The pure pipeline: pure-vim.c = G(slim-vim.c).
 #
-# Included by the root Makefile, and the same construct as pass.mk -- phases as
+# Included by the root Makefile, and the same construct as slim.mk -- phases as
 # targets, boundaries as content digests, results memoized in three tiers.  The
 # driver, the oracle and the synthesiser are shared and take the pipeline as an
 # argument; tools/pipeline.sh is the whole of the difference between the two.

@@ -44,7 +44,7 @@ What to do:
    happened, what was measured, how it was verified, and what was deliberately
    left out.
 
-Do not touch the Makefile, pass.mk or tools/.  They are the harness that
+Do not touch the Makefile, slim.mk or tools/.  They are the harness that
 invoked you.
 PREAMBLE
 )

@@ -62,7 +62,7 @@ it refuses outright if any multi-line comment has code on both sides.
 
 ## The three-tier memoize
 
-`pass.mk` sequences the ten phases; these implement the memoize described in
+`slim.mk` sequences the ten phases; these implement the memoize described in
 `CLAUDE.md` and `README.md`. None of them knows anything about the phases
 themselves.
 

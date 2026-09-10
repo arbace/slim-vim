@@ -62,7 +62,7 @@ Five things this invocation fixes:
    and never write to that remote -- it is read-only input.  Do not delete
    $work/ either; the makefile does that when you exit 0.
 
-2. Write ONLY inside $work/.  Not the root Makefile, not pass.mk, not tools/,
+2. Write ONLY inside $work/.  Not the root Makefile, not slim.mk, not tools/,
    not SLIM-GOAL.md, not CLAUDE.md, not .reference/, not .build/ -- and above all
    NOT the slim-vim.c at the repository root.  That file is the fast path's answer
    and this run exists to be compared against it; overwriting it destroys the

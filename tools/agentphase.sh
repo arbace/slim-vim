@@ -17,7 +17,7 @@ set -o pipefail         # or the tee below reports its own success as claude's
 
 phase=${1:?usage: agentphase.sh <phase> <workdir> [pipeline]}
 work=${2:?}
-. tools/pipeline.sh "${3:-pass}"
+. tools/pipeline.sh "${3:-slim}"
 
 goal=$DOC
 [ -f "$goal" ] || { echo "agentphase: no $goal here"; exit 1; }
@@ -59,7 +59,7 @@ Rules, all of them absolute:
 
 WHERE THINGS ARE.  This is the orientation; do not go and rediscover it.  The
 first pass to run phases separately spent four to five minutes per phase on
-exactly that -- ls, the first 120 lines of SLIM-GOAL.md, cat pass.mk, cat
+exactly that -- ls, the first 120 lines of SLIM-GOAL.md, cat slim.mk, cat
 tools/README.md, reading the source of tools it was about to run -- and turned
 a 47-second phase into seven minutes.
 

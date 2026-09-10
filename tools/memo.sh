@@ -33,7 +33,7 @@ set -o pipefail          # the tier-2 run is piped through an indenter
 phase=${1:?usage: memo.sh <phase> <work-dir> <build-dir> [pipeline]}
 work=${2:?}
 build=${3:?}
-. tools/pipeline.sh "${4:-pass}"
+. tools/pipeline.sh "${4:-slim}"
 
 cache=.cache/$TAG$phase
 mkdir -p "$cache"

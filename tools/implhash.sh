@@ -19,7 +19,7 @@
 set -eu
 
 phase=${1:?usage: implhash.sh <phase> [pipeline]}
-. tools/pipeline.sh "${2:-pass}"
+. tools/pipeline.sh "${2:-slim}"
 prog="tools/$IMPL$phase.sh"
 
 [ -f "$prog" ] || { echo agent; exit 0; }

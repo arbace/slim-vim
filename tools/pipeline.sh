@@ -1,6 +1,6 @@
 # The two pipelines, and the only place that knows how they differ.
 #
-# Sourced, not run:  . tools/pipeline.sh [pass|pure]
+# Sourced, not run:  . tools/pipeline.sh [slim|pure]
 #
 #   slim-vim.c = F(upstream@sha)     SLIM-GOAL.md, ten phases, work in upstream/
 #   pure-vim.c = G(slim-vim.c)       PURE-GOAL.md, work in pure/
@@ -15,8 +15,8 @@
 # both without a key collision, and so that a stray p3 in a pure build is
 # obviously wrong rather than plausibly right.
 
-case ${1:-pass} in
-    pass) PIPE=pass; TAG=p; IMPL=phase; DOC=SLIM-GOAL.md
+case ${1:-slim} in
+    slim) PIPE=slim; TAG=p; IMPL=phase; DOC=SLIM-GOAL.md
           PWORK=upstream; PBUILD=.build ;;
     pure) PIPE=pure; TAG=q; IMPL=pure;  DOC=PURE-GOAL.md
           PWORK=pure;     PBUILD=.build-pure ;;

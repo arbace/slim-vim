@@ -9,5 +9,5 @@
 set -eu
 
 phase=${1:?usage: phasename.sh <phase> [pipeline]}
-. tools/pipeline.sh "${2:-pass}"
+. tools/pipeline.sh "${2:-slim}"
 sed -n "s/^## Phase $phase [—-] *//p" "$DOC" | head -1

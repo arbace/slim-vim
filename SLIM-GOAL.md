@@ -90,7 +90,7 @@ below actually requires. Feature removal is a separate project afterwards.
 4. **A phase's record is its boundary, not a commit.** `upstream/` is
    gitignored, so a per-phase commit carries no tracked change — nine of the
    ten in the last agent-run pass were empty commits whose whole content was
-   their message. `pass.mk` records a content digest at every boundary
+   their message. `slim.mk` records a content digest at every boundary
    instead, which is a better record because something can be checked against
    it. Commit at the end, with prose: why, what was measured, how it was
    checked, what was deliberately left out.
@@ -279,7 +279,7 @@ product.** It asks `git ls-remote` for the branch head, compares it against
 after the pass has left a `vim.c`, so a failure leaves the record alone and the
 next `make` retries.
 
-**The pass itself is `pass.mk`: these ten phases, as ten make targets.** A
+**The pass itself is `slim.mk`: these ten phases, as ten make targets.** A
 phase's prerequisite is the previous phase's boundary, and its recipe restores
 that boundary into `upstream/` first, so every phase is a pure function of its
 input rather than of whatever the last attempt left behind.
@@ -290,7 +290,7 @@ own obsolescence incremental: converting a phase is adding a file, the pass
 still runs end to end, and the phase that changed can be checked against the
 boundary the agent recorded. An agent running a phase is handed `upstream/` at
 exactly that phase's input, is confined to it — not the root `Makefile`, not
-`pass.mk`, not `tools/`, not this file — and does **that phase only**.
+`slim.mk`, not `tools/`, not this file — and does **that phase only**.
 
 The last phase leaves **exactly two** files for the root: `slim-vim.c` and
 `LICENSE`.
@@ -469,7 +469,7 @@ gcc run and the loop's check.
 **Partitioning the pass made it slower, and by how much is worth knowing:
 phases 1-8 took 73.0 minutes as nine separate agents against 35.6 as one.**
 Every phase agent opened with eight to twelve tool calls of pure
-re-orientation — `ls`, the head of this file, `cat pass.mk`, `cat
+re-orientation — `ls`, the head of this file, `cat slim.mk`, `cat
 tools/README.md`, reading the source of tools it was about to run — and Phase
 3, whose whole work is `ls *.c`, `ls *.h` and two fixed rules, went from 47
 seconds to seven minutes. One agent paid that cost once and amortised it over

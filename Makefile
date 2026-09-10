@@ -13,7 +13,7 @@
 # pass has succeeded, so a failed pass leaves the record alone and the next
 # make retries.
 #
-# The pass itself is in pass.mk: ten phases, each a make target whose
+# The pass itself is in slim.mk: ten phases, each a make target whose
 # prerequisite is the previous phase's boundary.  A phase is run by a program
 # if tools/phase<N>.sh exists and by an agent if it does not, so converting a
 # phase to a deterministic one is adding a file rather than editing anything
@@ -43,11 +43,11 @@ LDFLAGS = -static -s
 UPSTREAM_URL    = https://github.com/arbace/vim
 UPSTREAM_BRANCH = regexp-delimiter-atoms
 
-include pass.mk
+include slim.mk
 include pure.mk
 
 # The default goal is the first target make sees, and `include` is where make
-# sees pass.mk's -- so without this line a bare `make` builds the first phase
+# sees slim.mk's -- so without this line a bare `make` builds the first phase
 # boundary instead of the editor, and says "no upstream/" on a tree that needs
 # nothing.  Naming it is also just true: `make` here has always meant `make
 # slim-vim`.

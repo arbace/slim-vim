@@ -29,7 +29,7 @@ set -eu
 
 phase=${1:?usage: synth.sh <phase> <build-dir> [pipeline]}
 build=${2:?}
-. tools/pipeline.sh "${3:-pass}"
+. tools/pipeline.sh "${3:-slim}"
 
 prog="tools/$IMPL$phase.sh"
 residue="tools/patches/$TAG$phase-residue.patch"

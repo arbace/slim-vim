@@ -79,7 +79,7 @@ driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 slim-vim.c     the editor, headers and forward declarations included
 pure-vim.c     the same editor with no runtime to install
 Makefile       the seed: builds both, and produces them when their input moves
-pass.mk        slim-vim.c = F(upstream@sha), ten phases as make targets
+slim.mk        slim-vim.c = F(upstream@sha), ten phases as make targets
 pure.mk        pure-vim.c = G(slim-vim.c), the same construct
 upstream.sha   the commit slim-vim.c was produced from
 pure.sha       the slim-vim.c pure-vim.c was produced from
@@ -87,7 +87,7 @@ tools/         the harnesses, the passes, and the phases that are programs
 README.md  CLAUDE.md  SLIM-GOAL.md  PURE-GOAL.md  LICENSE  .gitignore
 ```
 
-**There are two pipelines, and they are the same construct.** `pass.mk` and
+**There are two pipelines, and they are the same construct.** `slim.mk` and
 `pure.mk` differ only in what their phases do; the driver, the boundaries, the
 oracle and the synthesiser are shared, and `tools/pipeline.sh` is the whole of
 the parameterisation. The distinction that matters is in the *rules*:
@@ -928,7 +928,7 @@ make                 # ls-remote, compare against upstream.sha, and if they
                      # claude -p over SLIM-GOAL.md, rm -rf upstream/, record the sha
 ```
 
-**The pass is `pass.mk`, and it is ten make targets, not one agent.** A phase's
+**The pass is `slim.mk`, and it is ten make targets, not one agent.** A phase's
 prerequisite is the previous phase's boundary, so `make` sequences them — and a
 phase is run by a **program** if `tools/phase<N>.sh` exists and by an **agent**
 if it does not. Converting a phase is therefore adding a file; nothing else
