@@ -142,6 +142,37 @@ rather than settings, so it records nothing new. The evidence that this phase
 did something is the score, not the delta — which is the honest way round, and
 better than inventing a delta to point at.
 
+## Phase 3 — no splash screen, no `:intro`, no `:version`
+
+**An embedded editor starts in a buffer, not on a title card.** Three entry
+points, and the third is why this is not simply two more rows repointed:
+
+- **`:intro` and `:version` point at `ex_ni`.**
+- **The splash screen's two call sites go.** `maybe_intro_message()` is called
+  from the *redraw path* when the buffer is empty and no file was named. It is
+  not a command, so an editor whose `:intro` was `ex_ni` would still greet you
+  on startup.
+
+- **`--version`, `--help` and `-h`/`-?` stop being options.** Their branches
+  become `mainerr(ME_UNKNOWN_OPTION, ...)` — what an unrecognised option
+  already does — so nothing is left that exists only to refuse.
+
+That last one is where the phase pays. `--version` was the other door to
+`list_version()`, and with that gone the sweep removed **1,041 lines in a single
+round**: the version tables, the feature lists, and `pathdef`'s `compiled_user`
+and `compiled_sys`, which bake the *building machine's hostname* into the
+binary. Measured: the string `satoshi` appears once in `slim-vim` and not at all
+in `pure-vim`. That is worth removing on an embedded artifact's account and
+worth removing twice on a reproducible one — a binary that names the machine
+that built it cannot be byte-identical anywhere else.
+
+**The delta**, cumulative against slim-vim's baselines: `:helpclose` from phase
+1, and now `:intro` and `:version`, which succeed in slim-vim and report E319
+here. Nothing else may move — and the pty scenarios are the ones to watch,
+since a startup screen is exactly the kind of thing a terminal harness records.
+The command-line flags change nothing the harness can see, because it never
+passes them; the evidence for those is the score and the missing hostname.
+
 ## What comes next
 
 Not yet done, in the order they are worth doing:

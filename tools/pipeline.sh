@@ -21,6 +21,6 @@ case ${1:-slim} in
           PHASE_LIST="0 1 2 3 4 5 6 7 8 9" ;;
     pure) PIPE=pure; TAG=q; IMPL=pure;  DOC=PURE-GOAL.md
           PWORK=pure;     PBUILD=.build-pure
-          PHASE_LIST="0 1 2" ;;
+          PHASE_LIST="0 1 2 3" ;;
     *)    echo "pipeline: no such pipeline: $1" >&2; return 1 2>/dev/null || exit 1 ;;
 esac
