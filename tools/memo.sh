@@ -28,6 +28,7 @@
 # an agent run always leaves a tier 2 behind, so the same input never costs an
 # agent twice.
 set -eu
+set -o pipefail          # the tier-2 run is piped through an indenter
 
 phase=${1:?usage: memo.sh <phase> <work-dir> <build-dir>}
 work=${2:?}
@@ -43,6 +44,23 @@ key=$(printf '%s\n%s\n%s\n' "$phase" "$in_digest" "$impl" | sha256sum | cut -c1-
 
 start=$(date +%s)
 
+# A pass is a long-running thing whose only feedback is this log, so say what
+# is starting before it starts: which phase, what it is called, and how far
+# through the ten we are.  A phase that prints nothing for six minutes looks
+# indistinguishable from a hung one otherwise.
+name=$(tools/phasename.sh "$phase" 2>/dev/null || true)
+# Bold only for a terminal.  This output is piped as often as it is watched,
+# and an escape sequence in a log file is noise rather than emphasis.
+if [ -t 1 ]; then b=$(printf '\033[1m'); r=$(printf '\033[0m'); else b=; r=; fi
+printf '\n  %s[%d/10] phase %s%s  %s\n' "$b" "$((phase + 1))" "$phase" "$r" "$name"
+
+# Cumulative elapsed, so the clock is visible without waiting for the summary.
+since() {
+    [ -f "$build/pass-start" ] || { echo ''; return; }
+    t=$(( $(date +%s) - $(cat "$build/pass-start") ))
+    printf ' - %dm%02ds into the pass' "$((t / 60))" "$((t % 60))"
+}
+
 # --- tier 3: the result ---------------------------------------------------
 if [ -f "$cache/$key.tar" ] && [ -f "$cache/$key.sha256" ]; then
     tools/restore.sh "$cache/$key.tar" "$work"
@@ -51,8 +69,8 @@ if [ -f "$cache/$key.tar" ] && [ -f "$cache/$key.sha256" ]; then
     cp "$cache/$key.tar" "$build/p$phase.tar"
     echo cached > "$build/p$phase.kind"
     echo 0 > "$build/p$phase.seconds"
-    printf '  %-12s p%s cached  %s  (impl %s)\n' "tier 3" "$phase" \
-        "$(cut -c1-12 "$cache/$key.sha256")" "$impl"
+    printf '      %-12s %s  cached for this input%s\n' "tier 3" \
+        "$(cut -c1-12 "$cache/$key.sha256")" "$(since)"
     exit 0
 fi
 
@@ -63,7 +81,9 @@ if [ -x "tools/phase$phase.sh" ]; then
     # state the phase was actually given.
     cp "$build/p$(($phase - 1)).tar" "$build/.memo-in.tar" 2>/dev/null \
         || cp "$build/input.tar" "$build/.memo-in.tar"
-    if "tools/phase$phase.sh" "$work"; then
+    # Indented, so the tools' own reports read as subordinate to the phase
+    # lines rather than competing with them.
+    if "tools/phase$phase.sh" "$work" 2>&1 | sed 's/^/      /'; then
         tier=program
     else
         echo "  tier 2       p$phase FAILED -- falling through to the agent"
@@ -81,8 +101,9 @@ fi
 now=$(date +%s)
 echo "$tier" > "$build/p$phase.kind"
 echo "$((now - start))" > "$build/p$phase.seconds"
-printf '  %-12s p%s by %s, %ss\n' "tier $([ "$tier" = agent ] && echo 1 || echo 2)" \
-    "$phase" "$tier" "$((now - start))"
+printf '      %-12s %s, %dm%02ds%s\n' \
+    "tier $([ "$tier" = agent ] && echo 1 || echo 2)" "$tier" \
+    "$(((now - start) / 60))" "$(((now - start) % 60))" "$(since)"
 
 # --- memoize the result ---------------------------------------------------
 tools/snapshot.sh "$work" "$build/p$phase.tar" "$build/p$phase.sha256"

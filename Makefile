@@ -52,8 +52,16 @@ include pass.mk
 # vim`.
 .DEFAULT_GOAL := vim
 
+# Announced rather than echoed.  make's own echo prints the command and nothing
+# else; what is worth knowing is that it finished, how big the result is, and
+# that it really is standalone -- readelf, never ldd, which prints a musl line
+# for a static-PIE that is not a dependency.
 vim: vim.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+	@printf '  %-12s %s\n' "compiling" "$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<"
+	@t0=`date +%s`; $(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<; \
+	 printf '  %-12s %s bytes, static-PIE, %ss\n' "$@" \
+	     "`stat -c%s $@ | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`" \
+	     "$$((`date +%s` - t0))"
 
 # A phony prerequisite, so the freshness question is asked on every make; the
 # answer is decided inside the recipe by content, never by a timestamp.  When
@@ -76,10 +84,10 @@ vim.c: force
 	    exit 0; \
 	fi; \
 	if [ -f $@ ] && [ "$$live" = "`cat upstream.sha 2>/dev/null`" ]; then \
-	    echo "  upstream     $$live -- vim.c is current"; \
+	    printf '  %-12s %s unchanged -- vim.c is current\n' "upstream" "`echo $$live | cut -c1-12`"; \
 	    exit 0; \
 	fi; \
-	echo "  upstream     $$live -- vim.c must be produced"; \
+	printf '  %-12s %s -- moved; vim.c must be produced\n' "upstream" "`echo $$live | cut -c1-12`"; \
 	tools/preflight.sh; \
 	$(MAKE) --no-print-directory clone; \
 	start=`date +%s`; \

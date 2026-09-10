@@ -128,9 +128,28 @@ PREAMBLE
 )
 
 export PROMPT
+log=".build/phase$phase.log"
+
+# The raw stream is megabytes of JSON and belongs in the log, not on the
+# screen -- but a phase that prints nothing for a quarter of an hour is
+# indistinguishable from a hung one, so a heartbeat says how long it has been
+# working and how much it has said.
+began=$(date +%s)
+( while :; do
+      sleep 60
+      printf '      %-12s working, %dm, %s of stream\n' "tier 1" \
+          "$(( ($(date +%s) - began) / 60 ))" \
+          "$(du -h "$log" 2>/dev/null | cut -f1)"
+  done ) &
+heartbeat=$!
+trap 'kill $heartbeat 2>/dev/null || true' EXIT INT TERM
+
+printf '      %-12s no program for this phase; the agent is running\n' "tier 1"
+printf '      %-12s streaming to %s\n' "" "$log"
+
 IS_SANDBOX=1 SLIM_VIM_PASS=phase$phase \
     claude -p "$PROMPT" \
         --model opus \
         --dangerously-skip-permissions \
         --output-format stream-json --verbose \
-    2>&1 | tee ".build/phase$phase.log"
+    > "$log" 2>&1

@@ -50,7 +50,7 @@ $(BUILD)/p9.sha256: $(BUILD)/p8.sha256
 $(BUILD)/p%.sha256:
 	@tools/restore.sh $(patsubst %.sha256,%.tar,$<) $(WORK)
 	@tools/memo.sh $* $(WORK) $(BUILD)
-	@tools/oracle.sh $* $(BUILD) $(ORACLE)
+	@tools/oracle.sh $* $(BUILD) $(ORACLE) | sed 's/^  /      /'
 
 # --- the input ------------------------------------------------------------
 # The clone, snapshotted before anything touches it.  The root Makefile makes
@@ -67,6 +67,10 @@ $(BUILD)/input.sha256:
 .PHONY: clone
 clone:
 	@rm -rf $(WORK) $(BUILD)
+	@mkdir -p $(BUILD)
+	@date +%s > $(BUILD)/pass-start
+	@printf '\n\033[1m  slim-vim\033[0m  a pass: ten phases, upstream to vim.c\n'
+	@printf '  %-12s %s\n' "started" "`date -Is`"
 	@git clone --quiet --branch $(UPSTREAM_BRANCH) --depth 1 $(UPSTREAM_URL) $(WORK)
 	@rm -rf $(WORK)/.git
 	@echo "  clone        `find $(WORK) -type f | wc -l | tr -d ' '` files, .git removed"
@@ -152,7 +156,10 @@ compare:
 pass: $(BUILD)/p9.sha256
 	@cp $(WORK)/vim.c vim.c
 	@cp $(WORK)/LICENSE LICENSE
-	@echo "  pass         vim.c and LICENSE at the root"
+	@echo
+	@printf '  %-12s %s lines, and LICENSE beside it\n' "vim.c" \
+	    "`grep -c '' vim.c | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"
+	@if [ -f $(BUILD)/pass-start ]; then 	    t=$$((`date +%s` - `cat $(BUILD)/pass-start`)); 	    printf '  %-12s %d phases in %dm%02ds -- make times, make residue\n' 	        "pass" 10 "$$((t / 60))" "$$((t % 60))"; 	 else 	    printf '  %-12s ten phases -- make times, make residue\n' "pass"; 	 fi
 
 # The documents, and only when there is something to describe.  A pass that
 # reproduced the previous vim.c byte for byte made no sentence wrong, and an

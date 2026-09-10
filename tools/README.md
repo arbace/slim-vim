@@ -76,6 +76,8 @@ themselves.
 - **`synth.sh <n> <build>`** — memoize an agent's *behaviour* as code: diff the
   two boundaries, write `patches/p<n>-residue.patch`, and write a
   `phase<n>.sh` that applies it if the phase had none.
+- **`phasename.sh <n>`** — what a phase is called, read out of `GOAL.md`'s
+  headings, so the progress log and the document cannot disagree.
 - **`residue.sh`** — the scoreboard. How much of each phase is still a recorded
   diff rather than a rule, which is the number to drive down.
 - **`repair.sh`** — after the fast path failed and the agent succeeded: fix the
