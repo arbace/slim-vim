@@ -10,9 +10,15 @@ vim
 # the commit messages.
 TRANSCRIPT.md
 
-# The pristine vim tree a pass clones in, works on and deletes.  8,581 files
-# that must never reach a commit.  See GOAL.md.
+# The pristine vim tree the makefile clones in for a pass and deletes after.
+# 8,581 files that must never reach a commit.  See GOAL.md.
 upstream/
+
+# What a pass leaves behind: the agent's raw stream, and the insight log it
+# keeps as it works.  PROGRESS.md is transient by design -- its insights are
+# folded into GOAL.md, CLAUDE.md and tools/, and then it goes.
+PROGRESS.md
+pass.log
 
 # Editing this tree with the editor it builds.
 *.swp
