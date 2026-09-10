@@ -92,11 +92,22 @@ each reproduces that boundary byte for byte.
 - **`phase0.sh`** — configure, build, delete the asserts, rebuild, and check
   the harness disagrees with the baselines in exactly the six cases Phase 1
   owns. **32 s against 2 m 57 s.** Uses `dropasserts.py`.
+- **`phase1.sh`** — apply `patches/phase1.patch`, delete the configure
+  machinery, rebuild, and run all four harnesses against the baselines. **18 s
+  against 17 m 16 s.** This is the phase that changes behaviour, so it is also
+  the phase that pins it.
+- **`phase2.sh`** — prune to what the compiler opens, and flatten. **4 s against
+  7 m 13 s.** Both deletions are *computed*: a source whose object defines no
+  symbols compiles to nothing (61 of 128), and a file the `-MD` dependency
+  files never name was never opened. Installs `templates/pruned.mk` rather than
+  operating on upstream's makefile.
 - **`phase3.sh`** — unwrap `HAVE_CONFIG_H`, name the 97 `.pro` includes by
   path, point `xdiff.h` at `vim.h`, install the makefile, drop `config.mk`.
   **1 s against 7 m 02 s.** Uses `unwrapif.py` and `templates/upstream.mk`.
 - **`phase4.sh`** — splice, untab, decomment, and require the blank-line count
   not to move. **63 s against 5 m 41 s.**
+- **`phase5.sh`** — plant, tally, resolve, drop `#undef`, tier 2 across all 67
+  units. **8 s against 7 m 00 s.** 8,251 conditional groups become 17.
 - **`phase7.sh`** — the seven canonicalisers to a joint fixpoint, checked by
   tier 1. **40 s against 5 m 24 s.** Uses `canon.sh`.
 
@@ -115,6 +126,21 @@ each reproduces that boundary byte for byte.
 - **`blankruns.py`**, **`forcomma.py`** — collapse runs of blank lines; hoist
   comma operators out of `for` init clauses, declining the ones that *declare*
   (hoisting would widen the scope) or contain a call.
+- **`undefs.py`** + **`renames.txt`** — remove `#undef`, splitting any macro
+  that was defined twice into two names from the table. It refuses on an
+  unlisted one rather than guessing, which is how it found `PLURAL_MSG` (two
+  arms of a conditional, no `#undef` between them, nothing to do) and `EXCMD`
+  (kept until the X-macro goes in Phase 9). `renames.txt` is the one place this
+  process stores a decision it cannot derive.
+- **`agentpass.sh`** — the whole pass by one agent, the reference path.
+  `make refpass`, then `make compare`. Kept because the phase programs are
+  brittle where an agent is not: when upstream moves under a patch, this is
+  what still produces an answer, and the difference between the two answers is
+  the specification for repairing the fast path.
+- **`templates/pruned.mk`** — the makefile Phase 2 installs while pruning. It
+  takes an explicit `SRC` from `srcs.mk`, because not every `.c` in the tree is
+  a source of this build at that point and the authoritative list is the set of
+  objects the previous phase's build left.
 - **`templates/upstream.mk`** — the 65-line makefile Phase 3 installs into the
   staging tree, checked in rather than written each pass. It uses `$(wildcard)`
   and so bakes in no file list; keeping it as text also stops a pass rewriting

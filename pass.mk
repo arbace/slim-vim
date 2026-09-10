@@ -84,6 +84,47 @@ repass: clone
 	$(MAKE) --no-print-directory times; \
 	now=`date +%s`; echo "  repass       $$((now - start))s total"
 
+# --- the reference path ---------------------------------------------------
+# Where this process was before it was partitioned, kept on purpose.  The phase
+# programs are twenty times faster and brittle in a way an agent is not: each
+# was written against one upstream, and a patch that stops applying or a count
+# that comes out wrong will stop it.  When upstream moves, this is the path
+# that can still think.
+#
+# It uses a work directory and an output directory of its own, so it never
+# touches the fast path's boundaries -- and it is forbidden to write the
+# repository's vim.c, because having a second answer to compare against the
+# committed one is the entire point.
+REFWORK = upstream-ref
+
+.PHONY: refpass
+refpass:
+	@rm -rf $(REFWORK) $(BUILD)/ref
+	@mkdir -p $(BUILD)/ref
+	@git clone --quiet --branch $(UPSTREAM_BRANCH) --depth 1 $(UPSTREAM_URL) $(REFWORK)
+	@rm -rf $(REFWORK)/.git
+	@echo "  clone        `find $(REFWORK) -type f | wc -l | tr -d ' '` files, .git removed"
+	@start=`date +%s`; \
+	 tools/agentpass.sh $(REFWORK); \
+	 now=`date +%s`; echo "  refpass      $$((now - start))s"
+	@cp $(REFWORK)/vim.c $(BUILD)/ref/vim.c
+	@cp $(REFWORK)/LICENSE $(BUILD)/ref/LICENSE
+	@rm -rf $(REFWORK)
+	@$(MAKE) --no-print-directory compare
+
+# The two answers, against each other.  A difference is a result: either the
+# fast path has drifted, or upstream moved and only the agent noticed.
+.PHONY: compare
+compare:
+	@test -f $(BUILD)/ref/vim.c || { echo "  compare      no reference answer -- run make refpass"; exit 1; }
+	@if cmp -s vim.c $(BUILD)/ref/vim.c; then \
+	    echo "  compare      identical -- both paths produced the same vim.c"; \
+	else \
+	    echo "  compare      DIFFERS -- fast path $$(grep -c '' vim.c) lines, reference $$(grep -c '' $(BUILD)/ref/vim.c)"; \
+	    echo "               +$$(diff vim.c $(BUILD)/ref/vim.c | grep -c '^>') -$$(diff vim.c $(BUILD)/ref/vim.c | grep -c '^<') against the committed one"; \
+	    echo "               diff vim.c $(BUILD)/ref/vim.c   -- and read $(BUILD)/ref/PROGRESS.md"; \
+	fi
+
 # --- what a pass is -------------------------------------------------------
 .PHONY: pass
 pass: $(BUILD)/p9.sha256

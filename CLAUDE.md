@@ -830,10 +830,20 @@ machine time**, and `GOAL.md`'s *Where the hour goes* has the per-phase
 breakdown, including the finding that splitting it into one agent per phase
 made it *slower* — 89 minutes — because each agent re-orients from scratch.
 
-**Four phases are programs, and they run in 2 m 16 s against the 21 m 04 s the
-same four cost as agents**: Phase 0 (32 s), Phase 3 (1 s), Phase 4 (63 s) and
-Phase 7 (40 s). Each reproduces, byte for byte, the boundary the agent it
-replaced had recorded.
+**Seven phases are programs, and they run in 2 m 46 s against the 52 m 33 s the
+same seven cost as agents**: Phase 0 (32 s), 1 (18 s), 2 (4 s), 3 (1 s), 4
+(63 s), 5 (8 s) and 7 (40 s). Each reproduces the boundary the agent it
+replaced recorded — byte for byte, except Phase 2, which installs its own
+makefile instead of performing surgery on upstream's and so differs in exactly
+that file and `config.mk`, both of which Phase 3 discards. Measured: p3 comes
+out identical either way.
+
+**The whole pass by one agent is kept, and is not a fallback but a pair.**
+`make refpass` runs it into a work directory of its own and `make compare` puts
+its `vim.c` beside this one's. The programs are fast and brittle — each written
+against one upstream — and the agent is slow and can think. When upstream moves
+under a patch, the reference path is what still produces an answer, and the
+difference between the two is the specification for repairing the fast path.
 
 The document update is conditional. A pass that reproduced the previous `vim.c`
 byte for byte made no sentence here wrong, so `docs-if-changed` asks `git` —

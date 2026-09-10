@@ -31,12 +31,16 @@ them — and `-lm` — put back; `CLAUDE.md` says where.
   `tabstop=4`, `shiftwidth=4`, `expandtab`, `autoindent`, `nocompatible`,
   `hlsearch` and `ruler` — plus four mappings, with bracketed paste never
   enabled. `-u NONE` does not undo any of it. `CLAUDE.md` lists them all.
-- **Not yet deterministic, and becoming so one phase at a time.** The pass is
-  ten make targets in `pass.mk`. A phase runs as a **program** if
-  `tools/phase<N>.sh` exists and as an **agent** if it does not, so converting
-  one is adding a file and the pass runs end to end throughout. An agent-run
-  pass takes about an hour, only a couple of minutes of which are the machine;
-  `GOAL.md` measures where that hour goes and which phases go first.
+- **Becoming deterministic one phase at a time.** The pass is ten make targets
+  in `pass.mk`. A phase runs as a **program** if `tools/phase<N>.sh` exists and
+  as an **agent** if it does not, so converting one is adding a file and the
+  pass runs end to end throughout. Seven of the ten are programs now.
+- **Two paths, kept as a pair.** `make` is the fast one. `make refpass` runs
+  the whole pass as a single agent, the way it used to work, into a directory
+  of its own; `make compare` puts the two answers side by side. The programs
+  are fast and brittle — each written against one upstream — and the agent is
+  slow and can think, so when upstream moves under a patch, the reference path
+  is what still produces an answer to repair the fast one against.
 
 ## Running a pass
 

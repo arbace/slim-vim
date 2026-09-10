@@ -1,0 +1,20 @@
+# Renames a pass cannot derive from the tree.
+#
+# Everything else in this process is computed: what to keep comes from the
+# compiler's own dependency files, which branch is live comes from counting
+# markers in preprocessed output, what is dead comes from -Wall.  These four
+# kinds of rename are the exception -- the tree says a name must change, and
+# says nothing about what to change it to.  Written down here, an unlisted
+# collision becomes a loud failure instead of a judgement call, and two passes
+# produce the same vim.c.
+#
+# Format: scope:old:new      # scope is the file the rename applies within,
+#                            # or "vim.c" once there is only one file.
+#                            # old may carry @N to mean the Nth definition.
+#
+# --- Phase 5 -------------------------------------------------------------
+# A macro defined twice in one file, with an #undef between the two that is
+# about to be removed.  Adjacent case arms in what was edit.c stuff a literal
+# CTRL-V sequence: the first is the digits 048, the second a caret.
+edit.c:TEXT_TO_INSERT@1:TEXT_TO_INSERT_0
+edit.c:TEXT_TO_INSERT@2:TEXT_TO_INSERT_CARET

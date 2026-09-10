@@ -10,9 +10,11 @@ vim
 # the commit messages.
 TRANSCRIPT.md
 
-# The pristine vim tree the makefile clones in for a pass and deletes after.
-# 8,581 files that must never reach a commit.  See GOAL.md.
+# The pristine vim trees the makefile clones in for a pass and deletes after --
+# the fast path's, and the reference path's.  8,581 files that must never reach
+# a commit.  See GOAL.md.
 upstream/
+upstream-ref/
 
 # What a pass leaves behind: phase snapshots, boundary digests, per-phase agent
 # streams and timings.  .build/ is a restore point and a development asset --

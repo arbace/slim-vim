@@ -293,6 +293,15 @@ exactly that phase's input, is confined to it — not the root `Makefile`, not
 The last phase leaves **exactly two** files for the root: `vim.c` and
 `LICENSE`.
 
+**The whole pass by one agent is still available, and is kept on purpose.**
+`make refpass` runs it, into a work directory and an output directory of its
+own, and `make compare` puts its `vim.c` beside the fast path's. The programs
+are twenty times faster and brittle in a way an agent is not: each was written
+against one upstream, and a patch that stops applying or a count that comes out
+wrong will stop it. When upstream moves, the reference path is the one that can
+still read the error and carry the intent forward -- and the difference between
+the two answers is then the specification for repairing the fast path.
+
 **A boundary an agent recorded is advisory; one a program recorded and a
 verified pass promoted is a check.** That distinction is not caution, it is
 measured: re-running Phase 5 with an agent on identical input produced a
@@ -424,16 +433,19 @@ deciding and typing.
 | phase | one agent, whole pass | one agent per phase | **as a program** |
 | --- | --- | --- | --- |
 | 0 reference, tools, harness | 2 m 57 s | — | **32 s** |
-| 1 freeze the configuration | 13 m 12 s | 17 m 16 s | |
-| 2 prune the tree | 4 m 39 s | 7 m 13 s | |
+| 1 freeze the configuration | 13 m 12 s | 17 m 16 s | **18 s** |
+| 2 prune the tree | 4 m 39 s | 7 m 13 s | **4 s** |
 | 3 one Makefile | 47 s | 7 m 02 s | **1 s** |
 | 4 line-level normalisations | 1 m 20 s | 5 m 41 s | **63 s** |
-| 5 resolve conditionals | 3 m 14 s | 7 m 00 s | |
+| 5 resolve conditionals | 3 m 14 s | 7 m 00 s | **8 s** |
 | 6 merge | 3 m 36 s | 10 m 15 s | |
 | 7 canonicalise | 2 m 15 s | 5 m 24 s | **40 s** |
 | 8 internal linkage, dead code | 6 m 33 s | 13 m 09 s | |
 | 9 leave the preprocessor behind | 16 m 9 s | 16 m 26 s | |
 | documents, `.reference/`, verification | ~12 m | conditional | |
+
+**Seven of the ten are programs, and they run in 2 m 46 s against the 52 m 33 s
+the same seven cost as agents.** What is left is phases 6, 8 and 9.
 
 **Partitioning the pass made it slower, and by how much is worth knowing:
 phases 1-8 took 73.0 minutes as nine separate agents against 35.6 as one.**
@@ -606,6 +618,14 @@ later phase and costs a bisect.
 
 ## Phase 1 — freeze the configuration
 
+**This phase is a program: `tools/phase1.sh`, 18 seconds against 17 minutes.**
+Everything it does is a fixed edit to a fixed upstream file, so it is a
+checked-in patch -- `tools/patches/phase1.patch`, 1,297 lines across 13 files --
+plus twelve deletions, and then all four harnesses against the recorded
+baselines. What it costs instead is honesty about drift: when upstream moves
+under a hunk the patch fails at that hunk, which is exactly when a human should
+look. What follows is what the edits are and why.
+
 Target: `tiny`, no GUI, no terminal library, **plus `+extra_search`**, nothing
 else from `normal`.
 
@@ -777,6 +797,12 @@ turns out to be missing, come back to Phase 1 and redo from here — that is
 rule 7, and it is cheaper than it sounds.
 
 ## Phase 2 — prune the tree
+
+**This phase is a program: `tools/phase2.sh`, 4 seconds against 7 m 13 s.** It
+installs `tools/templates/pruned.mk` rather than performing surgery on
+upstream's 4,910-line makefile -- Phase 3 replaces the makefile anyway, so
+nothing that surgery produced survives one more phase, and the fork bomb below
+is avoided rather than defused. What follows is what it does and why.
 
 Keep `LICENSE`, `Makefile` and `src/`. Nothing else — not `runtime/`,
 `src/testdir/`, the docs, `xxd`, `libvterm`, `po/`, the CI configuration or the
@@ -1062,6 +1088,10 @@ a tenth of the second, and the third sits in code that no longer exists. Expect
 to land near nine tenths of the density of a build that never lost them.
 
 ## Phase 5 — resolve every conditional directive
+
+**This phase is a program: `tools/phase5.sh`, 8 seconds against 7 minutes.**
+plant, tally, resolve, remove `#undef`, then tier 2 across all 67 units. What
+follows is what it does and why.
 
 **Token-level, and it must precede canonicalisation**, because `#if` groups
 interleave with braces and make brace matching impossible until they are gone.
