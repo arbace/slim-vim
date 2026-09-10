@@ -18,3 +18,21 @@
 # CTRL-V sequence: the first is the digits 048, the second a caret.
 edit.c:TEXT_TO_INSERT@1:TEXT_TO_INSERT_0
 edit.c:TEXT_TO_INSERT@2:TEXT_TO_INSERT_CARET
+
+# --- Phase 6 -------------------------------------------------------------
+# File-local names that stop being file-local when 162 files become one.  `nm`
+# over the per-file objects says a name is defined twice; nothing in the tree
+# says which side should give way, and the previous pass renamed ex_cmds.c's
+# sort_compare -- which the name does not suggest.  `nm` cannot see macros, so
+# GAP is found only by the compiler's redefinition warning.
+cmdexpand.c:compl_match_array:cmdline_match_array
+cmdexpand.c:compl_match_arraysize:cmdline_match_arraysize
+ex_cmds.c:sort_compare:string_sort_compare
+term.c:GAP:TERMCODE_GAP
+
+# Applied after the merge, inside one former file's banner region: the regexp
+# opcode WHITE shadows the colour enum's WHITE.  As a macro that is legal and
+# nothing complains until Phase 9 makes it an enumerator -- but the banners
+# still say which code is which here, and a file-wide substitution would rename
+# the colour too, with the build perfectly happy about it.
+vim.c@regexp_bt.c:WHITE:RE_WHITE

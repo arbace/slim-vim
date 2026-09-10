@@ -97,6 +97,29 @@ repass: clone
 # committed one is the entire point.
 REFWORK = upstream-ref
 
+# The whole workflow, when upstream has actually moved: try the fast path, and
+# if it fails, fall back to the one that can think -- then have it repair the
+# fast path, so the next move costs less than this one did.
+#
+# The order is the point.  The programs are what you want to succeed, because
+# they are twenty times faster and their answer is checkable at every phase
+# boundary.  The agent is what you want when they fail, because a patch that no
+# longer applies is a question about upstream, not about this repository.  And
+# a failure that is merely absorbed teaches nothing: the repair step is what
+# turns one upstream change into a permanent improvement.
+.PHONY: passorref
+passorref:
+	@if $(MAKE) --no-print-directory pass; then \
+	    echo "  workflow     the fast path produced vim.c"; \
+	else \
+	    echo "  workflow     the fast path FAILED -- falling back to the agent"; \
+	    $(MAKE) --no-print-directory refpass; \
+	    cp $(BUILD)/ref/vim.c vim.c; \
+	    cp $(BUILD)/ref/LICENSE LICENSE; \
+	    echo "  workflow     the reference path produced vim.c; repairing the fast path"; \
+	    tools/repair.sh; \
+	fi
+
 .PHONY: refpass
 refpass:
 	@rm -rf $(REFWORK) $(BUILD)/ref

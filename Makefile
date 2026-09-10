@@ -83,7 +83,7 @@ vim.c: force
 	$(MAKE) --no-print-directory clone; \
 	start=`date +%s`; \
 	echo "  pass         started `date -Is`"; \
-	$(MAKE) --no-print-directory SLIM_VIM_PASS=$$live pass; \
+	$(MAKE) --no-print-directory SLIM_VIM_PASS=$$live passorref; \
 	$(MAKE) --no-print-directory record; \
 	$(MAKE) --no-print-directory times; \
 	$(MAKE) --no-print-directory SLIM_VIM_PASS=$$live docs-if-changed; \

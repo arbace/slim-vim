@@ -4,7 +4,7 @@ Every unit that reaches a group votes.  A group is resolved only if all voters
 agree; otherwise it is left exactly as it was, which is the right answer for
 the handful of groups whose answer genuinely differs between units.
 
-Usage: resolve.py <live-dir> <file> ...
+Usage: resolve.py [--no-guards] <live-dir> <file> ...
 """
 import os
 import sys
@@ -80,6 +80,17 @@ def emit(nodes, lines, out, ids, tallies):
 
 
 def main():
+    args = list(sys.argv[1:])
+
+    # Once the tree is one translation unit, nothing can be included twice, so
+    # the include-guard exception has nothing left to protect -- and every
+    # guard is then a group whose answer is finally knowable.  Phase 6 passes
+    # this; Phase 5 must not.
+    no_guards = '--no-guards' in args
+    if no_guards:
+        args.remove('--no-guards')
+    sys.argv = [sys.argv[0]] + args
+
     livedir = sys.argv[1]
     tallies = []
     for f in sorted(os.listdir(livedir)):
@@ -95,7 +106,8 @@ def main():
         nodes, _ = cond.parse(lines)
         ids = {}
         for g in cond.walk(nodes):
-            ids[id(g)] = (n + 1, cond.is_include_guard(g, lines))
+            ids[id(g)] = (n + 1, False if no_guards
+                          else cond.is_include_guard(g, lines))
             n += 1 + len(g.branches)
         out = []
         emit(nodes, lines, out, ids, tallies)
