@@ -7,7 +7,8 @@ pristine [vim](https://github.com/vim/vim) tree into a single `slim-vim.c` — a
 `slim-vim.c` is a *function of upstream*, memoized in three tiers by a makefile.
 
 ```sh
-make        # that is the whole of it
+make            # slim-vim: every feature upstream's tiny build has
+make pure-vim   # pure-vim: the same editor with no runtime to install
 ```
 
 `make` asks `git ls-remote` what upstream's branch head is. If it matches the
@@ -60,7 +61,8 @@ upstream change costs less than this one did.
 | **Not stripped** | No feature was removed — `:help`, `:hardcopy`, the encodings, locale and iconv are all here. The build is upstream's `tiny` plus `+extra_search`. |
 | **Not stock, though** | It ships no vimrc, so one is compiled in: `tabstop=4`, `expandtab`, `autoindent`, `nocompatible`, `hlsearch`, `ruler` and more, plus a handful of mappings. `-u NONE` undoes none of it. |
 | **Not portable yet** | Alpine and musl: `-O0 -static -s`, no feature-test macros, no `-lm`. Another libc wants them back. |
-| **Not an editor between passes** | `slim-vim.c` and `LICENSE` are products; `Makefile`, `SLIM-GOAL.md`, `CLAUDE.md`, `tools/` and `.gitignore` are the seed. |
+| **Not an editor between passes** | `slim-vim.c`, `pure-vim.c` and `LICENSE` are products; the makefiles, the two GOAL documents, `CLAUDE.md`, `tools/` and `.gitignore` are the seed. |
+| **Not one editor** | `pure-vim.c = G(slim-vim.c)` is a second pipeline of the same shape, described by `PURE-GOAL.md`. It removes capability on purpose — starting with everything that presumes an installed `$VIMRUNTIME` — for an embedded target. Both are kept. |
 
 ---
 
@@ -88,6 +90,7 @@ inert on a first run — which is self-certifying.
 | --- | --- |
 | **`SLIM-GOAL.md`** | the process — ten phases, the traps each hits, why the order is what it is |
 | **`CLAUDE.md`** | the result — what `slim-vim.c` is, how it is built and verified, every divergence from upstream |
+| **`PURE-GOAL.md`** | the second pipeline — what pure-vim drops, what it is measured against, and why |
 | **`tools/README.md`** | the harnesses and passes, and what each is for |
 
 Those are the authority. This file carries no figures, so a third description

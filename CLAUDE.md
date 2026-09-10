@@ -68,7 +68,8 @@ it is the only one.
 
 ## Layout
 
-Eighty-seven tracked files once a pass has run: nine at the root, and 78 under
+Ninety-eight tracked files once both pipelines have run: thirteen at the root,
+and 85 under
 `tools/` — the passes, the harnesses, the ten phases' programs, the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Two of the nine (`slim-vim.c`, `LICENSE`) are products,
@@ -76,12 +77,24 @@ driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 
 ```
 slim-vim.c     the editor, headers and forward declarations included
-Makefile       the seed: builds slim-vim.c, and produces it when upstream moves
-pass.mk        the pass itself: ten phases as make targets
+pure-vim.c     the same editor with no runtime to install
+Makefile       the seed: builds both, and produces them when their input moves
+pass.mk        slim-vim.c = F(upstream@sha), ten phases as make targets
+pure.mk        pure-vim.c = G(slim-vim.c), the same construct
 upstream.sha   the commit slim-vim.c was produced from
+pure.sha       the slim-vim.c pure-vim.c was produced from
 tools/         the harnesses, the passes, and the phases that are programs
-README.md  CLAUDE.md  SLIM-GOAL.md  LICENSE  .gitignore
+README.md  CLAUDE.md  SLIM-GOAL.md  PURE-GOAL.md  LICENSE  .gitignore
 ```
+
+**There are two pipelines, and they are the same construct.** `pass.mk` and
+`pure.mk` differ only in what their phases do; the driver, the boundaries, the
+oracle and the synthesiser are shared, and `tools/pipeline.sh` is the whole of
+the parameterisation. The distinction that matters is in the *rules*:
+`SLIM-GOAL.md` changes nothing about what the editor can do and any behavioural
+change is a bug, while `PURE-GOAL.md` removes capability on purpose — so every
+phase there declares its delta in advance and the harness proves it caused that
+and nothing else.
 
 **`upstream.sha` is tracked, and that is load-bearing rather than tidy.** It is
 what `make` compares the branch head against, so a checkout without one has

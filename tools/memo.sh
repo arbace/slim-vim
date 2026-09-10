@@ -30,16 +30,17 @@
 set -eu
 set -o pipefail          # the tier-2 run is piped through an indenter
 
-phase=${1:?usage: memo.sh <phase> <work-dir> <build-dir>}
+phase=${1:?usage: memo.sh <phase> <work-dir> <build-dir> [pipeline]}
 work=${2:?}
 build=${3:?}
+. tools/pipeline.sh "${4:-pass}"
 
-cache=.cache/p$phase
+cache=.cache/$TAG$phase
 mkdir -p "$cache"
 
-in_digest=$(cat "$build/p$(($phase - 1)).sha256" 2>/dev/null \
+in_digest=$(cat "$build/$TAG$(($phase - 1)).sha256" 2>/dev/null \
             || cat "$build/input.sha256")
-impl=$(tools/implhash.sh "$phase")
+impl=$(tools/implhash.sh "$phase" "$PIPE")
 key=$(printf '%s\n%s\n%s\n' "$phase" "$in_digest" "$impl" | sha256sum | cut -c1-32)
 
 start=$(date +%s)
@@ -48,7 +49,7 @@ start=$(date +%s)
 # is starting before it starts: which phase, what it is called, and how far
 # through the ten we are.  A phase that prints nothing for six minutes looks
 # indistinguishable from a hung one otherwise.
-name=$(tools/phasename.sh "$phase" 2>/dev/null || true)
+name=$(tools/phasename.sh "$phase" "$PIPE" 2>/dev/null || true)
 # Bold only for a terminal.  This output is piped as often as it is watched,
 # and an escape sequence in a log file is noise rather than emphasis.
 if [ -t 1 ]; then b=$(printf '\033[1m'); r=$(printf '\033[0m'); else b=; r=; fi
@@ -64,11 +65,11 @@ since() {
 # --- tier 3: the result ---------------------------------------------------
 if [ -f "$cache/$key.tar" ] && [ -f "$cache/$key.sha256" ]; then
     tools/restore.sh "$cache/$key.tar" "$work"
-    cp "$cache/$key.sha256" "$build/p$phase.sha256"
-    cp "$cache/$key.sha256.files" "$build/p$phase.sha256.files"
-    cp "$cache/$key.tar" "$build/p$phase.tar"
-    echo cached > "$build/p$phase.kind"
-    echo 0 > "$build/p$phase.seconds"
+    cp "$cache/$key.sha256" "$build/$TAG$phase.sha256"
+    cp "$cache/$key.sha256.files" "$build/$TAG$phase.sha256.files"
+    cp "$cache/$key.tar" "$build/$TAG$phase.tar"
+    echo cached > "$build/$TAG$phase.kind"
+    echo 0 > "$build/$TAG$phase.seconds"
     printf '      %-12s %s  cached for this input%s\n' "tier 3" \
         "$(cut -c1-12 "$cache/$key.sha256")" "$(since)"
     exit 0
@@ -76,17 +77,17 @@ fi
 
 # --- tier 2: the code -----------------------------------------------------
 tier=
-if [ -x "tools/phase$phase.sh" ]; then
+if [ -x "tools/$IMPL$phase.sh" ]; then
     # Keep the input, so that a failure can still be handed to tier 1 from the
     # state the phase was actually given.
-    cp "$build/p$(($phase - 1)).tar" "$build/.memo-in.tar" 2>/dev/null \
+    cp "$build/$TAG$(($phase - 1)).tar" "$build/.memo-in.tar" 2>/dev/null \
         || cp "$build/input.tar" "$build/.memo-in.tar"
     # Indented, so the tools' own reports read as subordinate to the phase
     # lines rather than competing with them.
-    if "tools/phase$phase.sh" "$work" 2>&1 | sed 's/^/      /'; then
+    if "tools/$IMPL$phase.sh" "$work" 2>&1 | sed 's/^/      /'; then
         tier=program
     else
-        echo "  tier 2       p$phase FAILED -- falling through to the agent"
+        echo "  tier 2       $TAG$phase FAILED -- falling through to the agent"
         tools/restore.sh "$build/.memo-in.tar" "$work"
     fi
     rm -f "$build/.memo-in.tar"
@@ -94,27 +95,27 @@ fi
 
 # --- tier 1: the agent ----------------------------------------------------
 if [ -z "$tier" ]; then
-    tools/agentphase.sh "$phase" "$work"
+    tools/agentphase.sh "$phase" "$work" "$PIPE"
     tier=agent
 fi
 
 now=$(date +%s)
-echo "$tier" > "$build/p$phase.kind"
-echo "$((now - start))" > "$build/p$phase.seconds"
+echo "$tier" > "$build/$TAG$phase.kind"
+echo "$((now - start))" > "$build/$TAG$phase.seconds"
 printf '      %-12s %s, %dm%02ds%s\n' \
     "tier $([ "$tier" = agent ] && echo 1 || echo 2)" "$tier" \
     "$(((now - start) / 60))" "$(((now - start) % 60))" "$(since)"
 
 # --- memoize the result ---------------------------------------------------
-tools/snapshot.sh "$work" "$build/p$phase.tar" "$build/p$phase.sha256"
-cp "$build/p$phase.tar" "$cache/$key.tar"
-cp "$build/p$phase.sha256" "$cache/$key.sha256"
-cp "$build/p$phase.sha256.files" "$cache/$key.sha256.files"
+tools/snapshot.sh "$work" "$build/$TAG$phase.tar" "$build/$TAG$phase.sha256"
+cp "$build/$TAG$phase.tar" "$cache/$key.tar"
+cp "$build/$TAG$phase.sha256" "$cache/$key.sha256"
+cp "$build/$TAG$phase.sha256.files" "$cache/$key.sha256.files"
 
 # --- and memoize the AGENT'S BEHAVIOUR as code ----------------------------
 # This is the part that makes the construct pay.  An agent run that is merely
 # cached saves nothing the next time upstream moves; an agent run that leaves a
 # program behind turns one expensive answer into a cheap one for ever.
 if [ "$tier" = agent ]; then
-    tools/synth.sh "$phase" "$build"
+    tools/synth.sh "$phase" "$build" "$PIPE"
 fi

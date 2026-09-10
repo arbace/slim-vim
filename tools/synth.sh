@@ -27,19 +27,20 @@
 # to attack next.
 set -eu
 
-phase=${1:?usage: synth.sh <phase> <build-dir>}
+phase=${1:?usage: synth.sh <phase> <build-dir> [pipeline]}
 build=${2:?}
+. tools/pipeline.sh "${3:-pass}"
 
-prog="tools/phase$phase.sh"
-residue="tools/patches/p$phase-residue.patch"
+prog="tools/$IMPL$phase.sh"
+residue="tools/patches/$TAG$phase-residue.patch"
 mkdir -p tools/patches
 
-before="$build/p$(($phase - 1)).tar"
+before="$build/$TAG$(($phase - 1)).tar"
 [ -f "$before" ] || before="$build/input.tar"
-after="$build/p$phase.tar"
+after="$build/$TAG$phase.tar"
 
 [ -f "$before" ] && [ -f "$after" ] || {
-    echo "  synth        p$phase: no boundaries to diff, nothing to memoize"
+    echo "  synth        $TAG$phase: no boundaries to diff, nothing to memoize"
     exit 0
 }
 
@@ -57,12 +58,12 @@ tar xf "$after" -C "$tmp/b"
 
 lines=$(grep -c '' "$tmp/patch" || true)
 if [ "$lines" = 0 ]; then
-    echo "  synth        p$phase: the agent changed nothing"
+    echo "  synth        $TAG$phase: the agent changed nothing"
     exit 0
 fi
 
 mv "$tmp/patch" "$residue"
-echo "  synth        p$phase residue: $lines lines, $(grep -c '^--- ' "$residue") files"
+echo "  synth        $TAG$phase residue: $lines lines, $(grep -c '^--- ' "$residue") files"
 
 if [ -f "$prog" ]; then
     echo "               $prog exists -- its residue is what to attack next"

@@ -44,6 +44,7 @@ UPSTREAM_URL    = https://github.com/arbace/vim
 UPSTREAM_BRANCH = regexp-delimiter-atoms
 
 include pass.mk
+include pure.mk
 
 # The default goal is the first target make sees, and `include` is where make
 # sees pass.mk's -- so without this line a bare `make` builds the first phase

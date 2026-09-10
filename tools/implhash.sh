@@ -18,8 +18,9 @@
 # `agent`: tier 1 is not cacheable, because it is not a function.
 set -eu
 
-phase=${1:?usage: implhash.sh <phase>}
-prog="tools/phase$phase.sh"
+phase=${1:?usage: implhash.sh <phase> [pipeline]}
+. tools/pipeline.sh "${2:-pass}"
+prog="tools/$IMPL$phase.sh"
 
 [ -f "$prog" ] || { echo agent; exit 0; }
 

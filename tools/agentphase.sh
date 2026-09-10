@@ -15,10 +15,11 @@
 set -eu
 set -o pipefail         # or the tee below reports its own success as claude's
 
-phase=${1:?usage: agentphase.sh <phase> <workdir>}
+phase=${1:?usage: agentphase.sh <phase> <workdir> [pipeline]}
 work=${2:?}
+. tools/pipeline.sh "${3:-pass}"
 
-goal=SLIM-GOAL.md
+goal=$DOC
 [ -f "$goal" ] || { echo "agentphase: no $goal here"; exit 1; }
 
 # The phase's own section: from its heading to the next top-level heading.
@@ -128,7 +129,7 @@ PREAMBLE
 )
 
 export PROMPT
-log=".build/phase$phase.log"
+log="$PBUILD/$IMPL$phase.log"
 
 # The raw stream is megabytes of JSON and belongs in the log, not on the
 # screen -- but a phase that prints nothing for a quarter of an hour is

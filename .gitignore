@@ -1,5 +1,6 @@
-# The build's one product.
+# The two products' binaries.
 slim-vim
+pure-vim
 
 # The frozen snapshot of this tree, plus the harness baselines.  Data, and a
 # copy of what git already has -- not source.  See CLAUDE.md.
@@ -17,10 +18,20 @@ upstream/
 upstream-ref/
 
 # What a pass leaves behind: phase snapshots, boundary digests, per-phase agent
-# streams and timings.  .build/ is a restore point and a development asset --
+# streams and timings.  .build/
+.build-pure/
+
+# The pure pipeline's work directory: one file and a makefile, rebuilt from
+# slim-vim.c on demand and deleted with the build.
+pure/ is a restore point and a development asset --
 # converting a phase to a program means restoring the previous boundary and
 # comparing the next -- but it is data, not source, and a new pass discards it.
 .build/
+.build-pure/
+
+# The pure pipeline's work directory: one file and a makefile, rebuilt from
+# slim-vim.c on demand and deleted with the build.
+pure/
 
 # Tier 3 of the memoize: phase results, keyed by input digest and
 # implementation digest together.  Pure cache -- content-keyed, so it cannot go

@@ -8,5 +8,6 @@
 # disagree with the first.
 set -eu
 
-phase=${1:?usage: phasename.sh <phase>}
-sed -n "s/^## Phase $phase [—-] *//p" SLIM-GOAL.md | head -1
+phase=${1:?usage: phasename.sh <phase> [pipeline]}
+. tools/pipeline.sh "${2:-pass}"
+sed -n "s/^## Phase $phase [—-] *//p" "$DOC" | head -1

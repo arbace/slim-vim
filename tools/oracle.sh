@@ -21,24 +21,25 @@
 # current binary.
 set -eu
 
-phase=${1:?usage: oracle.sh <phase> <build-dir> <oracle-dir>}
+phase=${1:?usage: oracle.sh <phase> <build-dir> <oracle-dir> [pipeline]}
 build=${2:?}
 oracle=${3:?}
+. tools/pipeline.sh "${4:-pass}"
 
-got="$build/p$phase.sha256"
-[ -f "$got" ] || { echo "  oracle       p$phase: no digest at $got"; exit 1; }
+got="$build/$TAG$phase.sha256"
+[ -f "$got" ] || { echo "  oracle       $TAG$phase: no digest at $got"; exit 1; }
 
-want="$oracle/p$phase.sha256"
+want="$oracle/$TAG$phase.sha256"
 advisory="$want.advisory"
 
 short() { cut -c1-12 "$1"; }
 
 if [ -f "$want" ]; then
     if cmp -s "$got" "$want"; then
-        printf '  %-12s p%s matches  %s\n' "oracle" "$phase" "$(short "$got")"
+        printf '  %-12s %s%s matches  %s\n' "oracle" "$TAG" "$phase" "$(short "$got")"
         exit 0
     fi
-    printf '  %-12s p%s DIFFERS  got %s, recorded %s\n' "oracle" "$phase" \
+    printf '  %-12s %s%s DIFFERS  got %s, recorded %s\n' "oracle" "$TAG" "$phase" \
         "$(short "$got")" "$(short "$want")"
     echo "               this boundary is a check, not a report -- explain it."
     if [ -f "$want.files" ]; then
@@ -50,13 +51,13 @@ fi
 
 if [ -f "$advisory" ]; then
     if cmp -s "$got" "$advisory"; then
-        printf '  %-12s p%s matches (advisory)  %s\n' "oracle" "$phase" "$(short "$got")"
+        printf '  %-12s %s%s matches (advisory)  %s\n' "oracle" "$TAG" "$phase" "$(short "$got")"
     else
-        printf '  %-12s p%s differs (advisory, agent-recorded)  %s vs %s\n' \
-            "oracle" "$phase" "$(short "$got")" "$(short "$advisory")"
+        printf '  %-12s %s%s differs (advisory, agent-recorded)  %s vs %s\n' \
+            "oracle" "$TAG" "$phase" "$(short "$got")" "$(short "$advisory")"
     fi
     exit 0
 fi
 
-printf '  %-12s p%s unrecorded -- nothing to compare against yet\n' "oracle" "$phase"
+printf '  %-12s %s%s unrecorded -- nothing to compare against yet\n' "oracle" "$TAG" "$phase"
 exit 0
