@@ -46,6 +46,11 @@ were not known.
    unbraced bodies sat in a file whose documentation said every body was
    braced — through two whole runs. The Phase 7 passes are idempotent and cost
    seconds: re-run all of them at the end and require every one to report zero.
+   It is not a historical warning: the 2026-09-10 pass found **1,542 bodies not
+   on a line of their own and 1,564 not braced** at that point, and again
+   **12 more inside Phase 7 itself**, created by its own comma-operator hoist.
+   `onestmt.py` needed **five** rounds there, taking one label per pass off a
+   `case A: case B: case C:` line.
 
 ## The target
 
@@ -237,11 +242,13 @@ up its history and every pass is an ordinary commit on the working branch.
 
 ### What this repository holds between passes
 
-Five things, and they are the whole seed: `.gitignore`, `README.md`,
-`CLAUDE.md`, this file and `tools/`. **`vim.c`, the `Makefile` and `LICENSE` are products** — the first
-two are written by Phases 3 and 6, the third is copied from the clone — so a
-checkout that has never run a pass has no editor in it, and that is the intended
-state rather than a missing file.
+Six things, and they are the whole seed: `.gitignore`, `Makefile`,
+`README.md`, `CLAUDE.md`, this file and `tools/`. **`vim.c` and `LICENSE` are
+the products** — the first is written by Phase 6, the second copied from the
+clone — so a checkout that has never run a pass has no editor in it, and that
+is the intended state rather than a missing file. The makefile that Phase 3
+writes is **scaffolding inside `upstream/`** for Phases 3 through 8 and dies
+with it.
 
 `CLAUDE.md` describes the tree a pass produces. Before the first pass it reads
 as a specification and afterwards as a description, and rule 5 is what keeps it
@@ -250,13 +257,18 @@ the latter: each phase edits the sentences its own work made wrong.
 ### The pass, start to finish
 
 ```sh
-git clone --branch regexp-delimiter-atoms --depth 1 \
-    https://github.com/arbace/vim upstream
-rm -rf upstream/.git                       # immediately, see below
-#   ... Phases 0-9 run inside upstream/ ...
-#   ... vim.c, the Makefile and LICENSE move to the repository root ...
-rm -rf upstream                            # nothing else of it is kept
+make                 # and that is the whole of it
 ```
+
+**The root `Makefile` runs the pass, and it is part of the seed rather than a
+product.** It asks `git ls-remote` for the branch head, compares it against
+`upstream.sha`, and when they differ clones `upstream/`, deletes
+`upstream/.git`, hands the process to one `claude -p`, deletes `upstream/` and
+records the sha — only after the pass has left a `vim.c`, so a failure leaves
+the record alone and the next `make` retries. An agent running the pass is
+therefore handed `upstream/` already cloned and `.git` already gone, must never
+write over the root `Makefile`, and moves **exactly two** files to the root:
+`vim.c` and `LICENSE`.
 
 `upstream/` is a **staging directory, not a checkout of anything**. It is
 gitignored, so its 8,581 files cannot reach a commit, and it does not exist
@@ -289,13 +301,21 @@ is an ordinary pass or one that needs thought:
 
 At the time of writing the input is **9.2.1037**, the same patch level as the
 previous pass's input, so the delta is nil and this is the most ordinary case
-there is. The pass reproduced all four baselines byte for byte, and the finished
-`vim.c` differed from the previous one by a single line — a stray blank line the
-earlier pass had left before `init_mappings()`'s closing brace — while the
-**binary came out byte-identical**, 2,208,088 bytes. That is the first time the
-end-to-end check has had both halves available here, and it is what the whole
-workflow is for. **Expect this paragraph to be stale** — re-measure rather than
-trusting it, and update it in the same pass.
+there is. Measuring it is two commands and 2 s:
+`grep -oP '^\s+\K[0-9]+(?=,)' upstream/src/version.c | head -1`, and `cmp
+vim.c .reference/vim.c`.
+
+The pass of 2026-09-10 reproduced all four baselines byte for byte **and the
+finished `vim.c` byte for byte**, 181,844 lines, with the binary identical at
+2,208,088 bytes. Not on the first attempt: it took three convergences on
+formatting the previous pass had settled differently (see *one round* in Phase
+9, *the X-macro rows*, and *the three-line declarations* in Phase 8), each of
+which `refcheck.sh` named and none of which changed a byte of the binary.
+**A source diff with an identical binary is a formatting convention, and it is
+worth converging on rather than explaining.** The whole pass took **61
+minutes** of wall clock, of which under two were compute.
+**Expect this paragraph to be stale** — re-measure rather than trusting it, and
+update it in the same pass.
 
 **Phase 1 updates the patch level in `CLAUDE.md`**, from `version.c` rather
 than from memory. It is the one number in that file which changes for a reason
@@ -499,7 +519,13 @@ else from `normal`.
   for each saying so** — a baseline that states the fallback is what would
   catch one creeping back in, and one that simply stopped mentioning them
   would not.
-- **Default an unknown or unset `$TERM` to `xterm`, not `ansi`.**
+- **Default an unknown or unset `$TERM` to `xterm`, not `ansi` — by changing
+  `DEFAULT_TERM`, not by editing `set_termname()`.** The obvious edit is
+  `term = (char_u *)"xterm";` where the unknown-terminal path reassigns
+  `term`, and it is not enough: `termcapinit()` is the *other* user of
+  `DEFAULT_TERM` and is what an **unset** `$TERM` goes through, never reaching
+  `set_termname()`'s unknown branch at all. `termcheck.py` catches it as one
+  differing row, `TERM='' -> term=ansi`.
   `builtin_ansi` has no key definitions, so arrow keys, Home, End and Delete
   arrive as literal Escape plus characters and corrupt the buffer while looking
   like an editor bug. Choose the 256-colour add-on from the name the user set,
@@ -511,6 +537,14 @@ else from `normal`.
   `config.h.in`, `config.mk.in`, `config.mk.dist`, `osdef.sh`, `osdef1.h.in`,
   `osdef2.h.in`, `pathdef.sh`, `link.sh`, `toolcheck`. `link.sh` only ever
   invoked the linker directly here, so the rule *becomes* the direct link.
+- **Deleting the configure machinery means deleting three makefile rules with
+  it**: `config auto/config.mk:` (GNU make tries to remake an `include`d
+  makefile, so leaving it re-runs a script that is no longer there),
+  `auto/osdef.h:` and `auto/pathdef.c:`. And **a freeze that does not force a
+  relink has not been tested**: the binary is already linked, so `make` reports
+  success twice before a touched source makes it re-link and say
+  `sh: line 0: can't open ./link.sh`. Finish the step with
+  `touch main.c && make`.
 - **Freezing breaks `clean` in three places, not one.** It names `osdef.h` and
   `pathdef.c`, which are checked-in sources now — that would delete the
   configuration on the next `make clean`. It also recurses into `po/` and
@@ -622,6 +656,11 @@ pass and keep it byte-identical to the clone's — never hand-edited, and never
 carried forward from a previous pass, since the clone is where the authoritative
 copy is.
 
+**Drop the empty objects first, then measure the keep-set once.** Measuring
+before the drop answers a question about a tree that is about to change — 254
+files against the 164 that matter — and the `-MD` build has to be repeated
+anyway.
+
 **Measure the keep-set with `-MD` and use the `.d` files alone.** They record
 every file the compiler opened, which is the question being asked.
 **`tools/keepset.py` still advertises the union in its own docstring**, so call
@@ -665,11 +704,18 @@ whole line.
 
 **Pruning forces more makefile work than "edit only where forced" suggests.**
 Five things must go before `make` will run at all, and the first is nominally
-Phase 3's:
+Phase 3's — **and it has to go before `dropsrc.py` runs, not after**:
 
 - the hand-written dependency block — 176 dependency-only rules in this run,
   told from build rules by whether a tab-indented recipe follows — now naming
-  headers that do not exist;
+  headers that do not exist. **`dropsrc.py` corrupts it if it is still
+  there**: in that block a rule's own first line ends in `\` and continues
+  with *space*-indented lines, so removing the first line of one leaves the
+  rest behind as a stray continuation and `make` reports **`missing
+  separator`** nine hundred lines away. Delete from the `### Dependencies:`
+  banner to end of file — that also takes the 95 `proto/X.pro: X.c` rules,
+  which would otherwise re-run `cproto` over every source Phase 1 edited — and
+  replace the lot with one coarse rule;
 - `TOOLS = xxd/xxd$(EXEEXT)` and the xxd build rule, or the default target
   stops at *No rule to make target 'xxd/xxd.c'*;
 - `include Make_all.mak` and `include testdir/Make_all.mak`, which carried only
@@ -678,8 +724,14 @@ Phase 3's:
 - `$(MKDIR_P)`, which is `install-sh -d`, `install-sh` having existed only to
   create the one `objects/` directory.
 
-**And one that will fork-bomb the machine if you leave it.** Thirteen rules end
-`cd <dir>; $(MAKE) ...` — into `testdir/`, `libvterm/`, `auto/wayland/`,
+**And one that will fork-bomb the machine if you leave it.** Sixteen rules
+end `cd <dir>; $(MAKE) ...` — thirteen match that shape exactly and **three
+more put another command in between** (`cd testdir; rm -f $@.out; $(MAKE) ...`,
+`cd $(PODIR); CC="$(CC)" $(MAKE) ...`), so match `cd .*\$(MAKE)`, not
+`cd [^;]*; *\$(MAKE)`. Replacing each *line* with `true` then leaves three
+`if ...; then \` / `true \` / `fi` blocks that are shell syntax errors,
+because the continuation makes them one line: delete the whole recipe rather
+than the line. The rules end — into `testdir/`, `libvterm/`, `auto/wayland/`,
 `$(PODIR)` and `xxd/`. Once the prune deletes those directories the `cd` fails,
 the `;` runs `$(MAKE)` **in the same directory on the same makefile**, and it
 recurses. `clean` reaches two of them through its `testclean` prerequisite, so
@@ -911,6 +963,12 @@ Verify with tier 2. That check caught both faults above, in a build that was
 otherwise perfectly happy. **`gcc -E` is cheap** — all 67 units in parallel take
 0.2 s — so there is no reason to economise on measurements here.
 
+**Export `SOURCE_DATE_EPOCH` for the `gcc -E` runs as well as for the builds.**
+`version.c` embeds `__TIME__`, so two preprocessings seconds apart differ at
+one token in 64,275 and the tier-2 report looks like a real failure. It is the
+same fix as tier 1 and it is easy to forget, because GOAL says it under
+*builds*.
+
 `#undef` goes the same way, but check the *warnings* as well as the tokens: some
 undefine a macro never defined, and for the rest the macro simply stays defined
 — unless it is redefined later, which is undefined behaviour that happens to
@@ -959,6 +1017,18 @@ There were four — `compl_match_array` and `compl_match_arraysize` in
 and the macro `GAP` in `option.c` and `term.c`. Ignore gcc's `.0`/`.1` suffixed
 names, which are function-local statics. **`nm` cannot see macros**, so the
 fourth is found only by the compiler's redefinition warning.
+
+**Which side to rename, and to what, is not deducible — keep the list.**
+`nm` says a name is defined twice; nothing says whether `cmdexpand.c` or
+`insexpand.c` should give way, and the previous pass renamed *`ex_cmds.c`*'s
+`sort_compare` to `string_sort_compare`, which the name does not suggest. The
+four names in force are `cmdline_match_array`, `cmdline_match_arraysize`,
+`string_sort_compare` and `TERMCODE_GAP`, plus the regexp opcode `RE_WHITE`
+that Phase 9 needs. Choosing differently compiles, runs, and produces a
+`vim.c` that differs from the last pass's for no reason anyone can name a year
+later. **A `tools/renames.txt` of `file:old:new` lines, applied by the pass and
+edited by a human only when `nm` reports a name that is not in it, would turn
+the whole class into a check.**
 
 Two more things this phase has to do deliberately:
 
@@ -1071,6 +1141,12 @@ with balanced parentheses, so Phase 7's joining pass had no reason to touch
 them. "Delete the line" then leaves half a declaration behind and the failure
 surfaces as an unrelated undeclared symbol.
 
+**Join the two-line form only.** Four are written across *three* lines, with
+the `INIT(...)` and the `;` each on their own — `Rows`, `saved_cursor`,
+`typebuf`, `last_cursormoved` — and the tree in `.reference/` keeps them that
+way. A joiner that runs "until the line ends in `;`" swallows those four and
+produces four lines of difference for nothing.
+
 Make every symbol but `main()` `static`: the `proto.h` block says `static`
 (2,869 of them), and **a *function* definition following a `static` declaration
 inherits internal linkage**, so three thousand definitions need no edit.
@@ -1148,10 +1224,20 @@ Every `#define` goes. **Count them with `^[[:space:]]*#[[:space:]]*define`, neve
 plenty are written `# define`, invisible to a regex anchored at column 0 and to
 every figure derived from it.
 
-**Delete before converting.** 910 of 3,432 are mentioned nowhere but their own
-definition — configuration flags whose conditionals Phase 5 already resolved.
-Deleting those is free, provably token-neutral, and removes a quarter of the
-work.
+**Delete before converting, in exactly one round.** 910 of 3,432 are mentioned
+nowhere but their own definition — configuration flags whose conditionals
+Phase 5 already resolved. Deleting those is free, provably token-neutral, and
+removes a quarter of the work.
+
+**One round, not a fixpoint, and the difference is permanent.** Iterating finds
+48 more: round 1 removes `VIM_VERSION_BUILD_STR`, which is the only thing that
+mentioned `VIM_VERSION_BUILD`, so a second round removes that too and
+`toenum.py` never sees it. Those 48 really are dead, so the fixpoint is *more*
+correct — and it changes the output, because how many constants reach
+`toenum.py` decides how many enumerators the finished file has (1,444 against
+1,410). The tree in `.reference/` was made with one round; iterating cost this
+pass a reset. **If you ever change this, say so in the commit and expect
+`refcheck.sh` to report a source difference you have to own.**
 
 Preferred forms for the rest, in order:
 
@@ -1228,6 +1314,11 @@ and they have no dependency on definition order.
   lists that **designated initialisers** keep aligned: `[CMD_append] = {...}`
   puts each row at its own enumerator, which is stronger than the macro's
   guarantee of equal *order*. Add a `static_assert` on the row count.
+  Parse each `EXCMD(...)` row with a **top-level comma split** — the argument
+  list contains parens and `|`, not commas — and write the length as
+  **`sizeof("append") - 1`, not `STRLEN_LITERAL("append")`**: the latter is
+  correct and expands to ` (sizeof("append" "") - 1) `, which is 600 lines of
+  gratuitous difference from the last pass's output.
 - Two enumerators may be impossible to remove: the last constant of an enum whose
   *type* is still a live struct field. C has no empty enum. Say so and stop.
 

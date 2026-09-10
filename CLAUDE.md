@@ -38,10 +38,18 @@ The configuration is `tiny`, no GUI, no terminal library, **plus
 `+extra_search`** — which upstream has no configure flag for.
 
 **This repository holds the process, not the product.** Between passes it is
-five things — `.gitignore`, `README.md`, this file, `GOAL.md` and `tools/` — and
-`vim.c`, the `Makefile` and `LICENSE` appear when a pass produces them. A checkout that has
-never run one has no editor in it, and everything below describes what a pass
-makes rather than what is necessarily on disk right now.
+six things — `.gitignore`, `Makefile`, `README.md`, this file, `GOAL.md` and
+`tools/` — and `vim.c` and `LICENSE` appear when a pass produces them. A
+checkout that has never run one has no editor in it, and everything below
+describes what a pass makes rather than what is necessarily on disk right now.
+
+**The `Makefile` is part of the seed and drives the pass**, which is the one
+thing here that is not upstream's and not produced. `make` asks
+`git ls-remote` what the branch head is, compares it against `upstream.sha`,
+and when they differ clones `upstream/`, deletes its `.git`, runs one
+`claude -p` carrying the process, deletes `upstream/` and records the sha. A
+pass must never write over it, and the only two files a pass moves to the root
+are `vim.c` and `LICENSE`.
 
 It was started from a finished tree without the history that produced it, so
 `git log` reaches back only as far as this repository's first commit. Everything
@@ -53,16 +61,19 @@ it is the only one.
 ## Layout
 
 Forty-one tracked files once a pass has run: seven at the root, and 34 in
-`tools/` — 33 passes and harnesses plus a `README.md`. Three of the seven
-(`vim.c`, `Makefile`, `LICENSE`) are products; the other four and `tools/` are
-the seed.
+`tools/` — 33 passes and harnesses plus a `README.md`. Two of the seven
+(`vim.c`, `LICENSE`) are products; the other five and `tools/` are the seed.
 
 ```
 vim.c        the editor, headers and forward declarations included
-Makefile     24 lines, two targets
+Makefile     the seed: builds vim.c, and produces it when upstream moves
 tools/       the harnesses, and the passes that produced vim.c
 README.md  CLAUDE.md  GOAL.md  LICENSE  .gitignore
 ```
+
+`upstream.sha` appears beside them, untracked: the makefile writes it after a
+pass succeeds, and it is the only thing that decides whether the next `make`
+runs one.
 
 `README.md` is the front door and carries no figures; this file and `GOAL.md`
 are the authority, which is what keeps a third description from drifting.
@@ -70,14 +81,18 @@ are the authority, which is what keeps a third description from drifting.
 `tools/` is the only tracked subdirectory and has a `README.md` of its own.
 Nothing in it is part of the build; the build reads `vim.c` and nothing else.
 
-Four things a pass produces appear untracked, and `.gitignore` names them:
+Six things a pass produces appear untracked, and `.gitignore` names them:
 `vim`, which the build adds and `clean` removes; `.reference/`, a frozen
 copy of this tree with the recorded baselines beside it (see below);
-`TRANSCRIPT.md`, which `/export` writes whenever this file is updated; and
+`TRANSCRIPT.md`, which `/export` writes whenever this file is updated;
 `upstream/`, the pristine vim tree a pass clones in, works on and deletes —
 8,581 files that must never reach a commit, and which do not exist between
-passes. It also names what the tools and the editors leave lying about:
-`*.swp`, `__pycache__/`, `*.pyc` and `.claude/`. The `.gitignore` upstream shipped named 91 paths, of which two still
+passes; and `PROGRESS.md` and `pass.log`, which a pass writes as it works —
+the log of the `claude -p` stream, and the insight log whose contents are
+folded into `GOAL.md`, this file and `tools/` and then deleted. `upstream.sha`
+is deliberately *not* ignored: it is the record of what `vim.c` was produced
+from. `.gitignore` also names what the tools and the editors leave lying
+about: `*.swp`, `__pycache__/`, `*.pyc` and `.claude/`. The `.gitignore` upstream shipped named 91 paths, of which two still
 existed — `src/testdir/`, `runtime/doc/tags-*`, `nsis/icons/*` and the rest
 went with the tree they belonged to.
 
@@ -95,10 +110,22 @@ maintained here, so it is byte-identical to upstream's by construction.
 make                 # from the repository root
 ```
 
-Two targets, `vim` and `clean`. Everything else — `all`, `install`, `test`,
-`proto`, `tags`, `depend`, `lint`, `shadow`, `distclean` — is gone, along with
-the second makefile that recursed into `src/`. `all` went with them: it is a
-convention for builds with more than one product, and this one has `vim`.
+Two targets you would type, `vim` and `clean`. Everything upstream had —
+`all`, `install`, `test`, `proto`, `tags`, `depend`, `lint`, `shadow`,
+`distclean` — is gone, along with the second makefile that recursed into
+`src/`. `all` went with them: it is a convention for builds with more than one
+product, and this one has `vim`.
+
+**`vim` depends on `vim.c`, and `vim.c` depends on upstream**, which is a
+remote rather than a file: every `make` asks `git ls-remote` for the branch
+head and compares it against `upstream.sha`. It cannot be a timestamp — `git
+clone` writes every file at checkout time in arbitrary order, so a stamp
+landing a second after `vim.c` would fire a multi-hour pass on a tree that is
+exactly right. When the sha matches, or the remote is unreachable, `make`
+builds the committed `vim.c` and says so in one line. When it does not, the
+recipe clones `upstream/`, deletes its `.git` immediately, runs the pass, and
+writes `upstream.sha` only after the pass has left a `vim.c` behind, so a
+failed pass leaves the record alone and the next `make` retries.
 
 **There is no configure and nothing is generated.** `configure`, `configure.ac`,
 `config.h.in`, `config.mk.in`, `osdef.sh`, `pathdef.sh`, `link.sh` and
@@ -746,16 +773,22 @@ Two traps if you ever remove a command:
 ### Regenerate vim.c from upstream
 
 `vim.c` is not maintained by editing it into a new shape; it is **produced**,
-and `GOAL.md` is the process that produces it. A pass looks like this:
+and `GOAL.md` is the process that produces it. **The makefile runs the pass**,
+so there is nothing to type but `make`:
 
 ```sh
-git clone --branch regexp-delimiter-atoms --depth 1 \
-    https://github.com/arbace/vim upstream
-rm -rf upstream/.git                       # immediately
-#   ... GOAL.md Phases 0-9 run inside upstream/ ...                     
-#   ... vim.c moves to the repository root ...
-rm -rf upstream                            # nothing of it is kept
+make                 # ls-remote, compare against upstream.sha, and if they
+                     # differ: clone upstream/, rm -rf upstream/.git, run one
+                     # claude -p over GOAL.md, rm -rf upstream/, record the sha
 ```
+
+The agent that runs inside that recipe is handed `upstream/` already cloned
+with its `.git` already gone, is told never to touch the root `Makefile`, and
+moves exactly two files to the root when it is done: `vim.c` and `LICENSE`.
+It writes `PROGRESS.md` as it works — a log for the next iteration of this
+process, aimed at replacing as much of the pass as possible with deterministic
+programs in `tools/` — and that log is folded into the two documents and
+deleted.
 
 `upstream/` is a **staging directory, not a checkout of anything**. It is
 gitignored, so its 8,581 files cannot reach a commit, and it does not exist
@@ -791,9 +824,13 @@ that reproduced last time's mistake exactly would satisfy the first.
 **Everything this tree has is in the phases.** The terminal-table reduction,
 the compiled-in vimrc and the `'lazyredraw'` fix are Phase 1, because Phase 1
 is where behaviour changes and where the baselines are recorded; `-static -s`
-is Phase 3, with the makefile. There is no list of extras to re-apply
-afterwards — a bare run of Phases 0-9 reproduces this tree, not a plainer one,
-and that is what makes the comparison worth running.
+is Phase 3, on the scaffolding makefile that lives inside `upstream/` and dies
+with it — the root `Makefile` is the seed and no phase writes it. There is no
+list of extras to re-apply afterwards — a bare run of Phases 0-9 reproduces
+this tree, not a plainer one, and that is what makes the comparison worth
+running. It has been run: the pass of 2026-09-10 reproduced `vim.c` **byte for
+byte** against the previous one, 181,844 lines, and the binary with it,
+2,208,088 bytes.
 
 ### Import one thing from upstream by hand
 
