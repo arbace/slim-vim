@@ -80,6 +80,7 @@ vim.c: force
 	    exit 0; \
 	fi; \
 	echo "  upstream     $$live -- vim.c must be produced"; \
+	tools/preflight.sh; \
 	$(MAKE) --no-print-directory clone; \
 	start=`date +%s`; \
 	echo "  pass         started `date -Is`"; \

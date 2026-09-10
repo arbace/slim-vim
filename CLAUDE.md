@@ -253,12 +253,29 @@ transformation over every line of a shape — does not care. So:
   0      program             0  computed
   1      program           797  a deliberate patch: the edits are fixed
   2..8   program             0  computed
-  9      agent               -  no program yet; one tier-1 run synthesises one
+  9      program        33,670  synthesised from one tier-1 run
+         total          34,467
 ```
 
 Phase 1's 797 lines are not a failure to understand it — its content genuinely
 *is* a set of fixed edits, and the tree cannot state them. That is the one
-place a patch is the right answer rather than a placeholder.
+place a patch is the right answer rather than a placeholder. Phase 9's 33,670
+are the opposite: a recording, produced automatically the first time it ran,
+and the whole of the work left to do.
+
+**A pass costs 24 minutes**, measured with nine phases as programs and Phase 9
+at tier 1: 31 s, 20 s, 6 s, 1 s, 0 s (cached), 12 s, 11 s, 40 s, 385 s, and
+943 s for the agent. Without that agent — which is where the synthesised
+program now puts it — the same pass is **under nine minutes**, and Phase 8 is
+two thirds of it, being compile-bound.
+
+**The last pass produced a binary byte-identical to the committed one** and a
+`vim.c` differing by 49 lines, all of it Phase 8: a redundant `static` on
+definitions whose earlier prototype already gives them internal linkage, and
+one dead prototype kept. Neither changes the program — `-s` strips the symbol
+table, so the two compile to the same bytes — and the committed form is the
+better one, so it stands. Those 49 lines are Phase 8's real residue and the
+next thing to drive to zero.
 
 **A tier-2 failure is not an error, it is the construct working.** The pass
 falls through to tier 1, which produces an answer and a new patch; `make`

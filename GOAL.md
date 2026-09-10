@@ -444,8 +444,15 @@ deciding and typing.
 | 9 leave the preprocessor behind | 16 m 9 s | 16 m 26 s | |
 | documents, `.reference/`, verification | ~12 m | conditional | |
 
-**Seven of the ten are programs, and they run in 2 m 46 s against the 52 m 33 s
-the same seven cost as agents.** What is left is phases 6, 8 and 9.
+**All ten are programs now.** Measured end to end at 24 minutes with Phase 9
+still running as an agent, and Phase 9's own program was synthesised from that
+run -- so the next pass has no agent in it at all and should come in under nine
+minutes, of which Phase 8 is two thirds. The binary came out byte-identical to
+the committed one; `vim.c` differed by 49 lines, all of them Phase 8 noise.
+
+**What is left is not writing programs but shrinking them.** `make residue`
+scores it: Phase 9 is 33,670 lines of recorded diff, Phase 1 is 797 lines of
+deliberate patch, and everything else computes what it does.
 
 **Partitioning the pass made it slower, and by how much is worth knowing:
 phases 1-8 took 73.0 minutes as nine separate agents against 35.6 as one.**

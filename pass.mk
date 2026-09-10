@@ -221,6 +221,13 @@ times:
 residue:
 	@tools/residue.sh
 
+# What a pass would need on this machine, asked before it starts rather than
+# ten minutes in.  The ordinary case -- sha matches, compile the committed
+# vim.c -- reaches none of it.
+.PHONY: preflight
+preflight:
+	@tools/preflight.sh
+
 .PHONY: clean-pass
 clean-pass:
 	rm -rf $(BUILD)
