@@ -739,8 +739,6 @@ enum { EW_NOERROR = 0x200 };
 enum { EW_NOTWILD = 0x400 };
 enum { EW_ALLLINKS = 0x1000 };
 enum { EW_SHELLCMD = 0x2000 };
-enum { EW_DODOT = 0x4000 };
-enum { EW_EMPTYOK = 0x8000 };
 enum { EW_NOTENV = 0x10000 };
 enum { EW_CDPATH = 0x20000 };
 
@@ -1381,10 +1379,7 @@ enum { CPO_TSIZE = '|' };
 enum { CPO_PRESERVE = '&' };
 enum { CPO_SUBPERCENT = '/' };
 enum { CPO_BACKSL = '\\' };
-enum { CPO_CHDIR = '.' };
 enum { CPO_SCOLON = ';' };
-enum { CPO_NOSYMLINKS = '~' };
-
 enum { MOUSE_NORMAL = 'n' };
 enum { MOUSE_VISUAL = 'v' };
 enum { MOUSE_INSERT = 'i' };
@@ -3767,12 +3762,6 @@ typedef struct {
 } save_state_T;
 
 typedef enum {
-    CDSCOPE_GLOBAL,
-    CDSCOPE_TABPAGE,
-    CDSCOPE_WINDOW
-} cdscope_T;
-
-typedef enum {
     IGNORE_POPUP,
     FIND_POPUP,
     FAIL_POPUP
@@ -4894,16 +4883,13 @@ static void mch_free_acl(vim_acl_T aclent);
 static void mch_hide(char_u *name);
 static int mch_isdir(char_u *name);
 static int mch_isrealdir(char_u *name);
-static int mch_can_exe(char_u *name, char_u **path, int use_path);
 static int mch_nodetype(char_u *name);
 static void mch_exit(int r);
 static int get_tty_info(int fd, ttyinfo_T *info);
 static void mch_setmouse(int on);
 static void check_mouse_termcode(void);
 static int mch_call_shell(char_u *cmd, int options);
-static int mch_expandpath(garray_T *gap, char_u *path, int flags);
 static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
-static int mch_has_exp_wildcard(char_u *p);
 static int mch_has_wildcard(char_u *p);
 int  rename(const char *src, const char *dest) ;
 
@@ -5250,7 +5236,6 @@ static int expand_wildcards_eval(char_u **pat, int *num_file, char_u ***file, in
 static int expand_wildcards(int num_pat, char_u **pat, int *num_files, char_u ***files, int flags);
 static int match_suffix(char_u *fname);
 static int gen_expand_wildcards(int num_pat, char_u **pat, int *num_file, char_u ***file, int flags);
-static void addfile(garray_T *gap, char_u *f, int flags);
 static void FreeWild(int count, char_u **files);
 static int pathcmp(const char *p, const char *q, int maxlen);
 static int vim_isAbsName(char_u *name);
@@ -5264,8 +5249,6 @@ static char_u *find_file_in_path_option(char_u *ptr, int len, int options, int f
 static char_u *file_name_at_cursor(int options, long count, linenr_T *file_lnum);
 static char_u *file_name_in_line(char_u *line, int col, int options, long count, char_u *rel_fname, linenr_T *file_lnum);
 static char_u *find_file_name_in_path(char_u *ptr, int len, int options, long count, char_u *rel_fname);
-static void uniquefy_paths(garray_T *gap, char_u *pattern, char_u *path_option);
-static int expand_in_path(garray_T *gap, char_u *pattern, int flags);
 static size_t simplify_filename(char_u *filename);
 
 // ---------------- end findfile.pro ----------------
@@ -5670,7 +5653,6 @@ static int call_shell(char_u *cmd, int opt);
 static int get_real_state(void);
 static int after_pathsep(char_u *b, char_u *p);
 static int same_directory(char_u *f1, char_u *f2);
-static int vim_chdir(char_u *new_dir);
 static int get_user_name(char_u *buf, int len);
 static int cmp_keyvalue_value_n(const void *a, const void *b);
 static int cmp_keyvalue_value_i(const void *a, const void *b);
@@ -7147,8 +7129,6 @@ static char e_invalid_command_name[]  =  "E182: Invalid command name"  ;
 static char e_user_defined_commands_must_start_with_an_uppercase_letter[]  =  "E183: User defined commands must start with an uppercase letter"  ;
 static char e_no_such_user_defined_command_str[]  =  "E184: No such user-defined command: %s"  ;
 static char e_cannot_find_color_scheme_str[]  =  "E185: Cannot find color scheme '%s'"  ;
-static char e_no_previous_directory[]  =  "E186: No previous directory"  ;
-static char e_directory_unknown[]  =  "E187: Directory unknown"  ;
 static char e_obtaining_window_position_not_implemented_for_this_platform[]  =  "E188: Obtaining window position not implemented for this platform"  ;
 static char e_str_exists_add_bang_to_override[]  =  "E189: \"%s\" exists (add ! to override)"  ;
 static char e_cannot_open_str_for_writing_2[]  =  "E190: Cannot open \"%s\" for writing"  ;
@@ -7296,7 +7276,6 @@ static char e_winpos_requires_two_number_arguments[]  =  "E466: :winpos requires
 static char e_completion_argument_only_allowed_for_custom_completion[]  =  "E468: Completion argument only allowed for custom completion"  ;
 static char e_command_aborted[]  =  "E470: Command aborted"  ;
 static char e_argument_required[]  =  "E471: Argument required"  ;
-static char e_command_failed[]  =  "E472: Command failed"  ;
 static char e_internal_error_in_regexp[]  = "E473: Internal error in regexp" ;
 static char e_invalid_argument[]  =  "E474: Invalid argument"  ;
 static char e_invalid_argument_str[]  =  "E475: Invalid argument: %s"  ;
@@ -7379,7 +7358,6 @@ static char e_no_matching_autocommands_for_buftype_str_buffer[]  =  "E676: No ma
 static char e_invalid_character_after_str_2[]  =  "E678: Invalid character after %s%%[dxouU]"  ;
 static char e_buffer_nr_invalid_buffer_number[]  =  "E680: <buffer=%d>: invalid buffer number"  ;
 static char e_internal_error_str[]  =  "E685: Internal error: %s"  ;
-static char e_cannot_change_directory_buffer_is_modified_add_bang_to_override[]  =  "E747: Cannot change directory, buffer is modified (add ! to override)"  ;
 static char e_no_previously_used_register[]  =  "E748: No previously used register"  ;
 static char e_empty_buffer[]  =  "E749: Empty buffer"  ;
 static char e_too_many_arguments_to_printf[]  =  "E767: Too many arguments for printf()"  ;
@@ -19867,12 +19845,6 @@ vim_isupper(int c)
         }
     }
     return  (isupper ((unsigned char)(c))) ;
-}
-
-    static int
-vim_isalpha(int c)
-{
-    return vim_islower(c) || vim_isupper(c);
 }
 
     static int
@@ -40521,7 +40493,6 @@ static void     correct_range(exarg_T *eap);
 static char_u   *repl_cmdline(exarg_T *eap, char_u *src, size_t srclen, char_u *repl, char_u **cmdlinep);
 static void     ex_win_close(int forceit, win_T *win, tabpage_T *tp);
 static void     ex_print(exarg_T *eap);
-static void     ex_pwd(exarg_T *eap);
 static void     close_redir(void);
 static void     ex_tag_cmd(exarg_T *eap, char_u *name);
 // ---------------- begin ex_cmds.h ----------------
@@ -45395,226 +45366,6 @@ ex_read(exarg_T *eap)
             }
         }
         redraw_curbuf_later(UPD_VALID);
-    }
-}
-
-static char_u   *prev_dir = NULL;
-
-    static char_u *
-get_prevdir(cdscope_T scope)
-{
-    if (scope == CDSCOPE_WINDOW)
-    {
-        return curwin->w_prevdir;
-    }
-    else if (scope == CDSCOPE_TABPAGE)
-    {
-        return curtab->tp_prevdir;
-    }
-    return prev_dir;
-}
-
-    static void
-post_chdir(cdscope_T scope)
-{
-    if (scope != CDSCOPE_WINDOW)
-    {
-         vim_free(curtab->tp_localdir);
-         (curtab->tp_localdir) = NULL;
-    }
-     vim_free(curwin->w_localdir);
-     (curwin->w_localdir) = NULL;
-    if (scope != CDSCOPE_GLOBAL)
-    {
-        char_u  *pdir = get_prevdir(scope);
-
-        if (globaldir == NULL && pdir != NULL)
-        {
-            globaldir = vim_strsave(pdir);
-        }
-
-        if (mch_dirname(NameBuff,  PATH_MAX ) == OK)
-        {
-            if (scope == CDSCOPE_TABPAGE)
-            {
-                curtab->tp_localdir = vim_strsave(NameBuff);
-            }
-            else
-            {
-                curwin->w_localdir = vim_strsave(NameBuff);
-            }
-        }
-    }
-    else
-    {
-         vim_free(globaldir);
-         (globaldir) = NULL;
-    }
-
-    last_chdir_reason = NULL;
-    shorten_fnames(vim_strchr(p_cpo, CPO_NOSYMLINKS) == NULL);
-}
-
-    static void
-trigger_DirChangedPre(char_u *acmd_fname, char_u *new_dir)
-{
-    apply_autocmds(EVENT_DIRCHANGEDPRE, acmd_fname, new_dir, FALSE, curbuf);
-}
-
-    static int
-changedir_func(char_u          *new_dir, int             forceit, cdscope_T       scope)
-{
-    char_u      *pdir = NULL;
-    int         dir_differs;
-    char_u      *acmd_fname = NULL;
-    char_u      **pp;
-    char_u      *tofree;
-
-    if (new_dir == NULL || allbuf_locked())
-    {
-        return FALSE;
-    }
-
-    if (vim_strchr(p_cpo, CPO_CHDIR) != NULL && curbufIsChanged() && !forceit)
-    {
-        emsg(_(e_cannot_change_directory_buffer_is_modified_add_bang_to_override));
-        return FALSE;
-    }
-
-    if ( strcmp((char *)(new_dir), (char *)("-"))  == 0)
-    {
-        pdir = get_prevdir(scope);
-        if (pdir == NULL)
-        {
-            emsg(_(e_no_previous_directory));
-            return FALSE;
-        }
-        new_dir = pdir;
-    }
-
-    if (mch_dirname(NameBuff,  PATH_MAX ) == OK)
-    {
-        pdir = vim_strsave(NameBuff);
-    }
-    else
-    {
-        pdir = NULL;
-    }
-
-    if (*new_dir == NUL)
-    {
-        expand_env((char_u *)"$HOME", NameBuff,  PATH_MAX );
-        new_dir = NameBuff;
-    }
-    dir_differs = pdir == NULL
-                            || pathcmp((char *)pdir, (char *)new_dir, -1) != 0;
-    if (dir_differs)
-    {
-        if (scope == CDSCOPE_WINDOW)
-        {
-            acmd_fname = (char_u *)"window";
-        }
-        else if (scope == CDSCOPE_TABPAGE)
-        {
-            acmd_fname = (char_u *)"tabpage";
-        }
-        else
-        {
-            acmd_fname = (char_u *)"global";
-        }
-        trigger_DirChangedPre(acmd_fname, new_dir);
-
-        if (vim_chdir(new_dir))
-        {
-            emsg(_(e_command_failed));
-            vim_free(pdir);
-            return FALSE;
-        }
-    }
-
-    if (scope == CDSCOPE_WINDOW)
-    {
-        pp = &curwin->w_prevdir;
-    }
-    else if (scope == CDSCOPE_TABPAGE)
-    {
-        pp = &curtab->tp_prevdir;
-    }
-    else
-    {
-        pp = &prev_dir;
-    }
-    tofree = *pp;
-    *pp = pdir;
-
-    post_chdir(scope);
-
-    if (dir_differs)
-    {
-        apply_autocmds(EVENT_DIRCHANGED, acmd_fname, new_dir, FALSE, curbuf);
-    }
-    vim_free(tofree);
-    return TRUE;
-}
-
-    static void
-ex_cd(exarg_T *eap)
-{
-    char_u      *new_dir;
-
-    new_dir = eap->arg;
-
-    cdscope_T   scope = CDSCOPE_GLOBAL;
-
-    if (eap->cmdidx == CMD_lcd || eap->cmdidx == CMD_lchdir)
-    {
-        scope = CDSCOPE_WINDOW;
-    }
-    else if (eap->cmdidx == CMD_tcd || eap->cmdidx == CMD_tchdir)
-    {
-        scope = CDSCOPE_TABPAGE;
-    }
-
-    if (changedir_func(new_dir, eap->forceit, scope))
-    {
-        if (KeyTyped || p_verbose >= 5)
-        {
-            ex_pwd(eap);
-        }
-    }
-}
-
-    static void
-ex_pwd(exarg_T *eap  __attribute__((unused)) )
-{
-    if (mch_dirname(NameBuff,  PATH_MAX ) == OK)
-    {
-        if (p_verbose > 0)
-        {
-            char *context = "global";
-
-            if (last_chdir_reason != NULL)
-            {
-                context = last_chdir_reason;
-            }
-            else if (curwin->w_localdir != NULL)
-            {
-                context = "window";
-            }
-            else if (curtab->tp_localdir != NULL)
-            {
-                context = "tabpage";
-            }
-            smsg("[%s] %s", context, (char *)NameBuff);
-        }
-        else
-        {
-            msg((char *)NameBuff);
-        }
-    }
-    else
-    {
-        emsg(_(e_directory_unknown));
     }
 }
 
@@ -55224,479 +54975,9 @@ match_suffix(char_u *fname)
 }
 
     static int
-vim_backtick(char_u *p)
-{
-    return (*p == '`' && *(p + 1) != NUL && *(p +  strlen((char *)(p))  - 1) == '`');
-}
-
-    static int
-expand_backtick(garray_T    *gap, char_u      *pat, int         flags)
-{
-    char_u      *p;
-    char_u      *cmd;
-    char_u      *buffer;
-    int         cnt = 0;
-    int         i;
-
-    cmd = vim_strnsave(pat + 1,  strlen((char *)(pat))  - 2);
-    if (cmd == NULL)
-    {
-        return -1;
-    }
-
-        buffer = get_cmd_output(cmd, NULL, (flags & EW_SILENT) ? SHELL_SILENT : 0, NULL);
-    vim_free(cmd);
-    if (buffer == NULL)
-    {
-        return -1;
-    }
-
-    cmd = buffer;
-    while (*cmd != NUL)
-    {
-        cmd = skipwhite(cmd);
-        p = cmd;
-        while (*p != NUL && *p != '\r' && *p != '\n')
-        {
-            ++p;
-        }
-        if (p > cmd)
-        {
-            i = *p;
-            *p = NUL;
-            addfile(gap, cmd, flags);
-            *p = i;
-            ++cnt;
-        }
-        cmd = p;
-        while (*cmd != NUL && (*cmd == '\r' || *cmd == '\n'))
-        {
-            ++cmd;
-        }
-    }
-
-    vim_free(buffer);
-    return cnt;
-}
-
-    static int
-pstrcmp(const void *a, const void *b)
-{
-    return (pathcmp(*(char **)a, *(char **)b, -1));
-}
-
-    static int
-unix_expandpath(garray_T    *gap, char_u      *path, size_t      wildoff, int         flags, int         didstar)
-{
-    char_u      *buf;
-    char_u      *path_end;
-    char_u *p;
-    char_u *s;
-    char_u *e;
-    int         start_len = gap->ga_len;
-    char_u      *pat;
-    regmatch_T  regmatch;
-    int         starts_with_dot;
-    int         matches;
-    size_t      buflen;
-    size_t      len;
-    int         starstar = FALSE;
-    static int  stardepth = 0;
-
-    DIR         *dirp;
-    struct dirent *dp;
-
-    if (stardepth > 0)
-    {
-        ui_breakcheck();
-        if (got_int)
-        {
-            return 0;
-        }
-    }
-
-    buflen =  strlen((char *)(path))  +  PATH_MAX ;
-    buf = alloc(buflen);
-    if (buf == NULL)
-    {
-        return 0;
-    }
-
-    p = buf;
-    s = buf;
-    e = NULL;
-    path_end = path;
-    while (*path_end != NUL)
-    {
-        if (path_end >= path + wildoff && rem_backslash(path_end))
-        {
-            *p++ = *path_end++;
-        }
-        else if (*path_end == '/')
-        {
-            if (e != NULL)
-            {
-                break;
-            }
-            s = p + 1;
-        }
-        else if (path_end >= path + wildoff && (vim_strchr((char_u *)"*?[{~$", *path_end) != NULL || (!p_fic && (flags & EW_ICASE) && vim_isalpha( (has_mbyte ? mb_ptr2char(path_end) : (int)*(path_end)) ))))
-        {
-            e = p;
-        }
-        if (has_mbyte)
-        {
-            int charlen = (*mb_ptr2len)(path_end);
-
-             strncpy((char *)(p), (char *)(path_end), ((size_t)charlen)) ;
-            p += charlen;
-            path_end += charlen;
-        }
-        else
-        {
-            *p++ = *path_end++;
-        }
-    }
-    e = p;
-    *e = NUL;
-
-    for (p = buf + wildoff; p < s; ++p)
-    {
-        if (rem_backslash(p))
-        {
-              memmove((char *)((p)), (char *)((p + 1)),  strlen((char *)(p + 1))  + 1)  ;
-            --e;
-            --s;
-        }
-    }
-
-    for (p = s; p < e; ++p)
-    {
-        if (p[0] == '*' && p[1] == '*')
-        {
-            starstar = TRUE;
-        }
-    }
-
-    starts_with_dot = *s == '.';
-    pat = file_pat_to_reg_pat(s, e, NULL, FALSE);
-    if (pat == NULL)
-    {
-        vim_free(buf);
-        return 0;
-    }
-
-    if (flags & EW_ICASE)
-    {
-        regmatch.rm_ic = TRUE;
-    }
-    else
-    {
-        regmatch.rm_ic = p_fic;
-    }
-    if (flags & (EW_NOERROR | EW_NOTWILD))
-    {
-        ++emsg_silent;
-    }
-    regmatch.regprog = vim_regcomp(pat, RE_MAGIC);
-    if (flags & (EW_NOERROR | EW_NOTWILD))
-    {
-        --emsg_silent;
-    }
-    vim_free(pat);
-
-    if (regmatch.regprog == NULL && (flags & EW_NOTWILD) == 0)
-    {
-        vim_free(buf);
-        return 0;
-    }
-
-    len = (size_t)(s - buf);
-    if (!didstar && stardepth < 100 && starstar && e - s == 2 && *path_end == '/')
-    {
-        vim_snprintf((char *)s, buflen - len, "%s", path_end + 1);
-        ++stardepth;
-        (void)unix_expandpath(gap, buf, len, flags, TRUE);
-        --stardepth;
-    }
-
-    *s = NUL;
-    dirp = opendir(*buf == NUL ? "." : (char *)buf);
-
-    if (dirp != NULL)
-    {
-        while (!got_int)
-        {
-            dp = readdir(dirp);
-            if (dp == NULL)
-            {
-                break;
-            }
-            len = (size_t)(s - buf);
-            if ((dp->d_name[0] != '.' || starts_with_dot || ((flags & EW_DODOT) && dp->d_name[1] != NUL && (dp->d_name[1] != '.' || dp->d_name[2] != NUL))) && ((regmatch.regprog != NULL && vim_regexec(&regmatch, (char_u *)dp->d_name, (colnr_T)0)) || ((flags & EW_NOTWILD) &&  vim_fnamencmp((char_u *)(path + len), (char_u *)(dp->d_name), (e - s))  == 0)))
-            {
-                len += vim_snprintf((char *)s, buflen - len, "%s", dp->d_name);
-                if (len + 1 >= buflen)
-                {
-                    continue;
-                }
-
-                if (starstar && stardepth < 100)
-                {
-                    vim_snprintf((char *)buf + len, buflen - len, "/**%s", path_end);
-                    ++stardepth;
-                    (void)unix_expandpath(gap, buf, len + 1, flags, TRUE);
-                    --stardepth;
-                }
-
-                vim_snprintf((char *)buf + len, buflen - len, "%s", path_end);
-                if (mch_has_exp_wildcard(path_end))
-                {
-                    if (stardepth < 100)
-                    {
-                        ++stardepth;
-                        (void)unix_expandpath(gap, buf, len + 1, flags, FALSE);
-                        --stardepth;
-                    }
-                }
-                else
-                {
-                    stat_T  sb;
-
-                    if (*path_end != NUL)
-                    {
-                        backslash_halve(buf + len + 1);
-                    }
-                    if ((flags & EW_ALLLINKS) ?  lstat(((char *)buf), (&sb))  >= 0 : mch_getperm(buf) >= 0)
-                    {
-                        addfile(gap, buf, flags);
-                    }
-                }
-            }
-        }
-
-        closedir(dirp);
-    }
-
-    vim_free(buf);
-    vim_regfree(regmatch.regprog);
-
-    matches = gap->ga_len - start_len;
-    if (matches > 0 && !got_int)
-    {
-        qsort(((char_u **)gap->ga_data) + start_len, matches, sizeof(char_u *), pstrcmp);
-    }
-    return matches;
-}
-
-    static int
-has_env_var(char_u *p)
-{
-    for ( ; *p;  p += (*mb_ptr2len)(p) )
-    {
-        if (*p == '\\' && p[1] != NUL)
-        {
-            ++p;
-        }
-        else if (vim_strchr((char_u *) "$", *p) != NULL)
-        {
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
-    static int
-has_special_wildchar(char_u *p)
-{
-    for ( ; *p;  p += (*mb_ptr2len)(p) )
-    {
-        if (*p == '\r' || *p == '\n')
-        {
-            break;
-        }
-        if (*p == '\\' && p[1] != NUL && p[1] != '\r' && p[1] != '\n')
-        {
-            ++p;
-        }
-        else if (vim_strchr((char_u *) "`'{" , *p) != NULL)
-        {
-            if (*p == '{' && vim_strchr(p, '}') == NULL)
-            {
-                continue;
-            }
-            if ((*p == '`' || *p == '\'') && vim_strchr(p, *p) == NULL)
-            {
-                continue;
-            }
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
-    static int
 gen_expand_wildcards(int         num_pat, char_u      **pat, int         *num_file, char_u      ***file, int         flags)
 {
-    int                 i;
-    garray_T            ga;
-    char_u              *p;
-    static int          recursive = FALSE;
-    int                 add_pat;
-    int                 retval = OK;
-    int                 did_expand_in_path = FALSE;
-    char_u              *path_option = *curbuf->b_p_path == NUL ?
-                                        p_path :
-                                            curbuf->b_p_path;
-
-    if (recursive)
-    {
-        return save_patterns(num_pat, pat, num_file, file);
-    }
-
-    for (i = 0; i < num_pat; i++)
-    {
-        if (has_special_wildchar(pat[i]) && !(vim_backtick(pat[i]) && pat[i][1] == '='))
-        {
-            return save_patterns(num_pat, pat, num_file, file);
-        }
-    }
-
-    recursive = TRUE;
-
-    ga_init2(&ga, sizeof(char_u *), 30);
-
-    for (i = 0; i < num_pat && !got_int; ++i)
-    {
-        add_pat = -1;
-        p = pat[i];
-
-        if (vim_backtick(p))
-        {
-            add_pat = expand_backtick(&ga, p, flags);
-            if (add_pat == -1)
-            {
-                retval = FAIL;
-            }
-        }
-        else
-        {
-            if ((has_env_var(p) && !(flags & EW_NOTENV)) || *p == '~')
-            {
-                p = expand_env_save_opt(p, TRUE, (char_u *) "*?[{" );
-                if (p == NULL)
-                {
-                    p = pat[i];
-                }
-                else if (has_env_var(p) || *p == '~')
-                {
-                    vim_free(p);
-                    ga_clear_strings(&ga);
-                    i = save_patterns(num_pat, pat, num_file, file);
-                    recursive = FALSE;
-                    return i;
-                }
-            }
-
-            if (mch_has_exp_wildcard(p) || (flags & EW_ICASE))
-            {
-                if ((flags & (EW_PATH | EW_CDPATH)) && !mch_isFullName(p) && !(p[0] == '.' && (vim_ispathsep(p[1]) || (p[1] == '.' && vim_ispathsep(p[2])))))
-                {
-                    recursive = FALSE;
-                    add_pat = expand_in_path(&ga, p, flags);
-                    recursive = TRUE;
-                    did_expand_in_path = TRUE;
-                }
-                else
-                {
-                    add_pat = mch_expandpath(&ga, p, flags);
-                }
-            }
-        }
-
-        if (add_pat == -1 || (add_pat == 0 && (flags & EW_NOTFOUND)))
-        {
-            char_u      *t = backslash_halve_save(p);
-
-            if (flags & EW_NOTFOUND)
-            {
-                addfile(&ga, t, flags | EW_DIR | EW_FILE);
-            }
-            else
-            {
-                addfile(&ga, t, flags);
-            }
-
-            if (t != p)
-            {
-                vim_free(t);
-            }
-        }
-
-        if (did_expand_in_path && ga.ga_len > 0 && (flags & (EW_PATH | EW_CDPATH)))
-        {
-            uniquefy_paths(&ga, p, path_option);
-        }
-        if (p != pat[i])
-        {
-            vim_free(p);
-        }
-    }
-
-    if (retval == FAIL)
-    {
-        ga_clear_strings(&ga);
-    }
-
-    *num_file = ga.ga_len;
-    *file = (ga.ga_data != NULL) ? (char_u **)ga.ga_data
-                                                  : (char_u **)_("no matches");
-
-    recursive = FALSE;
-
-    return ((flags & EW_EMPTYOK) || ga.ga_data != NULL) ? retval : FAIL;
-}
-
-    static void
-addfile(garray_T    *gap, char_u      *f, int         flags)
-{
-    char_u      *p;
-    int         isdir;
-    stat_T      sb;
-
-    if (!(flags & EW_NOTFOUND) && ((flags & EW_ALLLINKS) ?  lstat(((char *)f), (&sb))  < 0 : mch_getperm(f) < 0))
-    {
-        return;
-    }
-
-    isdir = mch_isdir(f);
-    if ((isdir && !(flags & EW_DIR)) || (!isdir && !(flags & EW_FILE)))
-    {
-        return;
-    }
-
-    if (!isdir && (flags & EW_EXEC) && !mch_can_exe(f, NULL, !(flags & EW_SHELLCMD)))
-    {
-        return;
-    }
-
-    if (ga_grow(gap, 1) == FAIL)
-    {
-        return;
-    }
-
-    p = alloc( strlen((char *)(f))  + 1 + isdir);
-    if (p == NULL)
-    {
-        return;
-    }
-
-     strcpy((char *)(p), (char *)(f)) ;
-    if (isdir && (flags & EW_ADDSLASH))
-    {
-        add_pathsep(p);
-    }
-    ((char_u **)gap->ga_data)[gap->ga_len++] = p;
+    return save_patterns(num_pat, pat, num_file, file);
 }
 
     static void
@@ -56971,12 +56252,6 @@ find_file_in_path(char_u      *ptr, int         len, int         options, int   
 }
 
     static char_u *
-find_directory_in_path(char_u      *ptr, int         len, int         options, char_u      *rel_fname, char_u      **file_to_find, char        **search_ctx)
-{
-    return find_file_in_path_option(ptr, len, options, TRUE, p_cdpath, FINDFILE_DIR, rel_fname, (char_u *)"", file_to_find, search_ctx);
-}
-
-    static char_u *
 find_file_in_path_option(char_u      *ptr, int         len, int         options, int         first, char_u      *path_option, int         find_what, char_u      *rel_fname, char_u      *suffixes, char_u      **file_to_find, char        **search_ctx_arg)
 {
     ff_search_ctx_T     **search_ctx = (ff_search_ctx_T **)search_ctx_arg;
@@ -57343,429 +56618,10 @@ find_file_name_in_path(char_u      *ptr, int         len, int         options, l
     return file_name;
 }
 
-    static char_u *
-gettail_dir(char_u *fname)
-{
-    char_u      *dir_end = fname;
-    char_u      *next_dir_end = fname;
-    int         look_for_sep = TRUE;
-    char_u      *p;
-
-    for (p = fname; *p != NUL; )
-    {
-        if (vim_ispathsep(*p))
-        {
-            if (look_for_sep)
-            {
-                next_dir_end = p;
-                look_for_sep = FALSE;
-            }
-        }
-        else
-        {
-            if (!look_for_sep)
-            {
-                dir_end = next_dir_end;
-            }
-            look_for_sep = TRUE;
-        }
-         p += (*mb_ptr2len)(p) ;
-    }
-    return dir_end;
-}
-
     static int
 vim_ispathlistsep(int c)
 {
     return (c == ':');
-}
-
-    static int
-find_previous_pathsep(char_u *path, char_u **psep)
-{
-    if (*psep > path && vim_ispathsep(**psep))
-    {
-        --*psep;
-    }
-
-    while (*psep > path)
-    {
-        if (vim_ispathsep(**psep))
-        {
-            return OK;
-        }
-         *psep -= has_mbyte ? ((*mb_head_off)(path, (*psep) - 1) + 1) : 1 ;
-    }
-
-    return FAIL;
-}
-
-    static int
-is_unique(char_u *maybe_unique, garray_T *gap, int i)
-{
-    int     j;
-    int     candidate_len = (int) strlen((char *)(maybe_unique)) ;
-    int     other_path_len;
-    char_u  **other_paths = (char_u **)gap->ga_data;
-    char_u  *rival;
-
-    for (j = 0; j < gap->ga_len; j++)
-    {
-        if (j == i)
-        {
-            continue;
-        }
-
-        other_path_len = (int) strlen((char *)(other_paths[j])) ;
-        if (other_path_len < candidate_len)
-        {
-            continue;
-        }
-
-        rival = other_paths[j] + other_path_len - candidate_len;
-        if ( vim_fnamecmp((char_u *)(maybe_unique), (char_u *)(rival))  == 0 && (rival == other_paths[j] || vim_ispathsep(*(rival - 1))))
-        {
-            return FALSE;
-        }
-    }
-
-    return TRUE;
-}
-
-    static void
-expand_path_option(char_u          *curdir, char_u          *path_option, garray_T        *gap)
-{
-    char_u      *buf;
-    size_t      buflen;
-    char_u      *p;
-    size_t      curdirlen = 0;
-
-    if ((buf = alloc( PATH_MAX )) == NULL)
-    {
-        return;
-    }
-
-    while (*path_option != NUL)
-    {
-        buflen = copy_option_part(&path_option, buf,  PATH_MAX , " ,");
-
-        if (vim_strchr(buf, '`') != NULL)
-        {
-            continue;
-        }
-
-        if (buf[0] == '.' && (buf[1] == NUL || vim_ispathsep(buf[1])))
-        {
-            size_t  plen;
-
-            if (curbuf->b_ffname == NULL)
-            {
-                continue;
-            }
-            p = gettail(curbuf->b_ffname);
-            plen = (size_t)(p - curbuf->b_ffname);
-            if (plen + buflen >=  PATH_MAX )
-            {
-                continue;
-            }
-            if (buf[1] == NUL)
-            {
-                buf[plen] = NUL;
-            }
-            else
-            {
-                 memmove((char *)(buf + plen), (char *)(buf + 2), (buflen - 2) + 1) ;
-            }
-             memmove((char *)(buf), (char *)(curbuf->b_ffname), plen) ;
-            buflen = simplify_filename(buf);
-        }
-        else if (buf[0] == NUL)
-        {
-             strcpy((char *)(buf), (char *)(curdir)) ;
-            if (curdirlen == 0)
-            {
-                curdirlen =  strlen((char *)(curdir)) ;
-            }
-            buflen = curdirlen;
-        }
-        else if (path_with_url(buf))
-        {
-            continue;
-        }
-        else if (!mch_isFullName(buf))
-        {
-            if (curdirlen == 0)
-            {
-                curdirlen =  strlen((char *)(curdir)) ;
-            }
-            if (curdirlen + buflen + 3 >  PATH_MAX )
-            {
-                continue;
-            }
-
-             memmove((char *)(buf + curdirlen + 1), (char *)(buf), buflen + 1) ;
-             strcpy((char *)(buf), (char *)(curdir)) ;
-            buf[curdirlen] =  ((char_u)'/') ;
-            buflen = simplify_filename(buf);
-        }
-
-        if (ga_grow(gap, 1) == FAIL)
-        {
-            break;
-        }
-
-        p = vim_strnsave(buf, buflen);
-        if (p == NULL)
-        {
-            break;
-        }
-        ((char_u **)gap->ga_data)[gap->ga_len++] = p;
-    }
-
-    vim_free(buf);
-}
-
-    static char_u *
-get_path_cutoff(char_u *fname, garray_T *gap)
-{
-    int     i;
-    int     maxlen = 0;
-    char_u  **path_part = (char_u **)gap->ga_data;
-    char_u  *cutoff = NULL;
-
-    for (i = 0; i < gap->ga_len; i++)
-    {
-        int j = 0;
-
-        while ((fname[j] == path_part[i][j]) && fname[j] != NUL && path_part[i][j] != NUL)
-        {
-            j++;
-        }
-        if (j > maxlen)
-        {
-            maxlen = j;
-            cutoff = &fname[j];
-        }
-    }
-
-    if (cutoff != NULL)
-    {
-        while (vim_ispathsep(*cutoff))
-        {
-             cutoff += (*mb_ptr2len)(cutoff) ;
-        }
-    }
-
-    return cutoff;
-}
-
-    static void
-uniquefy_paths(garray_T *gap, char_u *pattern, char_u *path_option)
-{
-    int         i;
-    int         len;
-    char_u      **fnames = (char_u **)gap->ga_data;
-    int         sort_again = FALSE;
-    char_u      *pat;
-    char_u      *file_pattern;
-    char_u      *curdir;
-    regmatch_T  regmatch;
-    garray_T    path_ga;
-    char_u      **in_curdir = NULL;
-    char_u      *short_name;
-
-    remove_duplicates(gap);
-    ga_init2(&path_ga, sizeof(char_u *), 1);
-
-    len = (int) strlen((char *)(pattern)) ;
-    file_pattern = alloc(len + 2);
-    if (file_pattern == NULL)
-    {
-        return;
-    }
-    file_pattern[0] = '*';
-     strcpy((char *)(file_pattern + 1), (char *)(pattern)) ;
-    pat = file_pat_to_reg_pat(file_pattern, NULL, NULL, FALSE);
-    vim_free(file_pattern);
-    if (pat == NULL)
-    {
-        return;
-    }
-
-    regmatch.rm_ic = TRUE;
-    regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
-    vim_free(pat);
-    if (regmatch.regprog == NULL)
-    {
-        return;
-    }
-
-    if ((curdir = alloc( PATH_MAX )) == NULL)
-    {
-        goto theend;
-    }
-    mch_dirname(curdir,  PATH_MAX );
-    expand_path_option(curdir, path_option, &path_ga);
-
-    in_curdir =  (char_u * *)alloc_clear(sizeof(char_u *) * (gap->ga_len)) ;
-    if (in_curdir == NULL)
-    {
-        goto theend;
-    }
-
-    for (i = 0; i < gap->ga_len && !got_int; i++)
-    {
-        char_u      *path = fnames[i];
-        int         is_in_curdir;
-        char_u      *dir_end = gettail_dir(path);
-        char_u      *path_cutoff;
-
-        len = (int) strlen((char *)(path)) ;
-        is_in_curdir =  vim_fnamencmp((char_u *)(curdir), (char_u *)(path), (dir_end - path))  == 0
-                                             && curdir[dir_end - path] == NUL;
-        if (is_in_curdir)
-        {
-            in_curdir[i] = vim_strnsave(path, len);
-        }
-
-        path_cutoff = get_path_cutoff(path, &path_ga);
-
-        if (pattern[0] == '*' && pattern[1] == '*' && vim_ispathsep_nocolon(pattern[2]) && path_cutoff != NULL && vim_regexec(&regmatch, path_cutoff, (colnr_T)0) && is_unique(path_cutoff, gap, i))
-        {
-            sort_again = TRUE;
-             memmove((char *)(path), (char *)(path_cutoff),  strlen((char *)(path_cutoff))  + 1) ;
-        }
-        else
-        {
-            char_u  *pathsep_p = path + len - 1;
-
-            while (find_previous_pathsep(path, &pathsep_p))
-            {
-                if (vim_regexec(&regmatch, pathsep_p + 1, (colnr_T)0) && is_unique(pathsep_p + 1, gap, i) && path_cutoff != NULL && pathsep_p + 1 >= path_cutoff)
-                {
-                    sort_again = TRUE;
-                     memmove((char *)(path), (char *)(pathsep_p + 1), (size_t)((path + len) - (pathsep_p + 1)) + 1) ;
-                    break;
-                }
-            }
-        }
-
-        if (mch_isFullName(path))
-        {
-            short_name = shorten_fname(path, curdir);
-            if (short_name != NULL && short_name > path + 1)
-            {
-                vim_snprintf((char *)path,  PATH_MAX , ".%s%s",  "/" , short_name);
-            }
-        }
-        ui_breakcheck();
-    }
-
-    for (i = 0; i < gap->ga_len && !got_int; i++)
-    {
-        size_t  rel_pathsize;
-        char_u  *rel_path;
-        char_u  *path = in_curdir[i];
-
-        if (path == NULL)
-        {
-            continue;
-        }
-
-        short_name = shorten_fname(path, curdir);
-        if (short_name == NULL)
-        {
-            short_name = path;
-        }
-        if (is_unique(short_name, gap, i))
-        {
-             strcpy((char *)(fnames[i]), (char *)(short_name)) ;
-            continue;
-        }
-
-        rel_pathsize = 1 + sizeof( ((char_u)'/') ) +  strlen((char *)(short_name))  + 1;
-        rel_path = alloc(rel_pathsize);
-        if (rel_path == NULL)
-        {
-            goto theend;
-        }
-
-        vim_snprintf((char *)rel_path, rel_pathsize, ".%s%s",  "/" , short_name);
-
-        vim_free(fnames[i]);
-        fnames[i] = rel_path;
-        sort_again = TRUE;
-        ui_breakcheck();
-    }
-
-theend:
-    vim_free(curdir);
-    if (in_curdir != NULL)
-    {
-        for (i = 0; i < gap->ga_len; i++)
-        {
-            vim_free(in_curdir[i]);
-        }
-        vim_free(in_curdir);
-    }
-    ga_clear_strings(&path_ga);
-    vim_regfree(regmatch.regprog);
-
-    if (sort_again)
-    {
-        remove_duplicates(gap);
-    }
-}
-
-    static int
-expand_in_path(garray_T    *gap, char_u      *pattern, int         flags)
-{
-    char_u      *curdir;
-    garray_T    path_ga;
-    char_u      *paths = NULL;
-    int         glob_flags = 0;
-    char_u      *path_option = *curbuf->b_p_path == NUL ? p_path : curbuf->b_p_path;
-
-    if ((curdir = alloc( PATH_MAX )) == NULL)
-    {
-        return 0;
-    }
-    mch_dirname(curdir,  PATH_MAX );
-
-    ga_init2(&path_ga, sizeof(char_u *), 1);
-    if (flags & EW_CDPATH)
-    {
-        expand_path_option(curdir, p_cdpath, &path_ga);
-    }
-    else
-    {
-        expand_path_option(curdir, path_option, &path_ga);
-    }
-    vim_free(curdir);
-    if (path_ga.ga_len == 0)
-    {
-        return 0;
-    }
-
-    paths = ga_concat_strings(&path_ga, ",");
-    ga_clear_strings(&path_ga);
-    if (paths == NULL)
-    {
-        return 0;
-    }
-
-    if (flags & EW_ICASE)
-    {
-        glob_flags |= WILD_ICASE;
-    }
-    if (flags & EW_ADDSLASH)
-    {
-        glob_flags |= WILD_ADD_SLASH;
-    }
-    globpath(paths, pattern, gap, glob_flags, !!(flags & EW_CDPATH));
-    vim_free(paths);
-
-    return gap->ga_len;
 }
 
     static size_t
@@ -92474,26 +91330,6 @@ same_directory(char_u *f1, char_u *f2)
 }
 
     static int
-vim_chdir(char_u *new_dir)
-{
-    char_u      *dir_name;
-    int         r;
-    char_u      *file_to_find = NULL;
-    char        *search_ctx = NULL;
-
-    dir_name = find_directory_in_path(new_dir, (int) strlen((char *)(new_dir)) , FNAME_MESS, curbuf->b_ffname, &file_to_find, &search_ctx);
-    vim_free(file_to_find);
-    vim_findfile_cleanup(search_ctx);
-    if (dir_name == NULL)
-    {
-        return -1;
-    }
-    r = mch_chdir((char *)dir_name);
-    vim_free(dir_name);
-    return r;
-}
-
-    static int
 get_user_name(char_u *buf, int len)
 {
     if (username == NULL)
@@ -118473,105 +117309,6 @@ mch_isrealdir(char_u *name)
 }
 
     static int
-executable_file(char_u *name)
-{
-    struct stat st;
-
-    if (stat((char *)name, &st))
-    {
-        return 0;
-    }
-    return S_ISREG(st.st_mode) &&  access(((char *)name), (X_OK))  == 0;
-}
-
-    static int
-mch_can_exe(char_u *name, char_u **path, int use_path)
-{
-    char_u      *buf;
-    size_t      bufsize;
-    size_t      buflen;
-    char_u *p;
-    char_u *e;
-    char_u      *p_end;
-    size_t      elen;
-    int         retval;
-
-    if (!use_path || gettail(name) != name)
-    {
-        if ((use_path || gettail(name) != name) && executable_file(name))
-        {
-            if (path != NULL)
-            {
-                if (name[0] != '/')
-                {
-                    *path = FullName_save(name, TRUE);
-                }
-                else
-                {
-                    *path = vim_strsave(name);
-                }
-            }
-            return TRUE;
-        }
-        return FALSE;
-    }
-
-    p = (char_u *)getenv("PATH");
-    if (p == NULL || *p == NUL)
-    {
-        return -1;
-    }
-    p_end = p +  strlen((char *)(p)) ;
-    bufsize =  strlen((char *)(name))  + (size_t)(p_end - p) + 2;
-    buf = alloc(bufsize);
-    if (buf == NULL)
-    {
-        return -1;
-    }
-
-    for (;;)
-    {
-        e = (char_u *)strchr((char *)p, ':');
-        if (e == NULL)
-        {
-            e = p_end;
-        }
-        elen = (size_t)(e - p);
-        if (elen <= 1)
-        {
-            p = (char_u *)"./";
-            elen =  (sizeof("./" "") - 1) ;
-        }
-        buflen = vim_snprintf((char *)buf, bufsize, "%.*s%s%s", (int)elen, p, (after_pathsep(p, p + elen)) ? "" :  "/" , name);
-        retval = executable_file(buf);
-        if (retval == 1)
-        {
-            if (path != NULL)
-            {
-                if (buf[0] != '/')
-                {
-                    *path = FullName_save(buf, TRUE);
-                }
-                else
-                {
-                    *path = vim_strnsave(buf, buflen);
-                }
-            }
-            break;
-        }
-
-        if (*e != ':')
-        {
-            break;
-        }
-        p = e + 1;
-    }
-
-    vim_free(buf);
-    return retval;
-}
-
-    static int
 mch_nodetype(char_u *name)
 {
     struct stat st;
@@ -119673,12 +118410,6 @@ select_eintr:
 }
 
     static int
-mch_expandpath(garray_T    *gap, char_u      *path, int         flags)
-{
-    return unix_expandpath(gap, path, 0, flags, FALSE);
-}
-
-    static int
 save_patterns(int         num_pat, char_u      **pat, int         *num_file, char_u      ***file)
 {
     int         i;
@@ -119700,26 +118431,6 @@ save_patterns(int         num_pat, char_u      **pat, int         *num_file, cha
     }
     *num_file = num_pat;
     return OK;
-}
-
-    static int
-mch_has_exp_wildcard(char_u *p)
-{
-    for ( ; *p;  p += (*mb_ptr2len)(p) )
-    {
-        if (*p == '\\' && p[1] != NUL)
-        {
-            ++p;
-        }
-        else
-        {
-            if (vim_strchr((char_u *) "*?[{'", *p) != NULL)
-            {
-            return TRUE;
-            }
-        }
-    }
-    return FALSE;
 }
 
     static int
@@ -155150,7 +153861,7 @@ static struct cmdname cmdnames[] =
     [CMD_cbottom] = {(char_u *)"cbottom", sizeof("cbottom") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
     [CMD_cc] = {(char_u *)"cc", sizeof("cc") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_QUICKFIX},
     [CMD_cclose] = {(char_u *)"cclose", sizeof("cclose") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_cd] = {(char_u *)"cd", sizeof("cd") - 1, ex_cd, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_cd] = {(char_u *)"cd", sizeof("cd") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_cdo] = {(char_u *)"cdo", sizeof("cdo") - 1, ex_listdo, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
     [CMD_center] = {(char_u *)"center", sizeof("center") - 1, ex_align, (long_u)(EX_TRLBAR|EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_cexpr] = {(char_u *)"cexpr", sizeof("cexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG|EX_BANG), ADDR_NONE},
@@ -155160,7 +153871,7 @@ static struct cmdname cmdnames[] =
     [CMD_cgetfile] = {(char_u *)"cgetfile", sizeof("cgetfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
     [CMD_cgetbuffer] = {(char_u *)"cgetbuffer", sizeof("cgetbuffer") - 1,  ex_ni , (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
     [CMD_cgetexpr] = {(char_u *)"cgetexpr", sizeof("cgetexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG), ADDR_NONE},
-    [CMD_chdir] = {(char_u *)"chdir", sizeof("chdir") - 1, ex_cd, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_chdir] = {(char_u *)"chdir", sizeof("chdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_changes] = {(char_u *)"changes", sizeof("changes") - 1, ex_changes, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_checkpath] = {(char_u *)"checkpath", sizeof("checkpath") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_BANG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_checktime] = {(char_u *)"checktime", sizeof("checktime") - 1, ex_checktime, (long_u)(EX_RANGE|EX_BUFNAME|EX_COUNT|EX_EXTRA|EX_TRLBAR), ADDR_OTHER},
@@ -155331,8 +154042,8 @@ static struct cmdname cmdnames[] =
     [CMD_lbefore] = {(char_u *)"lbefore", sizeof("lbefore") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
     [CMD_lbelow] = {(char_u *)"lbelow", sizeof("lbelow") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
     [CMD_lbottom] = {(char_u *)"lbottom", sizeof("lbottom") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_lcd] = {(char_u *)"lcd", sizeof("lcd") - 1, ex_cd, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lchdir] = {(char_u *)"lchdir", sizeof("lchdir") - 1, ex_cd, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_lcd] = {(char_u *)"lcd", sizeof("lcd") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_lchdir] = {(char_u *)"lchdir", sizeof("lchdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_lclose] = {(char_u *)"lclose", sizeof("lclose") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
     [CMD_lcscope] = {(char_u *)"lcscope", sizeof("lcscope") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_XFILE), ADDR_NONE},
     [CMD_ldo] = {(char_u *)"ldo", sizeof("ldo") - 1, ex_listdo, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
@@ -155458,7 +154169,7 @@ static struct cmdname cmdnames[] =
     [CMD_ptselect] = {(char_u *)"ptselect", sizeof("ptselect") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
     [CMD_put] = {(char_u *)"put", sizeof("put") - 1, ex_put, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_REGSTR|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_public] = {(char_u *)"public", sizeof("public") - 1, ex_wrongmodifier, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_pwd] = {(char_u *)"pwd", sizeof("pwd") - 1, ex_pwd, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_pwd] = {(char_u *)"pwd", sizeof("pwd") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_python] = {(char_u *)"python", sizeof("python") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
     [CMD_pydo] = {(char_u *)"pydo", sizeof("pydo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
     [CMD_pyfile] = {(char_u *)"pyfile", sizeof("pyfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
@@ -155583,8 +154294,8 @@ static struct cmdname cmdnames[] =
     [CMD_tabNext] = {(char_u *)"tabNext", sizeof("tabNext") - 1, ex_tabnext, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS_RELATIVE},
     [CMD_tabrewind] = {(char_u *)"tabrewind", sizeof("tabrewind") - 1, ex_tabnext, (long_u)(EX_TRLBAR), ADDR_NONE},
     [CMD_tabs] = {(char_u *)"tabs", sizeof("tabs") - 1, ex_tabs, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tcd] = {(char_u *)"tcd", sizeof("tcd") - 1, ex_cd, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tchdir] = {(char_u *)"tchdir", sizeof("tchdir") - 1, ex_cd, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_tcd] = {(char_u *)"tcd", sizeof("tcd") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_tchdir] = {(char_u *)"tchdir", sizeof("tchdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_tcl] = {(char_u *)"tcl", sizeof("tcl") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
     [CMD_tcldo] = {(char_u *)"tcldo", sizeof("tcldo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
     [CMD_tclfile] = {(char_u *)"tclfile", sizeof("tclfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
