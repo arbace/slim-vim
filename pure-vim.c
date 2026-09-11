@@ -654,7 +654,6 @@ enum { EXPAND_USER_CMD_FLAGS = 23 };
 enum { EXPAND_USER_NARGS = 24 };
 enum { EXPAND_USER_COMPLETE = 25 };
 enum { EXPAND_ENV_VARS = 26 };
-enum { EXPAND_LANGUAGE = 27 };
 enum { EXPAND_COLORS = 28 };
 enum { EXPAND_COMPILER = 29 };
 enum { EXPAND_USER_DEFINED = 30 };
@@ -664,7 +663,6 @@ enum { EXPAND_BEHAVE = 36 };
 enum { EXPAND_FILETYPE = 37 };
 enum { EXPAND_FILES_IN_PATH = 38 };
 enum { EXPAND_OWNSYNTAX = 39 };
-enum { EXPAND_LOCALES = 40 };
 enum { EXPAND_HISTORY = 41 };
 enum { EXPAND_USER = 42 };
 enum { EXPAND_USER_ADDR_TYPE = 44 };
@@ -796,7 +794,6 @@ enum { MAPTYPE_UNMAP_LHS = 3 };
 
 enum { REMAP_YES = 0 };
 
-enum { SHELL_SILENT = 16 };
 enum { NODE_NORMAL = 0 };
 enum { NODE_WRITABLE = 1 };
 enum { NODE_OTHER = 2 };
@@ -5390,8 +5387,6 @@ static bool ins_compl_arm_autocomplete_delay(void);
 static void ins_compl_clear_autocomplete_delay(void);
 // ---------------- end insexpand.pro ----------------
 // ---------------- begin locale.pro ----------------
-static char_u *get_lang_arg(expand_T *xp, int idx);
-static char_u *get_locales(expand_T *xp, int idx);
 
 // ---------------- end locale.pro ----------------
 // ---------------- begin main.pro ----------------
@@ -5591,7 +5586,6 @@ static char_u *get_users(expand_T *xp, int idx);
 static int match_user(char_u *name);
 static void line_breakcheck(void);
 static void fast_breakcheck(void);
-static char_u *get_cmd_output(char_u *cmd, char_u *infile, int flags, int *ret_len);
 static int goto_im(void);
 static char_u *get_isolated_shell_name(void);
 static int path_is_url(char_u *p);
@@ -5750,7 +5744,6 @@ static int mb_charlen(char_u *str);
 static char_u *mb_unescape(char_u **pp);
 static int mb_lefthalve(int row, int col);
 static char_u *enc_canonize(char_u *enc);
-static char_u *enc_locale(void);
 static void *my_iconv_open(char_u *to, char_u *from);
 static int convert_setup(vimconv_T *vcp, char_u *from, char_u *to);
 static int convert_setup_ext(vimconv_T *vcp, char_u *from, int from_unicode_is_utf8, char_u *to, int to_unicode_is_utf8);
@@ -7110,7 +7103,6 @@ static char e_argument_must_be_letter_or_forward_backward_quote[]  =  "E191: Arg
 static char e_recursive_use_of_normal_too_deep[]  =  "E192: Recursive use of :normal too deep"  ;
 static char e_no_alternate_file_name_to_substitute_for_hash[]  =  "E194: No alternate file name to substitute for '#'"  ;
 static char e_no_digraphs_version[]  =  "E196: No digraphs in this version"  ;
-static char e_cannot_set_language_to_str[]  =  "E197: Cannot set language to \"%s\""  ;
 static char e_active_window_or_buffer_changed_or_deleted[]  =  "E199: Active window or buffer changed or deleted"  ;
 static char e_readpre_autocommands_made_file_unreadable[]  =  "E200: *ReadPre autocommands made the file unreadable"  ;
 static char e_readpre_autocommands_must_not_change_current_buffer[]  =  "E201: *ReadPre autocommands must not change current buffer"  ;
@@ -25641,33 +25633,6 @@ find_cmd_after_isearch_cmd(expand_T *xp, char_u *arg)
     return NULL;
 }
 
-    static char_u *
-set_context_in_lang_cmd(expand_T *xp, char_u *arg)
-{
-    char_u      *p;
-
-    p = skiptowhite(arg);
-    if (*p == NUL)
-    {
-        xp->xp_context = EXPAND_LANGUAGE;
-        xp->xp_pattern = arg;
-    }
-    else
-    {
-        if (  strncmp((char *)(arg), (char *)("messages"), (p - arg))  == 0 ||  strncmp((char *)(arg), (char *)("ctype"), (p - arg))  == 0 ||  strncmp((char *)(arg), (char *)("time"), (p - arg))  == 0 ||  strncmp((char *)(arg), (char *)("collate"), (p - arg))  == 0)
-        {
-            xp->xp_context = EXPAND_LOCALES;
-            xp->xp_pattern = skipwhite(p);
-        }
-        else
-        {
-            xp->xp_context = EXPAND_NOTHING;
-        }
-    }
-
-    return NULL;
-}
-
 static enum
 {
     EXP_FILETYPECMD_ALL,
@@ -26013,8 +25978,6 @@ set_context_by_cmdname(char_u          *cmd, cmdidx_T        cmdidx, expand_T   
             set_context_in_runtime_cmd(xp, arg);
             break;
 
-        case CMD_language:
-            return set_context_in_lang_cmd(xp, arg);
         case CMD_behave:
             xp->xp_context = EXPAND_BEHAVE;
             xp->xp_pattern = arg;
@@ -26527,8 +26490,6 @@ ExpandOther(char_u          *pat, expand_T        *xp, regmatch_T      *rmp, cha
         {EXPAND_HIGHLIGHT, get_highlight_name, TRUE, TRUE},
         {EXPAND_EVENTS, get_event_name, TRUE, FALSE},
         {EXPAND_AUGROUP, get_augroup_name, TRUE, FALSE},
-        {EXPAND_LANGUAGE, get_lang_arg, TRUE, FALSE},
-        {EXPAND_LOCALES, get_locales, TRUE, FALSE},
         {EXPAND_ENV_VARS, get_env_name, TRUE, TRUE},
         {EXPAND_USER, get_users, TRUE, FALSE},
         {EXPAND_ARGLIST, get_arglist_name, TRUE, FALSE},
@@ -35523,10 +35484,6 @@ typedef struct
     static int
 string_compare(const void *s1, const void *s2)
 {
-    if (sort_lc)
-    {
-        return strcoll((char *)s1, (char *)s2);
-    }
     return sort_ic ?  strcasecmp((char *)(s1), (char *)(s2))  :  strcmp((char *)(s1), (char *)(s2)) ;
 }
 
@@ -70495,201 +70452,6 @@ struct diffcmppath_S
 
 // ==================== locale.c ====================
 
-    static void
-init_locale(void)
-{
-    setlocale(LC_ALL, "");
-
-    setlocale(LC_NUMERIC, "C");
-
-}
-
-    static void
-ex_language(exarg_T *eap)
-{
-    char        *loc;
-    char_u      *p;
-    char_u      *name;
-    int         what = LC_ALL;
-    char        *whatstr = "";
-
-    name = eap->arg;
-
-    p = skiptowhite(eap->arg);
-    if ((*p == NUL ||  ((*p) == ' ' || (*p) == '\t') ) && p - eap->arg >= 3)
-    {
-        if ( strncasecmp((char *)(eap->arg), (char *)("messages"), (p - eap->arg))  == 0)
-        {
-            what =  LC_MESSAGES ;
-            name = skipwhite(p);
-            whatstr = "messages ";
-        }
-        else if ( strncasecmp((char *)(eap->arg), (char *)("ctype"), (p - eap->arg))  == 0)
-        {
-            what = LC_CTYPE;
-            name = skipwhite(p);
-            whatstr = "ctype ";
-        }
-        else if ( strncasecmp((char *)(eap->arg), (char *)("time"), (p - eap->arg))  == 0)
-        {
-            what = LC_TIME;
-            name = skipwhite(p);
-            whatstr = "time ";
-        }
-        else if ( strncasecmp((char *)(eap->arg), (char *)("collate"), (p - eap->arg))  == 0)
-        {
-            what = LC_COLLATE;
-            name = skipwhite(p);
-            whatstr = "collate ";
-        }
-    }
-
-    if (*name == NUL)
-    {
-            p = (char_u *)setlocale(what, NULL);
-        if (p == NULL || *p == NUL)
-        {
-            p = (char_u *)"Unknown";
-        }
-        smsg(_("Current %slanguage: \"%s\""), whatstr, p);
-    }
-    else
-    {
-        {
-            loc = setlocale(what, (char *)name);
-            setlocale(LC_NUMERIC, "C");
-        }
-        if (loc == NULL)
-        {
-            semsg(_(e_cannot_set_language_to_str), name);
-        }
-        else
-        {
-            vim_setenv((char_u *)"LC_ALL", (char_u *)"");
-
-            if (what != LC_TIME && what != LC_COLLATE)
-            {
-                if (what == LC_ALL)
-                {
-                    vim_setenv((char_u *)"LANG", name);
-                }
-                if (what != LC_CTYPE)
-                {
-                    char_u      *mname;
-                    mname = name;
-                    vim_setenv((char_u *)"LANGUAGE", (char_u *)"");
-                    vim_setenv((char_u *)"LC_MESSAGES", mname);
-                }
-            }
-
-            maketitle();
-        }
-    }
-}
-
-static char_u   **locales = NULL;
-
-static int      did_init_locales = FALSE;
-
-    static char_u **
-find_locales(void)
-{
-    garray_T    locales_ga;
-    char_u      *loc;
-    char_u      *locale_list;
-
-    locale_list = get_cmd_output((char_u *)"locale -a", NULL, SHELL_SILENT, NULL);
-    if (locale_list == NULL)
-    {
-        return NULL;
-    }
-    ga_init2(&locales_ga, sizeof(char_u *), 20);
-
-    loc = (char_u *)strtok((char *)locale_list, "\n");
-
-    while (loc != NULL)
-    {
-        int ignore = FALSE;
-
-        if (!ignore)
-        {
-            if (ga_grow(&locales_ga, 1) == FAIL)
-            {
-                break;
-            }
-
-            loc = vim_strsave(loc);
-            if (loc == NULL)
-            {
-                break;
-            }
-
-            ((char_u **)locales_ga.ga_data)[locales_ga.ga_len++] = loc;
-        }
-        loc = (char_u *)strtok(NULL, "\n");
-    }
-
-    vim_free(locale_list);
-    if (ga_grow(&locales_ga, 1) == FAIL)
-    {
-        ga_clear(&locales_ga);
-        return NULL;
-    }
-    ((char_u **)locales_ga.ga_data)[locales_ga.ga_len] = NULL;
-    return (char_u **)locales_ga.ga_data;
-}
-
-    static void
-init_locales(void)
-{
-    if (did_init_locales)
-    {
-        return;
-    }
-
-    did_init_locales = TRUE;
-    locales = find_locales();
-}
-
-    static char_u *
-get_lang_arg(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx == 0)
-    {
-        return (char_u *)"messages";
-    }
-    if (idx == 1)
-    {
-        return (char_u *)"ctype";
-    }
-    if (idx == 2)
-    {
-        return (char_u *)"time";
-    }
-    if (idx == 3)
-    {
-        return (char_u *)"collate";
-    }
-
-    init_locales();
-    if (locales == NULL)
-    {
-        return NULL;
-    }
-    return locales[idx - 4];
-}
-
-    static char_u *
-get_locales(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    init_locales();
-    if (locales == NULL)
-    {
-        return NULL;
-    }
-    return locales[idx];
-}
-
 // ==================== map.c ====================
 
 static mapblock_T       *first_abbr = NULL;
@@ -75281,18 +75043,7 @@ mb_init(void)
     }
 
     vimconv.vc_type = CONV_NONE;
-    if (enc_dbcs)
-    {
-        p = enc_locale();
-        if (p == NULL ||  strcmp((char *)(p), (char *)(p_enc))  != 0)
-        {
-            convert_setup(&vimconv, p_enc, (char_u *)"utf-8");
-            vimconv.vc_fail = TRUE;
-        }
-        vim_free(p);
-    }
-
-    for (i = 0; i < 256; ++i)
+for (i = 0; i < 256; ++i)
     {
         if (enc_utf8)
         {
@@ -78943,81 +78694,6 @@ enc_alias_search(char_u *name)
         }
     }
     return -1;
-}
-
-    static char_u *
-enc_locale_env(char *locale)
-{
-    char        *s = locale;
-    char        *p;
-    int         i;
-    char        buf[50];
-
-    if (s == NULL || *s == NUL)
-    {
-        if ((s = getenv("LC_ALL")) == NULL || *s == NUL)
-        {
-            if ((s = getenv("LC_CTYPE")) == NULL || *s == NUL)
-            {
-                s = getenv("LANG");
-            }
-        }
-    }
-
-    if (s == NULL || *s == NUL)
-    {
-        return NULL;
-    }
-
-    if ((p = (char *)vim_strchr((char_u *)s, '.')) != NULL)
-    {
-        if (p > s + 2 &&  strncasecmp((char *)(p + 1), (char *)("EUC"), (3))  == 0 && ! (isalnum ((unsigned char)((int)p[4])))  && p[4] != '-' && p[-3] == '_')
-        {
-             strcpy((char *)(buf + 10), (char *)("euc-")) ;
-            buf[14] = p[-2];
-            buf[15] = p[-1];
-            buf[16] = 0;
-            s = buf + 10;
-        }
-        else
-        {
-            s = p + 1;
-        }
-    }
-    for (i = 0; i < (int)sizeof(buf) - 1 && s[i] != NUL; ++i)
-    {
-        if (s[i] == '_' || s[i] == '-')
-        {
-            buf[i] = '-';
-        }
-        else if ( (isalnum ((unsigned char)(s[i]))) )
-        {
-            buf[i] =  (((s[i]) < 'A' || (s[i]) > 'Z') ? (s[i]) : (s[i]) + ('a' - 'A')) ;
-        }
-        else
-        {
-            break;
-        }
-    }
-    buf[i] = NUL;
-
-    return enc_canonize((char_u *)buf);
-}
-
-    static char_u *
-enc_locale(void)
-{
-    char        *s;
-
-    if ((s = nl_langinfo(CODESET)) == NULL || *s == NUL)
-    {
-        if ((s = setlocale(LC_CTYPE, NULL)) == NULL || *s == NUL)
-        {
-            s = NULL;
-        }
-    }
-
-    return enc_locale_env(s);
 }
 
     static void *
@@ -85042,7 +84718,6 @@ messagesopt_changed(void)
 ex_messages(exarg_T *eap)
 {
     struct msg_hist *p;
-    char_u          *s;
     int             c = 0;
 
     if ( strcmp((char *)(eap->arg), (char *)("clear"))  == 0)
@@ -85082,11 +84757,6 @@ ex_messages(exarg_T *eap)
 
     if (p == first_msg_hist)
     {
-        s =  (char_u *)getenv((char *)((char_u *)"LANG")) ;
-        if (s != NULL && *s != NUL)
-        {
-            msg_attr(_("Messages maintainer: The Vim Project"),  highlight_attr[(int)(HLF_T)] );
-        }
     }
 
     for (; p != NULL && !got_int; p = p->next)
@@ -88652,12 +88322,6 @@ fast_breakcheck(void)
         breakcheck_count = 0;
         ui_breakcheck();
     }
-}
-
-    static char_u *
-get_cmd_output(char_u      *cmd, char_u      *infile, int         flags, int         *ret_len)
-{
-    return NULL;
 }
 
     static int
@@ -105303,7 +104967,7 @@ static struct vimoption options[] =
                               },
     {"encoding",    "enc",  P_STRING|P_VI_DEF|P_RCLR|P_NO_ML,
                             (char_u *)&p_enc, PV_NONE, did_set_encoding, expand_set_encoding,
-                            {(char_u *) "latin1" , (char_u *)0L}
+                            {(char_u *) "utf-8" , (char_u *)0L}
                               },
     {"endoffile",   "eof",  P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
                             (char_u *)&p_eof,   (idopt_T)(PV_BUF + (int)(BV_EOF))  ,
@@ -105668,19 +105332,6 @@ static struct vimoption options[] =
                             {
                             (char_u *)"man",
                                 (char_u *)0L}   },
-    {"langmap",     "lmap", P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP|P_SECURE,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)NULL, (char_u *)0L}
-                              },
-    {"langmenu",    "lm",   P_STRING|P_VI_DEF|P_NFNAME,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
-    {"langnoremap",  "lnr",   P_BOOL|P_VI_DEF,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"langremap",  "lrm",   P_BOOL|P_VI_DEF,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
     {"laststatus",  "ls",   P_NUM|P_VI_DEF|P_RALL,
                             (char_u *)&p_ls, PV_NONE, did_set_laststatus, NULL,
                             {(char_u *)1L, (char_u *)0L}   },
@@ -106995,42 +106646,6 @@ set_init_lang_env(void)
 }
 
     static void
-set_init_default_encoding(void)
-{
-    char_u      *p;
-    int         opt_idx;
-
-    p = enc_locale();
-    if (p == NULL)
-    {
-        return;
-    }
-
-    char_u *save_enc = p_enc;
-    p_enc = p;
-    if ( strcmp((char *)(p_enc), (char *)("gb18030"))  == 0)
-    {
-        p_enc = vim_strnsave((char_u *)"cp936",  (sizeof("cp936" "") - 1) );
-        vim_free(p);
-    }
-    if (mb_init() == NULL)
-    {
-        opt_idx = findoption((char_u *)"encoding");
-        if (opt_idx >= 0)
-        {
-            options[opt_idx].def_val[VI_DEFAULT] = p_enc;
-            options[opt_idx].flags |= P_DEF_ALLOCED;
-        }
-
-    }
-    else
-    {
-        vim_free(p_enc);
-        p_enc = save_enc;
-    }
-}
-
-    static void
 set_init_1(int clean_arg)
 {
     p_cp = FALSE;
@@ -107068,7 +106683,7 @@ set_init_1(int clean_arg)
 
     didset_options();
 
-    set_init_default_encoding();
+    (void)mb_init();
 
     set_init_expand_env();
 
@@ -149871,7 +149486,6 @@ static keyvalue_T command_complete_tab[] =
      {(EXPAND_HELP), {((char_u *)"help"),  (sizeof("help" "") - 1) }} ,
      {(EXPAND_HIGHLIGHT), {((char_u *)"highlight"),  (sizeof("highlight" "") - 1) }} ,
      {(EXPAND_HISTORY), {((char_u *)"history"),  (sizeof("history" "") - 1) }} ,
-     {(EXPAND_LOCALES), {((char_u *)"locale"),  (sizeof("locale" "") - 1) }} ,
      {(EXPAND_MAPCLEAR), {((char_u *)"mapclear"),  (sizeof("mapclear" "") - 1) }} ,
      {(EXPAND_MAPPINGS), {((char_u *)"mapping"),  (sizeof("mapping" "") - 1) }} ,
      {(EXPAND_MENUS), {((char_u *)"menu"),  (sizeof("menu" "") - 1) }} ,
@@ -152251,7 +151865,7 @@ static struct cmdname cmdnames[] =
     [CMD_lNfile] = {(char_u *)"lNfile", sizeof("lNfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
     [CMD_last] = {(char_u *)"last", sizeof("last") - 1, ex_last, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
     [CMD_labove] = {(char_u *)"labove", sizeof("labove") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_language] = {(char_u *)"language", sizeof("language") - 1, ex_language, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_language] = {(char_u *)"language", sizeof("language") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_laddexpr] = {(char_u *)"laddexpr", sizeof("laddexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG), ADDR_NONE},
     [CMD_laddbuffer] = {(char_u *)"laddbuffer", sizeof("laddbuffer") - 1,  ex_ni , (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
     [CMD_laddfile] = {(char_u *)"laddfile", sizeof("laddfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
@@ -159529,8 +159143,6 @@ common_init_1(void)
     static void
 common_init_2(mparm_T *paramp)
 {
-    init_locale();
-
     early_arg_scan(paramp);
 
     stdout_isatty = (mch_check_win(paramp->argc, paramp->argv) != FAIL);

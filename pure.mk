@@ -18,7 +18,7 @@
 PUREWORK   = pure
 PUREBUILD  = .build-pure
 PUREORACLE = .reference/pure-phases
-PUREPHASES = 0 1 2 3 4 5 6 7 8 9 10 11 12
+PUREPHASES = 0 1 2 3 4 5 6 7 8 9 10 11 12 13
 
 # --- the chain ------------------------------------------------------------
 $(PUREBUILD)/q0.sha256: $(PUREBUILD)/input.sha256
@@ -34,6 +34,7 @@ $(PUREBUILD)/q9.sha256: $(PUREBUILD)/q8.sha256
 $(PUREBUILD)/q10.sha256: $(PUREBUILD)/q9.sha256
 $(PUREBUILD)/q11.sha256: $(PUREBUILD)/q10.sha256
 $(PUREBUILD)/q12.sha256: $(PUREBUILD)/q11.sha256
+$(PUREBUILD)/q13.sha256: $(PUREBUILD)/q12.sha256
 
 $(PUREBUILD)/q%.sha256:
 	@tools/restore.sh $(patsubst %.sha256,%.tar,$<) $(PUREWORK)
@@ -78,7 +79,7 @@ pure-vim.c: force
 
 # --- what a pure pass is --------------------------------------------------
 .PHONY: pure-pass
-pure-pass: $(PUREBUILD)/q12.sha256
+pure-pass: $(PUREBUILD)/q13.sha256
 	@cp $(PUREWORK)/pure-vim.c pure-vim.c
 	@echo
 	@printf '  %-12s %s lines, from slim-vim.c\n' "pure-vim.c" \
