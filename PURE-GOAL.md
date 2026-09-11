@@ -237,6 +237,56 @@ wrong one and then says something confusing about a shared body. The argument
 parser is the switch that ends in `mainerr(ME_UNKNOWN_OPTION)`, and
 `tools/dropopts.py` bounds itself to that before it looks for anything.
 
+## Unused, and unuseful
+
+These are different questions and only one of them has a tool.
+
+**Unused** is what the compiler can prove: nothing reaches it. Every phase here
+ends with the sweep run to a joint fixpoint, so unused code never survives a
+phase, and no judgement is involved.
+
+**Unuseful** is code that is reachable, compiles, would run, and should not be
+here. No warning will ever name it. The only way to make it tractable is to
+measure: `tools/coverage.sh` builds with `--coverage`, runs every harness there
+is — the behaviour cases, all 600 Ex commands, the pty scenarios — and ranks
+what was never entered by size.
+
+**That list is evidence, not a verdict**, and it has at least three kinds in it:
+
+1. **genuinely unuseful** — a feature this product's own defaults never reach;
+2. **useful but unexercised** — error paths, rare modes, `vim -` reading stdin.
+   A hit here is a finding about the *harness*, and arguably the more valuable
+   of the two;
+3. **reachable only through something already removed** — the best candidates,
+   and the reason to re-run this after every phase.
+
+Deleting from the list without deciding which kind each entry is would remove
+working features and call it progress.
+
+### What it says today
+
+**48% of `pure-vim`'s functions are never entered** — 1,590 of 3,329, holding
+35,486 lines, about a fifth of the file. The top of the list is one item:
+
+```
+   4122  nfa_emit_equi_class        the NFA engine's equivalence classes
+    775  reg_equi_class
+    710  nfa_regmatch
+    636  nfa_regatom
+    315  post2nfa
+```
+
+`'regexpengine'` is compiled in as **1**, the backtracking engine, so nothing
+this editor does by default ever enters the NFA engine — perhaps six thousand
+lines of it. It is not unused: `:set re=2` and `\%#=2` still reach it. So it is
+the first real decision of the "unuseful" kind, and it is a *capability*
+decision rather than a sweep: the question is whether an embedded editor should
+carry a second regexp engine that its own defaults never select.
+
+Below it the list is mostly kind 2 and kind 3 — `mainerr` and `get_number_arg`
+(error paths the harness never triggers), `read_stdin`, `mch_expand_wildcards`
+and `vim_findfile` (the file-lookup layer, which is a phase of its own).
+
 ## What comes next
 
 Not yet done, in the order they are worth doing:
