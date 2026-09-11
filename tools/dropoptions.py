@@ -34,7 +34,7 @@ sys.path.insert(0, __file__.rsplit('/', 1)[0])
 import cutil
 
 
-def drop_row(text, name):
+def drop_row(text, name, strict=False):
     """Remove options[]'s row for `name`, found by brace matching."""
     m = re.search(r'^[ \t]*\{"%s",' % re.escape(name), text, re.M)
     if not m:
@@ -59,6 +59,63 @@ def drop_row(text, name):
     # buffer-local field, its initialiser, its copy, its free and its readers
     # is real surgery, and it should be a phase that says so, not a side effect
     # of a call that looks like the six beside it.
+    # The next two checks are SWEEP-DEPENDENT and only meaningful to a caller
+    # that has already swept: before the sweep, the readers they complain about
+    # are the ones the sweep is about to remove.  Phase 2 ('spell') and Phase 6
+    # ('regexpengine') both trip them and are both correct.
+    #
+    # AND A ROW LOOKED UP BY NAME CANNOT GO EITHER.  Options are usually
+    # reached through their `p_xx` variable, but a handful are reached with
+    # findoption() or set_string_option_direct() on the spelled-out name, and
+    # that lookup returns -1 for a row that is not there -- E685, then a
+    # segfault before the first keystroke.
+    #
+    # 'fileencodings' is the one that taught this: mb_init() installs a default
+    # for it with set_string_option_direct((char_u *)"fencs", ...).  The PV_
+    # guard below did not fire, because the row is PV_NONE; nothing about the
+    # row says it is spoken for.  So look for the name instead, anywhere but
+    # the table itself.
+    for spelling in ([] if not strict else re.findall(r'"([^"]+)"', text[m.start():m.start() + 60])[:2]):
+        for hit in re.finditer(r'"%s"' % re.escape(spelling), text):
+            if abs(hit.start() - m.start()) < 400:
+                continue
+            line = text[text.rfind('\n', 0, hit.start()) + 1:
+                        text.index('\n', hit.start())]
+            if re.match(r'[ \t]*\{"', line):
+                continue
+            sys.exit("dropoptions: '%s' is reached by name as \"%s\" here, not "
+                     "only through its variable:\n    %s\nA lookup of a row "
+                     "that is not there returns -1, and the caller does not "
+                     "check. Remove the caller first."
+                     % (name, spelling, line.strip()[:100]))
+
+    # AND THE REAL INVARIANT, of which the two above are special cases: a
+    # row is also what INITIALISES its global, so the row can only go if
+    # nothing reads that global any more.  'fileencodings' is PV_NONE and is
+    # not reached by name once mb_init() stops installing a default -- and
+    # dropping it still segfaults, because readfile() dereferences p_fencs.
+    #
+    # An option whose feature has really gone has an unread global, and the
+    # dead-code sweep will delete it a moment later.  One that is still read is
+    # not inert; it is live code with its initialiser removed.
+    var = re.search(r'\(char_u \*\)&(\w+)', text[m.start():m.start() + 400])
+    if var and strict:
+        name_of_var = var.group(1)
+        others = [h.start() for h in re.finditer(r'\b%s\b' % name_of_var, text)
+                  if abs(h.start() - m.start()) >= 400]
+        # Mentions inside options[] itself are other rows' business, not a read.
+        reads = []
+        for o in others:
+            line = text[text.rfind('\n', 0, o) + 1:text.index('\n', o)]
+            if re.match(r'[ \t]*\{"', line) or re.match(r'[ \t]*\(char_u \*\)&', line):
+                continue
+            reads.append(line.strip()[:90])
+        if reads:
+            sys.exit("dropoptions: '%s' still has readers of %s, so its row is "
+                     "not inert -- it is what initialises a variable live code "
+                     "dereferences:\n    %s\nRemove the readers first."
+                     % (name, name_of_var, '\n    '.join(reads[:3])))
+
     indir = re.search(r'PV_\w+', text[m.start():m.start() + 400])
     if indir and indir.group(0) != 'PV_NONE':
         sys.exit("dropoptions: '%s' is %s -- a buffer- or window-local option "
@@ -81,10 +138,12 @@ def drop_row(text, name):
 
 
 def main():
-    if len(sys.argv) < 3:
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    strict = '--strict' in sys.argv
+    if len(args) < 2:
         sys.exit(__doc__)
-    path = Path(sys.argv[1])
-    names = sys.argv[2:]
+    path = Path(args[0])
+    names = args[1:]
     text = path.read_text(errors='surrogateescape')
 
     dropped = []

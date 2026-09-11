@@ -116,7 +116,6 @@ enum { IDX_CP949 = 48 };
 enum { IDX_CP950 = 49 };
 enum { IDX_MACROMAN = 58 };
 enum { IDX_COUNT = 61 };
-enum { ICONV_TESTLEN = 400 };
 enum { MAX_SEARCH_COUNT = 9999 };
 enum { INC = 20 };
 enum { GAP = 3 };
@@ -2465,12 +2464,6 @@ typedef struct hist_entry
 } histentry_T;
 
 enum { CONV_NONE = 0 };
-enum { CONV_TO_UTF8 = 1 };
-enum { CONV_9_TO_UTF8 = 2 };
-enum { CONV_TO_LATIN1 = 3 };
-enum { CONV_TO_LATIN9 = 4 };
-enum { CONV_ICONV = 5 };
-
 typedef struct mapblock mapblock_T;
 struct mapblock
 {
@@ -5648,7 +5641,6 @@ static int latin_ptr2len_len(char_u *p, int size);
 static int utf_char2cells(int c);
 static int latin_ptr2cells(char_u *p);
 static int utf_ptr2cells(char_u *p);
-static int dbcs_ptr2cells(char_u *p);
 static int latin_ptr2cells_len(char_u *p, int size);
 static int latin_char2cells(int c);
 static int mb_string2cells(char_u *p, int len);
@@ -5687,11 +5679,8 @@ static int mb_charlen(char_u *str);
 static char_u *mb_unescape(char_u **pp);
 static int mb_lefthalve(int row, int col);
 static char_u *enc_canonize(char_u *enc);
-static void *my_iconv_open(char_u *to, char_u *from);
 static int convert_setup(vimconv_T *vcp, char_u *from, char_u *to);
-static int convert_setup_ext(vimconv_T *vcp, char_u *from, int from_unicode_is_utf8, char_u *to, int to_unicode_is_utf8);
 static char_u *string_convert(vimconv_T *vcp, char_u *ptr, int *lenp);
-static char_u *string_convert_ext(vimconv_T *vcp, char_u *ptr, int *lenp, int *unconvlenp);
 static char_u *get_encoding_name(expand_T *xp, int idx);
 
 // ---------------- end mbyte.pro ----------------
@@ -5745,7 +5734,6 @@ static void do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank);
 
 // ---------------- end ops.pro ----------------
 // ---------------- begin option.pro ----------------
-static void set_fencs_unicode(void);
 static void set_string_default(char *name, char_u *val);
 static void set_title_defaults(void);
 static int do_set(char_u *arg_start, int opt_flags);
@@ -6682,8 +6670,6 @@ enum { DBCS_CHS = 936 };
 enum { DBCS_CHSU = 9936 };
 enum { DBCS_CHT = 950 };
 enum { DBCS_CHTU = 9950 };
-enum { DBCS_2BYTE = 1 };
-
 static int      enc_dbcs  = 0 ;
 static int      enc_unicode  = 0 ;
 static int      enc_utf8  = FALSE ;
@@ -15080,61 +15066,6 @@ buf_write_bytes(struct bw_info *ip)
             }
         }
 
-        if (ip->bw_iconv_fd != (iconv_t)-1)
-        {
-            const char  *from;
-            size_t      fromlen;
-            char        *to;
-            size_t      tolen;
-
-            if (ip->bw_restlen > 0)
-            {
-                char *fp;
-
-                fromlen = len + ip->bw_restlen;
-                fp = (char *)ip->bw_conv_buf + ip->bw_conv_buflen - fromlen;
-                 memmove((char *)(fp), (char *)(ip->bw_rest), (size_t)ip->bw_restlen) ;
-                 memmove((char *)(fp + ip->bw_restlen), (char *)(buf), (size_t)len) ;
-                from = fp;
-                tolen = ip->bw_conv_buflen - fromlen;
-            }
-            else
-            {
-                from = (const char *)buf;
-                fromlen = len;
-                tolen = ip->bw_conv_buflen;
-            }
-            to = (char *)ip->bw_conv_buf;
-
-            if (ip->bw_first)
-            {
-                size_t  save_len = tolen;
-
-                (void)iconv(ip->bw_iconv_fd, NULL, NULL, &to, &tolen);
-
-                if (to == NULL)
-                {
-                    to = (char *)ip->bw_conv_buf;
-                    tolen = save_len;
-                }
-                ip->bw_first = FALSE;
-            }
-
-            if ((iconv(ip->bw_iconv_fd, (void *)&from, &fromlen, &to, &tolen) == (size_t)-1 &&  errno  !=  EINVAL ) || fromlen > CONV_RESTLEN)
-            {
-                ip->bw_conv_error = TRUE;
-                return FAIL;
-            }
-
-            if (fromlen > 0)
-            {
-                 memmove((char *)(ip->bw_rest), (char *)((void *)from), fromlen) ;
-            }
-            ip->bw_restlen = (int)fromlen;
-
-            buf = ip->bw_conv_buf;
-            len = (int)((char_u *)to - ip->bw_conv_buf);
-        }
     }
 
     if (ip->bw_fd < 0)
@@ -15166,26 +15097,7 @@ check_mtime(buf_T *buf, stat_T *st)
     static int
 make_bom(char_u *buf, char_u *name)
 {
-    int         flags;
-    char_u      *p;
-
-    flags = get_fio_flags(name);
-
-    if (flags == FIO_LATIN1 || flags == 0)
-    {
-        return 0;
-    }
-
-    if (flags == FIO_UTF8)
-    {
-        buf[0] = 0xef;
-        buf[1] = 0xbb;
-        buf[2] = 0xbf;
-        return 3;
-    }
-    p = buf;
-    (void)ucs2bytes(0xfeff, &p, flags);
-    return (int)(p - buf);
+    return 0;
 }
 
     static void
@@ -16018,21 +15930,6 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
         }
     }
 
-    if (converted && wb_flags == 0)
-    {
-        write_info.bw_iconv_fd = (iconv_t)my_iconv_open(fenc, enc_utf8 ? (char_u *)"utf-8" : p_enc);
-        if (write_info.bw_iconv_fd != (iconv_t)-1)
-        {
-            write_info.bw_conv_buflen = bufsize * ICONV_MULT;
-            write_info.bw_conv_buf = alloc(write_info.bw_conv_buflen);
-            if (write_info.bw_conv_buf == NULL)
-            {
-                end = 0;
-            }
-            write_info.bw_first = TRUE;
-        }
-
-    }
     if (converted && wb_flags == 0 && write_info.bw_iconv_fd == (iconv_t)-1)
     {
         if (!forceit)
@@ -16550,11 +16447,6 @@ nofail:
     }
     vim_free(fenc_tofree);
     vim_free(write_info.bw_conv_buf);
-    if (write_info.bw_iconv_fd != (iconv_t)-1)
-    {
-        iconv_close(write_info.bw_iconv_fd);
-        write_info.bw_iconv_fd = (iconv_t)-1;
-    }
     mch_free_acl(acl);
 
     if (errmsg != NULL)
@@ -50238,12 +50130,6 @@ retry:
         }
     }
 
-    if (iconv_fd != (iconv_t)-1)
-    {
-        iconv_close(iconv_fd);
-        iconv_fd = (iconv_t)-1;
-    }
-
     if (advance_fenc)
     {
         advance_fenc = FALSE;
@@ -50295,11 +50181,6 @@ retry:
         else if (enc_utf8 ||  strcmp((char *)(p_enc), (char *)("latin1"))  == 0)
         {
             fio_flags = get_fio_flags(fenc);
-        }
-
-        if (fio_flags == 0)
-        {
-            iconv_fd = (iconv_t)my_iconv_open(enc_utf8 ? (char_u *)"utf-8" : p_enc, fenc);
         }
 
         {
@@ -50504,11 +50385,6 @@ retry:
                                 }
                             }
                             fio_flags = 0;
-                            if (iconv_fd != (iconv_t)-1)
-                            {
-                                iconv_close(iconv_fd);
-                                iconv_fd = (iconv_t)-1;
-                            }
                         }
                     }
                 }
@@ -50566,55 +50442,6 @@ retry:
             if (size <= 0)
             {
                 break;
-            }
-
-            if (iconv_fd != (iconv_t)-1)
-            {
-                const char      *fromp;
-                char            *top;
-                size_t          from_size;
-                size_t          to_size;
-
-                fromp = (char *)ptr;
-                from_size = size;
-                ptr += size;
-                top = (char *)ptr;
-                to_size = real_size - size;
-
-                while ((iconv(iconv_fd, (void *)&fromp, &from_size, &top, &to_size) == (size_t)-1 &&  errno  !=  EINVAL ) || from_size > CONV_RESTLEN)
-                {
-                    if (can_retry)
-                    {
-                        goto rewind_retry;
-                    }
-                    if (conv_error == 0)
-                    {
-                        conv_error = readfile_linenr(linecnt, ptr, (char_u *)top);
-                    }
-
-                    ++fromp;
-                    --from_size;
-                    if (bad_char_behavior ==  (-1) )
-                    {
-                        *top++ = *(fromp - 1);
-                        --to_size;
-                    }
-                    else if (bad_char_behavior !=  (-2) )
-                    {
-                        *top++ = bad_char_behavior;
-                        --to_size;
-                    }
-                }
-
-                if (from_size > 0)
-                {
-                     memmove((char *)(conv_rest), (char *)((char_u *)fromp), from_size) ;
-                    conv_restlen = (int)from_size;
-                }
-
-                line_start = ptr - linerest;
-                 memmove((char *)(line_start), (char *)(buffer), (size_t)linerest) ;
-                size = (long)((char_u *)top - ptr);
             }
 
             if (fio_flags != 0)
@@ -51209,11 +51036,6 @@ failed:
     {
         vim_free(fenc);
     }
-    if (iconv_fd != (iconv_t)-1)
-    {
-        iconv_close(iconv_fd);
-    }
-
     if (!read_buffer && !read_stdin)
     {
         close(fd);
@@ -51763,49 +51585,8 @@ get_fio_flags(char_u *ptr)
     static char_u *
 check_for_bom(char_u      *p, long        size, int         *lenp, int         flags)
 {
-    char        *name = NULL;
-    int         len = 2;
-
-    if (p[0] == 0xef && p[1] == 0xbb && size >= 3 && p[2] == 0xbf && (flags ==  (-1)  || flags == FIO_UTF8 || flags == 0))
-    {
-        name = "utf-8";
-        len = 3;
-    }
-    else if (p[0] == 0xff && p[1] == 0xfe)
-    {
-        if (size >= 4 && p[2] == 0 && p[3] == 0 && (flags ==  (-1)  || flags == (FIO_UCS4 | FIO_ENDIAN_L)))
-        {
-            name = "ucs-4le";
-            len = 4;
-        }
-        else if (flags == (FIO_UCS2 | FIO_ENDIAN_L))
-        {
-            name = "ucs-2le";
-        }
-        else if (flags ==  (-1)  || flags == (FIO_UTF16 | FIO_ENDIAN_L))
-        {
-            name = "utf-16le";
-        }
-    }
-    else if (p[0] == 0xfe && p[1] == 0xff && (flags ==  (-1)  || flags == FIO_UCS2 || flags == FIO_UTF16))
-    {
-        if (flags == FIO_UCS2)
-        {
-            name = "ucs-2";
-        }
-        else
-        {
-            name = "utf-16";
-        }
-    }
-    else if (size >= 4 && p[0] == 0 && p[1] == 0 && p[2] == 0xfe && p[3] == 0xff && (flags ==  (-1)  || flags == FIO_UCS4))
-    {
-        name = "ucs-4";
-        len = 4;
-    }
-
-    *lenp = len;
-    return (char_u *)name;
+    *lenp = 0;
+    return NULL;
 }
 
     static char_u *
@@ -73632,14 +73413,8 @@ ex_match(exarg_T *eap)
 
 // ==================== mbyte.c ====================
 
-static int dbcs_char2len(int c);
-static int dbcs_char2bytes(int c, char_u *buf);
 static int dbcs_ptr2len(char_u *p);
-static int dbcs_ptr2len_len(char_u *p, int size);
 static int utf_ptr2cells_len(char_u *p, int size);
-static int dbcs_char2cells(int c);
-static int dbcs_ptr2cells_len(char_u *p, int size);
-static int dbcs_ptr2char(char_u *p);
 static int dbcs_head_off(char_u *base, char_u *p);
 static inline int utf_ptr2char_and_len(char_u *p, int *lenp);
 static inline int utf_ptr2char_and_len_len(char_u *p, int size, int *lenp);
@@ -73846,9 +73621,7 @@ enc_canon_props(char_u *name)
 mb_init(void)
 {
     int         i;
-    int         idx;
     int         n;
-    int         enc_dbcs_new = 0;
     vimconv_T   vimconv;
     char_u      *p;
 
@@ -73864,99 +73637,27 @@ mb_init(void)
         return NULL;
     }
 
-    else if ( strncmp((char *)(p_enc), (char *)("8bit-"), (5))  == 0 ||  strncmp((char *)(p_enc), (char *)("iso-8859-"), (9))  == 0)
-    {
-        enc_unicode = 0;
-        enc_utf8 = FALSE;
-    }
-    else if ( strncmp((char *)(p_enc), (char *)("2byte-"), (6))  == 0)
-    {
-        enc_dbcs_new = DBCS_2BYTE;
-    }
-    else if ((idx = enc_canon_search(p_enc)) >= 0)
-    {
-        i = enc_canon_table[idx].prop;
-        if (i & ENC_UNICODE)
-        {
-            enc_utf8 = TRUE;
-            if (i & (ENC_2BYTE | ENC_2WORD))
-            {
-                enc_unicode = 2;
-            }
-            else if (i & ENC_4BYTE)
-            {
-                enc_unicode = 4;
-            }
-            else
-            {
-                enc_unicode = 0;
-            }
-        }
-        else if (i & ENC_DBCS)
-        {
-            enc_dbcs_new = enc_canon_table[idx].codepage;
-        }
-        else
-        {
-            enc_unicode = 0;
-            enc_utf8 = FALSE;
-        }
-    }
-    else
+    if ( strcmp((char *)(p_enc), (char *)("utf-8"))  != 0)
     {
         return e_invalid_argument;
     }
 
-    if (enc_dbcs_new != 0)
-    {
-        enc_unicode = 0;
-        enc_utf8 = FALSE;
-    }
-    enc_dbcs = enc_dbcs_new;
-    has_mbyte = (enc_dbcs != 0 || enc_utf8);
+    enc_unicode = 0;
+    enc_utf8 = TRUE;
+    enc_dbcs = 0;
+    has_mbyte = TRUE;
+    enc_latin1like = TRUE;
 
-    enc_latin1like = (enc_utf8 ||  strcmp((char *)(p_enc), (char *)("latin1"))  == 0 ||  strcmp((char *)(p_enc), (char *)("iso-8859-15"))  == 0);
-
-    if (enc_utf8)
-    {
-        mb_ptr2len = utfc_ptr2len;
-        mb_ptr2len_len = utfc_ptr2len_len;
-        mb_char2len = utf_char2len;
-        mb_char2bytes = utf_char2bytes;
-        mb_ptr2cells = utf_ptr2cells;
-        mb_ptr2cells_len = utf_ptr2cells_len;
-        mb_char2cells = utf_char2cells;
-        mb_off2cells = utf_off2cells;
-        mb_ptr2char = utf_ptr2char;
-        mb_head_off = utf_head_off;
-    }
-    else if (enc_dbcs != 0)
-    {
-        mb_ptr2len = dbcs_ptr2len;
-        mb_ptr2len_len = dbcs_ptr2len_len;
-        mb_char2len = dbcs_char2len;
-        mb_char2bytes = dbcs_char2bytes;
-        mb_ptr2cells = dbcs_ptr2cells;
-        mb_ptr2cells_len = dbcs_ptr2cells_len;
-        mb_char2cells = dbcs_char2cells;
-        mb_off2cells = dbcs_off2cells;
-        mb_ptr2char = dbcs_ptr2char;
-        mb_head_off = dbcs_head_off;
-    }
-    else
-    {
-        mb_ptr2len = latin_ptr2len;
-        mb_ptr2len_len = latin_ptr2len_len;
-        mb_char2len = latin_char2len;
-        mb_char2bytes = latin_char2bytes;
-        mb_ptr2cells = latin_ptr2cells;
-        mb_ptr2cells_len = latin_ptr2cells_len;
-        mb_char2cells = latin_char2cells;
-        mb_off2cells = latin_off2cells;
-        mb_ptr2char = latin_ptr2char;
-        mb_head_off = latin_head_off;
-    }
-
+    mb_ptr2len = utfc_ptr2len;
+    mb_ptr2len_len = utfc_ptr2len_len;
+    mb_char2len = utf_char2len;
+    mb_char2bytes = utf_char2bytes;
+    mb_ptr2cells = utf_ptr2cells;
+    mb_ptr2cells_len = utf_ptr2cells_len;
+    mb_char2cells = utf_char2cells;
+    mb_off2cells = utf_off2cells;
+    mb_ptr2char = utf_ptr2char;
+    mb_head_off = utf_head_off;
     vimconv.vc_type = CONV_NONE;
 for (i = 0; i < 256; ++i)
     {
@@ -74016,11 +73717,6 @@ for (i = 0; i < 256; ++i)
     (void)init_chartab();
 
     screenalloc(FALSE);
-
-    if (enc_utf8 && !option_was_set((char_u *)"fencs"))
-    {
-        set_fencs_unicode();
-    }
 
     apply_autocmds(EVENT_ENCODINGCHANGED, NULL, (char_u *)"", FALSE, curbuf);
 
@@ -74210,35 +73906,8 @@ latin_char2len(int c  __attribute__((unused)) )
 }
 
     static int
-dbcs_char2len(int         c)
-{
-    if (c >= 0x100)
-    {
-        return 2;
-    }
-    return 1;
-}
-
-    static int
 latin_char2bytes(int c, char_u *buf)
 {
-    buf[0] = c;
-    return 1;
-}
-
-    static int
-dbcs_char2bytes(int c, char_u *buf)
-{
-    if (c >= 0x100)
-    {
-        buf[0] = (unsigned)c >> 8;
-        buf[1] = c;
-        if (buf[1] == NUL)
-        {
-            buf[1] = '\n';
-        }
-        return 2;
-    }
     buf[0] = c;
     return 1;
 }
@@ -74275,27 +73944,6 @@ latin_ptr2len_len(char_u *p, int size)
         return 0;
     }
     return 1;
-}
-
-    static int
-dbcs_ptr2len_len(char_u *p, int size)
-{
-    int         len;
-
-    if (size < 1 || *p == NUL)
-    {
-        return 0;
-    }
-    if (size == 1)
-    {
-        return 1;
-    }
-    len =  mb_bytelen_tab[*p] ;
-    if (len == 2 && p[1] == NUL)
-    {
-        len = 1;
-    }
-    return len;
 }
 
 struct interval
@@ -74766,16 +74414,6 @@ utf_ptr2cells(char_u      *p)
 }
 
     static int
-dbcs_ptr2cells(char_u *p)
-{
-    if (enc_dbcs == DBCS_JPNU && *p == 0x8e)
-    {
-        return 1;
-    }
-    return  mb_bytelen_tab[*p] ;
-}
-
-    static int
 latin_ptr2cells_len(char_u *p  __attribute__((unused)) , int size  __attribute__((unused)) )
 {
     return 1;
@@ -74808,29 +74446,9 @@ utf_ptr2cells_len(char_u *p, int size)
 }
 
     static int
-dbcs_ptr2cells_len(char_u *p, int size)
-{
-    if (size <= 1 || (enc_dbcs == DBCS_JPNU && *p == 0x8e))
-    {
-        return 1;
-    }
-    return  mb_bytelen_tab[*p] ;
-}
-
-    static int
 latin_char2cells(int c  __attribute__((unused)) )
 {
     return 1;
-}
-
-    static int
-dbcs_char2cells(int c)
-{
-    if (enc_dbcs == DBCS_JPNU && ((unsigned)c >> 8) == 0x8e)
-    {
-        return 1;
-    }
-    return  mb_bytelen_tab[(unsigned)c >> 8] ;
 }
 
     static int
@@ -74876,16 +74494,6 @@ utf_off2cells(unsigned off, unsigned max_off)
     static int
 latin_ptr2char(char_u *p)
 {
-    return *p;
-}
-
-    static int
-dbcs_ptr2char(char_u *p)
-{
-    if ( mb_bytelen_tab[*p]  > 1 && p[1] != NUL)
-    {
-        return (p[0] << 8) + p[1];
-    }
     return *p;
 }
 
@@ -77611,457 +77219,29 @@ enc_alias_search(char_u *name)
     return -1;
 }
 
-    static void *
-my_iconv_open(char_u *to, char_u *from)
-{
-    iconv_t     fd;
-    char_u      tobuf[ICONV_TESTLEN];
-    char        *p;
-    size_t      tolen;
-    static int  iconv_ok = -1;
-
-    if (iconv_ok == FALSE)
-    {
-        return (void *)-1;
-    }
-
-    fd = iconv_open((char *)enc_skip(to), (char *)enc_skip(from));
-
-    if (fd != (iconv_t)-1 && iconv_ok == -1)
-    {
-        p = (char *)tobuf;
-        tolen = ICONV_TESTLEN;
-        (void)iconv(fd, NULL, NULL, &p, &tolen);
-        if (p == NULL)
-        {
-            iconv_ok = FALSE;
-            iconv_close(fd);
-            fd = (iconv_t)-1;
-        }
-        else
-        {
-            iconv_ok = TRUE;
-        }
-    }
-
-    return (void *)fd;
-}
-
-    static char_u *
-iconv_string(vimconv_T   *vcp, char_u      *str, int         slen, int         *unconvlenp, int         *resultlenp)
-{
-    const char  *from;
-    size_t      fromlen;
-    char        *to;
-    size_t      tolen;
-    size_t      len = 0;
-    size_t      done = 0;
-    char_u      *result = NULL;
-    char_u      *p;
-    int         l;
-
-    from = (char *)str;
-    fromlen = slen;
-    for (;;)
-    {
-        if (len == 0 ||  errno  ==  E2BIG )
-        {
-            len = len + fromlen * 2 + 40;
-            p = alloc(len);
-            if (p != NULL && done > 0)
-            {
-                 memmove((char *)(p), (char *)(result), done) ;
-            }
-            vim_free(result);
-            result = p;
-            if (result == NULL)
-            {
-                break;
-            }
-        }
-
-        to = (char *)result + done;
-        tolen = len - done - 2;
-        if (iconv(vcp->vc_fd, (void *)&from, &fromlen, &to, &tolen) != (size_t)-1)
-        {
-            *to = NUL;
-            break;
-        }
-
-        if (!vcp->vc_fail && unconvlenp != NULL && ( errno  ==  EINVAL  ||  errno  == EINVAL))
-        {
-            *to = NUL;
-            *unconvlenp = (int)fromlen;
-            break;
-        }
-
-        else if (!vcp->vc_fail && ( errno  ==  EILSEQ  ||  errno  == EILSEQ ||  errno  ==  EINVAL  ||  errno  == EINVAL))
-        {
-            *to++ = '?';
-            if ((*mb_ptr2cells)((char_u *)from) > 1)
-            {
-                *to++ = '?';
-            }
-            if (enc_utf8)
-            {
-                l = utfc_ptr2len_len((char_u *)from, (int)fromlen);
-            }
-            else
-            {
-                l = (*mb_ptr2len)((char_u *)from);
-                if (l > (int)fromlen)
-                {
-                    l = (int)fromlen;
-                }
-            }
-            from += l;
-            fromlen -= l;
-        }
-        else if ( errno  !=  E2BIG )
-        {
-             vim_free(result);
-             (result) = NULL;
-            break;
-        }
-        done = to - (char *)result;
-    }
-
-    if (resultlenp != NULL && result != NULL)
-    {
-        *resultlenp = (int)(to - (char *)result);
-    }
-    return result;
-}
-
     static int
 convert_setup(vimconv_T *vcp, char_u *from, char_u *to)
 {
-    return convert_setup_ext(vcp, from, TRUE, to, TRUE);
-}
-
-    static int
-convert_setup_ext(vimconv_T   *vcp, char_u      *from, int         from_unicode_is_utf8, char_u      *to, int         to_unicode_is_utf8)
-{
-    int         from_prop;
-    int         to_prop;
-    int         from_is_utf8;
-    int         to_is_utf8;
-
-    if (vcp->vc_type == CONV_ICONV && vcp->vc_fd != (iconv_t)-1)
-    {
-        iconv_close(vcp->vc_fd);
-    }
     vcp->vc_type = CONV_NONE;
     vcp->vc_factor = 1;
     vcp->vc_fail = FALSE;
-
-    if (from == NULL || *from == NUL || to == NULL || *to == NUL ||  strcmp((char *)(from), (char *)(to))  == 0)
-    {
-        return OK;
-    }
-
-    from_prop = enc_canon_props(from);
-    to_prop = enc_canon_props(to);
-    if (from_unicode_is_utf8)
-    {
-        from_is_utf8 = from_prop & ENC_UNICODE;
-    }
-    else
-    {
-        from_is_utf8 = from_prop == ENC_UNICODE;
-    }
-    if (to_unicode_is_utf8)
-    {
-        to_is_utf8 = to_prop & ENC_UNICODE;
-    }
-    else
-    {
-        to_is_utf8 = to_prop == ENC_UNICODE;
-    }
-
-    if ((from_prop & ENC_LATIN1) && to_is_utf8)
-    {
-        vcp->vc_type = CONV_TO_UTF8;
-        vcp->vc_factor = 2;
-    }
-    else if ((from_prop & ENC_LATIN9) && to_is_utf8)
-    {
-        vcp->vc_type = CONV_9_TO_UTF8;
-        vcp->vc_factor = 3;
-    }
-    else if (from_is_utf8 && (to_prop & ENC_LATIN1))
-    {
-        vcp->vc_type = CONV_TO_LATIN1;
-    }
-    else if (from_is_utf8 && (to_prop & ENC_LATIN9))
-    {
-        vcp->vc_type = CONV_TO_LATIN9;
-    }
-    else
-    {
-        vcp->vc_fd = (iconv_t)my_iconv_open(to_is_utf8 ? (char_u *)"utf-8" : to, from_is_utf8 ? (char_u *)"utf-8" : from);
-        if (vcp->vc_fd != (iconv_t)-1)
-        {
-            vcp->vc_type = CONV_ICONV;
-            vcp->vc_factor = 4;
-        }
-    }
-    if (vcp->vc_type == CONV_NONE)
-    {
-        return FAIL;
-    }
-
     return OK;
 }
 
     static int
 convert_input_safe(char_u      *ptr, int         len, int         maxlen, char_u      **restp, int         *restlenp)
 {
-    char_u      *d;
-    int         dlen = len;
-    int         unconvertlen = 0;
-
-    d = string_convert_ext(&input_conv, ptr, &dlen, restp == NULL ? NULL : &unconvertlen);
-    if (d == NULL)
+    if (restp != NULL)
     {
-        return dlen;
+        *restp = NULL;
     }
-
-    if (dlen <= maxlen)
-    {
-        if (unconvertlen > 0)
-        {
-            *restp = alloc(unconvertlen);
-            if (*restp != NULL)
-            {
-                 memmove((char *)(*restp), (char *)(ptr + len - unconvertlen), unconvertlen) ;
-            }
-            *restlenp = unconvertlen;
-        }
-         memmove((char *)(ptr), (char *)(d), dlen) ;
-    }
-    else
-    {
-        dlen = len;
-    }
-    vim_free(d);
-    return dlen;
+    return len;
 }
 
     static char_u *
 string_convert(vimconv_T   *vcp, char_u      *ptr, int         *lenp)
 {
-    return string_convert_ext(vcp, ptr, lenp, NULL);
-}
-
-    static char_u *
-string_convert_ext(vimconv_T   *vcp, char_u      *ptr, int         *lenp, int         *unconvlenp)
-{
-    char_u      *retval = NULL;
-    char_u      *d;
-    int         len;
-    int         i;
-    int         l;
-    int         c;
-
-    if (lenp == NULL)
-    {
-        len = (int) strlen((char *)(ptr)) ;
-    }
-    else
-    {
-        len = *lenp;
-    }
-    if (len == 0)
-    {
-        return vim_strsave((char_u *)"");
-    }
-
-    switch (vcp->vc_type)
-    {
-        case CONV_TO_UTF8:
-            retval = alloc(len * 2 + 1);
-            if (retval == NULL)
-            {
-                break;
-            }
-            d = retval;
-            for (i = 0; i < len; ++i)
-            {
-                c = ptr[i];
-                if (c < 0x80)
-                {
-                    *d++ = c;
-                }
-                else
-                {
-                    *d++ = 0xc0 + ((unsigned)c >> 6);
-                    *d++ = 0x80 + (c & 0x3f);
-                }
-            }
-            *d = NUL;
-            if (lenp != NULL)
-            {
-                *lenp = (int)(d - retval);
-            }
-            break;
-
-        case CONV_9_TO_UTF8:
-            retval = alloc(len * 3 + 1);
-            if (retval == NULL)
-            {
-                break;
-            }
-            d = retval;
-            for (i = 0; i < len; ++i)
-            {
-                c = ptr[i];
-                switch (c)
-                {
-                    case 0xa4:
-                        c = 0x20ac;
-                        break;
-                    case 0xa6:
-                        c = 0x0160;
-                        break;
-                    case 0xa8:
-                        c = 0x0161;
-                        break;
-                    case 0xb4:
-                        c = 0x017d;
-                        break;
-                    case 0xb8:
-                        c = 0x017e;
-                        break;
-                    case 0xbc:
-                        c = 0x0152;
-                        break;
-                    case 0xbd:
-                        c = 0x0153;
-                        break;
-                    case 0xbe:
-                        c = 0x0178;
-                        break;
-                }
-                d += utf_char2bytes(c, d);
-            }
-            *d = NUL;
-            if (lenp != NULL)
-            {
-                *lenp = (int)(d - retval);
-            }
-            break;
-
-        case CONV_TO_LATIN1:
-        case CONV_TO_LATIN9:
-            retval = alloc(len + 1);
-            if (retval == NULL)
-            {
-                break;
-            }
-            d = retval;
-            for (i = 0; i < len; ++i)
-            {
-                l = utf_ptr2len_len(ptr + i, len - i);
-                if (l == 0)
-                {
-                    *d++ = NUL;
-                }
-                else if (l == 1)
-                {
-                    int l_w = utf8len_tab_zero[ptr[i]];
-
-                    if (l_w == 0)
-                    {
-                        vim_free(retval);
-                        return NULL;
-                    }
-                    if (unconvlenp != NULL && l_w > len - i)
-                    {
-                        *unconvlenp = len - i;
-                        break;
-                    }
-                    *d++ = ptr[i];
-                }
-                else
-                {
-                    c = utf_ptr2char(ptr + i);
-                    if (vcp->vc_type == CONV_TO_LATIN9)
-                    {
-                        switch (c)
-                        {
-                            case 0x20ac:
-                                c = 0xa4;
-                                break;
-                            case 0x0160:
-                                c = 0xa6;
-                                break;
-                            case 0x0161:
-                                c = 0xa8;
-                                break;
-                            case 0x017d:
-                                c = 0xb4;
-                                break;
-                            case 0x017e:
-                                c = 0xb8;
-                                break;
-                            case 0x0152:
-                                c = 0xbc;
-                                break;
-                            case 0x0153:
-                                c = 0xbd;
-                                break;
-                            case 0x0178:
-                                c = 0xbe;
-                                break;
-                            case 0xa4:
-                            case 0xa6:
-                            case 0xa8:
-                            case 0xb4:
-                            case 0xb8:
-                            case 0xbc:
-                            case 0xbd:
-                            case 0xbe:
-                                c = 0x100;
-                                break;
-                        }
-                    }
-                    if (!utf_iscomposing(c))
-                    {
-                        if (c < 0x100)
-                        {
-                            *d++ = c;
-                        }
-                        else if (vcp->vc_fail)
-                        {
-                            vim_free(retval);
-                            return NULL;
-                        }
-                        else
-                        {
-                            *d++ = 0xbf;
-                            if (utf_char2cells(c) > 1)
-                            {
-                                *d++ = '?';
-                            }
-                        }
-                    }
-                    i += l - 1;
-                }
-            }
-            *d = NUL;
-            if (lenp != NULL)
-            {
-                *lenp = (int)(d - retval);
-            }
-            break;
-
-        case CONV_ICONV:
-            retval = iconv_string(vcp, ptr, len, unconvlenp, lenp);
-            break;
-    }
-
-    return retval;
+    return NULL;
 }
 
     static int
@@ -102921,10 +102101,6 @@ static struct vimoption options[] =
                             (char_u *)&p_cedit, PV_NONE, did_set_cedit, NULL,
                             {(char_u *)"", (char_u *) "\006" }
                               },
-    {"charconvert",  "ccv", P_STRING|P_VI_DEF|P_SECURE,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
     {"chistory",    "chi",  P_NUM|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
@@ -103166,7 +102342,7 @@ static struct vimoption options[] =
                               },
     {"fileencodings","fencs", P_STRING|P_VI_DEF|P_ONECOMMA,
                             (char_u *)&p_fencs, PV_NONE, NULL, expand_set_encoding,
-                            {(char_u *)"ucs-bom", (char_u *)0L}
+                            {(char_u *)"", (char_u *)0L}
                               },
     {"fileformat",  "ff",   P_STRING|P_ALLOCED|P_VI_DEF|P_RSTAT|P_NO_MKRC
                                                                   |P_CURSWANT,
@@ -104820,12 +103996,6 @@ set_init_1(int clean_arg)
 static char_u *fencs_utf8_default = (char_u *)"ucs-bom,utf-8,default,latin1";
 
     static void
-set_fencs_unicode(void)
-{
-    set_string_option_direct((char_u *)"fencs", -1, fencs_utf8_default, OPT_FREE, 0);
-}
-
-    static void
 set_option_default(int         opt_idx, int         opt_flags, int         compatible)
 {
     char_u      *varp;
@@ -104841,11 +104011,7 @@ set_option_default(int         opt_idx, int         opt_flags, int         compa
         dvi = ((flags & P_VI_DEF) || compatible) ? VI_DEFAULT : VIM_DEFAULT;
         if (flags & P_STRING)
         {
-            if (options[opt_idx].var == (char_u *)&p_fencs && enc_utf8)
-            {
-                set_fencs_unicode();
-            }
-            else if (options[opt_idx].indir != PV_NONE)
+            if (options[opt_idx].indir != PV_NONE)
             {
                 set_string_option_direct(NULL, opt_idx, options[opt_idx].def_val[dvi], opt_flags, 0);
             }
