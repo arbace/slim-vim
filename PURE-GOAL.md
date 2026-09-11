@@ -208,6 +208,35 @@ plain vim mode before and selects it now, so nothing they record can move. The
 evidence is the score — and the fact that `pure-vim` can now be called anything
 at all.
 
+## Phase 5 — options that accept and do nothing, or only refuse
+
+The argument that removed `'spelllang'` in phase 2, applied to the command line.
+**An option the editor accepts and ignores is a lie**, and an option whose whole
+body is an error message is a branch that exists only to say no. Both are better
+expressed by the option not existing — a path this build already has, since
+`mainerr(ME_UNKNOWN_OPTION)` is what anything unrecognised reaches.
+
+| | |
+| --- | --- |
+| **inert** | `-f`, `-X`, `-Y`, `--nofork`, `--literal`, `--gui-dialog-file` — accepted, empty body, or an argument that goes nowhere |
+| **refusing** | `-A`, `-F`, `-H` print "not enabled at compile time" and exit; `-g` starts a GUI that does the same |
+| **vestigial** | `--help` and `--version`, cut in phase 3 but left as string comparisons that matched and then called `mainerr` |
+
+That last row is phase 3 finishing its own job. A branch that exists only to
+reach the default is worse than no branch, and leaving it was an oversight the
+option listing found.
+
+**The delta: none the harness records**, because it never passes these. The
+evidence is the score and the error strings leaving the binary.
+
+### The trap
+
+`case 'X':` appears in more than one switch in this file — the normal-mode
+command tables have their own — so a scan for it over the whole file finds the
+wrong one and then says something confusing about a shared body. The argument
+parser is the switch that ends in `mainerr(ME_UNKNOWN_OPTION)`, and
+`tools/dropopts.py` bounds itself to that before it looks for anything.
+
 ## What comes next
 
 Not yet done, in the order they are worth doing:

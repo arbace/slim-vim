@@ -7688,8 +7688,6 @@ static char e_scripts_nested_too_deep[]  =  "E22: Scripts nested too deep"  ;
 static char e_no_alternate_file[]  =  "E23: No alternate file"  ;
 static char e_no_such_abbreviation[]  =  "E24: No such abbreviation"  ;
 static char e_gui_cannot_be_used_not_enabled_at_compile_time[]  =  "E25: GUI cannot be used: Not enabled at compile time"  ;
-static char e_hebrew_cannot_be_used_not_enabled_at_compile_time[]  =  "E26: Hebrew cannot be used: Not enabled at compile time\n"  ;
-static char e_farsi_support_has_been_removed[]  =  "E27: Farsi support has been removed\n"  ;
 static char e_no_such_highlight_group_name_str[]  =  "E28: No such highlight group name: %s"  ;
 static char e_no_inserted_text_yet[]  =  "E29: No inserted text yet"  ;
 static char e_no_previous_command_line[]  =  "E30: No previous command line"  ;
@@ -8026,7 +8024,6 @@ static char e_cannot_close_last_tab_page[]  =  "E784: Cannot close last tab page
 static char e_not_allowed_to_edit_another_buffer_now[]  =  "E788: Not allowed to edit another buffer now"  ;
 static char e_undojoin_is_not_allowed_after_undo[]  =  "E790: undojoin is not allowed after undo"  ;
 static char e_invalid_id_nr_must_be_greater_than_or_equal_to_one_1[]  =  "E799: Invalid ID: %d (must be greater than or equal to 1)"  ;
-static char e_arabic_cannot_be_used_not_enabled_at_compile_time[]  =  "E800: Arabic cannot be used: Not enabled at compile time\n"  ;
 static char e_id_already_taken_nr[]  =  "E801: ID already taken: %d"  ;
 static char e_invalid_id_nr_must_be_greater_than_or_equal_to_one_2[]  =  "E802: Invalid ID: %d (must be greater than or equal to 1)"  ;
 static char e_id_not_found_nr[]  =  "E803: ID not found: %d"  ;
@@ -64360,13 +64357,6 @@ fix_help_buffer(void)
     char_u      *p;
     char_u      *rt;
     int         mustfree;
-
-    if ( strcmp((char *)(curbuf->b_p_ft), (char *)("help"))  != 0)
-    {
-        ++curbuf_lock;
-        set_option_value_give_err((char_u *)"ft", 0L, (char_u *)"help", OPT_LOCAL);
-        --curbuf_lock;
-    }
 
     {
         for (lnum = 1; lnum <= curbuf->b_ml.ml_line_count; ++lnum)
@@ -178071,7 +178061,6 @@ static void edit_buffers(mparm_T *parmp, char_u *cwd);
 static void exe_pre_commands(mparm_T *parmp);
 static void exe_commands(mparm_T *parmp);
 static void source_startup_scripts(mparm_T *parmp);
-static void main_start_gui(void);
 static void check_swap_exists_action(void);
 
 static char *(main_errors[]) =
@@ -178701,37 +178690,19 @@ command_line_scan(mparm_T *parmp)
                 if ( strcasecmp((char *)(argv[0] + argv_idx), (char *)("help"))  == 0)
                 {
                     mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
-                }
-                else if ( strcasecmp((char *)(argv[0] + argv_idx), (char *)("version"))  == 0)
-                {
-                    mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
-                }
-                else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("clean"), (5))  == 0)
+                }                if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("clean"), (5))  == 0)
                 {
                     parmp->use_vimrc = (char_u *)"DEFAULTS";
                     parmp->clean = TRUE;
                     set_option_value_give_err((char_u *)"vif", 0L, (char_u *)"NONE", 0);
-                }
-                else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("literal"), (7))  == 0)
-                {
-                }
-                else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("nofork"), (6))  == 0)
-                {
-                }
-                else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("noplugin"), (8))  == 0)
+                }                if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("noplugin"), (8))  == 0)
                 {
                     p_lpl = FALSE;
                 }
                 else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("not-a-term"), (10))  == 0)
                 {
                     parmp->not_a_term = TRUE;
-                }
-                else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("gui-dialog-file"), (15))  == 0)
-                {
-                    want_argument = TRUE;
-                    argv_idx += 15;
-                }
-                else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("ttyfail"), (7))  == 0)
+                }                if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("ttyfail"), (7))  == 0)
                 {
                     parmp->tty_fail = TRUE;
                 }
@@ -178764,11 +178735,6 @@ command_line_scan(mparm_T *parmp)
                 }
                 break;
 
-            case 'A':
-                 fprintf(stderr, "%s", (_(e_arabic_cannot_be_used_not_enabled_at_compile_time))) ;
-                mch_exit(2);
-                break;
-
             case 'b':
                 set_options_bin(curbuf->b_p_bin, 1, 0);
                 curbuf->b_p_bin = 1;
@@ -178787,26 +178753,9 @@ command_line_scan(mparm_T *parmp)
                 exmode_active = EXMODE_VIM;
                 break;
 
-            case 'f':
-                break;
-
-            case 'g':
-                main_start_gui();
-                break;
-
-            case 'F':
-                 fprintf(stderr, "%s", (_(e_farsi_support_has_been_removed))) ;
-                mch_exit(2);
-                break;
-
             case '?':
             case 'h':
                 mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
-                break;
-
-            case 'H':
-                 fprintf(stderr, "%s", (_(e_hebrew_cannot_be_used_not_enabled_at_compile_time))) ;
-                mch_exit(2);
                 break;
 
             case 'l':
@@ -178909,11 +178858,6 @@ command_line_scan(mparm_T *parmp)
                     break;
                 }
                 want_argument = TRUE;
-                break;
-
-            case 'X':
-                break;
-            case 'Y':
                 break;
 
             case 'Z':
@@ -179555,14 +179499,6 @@ source_startup_scripts(mparm_T *parmp)
     }
 }
 
-    static void
-main_start_gui(void)
-{
-     fprintf(stderr, "%s", (_(e_gui_cannot_be_used_not_enabled_at_compile_time))) ;
-     fprintf(stderr, "%s", ("\n")) ;
-    mch_exit(2);
-}
-
     int
 process_env(char_u      *env, int         is_viminit)
 {
@@ -179613,7 +179549,6 @@ mainerr(int         n, char_u      *str)
          fprintf(stderr, "%s", ((char *)str)) ;
          fprintf(stderr, "%s", ("\"")) ;
     }
-     fprintf(stderr, "%s", (_("\nMore info with: \"vim -h\"\n"))) ;
 
     mch_exit(1);
 }
