@@ -683,6 +683,59 @@ command only shows up in the Ex sweep if the command used to *succeed*: `:tag`,
 tag stack and exited 0, and now reports instead. CTRL-`]` and CTRL-T report what
 `:tag` reports. The declared list is what moved, not what was cut.
 
+## Phase 15 — nothing is written that was not asked for
+
+A swap file is not a recovery add-on bolted to the side of the editor. It is
+**memline's backing store**: created beside every file you open, written to as
+you type, deleted on a clean exit. For an embedded editor it is the last thing
+writing a file nobody asked for, and it is why `'directory'` is searched for a
+free `.swp` name and why a 576-line recovery reader exists.
+
+**What goes is the file, not the memline.** `mf_open()` already supports a
+memfile with no name — that is what `:set noswapfile` has always produced — so
+the buffer keeps its block structure and never acquires a fd. The cost is real
+and was agreed before any of it was written: **no crash recovery**, and a buffer
+larger than memory can no longer page out to disk.
+
+Five entry points, because `ml_open_file()` has seven callers and no-oping them
+one at a time would be seven chances to miss one. `ml_open_file()` returns
+having set `b_may_swap = FALSE`, so the callers that retry stop retrying — a
+body that merely returned would search `'directory'` again on the next
+keystroke. `ml_preserve()`, `ml_sync_all()` and `ml_setname()` become no-ops:
+flushing, syncing and renaming a file that does not exist. And the `SEA_RECOVER`
+arm of the ATTENTION prompt goes, which is the only way into `ml_recover()` once
+`:recover` is retired.
+
+With it go the two other things that wrote without being asked: `:mkvimrc`,
+`:mkexrc`, `:mksession` and `:mkview`, which drop a script into the current
+directory, and `:checktime`.
+
+### The check this phase exists for
+
+No build can make it, so the phase runs the binary: **edit a file in an empty
+directory and nothing may be left beside it.** `ls -A` must show exactly the
+file that was edited.
+
+### Not done here
+
+**The automatic timestamp check remains.** `check_timestamps()` is still called
+from `main_loop()`, `edit()` and `wait_return()`, so the editor still notices a
+file changing underneath it — retiring `:checktime` removed the command, not the
+polling. That is a separate cut with a separate delta.
+
+### The delta, and three things the harness knew better than the author
+
+Eight command names report that they are not available; `'directory'`,
+`'updatecount'` and `'swapsync'` stop existing. `'swapfile'` cannot go — it is
+`PV_BUF` and its row is what initialises the global, the trap Phase 14 records —
+so it stays and is now always effectively off.
+
+`:mksession` and `:mkview` **do not move**: they already failed. And `:recover`
+**leaves** the cumulative list it joined in Phase 11 — removing globbing had
+made it fail differently from the slim baseline, and `ex_ni` makes it fail the
+same way again, so it stops being a difference. A cumulative delta can shrink,
+which is not something a list maintained by hand would ever discover.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.

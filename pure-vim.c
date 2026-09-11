@@ -625,8 +625,6 @@ enum { BF_NEW_W = 0x20 };
 enum { BF_READERR = 0x40 };
 enum { BF_DUMMY = 0x80 };
 enum { BF_PRESERVED = 0x100 };
-enum { BF_NO_SEA = 0x400 };
-
 enum { EXPAND_NOTHING = 0 };
 enum { EXPAND_COMMANDS = 1 };
 enum { EXPAND_FILES = 2 };
@@ -931,17 +929,12 @@ enum { OPT_WINONLY = 0x10 };
 enum { OPT_NOWIN = 0x20 };
 enum { OPT_ONECOLUMN = 0x40 };
 enum { OPT_NO_REDRAW = 0x80 };
-enum { OPT_SKIPRTP = 0x100 };
-
 enum { NO_SCREEN = 2 };
 enum { NO_BUFFERS = 1 };
 
 enum { SEA_NONE = 0 };
 enum { SEA_DIALOG = 1 };
 enum { SEA_QUIT = 2 };
-enum { SEA_RECOVER = 3 };
-enum { SEA_READONLY = 4 };
-
 enum { MIN_SWAP_PAGE_SIZE = 1048 };
 enum { MAX_SWAP_PAGE_SIZE = 50000 };
 
@@ -1362,7 +1355,6 @@ enum { SHM_TRUNCALL = 'T' };
 enum { SHM_OVER = 'o' };
 enum { SHM_OVERALL = 'O' };
 enum { SHM_SEARCH = 's' };
-enum { SHM_ATTENTION = 'A' };
 enum { SHM_COMPLETIONMENU = 'c' };
 enum { SHM_COMPLETIONSCAN = 'C' };
 enum { SHM_RECORDING = 'q' };
@@ -5366,7 +5358,6 @@ static int ExpandMappings(char_u *pat, regmatch_T *regmatch, int *numMatches, ch
 static int check_abbr(int c, char_u *ptr, int col, int mincol);
 static char_u *vim_strsave_escape_csi(char_u *p);
 static size_t vim_unescape_csi(char_u *p);
-static int put_escstr(FILE *fd, char_u *strstart, int what);
 static void add_map(char_u *map, int mode, int nore);
 // ---------------- end map.pro ----------------
 // ---------------- begin mark.pro ----------------
@@ -5458,7 +5449,6 @@ static int vim_vsnprintf_typval(char *str, size_t str_m, const char *fmt, va_lis
 
 // ---------------- begin message.pro ----------------
 static int msg(char *s);
-static int verb_msg(char *s);
 static int msg_attr(char *s, int attr);
 static int msg_attr_keep(char *s, int attr, int keep);
 static char_u *msg_strtrunc(char_u *s, int force);
@@ -5797,7 +5787,6 @@ static char *did_set_textwidth(optset_T *args);
 static char *did_set_title_icon(optset_T *args);
 static char *did_set_titlelen(optset_T *args);
 static char *did_set_undolevels(optset_T *args);
-static char *did_set_updatecount(optset_T *args);
 static char *did_set_weirdinvert(optset_T *args);
 static char *did_set_wildchar(optset_T *args);
 static char *did_set_window(optset_T *args);
@@ -5937,8 +5926,6 @@ static char *did_set_showcmdloc(optset_T *args);
 static int expand_set_showcmdloc(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_splitkeep(optset_T *args);
 static int expand_set_splitkeep(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_swapsync(optset_T *args);
-static int expand_set_swapsync(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_switchbuf(optset_T *args);
 static int expand_set_switchbuf(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_tabclose(optset_T *args);
@@ -6087,8 +6074,6 @@ static char *check_chars_options(void);
 
 // ---------------- end screen.pro ----------------
 // ---------------- begin session.pro ----------------
-static int put_eol(FILE *fd);
-static int put_line(FILE *fd, char *s);
 
 // ---------------- end session.pro ----------------
 // ---------------- begin fuzzy.pro ----------------
@@ -6992,7 +6977,6 @@ static char e_name_too_long[]  =  "E75: Name too long"  ;
 static char e_too_many_brackets[]  =  "E76: Too many ["  ;
 static char e_too_many_file_names[]  =  "E77: Too many file names"  ;
 static char e_unknown_mark[]  =  "E78: Unknown mark"  ;
-static char e_error_while_writing[]  =  "E80: Error while writing"  ;
 static char e_cannot_allocate_any_buffer_exiting[]  =  "E82: Cannot allocate any buffer, exiting..."  ;
 static char e_cannot_allocate_buffer_using_other_one[]  =  "E83: Cannot allocate buffer, using other one..."  ;
 static char e_no_modified_buffer_found[]  =  "E84: No modified buffer found"  ;
@@ -7075,7 +7059,6 @@ static char e_global_abbreviation_already_exists_for_str[]  =  "E224: Global abb
 static char e_global_mapping_already_exists_for_str[]  =  "E225: Global mapping already exists for %s"  ;
 static char e_abbreviation_already_exists_for_str[]  =  "E226: Abbreviation already exists for %s"  ;
 static char e_mapping_already_exists_for_str[]  =  "E227: Mapping already exists for %s"  ;
-static char e_makemap_illegal_mode[]  = "E228: makemap: Illegal mode" ;
 static char e_cant_split_window_while_closing_another[]  =  "E242: Can't split a window while closing another"  ;
 static char e_filechangedshell_autocommand_deleted_buffer[]  =  "E246: FileChangedShell autocommand deleted buffer"  ;
 static char e_window_layout_changed_unexpectedly[]  =  "E249: Window layout changed unexpectedly"  ;
@@ -7091,9 +7074,6 @@ static char e_didnt_get_block_nr_zero[]  = "E298: Didn't get block nr 0?" ;
 static char e_didnt_get_block_nr_one[]  = "E298: Didn't get block nr 1?" ;
 static char e_didnt_get_block_nr_two[]  = "E298: Didn't get block nr 2?" ;
 static char e_swap_file_already_exists_symlink_attack[]  =  "E300: Swap file already exists (symlink attack?)"  ;
-static char e_oops_lost_the_swap_file[]  =  "E301: Oops, lost the swap file!!!"  ;
-static char e_could_not_rename_swap_file[]  =  "E302: Could not rename swap file"  ;
-static char e_unable_to_open_swap_file_for_str_recovery_impossible[]  =  "E303: Unable to open swap file for \"%s\", recovery impossible"  ;
 static char e_ml_upd_block0_didnt_get_block_zero[]  = "E304: ml_upd_block0(): Didn't get block 0??" ;
 static char e_no_swap_file_found_for_str[]  =  "E305: No swap file found for %s"  ;
 static char e_cannot_open_str[]  =  "E306: Cannot open %s"  ;
@@ -7103,8 +7083,6 @@ static char e_unable_to_read_block_one_from_str[]  =  "E309: Unable to read bloc
 static char e_block_one_id_wrong_str_not_swp_file[]  =  "E310: Block 1 ID wrong (%s not a .swp file?)"  ;
 static char e_recovery_interrupted[]  =  "E311: Recovery Interrupted"  ;
 static char e_errors_detected_while_recovering_look_for_lines_starting_with_questions[]  =  "E312: Errors detected while recovering; look for lines starting with ???"  ;
-static char e_cannot_preserve_there_is_no_swap_file[]  =  "E313: Cannot preserve, there is no swap file"  ;
-static char e_preserve_failed[]  =  "E314: Preserve failed"  ;
 static char e_ml_get_invalid_lnum_nr[]  = "E315: ml_get: Invalid lnum: %ld" ;
 static char e_ml_get_cannot_find_line_nr_in_buffer_nr_str[]  = "E316: ml_get: Cannot find line %ld in buffer %d %s" ;
 static char e_pointer_block_id_wrong[]  = "E317: Pointer block id wrong" ;
@@ -7117,8 +7095,6 @@ static char e_cannot_find_line_nr[]  = "E320: Cannot find line %ld" ;
 static char e_could_not_reload_str[]  =  "E321: Could not reload \"%s\""  ;
 static char e_line_number_out_of_range_nr_past_the_end[]  = "E322: Line number out of range: %ld past the end" ;
 static char e_line_count_wrong_in_block_nr[]  = "E323: Line count wrong in block %ld" ;
-static char e_attention[]  =  "E325: ATTENTION"  ;
-static char e_too_many_swap_files_found[]  =  "E326: Too many swap files found"  ;
 static char e_pattern_too_long[]  =  "E339: Pattern too long"  ;
 static char e_internal_error_please_report_a_bug[]  =  "E340: Internal error; if you can reproduce please report a bug"  ;
 static char e_internal_error_lalloc_zero[]  = "E341: Internal error: lalloc(0, )" ;
@@ -12053,15 +12029,6 @@ handle_swap_exists(bufref_T *old_curbuf)
             msg_silent = old_msg_silent;
 
         }
-
-    }
-    else if (swap_exists_action == SEA_RECOVER)
-    {
-        msg_scroll = TRUE;
-        ml_recover(FALSE);
-        msg_puts("\n");
-        cmdline_row = msg_row;
-        do_modelines(0);
 
     }
     swap_exists_action = SEA_NONE;
@@ -39805,28 +39772,6 @@ ex_listdo(exarg_T *eap)
 
 }
 
-    static void
-ex_checktime(exarg_T *eap)
-{
-    buf_T       *buf;
-    int         save_no_check_timestamps = no_check_timestamps;
-
-    no_check_timestamps = 0;
-    if (eap->addr_count == 0)
-    {
-        check_timestamps(FALSE);
-    }
-    else
-    {
-        buf = buflist_findnr((int)eap->line2);
-        if (buf != NULL)
-        {
-            (void)buf_check_timestamp(buf, FALSE);
-        }
-    }
-    no_check_timestamps = save_no_check_timestamps;
-}
-
 // ==================== ex_docmd.c ====================
 
 static int      quitmore = 0;
@@ -44084,24 +44029,6 @@ ex_shell(exarg_T *eap  __attribute__((unused)) )
 }
 
     static void
-ex_preserve(exarg_T *eap  __attribute__((unused)) )
-{
-    curbuf->b_flags |= BF_PRESERVED;
-    ml_preserve(curbuf, TRUE);
-}
-
-    static void
-ex_recover(exarg_T *eap)
-{
-    recoverymode = TRUE;
-    if (!check_changed(curbuf, (p_awa ? CCGD_AW : 0) | CCGD_MULTWIN | (eap->forceit ? CCGD_FORCEIT : 0) | CCGD_EXCMD) && (*eap->arg == NUL || setfname(curbuf, eap->arg, NULL, TRUE) == OK))
-    {
-        ml_recover(TRUE);
-    }
-    recoverymode = FALSE;
-}
-
-    static void
 ex_wrongmodifier(exarg_T *eap)
 {
     eap->errmsg = ex_errmsg(e_invalid_command_str, eap->cmd);
@@ -44571,19 +44498,6 @@ do_exedit(exarg_T     *eap, win_T       *old_curwin)
 ex_nogui(exarg_T *eap)
 {
     eap->errmsg = _(e_gui_cannot_be_used_not_enabled_at_compile_time);
-}
-
-    static void
-ex_swapname(exarg_T *eap  __attribute__((unused)) )
-{
-    if (curbuf->b_ml.ml_mfp == NULL || curbuf->b_ml.ml_mfp->mf_fname == NULL)
-    {
-        msg(_("No swap file"));
-    }
-    else
-    {
-        msg((char *)curbuf->b_ml.ml_mfp->mf_fname);
-    }
 }
 
     static void
@@ -71462,350 +71376,6 @@ vim_unescape_csi(char_u *p)
     return (size_t)(d - p);
 }
 
-    static int
-makemap(FILE        *fd, buf_T       *buf)
-{
-    mapblock_T  *mp;
-    char_u c1;
-    char_u c2;
-    char_u c3;
-    char_u      *p;
-    char        *cmd;
-    int         abbr;
-    int         hash;
-    int         did_cpo = FALSE;
-    int         i;
-
-    validate_maphash();
-
-    for (abbr = 0; abbr < 2; ++abbr)
-    {
-        for (hash = 0; hash < 256; ++hash)
-        {
-            if (abbr)
-            {
-                if (hash > 0)
-                {
-                    break;
-                }
-                if (buf != NULL)
-                {
-                    mp = buf->b_first_abbr;
-                }
-                else
-                {
-                    mp = first_abbr;
-                }
-            }
-            else
-            {
-                if (buf != NULL)
-                {
-                    mp = buf->b_maphash[hash];
-                }
-                else
-                {
-                    mp = maphash[hash];
-                }
-            }
-
-            for ( ; mp; mp = mp->m_next)
-            {
-                if (mp->m_noremap ==  (-2) )
-                {
-                    continue;
-                }
-
-                for (p = mp->m_str; *p != NUL; ++p)
-                {
-                    if (p[0] ==  (0x80)  && p[1] == KS_EXTRA && p[2] == (int)KE_SNR)
-                    {
-                        break;
-                    }
-                }
-                if (*p != NUL)
-                {
-                    continue;
-                }
-
-                c1 = NUL;
-                c2 = NUL;
-                c3 = NUL;
-                if (abbr)
-                {
-                    cmd = "abbr";
-                }
-                else
-                {
-                    cmd = "map";
-                }
-                switch (mp->m_mode)
-                {
-                    case MODE_NORMAL | MODE_VISUAL | MODE_SELECT
-                                                             | MODE_OP_PENDING:
-                        break;
-                    case MODE_NORMAL:
-                        c1 = 'n';
-                        break;
-                    case MODE_VISUAL:
-                        c1 = 'x';
-                        break;
-                    case MODE_SELECT:
-                        c1 = 's';
-                        break;
-                    case MODE_OP_PENDING:
-                        c1 = 'o';
-                        break;
-                    case MODE_NORMAL | MODE_VISUAL:
-                        c1 = 'n';
-                        c2 = 'x';
-                        break;
-                    case MODE_NORMAL | MODE_SELECT:
-                        c1 = 'n';
-                        c2 = 's';
-                        break;
-                    case MODE_NORMAL | MODE_OP_PENDING:
-                        c1 = 'n';
-                        c2 = 'o';
-                        break;
-                    case MODE_VISUAL | MODE_SELECT:
-                        c1 = 'v';
-                        break;
-                    case MODE_VISUAL | MODE_OP_PENDING:
-                        c1 = 'x';
-                        c2 = 'o';
-                        break;
-                    case MODE_SELECT | MODE_OP_PENDING:
-                        c1 = 's';
-                        c2 = 'o';
-                        break;
-                    case MODE_NORMAL | MODE_VISUAL | MODE_SELECT:
-                        c1 = 'n';
-                        c2 = 'v';
-                        break;
-                    case MODE_NORMAL | MODE_VISUAL | MODE_OP_PENDING:
-                        c1 = 'n';
-                        c2 = 'x';
-                        c3 = 'o';
-                        break;
-                    case MODE_NORMAL | MODE_SELECT | MODE_OP_PENDING:
-                        c1 = 'n';
-                        c2 = 's';
-                        c3 = 'o';
-                        break;
-                    case MODE_VISUAL | MODE_SELECT | MODE_OP_PENDING:
-                        c1 = 'v';
-                        c2 = 'o';
-                        break;
-                    case MODE_CMDLINE | MODE_INSERT:
-                        if (!abbr)
-                        {
-                            cmd = "map!";
-                        }
-                        break;
-                    case MODE_CMDLINE:
-                        c1 = 'c';
-                        break;
-                    case MODE_INSERT:
-                        c1 = 'i';
-                        break;
-                    case MODE_LANGMAP:
-                        c1 = 'l';
-                        break;
-                    case MODE_TERMINAL:
-                        c1 = 't';
-                        break;
-                    default:
-                        iemsg(e_makemap_illegal_mode);
-                        return FAIL;
-                }
-                do
-                {
-                    if (!did_cpo)
-                    {
-                        if (*mp->m_str == NUL)
-                        {
-                            did_cpo = TRUE;
-                        }
-                        else
-                        {
-                            for (i = 0; i < 2; ++i)
-                            {
-                                for (p = (i ? mp->m_str : mp->m_keys); *p; ++p)
-                                {
-                                    if (*p ==  (0x80)  || *p == NL)
-                                    {
-                                        did_cpo = TRUE;
-                                    }
-                                }
-                            }
-                        }
-                        if (did_cpo)
-                        {
-                            if (fprintf(fd, "cpo_save = &cpo") < 0 || put_eol(fd) < 0 || fprintf(fd, "set cpo&vim") < 0 || put_eol(fd) < 0)
-                            {
-                                return FAIL;
-                            }
-                        }
-                    }
-                    if (c1 && putc(c1, fd) < 0)
-                    {
-                        return FAIL;
-                    }
-                    if (mp->m_noremap != REMAP_YES && fprintf(fd, "nore") < 0)
-                    {
-                        return FAIL;
-                    }
-                    if (fputs(cmd, fd) < 0)
-                    {
-                        return FAIL;
-                    }
-                    if (buf != NULL && fputs(" <buffer>", fd) < 0)
-                    {
-                        return FAIL;
-                    }
-                    if (mp->m_nowait && fputs(" <nowait>", fd) < 0)
-                    {
-                        return FAIL;
-                    }
-                    if (mp->m_silent && fputs(" <silent>", fd) < 0)
-                    {
-                        return FAIL;
-                    }
-
-                    if (       putc(' ', fd) < 0 || put_escstr(fd, mp->m_keys, 0) == FAIL || putc(' ', fd) < 0 || put_escstr(fd, mp->m_str, 1) == FAIL || put_eol(fd) < 0)
-                    {
-                        return FAIL;
-                    }
-                    c1 = c2;
-                    c2 = c3;
-                    c3 = NUL;
-                } while (c1 != NUL);
-            }
-        }
-    }
-
-    if (did_cpo)
-    {
-        if (fprintf(fd, "&cpo = cpo_save") < 0 || put_eol(fd) < 0)
-        {
-            return FAIL;
-        }
-    }
-    return OK;
-}
-
-    static int
-put_escstr(FILE *fd, char_u *strstart, int what)
-{
-    char_u      *str = strstart;
-    int         c;
-    int         modifiers;
-
-    if (*str == NUL && what == 1)
-    {
-        if (fprintf(fd, "<Nop>") < 0)
-        {
-            return FAIL;
-        }
-        return OK;
-    }
-
-    for ( ; *str != NUL; ++str)
-    {
-        char_u  *p;
-
-        p = mb_unescape(&str);
-        if (p != NULL)
-        {
-            while (*p != NUL)
-            {
-                if (fputc(*p++, fd) < 0)
-                {
-                    return FAIL;
-                }
-            }
-            --str;
-            continue;
-        }
-
-        c = *str;
-        if (c ==  (0x80)  && what != 2)
-        {
-            modifiers = 0;
-            if (str[1] == KS_MODIFIER)
-            {
-                modifiers = str[2];
-                str += 3;
-
-                p = mb_unescape(&str);
-
-                if (p == NULL)
-                {
-                    c = *str;
-                }
-                else
-                {
-                    c = (*mb_ptr2char)(p);
-                    --str;
-                }
-            }
-            if (c ==  (0x80) )
-            {
-                c =  ((str[1]) == KS_SPECIAL ?  (0x80)  : (str[1]) == KS_ZERO ?   (-((KS_ZERO) + ((int)( ('X') ) << 8)))   :  (-((str[1]) + ((int)(str[2]) << 8))) ) ;
-                str += 2;
-            }
-            if ( ((c) < 0)  || modifiers)
-            {
-                if (fputs((char *)get_special_key_name(c, modifiers), fd) < 0)
-                {
-                    return FAIL;
-                }
-                continue;
-            }
-        }
-
-        if (c == NL)
-        {
-            if (what == 2)
-            {
-                if (fprintf(fd, "\\\026\n") < 0)
-                {
-                    return FAIL;
-                }
-            }
-            else
-            {
-                if (fprintf(fd, "<NL>") < 0)
-                {
-                    return FAIL;
-                }
-            }
-            continue;
-        }
-
-        if (what == 2 && ( ((c) == ' ' || (c) == '\t')  || c == '"' || c == '\\'))
-        {
-            if (putc('\\', fd) < 0)
-            {
-                return FAIL;
-            }
-        }
-        else if (c < ' ' || c > '~' || c == '|' || (what == 0 && c == ' ') || (what == 1 && str == strstart && c == ' ') || (what != 2 && c == '<'))
-        {
-            if (putc(Ctrl_V, fd) < 0)
-            {
-                return FAIL;
-            }
-        }
-        if (putc(c, fd) < 0)
-        {
-            return FAIL;
-        }
-    }
-    return OK;
-}
-
     static void
 check_map_keycodes(void)
 {
@@ -78614,20 +78184,6 @@ mf_open(char_u *fname, int flags)
     return mfp;
 }
 
-    static int
-mf_open_file(memfile_T *mfp, char_u *fname)
-{
-    mf_do_open(mfp, fname, O_RDWR|O_CREAT|O_EXCL);
-
-    if (mfp->mf_fd < 0)
-    {
-        return FAIL;
-    }
-
-    mfp->mf_dirty = MF_DIRTY_YES;
-    return OK;
-}
-
     static void
 mf_close(memfile_T *mfp, int del_file)
 {
@@ -78943,21 +78499,6 @@ mf_sync(memfile_T *mfp, int flags)
     got_int |= got_int_save;
 
     return status;
-}
-
-    static void
-mf_set_dirty(memfile_T *mfp)
-{
-    bhdr_T      *hp;
-
-    for (hp = mfp->mf_used_last; hp != NULL; hp = hp->bh_prev)
-    {
-        if (hp-> bh_hashitem.mhi_key  > 0)
-        {
-            hp->bh_flags |= BH_DIRTY;
-        }
-    }
-    mfp->mf_dirty = MF_DIRTY_YES;
 }
 
     static void
@@ -79415,12 +78956,6 @@ mf_fullname(memfile_T *mfp)
     mfp->mf_ffname = NULL;
 }
 
-    static int
-mf_need_trans(memfile_T *mfp)
-{
-    return (mfp->mf_fname != NULL && mfp->mf_neg_count > 0);
-}
-
     static void
 mf_do_open(memfile_T   *mfp, char_u      *fname, int         flags)
 {
@@ -79721,7 +79256,6 @@ static void set_b0_dir_flag(ZERO_BL *b0p, buf_T *buf);
 static void add_b0_fenc(ZERO_BL *b0p, buf_T *buf);
 static time_t swapfile_info(char_u *);
 static int recov_file_names(char_u **, char_u *, int prepend_dot);
-static char_u *findswapname(buf_T *, char_u **, char_u *);
 static void ml_flush_line(buf_T *);
 static bhdr_T *ml_new_data(memfile_T *, int, int);
 static bhdr_T *ml_new_ptr(memfile_T *);
@@ -79729,7 +79263,6 @@ static bhdr_T *ml_find_line(buf_T *, linenr_T, int);
 static int ml_add_stack(buf_T *);
 static void ml_lineadd(buf_T *, int);
 static int b0_magic_wrong(ZERO_BL *);
-static int fnamecmp_ino(char_u *, char_u *, long);
 static void long_to_char(long, char_u *);
 static long char_to_long(char_u *);
 
@@ -79861,156 +79394,12 @@ error:
     static void
 ml_setname(buf_T *buf)
 {
-    int         success = FALSE;
-    memfile_T   *mfp;
-    char_u      *fname;
-    char_u      *dirp;
-
-    mfp = buf->b_ml.ml_mfp;
-    if (mfp->mf_fd < 0)
-    {
-        if (p_uc != 0 && (cmdmod.cmod_flags & CMOD_NOSWAPFILE) == 0)
-        {
-            ml_open_file(buf);
-        }
-        return;
-    }
-
-    dirp = p_dir;
-    for (;;)
-    {
-        if (*dirp == NUL)
-        {
-            break;
-        }
-        fname = findswapname(buf, &dirp, mfp->mf_fname);
-        if (dirp == NULL)
-        {
-            break;
-        }
-        if (fname == NULL)
-        {
-            continue;
-        }
-
-        if ( vim_fnamecmp((char_u *)(fname), (char_u *)(mfp->mf_fname))  == 0)
-        {
-            vim_free(fname);
-            success = TRUE;
-            break;
-        }
-        if (mfp->mf_fd >= 0)
-        {
-            close(mfp->mf_fd);
-            mfp->mf_fd = -1;
-        }
-
-        if (vim_rename(mfp->mf_fname, fname) == 0)
-        {
-            success = TRUE;
-            vim_free(mfp->mf_fname);
-            mfp->mf_fname = fname;
-            vim_free(mfp->mf_ffname);
-            mf_set_ffname(mfp);
-            ml_upd_block0(buf, UB_SAME_DIR);
-            break;
-        }
-        vim_free(fname);
-    }
-
-    if (mfp->mf_fd == -1)
-    {
-        mfp->mf_fd =  open(((char *)mfp->mf_fname), (O_RDWR | O_EXTRA), (0)) ;
-        if (mfp->mf_fd < 0)
-        {
-            emsg(_(e_oops_lost_the_swap_file));
-            return;
-        }
-        {
-            int fdflags = fcntl(mfp->mf_fd, F_GETFD);
-            if (fdflags >= 0 && (fdflags & FD_CLOEXEC) == 0)
-            {
-                (void)fcntl(mfp->mf_fd, F_SETFD, fdflags | FD_CLOEXEC);
-            }
-        }
-    }
-    if (!success)
-    {
-        emsg(_(e_could_not_rename_swap_file));
-    }
-}
-
-    static void
-ml_open_files(void)
-{
-    buf_T       *buf;
-
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-     {
-        if (!buf->b_p_ro || buf->b_changed)
-        {
-            ml_open_file(buf);
-        }
-     }
 }
 
     static void
 ml_open_file(buf_T *buf)
 {
-    memfile_T   *mfp;
-    char_u      *fname;
-    char_u      *dirp;
-
-    mfp = buf->b_ml.ml_mfp;
-    if (mfp == NULL || mfp->mf_fd >= 0 || !buf->b_p_swf || (cmdmod.cmod_flags & CMOD_NOSWAPFILE))
-    {
-        return;
-    }
-
-    dirp = p_dir;
-    for (;;)
-    {
-        if (*dirp == NUL)
-        {
-            break;
-        }
-        fname = findswapname(buf, &dirp, NULL);
-        if (buf->b_ml.ml_mfp != mfp)
-        {
-            vim_free(fname);
-            return;
-        }
-        if (dirp == NULL)
-        {
-            break;
-        }
-        if (fname == NULL)
-        {
-            continue;
-        }
-        if (mf_open_file(mfp, fname) == OK)
-        {
-            mfp->mf_dirty = MF_DIRTY_YES_NOSYNC;
-            ml_upd_block0(buf, UB_SAME_DIR);
-
-            if (mf_sync(mfp, MFS_ZERO) == OK)
-            {
-                mf_set_dirty(mfp);
-                break;
-            }
-            mf_close_file(buf, FALSE);
-        }
-    }
-
-    if (*p_dir != NUL && mfp->mf_fname == NULL)
-    {
-        need_wait_return = TRUE;
-        ++no_wait_return;
-        (void)semsg(_(e_unable_to_open_swap_file_for_str_recovery_impossible), buf_spname(buf) != NULL ? buf_spname(buf) : buf->b_fname);
-        --no_wait_return;
-    }
-
-    buf->b_may_swap = false;
+    buf->b_may_swap = FALSE;
 }
 
     static void
@@ -81151,66 +80540,6 @@ swapfile_info(char_u *fname)
 }
 
     static int
-swapfile_unchanged(char_u *fname)
-{
-    stat_T          st;
-    int             fd;
-    struct block0   b0;
-    int             ret = TRUE;
-
-    if ( stat(((char *)fname), (&st))  == -1)
-    {
-        return FALSE;
-    }
-
-    fd =  open(((char *)fname), (O_RDONLY | O_EXTRA), (0)) ;
-    if (fd < 0)
-    {
-        return FALSE;
-    }
-    if (read_eintr(fd, &b0, sizeof(b0)) != sizeof(b0))
-    {
-        close(fd);
-        return FALSE;
-    }
-
-    if (ml_check_b0_id(&b0) == FAIL|| b0_magic_wrong(&b0))
-    {
-        ret = FALSE;
-    }
-
-    if (b0. b0_fname[B0_FNAME_SIZE_ORG - 1] )
-    {
-        ret = FALSE;
-    }
-
-    if (*(b0.b0_hname) == NUL)
-    {
-        ret = FALSE;
-    }
-    else
-    {
-        char_u      hostname[B0_HNAME_SIZE];
-
-        mch_get_host_name(hostname, B0_HNAME_SIZE);
-        hostname[B0_HNAME_SIZE - 1] = NUL;
-        b0.b0_hname[B0_HNAME_SIZE - 1] = NUL;
-        if ( strcasecmp((char *)(b0.b0_hname), (char *)(hostname))  != 0)
-        {
-            ret = FALSE;
-        }
-    }
-
-    if (char_to_long(b0.b0_pid) == 0L || swapfile_process_running(&b0, fname))
-    {
-        ret = FALSE;
-    }
-
-    close(fd);
-    return ret;
-}
-
-    static int
 recov_file_names(char_u **names, char_u *path, int prepend_dot)
 {
     int         num_names;
@@ -81293,98 +80622,11 @@ end:
     static void
 ml_sync_all(int check_file, int check_char)
 {
-    buf_T               *buf;
-    stat_T              st;
-
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-    {
-        if (buf->b_ml.ml_mfp == NULL || buf->b_ml.ml_mfp->mf_fname == NULL || buf->b_ml.ml_mfp->mf_fd < 0)
-        {
-            continue;
-        }
-
-        ml_flush_line(buf);
-        (void)ml_find_line(buf, (linenr_T)0, ML_FLUSH);
-        if (bufIsChanged(buf) && check_file && mf_need_trans(buf->b_ml.ml_mfp) && buf->b_ffname != NULL)
-        {
-            if ( stat(((char *)buf->b_ffname), (&st))  == -1 || st.st_mtime != buf->b_mtime_read || st. st_mtim.tv_nsec  != buf->b_mtime_read_ns || st.st_size != buf->b_orig_size)
-            {
-                ml_preserve(buf, FALSE);
-                did_check_timestamps = FALSE;
-                need_check_timestamps = TRUE;
-            }
-        }
-        if (buf->b_ml.ml_mfp->mf_dirty == MF_DIRTY_YES)
-        {
-            (void)mf_sync(buf->b_ml.ml_mfp, (check_char ? MFS_STOP : 0) | (bufIsChanged(buf) ? MFS_FLUSH : 0));
-            if (check_char && ui_char_avail())
-            {
-                break;
-            }
-        }
-    }
 }
 
     static void
 ml_preserve(buf_T *buf, int message)
 {
-    bhdr_T      *hp;
-    linenr_T    lnum;
-    memfile_T   *mfp = buf->b_ml.ml_mfp;
-    int         status;
-    int         got_int_save = got_int;
-
-    if (mfp == NULL || mfp->mf_fname == NULL)
-    {
-        if (message)
-        {
-            emsg(_(e_cannot_preserve_there_is_no_swap_file));
-        }
-        return;
-    }
-
-    got_int = FALSE;
-
-    ml_flush_line(buf);
-    (void)ml_find_line(buf, (linenr_T)0, ML_FLUSH);
-    status = mf_sync(mfp, MFS_ALL | MFS_FLUSH);
-
-    buf->b_ml.ml_stack_top = 0;
-
-    if (mf_need_trans(mfp) && !got_int)
-    {
-        lnum = 1;
-        while (mf_need_trans(mfp) && lnum <= buf->b_ml.ml_line_count)
-        {
-            hp = ml_find_line(buf, lnum, ML_FIND);
-            if (hp == NULL)
-            {
-                status = FAIL;
-                goto theend;
-            }
-            lnum = buf->b_ml.ml_locked_high + 1;
-        }
-        (void)ml_find_line(buf, (linenr_T)0, ML_FLUSH);
-        if (mf_sync(mfp, MFS_ALL | MFS_FLUSH) == FAIL)
-        {
-            status = FAIL;
-        }
-        buf->b_ml.ml_stack_top = 0;
-    }
-theend:
-    got_int |= got_int_save;
-
-    if (message)
-    {
-        if (status == OK)
-        {
-            msg(_("File preserved"));
-        }
-        else
-        {
-            emsg(_(e_preserve_failed));
-        }
-    }
 }
 
     static char_u  *
@@ -82834,368 +82076,10 @@ get_file_in_dir(char_u  *fname, char_u  *dname)
     return retval.string;
 }
 
-    static void
-attention_message(buf_T   *buf, char_u  *fname)
-{
-    stat_T      st;
-    time_t      swap_mtime;
-
-    ++no_wait_return;
-    (void)emsg(_(e_attention));
-    msg_puts(_("\nFound a swap file by the name \""));
-    msg_home_replace(fname);
-    msg_puts("\"\n");
-    swap_mtime = swapfile_info(fname);
-    msg_puts(_("While opening file \""));
-    msg_outtrans(buf->b_fname);
-    msg_puts("\"\n");
-    if ( stat(((char *)buf->b_fname), (&st))  == -1)
-    {
-        msg_puts(_("      CANNOT BE FOUND"));
-    }
-    else
-    {
-        msg_puts(_("             dated: "));
-        msg_puts(get_ctime(st.st_mtime, TRUE));
-        if (swap_mtime != 0 && st.st_mtime > swap_mtime)
-        {
-            msg_puts(_("      NEWER than swap file!\n"));
-        }
-    }
-    msg_puts(_("\n(1) Another program may be editing the same file.  If this is the case,\n    be careful not to end up with two different instances of the same\n    file when making changes.  Quit, or continue with caution.\n"));
-    msg_puts(_("(2) An edit session for this file crashed.\n"));
-    msg_puts(_("    If this is the case, use \":recover\" or \"vim -r "));
-    msg_outtrans(buf->b_fname);
-    msg_puts(_("\"\n    to recover the changes (see \":help recovery\").\n"));
-    msg_puts(_("    If you did this already, delete the swap file \""));
-    msg_outtrans(fname);
-    msg_puts(_("\"\n    to avoid this message.\n"));
-    cmdline_row = msg_row;
-    --no_wait_return;
-}
-
-typedef enum {
-    SEA_CHOICE_NONE = 0,
-    SEA_CHOICE_READONLY = 1,
-    SEA_CHOICE_EDIT = 2,
-    SEA_CHOICE_RECOVER = 3,
-    SEA_CHOICE_DELETE = 4,
-    SEA_CHOICE_QUIT = 5,
-    SEA_CHOICE_ABORT = 6
-} sea_choice_T;
-
-    static char_u *
-findswapname(buf_T       *buf, char_u      **dirp, char_u      *old_fname)
-{
-    char_u      *fname;
-    int         n;
-    char_u      *dir_name;
-    int         r;
-    char_u      *buf_fname = buf->b_fname;
-
-    dir_name = alloc( strlen((char *)(*dirp))  + 1);
-    if (dir_name == NULL)
-    {
-        *dirp = NULL;
-    }
-    else
-    {
-        (void)copy_option_part(dirp, dir_name, 31000, ",");
-    }
-
-    if (dir_name == NULL)
-    {
-        fname = NULL;
-    }
-    else
-    {
-        fname = makeswapname(buf_fname, buf->b_ffname, buf, dir_name);
-    }
-
-    for (;;)
-    {
-        if (fname == NULL)
-        {
-            break;
-        }
-        if ((n = (int) strlen((char *)(fname)) ) == 0)
-        {
-             vim_free(fname);
-             (fname) = NULL;
-            break;
-        }
-        if (fname[n - 2] == 'w' && fname[n - 1] == 'p' && !(buf->b_p_sn || buf->b_shortname))
-        {
-            char_u          *tail;
-            char_u          *fname2;
-            stat_T s1;
-            stat_T s2;
-            int f1;
-            int f2;
-            int created1 = FALSE;
-            int created2 = FALSE;
-            int             same = FALSE;
-
-            tail = gettail(buf_fname);
-            if (       vim_strchr(tail, '.') != NULL ||  strlen((char *)(tail))  > (size_t)8 || *gettail(fname) == '.')
-            {
-                fname2 = alloc(n + 2);
-                if (fname2 != NULL)
-                {
-                     strcpy((char *)(fname2), (char *)(fname)) ;
-                    if (vim_strchr(tail, '.') != NULL)
-                    {
-                        fname2[n - 1] = 'x';
-                    }
-                    else if (*gettail(fname) == '.')
-                    {
-                        fname2[n] = 'x';
-                        fname2[n + 1] = NUL;
-                    }
-                    else
-                    {
-                        fname2[n - 5] += 1;
-                    }
-                    f1 =  open(((char *)fname), (O_RDONLY | O_EXTRA), (0)) ;
-                    if (f1 < 0)
-                    {
-                        f1 =   open((((char *)fname)), ((O_RDWR|O_CREAT|O_EXCL|O_EXTRA)), ((mode_t)0600))  ;
-                        created1 = TRUE;
-                    }
-                    if (f1 >= 0)
-                    {
-                        f2 =  open(((char *)fname2), (O_RDONLY | O_EXTRA), (0)) ;
-                        if (f2 < 0)
-                        {
-                            f2 =   open((((char *)fname2)), ((O_RDWR|O_CREAT|O_EXCL|O_EXTRA)), ((mode_t)0600))  ;
-                            created2 = TRUE;
-                        }
-                        if (f2 >= 0)
-                        {
-                            if ( fstat((f1), (&s1))  != -1 &&  fstat((f2), (&s2))  != -1 && s1.st_dev == s2.st_dev && s1.st_ino == s2.st_ino)
-                            {
-                                same = TRUE;
-                            }
-                            close(f2);
-                            if (created2)
-                            {
-                                 unlink((char *)(fname2)) ;
-                            }
-                        }
-                        close(f1);
-                        if (created1)
-                        {
-                             unlink((char *)(fname)) ;
-                        }
-                    }
-                    vim_free(fname2);
-                    if (same)
-                    {
-                        buf->b_shortname = true;
-                        vim_free(fname);
-                        fname = makeswapname(buf_fname, buf->b_ffname, buf, dir_name);
-                        continue;
-                    }
-                }
-            }
-        }
-        if (mch_getperm(fname) < 0)
-        {
-            stat_T      sb;
-
-            if ( lstat(((char *)fname), (&sb))  < 0)
-            {
-                break;
-            }
-        }
-
-        if (old_fname != NULL &&  vim_fnamecmp((char_u *)(fname), (char_u *)(old_fname))  == 0)
-        {
-            break;
-        }
-
-        if (fname[n - 2] == 'w' && fname[n - 1] == 'p')
-        {
-            if (!(buf->b_p_sn || buf->b_shortname))
-            {
-                fname[n - 1] = 'x';
-                r = mch_getperm(fname);
-                fname[n - 1] = 'p';
-                if (r >= 0)
-                {
-                    buf->b_shortname = true;
-                    vim_free(fname);
-                    fname = makeswapname(buf_fname, buf->b_ffname, buf, dir_name);
-                    continue;
-                }
-            }
-            if (!recoverymode && buf_fname != NULL && !buf->b_help && !(buf->b_flags & (BF_DUMMY | BF_NO_SEA)))
-            {
-                int             fd;
-                struct block0   b0;
-                int             differ = FALSE;
-
-                fd =  open(((char *)fname), (O_RDONLY | O_EXTRA), (0)) ;
-                if (fd >= 0)
-                {
-                    if (read_eintr(fd, &b0, sizeof(b0)) == sizeof(b0))
-                    {
-                        if (b0. b0_fname[B0_FNAME_SIZE_ORG - 2]  & B0_SAME_DIR)
-                        {
-                            if ( vim_fnamecmp((char_u *)(gettail(buf->b_ffname)), (char_u *)(gettail(b0.b0_fname)))  != 0 || !same_directory(fname, buf->b_ffname))
-                            {
-                                expand_env(b0.b0_fname, NameBuff,  PATH_MAX );
-                                if (fnamecmp_ino(buf->b_ffname, NameBuff, char_to_long(b0.b0_ino)))
-                                {
-                                    differ = TRUE;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            expand_env(b0.b0_fname, NameBuff,  PATH_MAX );
-                            if (fnamecmp_ino(buf->b_ffname, NameBuff, char_to_long(b0.b0_ino)))
-                            {
-                                differ = TRUE;
-                            }
-                        }
-                    }
-                    close(fd);
-                }
-
-                if (differ == FALSE && !(curbuf->b_flags & BF_RECOVERED) && vim_strchr(p_shm, SHM_ATTENTION) == NULL)
-                {
-                    sea_choice_T choice = SEA_CHOICE_NONE;
-                    stat_T       st;
-
-                    if ( stat(((char *)buf->b_fname), (&st))  == 0 && swapfile_unchanged(fname))
-                    {
-                        choice = SEA_CHOICE_DELETE;
-                        if (p_verbose > 0)
-                        {
-                            verb_msg(_("Found a swap file that is not useful, deleting it"));
-                        }
-                    }
-
-                    if (choice == SEA_CHOICE_NONE && swap_exists_action == SEA_READONLY)
-                    {
-                        choice = SEA_CHOICE_READONLY;
-                    }
-
-                    if (choice == SEA_CHOICE_NONE)
-                    {
-                        attention_message(buf, fname);
-
-                        got_int = FALSE;
-
-                        flush_buffers(FLUSH_TYPEAHEAD);
-                    }
-
-                    switch (choice)
-                    {
-                        case SEA_CHOICE_READONLY:
-                            buf->b_p_ro = TRUE;
-                            break;
-                        case SEA_CHOICE_EDIT:
-                            break;
-                        case SEA_CHOICE_RECOVER:
-                            swap_exists_action = SEA_RECOVER;
-                            break;
-                        case SEA_CHOICE_DELETE:
-                             unlink((char *)(fname)) ;
-                            break;
-                        case SEA_CHOICE_QUIT:
-                            swap_exists_action = SEA_QUIT;
-                            break;
-                        case SEA_CHOICE_ABORT:
-                            swap_exists_action = SEA_QUIT;
-                            got_int = TRUE;
-                            break;
-                        case SEA_CHOICE_NONE:
-                            msg_puts("\n");
-                            if (msg_silent == 0)
-                            {
-                                need_wait_return = TRUE;
-                            }
-                            break;
-                    }
-
-                    if (choice != SEA_CHOICE_NONE && mch_getperm(fname) < 0)
-                    {
-                        break;
-                    }
-
-                }
-            }
-        }
-
-        if (fname[n - 1] == 'a')
-        {
-            if (fname[n - 2] == 'a')
-            {
-                emsg(_(e_too_many_swap_files_found));
-                 vim_free(fname);
-                 (fname) = NULL;
-                break;
-            }
-            --fname[n - 2];
-            fname[n - 1] = 'z' + 1;
-        }
-        --fname[n - 1];
-    }
-
-    vim_free(dir_name);
-    return fname;
-}
-
     static int
 b0_magic_wrong(ZERO_BL *b0p)
 {
     return (b0p->b0_magic_long != (long)B0_MAGIC_LONG || b0p->b0_magic_int != (int)B0_MAGIC_INT || b0p->b0_magic_short != (short)B0_MAGIC_SHORT || b0p->b0_magic_char != B0_MAGIC_CHAR);
-}
-
-    static int
-fnamecmp_ino(char_u      *fname_c, char_u      *fname_s, long        ino_block0)
-{
-    stat_T      st;
-    ino_t       ino_c = 0;
-    ino_t       ino_s;
-    char_u      buf_c[ PATH_MAX ];
-    char_u      buf_s[ PATH_MAX ];
-    int         retval_c;
-    int         retval_s;
-
-    if ( stat(((char *)fname_c), (&st))  == 0)
-    {
-        ino_c = (ino_t)st.st_ino;
-    }
-
-    if ( stat(((char *)fname_s), (&st))  == 0)
-    {
-        ino_s = (ino_t)st.st_ino;
-    }
-    else
-    {
-        ino_s = (ino_t)ino_block0;
-    }
-
-    if (ino_c && ino_s)
-    {
-        return (ino_c != ino_s);
-    }
-
-    retval_c = vim_FullName(fname_c, buf_c,  PATH_MAX , TRUE);
-    retval_s = vim_FullName(fname_s, buf_s,  PATH_MAX , TRUE);
-    if (retval_c == OK && retval_s == OK)
-    {
-        return  strcmp((char *)(buf_c), (char *)(buf_s))  != 0;
-    }
-
-    if (ino_s == 0 && ino_c == 0 && retval_c == FAIL && retval_s == FAIL)
-    {
-        return  strcmp((char *)(fname_c), (char *)(fname_s))  != 0;
-    }
-    return TRUE;
 }
 
     static void
@@ -83297,18 +82181,6 @@ static int  verbose_did_open = FALSE;
 msg(char *s)
 {
     return msg_attr_keep(s, 0, FALSE);
-}
-
-    static int
-verb_msg(char *s)
-{
-    int         n;
-
-    verbose_enter();
-    n = msg_attr_keep(s, 0, FALSE);
-    verbose_leave();
-
-    return n;
 }
 
     static int
@@ -104229,10 +103101,6 @@ static struct vimoption options[] =
     {"digraph",     "dg",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"directory",   "dir",  P_STRING|P_EXPAND|P_VI_DEF|P_ONECOMMA
-                                                            |P_NODUP|P_SECURE,
-                            (char_u *)&p_dir, PV_NONE, NULL, NULL,
-                            {(char_u *) ".,~/tmp,/var/tmp,/tmp" , (char_u *)0L}   },
     {"display",     "dy",   P_STRING|P_VI_DEF|P_ONECOMMA|P_RALL|P_NODUP,
                             (char_u *)&p_dy, PV_NONE, did_set_display, expand_set_display,
                             {(char_u *)"", (char_u *)0L}   },
@@ -105159,9 +104027,6 @@ static struct vimoption options[] =
     {"swapfile",    "swf",  P_BOOL|P_VI_DEF|P_RSTAT,
                             (char_u *)&p_swf,   (idopt_T)(PV_BUF + (int)(BV_SWF))  , did_set_swapfile, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
-    {"swapsync",    "sws",  P_STRING|P_VI_DEF,
-                            (char_u *)&p_sws, PV_NONE, did_set_swapsync, expand_set_swapsync,
-                            {(char_u *)"fsync", (char_u *)0L}   },
     {"switchbuf",   "swb",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
                             (char_u *)&p_swb, PV_NONE, did_set_switchbuf, expand_set_switchbuf,
                             {(char_u *)"", (char_u *)0L}   },
@@ -105330,9 +104195,6 @@ static struct vimoption options[] =
     {"undoreload",  "ur",   P_NUM|P_VI_DEF,
                             (char_u *)&p_ur, PV_NONE, NULL, NULL,
                             { (char_u *)10000L, (char_u *)0L}   },
-    {"updatecount", "uc",   P_NUM|P_VI_DEF,
-                            (char_u *)&p_uc, PV_NONE, did_set_updatecount, NULL,
-                            {(char_u *)200L, (char_u *)0L}   },
     {"updatetime",  "ut",   P_NUM|P_VI_DEF,
                             (char_u *)&p_ut, PV_NONE, NULL, NULL,
                             {(char_u *)4000L, (char_u *)0L}   },
@@ -105603,9 +104465,6 @@ static int find_key_option(char_u *arg_arg, int has_lt);
 static void showoptions(int all, int opt_flags);
 static int optval_default(struct vimoption *, char_u *varp, int compatible);
 static void showoneopt(struct vimoption *, int opt_flags);
-static int put_setstring(FILE *fd, bool legacy, char *cmd, char *name, char_u **valuep, long_u flags);
-static int put_setnum(FILE *fd, char *cmd, char *name, long *valuep);
-static int put_setbool(FILE *fd, char *cmd, char *name, int value);
 static int istermoption(struct vimoption *p);
 static int istermoption_idx(int opt_idx);
 static char_u *get_varp_scope(struct vimoption *p, int scope);
@@ -108441,25 +107300,6 @@ did_set_undolevels(optset_T *args)
 }
 
     static char *
-did_set_updatecount(optset_T *args)
-{
-    long old_value = args->os_oldval.number;
-    char *errmsg = NULL;
-
-    if (p_uc < 0)
-    {
-        errmsg = e_argument_must_be_positive;
-        p_uc = 100;
-    }
-    if (p_uc && !old_value)
-    {
-        ml_open_files();
-    }
-
-    return errmsg;
-}
-
-    static char *
 did_set_weirdinvert(optset_T *args)
 {
     if (p_wiv && !args->os_oldval.boolean)
@@ -109354,268 +108194,6 @@ showoneopt(struct vimoption    *p, int                 opt_flags)
 
     silent_mode = save_silent;
     info_message = FALSE;
-}
-
-    static int
-makeset(FILE *fd, int opt_flags, int local_only)
-{
-    struct vimoption    *p;
-    char_u              *varp;
-    char_u              *varp_fresh;
-    char_u              *varp_local = NULL;
-    char                *cmd;
-    int                 round;
-    int                 pri;
-
-    for (pri = 1; pri >= 0; --pri)
-    {
-      for (p = &options[0]; !istermoption(p); p++)
-      {
-        if (!(p->flags & P_NO_MKRC) && !istermoption(p) && ((pri == 1) == ((p->flags & P_PRI_MKRC) != 0)))
-        {
-            if (p->indir == PV_NONE && !(opt_flags & OPT_GLOBAL))
-            {
-                continue;
-            }
-
-            if ((opt_flags & OPT_GLOBAL) && (p->flags & P_NOGLOB))
-            {
-                continue;
-            }
-
-            varp = get_varp_scope(p, opt_flags);
-            if ((opt_flags & OPT_GLOBAL) && optval_default(p, varp, p_cp))
-            {
-                continue;
-            }
-
-            if ((opt_flags & OPT_SKIPRTP) && (p->var == (char_u *)&p_rtp || p->var == (char_u *)&p_pp))
-            {
-                continue;
-            }
-
-            round = 2;
-            if (p->indir != PV_NONE)
-            {
-                if (p->var ==  ((char_u *)-1) )
-                {
-                    if (!(opt_flags & OPT_LOCAL))
-                    {
-                        continue;
-                    }
-                    if (!(opt_flags & OPT_GLOBAL) && !local_only)
-                    {
-                        varp_fresh = get_varp_scope(p, OPT_GLOBAL);
-                        if (!optval_default(p, varp_fresh, p_cp))
-                        {
-                            round = 1;
-                            varp_local = varp;
-                            varp = varp_fresh;
-                        }
-                    }
-                }
-            }
-
-            for ( ; round <= 2; varp = varp_local, ++round)
-            {
-                if (round == 1 || (opt_flags & OPT_GLOBAL))
-                {
-                    cmd = "set";
-                }
-                else
-                {
-                    cmd = "setlocal";
-                }
-
-                if (p->flags & P_BOOL)
-                {
-                    if (put_setbool(fd, cmd, p->fullname, *(int *)varp) == FAIL)
-                    {
-                        return FAIL;
-                    }
-                }
-                else if (p->flags & P_NUM)
-                {
-                    if (put_setnum(fd, cmd, p->fullname, (long *)varp) == FAIL)
-                    {
-                        return FAIL;
-                    }
-                }
-                else
-                {
-                    int         do_endif = FALSE;
-                    bool        legacy;
-
-                    if ((p->flags & P_FUNC) && *(char_u **)varp != NULL && strstr(*(char **)varp, "<lambda>") != NULL)
-                    {
-                        continue;
-                    }
-
-                    legacy = false;
-
-                    if (p->indir ==   (idopt_T)(PV_BUF + (int)(BV_FT))  )
-                    {
-                        if (fprintf(fd, "if &%s != '%s'", p->fullname, *(char_u **)(varp)) < 0 || put_eol(fd) < 0)
-                        {
-                            return FAIL;
-                        }
-                        do_endif = TRUE;
-                    }
-                    if (put_setstring(fd, legacy, cmd, p->fullname, (char_u **)varp, p->flags) == FAIL)
-                    {
-                        return FAIL;
-                    }
-                    if (do_endif)
-                    {
-                        if (put_line(fd, "endif") == FAIL)
-                        {
-                            return FAIL;
-                        }
-                    }
-                }
-            }
-        }
-      }
-    }
-    return OK;
-}
-
-    static int
-put_setstring(FILE        *fd, bool        legacy, char        *cmd, char        *name, char_u      **valuep, long_u      flags)
-{
-    char_u      *s;
-    char_u      *buf = NULL;
-    char_u      *part = NULL;
-    char_u      *p;
-
-    if (legacy && fprintf(fd, "legacy ") < 0)
-    {
-        return FAIL;
-    }
-    if (fprintf(fd, "%s %s=", cmd, name) < 0)
-    {
-        return FAIL;
-    }
-    if (*valuep != NULL)
-    {
-        if (valuep == &p_pt)
-        {
-            s = *valuep;
-            while (*s != NUL)
-            {
-                if (put_escstr(fd, str2special(&s, FALSE, FALSE), 2) == FAIL)
-                {
-                    return FAIL;
-                }
-            }
-        }
-        else if ((flags & P_EXPAND) != 0)
-        {
-            int  size = (int) strlen((char *)(*valuep))  + 1;
-
-            buf = alloc(size);
-            if (buf == NULL)
-            {
-                goto fail;
-            }
-            home_replace(NULL, *valuep, buf, size, FALSE);
-
-            if (size >=  PATH_MAX  && (flags & P_COMMA) != 0 && vim_strchr(*valuep, ',') != NULL)
-            {
-                part = alloc(size);
-                if (part == NULL)
-                {
-                    goto fail;
-                }
-
-                if (put_eol(fd) == FAIL)
-                {
-                    goto fail;
-                }
-
-                p = buf;
-                while (*p != NUL)
-                {
-                    if (legacy && fprintf(fd, "legacy ") < 0)
-                    {
-                        return FAIL;
-                    }
-                    if (fprintf(fd, "%s %s+=", cmd, name) < 0)
-                    {
-                        goto fail;
-                    }
-                    (void)copy_option_part(&p, part, size,  ",");
-                    if (put_escstr(fd, part, 2) == FAIL || put_eol(fd) == FAIL)
-                    {
-                        goto fail;
-                    }
-                }
-                vim_free(buf);
-                vim_free(part);
-                return OK;
-            }
-            if (put_escstr(fd, buf, 2) == FAIL)
-            {
-                vim_free(buf);
-                return FAIL;
-            }
-            vim_free(buf);
-        }
-        else if (put_escstr(fd, *valuep, 2) == FAIL)
-        {
-            return FAIL;
-        }
-    }
-    if (put_eol(fd) < 0)
-    {
-        return FAIL;
-    }
-    return OK;
-fail:
-    vim_free(buf);
-    vim_free(part);
-    return FAIL;
-}
-
-    static int
-put_setnum(FILE        *fd, char        *cmd, char        *name, long        *valuep)
-{
-    long        wc;
-
-    if (fprintf(fd, "%s %s=", cmd, name) < 0)
-    {
-        return FAIL;
-    }
-    if (wc_use_keyname((char_u *)valuep, &wc))
-    {
-        if (fputs((char *)get_special_key_name((int)wc, 0), fd) < 0)
-        {
-            return FAIL;
-        }
-    }
-    else if (fprintf(fd, "%ld", *valuep) < 0)
-    {
-        return FAIL;
-    }
-    if (put_eol(fd) < 0)
-    {
-        return FAIL;
-    }
-    return OK;
-}
-
-    static int
-put_setbool(FILE        *fd, char        *cmd, char        *name, int         value)
-{
-    if (value < 0)
-    {
-        return OK;
-    }
-    if (fprintf(fd, "%s %s%s", cmd, value ? "" : "no", name) < 0 || put_eol(fd) < 0)
-    {
-        return FAIL;
-    }
-    return OK;
 }
 
     static void
@@ -111379,7 +109957,6 @@ static char *(p_cfc_values[]) = {"keyword", "files", "whole_line", NULL};
 static char *(p_cot_values[]) = {"menu", "menuone", "longest", "preview", "popup", "popuphidden", "noinsert", "noselect", "fuzzy", "nosort", "preinsert", "nearest", NULL};
 static char *(p_trz_values[]) = {"inband", "sigwinch", "", NULL};
 static char *(p_sloc_values[]) = {"last", "statusline", "tabline", NULL};
-static char *(p_sws_values[]) = {"fsync", "sync", NULL};
 
 static int check_opt_strings(char_u *val, char **values, int list);
 static int opt_strings_flags(char_u *val, char **values, unsigned *flagp, int list);
@@ -113531,18 +112108,6 @@ did_set_splitkeep(optset_T *args  __attribute__((unused)) )
 expand_set_splitkeep(optexpand_T *args, int *numMatches, char_u ***matches)
 {
     return expand_set_opt_string(args, p_spk_values,  (sizeof(p_spk_values) / sizeof((p_spk_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char *
-did_set_swapsync(optset_T *args  __attribute__((unused)) )
-{
-    return did_set_opt_strings(p_sws, p_sws_values, FALSE);
-}
-
-    static int
-expand_set_swapsync(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_sws_values,  (sizeof(p_sws_values) / sizeof((p_sws_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -134698,103 +133263,6 @@ update_search_stat(int                 dirc, pos_T               *pos, pos_T    
 
 // ==================== session.c ====================
 
-    static void
-ex_mkrc(exarg_T *eap)
-{
-    FILE        *fd;
-    int         failed = FALSE;
-    char_u      *fname;
-
-    if (eap->cmdidx == CMD_mksession || eap->cmdidx == CMD_mkview)
-    {
-        ex_ni(eap);
-        return;
-    }
-
-        if (*eap->arg != NUL)
-        {
-        fname = eap->arg;
-        }
-    else if (eap->cmdidx == CMD_mkvimrc)
-    {
-        fname = (char_u *) ".vimrc" ;
-    }
-    else
-    {
-        fname = (char_u *) ".exrc" ;
-    }
-
-    fd = open_exfile(fname, eap->forceit,  "w" );
-    if (fd != NULL)
-    {
-        if (put_line(fd, "vim9script") == FAIL)
-        {
-            failed = TRUE;
-        }
-
-        if (eap->cmdidx == CMD_mkvimrc)
-        {
-            (void)put_line(fd, "version 6.0");
-        }
-
-        {
-            if (p_cp)
-            {
-                (void)put_line(fd, "if !&cp | set cp | endif");
-            }
-            else
-            {
-                (void)put_line(fd, "if &cp | set nocp | endif");
-            }
-        }
-
-        {
-            bool do_mappings = true;
-            int flags = OPT_GLOBAL;
-
-            if (do_mappings)
-            {
-                failed |= (makemap(fd, NULL) == FAIL || makeset(fd, flags, FALSE) == FAIL);
-            }
-
-        }
-
-        if (put_line(fd, "# vim: set ft=vim :") == FAIL)
-        {
-            failed = TRUE;
-        }
-
-        failed |= fclose(fd);
-
-        if (failed)
-        {
-            emsg(_(e_error_while_writing));
-        }
-    }
-
-    apply_autocmds(EVENT_SESSIONWRITEPOST, NULL, NULL, FALSE, curbuf);
-}
-
-    static int
-put_eol(FILE *fd)
-{
-    if ((putc('\n', fd) < 0))
-    {
-        return FAIL;
-    }
-    return OK;
-}
-
-    static int
-put_line(FILE *fd, char *s)
-{
-    if (fputs(s, fd) < 0 || put_eol(fd) == FAIL)
-    {
-        return FAIL;
-    }
-    return OK;
-}
-
 // ==================== strings.c ====================
 
     static char_u *
@@ -148316,7 +146784,7 @@ static struct cmdname cmdnames[] =
     [CMD_chdir] = {(char_u *)"chdir", sizeof("chdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_changes] = {(char_u *)"changes", sizeof("changes") - 1, ex_changes, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_checkpath] = {(char_u *)"checkpath", sizeof("checkpath") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_BANG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_checktime] = {(char_u *)"checktime", sizeof("checktime") - 1, ex_checktime, (long_u)(EX_RANGE|EX_BUFNAME|EX_COUNT|EX_EXTRA|EX_TRLBAR), ADDR_OTHER},
+    [CMD_checktime] = {(char_u *)"checktime", sizeof("checktime") - 1, ex_ni, (long_u)(EX_RANGE|EX_BUFNAME|EX_COUNT|EX_EXTRA|EX_TRLBAR), ADDR_OTHER},
     [CMD_chistory] = {(char_u *)"chistory", sizeof("chistory") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
     [CMD_clist] = {(char_u *)"clist", sizeof("clist") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_clipreset] = {(char_u *)"clipreset", sizeof("clipreset") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -148542,11 +147010,11 @@ static struct cmdname cmdnames[] =
     [CMD_menu] = {(char_u *)"menu", sizeof("menu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_menutranslate] = {(char_u *)"menutranslate", sizeof("menutranslate") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_messages] = {(char_u *)"messages", sizeof("messages") - 1, ex_messages, (long_u)(EX_EXTRA|EX_TRLBAR|EX_RANGE|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_mkexrc] = {(char_u *)"mkexrc", sizeof("mkexrc") - 1, ex_mkrc, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_mksession] = {(char_u *)"mksession", sizeof("mksession") - 1, ex_mkrc, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
+    [CMD_mkexrc] = {(char_u *)"mkexrc", sizeof("mkexrc") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_mksession] = {(char_u *)"mksession", sizeof("mksession") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
     [CMD_mkspell] = {(char_u *)"mkspell", sizeof("mkspell") - 1,  ex_ni , (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_NONE},
-    [CMD_mkvimrc] = {(char_u *)"mkvimrc", sizeof("mkvimrc") - 1, ex_mkrc, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_mkview] = {(char_u *)"mkview", sizeof("mkview") - 1, ex_mkrc, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
+    [CMD_mkvimrc] = {(char_u *)"mkvimrc", sizeof("mkvimrc") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_mkview] = {(char_u *)"mkview", sizeof("mkview") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
     [CMD_mode] = {(char_u *)"mode", sizeof("mode") - 1, ex_mode, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_mzscheme] = {(char_u *)"mzscheme", sizeof("mzscheme") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK|EX_RESTRICT), ADDR_LINES},
     [CMD_mzfile] = {(char_u *)"mzfile", sizeof("mzfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
@@ -148593,7 +147061,7 @@ static struct cmdname cmdnames[] =
     [CMD_pop] = {(char_u *)"pop", sizeof("pop") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_COUNT|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
     [CMD_popup] = {(char_u *)"popup", sizeof("popup") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_BANG|EX_TRLBAR|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_ppop] = {(char_u *)"ppop", sizeof("ppop") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_COUNT|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_preserve] = {(char_u *)"preserve", sizeof("preserve") - 1, ex_preserve, (long_u)(EX_TRLBAR), ADDR_NONE},
+    [CMD_preserve] = {(char_u *)"preserve", sizeof("preserve") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
     [CMD_previous] = {(char_u *)"previous", sizeof("previous") - 1, ex_previous, (long_u)(EX_EXTRA|EX_RANGE|EX_COUNT|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
     [CMD_promptfind] = {(char_u *)"promptfind", sizeof("promptfind") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_promptrepl] = {(char_u *)"promptrepl", sizeof("promptrepl") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -148627,7 +147095,7 @@ static struct cmdname cmdnames[] =
     [CMD_quitall] = {(char_u *)"quitall", sizeof("quitall") - 1, ex_quit_all, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_qall] = {(char_u *)"qall", sizeof("qall") - 1, ex_quit_all, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_read] = {(char_u *)"read", sizeof("read") - 1, ex_read, (long_u)(EX_BANG|EX_RANGE|EX_WHOLEFOLD| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_recover] = {(char_u *)"recover", sizeof("recover") - 1, ex_recover, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
+    [CMD_recover] = {(char_u *)"recover", sizeof("recover") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
     [CMD_redo] = {(char_u *)"redo", sizeof("redo") - 1, ex_redo, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_redir] = {(char_u *)"redir", sizeof("redir") - 1, ex_redir, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_redraw] = {(char_u *)"redraw", sizeof("redraw") - 1, ex_redraw, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -148712,7 +147180,7 @@ static struct cmdname cmdnames[] =
     [CMD_sunmenu] = {(char_u *)"sunmenu", sizeof("sunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_suspend] = {(char_u *)"suspend", sizeof("suspend") - 1, ex_stop, (long_u)(EX_TRLBAR|EX_BANG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_sview] = {(char_u *)"sview", sizeof("sview") - 1, ex_splitview, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_swapname] = {(char_u *)"swapname", sizeof("swapname") - 1, ex_swapname, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_swapname] = {(char_u *)"swapname", sizeof("swapname") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_syntax] = {(char_u *)"syntax", sizeof("syntax") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_syntime] = {(char_u *)"syntime", sizeof("syntime") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_syncbind] = {(char_u *)"syncbind", sizeof("syncbind") - 1, ex_syncbind, (long_u)(EX_TRLBAR), ADDR_NONE},
