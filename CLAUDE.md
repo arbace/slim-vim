@@ -942,6 +942,18 @@ source file's own sha256, with `objects/`, the built binary and `config.log`
 excluded — that last one carries a timestamp, and a boundary containing it
 would never equal itself twice).
 
+**The built binary is excluded for exactly that reason too**, and the exclusion
+has to name it in both pipelines: `/vim$` matches `./vim` and does *not* match
+`./pure-vim`, so every pure boundary counted its own binary — and `version.c`
+embeds `__DATE__` and `__TIME__`, so no pure boundary was ever equal to itself
+twice. **Nothing caught it for eleven phases**, and the reason is worth keeping:
+a phase replayed from the tier 3 cache copies the recorded digest rather than
+recomputing it, so a cached pass agrees with the oracle whatever the oracle
+says. **Only a run from an empty cache can falsify a boundary.** `make repure`
+after `rm -rf .cache/q*` is that run, and it is the check to make before
+trusting a recording — every pure boundary reproduces under it, each phase a
+program.
+
 ```sh
 make repass          # force a pass on a tree whose sha already matches
 make phase-4         # re-run one phase from the previous boundary

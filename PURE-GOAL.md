@@ -395,27 +395,37 @@ working features and call it progress.
 
 ### What it says today
 
-**48% of `pure-vim`'s functions are never entered** — 1,590 of 3,329, holding
-35,486 lines, about a fifth of the file. The top of the list is one item:
+**47% of `pure-vim`'s functions are never entered** — 1,520 of 3,255, holding
+27,865 lines, about a sixth of the file. Measured after Phase 10:
 
 ```
-   4122  nfa_emit_equi_class        the NFA engine's equivalence classes
-    775  reg_equi_class
-    710  nfa_regmatch
-    636  nfa_regatom
-    315  post2nfa
+    775  reg_equi_class             the backtracking engine's equivalence classes
+    713  get_c_indent               'cindent', which nothing here turns on
+    284  do_mouse                   'mouse' is empty by default
+    251  do_window                  CTRL-W, which no harness presses
+    168  vim_findfile_init
+    160  modify_fname
+    158  win_equal_rec
+    147  vim_findfile
 ```
 
-`'regexpengine'` is compiled in as **1**, the backtracking engine, so nothing
-this editor does by default ever enters the NFA engine — perhaps six thousand
-lines of it. It is not unused: `:set re=2` and `\%#=2` still reach it. So it is
-the first real decision of the "unuseful" kind, and it is a *capability*
-decision rather than a sweep: the question is whether an embedded editor should
-carry a second regexp engine that its own defaults never select.
+**Compare it to the last reading and the list is doing its job.** It was taken
+before Phase 6 and said 1,590 of 3,329 over 35,486 lines, with one entry —
+`nfa_emit_equi_class`, 4,122 lines — as the whole top of it. Phases 6 to 10
+removed 7,621 lines of never-entered code, and most of that is the NFA engine
+Phase 6 cut. What is left at the top is a different
+kind: `get_c_indent`, `do_mouse` and `do_window` are *kind 2*, reachable and
+useful and simply not exercised, which is a finding about the harness rather
+than about the code. Only `vim_findfile` and `vim_findfile_init` are kind 3 —
+the file-lookup layer, which is a phase of its own.
 
-Below it the list is mostly kind 2 and kind 3 — `mainerr` and `get_number_arg`
-(error paths the harness never triggers), `read_stdin`, `mch_expand_wildcards`
-and `vim_findfile` (the file-lookup layer, which is a phase of its own).
+**Also measured: the harness itself.** `tools/coverage.sh` was resolving the
+source path relative to the wrong directory, so `exsweep.py` exited 1 and the
+`&&` chain took the pty scenarios down with it — and what came back was a
+figure computed from one harness out of three: 64% never entered instead of
+47%. It was lower than the previous reading, it moved in a plausible direction,
+and it was wrong. The three harnesses are now run and reported separately, so a
+failure says so instead of quietly shrinking the denominator.
 
 ## What comes next
 

@@ -30,8 +30,17 @@ jobs=$(nproc 2>/dev/null || echo 4)
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-cp "$src" "$tmp/cov.c"
 here=$(pwd)
+# Absolute, because every harness below runs with $tmp as its cwd and one of
+# them is handed the SOURCE as well as the binary.  A relative path resolved
+# fine here and not there, exsweep exited 1, the `&&` chain took the pty
+# scenarios with it, and what came back was a coverage figure computed from a
+# third of the harness -- lower than the last one, plausible, and wrong.
+case $src in
+    /*) ;;
+    *)  src=$here/$src ;;
+esac
+cp "$src" "$tmp/cov.c"
 
 ( cd "$tmp" && gcc -O0 --coverage -o cov cov.c 2>/dev/null )
 echo "  instrument   $(basename "$src") built with --coverage"
@@ -39,11 +48,23 @@ echo "  instrument   $(basename "$src") built with --coverage"
 # Everything that exercises the editor.  The Ex sweep is the broad one -- 600
 # commands -- and the reason this is worth doing at all: a hand-written case
 # list would find its own blind spots.
-( cd "$tmp" \
-  && python3 "$here/tools/behaviour.py" ./cov "$tmp/b" >/dev/null 2>&1 \
-  && python3 "$here/tools/exsweep.py"   ./cov "$src" "$tmp/s" >/dev/null 2>&1 \
-  && python3 "$here/tools/ptycheck.py"  ./cov "$tmp/y" >/dev/null 2>&1 ) || true
-echo "  exercise     behaviour cases, 600 Ex commands, pty scenarios"
+# Each is run and REPORTED separately.  Chaining them with `&&` meant a harness
+# that failed silently removed the two after it from the measurement, and the
+# only symptom was a number that had moved the wrong way.
+ran=
+for h in behaviour:b exsweep:s ptycheck:y; do
+    name=${h%:*}; dir=${h#*:}
+    case $name in
+        exsweep) args="./cov $src $tmp/$dir" ;;
+        *)       args="./cov $tmp/$dir" ;;
+    esac
+    if ( cd "$tmp" && python3 "$here/tools/$name.py" $args >/dev/null 2>&1 ); then
+        ran="$ran $name"
+    else
+        echo "  exercise     $name FAILED -- the figure below is short of it"
+    fi
+done
+echo "  exercise    $ran"
 
 ( cd "$tmp" && gcov -f -n cov.c 2>/dev/null ) | python3 -c '
 import sys, re
