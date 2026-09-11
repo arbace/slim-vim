@@ -30,7 +30,7 @@ set -eu
 set -o pipefail
 
 work=${1:?usage: agentpass.sh <work-dir>}
-mkdir -p .build/ref
+mkdir -p .build-slim/ref
 
 PROMPT=$(cat <<PREAMBLE
 You are running one whole pass of the process in SLIM-GOAL.md, unattended.  Nobody
@@ -63,7 +63,7 @@ Five things this invocation fixes:
    $work/ either; the makefile does that when you exit 0.
 
 2. Write ONLY inside $work/.  Not the root Makefile, not slim.mk, not tools/,
-   not SLIM-GOAL.md, not CLAUDE.md, not .reference/, not .build/ -- and above all
+   not SLIM-GOAL.md, not CLAUDE.md, not .reference/, not .build-slim/ -- and above all
    NOT the slim-vim.c at the repository root.  That file is the fast path's answer
    and this run exists to be compared against it; overwriting it destroys the
    comparison.  Leave your slim-vim.c and LICENSE in $work/ and the makefile will
@@ -71,7 +71,7 @@ Five things this invocation fixes:
 
 3. Do not commit, and do not run git outside $work/.
 
-4. Keep .build/ref/PROGRESS.md as you work -- one section per phase, appended,
+4. Keep .build-slim/ref/PROGRESS.md as you work -- one section per phase, appended,
    never rewritten.  Record elapsed time per phase, what you did, every place
    SLIM-GOAL.md turned out to be wrong or incomplete, and -- most valuable of all --
    anything upstream has changed that a program written against the previous
@@ -96,4 +96,4 @@ IS_SANDBOX=1 SLIM_VIM_PASS=refpass \
         --model opus \
         --dangerously-skip-permissions \
         --output-format stream-json --verbose \
-    2>&1 | tee .build/ref/pass.log
+    2>&1 | tee .build-slim/ref/pass.log

@@ -13,20 +13,15 @@ TRANSCRIPT.md
 
 # The pristine vim trees the makefile clones in for a pass and deletes after --
 # the fast path's, and the reference path's.  8,581 files that must never reach
-# a commit.  See GOAL.md.
+# a commit.  See SLIM-GOAL.md.
 upstream/
 upstream-ref/
 
 # What a pass leaves behind: phase snapshots, boundary digests, per-phase agent
-# streams and timings.  .build/
-.build-pure/
-
-# The pure pipeline's work directory: one file and a makefile, rebuilt from
-# slim-vim.c on demand and deleted with the build.
-pure/ is a restore point and a development asset --
-# converting a phase to a program means restoring the previous boundary and
+# streams and timings.  .build-slim/ is a restore point and a development asset
+# -- converting a phase to a program means restoring the previous boundary and
 # comparing the next -- but it is data, not source, and a new pass discards it.
-.build/
+.build-slim/
 .build-pure/
 
 # The pure pipeline's work directory: one file and a makefile, rebuilt from
@@ -38,7 +33,7 @@ pure/
 # stale, and deleting it costs only the time to recompute.
 .cache/
 
-# The transient insight log, folded into GOAL.md and CLAUDE.md and then deleted.
+# The transient insight log, folded into SLIM-GOAL.md and CLAUDE.md and then deleted.
 PROGRESS.md
 
 # Editing this tree with the editor it builds.

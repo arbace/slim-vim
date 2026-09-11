@@ -17,7 +17,7 @@
 
 case ${1:-slim} in
     slim) PIPE=slim; TAG=p; IMPL=slim ; DOC=SLIM-GOAL.md
-          PWORK=upstream; PBUILD=.build
+          PWORK=upstream; PBUILD=.build-slim
           PHASE_LIST="0 1 2 3 4 5 6 7 8 9" ;;
     pure) PIPE=pure; TAG=q; IMPL=pure;  DOC=PURE-GOAL.md
           PWORK=pure;     PBUILD=.build-pure

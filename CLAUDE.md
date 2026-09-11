@@ -120,7 +120,7 @@ copy of this tree with the recorded baselines beside it (see below);
 `TRANSCRIPT.md`, which `/export` writes whenever this file is updated;
 `upstream/`, the pristine vim tree a pass clones in, works on and deletes —
 8,581 files that must never reach a commit, and which do not exist between
-passes; `.build/`, the phase boundaries a pass leaves behind — a tar and a
+passes; `.build-slim/`, the phase boundaries a pass leaves behind — a tar and a
 content digest per phase, plus each phase agent's stream and its elapsed
 seconds; and `PROGRESS.md`, the transient insight log whose contents are folded
 into `SLIM-GOAL.md` and this file and then deleted. `upstream.sha` is deliberately

@@ -45,7 +45,7 @@ Rules, all of them absolute:
   one, and do not "while I am here" anything.  A harness runs the phases; you
   are one step of it.
 - Do not modify anything outside $work/.  Not the root Makefile, not tools/,
-  not SLIM-GOAL.md, not CLAUDE.md, not .reference/, not .build/.  They are the
+  not SLIM-GOAL.md, not CLAUDE.md, not .reference/, not .build-slim/.  They are the
   harness that invoked you.
 - Do not commit, and do not run git at all outside $work/.  The harness records
   this phase's boundary as a content digest, which is a better record than an
@@ -78,7 +78,7 @@ a 47-second phase into seven minutes.
                        file lists on the command line and do nothing at import.
   .reference/baselines what the Phase 1 binary did, recorded.  behaviour.py,
                        exsweep.py, ptycheck.py and termcheck.py compare to it.
-  .build/pN.tar        the tree each earlier phase left, if you need to look.
+  .build-slim/pN.tar        the tree each earlier phase left, if you need to look.
 
 THE TOOLS.  All of them exist.  Do not read their source before running them,
 and do not write your own version of one:
@@ -109,7 +109,7 @@ check the warnings too, since a token-neutral change can still be wrong.
 Anything else: the harnesses against .reference/baselines.  Blank lines are
 what no tier can see; count them when you touch paragraphing.
 
-If you need a program that does not exist, write it into .build/newtools/ and
+If you need a program that does not exist, write it into .build-slim/newtools/ and
 say so in your final output, so it can be kept.  Two tools written into /tmp by
 an earlier phase were nearly lost with it.
 

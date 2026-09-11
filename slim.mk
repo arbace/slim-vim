@@ -25,7 +25,7 @@
 # their message.  A digest is a better record, and it is checkable.
 
 WORK    = upstream
-BUILD   = .build
+BUILD   = .build-slim
 ORACLE  = .reference/slim-phases
 
 PHASES  = 0 1 2 3 4 5 6 7 8 9

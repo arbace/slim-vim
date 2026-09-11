@@ -22,7 +22,7 @@ What is in front of you:
   value is why.  Establish what upstream patch caused it before writing a word;
   a difference is a result, not a failure, and the commit has to name its
   cause.
-- `.build/p*.sha256` are this pass's phase boundaries and `.reference/slim-phases/`
+- `.build-slim/p*.sha256` are this pass's phase boundaries and `.reference/slim-phases/`
   holds what the last one recorded.  The first boundary that differs is where
   the change entered, and that is worth stating.
 - `tools/verify.sh .reference/baselines --enums` and `tools/refcheck.sh` are the
@@ -55,4 +55,4 @@ IS_SANDBOX=1 SLIM_VIM_PASS=docs \
         --model opus \
         --dangerously-skip-permissions \
         --output-format stream-json --verbose \
-    2>&1 | tee .build/docs.log
+    2>&1 | tee .build-slim/docs.log

@@ -313,7 +313,7 @@ program is what makes it. So a mismatch against an advisory boundary is
 information, and a mismatch against a check is a failure.
 
 **Writing a phase program starts with the boundary diff, not with this
-document.** `.build/p2.tar` against `.build/p3.tar` says exactly what Phase 3
+document.** `.build-slim/p2.tar` against `.build-slim/p3.tar` says exactly what Phase 3
 did, in files rather than prose, and all four converted so far were written
 that way in minutes. What this document is for is the *why* — which of those
 edits is load-bearing, and which of them is a trap that a diff cannot show you.
