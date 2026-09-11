@@ -173,6 +173,38 @@ since a startup screen is exactly the kind of thing a terminal harness records.
 The command-line flags change nothing the harness can see, because it never
 passes them; the evidence for those is the score and the missing hostname.
 
+## Phase 4 — the binary's name stops choosing what it does
+
+`parse_command_name()` reads `argv[0]` and picks a mode from it: a leading `r`
+is restricted mode, `e` selects evim, `g` the GUI, and `view`, `diff` and `ex`
+prefixes each change it again. **That is a Unix *installation* convention** —
+symlink `rvim`, `view` and `ex` at one binary and let the name decide — and an
+embedded editor, which is one file that was never installed, has no use for it.
+
+It is also the trap this repository has paid for more than once. A reference
+binary saved as `ref` runs restricted, where every shell-out fails. Renaming the
+product to `slim-vim` needed a side-by-side check before it could be trusted.
+And every harness here stages the binary under test as `vim` for no reason
+except this function. Removing it removes the whole class.
+
+**Nothing is lost, and that is checked rather than asserted.** Every mode the
+name could select has an option that selects it explicitly, and
+`tools/noargv0.py` refuses to run unless all of them are still there:
+
+| | | |
+| --- | --- | --- |
+| `-Z` restricted | `-R` readonly | `-y` evim |
+| `-e` Ex mode | `-E` improved Ex | `-d` diff |
+
+One difference worth knowing: invoking vim as `view` also set `'undolevels'` to
+10000, and `-R` does not. Upstream's own option is the weaker of the two, so
+this follows the option rather than the name.
+
+**The delta: none.** The harnesses stage the binary as `vim`, which selected
+plain vim mode before and selects it now, so nothing they record can move. The
+evidence is the score — and the fact that `pure-vim` can now be called anything
+at all.
+
 ## What comes next
 
 Not yet done, in the order they are worth doing:

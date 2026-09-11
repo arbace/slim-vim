@@ -178063,7 +178063,6 @@ enum { EDIT_TAG = 3 };
 static int file_owned(char *fname);
 static void mainerr(int, char_u *);
 static void early_arg_scan(mparm_T *parmp);
-static void parse_command_name(mparm_T *parmp);
 static void command_line_scan(mparm_T *parmp);
 static void check_tty(mparm_T *parmp);
 static void read_stdin(void);
@@ -178639,63 +178638,6 @@ get_number_arg(char_u      *p, int         *idx, int         def)
         }
     }
     return def;
-}
-
-    static void
-parse_command_name(mparm_T *parmp)
-{
-    char_u      *initstr;
-
-    initstr = gettail((char_u *)parmp->argv[0]);
-
-    if ( (((initstr[0]) < 'A' || (initstr[0]) > 'Z') ? (initstr[0]) : (initstr[0]) + ('a' - 'A'))  == 'r')
-    {
-        restricted = TRUE;
-        ++initstr;
-    }
-
-    if ( (((initstr[0]) < 'A' || (initstr[0]) > 'Z') ? (initstr[0]) : (initstr[0]) + ('a' - 'A'))  == 'e' && ( (((initstr[1]) < 'A' || (initstr[1]) > 'Z') ? (initstr[1]) : (initstr[1]) + ('a' - 'A'))  == 'v' ||  (((initstr[1]) < 'A' || (initstr[1]) > 'Z') ? (initstr[1]) : (initstr[1]) + ('a' - 'A'))  == 'g'))
-    {
-        parmp->evim_mode = TRUE;
-        ++initstr;
-    }
-
-    if ( (((initstr[0]) < 'A' || (initstr[0]) > 'Z') ? (initstr[0]) : (initstr[0]) + ('a' - 'A'))  == 'g')
-    {
-        main_start_gui();
-    }
-
-    if ( strncasecmp((char *)(initstr), (char *)("view"), (4))  == 0)
-    {
-        readonlymode = TRUE;
-        curbuf->b_p_ro = TRUE;
-        p_uc = 10000;
-        initstr += 4;
-    }
-    else if ( strncasecmp((char *)(initstr), (char *)("vim"), (3))  == 0)
-    {
-        initstr += 3;
-    }
-
-    if ( strcasecmp((char *)(initstr), (char *)("diff"))  == 0)
-    {
-         fprintf(stderr, "%s", (_("This Vim was not compiled with the diff feature."))) ;
-         fprintf(stderr, "%s", ("\n")) ;
-        mch_exit(2);
-    }
-
-    if ( strncasecmp((char *)(initstr), (char *)("ex"), (2))  == 0)
-    {
-        if ( strncasecmp((char *)(initstr + 2), (char *)("im"), (2))  == 0)
-        {
-            exmode_active = EXMODE_VIM;
-        }
-        else
-        {
-            exmode_active = EXMODE_NORMAL;
-        }
-        change_compatible(TRUE);
-    }
 }
 
     static void
@@ -179720,8 +179662,6 @@ main
     }
 
     common_init_2(&params);
-
-    parse_command_name(&params);
 
     command_line_scan(&params);
 
