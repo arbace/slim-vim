@@ -34,7 +34,7 @@ sys.path.insert(0, __file__.rsplit('/', 1)[0])
 import cutil
 
 
-def drop_row(text, name, strict=False):
+def drop_row(text, name, strict=False, local=False):
     """Remove options[]'s row for `name`, found by brace matching."""
     m = re.search(r'^[ \t]*\{"%s",' % re.escape(name), text, re.M)
     if not m:
@@ -107,7 +107,14 @@ def drop_row(text, name, strict=False):
         reads = []
         for o in others:
             line = text[text.rfind('\n', 0, o) + 1:text.index('\n', o)]
-            if re.match(r'[ \t]*\{"', line) or re.match(r'[ \t]*\(char_u \*\)&', line):
+            # Not reads: another row of options[], the row's own var field,
+            # and -- the one that made this guard cry wolf the first time it
+            # was actually wired up -- the variable's OWN DECLARATION.  A
+            # declaration is what the row initialises, not something that
+            # reads it.
+            if (re.match(r'[ \t]*\{"', line)
+                    or re.match(r'[ \t]*\(char_u \*\)&', line)
+                    or re.match(r'static\b[^=]*\b%s;$' % re.escape(name_of_var), line)):
                 continue
             reads.append(line.strip()[:90])
         if reads:
@@ -116,7 +123,14 @@ def drop_row(text, name, strict=False):
                      "dereferences:\n    %s\nRemove the readers first."
                      % (name, name_of_var, '\n    '.join(reads[:3])))
 
+    # --local says the caller is removing the buffer-local field in the same
+    # phase, with tools/droplocal.py.  It suspends the PV_ guard and nothing
+    # else: the name test and the global-read test above still apply, and the
+    # phase still has to run the binary afterwards.  Without the pairing this
+    # is the flag that reintroduces Phase 14's segfault.
     indir = re.search(r'PV_\w+', text[m.start():m.start() + 400])
+    if local:
+        indir = None
     if indir and indir.group(0) != 'PV_NONE':
         sys.exit("dropoptions: '%s' is %s -- a buffer- or window-local option "
                  "whose row also initialises its global.  Removing the row "
@@ -140,6 +154,7 @@ def drop_row(text, name, strict=False):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     strict = '--strict' in sys.argv
+    local = '--local' in sys.argv
     if len(args) < 2:
         sys.exit(__doc__)
     path = Path(args[0])
@@ -148,7 +163,7 @@ def main():
 
     dropped = []
     for name in names:
-        text, ok = drop_row(text, name)
+        text, ok = drop_row(text, name, strict, local)
         if not ok:
             sys.exit('dropoptions: no options[] row for %r -- it has already '
                      'gone, or the table has moved under this phase' % name)

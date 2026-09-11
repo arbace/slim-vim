@@ -1394,7 +1394,6 @@ static char_u   *p_cink;
 static char_u   *p_cinsd;
 static char_u   *p_cinw;
 static int      p_ci;
-static int      p_ar;
 static int      p_aw;
 static int      p_awa;
 static char_u   *p_bs;
@@ -1569,7 +1568,6 @@ static char_u   *p_para;
 static int      p_paste;
 static char_u   *p_pt;
 static char_u   *p_pm;
-static char_u   *p_path;
 static char_u   *p_cdpath;
 static int      p_pi;
 static char_u   *p_qe;
@@ -1610,8 +1608,6 @@ static int      p_si;
 static int      p_sta;
 static long     p_sts;
 static int      p_sb;
-static char_u   *p_sua;
-static int      p_swf;
 static long     p_tpm;
 static int      p_spr;
 static int      p_sol;
@@ -1632,9 +1628,6 @@ static unsigned tcl_flags;
 enum { TCL_LEFT = 0x001 };
 enum { TCL_USELAST = 0x002 };
 static long     p_ts;
-static char_u   *p_tc;
-static unsigned tc_flags;
-static char_u   *p_tags;
 static char_u   *p_trz;
 static int      p_tsy;
 static int      p_terse;
@@ -3198,8 +3191,6 @@ struct file_buffer
     int         b_p_si;
     long        b_p_sts;
     long        b_p_sts_nopaste;
-    char_u      *b_p_sua;
-    int         b_p_swf;
     long        b_p_ts;
     int         b_p_tx;
     long        b_p_tw;
@@ -3210,10 +3201,6 @@ struct file_buffer
     long        b_p_wm_nopaste;
 
     char_u      *b_p_ep;
-    char_u      *b_p_path;
-    int         b_p_ar;
-    char_u      *b_p_tags;
-    char_u      *b_p_tc;
     unsigned    b_tc_flags;
     char_u      *b_p_dict;
     char_u      *b_p_tsr;
@@ -5753,7 +5740,6 @@ static char *did_set_maxsearchcount(optset_T *args);
 static char *did_set_shiftwidth_tabstop(optset_T *args);
 static char *did_set_showtabline(optset_T *args);
 static char *did_set_smoothscroll(optset_T *args);
-static char *did_set_swapfile(optset_T *args);
 static char *did_set_termsync(optset_T *args);
 static char *did_set_terse(optset_T *args);
 static char *did_set_textauto(optset_T *args);
@@ -5905,8 +5891,6 @@ static char *did_set_switchbuf(optset_T *args);
 static int expand_set_switchbuf(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_tabclose(optset_T *args);
 static int expand_set_tabclose(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_tagcase(optset_T *args);
-static int expand_set_tagcase(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_term(optset_T *args);
 static char *did_set_term_option(optset_T *args);
 static char *did_set_termresize(optset_T *args);
@@ -12872,7 +12856,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     clear_string_option(&buf->b_p_com);
     clear_string_option(&buf->b_p_cms);
     clear_string_option(&buf->b_p_nf);
-    clear_string_option(&buf->b_p_sua);
     clear_string_option(&buf->b_p_ft);
     clear_string_option(&buf->b_p_cink);
     clear_string_option(&buf->b_p_cino);
@@ -12882,14 +12865,10 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     clear_string_option(&buf->b_p_cot);
     clear_string_option(&buf->b_p_cpt);
     clear_string_option(&buf->b_p_ep);
-    clear_string_option(&buf->b_p_path);
-    clear_string_option(&buf->b_p_tags);
-    clear_string_option(&buf->b_p_tc);
     clear_string_option(&buf->b_p_dict);
     clear_string_option(&buf->b_p_tsr);
     clear_string_option(&buf->b_p_qe);
     buf->b_p_ac = -1;
-    buf->b_p_ar = -1;
     buf->b_p_fs = -1;
     buf->b_p_ul =  (-123456) ;
     clear_string_option(&buf->b_p_lw);
@@ -38990,13 +38969,6 @@ ex_drop(exarg_T *eap)
         {
             goto_tabpage_win(tp, wp);
             curwin->w_arg_idx = 0;
-            if (!bufIsChanged(curbuf))
-            {
-                int save_ar = curbuf->b_p_ar;
-
-                curbuf->b_p_ar = TRUE;
-                curbuf->b_p_ar = save_ar;
-            }
             if (curbuf->b_ml.ml_flags & ML_EMPTY)
             {
                 ex_rewind(eap);
@@ -75473,44 +75445,6 @@ mf_close(memfile_T *mfp, int del_file)
 }
 
     static void
-mf_close_file(buf_T       *buf, int         getlines)
-{
-    memfile_T   *mfp;
-    linenr_T    lnum;
-
-    mfp = buf->b_ml.ml_mfp;
-    if (mfp == NULL || mfp->mf_fd < 0)
-    {
-        return;
-    }
-
-    if (getlines)
-    {
-        mf_dont_release = TRUE;
-        for (lnum = 1; lnum <= buf->b_ml.ml_line_count; ++lnum)
-        {
-            (void)ml_get_buf(buf, lnum, FALSE);
-        }
-        mf_dont_release = FALSE;
-    }
-
-    if (close(mfp->mf_fd) < 0)
-    {
-        emsg(_(e_close_error_on_swap_file));
-    }
-    mfp->mf_fd = -1;
-
-    if (mfp->mf_fname != NULL)
-    {
-         unlink((char *)(mfp->mf_fname)) ;
-         vim_free(mfp->mf_fname);
-         (mfp->mf_fname) = NULL;
-         vim_free(mfp->mf_ffname);
-         (mfp->mf_ffname) = NULL;
-    }
-}
-
-    static void
 mf_new_page_size(memfile_T *mfp, unsigned new_size)
 {
     total_mem_used += new_size - mfp->mf_page_size;
@@ -76533,17 +76467,9 @@ ml_open(buf_T *buf)
 
     if (cmdmod.cmod_flags & CMOD_NOSWAPFILE)
     {
-        buf->b_p_swf = FALSE;
     }
 
-    if (p_uc && buf->b_p_swf)
-    {
-        buf->b_may_swap = true;
-    }
-    else
-    {
-        buf->b_may_swap = false;
-    }
+    buf->b_may_swap = false;
 
     mfp = mf_open(NULL, 0);
     if (mfp == NULL)
@@ -100052,9 +99978,6 @@ static struct vimoption options[] =
     {"autoprint",   "ap",   P_BOOL|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"autoread",    "ar",   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_ar,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_AR)) ))  , NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
     {"autoshelldir",  "asd",   P_BOOL|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
@@ -100946,11 +100869,6 @@ static struct vimoption options[] =
                             (char_u *)&p_pm, PV_NONE,
                             did_set_backupext_or_patchmode, NULL,
                             {(char_u *)"", (char_u *)0L}   },
-    {"path",        "pa",   P_STRING|P_EXPAND|P_VI_DEF|P_COMMA|P_NODUP,
-                            (char_u *)&p_path,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_PATH)) ))  , NULL, NULL,
-                            {
-                            (char_u *)".,/usr/include,,",
-                                (char_u *)0L}   },
     {"perldll",     NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
@@ -101262,13 +101180,6 @@ static struct vimoption options[] =
                             (char_u *)&p_su, PV_NONE, NULL, NULL,
                             {(char_u *)".bak,~,.o,.h,.info,.swp,.obj",
                                 (char_u *)0L}   },
-    {"suffixesadd", "sua",  P_STRING|P_VI_DEF|P_ALLOCED|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_sua,   (idopt_T)(PV_BUF + (int)(BV_SUA))  , NULL, NULL,
-                            {(char_u *)"", (char_u *)0L}
-                              },
-    {"swapfile",    "swf",  P_BOOL|P_VI_DEF|P_RSTAT,
-                            (char_u *)&p_swf,   (idopt_T)(PV_BUF + (int)(BV_SWF))  , did_set_swapfile, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
     {"switchbuf",   "swb",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
                             (char_u *)&p_swb, PV_NONE, did_set_switchbuf, expand_set_switchbuf,
                             {(char_u *)"", (char_u *)0L}   },
@@ -101293,18 +101204,10 @@ static struct vimoption options[] =
                             (char_u *)&p_ts,   (idopt_T)(PV_BUF + (int)(BV_TS))  ,
                             did_set_shiftwidth_tabstop, NULL,
                             {(char_u *)4L, (char_u *)0L}   },
-    {"tagcase",     "tc",   P_STRING|P_VIM,
-                            (char_u *)&p_tc,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_TC)) ))  , did_set_tagcase, expand_set_tagcase,
-                            {(char_u *)"followic", (char_u *)"followic"}   },
     {"tagfunc",    "tfu",   P_STRING|P_ALLOCED|P_VI_DEF|P_SECURE|P_FUNC,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
                               },
-    {"tags",        "tag",  P_STRING|P_EXPAND|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_tags,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_TAGS)) ))  , NULL, NULL,
-                            {
-                            (char_u *)"./tags,tags",
-                                (char_u *)0L}   },
     {"tcldll",      NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
@@ -102034,7 +101937,6 @@ set_init_1(int clean_arg)
 
     curbuf->b_p_initialized = true;
     curbuf->b_p_ac = -1;
-    curbuf->b_p_ar = -1;
     curbuf->b_p_fs = -1;
     curbuf->b_p_ul =  (-123456) ;
     check_buf_options(curbuf);
@@ -103234,11 +103136,7 @@ do_set_option_bool(int         opt_idx, int         opt_flags, set_prefix_T pref
     }
     else if (nextchar == '<')
     {
-        if ((int *)varp == &curbuf->b_p_ar && opt_flags == OPT_LOCAL)
-        {
-            value = -1;
-        }
-        else if ((int *)varp == &curbuf->b_p_ac && opt_flags == OPT_LOCAL)
+        if ((int *)varp == &curbuf->b_p_ac && opt_flags == OPT_LOCAL)
         {
             value = -1;
         }
@@ -103871,8 +103769,7 @@ option_expand(int opt_idx, char_u *val)
         val = *(char_u **)options[opt_idx].var;
     }
 
-    char_u ** var = (char_u **)options[opt_idx].var;
-    int esc = var == &p_tags || var == &p_path;
+    int esc = FALSE;
 
     expand_env_esc(val, NameBuff,  PATH_MAX , esc ? (char_u *)" \t" : NULL, FALSE, NULL);
     if ( strcmp((char *)(NameBuff), (char *)(val))  == 0)
@@ -104380,20 +104277,6 @@ did_set_smoothscroll(optset_T *args  __attribute__((unused)) )
         curwin->w_skipcol = 0;
     }
 
-    return NULL;
-}
-
-    static char *
-did_set_swapfile(optset_T *args  __attribute__((unused)) )
-{
-    if (curbuf->b_p_swf && p_uc)
-    {
-        ml_open_file(curbuf);
-    }
-    else
-    {
-        mf_close_file(curbuf, TRUE);
-    }
     return NULL;
 }
 
@@ -105532,16 +105415,8 @@ get_varp_scope(struct vimoption *p, int scope)
                 return (char_u *)&(curbuf->b_p_ep);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_KP)) ))  :
                 return (char_u *)&(curbuf->b_p_kp);
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_PATH)) ))  :
-                return (char_u *)&(curbuf->b_p_path);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_AC)) ))  :
                 return (char_u *)&(curbuf->b_p_ac);
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_AR)) ))  :
-                return (char_u *)&(curbuf->b_p_ar);
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_TAGS)) ))  :
-                return (char_u *)&(curbuf->b_p_tags);
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_TC)) ))  :
-                return (char_u *)&(curbuf->b_p_tc);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SISO)) ))  :
                 return (char_u *)&(curwin-> w_onebuf_opt.wo_siso );
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SO)) ))  :
@@ -105600,21 +105475,9 @@ get_varp(struct vimoption *p)
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_KP)) ))  :
             return *curbuf->b_p_kp != NUL
                                     ? (char_u *)&curbuf->b_p_kp : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_PATH)) ))  :
-            return *curbuf->b_p_path != NUL
-                                    ? (char_u *)&(curbuf->b_p_path) : p->var;
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_AC)) ))  :
             return curbuf->b_p_ac >= 0
                                     ? (char_u *)&(curbuf->b_p_ac) : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_AR)) ))  :
-            return curbuf->b_p_ar >= 0
-                                    ? (char_u *)&(curbuf->b_p_ar) : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_TAGS)) ))  :
-            return *curbuf->b_p_tags != NUL
-                                    ? (char_u *)&(curbuf->b_p_tags) : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_TC)) ))  :
-            return *curbuf->b_p_tc != NUL
-                                    ? (char_u *)&(curbuf->b_p_tc) : p->var;
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_BKC)) ))  :
             return *curbuf->b_p_bkc != NUL
                                     ? (char_u *)&(curbuf->b_p_bkc) : p->var;
@@ -105771,10 +105634,6 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_sn);
         case   (idopt_T)(PV_BUF + (int)(BV_STS))  :
             return (char_u *)&(curbuf->b_p_sts);
-        case   (idopt_T)(PV_BUF + (int)(BV_SUA))  :
-            return (char_u *)&(curbuf->b_p_sua);
-        case   (idopt_T)(PV_BUF + (int)(BV_SWF))  :
-            return (char_u *)&(curbuf->b_p_swf);
         case   (idopt_T)(PV_BUF + (int)(BV_SW))  :
             return (char_u *)&(curbuf->b_p_sw);
         case   (idopt_T)(PV_BUF + (int)(BV_TS))  :
@@ -106002,11 +105861,9 @@ buf_copy_options(buf_T *buf, int flags)
               ;
             if (cmdmod.cmod_flags & CMOD_NOSWAPFILE)
             {
-                buf->b_p_swf = FALSE;
             }
             else
             {
-                buf->b_p_swf = p_swf;
                   ;
             }
             buf->b_p_cpt = vim_strsave(p_cpt);
@@ -106052,7 +105909,6 @@ buf_copy_options(buf_T *buf, int flags)
             buf->b_p_lisp = p_lisp;
               ;
             buf->b_p_fp = empty_option;
-            buf->b_p_sua = vim_strsave(p_sua);
               ;
             buf->b_p_iminsert = p_iminsert;
               ;
@@ -106060,16 +105916,12 @@ buf_copy_options(buf_T *buf, int flags)
               ;
 
             buf->b_p_ac = -1;
-            buf->b_p_ar = -1;
             buf->b_p_fs = -1;
             buf->b_p_ul =  (-123456) ;
             buf->b_p_bkc = empty_option;
             buf->b_bkc_flags = 0;
             buf->b_p_ep = empty_option;
             buf->b_p_kp = empty_option;
-            buf->b_p_path = empty_option;
-            buf->b_p_tags = empty_option;
-            buf->b_p_tc = empty_option;
             buf->b_tc_flags = 0;
             buf->b_p_cot = empty_option;
             buf->b_cot_flags = 0;
@@ -106343,29 +106195,15 @@ set_context_in_set_cmd(expand_T    *xp, char_u      *arg, int         opt_flags)
     if (flags & P_EXPAND)
     {
         p = options[opt_idx].var;
-        if (p == (char_u *)&p_bdir || p == (char_u *)&p_dir || p == (char_u *)&p_path || p == (char_u *)&p_pp || p == (char_u *)&p_rtp || p == (char_u *)&p_cdpath)
+        if (p == (char_u *)&p_bdir || p == (char_u *)&p_dir || p == (char_u *)&p_pp || p == (char_u *)&p_rtp || p == (char_u *)&p_cdpath)
         {
             xp->xp_context = EXPAND_DIRECTORIES;
-            if (p == (char_u *)&p_path || p == (char_u *)&p_cdpath)
-            {
-                xp->xp_backslash = XP_BS_THREE;
-            }
-            else
-            {
-                xp->xp_backslash = XP_BS_ONE;
-            }
+            xp->xp_backslash = XP_BS_ONE;
         }
         else
         {
             xp->xp_context = EXPAND_FILES;
-            if (p == (char_u *)&p_tags)
-            {
-                xp->xp_backslash = XP_BS_THREE;
-            }
-            else
-            {
-                xp->xp_backslash = XP_BS_ONE;
-            }
+            xp->xp_backslash = XP_BS_ONE;
         }
         if (flags & P_COMMA)
         {
@@ -107159,7 +106997,6 @@ static char *(p_jop_values[]) = {"stack", NULL};
 static char *(p_kpc_protocol_values[]) = {"none", "mok2", "kitty", NULL};
 static char *(p_swb_values[]) = {"useopen", "usetab", "split", "newtab", "vsplit", "uselast", NULL};
 static char *(p_spk_values[]) = {"cursor", "screen", "topline", NULL};
-static char *(p_tc_values[]) = {"followic", "ignore", "match", "followscs", "smart", NULL};
 static char *(p_tcl_values[]) = {"left", "uselast", NULL};
 static char *(p_ttym_values[]) = {"xterm", "xterm2", "dec", "netterm", "jsbterm", "pterm", "urxvt", "sgr", NULL};
 static char *(p_ve_values[]) = {"block", "insert", "all", "onemore", "none", "NONE", NULL};
@@ -107192,7 +107029,6 @@ didset_string_options(void)
     (void)opt_strings_flags(p_cot, p_cot_values, &cot_flags, TRUE);
     (void)opt_strings_flags(p_dy, p_dy_values, &dy_flags, TRUE);
     (void)opt_strings_flags(p_jop, p_jop_values, &jop_flags, TRUE);
-    (void)opt_strings_flags(p_tc, p_tc_values, &tc_flags, FALSE);
     (void)opt_strings_flags(p_ve, p_ve_values, &ve_flags, TRUE);
     (void)opt_strings_flags(p_ttym, p_ttym_values, &ttym_flags, FALSE);
     (void)opt_strings_flags(p_swb, p_swb_values, &swb_flags, TRUE);
@@ -107238,7 +107074,6 @@ check_buf_options(buf_T *buf)
     check_string_option(&buf->b_p_cms);
     check_string_option(&buf->b_p_nf);
     check_string_option(&buf->b_p_qe);
-    check_string_option(&buf->b_p_sua);
     check_string_option(&buf->b_p_cink);
     check_string_option(&buf->b_p_cino);
     check_string_option(&buf->b_p_cinsd);
@@ -107249,9 +107084,6 @@ check_buf_options(buf_T *buf)
     check_string_option(&buf->b_p_cot);
     check_string_option(&buf->b_p_cpt);
     check_string_option(&buf->b_p_ep);
-    check_string_option(&buf->b_p_path);
-    check_string_option(&buf->b_p_tags);
-    check_string_option(&buf->b_p_tc);
     check_string_option(&buf->b_p_dict);
     check_string_option(&buf->b_p_tsr);
     check_string_option(&buf->b_p_lw);
@@ -109345,41 +109177,6 @@ did_set_tabclose(optset_T *args  __attribute__((unused)) )
 expand_set_tabclose(optexpand_T *args, int *numMatches, char_u ***matches)
 {
     return expand_set_opt_string(args, p_tcl_values,  (sizeof(p_tcl_values) / sizeof((p_tcl_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char *
-did_set_tagcase(optset_T *args)
-{
-    unsigned int        *flags;
-    char_u              *p;
-
-    if (args->os_flags & OPT_LOCAL)
-    {
-        p = curbuf->b_p_tc;
-        flags = &curbuf->b_tc_flags;
-    }
-    else
-    {
-        p = p_tc;
-        flags = &tc_flags;
-    }
-
-    if ((args->os_flags & OPT_LOCAL) && *p == NUL)
-    {
-        *flags = 0;
-    }
-    else if (*p == NUL || opt_strings_flags(p, p_tc_values, flags, FALSE) != OK)
-    {
-        return e_invalid_argument;
-    }
-
-    return NULL;
-}
-
-    static int
-expand_set_tagcase(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_tc_values,  (sizeof(p_tc_values) / sizeof((p_tc_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
