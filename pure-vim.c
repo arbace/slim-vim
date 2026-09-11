@@ -120,7 +120,6 @@ enum { ICONV_TESTLEN = 400 };
 enum { MAX_SEARCH_COUNT = 9999 };
 enum { INC = 20 };
 enum { GAP = 3 };
-enum { BUFLEN = 100 };
 enum { GOTO_COST = 7 };
 enum { HIGHL_COST = 5 };
 enum { PLAN_LE = 1 };
@@ -157,8 +156,6 @@ enum { ROOT_UID = 0 };
 // ---------------- begin os_unix.h ----------------
 
 typedef void (*sighandler_T)  (int) ;
-
-enum { TEMPNAMELEN = 256 };
 
 // ---------------- end os_unix.h ----------------
 
@@ -799,14 +796,7 @@ enum { MAPTYPE_UNMAP_LHS = 3 };
 
 enum { REMAP_YES = 0 };
 
-enum { SHELL_FILTER = 1 };
-enum { SHELL_EXPAND = 2 };
-enum { SHELL_COOKED = 4 };
-enum { SHELL_DOOUT = 8 };
 enum { SHELL_SILENT = 16 };
-enum { SHELL_READ = 32 };
-enum { SHELL_WRITE = 64 };
-
 enum { NODE_NORMAL = 0 };
 enum { NODE_WRITABLE = 1 };
 enum { NODE_OTHER = 2 };
@@ -1352,7 +1342,6 @@ enum { CPO_LISP = 'p' };
 enum { CPO_FNAMEAPP = 'P' };
 enum { CPO_JOINCOL = 'q' };
 enum { CPO_REDO = 'r' };
-enum { CPO_REMMARK = 'R' };
 enum { CPO_BUFOPT = 's' };
 enum { CPO_BUFOPTGLOB = 'S' };
 enum { CPO_TAGPAT = 't' };
@@ -4882,13 +4871,11 @@ static void mch_set_acl(char_u *fname, vim_acl_T aclent);
 static void mch_free_acl(vim_acl_T aclent);
 static void mch_hide(char_u *name);
 static int mch_isdir(char_u *name);
-static int mch_isrealdir(char_u *name);
 static int mch_nodetype(char_u *name);
 static void mch_exit(int r);
 static int get_tty_info(int fd, ttyinfo_T *info);
 static void mch_setmouse(int on);
 static void check_mouse_termcode(void);
-static int mch_call_shell(char_u *cmd, int options);
 static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
 static int mch_has_wildcard(char_u *p);
 int  rename(const char *src, const char *dest) ;
@@ -5083,8 +5070,6 @@ static int ins_apply_autocmds(event_T event);
 // ---------------- end eval.pro ----------------
 // ---------------- begin ex_cmds.pro ----------------
 static void do_shell(char_u *cmd, int flags);
-static char_u *make_filter_cmd(char_u *cmd, char_u *itmp, char_u *otmp);
-static void append_redir(char_u *buf, int buflen, char_u *opt, char_u *fname);
 static int do_write(exarg_T *eap);
 static int check_overwrite(exarg_T *eap, buf_T *buf, char_u *fname, char_u *ffname, int other);
 static int getfile(int fnum, char_u *ffname_arg, char_u *sfname_arg, int setpm, linenr_T lnum, int forceit);
@@ -5207,8 +5192,6 @@ static int check_timestamps(int focus);
 static int buf_check_timestamp(buf_T *buf, int focus);
 static void buf_reload(buf_T *buf, int orig_mode, int reload_options);
 static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
-static void write_lnum_adjust(linenr_T offset);
-static char_u *vim_tempname(int extra_char, int keep);
 static int match_file_pat(char_u *pattern, regprog_T **prog, char_u *fname, char_u *sfname, char_u *tail, int allow_dirs);
 static int match_file_list(char_u *list, char_u *sfname, char_u *ffname);
 static char_u *file_pat_to_reg_pat(char_u *pat, char_u *pat_end, char *allow_dirs, int no_bslash);
@@ -5649,7 +5632,6 @@ static int get_fileformat(buf_T *buf);
 static int get_fileformat_force(buf_T *buf, exarg_T *eap);
 static void set_fileformat(int t, int opt_flags);
 static int default_fileformat(void);
-static int call_shell(char_u *cmd, int opt);
 static int get_real_state(void);
 static int after_pathsep(char_u *b, char_u *p);
 static int same_directory(char_u *f1, char_u *f2);
@@ -6259,7 +6241,6 @@ static void check_shellsize(void);
 static void limit_screen_size(void);
 static void win_new_shellsize(void);
 static void shell_resized(void);
-static void shell_resized_check(void);
 static void set_shellsize(int width, int height, int mustset);
 static void out_str_t_TE(void);
 static void out_str_t_TI(void);
@@ -6292,7 +6273,6 @@ static int check_termcode(int max_offset, char_u *buf, int bufsize, int *buflen)
 static char_u *replace_termcodes(char_u *from, char_u **bufp, scid_T sid_arg, int flags, int *did_simplify);
 static void show_termcodes(int flags);
 static int show_one_termcode(char_u *name, char_u *code, int printit);
-static int term_replace_keycodes(char_u *ta_buf, int ta_len, int len_arg);
 static void term_set_win_resize(bool state);
 static int sync_output_active(void);
 static void term_set_sync_output(int flags);
@@ -6329,7 +6309,6 @@ static char *get_ctime(time_t thetime, int add_newline);
 // ---------------- end time.pro ----------------
 // ---------------- begin ui.pro ----------------
 static void ui_write(char_u *s, int len, int console);
-static void ui_inchar_undo(char_u *s, int len);
 static int ui_inchar(char_u *buf, int maxlen, long wtime, int tb_change_cnt);
 static int inchar_loop(char_u *buf, int maxlen, long wtime, int tb_change_cnt, int (*wait_func)(long wtime, int *interrupted, int ignore_input), int (*resize_func)(int check_only));
 static int ui_char_avail(void);
@@ -6705,9 +6684,6 @@ static int      arg_had_last  = FALSE ;
 
 static int      ru_col;
 static int      sc_col;
-
-static DIR      *vim_tempdir_dp  = NULL ;
-static char_u   *vim_tempdir  = NULL ;
 
 static int      starting  = NO_SCREEN ;
 static int      exiting  = FALSE ;
@@ -7087,13 +7063,11 @@ static char e_cannot_go_beyond_last_buffer[]  =  "E87: Cannot go beyond last buf
 static char e_cannot_go_before_first_buffer[]  =  "E88: Cannot go before first buffer"  ;
 static char e_no_write_since_last_change_for_buffer_nr_add_bang_to_override[]  =  "E89: No write since last change for buffer %d (add ! to override)"  ;
 static char e_cannot_unload_last_buffer[]  =  "E90: Cannot unload last buffer"  ;
-static char e_shell_option_is_empty[]  =  "E91: 'shell' option is empty"  ;
 static char e_buffer_nr_not_found[]  =  "E92: Buffer %d not found"  ;
 static char e_more_than_one_match_for_str[]  =  "E93: More than one match for %s"  ;
 static char e_no_matching_buffer_for_str[]  =  "E94: No matching buffer for %s"  ;
 static char e_buffer_with_this_name_already_exists[]  =  "E95: Buffer with this name already exists"  ;
 static char e_cannot_move_range_of_lines_into_itself[]  =  "E134: Cannot move a range of lines into itself"  ;
-static char e_filter_autocommands_must_not_change_current_buffer[]  =  "E135: *Filter* Autocommands must not change current buffer"  ;
 static char e_file_is_loaded_in_another_buffer[]  =  "E139: File is loaded in another buffer"  ;
 static char e_use_bang_to_write_partial_buffer[]  =  "E140: Use ! to write partial buffer"  ;
 static char e_no_file_name_for_buffer_nr[]  =  "E141: No file name for buffer %ld"  ;
@@ -7287,10 +7261,7 @@ static char e_dont_panic[]  =  "E478: Don't panic!"  ;
 static char e_no_match[]  =  "E479: No match"  ;
 static char e_no_match_str_2[]  =  "E480: No match: %s"  ;
 static char e_no_range_allowed[]  =  "E481: No range allowed"  ;
-static char e_cant_create_file_str[]  =  "E482: Can't create file %s"  ;
-static char e_cant_get_temp_file_name[]  =  "E483: Can't get temp file name"  ;
 static char e_cant_open_file_str[]  =  "E484: Can't open file %s"  ;
-static char e_cant_read_file_str[]  =  "E485: Can't read file %s"  ;
 static char e_pattern_not_found_str[]  =  "E486: Pattern not found: %s"  ;
 static char e_argument_must_be_positive[]  =  "E487: Argument must be positive"  ;
 static char e_trailing_characters[]  =  "E488: Trailing characters"  ;
@@ -7523,8 +7494,6 @@ enum { FSK_KEEP_X_KEY = 0x02 };
 enum { FSK_IN_STRING = 0x04 };
 enum { FSK_SIMPLIFY = 0x08 };
 enum { FSK_FROM_PART = 0x10 };
-
-enum { READDIR_SORT_NONE = 0 };
 
 enum { MCH_DELAY_IGNOREINPUT = 1 };
 enum { MCH_DELAY_SETTMODE = 2 };
@@ -7855,18 +7824,6 @@ ga_append(garray_T *gap, int c)
     *((char *)gap->ga_data + gap->ga_len) = c;
     ++gap->ga_len;
     return OK;
-}
-
-    static void
-append_ga_line(garray_T *gap)
-{
-    if (gap->ga_len > 0 && !curbuf->b_p_bin && ((char_u *)gap->ga_data)[gap->ga_len - 1] == CAR)
-    {
-        --gap->ga_len;
-    }
-    ga_append(gap, NUL);
-    ml_append(curwin->w_cursor.lnum++, gap->ga_data, 0, FALSE);
-    gap->ga_len = 0;
 }
 
 // ==================== arglist.c ====================
@@ -36569,459 +36526,13 @@ theend:
     static void
 do_filter(linenr_T    line1, linenr_T    line2, exarg_T     *eap, char_u      *cmd, int         do_in, int         do_out)
 {
-    char_u      *itmp = NULL;
-    char_u      *otmp = NULL;
-    linenr_T    linecount;
-    linenr_T    read_linecount;
-    pos_T       cursor_save;
-    char_u      *cmd_buf;
-    buf_T       *old_curbuf = curbuf;
-    int         shell_flags = 0;
-    pos_T       orig_start = curbuf->b_op_start;
-    pos_T       orig_end = curbuf->b_op_end;
-    int         save_cmod_flags = cmdmod.cmod_flags;
-    int         stmp = p_stmp;
-
-    if (*cmd == NUL)
-    {
-        return;
-    }
-
-    cmdmod.cmod_flags &= ~CMOD_LOCKMARKS;
-
-    cursor_save = curwin->w_cursor;
-    linecount = line2 - line1 + 1;
-    curwin->w_cursor.lnum = line1;
-    curwin->w_cursor.col = 0;
-    changed_line_abv_curs();
-    invalidate_botline();
-
-    if (do_out)
-    {
-        shell_flags |= SHELL_DOOUT;
-    }
-
-    if (!do_in && do_out && !stmp)
-    {
-        shell_flags |= SHELL_READ;
-        curwin->w_cursor.lnum = line2;
-    }
-    else if (do_in && !do_out && !stmp)
-    {
-        shell_flags |= SHELL_WRITE;
-        curbuf->b_op_start.lnum = line1;
-        curbuf->b_op_end.lnum = line2;
-    }
-    else if (do_in && do_out && !stmp)
-    {
-        shell_flags |= SHELL_READ|SHELL_WRITE;
-        curbuf->b_op_start.lnum = line1;
-        curbuf->b_op_end.lnum = line2;
-        curwin->w_cursor.lnum = line2;
-    }
-    else
-    {
-        if ((do_in && (itmp = vim_tempname('i', FALSE)) == NULL) || (do_out && (otmp = vim_tempname('o', FALSE)) == NULL))
-        {
-            emsg(_(e_cant_get_temp_file_name));
-            goto filterend;
-        }
-    }
-
-    ++no_wait_return;
-    if (itmp != NULL && buf_write(curbuf, itmp, NULL, line1, line2, eap, FALSE, FALSE, FALSE, TRUE) == FAIL)
-    {
-        msg_putchar('\n');
-        --no_wait_return;
-            (void)semsg(_(e_cant_create_file_str), itmp);
-        goto filterend;
-    }
-    if (curbuf != old_curbuf)
-    {
-        goto filterend;
-    }
-
-    if (!do_out)
-    {
-        msg_putchar('\n');
-    }
-
-    cmd_buf = make_filter_cmd(cmd, itmp, otmp);
-    if (cmd_buf == NULL)
-    {
-        goto filterend;
-    }
-
-    windgoto((int)Rows - 1, cmdline_col_off);
-    cursor_on();
-
-    if (!do_out ||  strcmp((char *)(p_srr), (char *)(">"))  == 0 || !do_in)
-    {
-        redraw_later_clear();
-    }
-
-    if (do_out)
-    {
-        if (u_save(line2, (linenr_T)(line2 + 1)) == FAIL)
-        {
-            vim_free(cmd_buf);
-            goto error;
-        }
-        redraw_curbuf_later(UPD_VALID);
-    }
-    read_linecount = curbuf->b_ml.ml_line_count;
-
-    if (call_shell(cmd_buf, SHELL_FILTER | SHELL_COOKED | shell_flags))
-    {
-        redraw_later_clear();
-        wait_return(FALSE);
-    }
-    vim_free(cmd_buf);
-
-    did_check_timestamps = FALSE;
-    need_check_timestamps = TRUE;
-
-    ui_breakcheck();
-    got_int = FALSE;
-
-    if (do_out)
-    {
-        if (otmp != NULL)
-        {
-            if (readfile(otmp, NULL, line2, (linenr_T)0, (linenr_T) LONG_MAX , eap, READ_FILTER) != OK)
-            {
-                {
-                    msg_putchar('\n');
-                    semsg(_(e_cant_read_file_str), otmp);
-                }
-                goto error;
-            }
-            if (curbuf != old_curbuf)
-            {
-                goto filterend;
-            }
-        }
-
-        read_linecount = curbuf->b_ml.ml_line_count - read_linecount;
-
-        if (shell_flags & SHELL_READ)
-        {
-            curbuf->b_op_start.lnum = line2 + 1;
-            curbuf->b_op_end.lnum = curwin->w_cursor.lnum;
-            appended_lines_mark(line2, read_linecount);
-        }
-
-        if (do_in)
-        {
-            if ((cmdmod.cmod_flags & CMOD_KEEPMARKS) || vim_strchr(p_cpo, CPO_REMMARK) == NULL)
-            {
-                if (read_linecount >= linecount)
-                {
-                    mark_adjust(line1, line2, linecount, 0L);
-                }
-                else if (save_cmod_flags & CMOD_LOCKMARKS)
-                {
-                    mark_adjust(line2 + 1, (linenr_T) LONG_MAX , linecount - read_linecount, 0L);
-                    mark_adjust(line1, line2, linecount, 0L);
-                }
-                else
-                {
-                    mark_adjust(line1, line1 + read_linecount - 1, linecount, 0L);
-                    mark_adjust(line1 + read_linecount, line2,  LONG_MAX , 0L);
-                }
-            }
-
-            curwin->w_cursor.lnum = line1;
-            del_lines(linecount, TRUE);
-            if (read_linecount == 0)
-            {
-                curbuf->b_op_start.lnum = curbuf->b_op_end.lnum =
-                                        MIN(line1, curbuf->b_ml.ml_line_count);
-                curbuf->b_op_start.col = curbuf->b_op_end.col = 0;
-            }
-            else
-            {
-                curbuf->b_op_start.lnum -= linecount;
-                curbuf->b_op_end.lnum -= linecount;
-            }
-            write_lnum_adjust(-linecount);
-        }
-        else
-        {
-            linecount = curbuf->b_op_end.lnum - curbuf->b_op_start.lnum + 1;
-            curwin->w_cursor.lnum = curbuf->b_op_end.lnum;
-        }
-
-        beginline(BL_WHITE | BL_FIX);
-        --no_wait_return;
-
-        if (linecount > p_report)
-        {
-            if (do_in)
-            {
-                vim_snprintf(msg_buf, sizeof(msg_buf), _("%ld lines filtered"), (long)linecount);
-                if (msg(msg_buf) && !msg_scroll)
-                {
-                    set_keep_msg((char_u *)msg_buf, 0);
-                }
-            }
-            else
-            {
-                msgmore((long)linecount);
-            }
-        }
-    }
-    else
-    {
-error:
-        curwin->w_cursor = cursor_save;
-        --no_wait_return;
-        wait_return(FALSE);
-    }
-
-filterend:
-
-    cmdmod.cmod_flags = save_cmod_flags;
-    if (curbuf != old_curbuf)
-    {
-        --no_wait_return;
-        emsg(_(e_filter_autocommands_must_not_change_current_buffer));
-    }
-    else if (cmdmod.cmod_flags & CMOD_LOCKMARKS)
-    {
-        curbuf->b_op_start = orig_start;
-        curbuf->b_op_end = orig_end;
-    }
-
-    if (itmp != NULL)
-    {
-         unlink((char *)(itmp)) ;
-    }
-    if (otmp != NULL)
-    {
-         unlink((char *)(otmp)) ;
-    }
-    vim_free(itmp);
-    vim_free(otmp);
+    emsg(_(e_sorry_command_is_not_available_in_this_version));
 }
 
     static void
 do_shell(char_u      *cmd, int         flags)
 {
-    buf_T       *buf;
-    int         save_nwr;
-    int         keep_termcap = !termcap_active;
-
-    if (check_restricted() || check_secure())
-    {
-        msg_end();
-        return;
-    }
-
-    msg_putchar('\r');
-    if (!autocmd_busy)
-    {
-        if (!keep_termcap)
-        {
-            stoptermcap();
-        }
-    }
-        msg_putchar('\n');
-
-    if (p_warn && !autocmd_busy && msg_silent == 0)
-    {
-         for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-         {
-            if (bufIsChangedNotTerm(buf))
-            {
-                msg_puts(_("[No write since last change]\n"));
-                break;
-            }
-         }
-    }
-
-    if (!swapping_screen())
-    {
-        windgoto(msg_row, cmdline_col_off + msg_col);
-    }
-    cursor_on();
-    (void)call_shell(cmd, SHELL_COOKED | flags);
-    did_check_timestamps = FALSE;
-    need_check_timestamps = TRUE;
-
-    if (!swapping_screen())
-    {
-        msg_row = Rows - 1;
-        msg_col = 0;
-    }
-
-    if (autocmd_busy)
-    {
-        if (msg_silent == 0)
-        {
-            redraw_later_clear();
-        }
-    }
-    else
-    {
-        {
-            if (cmd == NULL)
-            {
-                if (msg_silent == 0)
-                {
-                    redraw_later_clear();
-                }
-                need_wait_return = FALSE;
-            }
-            else
-            {
-                save_nwr = no_wait_return;
-                if (swapping_screen())
-                {
-                    no_wait_return = FALSE;
-                }
-                wait_return(msg_silent == 0);
-                no_wait_return = save_nwr;
-            }
-        }
-
-        if (!keep_termcap)
-        {
-            starttermcap();
-        }
-
-    }
-
-     fflush(stderr) ;
-
-    apply_autocmds(EVENT_SHELLCMDPOST, NULL, NULL, FALSE, curbuf);
-}
-
-    static char_u *
-make_filter_cmd(char_u      *cmd, char_u      *itmp, char_u      *otmp)
-{
-    char_u      *buf;
-    long_u      len;
-    int         is_powershell = FALSE;
-    int         is_fish_shell;
-
-    char_u *shell_name = get_isolated_shell_name();
-    if (shell_name == NULL)
-    {
-        return NULL;
-    }
-
-    is_fish_shell =  vim_fnamecmp((char_u *)(shell_name), (char_u *)("fish"))  == 0;
-    if (is_fish_shell)
-    {
-        len = (long_u) strlen((char *)(cmd))  + 13;
-    }
-    else
-    {
-        is_powershell = (shell_name[0] == 'p')
-                        && ( vim_fnamecmp((char_u *)(shell_name), (char_u *)("powershell"))  == 0 ||  vim_fnamecmp((char_u *)(shell_name), (char_u *)("powershell.exe"))  == 0 ||  vim_fnamecmp((char_u *)(shell_name), (char_u *)("pwsh"))  == 0 ||  vim_fnamecmp((char_u *)(shell_name), (char_u *)("pwsh.exe"))  == 0);
-        if (is_powershell)
-        {
-            len = (long_u) strlen((char *)(cmd))  + 7;
-        }
-        else
-        {
-            len = (long_u) strlen((char *)(cmd))  + 3;
-        }
-    }
-
-    if (itmp != NULL)
-    {
-        if (is_powershell)
-        {
-            len += (long_u) strlen((char *)(itmp))  + 17;
-        }
-        else
-        {
-            len += (long_u) strlen((char *)(itmp))  + 9;
-        }
-    }
-    if (otmp != NULL)
-    {
-        len += (long_u) strlen((char *)(otmp))  + (long_u) strlen((char *)(p_srr))  + 2;
-    }
-
-    vim_free(shell_name);
-
-    buf = alloc(len);
-    if (buf == NULL)
-    {
-        return NULL;
-    }
-
-    if (is_powershell)
-    {
-        if (itmp != NULL)
-        {
-            vim_snprintf((char *)buf, len, "& { Get-Content %s | & %s }", itmp, cmd);
-        }
-        else
-        {
-            vim_snprintf((char *)buf, len, "& { %s }", cmd);
-        }
-    }
-    else
-    {
-        if (itmp != NULL || otmp != NULL)
-        {
-            if (is_fish_shell)
-            {
-                vim_snprintf((char *)buf, len, "begin; %s; end", (char *)cmd);
-            }
-            else
-            {
-                vim_snprintf((char *)buf, len, "(%s)", (char *)cmd);
-            }
-        }
-        else
-        {
-             strcpy((char *)(buf), (char *)(cmd)) ;
-        }
-        if (itmp != NULL)
-        {
-             strcat((char *)(buf), (char *)(" < ")) ;
-             strcat((char *)(buf), (char *)(itmp)) ;
-        }
-    }
-    if (otmp != NULL)
-    {
-        append_redir(buf, (int)len, p_srr, otmp);
-    }
-
-    return buf;
-}
-
-    static void
-append_redir(char_u      *buf, int         buflen, char_u      *opt, char_u      *fname)
-{
-    char_u      *p;
-    char_u      *end;
-
-    end = buf +  strlen((char *)(buf)) ;
-    for (p = opt; (p = vim_strchr(p, '%')) != NULL; ++p)
-    {
-        if (p[1] == 's')
-        {
-            break;
-        }
-        if (p[1] == '%')
-        {
-            ++p;
-        }
-    }
-    if (p != NULL)
-    {
-        vim_snprintf((char *)end, (size_t)(buflen - (end - buf)), (char *)opt, (char *)fname);
-    }
-    else
-    {
-        vim_snprintf((char *)end, (size_t)(buflen - (end - buf)), " %s %s", (char *)opt, (char *)fname);
-    }
+    emsg(_(e_sorry_command_is_not_available_in_this_version));
 }
 
     static void
@@ -53479,296 +52990,6 @@ buf_store_time(buf_T *buf, stat_T *st, char_u *fname  __attribute__((unused)) )
     buf->b_mtime_ns = (long)st-> st_mtim.tv_nsec ;
     buf->b_orig_size = st->st_size;
     buf->b_orig_mode = (int)st->st_mode;
-}
-
-    static void
-write_lnum_adjust(linenr_T offset)
-{
-    if (curbuf->b_no_eol_lnum != 0)
-    {
-        curbuf->b_no_eol_lnum += offset;
-    }
-}
-
-    static int
-readdir_core(garray_T    *gap, char_u      *path, int         withattr  __attribute__((unused)) , void        *context, int         (*checkitem)(void *context, void *item), int         sort)
-{
-    int                 failed = FALSE;
-    char_u              *p;
-    DIR                 *dirp;
-    struct dirent       *dp;
-
-    ga_init2(gap, sizeof(void *), 20);
-
-    dirp = opendir((char *)path);
-    if (dirp == NULL)
-    {
-        failed = TRUE;
-        semsg(_(e_cant_open_file_str), path);
-    }
-    else
-    {
-        for (;;)
-        {
-            int     ignore;
-            void    *item;
-
-            dp = readdir(dirp);
-            if (dp == NULL)
-            {
-                break;
-            }
-            p = (char_u *)dp->d_name;
-
-            ignore = p[0] == '.' &&
-                    (p[1] == NUL || (p[1] == '.' && p[2] == NUL));
-            if (ignore)
-            {
-                continue;
-            }
-                item = (void*)vim_strsave(p);
-            if (item == NULL)
-            {
-                failed = TRUE;
-                break;
-            }
-
-            if (checkitem != NULL)
-            {
-                int r = checkitem(context, item);
-
-                if (r < 0)
-                {
-                     vim_free(item) ;
-                    break;
-                }
-                if (r == 0)
-                {
-                    ignore = TRUE;
-                }
-            }
-
-            if (!ignore)
-            {
-                if (ga_grow(gap, 1) == OK)
-                {
-                    ((void**)gap->ga_data)[gap->ga_len++] = item;
-                }
-                else
-                {
-                    failed = TRUE;
-                     vim_free(item) ;
-                    break;
-                }
-            }
-            else
-            {
-                 vim_free(item) ;
-            }
-        }
-
-        closedir(dirp);
-    }
-
-    if (!failed && gap->ga_len > 0 && sort > READDIR_SORT_NONE)
-    {
-            sort_strings((char_u **)gap->ga_data, gap->ga_len);
-    }
-
-    return failed ? FAIL : OK;
-}
-
-    static int
-delete_recursive(char_u *name)
-{
-    int result = 0;
-
-    if (mch_isrealdir(name))
-    {
-        char_u      *exp = vim_strsave(name);
-        garray_T    ga;
-
-        if (exp == NULL)
-        {
-            return -1;
-        }
-        if (readdir_core(&ga, exp, FALSE, NULL, NULL, READDIR_SORT_NONE) == OK)
-        {
-            int len = vim_snprintf((char *)NameBuff,  PATH_MAX , "%s/", exp);
-            int i;
-
-            for (i = 0; i < ga.ga_len; ++i)
-            {
-                vim_snprintf((char *)NameBuff + len,  PATH_MAX  - len, "%s", ((char_u **)ga.ga_data)[i]);
-                if (delete_recursive(NameBuff) != 0)
-                {
-                    result = -1;
-                }
-            }
-            ga_clear_strings(&ga);
-            if ( rmdir((char *)(exp))  != 0)
-            {
-                result = -1;
-            }
-        }
-        else
-        {
-            result = -1;
-        }
-        vim_free(exp);
-    }
-    else
-    {
-        result =  unlink((char *)(name))  == 0 ? 0 : -1;
-    }
-
-    return result;
-}
-
-static long     temp_count = 0;
-
-   static void
-vim_opentempdir(void)
-{
-    DIR *dp = NULL;
-
-    if (vim_tempdir_dp != NULL)
-    {
-        return;
-    }
-
-    dp = opendir((const char*)vim_tempdir);
-    if (dp == NULL)
-    {
-        return;
-    }
-
-    vim_tempdir_dp = dp;
-    flock(dirfd(vim_tempdir_dp), LOCK_SH);
-}
-
-   static void
-vim_closetempdir(void)
-{
-    if (vim_tempdir_dp == NULL)
-    {
-        return;
-    }
-
-    closedir(vim_tempdir_dp);
-    vim_tempdir_dp = NULL;
-}
-
-    static bool
-vim_tempdir_gone(void)
-{
-    stat_T      st;
-
-    if (vim_tempdir_dp == NULL)
-    {
-        return false;
-    }
-    return fstat(dirfd(vim_tempdir_dp), &st) < 0 || st.st_nlink == 0;
-}
-
-    static void
-vim_deltempdir(void)
-{
-    if (vim_tempdir == NULL)
-    {
-        return;
-    }
-
-    vim_closetempdir();
-    gettail(vim_tempdir)[-1] = NUL;
-    delete_recursive(vim_tempdir);
-     vim_free(vim_tempdir);
-     (vim_tempdir) = NULL;
-}
-
-    static void
-vim_settempdir(char_u *tempdir)
-{
-    char_u      *buf;
-    size_t      buflen;
-
-    buf = alloc( PATH_MAX  + 2);
-    if (buf == NULL)
-    {
-        return;
-    }
-
-    if (vim_FullName(tempdir, buf,  PATH_MAX , FALSE) == FAIL)
-    {
-         strcpy((char *)(buf), (char *)(tempdir)) ;
-    }
-    buflen =  strlen((char *)(buf)) ;
-    if (!after_pathsep(buf, buf + buflen))
-    {
-         strcpy((char *)(buf + buflen), (char *)( "/" )) ;
-        buflen += sizeof( ((char_u)'/') );
-    }
-    vim_tempdir = vim_strnsave(buf, buflen);
-    vim_opentempdir();
-    vim_free(buf);
-}
-
-    static char_u  *
-vim_tempname(int     extra_char  __attribute__((unused)) , int     keep  __attribute__((unused)) )
-{
-    char_u      itmp[TEMPNAMELEN];
-
-    static char *(tempdirs[]) = { "$TMPDIR", "/tmp", ".", "$HOME" };
-    int         i;
-
-    if (vim_tempdir != NULL && vim_tempdir_gone())
-    {
-        vim_closetempdir();
-         vim_free(vim_tempdir);
-         (vim_tempdir) = NULL;
-    }
-
-    if (vim_tempdir == NULL)
-    {
-        for (i = 0; i < (int) (sizeof(tempdirs) / sizeof((tempdirs)[0])) ; ++i)
-        {
-            size_t      itmplen;
-
-            itmplen = expand_env((char_u *)tempdirs[i], itmp, TEMPNAMELEN - 20);
-            if (itmp[0] != '$' && mch_isdir(itmp))
-            {
-                if (!after_pathsep(itmp, itmp + itmplen))
-                {
-                     strcpy((char *)(itmp + itmplen), (char *)( "/" )) ;
-                    itmplen += sizeof( ((char_u)'/') );
-                }
-
-                {
-                    mode_t      umask_save = umask(077);
-                     strcpy((char *)(itmp + itmplen), (char *)("vXXXXXX")) ;
-                    itmplen +=  (sizeof("vXXXXXX" "") - 1) ;
-                    if (mkdtemp((char *)itmp) != NULL)
-                    {
-                        vim_settempdir(itmp);
-                    }
-                    (void)umask(umask_save);
-                }
-                if (vim_tempdir != NULL)
-                {
-                    break;
-                }
-            }
-        }
-    }
-
-    if (vim_tempdir != NULL)
-    {
-        int itmplen = vim_snprintf((char *)itmp, sizeof(itmp), "%s%ld", vim_tempdir, temp_count++);
-        return vim_strnsave(itmp, (size_t)itmplen);
-    }
-
-    return NULL;
-
 }
 
     static int
@@ -81810,7 +81031,6 @@ ml_close_all(int del_file)
      {
         ml_close(buf, del_file && ((buf->b_flags & BF_PRESERVED) == 0 || vim_strchr(p_cpo, CPO_PRESERVE) == NULL));
      }
-    vim_deltempdir();
 }
 
     static void
@@ -89437,85 +88657,7 @@ fast_breakcheck(void)
     static char_u *
 get_cmd_output(char_u      *cmd, char_u      *infile, int         flags, int         *ret_len)
 {
-    char_u      *tempname;
-    char_u      *command;
-    char_u      *buffer = NULL;
-    int         len;
-    int         i = 0;
-    FILE        *fd;
-
-    if (check_restricted() || check_secure())
-    {
-        return NULL;
-    }
-
-    if ((tempname = vim_tempname('o', TRUE)) == NULL)
-    {
-        emsg(_(e_cant_get_temp_file_name));
-        return NULL;
-    }
-
-    command = make_filter_cmd(cmd, infile, tempname);
-    if (command == NULL)
-    {
-        goto done;
-    }
-
-    ++no_check_timestamps;
-    call_shell(command, SHELL_DOOUT | SHELL_EXPAND | flags);
-    --no_check_timestamps;
-
-    vim_free(command);
-
-    fd =  fopen(((char *)tempname), ( "r" )) ;
-
-    if (fd == NULL || fseek(fd, 0L, SEEK_END) == -1 || (len = ftell(fd)) == -1 || fseek(fd, 0L, SEEK_SET) == -1)
-    {
-        semsg(_(e_cannot_read_from_str_2), tempname);
-        if (fd != NULL)
-        {
-            fclose(fd);
-        }
-        goto done;
-    }
-
-    buffer = alloc(len + 1);
-    if (buffer != NULL)
-    {
-        i = (int)fread((char *)buffer, (size_t)1, (size_t)len, fd);
-    }
-    fclose(fd);
-    if (buffer == NULL)
-    {
-        goto done;
-    }
-    if (i != len)
-    {
-        semsg(_(e_cant_read_file_str), tempname);
-         vim_free(buffer);
-         (buffer) = NULL;
-    }
-    else if (ret_len == NULL)
-    {
-        for (i = 0; i < len; ++i)
-        {
-            if (buffer[i] == NUL)
-            {
-                buffer[i] = 1;
-            }
-        }
-
-        buffer[len] = NUL;
-    }
-    else
-    {
-        *ret_len = len;
-    }
-
-done:
-     unlink((char *)(tempname)) ;
-    vim_free(tempname);
-    return buffer;
+    return NULL;
 }
 
     static int
@@ -91220,70 +90362,6 @@ default_fileformat(void)
 }
 
     static int
-call_shell(char_u *cmd, int opt)
-{
-    int         retval;
-
-    if (p_verbose > 3)
-    {
-        verbose_enter();
-        smsg(_("Calling shell to execute: \"%s\""), cmd == NULL ? p_sh : cmd);
-        msg_putchar_attr('\n', 0);
-        cursor_on();
-        verbose_leave();
-    }
-
-    if (*p_sh == NUL)
-    {
-        emsg(_(e_shell_option_is_empty));
-        retval = -1;
-    }
-    else
-    {
-        tag_freematch();
-
-        if (cmd == NULL || *p_sxq == NUL)
-        {
-            retval = mch_call_shell(cmd, opt);
-        }
-        else
-        {
-            char_u  *ncmd;
-            size_t  ncmdsize;
-            char_u  *ecmd = cmd;
-
-            if (*p_sxe != NUL && *p_sxq == '(')
-            {
-                ecmd = vim_strsave_escaped_ext(cmd, p_sxe, '^', FALSE);
-                if (ecmd == NULL)
-                {
-                    ecmd = cmd;
-                }
-            }
-            ncmdsize =  strlen((char *)(ecmd))  +  strlen((char *)(p_sxq))  * 2 + 1;
-            ncmd = alloc(ncmdsize);
-            if (ncmd != NULL)
-            {
-                vim_snprintf((char *)ncmd, ncmdsize, "%s%s%s", p_sxq, ecmd, *p_sxq == '(' ? (char_u *)")" : *p_sxq == '"' && *(p_sxq+1) == '(' ? (char_u *)")\"" : p_sxq);
-                retval = mch_call_shell(ncmd, opt);
-                vim_free(ncmd);
-            }
-            else
-            {
-                retval = -1;
-            }
-            if (ecmd != cmd)
-            {
-                vim_free(ecmd);
-            }
-        }
-        shell_resized_check();
-    }
-
-    return retval;
-}
-
-    static int
 get_real_state(void)
 {
     if (State & MODE_NORMAL)
@@ -91355,87 +90433,6 @@ elapsed(struct timeval *start_tv)
     gettimeofday(&now_tv, NULL);
     return (now_tv.tv_sec - start_tv->tv_sec) * 1000L
          + (now_tv.tv_usec - start_tv->tv_usec) / 1000L;
-}
-
-    static int
-mch_parse_cmd(char_u *cmd, int use_shcf, char ***argv, int *argc)
-{
-    int         i;
-    char_u *p;
-    char_u *d;
-    int         inquote;
-
-    for (i = 1; i <= 2; ++i)
-    {
-        p = skipwhite(cmd);
-        inquote = FALSE;
-        *argc = 0;
-        while (*p != NUL)
-        {
-            if (i == 2)
-            {
-                (*argv)[*argc] = (char *)p;
-            }
-            ++*argc;
-            d = p;
-            while (*p != NUL && (inquote || (*p != ' ' && *p != TAB)))
-            {
-                if (p[0] == '"')
-                {
-                    inquote = !inquote;
-                }
-                else
-                {
-                    if (rem_backslash(p))
-                    {
-                        ++p;
-                    }
-                    if (i == 2)
-                    {
-                        *d++ = *p;
-                    }
-                }
-                ++p;
-            }
-            if (*p == NUL)
-            {
-                if (i == 2)
-                {
-                    *d++ = NUL;
-                }
-                break;
-            }
-            if (i == 2)
-            {
-                *d++ = NUL;
-            }
-            p = skipwhite(p + 1);
-        }
-        if (*argv == NULL)
-        {
-            if (use_shcf)
-            {
-                p = p_shcf;
-                for (;;)
-                {
-                    p = skiptowhite(p);
-                    if (*p == NUL)
-                    {
-                        break;
-                    }
-                    ++*argc;
-                    p = skipwhite(p);
-                }
-            }
-
-            *argv =  (char * *)alloc(sizeof(char *) * (*argc + 4)) ;
-            if (*argv == NULL)
-            {
-                return FAIL;
-            }
-        }
-    }
-    return OK;
 }
 
     static int
@@ -116246,7 +115243,6 @@ static int      did_set_icon = FALSE;
 
 static void may_core_dump(void);
 
-typedef int waitstatus;
 static int  WaitForChar(long msec, int *interrupted, int ignore_input);
 static int  WaitForCharOrMouse(long msec, int *interrupted, int ignore_input);
 static int  RealWaitForChar(int, long, int *, int *interrupted);
@@ -116269,8 +115265,6 @@ static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***fil
 
 static volatile sig_atomic_t do_resize = FALSE;
 static volatile sig_atomic_t got_tstp = FALSE;
-static char_u   *extra_shell_arg = NULL;
-static int      show_shell_mess = TRUE;
 static volatile sig_atomic_t deadly_signal = 0;
 static volatile sig_atomic_t in_mch_delay = FALSE;
 
@@ -116777,30 +115771,6 @@ catch_signals(void (*func_deadly)(int), void (*func_other)(int))
     }
 }
 
-    static void
-block_signals(sigset_t *set)
-{
-    sigset_t    newset;
-    int         i;
-
-    sigemptyset(&newset);
-
-    for (i = 0; signal_info[i].sig != -1; i++)
-    {
-        sigaddset(&newset, signal_info[i].sig);
-    }
-
-    sigaddset(&newset, SIGCONT);
-
-    sigprocmask(SIG_BLOCK, &newset, set);
-}
-
-    static void
-unblock_signals(sigset_t *set)
-{
-    sigprocmask(SIG_SETMASK, set, NULL);
-}
-
     static int
 vim_handle_signal(int sig)
 {
@@ -117293,22 +116263,6 @@ mch_isdir(char_u *name)
 }
 
     static int
-mch_isrealdir(char_u *name)
-{
-    struct stat statb;
-
-    if (*name == NUL)
-    {
-        return FALSE;
-    }
-    if ( lstat(((char *)name), (&statb)) )
-    {
-        return FALSE;
-    }
-    return (S_ISDIR(statb.st_mode) ? TRUE : FALSE);
-}
-
-    static int
 mch_nodetype(char_u *name)
 {
     struct stat st;
@@ -117675,635 +116629,6 @@ mch_set_shellsize(void)
     static void
 mch_new_shellsize(void)
 {
-}
-
-    static pid_t
-wait4pid(pid_t child, waitstatus *status)
-{
-    pid_t wait_pid = 0;
-    long delay_msec = 1;
-
-    while (wait_pid != child)
-    {
-        wait_pid = waitpid(child, status, WNOHANG);
-        if (wait_pid == 0)
-        {
-            mch_delay(delay_msec, MCH_DELAY_IGNOREINPUT | MCH_DELAY_SETTMODE);
-            if (++delay_msec > 10)
-            {
-                delay_msec = 10;
-            }
-            continue;
-        }
-        if (wait_pid <= 0 && errno == ECHILD)
-        {
-            break;
-        }
-    }
-    return wait_pid;
-}
-
-    static void
-set_child_environment(long    rows, long    columns, char    *term, int     is_terminal  __attribute__((unused)) )
-{
-    char        envbuf[50];
-
-    setenv("TERM", term, 1);
-    sprintf((char *)envbuf, "%ld", rows);
-    setenv("ROWS", (char *)envbuf, 1);
-    sprintf((char *)envbuf, "%ld", rows);
-    setenv("LINES", (char *)envbuf, 1);
-    sprintf((char *)envbuf, "%ld", columns);
-    setenv("COLUMNS", (char *)envbuf, 1);
-    sprintf((char *)envbuf, "%d", t_colors);
-    setenv("COLORS", (char *)envbuf, 1);
-}
-
-    static void
-set_default_child_environment(int is_terminal)
-{
-    set_child_environment(Rows, Columns, "dumb", is_terminal);
-}
-
-    static void
-may_send_sigint(int c  __attribute__((unused)) , pid_t pid  __attribute__((unused)) , pid_t wpid  __attribute__((unused)) )
-{
-    if (c == Ctrl_C || c == intr_char)
-    {
-        kill(-pid, SIGINT);
-        if (wpid > 0)
-        {
-            kill(wpid, SIGINT);
-        }
-    }
-}
-
-    static int
-unix_build_argv(char_u *cmd, char ***argvp, char_u **sh_tofree, char_u **shcf_tofree)
-{
-    char        **argv = NULL;
-    int         argc;
-
-    *sh_tofree = vim_strsave(p_sh);
-    if (*sh_tofree == NULL)
-    {
-        return FAIL;
-    }
-
-    if (mch_parse_cmd(*sh_tofree, TRUE, &argv, &argc) == FAIL)
-    {
-        return FAIL;
-    }
-    *argvp = argv;
-
-    if (cmd != NULL)
-    {
-        char_u  *s;
-        char_u  *p;
-
-        if (extra_shell_arg != NULL)
-        {
-            argv[argc++] = (char *)extra_shell_arg;
-        }
-
-        *shcf_tofree = alloc( strlen((char *)(p_shcf))  + 1);
-        if (*shcf_tofree == NULL)
-        {
-            return FAIL;
-        }
-        s = *shcf_tofree;
-        p = p_shcf;
-        while (*p != NUL)
-        {
-            argv[argc++] = (char *)s;
-            while (*p && *p != ' ' && *p != TAB)
-            {
-                *s++ = *p++;
-            }
-            *s++ = NUL;
-            p = skipwhite(p);
-        }
-
-        argv[argc++] = (char *)cmd;
-    }
-    argv[argc] = NULL;
-    return OK;
-}
-
-enum { EXEC_FAILED = 122 };
-
-    static int
-mch_call_shell_fork(char_u      *cmd, int         options)
-{
-    tmode_T     tmode = cur_tmode;
-    pid_t       pid;
-    pid_t       wpid = 0;
-    pid_t       wait_pid = 0;
-    int         status = -1;
-    int         retval = -1;
-    char        **argv = NULL;
-    char_u      *tofree1 = NULL;
-    char_u      *tofree2 = NULL;
-    int         i;
-    int         pty_master_fd = -1;
-    int         fd_toshell[2];
-    int         fd_fromshell[2];
-    int         pipe_error = FALSE;
-    int         did_settmode = FALSE;
-
-    out_flush();
-    if (options & SHELL_COOKED)
-    {
-        settmode(TMODE_COOK);
-    }
-    if (tmode == TMODE_RAW)
-    {
-        cur_tmode = TMODE_UNKNOWN;
-    }
-
-    if (unix_build_argv(cmd, &argv, &tofree1, &tofree2) == FAIL)
-    {
-        goto error;
-    }
-
-    if ((options & (SHELL_READ|SHELL_WRITE)))
-    {
-        {
-            pipe_error = (pipe(fd_toshell) < 0);
-            if (!pipe_error)
-            {
-                pipe_error = (pipe(fd_fromshell) < 0);
-                if (pipe_error)
-                {
-                    close(fd_toshell[0]);
-                    close(fd_toshell[1]);
-                }
-            }
-            if (pipe_error)
-            {
-                msg_puts(_("\nCannot create pipes\n"));
-                out_flush();
-            }
-        }
-    }
-
-    if (!pipe_error)
-    {
-         sigset_t curset; 
-         block_signals(&curset) ;
-        pid = fork();
-        if (pid == -1)
-        {
-             unblock_signals(&curset) ;
-
-            msg_puts(_("\nCannot fork\n"));
-            if ((options & (SHELL_READ|SHELL_WRITE)))
-            {
-                {
-                    close(fd_toshell[0]);
-                    close(fd_toshell[1]);
-                    close(fd_fromshell[0]);
-                    close(fd_fromshell[1]);
-                }
-            }
-        }
-        else if (pid == 0)
-        {
-            reset_signals();
-             unblock_signals(&curset) ;
-
-            if (!show_shell_mess || (options & SHELL_EXPAND))
-            {
-                int fd;
-
-                fd = open("/dev/null", O_RDWR | O_EXTRA, 0);
-                fclose(stdin);
-                fclose(stdout);
-                fclose(stderr);
-
-                if (fd >= 0)
-                {
-                    vim_ignored = dup(fd);
-                    vim_ignored = dup(fd);
-                    vim_ignored = dup(fd);
-
-                    close(fd);
-                }
-            }
-            else if ((options & (SHELL_READ|SHELL_WRITE)))
-            {
-                if (p_stmp)
-                {
-                    (void)setsid();
-                    mch_signal(SIGHUP, SIG_IGN);
-                }
-                set_default_child_environment(FALSE);
-
-                {
-                    close(fd_toshell[1]);
-                    close(0);
-                    vim_ignored = dup(fd_toshell[0]);
-                    close(fd_toshell[0]);
-
-                    close(fd_fromshell[0]);
-                    close(1);
-                    vim_ignored = dup(fd_fromshell[1]);
-                    close(fd_fromshell[1]);
-
-                }
-            }
-
-            execvp(argv[0], argv);
-            _exit(EXEC_FAILED);
-        }
-        else
-        {
-            catch_signals(SIG_IGN, SIG_ERR);
-            catch_int_signal();
-             unblock_signals(&curset) ;
-            if ((options & (SHELL_READ|SHELL_WRITE)))
-            {
-                char_u      buffer[BUFLEN + 1];
-                int         buffer_off = 0;
-                char_u      ta_buf[BUFLEN + 1];
-                int         ta_len = 0;
-                int         len;
-                int         p_more_save;
-                int         old_State;
-                int         c;
-                int         toshell_fd;
-                int         fromshell_fd;
-                garray_T    ga;
-                int         noread_cnt;
-                elapsed_T   start_tv;
-
-                {
-                    close(fd_toshell[0]);
-                    close(fd_fromshell[1]);
-                    toshell_fd = fd_toshell[1];
-                    fromshell_fd = fd_fromshell[0];
-                }
-
-                p_more_save = p_more;
-                p_more = FALSE;
-                old_State = State;
-                State = MODE_EXTERNCMD;
-
-                if ((options & SHELL_WRITE) && toshell_fd >= 0)
-                {
-                    if ((wpid = fork()) == -1)
-                    {
-                        msg_puts(_("\nCannot fork\n"));
-                    }
-                    else if (wpid == 0)
-                    {
-                        linenr_T    lnum = curbuf->b_op_start.lnum;
-                        size_t      written = 0;
-                        char_u      *lp = ml_get(lnum);
-                        size_t      lplen = (size_t)ml_get_len(lnum);
-
-                        close(fromshell_fd);
-                        for (;;)
-                        {
-                            if (lplen == 0)
-                            {
-                                len = 0;
-                            }
-                            else if (lp[written] == NL)
-                            {
-                                len = write(toshell_fd, "", (size_t)1);
-                            }
-                            else
-                            {
-                                char_u  *s = vim_strchr(lp + written, NL);
-
-                                len = write(toshell_fd, (char *)lp + written, s == NULL ? lplen - written : (size_t)(s - (lp + written)));
-                            }
-                            if (len == (int)(lplen - written))
-                            {
-                                if (lnum != curbuf->b_op_end.lnum || (!curbuf->b_p_bin && curbuf->b_p_fixeol) || (lnum != curbuf->b_no_eol_lnum && (lnum != curbuf->b_ml.ml_line_count || curbuf->b_p_eol)))
-                                {
-                                    vim_ignored = write(toshell_fd, "\n", (size_t)1);
-                                }
-                                ++lnum;
-                                if (lnum > curbuf->b_op_end.lnum)
-                                {
-                                    close(toshell_fd);
-                                    break;
-                                }
-                                lp = ml_get(lnum);
-                                lplen = ml_get_len(lnum);
-                                written = 0;
-                            }
-                            else if (len > 0)
-                            {
-                                written += (size_t)len;
-                            }
-                        }
-                        _exit(0);
-                    }
-                    else
-                    {
-                        close(toshell_fd);
-                        toshell_fd = -1;
-                    }
-                }
-
-                if (options & SHELL_READ)
-                {
-                    ga_init2(&ga, 1, BUFLEN);
-                }
-
-                noread_cnt = 0;
-                 gettimeofday(&(start_tv), NULL) ;
-                for (;;)
-                {
-                    len = 0;
-                    if (!(options & SHELL_EXPAND) && ((options & (SHELL_READ|SHELL_WRITE|SHELL_COOKED)) != (SHELL_READ|SHELL_WRITE|SHELL_COOKED)) && wait_pid == 0 && (ta_len > 0 || noread_cnt > 4))
-                    {
-                      if (ta_len == 0)
-                      {
-                          noread_cnt = 0;
-                           gettimeofday(&(start_tv), NULL) ;
-                          len = ui_inchar(ta_buf, BUFLEN, 10L, 0);
-                      }
-                      if (ta_len > 0 || len > 0)
-                      {
-                        if (len == 1 && (pty_master_fd < 0 || cmd != NULL))
-                        {
-                            may_send_sigint(ta_buf[ta_len], pid, wpid);
-
-                            if (pty_master_fd < 0 && toshell_fd >= 0 && ta_buf[ta_len] == Ctrl_D)
-                            {
-                                close(toshell_fd);
-                                toshell_fd = -1;
-                            }
-                        }
-
-                        len = term_replace_keycodes(ta_buf, ta_len, len);
-
-                        if (pty_master_fd < 0)
-                        {
-                            for (i = ta_len; i < ta_len + len; ++i)
-                            {
-                                if (ta_buf[i] == '\n' || ta_buf[i] == '\b')
-                                {
-                                    msg_putchar(ta_buf[i]);
-                                }
-                                else if (has_mbyte)
-                                {
-                                    int l = (*mb_ptr2len)(ta_buf + i);
-
-                                    msg_outtrans_len(ta_buf + i, l);
-                                    i += l - 1;
-                                }
-                                else
-                                {
-                                    msg_outtrans_len(ta_buf + i, 1);
-                                }
-                            }
-                            windgoto(msg_row, cmdline_col_off + msg_col);
-                            out_flush();
-                        }
-
-                        ta_len += len;
-
-                        if (options & SHELL_WRITE)
-                        {
-                            ta_len = 0;
-                        }
-                        else if (toshell_fd >= 0)
-                        {
-                            len = write(toshell_fd, (char *)ta_buf, (size_t)1);
-                            if (len > 0)
-                            {
-                                ta_len -= len;
-                                 memmove((char *)(ta_buf), (char *)(ta_buf + len), ta_len) ;
-                            }
-                        }
-                      }
-                    }
-
-                    if (got_int)
-                    {
-                        kill(-pid, SIGINT);
-                        if (wpid > 0)
-                        {
-                            kill(wpid, SIGINT);
-                        }
-                        got_int = FALSE;
-                    }
-
-                    ++noread_cnt;
-                    while (RealWaitForChar(fromshell_fd, 10L, NULL, NULL))
-                    {
-                        len = read_eintr(fromshell_fd, buffer + buffer_off, (size_t)(BUFLEN - buffer_off));
-                        if (len <= 0)
-                        {
-                            goto finished;
-                        }
-
-                        noread_cnt = 0;
-                        if (options & SHELL_READ)
-                        {
-                            for (i = 0; i < len; ++i)
-                            {
-                                if (buffer[i] == NL)
-                                {
-                                    append_ga_line(&ga);
-                                }
-                                else if (buffer[i] == NUL)
-                                {
-                                    ga_append(&ga, NL);
-                                }
-                                else
-                                {
-                                    ga_append(&ga, buffer[i]);
-                                }
-                            }
-                        }
-                        else if (has_mbyte)
-                        {
-                            int         l;
-                            char_u      *p;
-
-                            len += buffer_off;
-                            buffer[len] = NUL;
-
-                            for (p = buffer; p < buffer + len; p += l)
-                            {
-                                l =  (enc_utf8 ? utf_ptr2len(p) : (*mb_ptr2len)(p)) ;
-                                if (l == 0)
-                                {
-                                    l = 1;
-                                }
-                                else if ( mb_bytelen_tab[*p]  != l)
-                                {
-                                    break;
-                                }
-                            }
-                            if (p == buffer)
-                            {
-                                if (len >= 12)
-                                {
-                                    ++p;
-                                }
-                                else
-                                {
-                                    buffer_off = len;
-                                    continue;
-                                }
-                            }
-                            c = *p;
-                            *p = NUL;
-                            msg_puts((char *)buffer);
-                            if (p < buffer + len)
-                            {
-                                *p = c;
-                                buffer_off = (buffer + len) - p;
-                                 memmove((char *)(buffer), (char *)(p), buffer_off) ;
-                                continue;
-                            }
-                            buffer_off = 0;
-                        }
-                        else
-                        {
-                            buffer[len] = NUL;
-                            msg_puts((char *)buffer);
-                        }
-
-                        windgoto(msg_row, cmdline_col_off + msg_col);
-                        cursor_on();
-                        out_flush();
-                        if (got_int)
-                        {
-                            break;
-                        }
-
-                        if (wait_pid == 0)
-                        {
-                            long        msec =  elapsed(&(start_tv)) ;
-
-                            if (msec > 2000)
-                            {
-                                noread_cnt = 5;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (wait_pid == pid)
-                    {
-                        if (noread_cnt < 5)
-                        {
-                            continue;
-                        }
-                        break;
-                    }
-
-                    wait_pid = waitpid(pid, &status, WNOHANG);
-                    if ((wait_pid == (pid_t)-1 && errno == ECHILD) || (wait_pid == pid && WIFEXITED(status)))
-                    {
-                        wait_pid = pid;
-                    }
-                    else
-                    {
-                        wait_pid = 0;
-                    }
-
-                }
-finished:
-                p_more = p_more_save;
-                if (options & SHELL_READ)
-                {
-                    if (ga.ga_len > 0)
-                    {
-                        append_ga_line(&ga);
-                        curbuf->b_no_eol_lnum = curwin->w_cursor.lnum;
-                    }
-                    else
-                    {
-                        curbuf->b_no_eol_lnum = 0;
-                    }
-                    ga_clear(&ga);
-                }
-
-                if (ta_len)
-                {
-                    ui_inchar_undo(ta_buf, ta_len);
-                }
-                State = old_State;
-                if (toshell_fd >= 0)
-                {
-                    close(toshell_fd);
-                }
-                close(fromshell_fd);
-            }
-
-            if (wait_pid != pid)
-            {
-                (void)wait4pid(pid, &status);
-            }
-
-            if (wpid > 0)
-            {
-                kill(wpid, SIGKILL);
-                wait4pid(wpid, NULL);
-            }
-
-            if (tmode == TMODE_RAW)
-            {
-                settmode(TMODE_RAW);
-            }
-            did_settmode = TRUE;
-            set_signals();
-
-            if (WIFEXITED(status))
-            {
-                retval = WEXITSTATUS(status);
-                if (retval != 0 && !emsg_silent)
-                {
-                    if (retval == EXEC_FAILED)
-                    {
-                        msg_puts(_("\nCannot execute shell "));
-                        msg_outtrans(p_sh);
-                        msg_putchar('\n');
-                    }
-                    else if (!(options & SHELL_SILENT))
-                    {
-                        msg_puts(_("\nshell returned "));
-                        msg_outnum((long)retval);
-                        msg_putchar('\n');
-                    }
-                }
-            }
-            else
-            {
-                msg_puts(_("\nCommand terminated\n"));
-            }
-        }
-    }
-
-error:
-    if (!did_settmode)
-    {
-        if (tmode == TMODE_RAW)
-        {
-            settmode(TMODE_RAW);
-        }
-    }
-    resettitle();
-    vim_free(argv);
-    vim_free(tofree1);
-    vim_free(tofree2);
-
-    return retval;
-}
-
-    static int
-mch_call_shell(char_u      *cmd, int         options)
-{
-    return mch_call_shell_fork(cmd, options);
 }
 
     static void
@@ -144052,25 +142377,6 @@ shell_resized(void)
 }
 
     static void
-shell_resized_check(void)
-{
-    int         old_Rows = Rows;
-    int         old_Columns = Columns;
-
-    if (exiting)
-    {
-        return;
-    }
-
-    (void)ui_get_shellsize();
-    check_shellsize();
-    if (old_Rows != Rows || old_Columns != Columns)
-    {
-        shell_resized();
-    }
-}
-
-    static void
 set_shellsize_inner(int width, int height, int mustset)
 {
     if (updating_screen)
@@ -146315,57 +144621,6 @@ show_one_termcode(char_u *name, char_u *code, int printit)
         else
         {
             msg_outtrans(code);
-        }
-    }
-    return len;
-}
-
-    static int
-term_replace_keycodes(char_u *ta_buf, int ta_len, int len_arg)
-{
-    int         len = len_arg;
-    int         i;
-    int         c;
-
-    for (i = ta_len; i < ta_len + len; ++i)
-    {
-        if (ta_buf[i] == CSI && len - i > 3 && ta_buf[i + 1] == KS_MODIFIER)
-        {
-            int modifiers = ta_buf[i + 2];
-            int key = ta_buf[i + 3];
-
-             memmove((char *)(ta_buf + i + 1), (char *)(ta_buf + i + 4), (size_t)(len - i - 3)) ;
-            len -= 3;
-            if (key < 0x80)
-            {
-                key = merge_modifyOtherKeys(key, &modifiers);
-            }
-            ta_buf[i] = key;
-        }
-        else if (ta_buf[i] == CSI && len - i > 2)
-        {
-            c =  (-((ta_buf[i + 1]) + ((int)(ta_buf[i + 2]) << 8))) ;
-            if (c ==   (-(('k') + ((int)('D') << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_KDEL) << 8)))   || c ==   (-(('k') + ((int)('b') << 8)))  )
-            {
-                 memmove((char *)(ta_buf + i + 1), (char *)(ta_buf + i + 3), (size_t)(len - i - 2)) ;
-                if (c ==   (-(('k') + ((int)('D') << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_KDEL) << 8)))  )
-                {
-                    ta_buf[i] = DEL;
-                }
-                else
-                {
-                    ta_buf[i] = Ctrl_H;
-                }
-                len -= 2;
-            }
-        }
-        else if (ta_buf[i] == '\r')
-        {
-            ta_buf[i] = '\n';
-        }
-        if (has_mbyte)
-        {
-            i += (*mb_ptr2len_len)(ta_buf + i, ta_len + len - i) - 1;
         }
     }
     return len;
@@ -149243,42 +147498,6 @@ ui_write(char_u *s, int len, int console  __attribute__((unused)) )
             vim_free(tofree);
         }
     }
-}
-
-static char_u *ta_str = NULL;
-static int ta_off;
-static int ta_len;
-
-    static void
-ui_inchar_undo(char_u *s, int len)
-{
-    char_u  *new;
-    int     newlen;
-
-    newlen = len;
-    if (ta_str != NULL)
-    {
-        newlen += ta_len - ta_off;
-    }
-    new = alloc(newlen);
-    if (new == NULL)
-    {
-        return;
-    }
-
-    if (ta_str != NULL)
-    {
-         memmove((char *)(new), (char *)(ta_str + ta_off), (size_t)(ta_len - ta_off)) ;
-         memmove((char *)(new + ta_len - ta_off), (char *)(s), (size_t)len) ;
-        vim_free(ta_str);
-    }
-    else
-    {
-         memmove((char *)(new), (char *)(s), (size_t)len) ;
-    }
-    ta_str = new;
-    ta_len = newlen;
-    ta_off = 0;
 }
 
     static int

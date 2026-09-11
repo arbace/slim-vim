@@ -1,7 +1,7 @@
 #!/bin/sh
 # What pure-vim does differently from slim-vim, as a check rather than a report.
 #
-# Usage: tools/puredelta.sh <binary> <source> [expected-commands...]
+# Usage: tools/puredelta.sh <binary> <source> [--cases c1,c2] [expected-commands...]
 #
 # This is the rule that separates PURE-GOAL.md from SLIM-GOAL.md.  There, any
 # behavioural change is a bug and the check is "nothing moved".  Here a change
@@ -12,9 +12,21 @@
 # "Six commands differ" is a check.  "Some commands differ" is not.
 set -eu
 
-bin=${1:?usage: puredelta.sh <binary> <source> [expected-commands...]}
+bin=${1:?usage: puredelta.sh <binary> <source> [--cases c1,c2] [commands...]}
 src=${2:?}
 shift 2
+
+# A phase may change an editing BEHAVIOUR as well as an Ex command's exit, and
+# until Phase 12 none had, so this tool asserted "behaviour: none" outright.
+# That is the right default -- most of what is removed here is a command, not a
+# keystroke -- but a default is not a check, and a phase that genuinely moves a
+# case has to be able to say which.  Declared the same way and held to the same
+# rule: exactly these, and no others.
+cases=
+if [ "${1:-}" = "--cases" ]; then
+    cases=$(printf '%s' "$2" | tr ',' '\n' | sort -u | tr '\n' ' ')
+    shift 2
+fi
 expected=$(printf '%s\n' "$@" | sort -u | tr '\n' ' ')
 
 base=.reference/baselines
@@ -25,10 +37,11 @@ trap 'rm -rf "$tmp"' EXIT
 fail=0
 
 python3 tools/behaviour.py "$bin" "$tmp/b" >/dev/null
-moved=$(diff -rq "$base/behaviour" "$tmp/b" 2>/dev/null | grep '^Files' | sed 's/.*behaviour\///; s/ and .*//' | tr '\n' ' ')
-if [ -n "$moved" ]; then
-    echo "  delta        behaviour cases moved: $moved"
-    echo "               expected none -- these do not touch the runtime"
+moved=$(diff -rq "$base/behaviour" "$tmp/b" 2>/dev/null | grep '^Files' | sed 's/.*behaviour\///; s/ and .*//' | sort -u | tr '\n' ' ')
+if [ "$moved" != "$cases" ]; then
+    echo "  delta        behaviour cases that moved:"
+    echo "                 got      ${moved:-(none)}"
+    echo "                 expected ${cases:-(none)}"
     fail=1
 fi
 
@@ -53,4 +66,8 @@ if [ "$fail" != 0 ]; then
     echo "               list that is merely widened to fit is not a check."
     exit 1
 fi
-echo "  delta        exactly as declared: $expected"
+if [ -n "$cases" ]; then
+    echo "  delta        exactly as declared: $expected; cases: $cases"
+else
+    echo "  delta        exactly as declared: $expected"
+fi
