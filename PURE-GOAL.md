@@ -196,9 +196,12 @@ name could select has an option that selects it explicitly, and
 | `-Z` restricted | `-R` readonly | `-y` evim |
 | `-e` Ex mode | `-E` improved Ex | `-d` diff |
 
-One difference worth knowing: invoking vim as `view` also set `'undolevels'` to
-10000, and `-R` does not. Upstream's own option is the weaker of the two, so
-this follows the option rather than the name.
+**Corrected:** an earlier draft of this section claimed `view` set
+`'undolevels'` to 10000 where `-R` did not. It is wrong. `p_uc = 10000` appears
+at both sites in `slim-vim.c` — once in the `view` branch and once in the `-R`
+case — so the two are exactly equivalent and the removal loses nothing at all.
+The claim was written from the name-parsing code without checking the option
+beside it, which is the mistake this document warns about everywhere else.
 
 **The delta: none.** The harnesses stage the binary as `vim`, which selected
 plain vim mode before and selects it now, so nothing they record can move. The
