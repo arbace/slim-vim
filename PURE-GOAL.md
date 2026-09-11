@@ -337,6 +337,36 @@ that is meant to be external. `nm` on the object proves it.
 **The delta: none.** Linkage is not behaviour, and at `-O0` it is not even code,
 which is exactly why `nm` is the only witness this phase has.
 
+## Phase 9 — the table moves below what it names
+
+`cmdnames[]` names six hundred Ex command handlers and sits near the top of the
+file, so each of them needs a forward declaration — **not because anything calls
+them early, but because a table mentions them early.** Moving the table below
+its handlers removes 98 of those and costs one declaration of the table itself.
+
+**Two of the three candidate tables cannot move**, and the reason is a language
+rule rather than a gap in the tooling. `options[]` and `nv_cmds[]` are measured
+with `sizeof()` by functions defined *above* them, and a tentative declaration
+of an array has no size — the attempt fails at exactly that `sizeof`. They keep
+their 229 declarations. Measuring that was cheaper than arguing about it.
+
+The struct *type* stays where it was. These tables are written
+`static struct cmdname { ... } cmdnames[] = {...};` — a type definition and an
+object in one — and moving both would leave the declaration behind naming an
+incomplete type.
+
+**The delta: none.** Where a table sits is not behaviour.
+
+### And that is the end of what ordering can buy
+
+The remaining declarations were measured rather than guessed at. Of 3,234
+functions, **1,335 are in a single mutually recursive component** that no
+ordering can untangle — breaking it is a minimum feedback arc set, which is
+NP-hard — and the other 1,895 are acyclic and could in principle be
+topologically sorted to need no declaration at all. That is not worth doing:
+it would buy about 1% of the file and destroy the banner structure that is the
+only navigation 165,000 lines have.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.
