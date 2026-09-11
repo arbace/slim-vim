@@ -121,12 +121,6 @@ enum { MAX_SEARCH_COUNT = 9999 };
 enum { INC = 20 };
 enum { GAP = 3 };
 enum { BUFLEN = 100 };
-enum { STYLE_ECHO = 0 };
-enum { STYLE_GLOB = 1 };
-enum { STYLE_VIMGLOB = 2 };
-enum { STYLE_PRINT = 3 };
-enum { STYLE_BT = 4 };
-enum { STYLE_GLOBSTAR = 5 };
 enum { GOTO_COST = 7 };
 enum { HIGHL_COST = 5 };
 enum { PLAN_LE = 1 };
@@ -743,7 +737,6 @@ enum { EW_PATH = 0x80 };
 enum { EW_ICASE = 0x100 };
 enum { EW_NOERROR = 0x200 };
 enum { EW_NOTWILD = 0x400 };
-enum { EW_KEEPDOLLAR = 0x800 };
 enum { EW_ALLLINKS = 0x1000 };
 enum { EW_SHELLCMD = 0x2000 };
 enum { EW_DODOT = 0x4000 };
@@ -1443,7 +1436,6 @@ enum { WIM_NOINSERT = 0x20 };
 
 enum { WOP_FUZZY = 'z' };
 enum { WOP_TAGFILE = 'g' };
-enum { WOP_PUM = 'p' };
 enum { WOP_EXACTTEXT = 'x' };
 
 enum { BS_INDENT = 'i' };
@@ -1765,7 +1757,6 @@ static long     p_wc;
 static long     p_wcm;
 static int      p_wic;
 static char_u   *p_wim;
-static int      p_wmnu;
 static long     p_wh;
 static long     p_wmh;
 static long     p_wmw;
@@ -4911,7 +4902,7 @@ static void mch_setmouse(int on);
 static void check_mouse_termcode(void);
 static int mch_call_shell(char_u *cmd, int options);
 static int mch_expandpath(garray_T *gap, char_u *path, int flags);
-static int mch_expand_wildcards(int num_pat, char_u **pat, int *num_file, char_u ***file, int flags);
+static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
 static int mch_has_exp_wildcard(char_u *p);
 static int mch_has_wildcard(char_u *p);
 int  rename(const char *src, const char *dest) ;
@@ -5058,7 +5049,6 @@ static void set_cmd_context(expand_T *xp, char_u *str, int len, int col, int use
 static int expand_cmdline(expand_T *xp, char_u *str, int col, int *matchcount, char_u ***matches);
 static int ExpandGeneric(char_u *pat, expand_T *xp, regmatch_T *regmatch, char_u ***matches, int *numMatches, char_u *(*func)(expand_T *, int), int escaped);
 static int ExpandGenericExt(char_u *pat, expand_T *xp, regmatch_T *regmatch, char_u ***matches, int *numMatches, char_u *(*func)(expand_T *, int), int escaped, int sortStartIdx);
-static void wildmenu_cleanup(cmdline_info_T *cclp);
 
 // ---------------- end cmdexpand.pro ----------------
 // ---------------- begin cmdhist.pro ----------------
@@ -5080,7 +5070,6 @@ static void redraw_curbuf_later(int type);
 static void redraw_buf_later(buf_T *buf, int type);
 static void status_redraw_all(void);
 static void redraw_statuslines(void);
-static void win_redraw_last_status(frame_T *frp);
 static void redraw_win_range_later(win_T *wp, linenr_T first, linenr_T last);
 
 // ---------------- end drawscreen.pro ----------------
@@ -6985,12 +6974,6 @@ static char_u   *empty_option  = (char_u *)"" ;
 static int  redir_off  = FALSE ;
 static FILE *redir_fd  = NULL ;
 
-static int  save_p_ls  = -1 ;
-static int  save_p_wmh  = -1 ;
-static int  wild_menu_showing  = 0 ;
-enum { WM_SHOWN = 1 };
-enum { WM_SCROLLED = 2 };
-
 static const char *Version;
 static char *longVersion;
 
@@ -7112,7 +7095,6 @@ static char e_name_too_long[]  =  "E75: Name too long"  ;
 static char e_too_many_brackets[]  =  "E76: Too many ["  ;
 static char e_too_many_file_names[]  =  "E77: Too many file names"  ;
 static char e_unknown_mark[]  =  "E78: Unknown mark"  ;
-static char e_cannot_expand_wildcards[]  =  "E79: Cannot expand wildcards"  ;
 static char e_error_while_writing[]  =  "E80: Error while writing"  ;
 static char e_cannot_allocate_any_buffer_exiting[]  =  "E82: Cannot allocate any buffer, exiting..."  ;
 static char e_cannot_allocate_buffer_using_other_one[]  =  "E83: Cannot allocate buffer, using other one..."  ;
@@ -24301,10 +24283,7 @@ static int      expand_showtail(expand_T *xp);
 static int      expand_shellcmd(char_u *filepat, char_u ***matches, int *numMatches, int flagsarg);
 static int      expand_pattern_in_buf(char_u *pat, int dir, char_u ***matches, int *numMatches);
 
-static pumitem_T *cmdline_match_array = NULL;
-static int cmdline_match_arraysize;
 static int compl_startcol;
-static int compl_selected;
 static string_T cmdline_orig = {NULL, 0};
 
     static int
@@ -24607,95 +24586,6 @@ nextwild(expand_T    *xp, int         type, int         options, int         esc
 }
 
     static int
-cmdline_pum_create(cmdline_info_T  *ccline, expand_T        *xp, char_u          **matches, int             numMatches, int             showtail)
-{
-    int prefix_len;
-
-    cmdline_match_array =  (pumitem_T *)alloc(sizeof(pumitem_T) * (numMatches)) ;
-    if (cmdline_match_array == NULL)
-    {
-        return  (-2) ;
-    }
-
-    cmdline_match_arraysize = numMatches;
-    for (int i = 0; i < numMatches; i++)
-    {
-        cmdline_match_array[i].pum_text = (xp->xp_files_abbr != NULL && xp->xp_files_abbr[i] != NULL)
-                                        ? xp->xp_files_abbr[i]
-                                        :  (showtail ? showmatches_gettail(matches[i]) : matches[i]) ;
-        cmdline_match_array[i].pum_info = xp->xp_files_info != NULL
-                                            ? xp->xp_files_info[i] : NULL;
-        cmdline_match_array[i].pum_extra = xp->xp_files_menu != NULL
-                                            ? xp->xp_files_menu[i] : NULL;
-        cmdline_match_array[i].pum_kind = xp->xp_files_kind != NULL
-                                            ? xp->xp_files_kind[i] : NULL;
-        cmdline_match_array[i].pum_user_abbr_hlattr = -1;
-        cmdline_match_array[i].pum_user_kind_hlattr = -1;
-    }
-
-    compl_startcol = ccline == NULL ? 0 : vim_strsize(ccline->cmdbuff) + 1;
-    prefix_len = vim_strsize(xp->xp_pattern);
-    if (showtail)
-    {
-        prefix_len += vim_strsize(showmatches_gettail(matches[0]))
-            - vim_strsize(matches[0]);
-    }
-    compl_startcol = cmdline_col_off + MAX(0, compl_startcol - prefix_len);
-
-    return  (-1) ;
-}
-
-    static void
-cmdline_pum_display(void)
-{
-    if (p_po > 0 && p_po < 100 && !pum_redraw_in_same_position())
-    {
-        pum_call_update_screen();
-    }
-    pum_display(cmdline_match_array, cmdline_match_arraysize, compl_selected, -1);
-}
-
-    static int
-cmdline_pum_active(void)
-{
-    return pum_visible() && cmdline_match_array != NULL;
-}
-
-    static void
-cmdline_pum_remove(cmdline_info_T *cclp  __attribute__((unused)) , int defer_redraw)
-{
-    int save_KeyTyped = KeyTyped;
-
-    term_set_sync_output(TERM_SYNC_OUTPUT_ENABLE);
-    pum_undisplay();
-     vim_free(cmdline_match_array);
-     (cmdline_match_array) = NULL;
-    cmdline_match_arraysize = 0;
-    if (!defer_redraw)
-    {
-        int save_p_lz = p_lz;
-        p_lz = FALSE;
-        update_screen(0);
-        p_lz = save_p_lz;
-    }
-    else
-    {
-        pum_call_update_screen();
-    }
-    redrawcmd();
-    term_set_sync_output(TERM_SYNC_OUTPUT_DISABLE);
-
-    KeyTyped = save_KeyTyped;
-}
-
-    static void
-cmdline_pum_cleanup(cmdline_info_T *cclp)
-{
-    cmdline_pum_remove(cclp, FALSE);
-    wildmenu_cleanup(cclp);
-}
-
-    static int
 cmdline_compl_startcol(void)
 {
     return compl_startcol;
@@ -24715,237 +24605,6 @@ cmdline_compl_is_fuzzy(void)
     expand_T    *xp = get_cmdline_info()->xpc;
 
     return xp != NULL && cmdline_fuzzy_completion_supported(xp);
-}
-
-    static int
-skip_status_match_char(expand_T *xp, char_u *s)
-{
-    if ((rem_backslash(s) && xp->xp_context != EXPAND_HELP && xp->xp_context != EXPAND_PATTERN_IN_BUF))
-    {
-        if (xp->xp_shell && csh_like_shell() && s[1] == '\\' && s[2] == '!')
-        {
-            return 2;
-        }
-        return 1;
-    }
-    return 0;
-}
-
-    static int
-status_match_len(expand_T *xp, char_u *s)
-{
-    int len = 0;
-
-    while (*s != NUL)
-    {
-        s += skip_status_match_char(xp, s);
-        len += ptr2cells(s);
-         s += (*mb_ptr2len)(s) ;
-    }
-
-    return len;
-}
-
-    static void
-win_redr_status_matches(expand_T    *xp, int         num_matches, char_u      **matches, int         match, int         showtail)
-{
-    int         row;
-    char_u      *buf;
-    int         len;
-    int         clen;
-    int         fillchar;
-    int         attr;
-    int         i;
-    int         highlight = TRUE;
-    char_u      *selstart = NULL;
-    int         selstart_col = 0;
-    char_u      *selend = NULL;
-    static int  first_match = 0;
-    int         add_left = FALSE;
-    char_u      *s;
-    int         l;
-
-    if (matches == NULL)
-    {
-        return;
-    }
-
-    if (has_mbyte)
-    {
-        buf = alloc(topframe->fr_width * MB_MAXBYTES + 1);
-    }
-    else
-    {
-        buf = alloc(topframe->fr_width + 1);
-    }
-    if (buf == NULL)
-    {
-        return;
-    }
-
-    if (match == -1)
-    {
-        match = 0;
-        highlight = FALSE;
-    }
-    clen = status_match_len(xp,  (showtail ? showmatches_gettail(matches[match]) : matches[match]) ) + 3;
-    if (match == 0)
-    {
-        first_match = 0;
-    }
-    else if (match < first_match)
-    {
-        first_match = match;
-        add_left = TRUE;
-    }
-    else
-    {
-        for (i = first_match; i < match; ++i)
-        {
-            clen += status_match_len(xp,  (showtail ? showmatches_gettail(matches[i]) : matches[i]) ) + 2;
-        }
-        if (first_match > 0)
-        {
-            clen += 2;
-        }
-        if (clen > topframe->fr_width)
-        {
-            first_match = match;
-            clen = 2;
-            for (i = match; i < num_matches; ++i)
-            {
-                clen += status_match_len(xp,  (showtail ? showmatches_gettail(matches[i]) : matches[i]) ) + 2;
-                if (clen >= topframe->fr_width)
-                {
-                    break;
-                }
-            }
-            if (i == num_matches)
-            {
-                add_left = TRUE;
-            }
-        }
-    }
-    if (add_left)
-    {
-        while (first_match > 0)
-        {
-            clen += status_match_len(xp,  (showtail ? showmatches_gettail(matches[first_match - 1]) : matches[first_match - 1]) ) + 2;
-            if (clen >= topframe->fr_width)
-            {
-                break;
-            }
-            --first_match;
-        }
-    }
-
-    fillchar = fillchar_status(&attr, curwin);
-
-    if (first_match == 0)
-    {
-        *buf = NUL;
-        len = 0;
-    }
-    else
-    {
-         strcpy((char *)(buf), (char *)("< ")) ;
-        len = 2;
-    }
-    clen = len;
-
-    i = first_match;
-    while (clen + status_match_len(xp,  (showtail ? showmatches_gettail(matches[i]) : matches[i]) ) + 2 < topframe->fr_width)
-    {
-        if (i == match)
-        {
-            selstart = buf + len;
-            selstart_col = clen;
-        }
-
-        s =  (showtail ? showmatches_gettail(matches[i]) : matches[i]) ;
-        for ( ; *s != NUL; ++s)
-        {
-            s += skip_status_match_char(xp, s);
-            clen += ptr2cells(s);
-            if (has_mbyte && (l = (*mb_ptr2len)(s)) > 1)
-            {
-                 strncpy((char *)(buf + len), (char *)(s), (l)) ;
-                s += l - 1;
-                len += l;
-            }
-            else
-            {
-                 strcpy((char *)(buf + len), (char *)(transchar_byte(*s))) ;
-                len += (int) strlen((char *)(buf + len)) ;
-            }
-        }
-        if (i == match)
-        {
-            selend = buf + len;
-        }
-
-        *(buf + len++) = ' ';
-        *(buf + len++) = ' ';
-        clen += 2;
-        if (++i == num_matches)
-        {
-                break;
-        }
-    }
-
-    if (i != num_matches)
-    {
-        *(buf + len++) = '>';
-        ++clen;
-    }
-
-    buf[len] = NUL;
-
-    row = cmdline_row - 1;
-    if (row >= 0)
-    {
-        if (wild_menu_showing == 0)
-        {
-            if (msg_scrolled > 0)
-            {
-                if (cmdline_row == Rows - 1)
-                {
-                    screen_del_lines(0, 0, 1, (int)Rows, TRUE, 0, NULL);
-                    ++msg_scrolled;
-                }
-                else
-                {
-                    ++cmdline_row;
-                    ++row;
-                }
-                wild_menu_showing = WM_SCROLLED;
-            }
-            else
-            {
-                if (lastwin->w_status_height == 0)
-                {
-                    save_p_ls = p_ls;
-                    save_p_wmh = p_wmh;
-                    p_ls = 2;
-                    p_wmh = 0;
-                    last_status(FALSE);
-                }
-                wild_menu_showing = WM_SHOWN;
-            }
-        }
-
-        screen_puts(buf, row, firstwin->w_wincol, attr);
-        if (selstart != NULL && highlight)
-        {
-            *selend = NUL;
-            screen_puts(selstart, row, firstwin->w_wincol + selstart_col,  highlight_attr[(int)(HLF_WM)] );
-        }
-
-        screen_fill(row, row + 1, firstwin->w_wincol + clen, firstwin->w_wincol + topframe->fr_width, fillchar, fillchar, attr);
-    }
-
-    win_redraw_last_status(topframe);
-    vim_free(buf);
 }
 
     static char_u *
@@ -25020,28 +24679,6 @@ get_next_or_prev_match(int mode, expand_T *xp)
         else
         {
             findex = (findex < 0) ? xp->xp_numfiles - 1 : 0;
-        }
-    }
-
-    if (p_wmnu)
-    {
-        if (cmdline_match_array)
-        {
-            compl_selected = findex;
-            cmdline_pum_display();
-        }
-        else if (vim_strchr(p_wop, WOP_PUM) != NULL)
-        {
-            if (cmdline_pum_create(get_cmdline_info(), xp, xp->xp_files, xp->xp_numfiles, cmd_showtail) ==  (-1) )
-            {
-                compl_selected = findex;
-                pum_clear();
-                cmdline_pum_display();
-            }
-        }
-        else
-        {
-            win_redr_status_matches(xp, xp->xp_numfiles, xp->xp_files, findex, cmd_showtail);
         }
     }
 
@@ -25238,10 +24875,6 @@ ExpandOne(expand_T    *xp, char_u      *str, char_u      *orig, int         opti
          vim_free(xp->xp_orig);
          (xp->xp_orig) = NULL;
 
-        if (cmdline_match_array != NULL)
-        {
-            cmdline_pum_remove(get_cmdline_info(), FALSE);
-        }
     }
     xp->xp_selected = (options & WILD_NOSELECT) ? -1 : 0;
 
@@ -25420,21 +25053,7 @@ showmatches_oneline(expand_T        *xp, char_u          **matches, int         
 }
 
     static int
-show_pum_matches(cmdline_info_T  *ccline, expand_T        *xp, char_u          **matches, int             numMatches, int             showtail, int             noselect)
-{
-    int retval = cmdline_pum_create(ccline, xp, matches, numMatches, showtail);
-
-    if (retval ==  (-1) )
-    {
-        compl_selected = noselect ? -1 : 0;
-        pum_clear();
-        cmdline_pum_display();
-    }
-    return retval;
-}
-
-    static int
-showmatches(expand_T    *xp, int         display_wildmenu, int         display_list, int         wim_flags_arg)
+showmatches(expand_T    *xp, int         display_list)
 {
     cmdline_info_T      *ccline = get_cmdline_info();
     int         numMatches;
@@ -25445,9 +25064,6 @@ showmatches(expand_T    *xp, int         display_wildmenu, int         display_l
     int         columns;
     int         attr;
     int         showtail;
-    int         noselect = (wim_flags_arg & WIM_NOSELECT);
-    int         noinsert = (wim_flags_arg & WIM_NOINSERT);
-    int         cmdline_unchanged = noselect || noinsert;
 
     if (xp->xp_numfiles == -1)
     {
@@ -25467,11 +25083,6 @@ showmatches(expand_T    *xp, int         display_wildmenu, int         display_l
         showtail = cmd_showtail;
     }
 
-    if (display_wildmenu && !display_list && vim_strchr(p_wop, WOP_PUM) != NULL)
-    {
-        return show_pum_matches(ccline, xp, matches, numMatches, showtail && !cmdline_unchanged, noselect);
-    }
-
     if (display_list)
     {
         msg_didany = FALSE;
@@ -25486,10 +25097,6 @@ showmatches(expand_T    *xp, int         display_wildmenu, int         display_l
     if (got_int)
     {
         got_int = FALSE;
-    }
-    else if (display_wildmenu && !display_list)
-    {
-        win_redr_status_matches(xp, numMatches, matches, noselect ? -1 : 0, showtail);
     }
     else if (display_list)
     {
@@ -25548,18 +25155,6 @@ showmatches(expand_T    *xp, int         display_wildmenu, int         display_l
         }
 
         cmdline_row = msg_row;
-    }
-
-    if (display_wildmenu && display_list)
-    {
-        if (vim_strchr(p_wop, WOP_PUM) != NULL)
-        {
-            (void)show_pum_matches(ccline, xp, matches, numMatches, showtail && !cmdline_unchanged, noselect);
-        }
-        else
-        {
-            win_redr_status_matches(xp, numMatches, matches, noselect ? -1 : 0, showtail);
-        }
     }
 
     if (xp->xp_numfiles == -1)
@@ -27602,261 +27197,6 @@ globpath(char_u      *path, char_u      *file, garray_T    *ga, int         expa
     }
 
     vim_free(buf);
-}
-
-    static int
-wildmenu_translate_key(cmdline_info_T  *cclp, int             key, expand_T        *xp, int             did_wild_list)
-{
-    int c = key;
-
-    if (cmdline_pum_active())
-    {
-        switch (c)
-        {
-            case   (-(('k') + ((int)('u') << 8)))  :
-                c =   (-(('k') + ((int)('l') << 8)))  ;
-                break;
-            case   (-(('k') + ((int)('d') << 8)))  :
-                c =   (-(('k') + ((int)('r') << 8)))  ;
-                break;
-            case   (-(('k') + ((int)('l') << 8)))  :
-                c =   (-(('k') + ((int)('u') << 8)))  ;
-                break;
-            case   (-(('k') + ((int)('r') << 8)))  :
-                c =   (-(('k') + ((int)('d') << 8)))  ;
-                break;
-            default:
-                break;
-        }
-    }
-
-    if (cmdline_pum_active() || did_wild_list || wild_menu_showing)
-    {
-        if (c ==   (-(('k') + ((int)('l') << 8)))  )
-        {
-            c = Ctrl_P;
-        }
-        else if (c ==   (-(('k') + ((int)('r') << 8)))  )
-        {
-            c = Ctrl_N;
-        }
-    }
-
-    if (xp->xp_context == EXPAND_MENUNAMES && cclp->cmdpos > 1 && cclp->cmdbuff[cclp->cmdpos - 1] == '.' && cclp->cmdbuff[cclp->cmdpos - 2] != '\\' && (c == '\n' || c == '\r' || c ==   (-(('K') + ((int)('A') << 8)))  ))
-    {
-        c =   (-(('k') + ((int)('d') << 8)))  ;
-    }
-
-    return c;
-}
-
-    static void
-cmdline_del(cmdline_info_T *cclp, int from)
-{
-     memmove((char *)(cclp->cmdbuff + from), (char *)(cclp->cmdbuff + cclp->cmdpos), (size_t)(cclp->cmdlen - cclp->cmdpos + 1)) ;
-    cclp->cmdlen -= cclp->cmdpos - from;
-    cclp->cmdpos = from;
-}
-
-    static int
-wildmenu_process_key_menunames(cmdline_info_T *cclp, int key, expand_T *xp)
-{
-    int         i;
-    int         j;
-
-    if (key ==   (-(('k') + ((int)('d') << 8)))   && cclp->cmdpos > 0 && cclp->cmdbuff[cclp->cmdpos - 1] == '.')
-    {
-        key = p_wc;
-        KeyTyped = TRUE;
-    }
-    else if (key ==   (-(('k') + ((int)('u') << 8)))  )
-    {
-        int found = FALSE;
-
-        j = (int)(xp->xp_pattern - cclp->cmdbuff);
-        i = 0;
-        while (--j > 0)
-        {
-            if (cclp->cmdbuff[j] == ' ' && cclp->cmdbuff[j - 1] != '\\')
-            {
-                i = j + 1;
-                break;
-            }
-            if (cclp->cmdbuff[j] == '.' && cclp->cmdbuff[j - 1] != '\\')
-            {
-                if (found)
-                {
-                    i = j + 1;
-                    break;
-                }
-                else
-                {
-                    found = TRUE;
-                }
-            }
-        }
-        if (i > 0)
-        {
-            cmdline_del(cclp, i);
-        }
-        key = p_wc;
-        KeyTyped = TRUE;
-        xp->xp_context = EXPAND_NOTHING;
-    }
-
-    return key;
-}
-
-    static int
-wildmenu_process_key_filenames(cmdline_info_T *cclp, int key, expand_T *xp)
-{
-    int         i;
-    int         j;
-    char_u      upseg[5];
-
-    upseg[0] =  ((char_u)'/') ;
-    upseg[1] = '.';
-    upseg[2] = '.';
-    upseg[3] =  ((char_u)'/') ;
-    upseg[4] = NUL;
-
-    if (key ==   (-(('k') + ((int)('d') << 8)))   && cclp->cmdpos > 0 && cclp->cmdbuff[cclp->cmdpos - 1] ==  ((char_u)'/')  && (cclp->cmdpos < 3 || cclp->cmdbuff[cclp->cmdpos - 2] != '.' || cclp->cmdbuff[cclp->cmdpos - 3] != '.'))
-    {
-        key = p_wc;
-        KeyTyped = TRUE;
-    }
-    else if ( strncmp((char *)(xp->xp_pattern), (char *)(upseg + 1), (3))  == 0 && key ==   (-(('k') + ((int)('d') << 8)))  )
-    {
-        int found = FALSE;
-
-        j = cclp->cmdpos;
-        i = (int)(xp->xp_pattern - cclp->cmdbuff);
-        while (--j > i)
-        {
-            if (has_mbyte)
-            {
-                j -= (*mb_head_off)(cclp->cmdbuff, cclp->cmdbuff + j);
-            }
-            if (vim_ispathsep(cclp->cmdbuff[j]))
-            {
-                found = TRUE;
-                break;
-            }
-        }
-        if (found && cclp->cmdbuff[j - 1] == '.' && cclp->cmdbuff[j - 2] == '.' && (vim_ispathsep(cclp->cmdbuff[j - 3]) || j == i + 2))
-        {
-            cmdline_del(cclp, j - 2);
-            key = p_wc;
-            KeyTyped = TRUE;
-        }
-    }
-    else if (key ==   (-(('k') + ((int)('u') << 8)))  )
-    {
-        int found = FALSE;
-
-        j = cclp->cmdpos - 1;
-        i = (int)(xp->xp_pattern - cclp->cmdbuff);
-        while (--j > i)
-        {
-            if (has_mbyte)
-            {
-                j -= (*mb_head_off)(cclp->cmdbuff, cclp->cmdbuff + j);
-            }
-            if (vim_ispathsep(cclp->cmdbuff[j]))
-            {
-                if (found)
-                {
-                    i = j + 1;
-                    break;
-                }
-                else
-                {
-                    found = TRUE;
-                }
-            }
-        }
-
-        if (!found)
-        {
-            j = i;
-        }
-        else if ( strncmp((char *)(cclp->cmdbuff + j), (char *)(upseg), (4))  == 0)
-        {
-            j += 4;
-        }
-        else if ( strncmp((char *)(cclp->cmdbuff + j), (char *)(upseg + 1), (3))  == 0 && j == i)
-        {
-            j += 3;
-        }
-        else
-        {
-            j = 0;
-        }
-        if (j > 0)
-        {
-            cmdline_del(cclp, j);
-            put_on_cmdline(upseg + 1, 3, FALSE);
-        }
-        else if (cclp->cmdpos > i)
-        {
-            cmdline_del(cclp, i);
-        }
-
-        key = p_wc;
-        KeyTyped = TRUE;
-    }
-
-    return key;
-}
-
-    static int
-wildmenu_process_key(cmdline_info_T *cclp, int key, expand_T *xp)
-{
-    if (xp->xp_context == EXPAND_MENUNAMES)
-    {
-        return wildmenu_process_key_menunames(cclp, key, xp);
-    }
-    else if ((xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_DIRECTORIES || xp->xp_context == EXPAND_SHELLCMD))
-    {
-        return wildmenu_process_key_filenames(cclp, key, xp);
-    }
-
-    return key;
-}
-
-    static void
-wildmenu_cleanup(cmdline_info_T *cclp  __attribute__((unused)) )
-{
-    int skt = KeyTyped;
-
-    if (!p_wmnu || wild_menu_showing == 0)
-    {
-        return;
-    }
-
-    set_no_hlsearch(TRUE);
-
-    if (wild_menu_showing == WM_SCROLLED)
-    {
-        cmdline_row--;
-        redrawcmd();
-    }
-    else if (save_p_ls != -1)
-    {
-        p_ls = save_p_ls;
-        p_wmh = save_p_wmh;
-        last_status(FALSE);
-        update_screen(UPD_VALID);
-        redrawcmd();
-        save_p_ls = -1;
-    }
-    else
-    {
-        win_redraw_last_status(topframe);
-        redraw_statuslines();
-    }
-    KeyTyped = skt;
-    wild_menu_showing = 0;
 }
 
     static int
@@ -31711,14 +31051,9 @@ redraw_after_callback(int call_update_screen, int do_message)
     }
     else if (State & MODE_CMDLINE)
     {
-        if (pum_visible())
-        {
-            cmdline_pum_display();
-        }
-
         if (cmdline_row > 0)
         {
-            if (msg_scrolled == 0 && wild_menu_showing == 0 && call_update_screen)
+            if (msg_scrolled == 0 && call_update_screen)
             {
                 update_screen(0);
             }
@@ -31885,31 +31220,6 @@ redraw_statuslines(void)
         draw_tabline();
     }
 
-}
-
-    static void
-win_redraw_last_status(frame_T *frp)
-{
-    if (frp->fr_layout == FR_LEAF)
-    {
-        frp->fr_win->w_redr_status = true;
-    }
-    else if (frp->fr_layout == FR_ROW)
-    {
-         for ((frp) = frp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-         {
-            win_redraw_last_status(frp);
-         }
-    }
-    else
-    {
-        frp = frp->fr_child;
-        while (frp->fr_next != NULL)
-        {
-            frp = frp->fr_next;
-        }
-        win_redraw_last_status(frp);
-    }
 }
 
     static void
@@ -48551,8 +47861,6 @@ cmdline_wildchar_complete(int             c, int             escape, int        
     int         res;
     int         cmdpos_before;
     int         options = WILD_NO_BEEP;
-    int         wim_noselect = p_wmnu && (wim_flags[0] & WIM_NOSELECT);
-    int         wim_noinsert = p_wmnu && (wim_flags[0] & WIM_NOINSERT);
 
     if (wim_flags[wim_index] & WIM_BUFLASTUSED)
     {
@@ -48562,7 +47870,7 @@ cmdline_wildchar_complete(int             c, int             escape, int        
     {
         if (xp->xp_numfiles > 1 && !*did_wild_list && (wim_flags[wim_index] & WIM_LIST))
         {
-            (void)showmatches(xp, FALSE, TRUE, p_wmnu ? wim_flags[wim_index] : 0);
+            (void)showmatches(xp, TRUE);
             redrawcmd();
             *did_wild_list = TRUE;
         }
@@ -48610,13 +47918,9 @@ cmdline_wildchar_complete(int             c, int             escape, int        
         }
         else
         {
-            if (wim_noselect || (wim_list && !wim_full))
+            if (wim_list && !wim_full)
             {
                 options |= WILD_NOSELECT;
-            }
-            if (wim_noinsert)
-            {
-                options |= WILD_NOINSERT;
             }
             res = nextwild(xp, WILD_EXPAND_KEEP, options, escape);
         }
@@ -48637,16 +47941,14 @@ cmdline_wildchar_complete(int             c, int             escape, int        
             return CMDLINE_CHANGED;
         }
 
-        if (res == OK && xp->xp_numfiles > ((wim_noselect || wim_noinsert) ? 0 : 1))
+        if (res == OK && xp->xp_numfiles > 1)
         {
             if (wim_longest)
             {
                 int found_longest_prefix = (ccline.cmdpos != cmdpos_before);
-                int show_menu = p_wmnu && wim_full;
-
-                if (wim_list || show_menu)
+                if (wim_list)
                 {
-                    (void)showmatches(xp, show_menu, wim_list, WIM_NOSELECT);
+                    (void)showmatches(xp, wim_list);
                 }
                 else if (!found_longest_prefix)
                 {
@@ -48654,7 +47956,7 @@ cmdline_wildchar_complete(int             c, int             escape, int        
                     int wim_full_next = (wim_flags[1] & WIM_FULL);
                     int wim_noselect_next = (wim_flags[1] & WIM_NOSELECT);
                     int wim_noinsert_next = (wim_flags[1] & WIM_NOINSERT);
-                    if (wim_list_next || (p_wmnu && (wim_full_next || wim_noselect_next || wim_noinsert_next)))
+                    if (wim_list_next)
                     {
                         if (wim_full_next && !wim_noselect_next && !wim_noinsert_next)
                         {
@@ -48662,7 +47964,7 @@ cmdline_wildchar_complete(int             c, int             escape, int        
                         }
                         else
                         {
-                            (void)showmatches(xp, p_wmnu && (wim_noselect_next || wim_noinsert_next), wim_list_next, p_wmnu ? wim_flags[1] : 0);
+                            (void)showmatches(xp, wim_list_next);
                         }
 
                         if (wim_list_next)
@@ -48674,11 +47976,9 @@ cmdline_wildchar_complete(int             c, int             escape, int        
             }
             else
             {
-                int show_menu = p_wmnu && (wim_full || wim_noselect || wim_noinsert);
-
-                if (wim_list || show_menu)
+                if (wim_list)
                 {
-                    (void)showmatches(xp, show_menu, wim_list, p_wmnu ? wim_flags[0] : 0);
+                    (void)showmatches(xp, wim_list);
                 }
                 else
                 {
@@ -49241,8 +48541,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
         int     trigger_cmdlinechanged = TRUE;
         int     end_wildmenu;
         int     prev_cmdpos = ccline.cmdpos;
-        int     skip_pum_redraw = FALSE;
-
          vim_free(prev_cmdbuff);
          (prev_cmdbuff) = NULL;
 
@@ -49267,11 +48565,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
             }
         }
 
-        if (c ==   (-((KS_EXTRA) + ((int)(KE_WILD) << 8)))   && firstc != '@')
-        {
-            skip_pum_redraw = TRUE;
-        }
-
         do
         {
             cursorcmd();
@@ -49280,15 +48573,10 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
 
         if (ccline.cmdbuff_replaced && xpc.xp_numfiles > 0)
         {
-            if (cmdline_pum_active())
-            {
-                cmdline_pum_remove(&ccline, FALSE);
-            }
             (void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
             did_wild_list = FALSE;
             xpc.xp_context = EXPAND_NOTHING;
             wim_index = 0;
-            wildmenu_cleanup(&ccline);
         }
         ccline.cmdbuff_replaced = FALSE;
 
@@ -49335,13 +48623,8 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
             c = Ctrl_P;
         }
 
-        if (p_wmnu)
-        {
-            c = wildmenu_translate_key(&ccline, c, &xpc, did_wild_list);
-        }
-
         int key_is_wc = (c == p_wc && KeyTyped) || c == p_wcm;
-        if ((cmdline_pum_active() || wild_menu_showing || did_wild_list) && !key_is_wc && xpc.xp_numfiles > 0)
+        if ((did_wild_list) && !key_is_wc && xpc.xp_numfiles > 0)
         {
             if (c == Ctrl_E || c == Ctrl_Y)
             {
@@ -49364,33 +48647,16 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
         }
 
         end_wildmenu = (!key_is_wc && c != Ctrl_N && c != Ctrl_P && c != Ctrl_A && c != Ctrl_L);
-        end_wildmenu = end_wildmenu && (!cmdline_pum_active() || (c !=   (-(('k') + ((int)('N') << 8)))   && c !=   (-(('k') + ((int)('P') << 8)))   && c !=   (-(('K') + ((int)('5') << 8)))   && c !=   (-(('K') + ((int)('3') << 8)))   && c !=   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))   && c !=   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))   && c !=   (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))   && c !=   (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))   && !((c ==   (-((KS_EXTRA) + ((int)(KE_S_UP) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_S_DOWN) << 8)))  ) && (mod_mask & MOD_MASK_CTRL))));
 
         if (end_wildmenu)
         {
-            if (cmdline_pum_active())
-            {
-                skip_pum_redraw = skip_pum_redraw && !key_is_wc
-                    && ! ((c) == ' ' || (c) == '\t') 
-                    && (vim_isprintc(c) || c ==   (-(('k') + ((int)('b') << 8)))   || c == Ctrl_H || c ==   (-(('k') + ((int)('D') << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_KDEL) << 8)))   || c == Ctrl_W || c == Ctrl_U);
-                cmdline_pum_remove(&ccline, skip_pum_redraw);
-            }
             if (xpc.xp_numfiles != -1)
             {
                 (void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
             }
             did_wild_list = FALSE;
-            if (!p_wmnu || (c !=   (-(('k') + ((int)('u') << 8)))   && c !=   (-(('k') + ((int)('d') << 8)))  ))
-            {
-                xpc.xp_context = EXPAND_NOTHING;
-            }
+            xpc.xp_context = EXPAND_NOTHING;
             wim_index = 0;
-            wildmenu_cleanup(&ccline);
-        }
-
-        if (p_wmnu)
-        {
-            c = wildmenu_process_key(&ccline, c, &xpc);
         }
 
         if (c == Ctrl_BSL)
@@ -49472,11 +48738,11 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
         {
             if (nextwild(&xpc, WILD_EXPAND_KEEP, 0, firstc != '@') == OK)
             {
-                if (xpc.xp_numfiles > 1 && ((!did_wild_list && (wim_flags[wim_index] & WIM_LIST)) || p_wmnu))
+                if (xpc.xp_numfiles > 1 && !did_wild_list && (wim_flags[wim_index] & WIM_LIST))
                 {
                     int list = wim_flags[wim_index] & WIM_LIST;
 
-                    showmatches(&xpc, p_wmnu && !list, list, p_wmnu ? wim_flags[0] : 0);
+                    showmatches(&xpc, list);
                 }
                 if (nextwild(&xpc, WILD_PREV, 0, firstc != '@') == OK && nextwild(&xpc, WILD_PREV, 0, firstc != '@') == OK)
                 {
@@ -49575,7 +48841,7 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
                 goto cmdline_not_changed;
 
         case Ctrl_D:
-                if (showmatches(&xpc, FALSE, TRUE, p_wmnu ? wim_flags[0] : 0) == EXPAND_NOTHING)
+                if (showmatches(&xpc, TRUE) == EXPAND_NOTHING)
                 {
                     break;
                 }
@@ -49706,11 +48972,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
                 goto cmdline_not_changed;
 
         case Ctrl_A:
-                if (cmdline_pum_active())
-                {
-                    cmdline_pum_cleanup(&ccline);
-                }
-
                 if (nextwild(&xpc, WILD_ALL, 0, firstc != '@') == FAIL)
                 {
                     break;
@@ -49751,31 +49012,15 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
         case   (-(('K') + ((int)('3') << 8)))  :
         case   (-(('k') + ((int)('N') << 8)))  :
         case   (-(('K') + ((int)('5') << 8)))  :
-                if (cmdline_pum_active() && (c ==   (-(('k') + ((int)('P') << 8)))   || c ==   (-(('k') + ((int)('N') << 8)))   || c ==   (-(('K') + ((int)('3') << 8)))   || c ==   (-(('K') + ((int)('5') << 8)))  ))
+                res = cmdline_browse_history(c, firstc, &lookfor, &lookforlen, histype, &hiscnt, &xpc);
+                if (res == CMDLINE_CHANGED)
                 {
-                    wild_type = WILD_PAGEUP;
-                    if (c ==   (-(('k') + ((int)('N') << 8)))   || c ==   (-(('K') + ((int)('5') << 8)))  )
-                    {
-                        wild_type = WILD_PAGEDOWN;
-                    }
-                    if (nextwild(&xpc, wild_type, 0, firstc != '@') == FAIL)
-                    {
-                        break;
-                    }
+                    did_hist_navigate = TRUE;
                     goto cmdline_changed;
                 }
-                else
+                else if (res == GOTO_NORMAL_MODE)
                 {
-                    res = cmdline_browse_history(c, firstc, &lookfor, &lookforlen, histype, &hiscnt, &xpc);
-                    if (res == CMDLINE_CHANGED)
-                    {
-                        did_hist_navigate = TRUE;
-                        goto cmdline_changed;
-                    }
-                    else if (res == GOTO_NORMAL_MODE)
-                    {
-                        goto returncmd;
-                    }
+                    goto returncmd;
                 }
                 goto cmdline_not_changed;
 
@@ -49888,11 +49133,6 @@ returncmd:
         trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINELEAVEPRE);
     }
 
-    if (cmdline_pum_active())
-    {
-        cmdline_pum_remove(&ccline, FALSE);
-    }
-    wildmenu_cleanup(&ccline);
     did_wild_list = FALSE;
     wim_index = 0;
 
@@ -56311,14 +55551,14 @@ gen_expand_wildcards(int         num_pat, char_u      **pat, int         *num_fi
 
     if (recursive)
     {
-        return mch_expand_wildcards(num_pat, pat, num_file, file, flags);
+        return save_patterns(num_pat, pat, num_file, file);
     }
 
     for (i = 0; i < num_pat; i++)
     {
         if (has_special_wildchar(pat[i]) && !(vim_backtick(pat[i]) && pat[i][1] == '='))
         {
-            return mch_expand_wildcards(num_pat, pat, num_file, file, flags);
+            return save_patterns(num_pat, pat, num_file, file);
         }
     }
 
@@ -56352,7 +55592,7 @@ gen_expand_wildcards(int         num_pat, char_u      **pat, int         *num_fi
                 {
                     vim_free(p);
                     ga_clear_strings(&ga);
-                    i = mch_expand_wildcards(num_pat, pat, num_file, file, flags|EW_KEEPDOLLAR);
+                    i = save_patterns(num_pat, pat, num_file, file);
                     recursive = FALSE;
                     return i;
                 }
@@ -109419,9 +108659,6 @@ static struct vimoption options[] =
     {"wildignorecase", "wic", P_BOOL|P_VI_DEF,
                             (char_u *)&p_wic, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"wildmenu",    "wmnu", P_BOOL|P_VI_DEF,
-                            (char_u *)&p_wmnu, PV_NONE, NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
     {"wildmode",    "wim",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP|P_COLON,
                             (char_u *)&p_wim, PV_NONE, did_set_wildmode, expand_set_wildmode,
                             {(char_u *)"full", (char_u *)0L}   },
@@ -115416,7 +114653,7 @@ static char *(p_tcl_values[]) = {"left", "uselast", NULL};
 static char *(p_ttym_values[]) = {"xterm", "xterm2", "dec", "netterm", "jsbterm", "pterm", "urxvt", "sgr", NULL};
 static char *(p_ve_values[]) = {"block", "insert", "all", "onemore", "none", "NONE", NULL};
 static char *(p_wim_values[]) = {"full", "longest", "list", "lastused", "noselect", "noinsert", NULL};
-static char *(p_wop_values[]) = {"fuzzy", "tagfile", "pum", "exacttext", NULL};
+static char *(p_wop_values[]) = {"fuzzy", "tagfile", "exacttext", NULL};
 static char *(p_mousem_values[]) = {"extend", "popup", "popup_setpos", "mac", NULL};
 static char *(p_sel_values[]) = {"inclusive", "exclusive", "old", NULL};
 static char *(p_slm_values[]) = {"mouse", "key", "cmd", NULL};
@@ -118191,8 +117428,6 @@ static void deathtrap  (int) ;
 static void catch_int_signal(void);
 static void set_signals(void);
 static void catch_signals(void (*func_deadly)(int), void (*func_other)(int));
-static int  have_wildcard(int, char_u **);
-static int  have_dollars(int, char_u **);
 
 static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
 
@@ -120444,452 +119679,6 @@ mch_expandpath(garray_T    *gap, char_u      *path, int         flags)
 }
 
     static int
-mch_expand_wildcards(int            num_pat, char_u       **pat, int           *num_file, char_u      ***file, int            flags)
-{
-    int         i;
-    size_t      len;
-    long        llen;
-    char_u      *p;
-    int         dir;
-
-    int         j;
-    char_u      *tempname;
-    size_t      tempnamelen;
-    char_u      *command;
-    size_t      commandlen;
-    FILE        *fd;
-    char_u      *buffer;
-    int         shell_style = STYLE_ECHO;
-    int         check_spaces;
-    static int  did_find_nul = FALSE;
-    int         ampersand = FALSE;
-    static string_T sh_vimglob_func =  {(char_u *)("vimglob() { while [ $# -ge 1 ]; do echo \"$1\"; shift; done }; vimglob >"),  (sizeof("vimglob() { while [ $# -ge 1 ]; do echo \"$1\"; shift; done }; vimglob >" "") - 1) } ;
-    static string_T sh_globstar_opt =  {(char_u *)("[[ ${BASH_VERSINFO[0]} -ge 4 ]] && shopt -s globstar; "),  (sizeof("[[ ${BASH_VERSINFO[0]} -ge 4 ]] && shopt -s globstar; " "") - 1) } ;
-
-    *num_file = 0;
-    *file = NULL;
-
-    if (!have_wildcard(num_pat, pat))
-    {
-        return save_patterns(num_pat, pat, num_file, file);
-    }
-
-    if (secure || restricted)
-    {
-        for (i = 0; i < num_pat; ++i)
-        {
-            if (vim_strchr(pat[i], '`') != NULL && (check_restricted() || check_secure()))
-            {
-                return FAIL;
-            }
-        }
-    }
-
-    if ((tempname = vim_tempname('o', FALSE)) == NULL)
-    {
-        emsg(_(e_cant_get_temp_file_name));
-        return FAIL;
-    }
-
-    if (num_pat == 1 && *pat[0] == '`' && (len =  strlen((char *)(pat[0])) ) > 2 && *(pat[0] + len - 1) == '`')
-    {
-        shell_style = STYLE_BT;
-    }
-    else if ((len =  strlen((char *)(p_sh)) ) >= 3)
-    {
-        if ( strcmp((char *)(p_sh + len - 3), (char *)("csh"))  == 0)
-        {
-            shell_style = STYLE_GLOB;
-        }
-        else if ( strcmp((char *)(p_sh + len - 3), (char *)("zsh"))  == 0)
-        {
-            shell_style = STYLE_PRINT;
-        }
-    }
-    if (shell_style == STYLE_ECHO)
-    {
-        if (strstr((char *)gettail(p_sh), "bash") != NULL)
-        {
-            shell_style = STYLE_GLOBSTAR;
-        }
-        else if (strstr((char *)gettail(p_sh), "sh") != NULL)
-        {
-            shell_style = STYLE_VIMGLOB;
-        }
-    }
-
-    tempnamelen =  strlen((char *)(tempname)) ;
-    len = tempnamelen + 29;
-    if (shell_style == STYLE_VIMGLOB)
-    {
-        len += sh_vimglob_func.length;
-    }
-    else if (shell_style == STYLE_GLOBSTAR)
-    {
-        len += sh_vimglob_func.length + sh_globstar_opt.length;
-    }
-
-    for (i = 0; i < num_pat; ++i)
-    {
-        ++len;
-        for (j = 0; pat[i][j] != NUL; ++j)
-        {
-            if (vim_strchr( (char_u *)"\t \"&'$;<>()\\|\n" , pat[i][j]) != NULL)
-            {
-                ++len;
-            }
-            ++len;
-        }
-    }
-    command = alloc(len);
-    if (command == NULL)
-    {
-        vim_free(tempname);
-        return FAIL;
-    }
-
-    if (shell_style == STYLE_BT)
-    {
-        commandlen = vim_snprintf((char *)command, len, "(%s)>%s", pat[0] + 1, tempname);
-
-        p = (char_u *)strstr((char *)command, ")>");
-        if (p == NULL)
-        {
-            ;
-        }
-        else
-        {
-            --p;
-            while (p > command &&  ((*p) == ' ' || (*p) == '\t') )
-            {
-                --p;
-            }
-            if (*p == '`')
-            {
-                *p = ' ';
-            }
-
-            --p;
-            while (p > command &&  ((*p) == ' ' || (*p) == '\t') )
-            {
-                --p;
-            }
-            if (*p == '&')
-            {
-                ampersand = TRUE;
-                *p = ' ';
-            }
-        }
-    }
-    else
-    {
-        if (shell_style == STYLE_GLOB)
-        {
-            commandlen = vim_snprintf((char *)command, len, "%sset nonomatch; glob >%s", (flags & EW_NOTFOUND) ? "" : "un", tempname);
-        }
-        else if (shell_style == STYLE_PRINT)
-        {
-            commandlen = vim_snprintf((char *)command, len, "print -N >%s", tempname);
-        }
-        else if (shell_style == STYLE_VIMGLOB)
-        {
-            commandlen = vim_snprintf((char *)command, len, "%s%s", sh_vimglob_func.string, tempname);
-        }
-        else if (shell_style == STYLE_GLOBSTAR)
-        {
-            commandlen = vim_snprintf((char *)command, len, "%s%s%s", sh_globstar_opt.string, sh_vimglob_func.string, tempname);
-        }
-        else
-        {
-            commandlen = vim_snprintf((char *)command, len, "echo >%s", tempname);
-        }
-
-        for (i = 0; i < num_pat; ++i)
-        {
-            int intick = FALSE;
-
-            p = command + commandlen;
-            *p++ = ' ';
-            for (j = 0; pat[i][j] != NUL; ++j)
-            {
-                if (pat[i][j] == '`')
-                {
-                    intick = !intick;
-                }
-                else if (pat[i][j] == '\\' && pat[i][j + 1] != NUL)
-                {
-                    if (intick || vim_strchr( (char_u *)"\t \"&'$;<>()\\|\n" , pat[i][j + 1]) != NULL || pat[i][j + 1] == '`')
-                    {
-                        *p++ = '\\';
-                    }
-                    ++j;
-                }
-                else if (!intick && ((flags & EW_KEEPDOLLAR) == 0 || pat[i][j] != '$') && vim_strchr( (char_u *)"\t \"&'$;<>()\\|\n" , pat[i][j]) != NULL)
-                {
-                    *p++ = '\\';
-                }
-
-                *p++ = pat[i][j];
-            }
-            *p = NUL;
-            commandlen = (size_t)(p - command);
-        }
-    }
-    if (flags & EW_SILENT)
-    {
-        show_shell_mess = FALSE;
-    }
-    if (ampersand)
-    {
-         strcpy((char *)(command + commandlen), (char *)("&")) ;
-    }
-
-    if (shell_style == STYLE_PRINT)
-    {
-        extra_shell_arg = (char_u *)"-G";
-    }
-
-    else if (shell_style == STYLE_GLOB && !have_dollars(num_pat, pat))
-    {
-        extra_shell_arg = (char_u *)"-f";
-    }
-
-    i = call_shell(command, SHELL_EXPAND | SHELL_SILENT);
-
-    if (ampersand)
-    {
-        mch_delay(10L, MCH_DELAY_IGNOREINPUT);
-    }
-
-    extra_shell_arg = NULL;
-    show_shell_mess = TRUE;
-    vim_free(command);
-
-    if (i != 0)
-    {
-         unlink((char *)(tempname)) ;
-        vim_free(tempname);
-        if (!(flags & EW_SILENT))
-        {
-            redraw_later_clear();
-            msg_putchar('\n');
-            cmdline_row = Rows - 1;
-            {
-                msg(_(e_cannot_expand_wildcards));
-                msg_start();
-            }
-        }
-        if (shell_style == STYLE_BT)
-        {
-            return FAIL;
-        }
-        goto notfound;
-    }
-
-    fd = fopen((char *)tempname,  "r" );
-    if (fd == NULL)
-    {
-        if (!(flags & EW_SILENT))
-        {
-            msg(_(e_cannot_expand_wildcards));
-            msg_start();
-        }
-        vim_free(tempname);
-        goto notfound;
-    }
-    fseek(fd, 0L, SEEK_END);
-    llen = ftell(fd);
-    fseek(fd, 0L, SEEK_SET);
-    if (llen < 0)
-    {
-        buffer = NULL;
-    }
-    else
-    {
-        buffer = alloc(llen + 1);
-    }
-    if (buffer == NULL)
-    {
-         unlink((char *)(tempname)) ;
-        vim_free(tempname);
-        fclose(fd);
-        return FAIL;
-    }
-    len = llen;
-    i = fread((char *)buffer, 1, len, fd);
-    fclose(fd);
-     unlink((char *)(tempname)) ;
-    if (i != (int)len)
-    {
-        semsg(_(e_cant_read_file_str), tempname);
-        vim_free(tempname);
-        vim_free(buffer);
-        return FAIL;
-    }
-    vim_free(tempname);
-
-    if (shell_style == STYLE_ECHO)
-    {
-        buffer[len] = '\n';
-        p = buffer;
-        for (i = 0; *p != '\n'; ++i)
-        {
-            while (*p != ' ' && *p != '\n')
-            {
-                ++p;
-            }
-            p = skipwhite(p);
-        }
-    }
-    else if (shell_style == STYLE_BT || shell_style == STYLE_VIMGLOB || shell_style == STYLE_GLOBSTAR)
-    {
-        buffer[len] = NUL;
-        p = buffer;
-        for (i = 0; *p != NUL; ++i)
-        {
-            while (*p != '\n' && *p != NUL)
-            {
-                ++p;
-            }
-            if (*p != NUL)
-            {
-                ++p;
-            }
-            p = skipwhite(p);
-        }
-    }
-    else
-    {
-        check_spaces = FALSE;
-        if (shell_style == STYLE_PRINT && !did_find_nul)
-        {
-            buffer[len] = NUL;
-            if (len && (int) strlen((char *)(buffer))  < (int)len)
-            {
-                did_find_nul = TRUE;
-            }
-            else
-            {
-                check_spaces = TRUE;
-            }
-        }
-
-        if (len && buffer[len - 1] == NUL)
-        {
-            --len;
-        }
-        else
-        {
-            buffer[len] = NUL;
-        }
-        i = 0;
-        for (p = buffer; p < buffer + len; ++p)
-        {
-            if (*p == NUL || (*p == ' ' && check_spaces))
-            {
-                ++i;
-                *p = NUL;
-            }
-        }
-        if (len)
-        {
-            ++i;
-        }
-    }
-    if (i == 0)
-    {
-        vim_free(buffer);
-        goto notfound;
-    }
-    *num_file = i;
-    *file =  (char_u * *)alloc(sizeof(char_u *) * (i)) ;
-    if (*file == NULL)
-    {
-        vim_free(buffer);
-        return FAIL;
-    }
-
-    p = buffer;
-    for (i = 0; i < *num_file; ++i)
-    {
-        (*file)[i] = p;
-        if (shell_style == STYLE_ECHO || shell_style == STYLE_BT || shell_style == STYLE_VIMGLOB || shell_style == STYLE_GLOBSTAR)
-        {
-            while (!(shell_style == STYLE_ECHO && *p == ' ') && *p != '\n' && *p != NUL)
-            {
-                ++p;
-            }
-            if (p == buffer + len)
-            {
-                *p = NUL;
-            }
-            else
-            {
-                *p++ = NUL;
-                p = skipwhite(p);
-            }
-        }
-        else
-        {
-            while (*p && p < buffer + len)
-            {
-                ++p;
-            }
-            ++p;
-        }
-    }
-
-    j = 0;
-    for (i = 0; i < *num_file; ++i)
-    {
-        if (!(flags & EW_NOTFOUND) && mch_getperm((*file)[i]) < 0)
-        {
-            continue;
-        }
-
-        dir = (mch_isdir((*file)[i]));
-        if ((dir && !(flags & EW_DIR)) || (!dir && !(flags & EW_FILE)))
-        {
-            continue;
-        }
-
-        if (!dir && (flags & EW_EXEC) && !mch_can_exe((*file)[i], NULL, !(flags & EW_SHELLCMD)))
-        {
-            continue;
-        }
-
-        p = alloc( strlen((char *)((*file)[i]))  + 1 + dir);
-        if (p)
-        {
-             strcpy((char *)(p), (char *)((*file)[i])) ;
-            if (dir)
-            {
-                add_pathsep(p);
-            }
-            (*file)[j++] = p;
-        }
-    }
-    vim_free(buffer);
-    *num_file = j;
-
-    if (*num_file == 0)
-    {
-         vim_free(*file);
-         (*file) = NULL;
-        goto notfound;
-    }
-
-    return OK;
-
-notfound:
-    if (flags & EW_NOTFOUND)
-    {
-        return save_patterns(num_pat, pat, num_file, file);
-    }
-    return FAIL;
-}
-
-    static int
 save_patterns(int         num_pat, char_u      **pat, int         *num_file, char_u      ***file)
 {
     int         i;
@@ -120948,36 +119737,6 @@ mch_has_wildcard(char_u *p)
             {
             return TRUE;
             }
-        }
-    }
-    return FALSE;
-}
-
-    static int
-have_wildcard(int num, char_u **file)
-{
-    int     i;
-
-    for (i = 0; i < num; i++)
-    {
-        if (mch_has_wildcard(file[i]))
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-    static int
-have_dollars(int num, char_u **file)
-{
-    int     i;
-
-    for (i = 0; i < num; i++)
-    {
-        if (vim_strchr(file[i], '$') != NULL)
-        {
-            return TRUE;
         }
     }
     return FALSE;

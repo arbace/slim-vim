@@ -53,7 +53,8 @@ name=$(tools/phasename.sh "$phase" "$PIPE" 2>/dev/null || true)
 # Bold only for a terminal.  This output is piped as often as it is watched,
 # and an escape sequence in a log file is noise rather than emphasis.
 if [ -t 1 ]; then b=$(printf '\033[1m'); r=$(printf '\033[0m'); else b=; r=; fi
-printf '\n  %s[%d/10] phase %s%s  %s\n' "$b" "$((phase + 1))" "$phase" "$r" "$name"
+n=0; for _p in $PHASE_LIST; do n=$((n + 1)); done
+printf '\n  %s[%d/%d] phase %s%s  %s\n' "$b" "$((phase + 1))" "$n" "$phase" "$r" "$name"
 
 # Cumulative elapsed, so the clock is visible without waiting for the summary.
 since() {
