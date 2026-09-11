@@ -314,6 +314,29 @@ remove.
 
 **The delta: none.** Declarations are not behaviour.
 
+## Phase 8 — every definition says its own linkage
+
+1,473 definitions do not say `static` and are static anyway, because a
+declaration earlier in the file said it for them and a definition that follows
+one inherits its internal linkage.
+
+That works, and **it is a trap with a long fuse.** Remove the declaration — for
+being redundant, for tidiness, by accident — and the function quietly acquires
+external linkage. Nothing fails. The build is clean, the editor runs, and `nm`
+grows a symbol that this tree's central claim says cannot exist. Phase 7 met
+that trap and worked around it, handing `static` to each definition whose
+declaration it removed; this finishes the job from the other end.
+
+After it, **no declaration anywhere is load-bearing for anything but order**, and
+a prototype can be dropped for being unnecessary without anyone having to think
+about linkage at all.
+
+`main` is the exception and the only one — it is the entry point and the symbol
+that is meant to be external. `nm` on the object proves it.
+
+**The delta: none.** Linkage is not behaviour, and at `-O0` it is not even code,
+which is exactly why `nm` is the only witness this phase has.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.
