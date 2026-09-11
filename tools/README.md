@@ -171,7 +171,7 @@ each reproduces that boundary byte for byte.
   (kept until the X-macro goes in Phase 9). `renames.txt` is the one place this
   process stores a decision it cannot derive.
 - **`agentpass.sh`** — the whole pass by one agent, the reference path.
-  `make refpass`, then `make compare`. Kept because the phase programs are
+  `make slim-refpass`, then `make slim-compare`. Kept because the phase programs are
   brittle where an agent is not: when upstream moves under a patch, this is
   what still produces an answer, and the difference between the two answers is
   the specification for repairing the fast path.

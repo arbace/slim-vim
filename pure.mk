@@ -110,9 +110,9 @@ pure-times:
 	done; \
 	printf '  %-12s %4s s\n' "total" "$$total"
 
-# Force one when the recorded input digest already matches.
-.PHONY: repure
-repure:
+# Force one when the recorded input digest already matches -- slim-repass's twin.
+.PHONY: pure-repass
+pure-repass:
 	@rm -rf $(PUREBUILD)
 	@$(MAKE) --no-print-directory pure-pass
 
@@ -134,11 +134,8 @@ pure-record:
 pure-clean:
 	rm -rf $(PUREBUILD) $(PUREWORK) pure-vim
 
-# --- the score ------------------------------------------------------------
-# Binary size and external surface, together.  The symbol set is the one that
-# matters: an embedded target is defined by what it must supply, not by what it
-# costs, and a phase that shrinks the binary while adding a syscall has gone
-# backwards.  Both go the same way or the phase is wrong.
-.PHONY: pure-score
-pure-score:
-	@tools/purescore.sh
+# How much of each phase is still a recorded diff rather than a rule.  The twin
+# of slim-residue; the scoreboard is the same question either side.
+.PHONY: pure-residue
+pure-residue:
+	@tools/residue.sh pure

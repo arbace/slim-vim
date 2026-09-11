@@ -1,7 +1,7 @@
 # One product, and the process that produces it.
 #
 # This makefile is not derived from upstream and is not a product of a pass --
-# it is part of the seed, alongside .gitignore, README.md, CLAUDE.md, GOAL.md
+# it is part of the seed, alongside .gitignore, README.md, CLAUDE.md, SLIM-GOAL.md
 # and tools/, and it is what drives a pass.  A pass must never write over it.
 #
 # slim-vim.c depends on upstream, which is a remote, so the dependency is the branch
@@ -17,8 +17,8 @@
 # prerequisite is the previous phase's boundary.  A phase is run by a program
 # if tools/<pipeline><N>.sh exists and by an agent if it does not, so converting a
 # phase to a deterministic one is adding a file rather than editing anything
-# here.  That conversion is the direction of travel; GOAL.md measures where the
-# hour goes and what each phase is worth.
+# here.  That conversion is the direction of travel; SLIM-GOAL.md measures where
+# the hour goes and what each phase is worth.
 #
 # The build is -O0: this tree is rebuilt far more often than the editor it
 # produces is used.  _FORTIFY_SOURCE went with -O2, its checks needing sizes the
@@ -90,21 +90,29 @@ slim-vim.c: force
 	fi; \
 	printf '  %-12s %s -- moved; slim-vim.c must be produced\n' "upstream" "`echo $$live | cut -c1-12`"; \
 	tools/preflight.sh; \
-	$(MAKE) --no-print-directory clone; \
+	$(MAKE) --no-print-directory slim-clone; \
 	start=`date +%s`; \
 	echo "  pass         started `date -Is`"; \
-	$(MAKE) --no-print-directory SLIM_VIM_PASS=$$live passorref; \
-	$(MAKE) --no-print-directory record; \
-	$(MAKE) --no-print-directory times; \
-	$(MAKE) --no-print-directory SLIM_VIM_PASS=$$live docs-if-changed; \
+	$(MAKE) --no-print-directory SLIM_VIM_PASS=$$live slim-passorref; \
+	$(MAKE) --no-print-directory slim-record; \
+	$(MAKE) --no-print-directory slim-times; \
+	$(MAKE) --no-print-directory SLIM_VIM_PASS=$$live slim-docs; \
 	now=`date +%s`; elapsed=$$((now - start)); \
 	echo "  pass         finished `date -Is`, $$(($$elapsed / 3600))h $$((($$elapsed % 3600) / 60))m $$(($$elapsed % 60))s"; \
 	test -f $@; \
-	rm -rf $(WORK); \
+	rm -rf $(SLIMWORK); \
 	echo "$$live" > upstream.sha
 
+# Both products, because there are two.  The per-pipeline targets that remove a
+# pass's working state are slim-clean and pure-clean.
 clean:
-	rm -f slim-vim
+	rm -f slim-vim pure-vim
+
+# Bytes to store and symbols to provide, for both pipelines side by side.  It
+# reports on the pair, so it is not either one's target.
+.PHONY: score
+score:
+	@tools/score.sh
 
 force: ;
 

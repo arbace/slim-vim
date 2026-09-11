@@ -33,7 +33,7 @@ Four kinds of work, in rough order of value:
 
 ## What is measured
 
-**Binary size and external surface**, reported by `make pure-score`:
+**Binary size and external surface**, reported by `make score`:
 
 | | what it says |
 | --- | --- |

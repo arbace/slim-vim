@@ -46,13 +46,13 @@ What to do:
 2. Fix the PROGRAM, not the symptom.  A hard-coded count that moved should
    become a computed one where that is possible, and a patch hunk that moved
    should be regenerated from the boundary diff -- restore the previous
-   boundary with `make replay-<N-1>`, apply what the reference answer implies,
+   boundary with `make slim-replay-<N-1>`, apply what the reference answer implies,
    and diff.  Prefer a rule the compiler or the tree can state over a constant.
 3. If the change genuinely cannot be expressed as a program, say so plainly and
    leave that phase's tools/<pipeline><N>.sh deleted, so slim.mk falls back to an
    agent for that phase alone.  A phase that honestly needs judgement is a
    better outcome than a program that guesses.
-4. Re-run the phase you fixed -- `make phase-<N>` -- and then the ones after
+4. Re-run the phase you fixed -- `make slim-phase-<N>` -- and then the ones after
    it, and require the final slim-vim.c to match .build-slim/ref/vim.c byte for byte.
    `cmp slim-vim.c .build-slim/ref/vim.c` is the test.
 5. Update SLIM-GOAL.md where the process description is now wrong, and write a note

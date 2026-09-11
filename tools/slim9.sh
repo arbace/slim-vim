@@ -5,8 +5,8 @@
 #
 # This replaces the patch that a tier-1 run synthesised.  What is algorithmic
 # is done by rules here; whatever is left over is applied at the end from
-# tools/patches/p9-residue.patch, which is regenerated whenever the agent runs
-# and is the number `make residue` reports.  Driving it to zero is the work.
+# tools/patches/slim9-residue.patch, which is regenerated whenever the agent runs
+# and is the number `make slim-residue` reports.  Driving it to zero is the work.
 #
 # The order is forced and one step of it is a trap:
 #
@@ -65,7 +65,7 @@ sed -i -e 's|^ \[CMD_|    [CMD_|' -e '/^    \[CMD_/s|} ,$|},|' \
        -e 's|^ \(CMD_[A-Za-z0-9_]*\) ,$|    \1,|' "$f"
 
 # --- whatever is not yet a rule ------------------------------------------
-residue=tools/patches/p9-residue.patch
+residue=tools/patches/slim9-residue.patch
 if [ -f "$residue" ]; then
     if patch -p1 -d "$work" --forward --silent < "$residue"; then
         echo "  residue      $(grep -c '^[+-][^+-]' "$residue") lines applied"

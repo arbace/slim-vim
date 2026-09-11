@@ -20,7 +20,7 @@ printf '  %-6s %-10s %10s  %s\n' ----- ---------- ---------- -----
 total=0
 for p in $PHASE_LIST; do
     prog="tools/$IMPL$p.sh"
-    res="tools/patches/$TAG$p-residue.patch"
+    res="tools/patches/$IMPL$p-residue.patch"
     fixed="tools/patches/$IMPL$p.patch"
 
     if [ ! -f "$prog" ]; then

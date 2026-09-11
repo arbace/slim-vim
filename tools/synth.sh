@@ -32,7 +32,7 @@ build=${2:?}
 . tools/pipeline.sh "${3:-slim}"
 
 prog="tools/$IMPL$phase.sh"
-residue="tools/patches/$TAG$phase-residue.patch"
+residue="tools/patches/$IMPL$phase-residue.patch"
 mkdir -p tools/patches
 
 before="$build/$TAG$(($phase - 1)).tar"
@@ -90,11 +90,11 @@ set -eu
 
 work=\${1:?usage: phase$phase.sh <work-dir>}
 
-if ! patch -p1 -d "\$work" --forward --silent < tools/patches/p$phase-residue.patch; then
-    echo "  patch        p$phase residue no longer applies -- upstream moved under it"
+if ! patch -p1 -d "\$work" --forward --silent < tools/patches/$IMPL$phase-residue.patch; then
+    echo "  patch        $IMPL$phase residue no longer applies -- upstream moved under it"
     exit 1
 fi
-echo "  patch        p$phase residue applied, $lines lines"
+echo "  patch        $IMPL$phase residue applied, $lines lines"
 EOF
 chmod +x "$prog"
 echo "               wrote $prog -- the phase now has a fast path"

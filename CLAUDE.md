@@ -68,8 +68,8 @@ it is the only one.
 
 ## Layout
 
-A hundred and thirty-three tracked files once both pipelines have run: thirteen
-at the root, and 120 under
+A hundred and thirty-two tracked files once both pipelines have run: thirteen
+at the root, and 119 under
 `tools/` — the passes, the harnesses, the phase programs (ten for `slim.mk`,
 seventeen for `pure.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
@@ -92,7 +92,28 @@ README.md  CLAUDE.md  SLIM-GOAL.md  PURE-GOAL.md  LICENSE  .gitignore
 **There are two pipelines, and they are the same construct.** `slim.mk` and
 `pure.mk` differ only in what their phases do; the driver, the boundaries, the
 oracle and the synthesiser are shared, and `tools/pipeline.sh` is the whole of
-the parameterisation. The distinction that matters is in the *rules*:
+the parameterisation.
+
+**Their names are symmetric, and that is maintained deliberately.** Every
+variable is `SLIM*`/`PURE*` and every target is `slim-*`/`pure-*`, so a target
+that exists on one side and not the other is a question rather than an accident:
+
+| | slim | pure |
+| --- | --- | --- |
+| run a pass | `slim-pass` | `pure-pass` |
+| force one | `slim-repass` | `pure-repass` |
+| one phase, replay | `slim-phase-N` `slim-replay-N` | `pure-phase-N` `pure-replay-N` |
+| record, time, score | `slim-record` `slim-times` `slim-residue` | `pure-record` `pure-times` `pure-residue` |
+| throw away the work | `slim-clean` | `pure-clean` |
+
+Three targets are deliberately one-sided and each says why. `slim-promote-N` has
+no twin because promotion exists to turn an *agent*-recorded boundary into a
+check, and every pure phase is a program. `slim-clone`, `slim-preflight`,
+`slim-refpass`, `slim-compare` and `slim-passorref` have none because only the
+slim pipeline has a remote to clone, a network to check for, and a reference
+path run by one agent. And two targets belong to neither: `clean-cache` empties
+the tier-3 cache both share, and `score` reports the pair side by side — bytes
+to store and symbols to provide — which is why it is not `pure-score`. The distinction that matters is in the *rules*:
 `SLIM-GOAL.md` changes nothing about what the editor can do and any behavioural
 change is a bug, while `PURE-GOAL.md` removes capability on purpose — so every
 phase there declares its delta in advance and the harness proves it caused that
@@ -144,7 +165,8 @@ maintained here, so it is byte-identical to upstream's by construction.
 make                 # from the repository root
 ```
 
-Two targets you would type, `vim` and `clean`. Everything upstream had —
+Two targets you would type, `slim-vim` and `clean` — and `clean` removes both
+products, because there are two. Everything upstream had —
 `all`, `install`, `test`, `proto`, `tags`, `depend`, `lint`, `shadow`,
 `distclean` — is gone, along with the second makefile that recursed into
 `src/`. `all` went with them: it is a convention for builds with more than one
@@ -269,7 +291,7 @@ transformation over every line of a shape — does not care. So:
 > **The residual patch size is the measure of how well a phase is understood.**
 > Zero means the phase is understood. A thousand lines means it is remembered.
 
-`make residue` is the scoreboard. As of this writing:
+`make slim-residue` is the scoreboard. As of this writing:
 
 ```
   phase  tier          residue  notes
@@ -951,17 +973,17 @@ embeds `__DATE__` and `__TIME__`, so no pure boundary was ever equal to itself
 twice. **Nothing caught it for eleven phases**, and the reason is worth keeping:
 a phase replayed from the tier 3 cache copies the recorded digest rather than
 recomputing it, so a cached pass agrees with the oracle whatever the oracle
-says. **Only a run from an empty cache can falsify a boundary.** `make repure`
+says. **Only a run from an empty cache can falsify a boundary.** `make pure-repass`
 after `rm -rf .cache/q*` is that run, and it is the check to make before
 trusting a recording — every pure boundary reproduces under it, each phase a
 program.
 
 ```sh
-make repass          # force a pass on a tree whose sha already matches
-make phase-4         # re-run one phase from the previous boundary
-make replay-3        # put upstream/ back to what phase 4 receives
-make times           # where this pass's seconds went
-make promote-4       # make an advisory boundary a hard check
+make slim-repass          # force a pass on a tree whose sha already matches
+make slim-phase-4         # re-run one phase from the previous boundary
+make slim-replay-3        # put upstream/ back to what phase 4 receives
+make slim-times           # where this pass's seconds went
+make slim-promote-4       # make an advisory boundary a hard check
 ```
 
 That is what makes the deterministic rewrite affordable: **converting a phase
@@ -989,7 +1011,7 @@ that file and `config.mk`, both of which Phase 3 discards. Measured: p3 comes
 out identical either way.
 
 **The whole pass by one agent is kept, and is not a fallback but a pair.**
-`make refpass` runs it into a work directory of its own and `make compare` puts
+`make slim-refpass` runs it into a work directory of its own and `make slim-compare` puts
 its `slim-vim.c` beside this one's. The programs are fast and brittle — each written
 against one upstream — and the agent is slow and can think. When upstream moves
 under a patch, the reference path is what still produces an answer, and the

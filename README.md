@@ -44,7 +44,7 @@ as a patch, so a phase acquires a fast path the first time it is ever run.
 **That patch is a working tier 2 and a poor one.** It reproduces one
 transformation of one input and breaks the moment upstream edits a line it
 touches. Replacing it with rules is the work; what will not reduce to a rule is
-the score — `make residue`. Zero means a phase is *understood*; a thousand
+the score — `make slim-residue`. Zero means a phase is *understood*; a thousand
 lines, that it is only *remembered*. All ten are programs today.
 
 A program that fails is the construct working, not an error: the pass falls
@@ -70,11 +70,11 @@ upstream change costs less than this one did.
 
 | | |
 | --- | --- |
-| `make repass` | force a pass when upstream has not moved |
-| `make phase-4` | re-run one phase from the previous boundary |
-| `make replay-3` | put `upstream/` back to what phase 4 receives |
-| `make times` · `make residue` | where the seconds went · how much is still a recorded diff |
-| `make refpass` · `make compare` | the whole pass as one agent · that answer against this one |
+| `make slim-repass` | force a pass when upstream has not moved |
+| `make slim-phase-4` | re-run one phase from the previous boundary |
+| `make slim-replay-3` | put `upstream/` back to what phase 4 receives |
+| `make slim-times` · `make slim-residue` | where the seconds went · how much is still a recorded diff |
+| `make slim-refpass` · `make slim-compare` | the whole pass as one agent · that answer against this one |
 | `tools/verify.sh .reference/baselines` | behaviour, Ex sweep, pty, terminals, warnings |
 | `tools/refcheck.sh` | this pass's source and binary against the last one's |
 

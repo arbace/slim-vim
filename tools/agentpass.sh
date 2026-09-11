@@ -14,8 +14,8 @@
 # So the two are a pair, and the comparison is the point:
 #
 #   make          the fast path.  Ten phases, seven of them programs.
-#   make refpass  this one.  One agent, no phase boundaries, ~70 minutes.
-#   make compare  the two slim-vim.c files against each other.
+#   make slim-refpass  this one.  One agent, no phase boundaries, ~70 minutes.
+#   make slim-compare  the two slim-vim.c files against each other.
 #
 # When the fast path fails and this one succeeds, the difference between the
 # two answers is the specification for repairing the fast path.  When both

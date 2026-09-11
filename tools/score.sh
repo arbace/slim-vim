@@ -1,7 +1,7 @@
 #!/bin/sh
 # What pure-vim costs a target: bytes to store, and symbols to provide.
 #
-# Usage: tools/purescore.sh
+# Usage: tools/score.sh
 #
 # PURE-GOAL.md measures phases against these two together, and the second is
 # the one that matters.  An embedded target is defined by what it must supply,

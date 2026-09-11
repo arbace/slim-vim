@@ -296,8 +296,8 @@ The last phase leaves **exactly two** files for the root: `slim-vim.c` and
 `LICENSE`.
 
 **The whole pass by one agent is still available, and is kept on purpose.**
-`make refpass` runs it, into a work directory and an output directory of its
-own, and `make compare` puts its `vim.c` beside the fast path's. The programs
+`make slim-refpass` runs it, into a work directory and an output directory of its
+own, and `make slim-compare` puts its `vim.c` beside the fast path's. The programs
 are twenty times faster and brittle in a way an agent is not: each was written
 against one upstream, and a patch that stops applying or a count that comes out
 wrong will stop it. When upstream moves, the reference path is the one that can
@@ -318,10 +318,10 @@ did, in files rather than prose, and all four converted so far were written
 that way in minutes. What this document is for is the *why* — which of those
 edits is load-bearing, and which of them is a trap that a diff cannot show you.
 
-Three targets are worth knowing while working on this: `make repass` forces a
+Three targets are worth knowing while working on this: `make slim-repass` forces a
 pass when `upstream.sha` already matches, which is every run during
-development; `make phase-4` re-runs one phase from the previous boundary;
-`make replay-3` puts `upstream/` back to what phase 4 receives, which is how a
+development; `make slim-phase-4` re-runs one phase from the previous boundary;
+`make slim-replay-3` puts `upstream/` back to what phase 4 receives, which is how a
 phase is debugged without replaying the hour before it.
 
 `upstream/` is a **staging directory, not a checkout of anything**. It is
@@ -452,7 +452,7 @@ run -- so the next pass has no agent in it at all and should come in under nine
 minutes, of which Phase 8 is two thirds. The binary came out byte-identical to
 the committed one; `slim-vim.c` differed by 49 lines, all of them Phase 8 noise.
 
-**What is left is not writing programs but shrinking them.** `make residue`
+**What is left is not writing programs but shrinking them.** `make slim-residue`
 scores it. Phase 9's synthesised diff has been taken from 33,670 lines to
 **134** by replacing it with rules, and the phase from 943 seconds to 34; what
 remains there is what this document already says cannot be mechanical -- the 37

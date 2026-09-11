@@ -45,7 +45,7 @@ mkdir -p "$(dirname "$tar_out")"
 # before `vim`.  Every pure boundary counted its own binary for as long as that
 # was true, which nothing caught: a phase replayed from the tier 3 cache
 # reproduces a recorded digest exactly, and only a genuine re-run of the
-# program disagrees with it.  `make repure` is what finally asked the question.
+# program disagrees with it.  `make pure-repass` is what finally asked the question.
 exclude='/objects/|/auto/config\.(log|status|cache)$|\.(o|d)$|/(pure-)?vim$'
 
 # find | sort makes the order the tree's, not the filesystem's.
