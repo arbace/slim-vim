@@ -33,29 +33,12 @@ python3 tools/noruntime.py "$f"
 # Alternating to a joint fixpoint, exactly as the slim pipeline's phase 8 does:
 # deleting a function orphans its callees, deleting a prototype orphans a type,
 # and a type sweep run once would miss both.
-sweep=0
-while :; do
-    sweep=$((sweep + 1))
-    was=$(sha256sum "$f" | cut -d' ' -f1)
-    a=$(python3 tools/deadsweep.py "$f" | tail -1)
-    c=$(python3 tools/deadprotos.py "$f" | tail -1)
-    b=$(python3 tools/typereach.py "$f" --delete | tail -1)
-    echo "  sweep $sweep      $a; $c; $b"
-    [ "$(sha256sum "$f" | cut -d' ' -f1)" = "$was" ] && break
-    [ "$sweep" -ge 15 ] && { echo "  sweep        not converging"; exit 1; }
-done
+tools/sweep.sh "$f"
 
 tools/canon.sh "$f"
 
 # --- it must build, and say nothing --------------------------------------
-warn=$(gcc -c -O0 -Wall -Wextra -Wno-unused-parameter -o /dev/null "$f" 2>&1 \
-       | grep 'warning:' | grep -cv 'implicit-fallthrough' || true)
-if [ "$warn" != 0 ]; then
-    echo "  warnings     $warn besides the fall-throughs -- the sweep is not finished"
-    gcc -c -O0 -Wall -Wextra -Wno-unused-parameter -o /dev/null "$f" 2>&1 \
-        | grep 'warning:' | grep -v 'implicit-fallthrough' | head -5 | sed 's/^/               /'
-    exit 1
-fi
+tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
 make -C "$work" clean >/dev/null 2>&1 || true
 if make -C "$work" >/dev/null 2>&1; then

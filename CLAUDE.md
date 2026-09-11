@@ -68,8 +68,8 @@ it is the only one.
 
 ## Layout
 
-A hundred and forty-three tracked files once both pipelines have run: thirteen
-at the root, and 130 under
+A hundred and forty-six tracked files once both pipelines have run: thirteen
+at the root, and 133 under
 `tools/` — the passes, the harnesses, the phase programs (ten for `slim.mk`,
 twenty-two for `pure.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
