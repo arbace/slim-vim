@@ -287,6 +287,33 @@ have missed.
 never writes `\%#=`, and every pattern it does use is compiled by the same
 engine as before. That is what a default the product never changed means.
 
+## Phase 7 — the forward declarations nothing needs
+
+A forward declaration earns its place only when something uses the function
+before it is defined — a caller higher up the file, a table of handlers,
+mutual recursion. This file carries 2,580 and **533 are for functions nothing
+mentions until after their own definition**: they say nothing the compiler does
+not already know by the time it matters.
+
+**The hazard, and why this is a phase rather than a `sed`:** a `static`
+declaration is not only a declaration. A definition that follows one inherits
+internal linkage from it, which is why 1,817 of the 3,289 definitions here do
+not say `static` themselves and are static anyway. Delete such a prototype and
+the function silently becomes *external* — `nm` grows a symbol, and this tree's
+whole claim is that `main` is the only one.
+
+So every dropped prototype hands `static` to its definition on the way out —
+493 of them needed it — and the phase checks `nm` on the object afterwards
+rather than assuming. Linkage preserved by construction, then verified.
+
+Kept, necessarily: anything used before it is defined, including from a
+file-scope table — `cmdnames[]` names six hundred handlers and sits above most
+of them; one of every mutually recursive pair; and the 26 declarations with no
+definition here at all, which are `osdef.h` describing libc and not ours to
+remove.
+
+**The delta: none.** Declarations are not behaviour.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.
