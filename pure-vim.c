@@ -1387,7 +1387,6 @@ enum { BS_NOSTOP = 'p' };
 static char_u   *p_ambw;
 static int      p_ai;
 static int      p_bin;
-static int      p_bomb;
 static int      p_bl;
 static int      p_cin;
 static char_u   *p_cink;
@@ -1492,7 +1491,6 @@ static int      p_ek;
 static char_u   *p_ei;
 static int      p_et;
 static int      p_exrc;
-static char_u   *p_fenc;
 static char_u   *p_ff;
 static char_u   *p_ffs;
 static int      p_fic;
@@ -3145,7 +3143,6 @@ struct file_buffer
     unsigned    b_bkc_flags;
     int         b_p_ci;
     int         b_p_bin;
-    int         b_p_bomb;
     char_u      *b_p_bh;
     char_u      *b_p_bt;
     int         b_p_bl;
@@ -3165,7 +3162,6 @@ struct file_buffer
     int         b_p_et;
     int         b_p_et_nobin;
     int         b_p_et_nopaste;
-    char_u      *b_p_fenc;
     char_u      *b_p_ff;
     char_u      *b_p_ft;
     char_u      *b_p_fo;
@@ -3250,9 +3246,7 @@ struct file_buffer
     int         b_start_eof;
     int         b_start_eol;
     int         b_start_ffc;
-    char_u      *b_start_fenc;
     int         b_bad_char;
-    int         b_start_bomb;
 
     bool        b_may_swap;
     bool        b_did_warn;
@@ -11756,8 +11750,6 @@ buf_clear_file(buf_T *buf)
     buf->b_start_eof = FALSE;
     buf->b_p_eol = TRUE;
     buf->b_start_eol = TRUE;
-    buf->b_p_bomb = FALSE;
-    buf->b_start_bomb = FALSE;
     buf->b_ml.ml_mfp = NULL;
     buf->b_ml.ml_flags = ML_EMPTY;
 }
@@ -11886,8 +11878,6 @@ free_buffer_stuff(buf_T       *buf, int         free_options)
     uc_clear(&buf->b_ucmds);
     map_clear_mode(buf, MAP_ALL_MODES, TRUE, FALSE);
     map_clear_mode(buf, MAP_ALL_MODES, TRUE, TRUE);
-     vim_free(buf->b_start_fenc);
-     (buf->b_start_fenc) = NULL;
 }
 
     static void
@@ -12842,7 +12832,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
 {
     if (free_p_ff)
     {
-        clear_string_option(&buf->b_p_fenc);
         clear_string_option(&buf->b_p_ff);
         clear_string_option(&buf->b_p_bh);
         clear_string_option(&buf->b_p_bt);
@@ -14961,12 +14950,6 @@ check_mtime(buf_T *buf, stat_T *st)
     return OK;
 }
 
-    static int
-make_bom(char_u *buf, char_u *name)
-{
-    return 0;
-}
-
     static void
 set_file_time(char_u  *fname, time_t  atime, time_t  mtime)
 {
@@ -15770,7 +15753,7 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
     }
     else
     {
-        fenc = buf->b_p_fenc;
+        fenc = (char_u *)"";
     }
 
     converted = need_conversion(fenc);
@@ -15922,22 +15905,6 @@ restore_backup:
             write_bin = buf->b_p_bin;
         }
 
-        if (buf->b_p_bomb && !write_bin && (!append || perm < 0))
-        {
-            write_info.bw_len = make_bom(buffer, fenc);
-            if (write_info.bw_len > 0)
-            {
-                write_info.bw_flags = FIO_NOCONVERT | wb_flags;
-                if (buf_write_bytes(&write_info) == FAIL)
-                {
-                    end = 0;
-                }
-                else
-                {
-                    nchars += write_info.bw_len;
-                }
-            }
-        }
         write_info.bw_start_lnum = start;
 
         write_info.bw_len = bufsize;
@@ -16772,13 +16739,6 @@ save_file_ff(buf_T *buf)
     buf->b_start_ffc = *buf->b_p_ff;
     buf->b_start_eof = buf->b_p_eof;
     buf->b_start_eol = buf->b_p_eol;
-    buf->b_start_bomb = buf->b_p_bomb;
-
-    if (buf->b_start_fenc == NULL ||  strcmp((char *)(buf->b_start_fenc), (char *)(buf->b_p_fenc))  != 0)
-    {
-        vim_free(buf->b_start_fenc);
-        buf->b_start_fenc = vim_strsave(buf->b_p_fenc);
-    }
 }
 
     static int
@@ -16800,15 +16760,7 @@ file_ff_differs(buf_T *buf, int ignore_empty)
     {
         return TRUE;
     }
-    if (!buf->b_p_bin && buf->b_start_bomb != buf->b_p_bomb)
-    {
-        return TRUE;
-    }
-    if (buf->b_start_fenc == NULL)
-    {
-        return (*buf->b_p_fenc != NUL);
-    }
-    return ( strcmp((char *)(buf->b_start_fenc), (char *)(buf->b_p_fenc))  != 0);
+    return FALSE;
 }
 
     static void
@@ -49693,8 +49645,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
             curbuf->b_p_eol = TRUE;
             curbuf->b_start_eol = TRUE;
         }
-        curbuf->b_p_bomb = FALSE;
-        curbuf->b_start_bomb = FALSE;
     }
 
     if (!bt_dontwrite(curbuf))
@@ -49884,7 +49834,7 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
     }
     else
     {
-        fenc = curbuf->b_p_fenc;
+        fenc = (char_u *)"";
         fenc_alloced = FALSE;
     }
 
@@ -49909,8 +49859,6 @@ retry:
         file_rewind = FALSE;
         if (set_options)
         {
-            curbuf->b_p_bomb = FALSE;
-            curbuf->b_start_bomb = FALSE;
         }
         conv_error = 0;
     }
@@ -50201,7 +50149,7 @@ retry:
             }
             skip_read = FALSE;
 
-            if ((filesize == 0) && (fio_flags == FIO_UCSBOM || (!curbuf->b_p_bomb && tmpname == NULL && (*fenc == 'u' || (*fenc == NUL && enc_utf8)))))
+            if ((filesize == 0) && (fio_flags == FIO_UCSBOM || (tmpname == NULL && (*fenc == 'u' || (*fenc == NUL && enc_utf8)))))
             {
                 char_u  *ccname;
                 int     blen;
@@ -50219,11 +50167,6 @@ retry:
                     filesize += blen;
                     size -= blen;
                      memmove((char *)(ptr), (char *)(ptr + blen), (size_t)size) ;
-                    if (set_options)
-                    {
-                        curbuf->b_p_bomb = TRUE;
-                        curbuf->b_start_bomb = TRUE;
-                    }
                 }
 
                 if (fio_flags == FIO_UCSBOM)
@@ -50838,10 +50781,6 @@ failed:
         save_file_ff(curbuf);
     }
 
-    if (set_options)
-    {
-        set_string_option_direct((char_u *)"fenc", -1, fenc, OPT_FREE|OPT_LOCAL, 0);
-    }
     if (fenc_alloced)
     {
         vim_free(fenc);
@@ -51135,13 +51074,6 @@ set_forced_fenc(exarg_T *eap)
         return;
     }
 
-    char_u *fenc = enc_canonize(eap->cmd + eap->force_enc);
-
-    if (fenc != NULL)
-    {
-        set_string_option_direct((char_u *)"fenc", -1, fenc, OPT_FREE|OPT_LOCAL, 0);
-    }
-    vim_free(fenc);
 }
 
     static char_u *
@@ -71768,38 +71700,7 @@ for (i = 0; i < 256; ++i)
     static int
 bomb_size(void)
 {
-    int n = 0;
-
-    if (curbuf->b_p_bomb && !curbuf->b_p_bin)
-    {
-        if (*curbuf->b_p_fenc == NUL)
-        {
-            if (enc_utf8)
-            {
-                if (enc_unicode != 0)
-                {
-                    n = enc_unicode;
-                }
-                else
-                {
-                    n = 3;
-                }
-            }
-        }
-        else if ( strcmp((char *)(curbuf->b_p_fenc), (char *)("utf-8"))  == 0)
-        {
-            n = 3;
-        }
-        else if ( strncmp((char *)(curbuf->b_p_fenc), (char *)("ucs-2"), (5))  == 0 ||  strncmp((char *)(curbuf->b_p_fenc), (char *)("utf-16"), (6))  == 0)
-        {
-            n = 2;
-        }
-        else if ( strncmp((char *)(curbuf->b_p_fenc), (char *)("ucs-4"), (5))  == 0)
-        {
-            n = 4;
-        }
-    }
-    return n;
+    return 0;
 }
 
     static int
@@ -74969,10 +74870,6 @@ utf_find_illegal(void)
     char_u      *tofree = NULL;
 
     vimconv.vc_type = CONV_NONE;
-    if (enc_utf8 && (enc_canon_props(curbuf->b_p_fenc) & ENC_8BIT))
-    {
-        convert_setup(&vimconv, p_enc, curbuf->b_p_fenc);
-    }
 
     curwin->w_cursor.coladd = 0;
     for (;;)
@@ -76385,7 +76282,6 @@ struct data_block
 };
 
 enum { B0_FNAME_SIZE_ORG = 900 };
-enum { B0_FNAME_SIZE_NOCRYPT = 898 };
 enum { B0_FNAME_SIZE_CRYPT = 890 };
 enum { B0_UNAME_SIZE = 40 };
 enum { B0_HNAME_SIZE = 40 };
@@ -76416,8 +76312,6 @@ enum { B0_DIRTY = 0x55 };
 enum { B0_FF_MASK = 3 };
 
 enum { B0_SAME_DIR = 4 };
-
-enum { B0_HAS_FENC = 8 };
 
 enum { STACK_INCR = 5 };
 
@@ -76755,20 +76649,6 @@ set_b0_dir_flag(ZERO_BL *b0p, buf_T *buf)
     static void
 add_b0_fenc(ZERO_BL     *b0p, buf_T       *buf)
 {
-    int         n;
-    int         size = B0_FNAME_SIZE_NOCRYPT;
-
-    n = (int) strlen((char *)(buf->b_p_fenc)) ;
-    if ((int) strlen((char *)(b0p->b0_fname))  + n + 1 > size)
-    {
-        b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  &= ~B0_HAS_FENC;
-    }
-    else
-    {
-         memmove((char *)((char *)b0p->b0_fname + size - n), (char *)((char *)buf->b_p_fenc), (size_t)n) ;
-        *(b0p->b0_fname + size - n - 1) = NUL;
-        b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  |= B0_HAS_FENC;
-    }
 }
 
     static int
@@ -76794,7 +76674,6 @@ ml_recover(int checkext)
     bhdr_T      *hp = NULL;
     ZERO_BL     *b0p;
     int         b0_ff;
-    char_u      *b0_fenc = NULL;
     PTR_BL      *pp;
     DATA_BL     *dp;
     infoptr_T   *ip;
@@ -77009,17 +76888,6 @@ ml_recover(int checkext)
     out_flush();
 
     b0_ff = (b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  & B0_FF_MASK);
-    if (b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  & B0_HAS_FENC)
-    {
-        int fnsize = B0_FNAME_SIZE_NOCRYPT;
-
-        for (p = b0p->b0_fname + fnsize; p > b0p->b0_fname && p[-1] != NUL; --p)
-        {
-            ;
-        }
-        b0_fenc = vim_strnsave(p, b0p->b0_fname + fnsize - p);
-    }
-
     mf_put(mfp, hp, FALSE, FALSE);
     hp = NULL;
 
@@ -77036,11 +76904,6 @@ ml_recover(int checkext)
     if (b0_ff != 0)
     {
         set_fileformat(b0_ff - 1, OPT_LOCAL);
-    }
-    if (b0_fenc != NULL)
-    {
-        set_option_value_give_err((char_u *)"fenc", 0L, b0_fenc, OPT_LOCAL);
-        vim_free(b0_fenc);
     }
     unchanged(curbuf, TRUE, TRUE);
 
@@ -100045,10 +99908,6 @@ static struct vimoption options[] =
     {"bioskey",     "biosk",P_BOOL|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
-    {"bomb",        NULL,   P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
-                            (char_u *)&p_bomb,   (idopt_T)(PV_BUF + (int)(BV_BOMB))  ,
-                            did_set_eof_eol_fixeol_bomb, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
     {"breakat",     "brk",  P_STRING|P_VI_DEF|P_RALL|P_FLAGLIST,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
@@ -100328,11 +100187,6 @@ static struct vimoption options[] =
     {"exrc",        "ex",   P_BOOL|P_VI_DEF|P_SECURE,
                             (char_u *)&p_exrc, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"fileencoding","fenc", P_STRING|P_ALLOCED|P_VI_DEF|P_RSTAT|P_RBUF
-                                                                   |P_NO_MKRC,
-                            (char_u *)&p_fenc,   (idopt_T)(PV_BUF + (int)(BV_FENC))  , did_set_encoding, expand_set_encoding,
-                            {(char_u *)"", (char_u *)0L}
-                              },
     {"fileformat",  "ff",   P_STRING|P_ALLOCED|P_VI_DEF|P_RSTAT|P_NO_MKRC
                                                                   |P_CURSWANT,
                             (char_u *)&p_ff,   (idopt_T)(PV_BUF + (int)(BV_FF))  , did_set_fileformat, expand_set_fileformat,
@@ -105556,8 +105410,6 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_ai);
         case   (idopt_T)(PV_BUF + (int)(BV_BIN))  :
             return (char_u *)&(curbuf->b_p_bin);
-        case   (idopt_T)(PV_BUF + (int)(BV_BOMB))  :
-            return (char_u *)&(curbuf->b_p_bomb);
         case   (idopt_T)(PV_BUF + (int)(BV_BH))  :
             return (char_u *)&(curbuf->b_p_bh);
         case   (idopt_T)(PV_BUF + (int)(BV_BT))  :
@@ -105590,8 +105442,6 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_fixeol);
         case   (idopt_T)(PV_BUF + (int)(BV_ET))  :
             return (char_u *)&(curbuf->b_p_et);
-        case   (idopt_T)(PV_BUF + (int)(BV_FENC))  :
-            return (char_u *)&(curbuf->b_p_fenc);
         case   (idopt_T)(PV_BUF + (int)(BV_FF))  :
             return (char_u *)&(curbuf->b_p_ff);
         case   (idopt_T)(PV_BUF + (int)(BV_FT))  :
@@ -105804,7 +105654,6 @@ buf_copy_options(buf_T *buf, int flags)
                 free_buf_options(buf, TRUE);
                 buf->b_p_ro = FALSE;
                 buf->b_p_tx = p_tx;
-                buf->b_p_fenc = vim_strsave(p_fenc);
                 switch (*p_ffs)
                 {
                     case 'm':
@@ -105846,7 +105695,6 @@ buf_copy_options(buf_T *buf, int flags)
             buf->b_p_wm_nobin = p_wm_nobin;
             buf->b_p_bin = p_bin;
               ;
-            buf->b_p_bomb = p_bomb;
               ;
             buf->b_p_fixeol = p_fixeol;
               ;
@@ -107062,7 +106910,6 @@ check_buf_options(buf_T *buf)
 {
     check_string_option(&buf->b_p_bh);
     check_string_option(&buf->b_p_bt);
-    check_string_option(&buf->b_p_fenc);
     check_string_option(&buf->b_p_ff);
     check_string_option(&buf->b_p_fp);
     check_string_option(&buf->b_p_kp);
@@ -108054,28 +107901,9 @@ expand_set_eadirection(optexpand_T *args, int *numMatches, char_u ***matches)
 did_set_encoding(optset_T *args)
 {
     char_u      **varp = (char_u **)args->os_varp;
-    char_u      **gvarp;
     char        *errmsg = NULL;
     char_u      *p;
 
-    gvarp = (char_u **)get_option_varp_scope(args->os_idx, OPT_GLOBAL);
-
-    if (gvarp == &p_fenc)
-    {
-        if (!curbuf->b_p_ma && args->os_flags != OPT_GLOBAL)
-        {
-            errmsg = e_cannot_make_changes_modifiable_is_off;
-        }
-        else if (vim_strchr(*varp, ',') != NULL)
-        {
-            errmsg = e_invalid_argument;
-        }
-        else
-        {
-            redraw_titles();
-            ml_setflags(curbuf);
-        }
-    }
     if (errmsg == NULL)
     {
         p = enc_canonize(*varp);
@@ -108089,10 +107917,6 @@ did_set_encoding(optset_T *args)
             errmsg = mb_init();
             redraw_titles();
         }
-    }
-
-    if (errmsg == NULL)
-    {
     }
 
     return errmsg;
