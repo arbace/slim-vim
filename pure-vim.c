@@ -1494,7 +1494,6 @@ static char_u   *p_ei;
 static int      p_et;
 static int      p_exrc;
 static char_u   *p_fenc;
-static char_u   *p_fencs;
 static char_u   *p_ff;
 static char_u   *p_ffs;
 static int      p_fic;
@@ -1636,7 +1635,6 @@ static long     p_ts;
 static char_u   *p_tc;
 static unsigned tc_flags;
 static char_u   *p_tags;
-static char_u   *p_tenc;
 static char_u   *p_trz;
 static int      p_tsy;
 static int      p_terse;
@@ -7234,7 +7232,6 @@ static char e_command_table_needs_to_be_updated_run_make_cmdidxs[]  = "E943: Com
 static char e_reverse_range_in_character_class[]  =  "E944: Reverse range in character class"  ;
 static char e_range_too_large_in_character_class[]  =  "E945: Range too large in character class"  ;
 static char e_file_changed_while_writing[]  =  "E949: File changed while writing"  ;
-static char e_cannot_convert_between_str_and_str[]  =  "E950: Cannot convert between %s and %s"  ;
 static char e_cannot_use_pattern_recursively[]  =  "E956: Cannot use pattern recursively"  ;
 static char e_command_not_allowed_in_rvim[]  =  "E981: Command not allowed in rvim"  ;
 static char e_duplicate_argument_str[]  =  "E983: Duplicate argument: %s"  ;
@@ -49913,15 +49910,10 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
         }
         fenc_alloced = FALSE;
     }
-    else if (*p_fencs == NUL)
+    else
     {
         fenc = curbuf->b_p_fenc;
         fenc_alloced = FALSE;
-    }
-    else
-    {
-        fenc_next = p_fencs;
-        fenc = next_fenc(&fenc_next, &fenc_alloced);
     }
 
 retry:
@@ -100418,10 +100410,6 @@ static struct vimoption options[] =
                             (char_u *)&p_fenc,   (idopt_T)(PV_BUF + (int)(BV_FENC))  , did_set_encoding, expand_set_encoding,
                             {(char_u *)"", (char_u *)0L}
                               },
-    {"fileencodings","fencs", P_STRING|P_VI_DEF|P_ONECOMMA,
-                            (char_u *)&p_fencs, PV_NONE, NULL, expand_set_encoding,
-                            {(char_u *)"", (char_u *)0L}
-                              },
     {"fileformat",  "ff",   P_STRING|P_ALLOCED|P_VI_DEF|P_RSTAT|P_NO_MKRC
                                                                   |P_CURSWANT,
                             (char_u *)&p_ff,   (idopt_T)(PV_BUF + (int)(BV_FF))  , did_set_fileformat, expand_set_fileformat,
@@ -101327,10 +101315,6 @@ static struct vimoption options[] =
     {"termbidi", "tbidi",   P_BOOL|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"termencoding", "tenc", P_STRING|P_VI_DEF|P_RCLR,
-                            (char_u *)&p_tenc, PV_NONE, did_set_encoding, expand_set_encoding,
-                            {(char_u *)"", (char_u *)0L}
-                              },
     {"termguicolors", "tgc", P_BOOL|P_VI_DEF|P_VIM|P_RCLR,
                             (char_u*)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)FALSE}
@@ -102071,8 +102055,6 @@ set_init_1(int clean_arg)
 
 }
 
-static char_u *fencs_utf8_default = (char_u *)"ucs-bom,utf-8,default,latin1";
-
     static void
 set_option_default(int         opt_idx, int         opt_flags, int         compatible)
 {
@@ -102595,10 +102577,6 @@ stropt_get_default_val(int         opt_idx, char_u      *varp, int         flags
     if ((char_u **)varp == &p_bg)
     {
             newval = term_bg_default();
-    }
-    else if ((char_u **)varp == &p_fencs && enc_utf8)
-    {
-        newval = fencs_utf8_default;
     }
 
     if (newval == NULL)
@@ -108283,15 +108261,6 @@ did_set_encoding(optset_T *args)
 
     if (errmsg == NULL)
     {
-        if (((varp == &p_enc && *p_tenc != NUL) || varp == &p_tenc))
-        {
-            if (convert_setup(&input_conv, p_tenc, p_enc) == FAIL || convert_setup(&output_conv, p_enc, p_tenc) == FAIL)
-            {
-                semsg(_(e_cannot_convert_between_str_and_str), p_tenc, p_enc);
-                errmsg = e_invalid_argument;
-            }
-        }
-
     }
 
     return errmsg;
