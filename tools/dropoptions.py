@@ -40,6 +40,32 @@ def drop_row(text, name):
     if not m:
         return text, False
     start = m.start()
+
+    # A BUFFER-LOCAL OR WINDOW-LOCAL ROW CANNOT SIMPLY GO, and the failure is
+    # silent until the editor runs.  A row whose `indir` is anything but
+    # PV_NONE owns two things: the global `p_xx`, and a `b_p_xx` or `w_p_xx`
+    # field that set_init_1() initialises BY WALKING THIS TABLE.  Remove the
+    # row and the global is never set, so it stays NULL -- and any reader the
+    # dead-code sweep does not reach dereferences it at startup.
+    #
+    # 'tagcase' is the one that taught this.  Dropping it built cleanly, swept
+    # to silence, passed the linkage and symbol checks, and segfaulted before
+    # the first keystroke; the harness reported it as every behaviour case and
+    # every Ex command moving at once, which is what a crash looks like from
+    # the outside.  Every option any phase had dropped until then was PV_NONE,
+    # so nothing had ever exercised this path.
+    #
+    # Refusing is the right answer rather than handling it: removing the
+    # buffer-local field, its initialiser, its copy, its free and its readers
+    # is real surgery, and it should be a phase that says so, not a side effect
+    # of a call that looks like the six beside it.
+    indir = re.search(r'PV_\w+', text[m.start():m.start() + 400])
+    if indir and indir.group(0) != 'PV_NONE':
+        sys.exit("dropoptions: '%s' is %s -- a buffer- or window-local option "
+                 "whose row also initialises its global.  Removing the row "
+                 "leaves that global NULL and the editor segfaults at startup. "
+                 "Remove the local field first, in a phase that says it is "
+                 "doing that." % (name, indir.group(0)))
     # The row is one brace group: from its `{` to the matching `}`, plus the
     # comma and the newline that follow it.
     blanked = cutil.blank(text)
