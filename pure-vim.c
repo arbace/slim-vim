@@ -4880,7 +4880,6 @@ static int bt_dontwrite(buf_T *buf);
 static int buf_hide(buf_T *buf);
 static char_u *buf_spname(buf_T *buf);
 static char_u *buf_get_fname(buf_T *buf);
-static void wipe_buffer(buf_T *buf, int aucmd);
 
 // ---------------- end buffer.pro ----------------
 // ---------------- begin bufwrite.pro ----------------
@@ -5104,7 +5103,6 @@ static char_u *script_get(exarg_T *eap, char_u *cmd);
 // ---------------- begin fileio.pro ----------------
 static void filemess(buf_T *buf, char_u *name, char_u *s, int attr);
 static int readfile(char_u *fname, char_u *sfname, linenr_T from, linenr_T lines_to_skip, linenr_T lines_to_read, exarg_T *eap, int flags);
-static int prep_exarg(exarg_T *eap, buf_T *buf);
 static void set_file_options(int set_options, exarg_T *eap);
 static void set_forced_fenc(exarg_T *eap);
 static int check_file_readonly(char_u *fname, int perm);
@@ -5125,8 +5123,6 @@ static char_u *buf_modname(int shortname, char_u *fname, char_u *ext, int prepen
 static int vim_rename(char_u *from, char_u *to);
 static int vim_copyfile(char_u *from, char_u *to);
 static int check_timestamps(int focus);
-static int buf_check_timestamp(buf_T *buf, int focus);
-static void buf_reload(buf_T *buf, int orig_mode, int reload_options);
 static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
 static int match_file_pat(char_u *pattern, regprog_T **prog, char_u *fname, char_u *sfname, char_u *tail, int allow_dirs);
 static int match_file_list(char_u *list, char_u *sfname, char_u *ffname);
@@ -6530,7 +6526,6 @@ static int      no_smartcase  = FALSE ;
 
 static int      need_check_timestamps  = FALSE ;
 static int      did_check_timestamps  = FALSE ;
-static int      no_check_timestamps  = 0 ;
 
 static int      highlight_attr[HLF_COUNT];
 static int      cterm_normal_fg_color  = 0 ;
@@ -7029,7 +7024,6 @@ static char e_cant_delete_backup_file[]  =  "E207: Can't delete backup file"  ;
 static char e_error_writing_to_str[]  =  "E208: Error writing to \"%s\""  ;
 static char e_error_closing_str[]  =  "E209: Error closing \"%s\""  ;
 static char e_error_reading_str[]  =  "E210: Error reading \"%s\""  ;
-static char e_file_str_no_longer_available[]  =  "E211: File \"%s\" no longer available"  ;
 static char e_cant_open_file_for_writing[]  =  "E212: Can't open file for writing"  ;
 static char e_cannot_convert_add_bang_to_write_without_conversion[]  =  "E213: Cannot convert (add ! to write without conversion)"  ;
 static char e_illegal_character_after_star_str[]  =  "E215: Illegal character after *: %s"  ;
@@ -7046,7 +7040,6 @@ static char e_global_mapping_already_exists_for_str[]  =  "E225: Global mapping 
 static char e_abbreviation_already_exists_for_str[]  =  "E226: Abbreviation already exists for %s"  ;
 static char e_mapping_already_exists_for_str[]  =  "E227: Mapping already exists for %s"  ;
 static char e_cant_split_window_while_closing_another[]  =  "E242: Can't split a window while closing another"  ;
-static char e_filechangedshell_autocommand_deleted_buffer[]  =  "E246: FileChangedShell autocommand deleted buffer"  ;
 static char e_window_layout_changed_unexpectedly[]  =  "E249: Window layout changed unexpectedly"  ;
 static char e_cannot_read_from_str_2[]  =  "E282: Cannot read from \"%s\""  ;
 static char e_no_marks_matching_str[]  =  "E283: No marks matching \"%s\""  ;
@@ -7078,7 +7071,6 @@ static char e_pointer_block_id_wrong_four[]  = "E317: Pointer block id wrong 4" 
 static char e_updated_too_many_blocks[]  = "E318: Updated too many blocks?" ;
 static char e_sorry_command_is_not_available_in_this_version[]  =  "E319: Sorry, the command is not available in this version"  ;
 static char e_cannot_find_line_nr[]  = "E320: Cannot find line %ld" ;
-static char e_could_not_reload_str[]  =  "E321: Could not reload \"%s\""  ;
 static char e_line_number_out_of_range_nr_past_the_end[]  = "E322: Line number out of range: %ld past the end" ;
 static char e_line_count_wrong_in_block_nr[]  = "E323: Line count wrong in block %ld" ;
 static char e_pattern_too_long[]  =  "E339: Pattern too long"  ;
@@ -7132,7 +7124,6 @@ static char e_no_file_name_under_cursor[]  =  "E446: No file name under cursor" 
 static char e_cant_find_file_str_in_path_2[]  =  "E447: Can't find file \"%s\" in path"  ;
 static char e_ul_color_unknown[]  =  "E453: UL color unknown"  ;
 static char e_cannot_go_back_to_previous_directory[]  =  "E459: Cannot go back to previous directory"  ;
-static char e_could_not_prepare_for_reloading_str[]  =  "E462: Could not prepare for reloading \"%s\""  ;
 static char e_ambiguous_use_of_user_defined_command[]  =  "E464: Ambiguous use of user-defined command"  ;
 static char e_winsize_requires_two_number_arguments[]  =  "E465: :winsize requires two number arguments"  ;
 static char e_winpos_requires_two_number_arguments[]  =  "E466: :winpos requires two number arguments"  ;
@@ -12613,8 +12604,6 @@ enter_buffer(buf_T *buf)
             need_fileinfo = TRUE;
         }
 
-        (void)buf_check_timestamp(curbuf, FALSE);
-
         curwin->w_topline = 1;
         apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
         apply_autocmds(EVENT_BUFWINENTER, NULL, NULL, FALSE, curbuf);
@@ -14627,12 +14616,6 @@ chk_modeline(linenr_T    lnum, int         flags)
 }
 
     static int
-bt_normal(buf_T *buf)
-{
-    return buf != NULL && buf->b_p_bt[0] == NUL;
-}
-
-    static int
 bt_quickfix(buf_T *buf  __attribute__((unused)) )
 {
     return FALSE;
@@ -14749,85 +14732,6 @@ set_buflisted(int on)
     else
     {
         apply_autocmds(EVENT_BUFDELETE, NULL, NULL, FALSE, curbuf);
-    }
-}
-
-    static int
-buf_contents_changed(buf_T *buf)
-{
-    buf_T       *newbuf;
-    int         differ = TRUE;
-    linenr_T    lnum;
-    aco_save_T  aco;
-    exarg_T     ea;
-
-    newbuf = buflist_new(NULL, NULL, (linenr_T)1, BLN_DUMMY);
-    if (newbuf == NULL)
-    {
-        return TRUE;
-    }
-
-    if (prep_exarg(&ea, buf) == FAIL)
-    {
-        wipe_buffer(newbuf, FALSE);
-        return TRUE;
-    }
-
-    aucmd_prepbuf(&aco, newbuf);
-    if (curbuf != newbuf)
-    {
-        wipe_buffer(newbuf, FALSE);
-        return TRUE;
-    }
-
-    block_autocmds();
-    if (ml_open(curbuf) == OK && readfile(buf->b_ffname, buf->b_fname, (linenr_T)0, (linenr_T)0, (linenr_T) LONG_MAX , &ea, READ_NEW | READ_DUMMY) == OK)
-    {
-        if (buf->b_ml.ml_line_count == curbuf->b_ml.ml_line_count)
-        {
-            differ = FALSE;
-            for (lnum = 1; lnum <= curbuf->b_ml.ml_line_count; ++lnum)
-            {
-                if ( strcmp((char *)(ml_get_buf(buf, lnum, FALSE)), (char *)(ml_get(lnum)))  != 0)
-                {
-                    differ = TRUE;
-                    break;
-                }
-            }
-        }
-    }
-    vim_free(ea.cmd);
-
-    aucmd_restbuf(&aco);
-
-    if (curbuf != newbuf)
-    {
-        wipe_buffer(newbuf, FALSE);
-    }
-
-    unblock_autocmds();
-
-    return differ;
-}
-
-    static void
-wipe_buffer(buf_T       *buf, int         aucmd)
-{
-    if (buf->b_fnum == top_file_num - 1)
-    {
-        --top_file_num;
-    }
-
-    if (!aucmd)
-    {
-        block_autocmds();
-    }
-
-    close_buffer(NULL, buf, DOBUF_WIPE, FALSE, TRUE, FALSE);
-
-    if (!aucmd)
-    {
-        unblock_autocmds();
     }
 }
 
@@ -36956,7 +36860,6 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
         {
             oldbuf = TRUE;
             set_bufref(&bufref, buf);
-            (void)buf_check_timestamp(buf, FALSE);
             if (!bufref_valid(&bufref) || curbuf != old_curbuf.br_buf)
             {
                 goto theend;
@@ -39108,7 +39011,6 @@ ex_drop(exarg_T *eap)
                 int save_ar = curbuf->b_p_ar;
 
                 curbuf->b_p_ar = TRUE;
-                buf_check_timestamp(curbuf, FALSE);
                 curbuf->b_p_ar = save_ar;
             }
             if (curbuf->b_ml.ml_flags & ML_EMPTY)
@@ -51293,26 +51195,6 @@ readfile_linenr(linenr_T    linecnt, char_u      *p, char_u      *endp)
     return lnum;
 }
 
-    static int
-prep_exarg(exarg_T *eap, buf_T *buf)
-{
-    eap->cmd = alloc(15 + (unsigned) strlen((char *)(buf->b_p_fenc)) );
-    if (eap->cmd == NULL)
-    {
-        return FAIL;
-    }
-
-    sprintf((char *)eap->cmd, "e ++enc=%s", buf->b_p_fenc);
-    eap->force_enc = 8;
-    eap->bad_char = buf->b_bad_char;
-    eap->force_ff = *buf->b_p_ff;
-
-    eap->force_bin = buf->b_p_bin ? FORCE_BIN : FORCE_NOBIN;
-    eap->read_edit = FALSE;
-    eap->forceit = FALSE;
-    return OK;
-}
-
     static void
 set_file_options(int set_options, exarg_T *eap)
 {
@@ -52019,444 +51901,10 @@ vim_copyfile(char_u *from, char_u *to)
     return OK;
 }
 
-static int already_warned = FALSE;
-
     static int
 check_timestamps(int         focus)
 {
-    buf_T       *buf;
-    int         didit = 0;
-    int         n;
-
-    if (no_check_timestamps > 0)
-    {
-        return FALSE;
-    }
-
-    if (focus && did_check_timestamps)
-    {
-        need_check_timestamps = TRUE;
-        return FALSE;
-    }
-
-    if (!stuff_empty() || global_busy || !typebuf_typed() || autocmd_busy || curbuf_lock > 0 || allbuf_lock > 0)
-    {
-        need_check_timestamps = TRUE;
-    }
-    else
-    {
-        ++no_wait_return;
-        did_check_timestamps = TRUE;
-        already_warned = FALSE;
-         for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-        {
-            if (buf->b_nwindows > 0)
-            {
-                bufref_T bufref;
-
-                set_bufref(&bufref, buf);
-                n = buf_check_timestamp(buf, focus);
-                if (didit < n)
-                {
-                    didit = n;
-                }
-                if (n > 0 && !bufref_valid(&bufref))
-                {
-                    buf = firstbuf;
-                    continue;
-                }
-            }
-        }
-        --no_wait_return;
-        need_check_timestamps = FALSE;
-        if (need_wait_return && didit == 2)
-        {
-            msg_puts("\n");
-            out_flush();
-        }
-    }
-    return didit;
-}
-
-    static int
-move_lines(buf_T *frombuf, buf_T *tobuf)
-{
-    buf_T       *tbuf = curbuf;
-    int         retval = OK;
-    linenr_T    lnum;
-    char_u      *p;
-
-    curbuf = tobuf;
-    for (lnum = 1; lnum <= frombuf->b_ml.ml_line_count; ++lnum)
-    {
-        p = vim_strnsave(ml_get_buf(frombuf, lnum, FALSE), ml_get_buf_len(frombuf, lnum));
-        if (p == NULL || ml_append(lnum - 1, p, 0, FALSE) == FAIL)
-        {
-            vim_free(p);
-            retval = FAIL;
-            break;
-        }
-        vim_free(p);
-    }
-
-    if (retval != FAIL)
-    {
-        curbuf = frombuf;
-        for (lnum = curbuf->b_ml.ml_line_count; lnum > 0; --lnum)
-        {
-            if (ml_delete(lnum) == FAIL)
-            {
-                retval = FAIL;
-                break;
-            }
-        }
-    }
-
-    curbuf = tbuf;
-    return retval;
-}
-
-    static int
-buf_check_timestamp(buf_T       *buf, int         focus  __attribute__((unused)) )
-{
-    stat_T      st;
-    int         stat_res;
-    int         retval = 0;
-    char        *mesg = NULL;
-    char        *mesg2 = "";
-    int         helpmesg = FALSE;
-    enum {
-        RELOAD_NONE,
-        RELOAD_NORMAL,
-        RELOAD_DETECT
-    }           reload = RELOAD_NONE;
-    off_T       orig_size = buf->b_orig_size;
-    int         orig_mode = buf->b_orig_mode;
-    static int  busy = FALSE;
-    int         n;
-    bufref_T    bufref;
-
-    set_bufref(&bufref, buf);
-
-    if (buf->b_ffname == NULL || buf->b_ml.ml_mfp == NULL || !bt_normal(buf) || buf->b_saving || busy)
-    {
-        return 0;
-    }
-
-    if (       !(buf->b_flags & BF_NOTEDITED) && buf->b_mtime != 0 && ((stat_res =  stat(((char *)buf->b_ffname), (&st)) ) < 0 || time_differs(&st, buf->b_mtime, buf->b_mtime_ns) || st.st_size != buf->b_orig_size || (int)st.st_mode != buf->b_orig_mode))
-    {
-        long prev_b_mtime = buf->b_mtime;
-
-        retval = 1;
-
-        if (stat_res < 0)
-        {
-            buf->b_mtime = -1;
-            buf->b_orig_size = 0;
-            buf->b_orig_mode = 0;
-        }
-        else
-        {
-            buf_store_time(buf, &st, buf->b_ffname);
-        }
-
-        if (mch_isdir(buf->b_fname))
-        {
-            ;
-        }
-
-        else if ((buf->b_p_ar >= 0 ? buf->b_p_ar : p_ar) && !bufIsChanged(buf) && stat_res >= 0)
-        {
-            reload = RELOAD_NORMAL;
-        }
-        else
-        {
-            char    *reason;
-
-            if (stat_res < 0)
-            {
-                reason = "deleted";
-            }
-            else if (bufIsChanged(buf))
-            {
-                reason = "conflict";
-            }
-            else if (orig_size != buf->b_orig_size || buf_contents_changed(buf))
-            {
-                reason = "changed";
-            }
-            else if (orig_mode != buf->b_orig_mode)
-            {
-                reason = "mode";
-            }
-            else
-            {
-                reason = "time";
-            }
-
-            busy = TRUE;
-            ++allbuf_lock;
-            n = apply_autocmds(EVENT_FILECHANGEDSHELL, buf->b_fname, buf->b_fname, FALSE, buf);
-            --allbuf_lock;
-            busy = FALSE;
-            if (n)
-            {
-                if (!bufref_valid(&bufref))
-                {
-                    emsg(_(e_filechangedshell_autocommand_deleted_buffer));
-                }
-                    return 2;
-            }
-            if (!n)
-            {
-                if (*reason == 'd')
-                {
-                    if (prev_b_mtime != -1)
-                    {
-                        mesg = _(e_file_str_no_longer_available);
-                    }
-                }
-                else
-                {
-                    helpmesg = TRUE;
-                    if (reason[2] == 'n')
-                    {
-                        mesg = _("W12: Warning: File \"%s\" has changed and the buffer was changed in Vim as well");
-                        mesg2 = _("See \":help W12\" for more info.");
-                    }
-                    else if (reason[1] == 'h')
-                    {
-                        mesg = _("W11: Warning: File \"%s\" has changed since editing started");
-                        mesg2 = _("See \":help W11\" for more info.");
-                    }
-                    else if (*reason == 'm')
-                    {
-                        mesg = _("W16: Warning: Mode of file \"%s\" has changed since editing started");
-                        mesg2 = _("See \":help W16\" for more info.");
-                    }
-                    else
-                    {
-                        buf->b_mtime_read = buf->b_mtime;
-                        buf->b_mtime_read_ns = buf->b_mtime_ns;
-                    }
-                }
-            }
-        }
-
-    }
-    else if ((buf->b_flags & BF_NEW) && !(buf->b_flags & BF_NEW_W) && vim_fexists(buf->b_ffname))
-    {
-        retval = 1;
-        mesg = _("W13: Warning: File \"%s\" has been created after editing started");
-        buf->b_flags |= BF_NEW_W;
-    }
-
-    if (mesg != NULL)
-    {
-        char_u *path;
-
-        path = home_replace_save(buf, buf->b_fname);
-        if (path != NULL)
-        {
-            size_t  tbufsize;
-            char    *tbuf;
-
-            if (!helpmesg)
-            {
-                mesg2 = "";
-            }
-            tbufsize =  strlen((char *)(mesg))  +  strlen((char *)(path))  + 2 +  strlen((char *)(mesg2))  + 1;
-            tbuf = alloc(tbufsize);
-            if (tbuf != NULL)
-            {
-                int tbuflen;
-
-                tbuflen = vim_snprintf(tbuf, tbufsize, mesg, path);
-                if (State >  (0x1000 | MODE_NORMAL)  || (State & MODE_CMDLINE) || already_warned)
-                {
-                    if (*mesg2 != NUL)
-                    {
-                        vim_snprintf(tbuf + tbuflen, tbufsize - tbuflen, "; %s", mesg2);
-                    }
-                    emsg(tbuf);
-                    retval = 2;
-                }
-                else
-                {
-                    if (!autocmd_busy)
-                    {
-                        msg_start();
-                        msg_puts_attr(tbuf,  highlight_attr[(int)(HLF_E)]  + MSG_HIST);
-                        if (*mesg2 != NUL)
-                        {
-                            msg_puts_attr(mesg2,  highlight_attr[(int)(HLF_W)]  + MSG_HIST);
-                        }
-                        msg_clr_eos();
-                        (void)msg_end();
-                        if (emsg_silent == 0 && !in_assert_fails)
-                        {
-                            out_flush();
-                                ui_delay(1004L, TRUE);
-
-                            redraw_cmdline = FALSE;
-                        }
-                    }
-                    already_warned = TRUE;
-                }
-            }
-
-            vim_free(tbuf);
-            vim_free(path);
-        }
-    }
-
-    if (reload != RELOAD_NONE)
-    {
-        buf_reload(buf, orig_mode, reload == RELOAD_DETECT);
-    }
-
-    if (bufref_valid(&bufref) && retval != 0)
-    {
-        (void)apply_autocmds(EVENT_FILECHANGEDSHELLPOST, buf->b_fname, buf->b_fname, FALSE, buf);
-    }
-
-    return retval;
-}
-
-    static void
-buf_reload(buf_T *buf, int orig_mode, int reload_options)
-{
-    exarg_T     ea;
-    pos_T       old_cursor;
-    linenr_T    old_topline;
-    int         old_ro = buf->b_p_ro;
-    buf_T       *savebuf;
-    bufref_T    bufref;
-    int         saved = OK;
-    aco_save_T  aco;
-    int         flags = READ_NEW;
-    int         prepped = OK;
-
-    aucmd_prepbuf(&aco, buf);
-    if (curbuf != buf)
-    {
-        return;
-    }
-
-    if (reload_options)
-    {
-          memset((&(ea)), (0), (sizeof(ea)))  ;
-    }
-    else
-    {
-        prepped = prep_exarg(&ea, buf);
-    }
-
-    if (prepped == OK)
-    {
-        old_cursor = curwin->w_cursor;
-        old_topline = curwin->w_topline;
-
-        if (p_ur < 0 || curbuf->b_ml.ml_line_count <= p_ur)
-        {
-            u_sync(FALSE);
-            saved = u_savecommon(0, curbuf->b_ml.ml_line_count + 1, 0, TRUE);
-            flags |= READ_KEEP_UNDO;
-        }
-
-        if ( (curbuf->b_ml.ml_line_count == 1 && *ml_get((linenr_T)1) == NUL)  || saved == FAIL)
-        {
-            savebuf = NULL;
-        }
-        else
-        {
-            savebuf = buflist_new(NULL, NULL, (linenr_T)1, BLN_DUMMY);
-            set_bufref(&bufref, savebuf);
-            if (savebuf != NULL && buf == curbuf)
-            {
-                curbuf = savebuf;
-                curwin->w_buffer = savebuf;
-                saved = ml_open(curbuf);
-                curbuf = buf;
-                curwin->w_buffer = buf;
-            }
-            if (savebuf == NULL || saved == FAIL || buf != curbuf || move_lines(buf, savebuf) == FAIL)
-            {
-                semsg(_(e_could_not_prepare_for_reloading_str), buf->b_fname);
-                saved = FAIL;
-            }
-        }
-
-        if (saved == OK)
-        {
-            int old_msg_silent = msg_silent;
-
-            curbuf->b_flags |= BF_CHECK_RO;
-            curbuf->b_keep_filetype = true;
-
-            if (shortmess(SHM_FILEINFO))
-            {
-                msg_silent = 1;
-            }
-
-            if (readfile(buf->b_ffname, buf->b_fname, (linenr_T)0, (linenr_T)0, (linenr_T) LONG_MAX , &ea, flags) != OK)
-            {
-                    semsg(_(e_could_not_reload_str), buf->b_fname);
-                if (savebuf != NULL && bufref_valid(&bufref) && buf == curbuf)
-                {
-                    while (! (curbuf->b_ml.ml_line_count == 1 && *ml_get((linenr_T)1) == NUL) )
-                    {
-                        if (ml_delete(buf->b_ml.ml_line_count) == FAIL)
-                        {
-                            break;
-                        }
-                    }
-                    (void)move_lines(savebuf, buf);
-                }
-            }
-            else if (buf == curbuf)
-            {
-                unchanged(buf, TRUE, TRUE);
-                if ((flags & READ_KEEP_UNDO) == 0)
-                {
-                    u_clearallandblockfree(buf);
-                }
-                else
-                {
-                    u_unchanged(curbuf);
-                }
-            }
-
-            msg_silent = old_msg_silent;
-        }
-        vim_free(ea.cmd);
-
-        if (savebuf != NULL && bufref_valid(&bufref))
-        {
-            wipe_buffer(savebuf, FALSE);
-        }
-
-        if (old_topline > curbuf->b_ml.ml_line_count)
-        {
-            curwin->w_topline = curbuf->b_ml.ml_line_count;
-        }
-        else
-        {
-            curwin->w_topline = old_topline;
-        }
-        curwin->w_cursor = old_cursor;
-        check_cursor();
-        update_topline();
-        curbuf->b_keep_filetype = false;
-        if (orig_mode == curbuf->b_orig_mode)
-        {
-            curbuf->b_p_ro |= old_ro;
-        }
-
-        do_modelines(0);
-    }
-
-    aucmd_restbuf(&aco);
+    return 0;
 }
 
     static void
