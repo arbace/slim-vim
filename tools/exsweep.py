@@ -47,7 +47,7 @@ def main():
             src = os.path.join(d, 'f.txt')
             open(src, 'w').write('alpha\nbeta\ngamma\n')
             r = subprocess.run(
-                [vim, '-u', 'NONE', '-i', 'NONE', '-e', '-s',
+                [vim, '-u', 'NONE', '-e', '-s',
                  '-c', name, '-c', 'qall!', src],
                 stdin=subprocess.DEVNULL, capture_output=True,
                 cwd=d, timeout=20,

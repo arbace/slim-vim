@@ -3622,7 +3622,6 @@ typedef struct
 
     char_u      *fname;
 
-    int         evim_mode;
     char_u      *use_vimrc;
     int         clean;
 
@@ -3633,7 +3632,6 @@ typedef struct
     char_u      *pre_commands[MAX_ARG_CMDS];
 
     int         edit_type;
-    char_u      *tagname;
 
     int         want_full_screen;
     int         not_a_term;
@@ -3995,7 +3993,6 @@ enum { EX_SBOXOK = 0x40000 };
 enum { EX_CMDWIN = 0x80000 };
 enum { EX_MODIFY = 0x100000 };
 enum { EX_FLAGS = 0x200000 };
-enum { EX_RESTRICT = 0x400000 };
 enum { EX_EXPAND = 0x800000 };
 enum { EX_LOCK_OK = 0x1000000 };
 enum { EX_NONWHITE_OK = 0x2000000 };
@@ -4983,7 +4980,6 @@ static int do_write(exarg_T *eap);
 static int check_overwrite(exarg_T *eap, buf_T *buf, char_u *fname, char_u *ffname, int other);
 static int getfile(int fnum, char_u *ffname_arg, char_u *sfname_arg, int setpm, linenr_T lnum, int forceit);
 static int do_ecmd(int fnum, char_u *ffname, char_u *sfname, exarg_T *eap, linenr_T newlnum, int flags, win_T *oldwin);
-static int check_restricted(void);
 static int check_secure(void);
 static int do_sub_msg(int count_only);
 static void global_exe(char_u *cmd);
@@ -6570,7 +6566,6 @@ static int      stdout_isatty  = TRUE ;
 static char     *last_chdir_reason  = NULL ;
 static volatile sig_atomic_t full_screen  = FALSE ;
 
-static int      restricted  = FALSE ;
 static int      secure  = FALSE ;
 
 static int      textlock  = 0 ;
@@ -6946,7 +6941,6 @@ static char e_no_file_name_for_buffer_nr[]  =  "E141: No file name for buffer %l
 static char e_file_not_written_writing_is_disabled_by_write_option[]  =  "E142: File not written: Writing is disabled by 'write' option"  ;
 static char e_autocommands_unexpectedly_deleted_new_buffer_str[]  =  "E143: Autocommands unexpectedly deleted new buffer %s"  ;
 static char e_non_numeric_argument_to_z[]  =  "E144: Non-numeric argument to :z"  ;
-static char e_shell_commands_and_some_functionality_not_allowed_in_rvim[]  =  "E145: Shell commands and some functionality not allowed in rvim"  ;
 static char e_regular_expressions_cant_be_delimited_by_letters[]  =  "E146: Regular expressions can't be delimited by letters"  ;
 static char e_cannot_do_global_recursive_with_range[]  =  "E147: Cannot do :global recursive with a range"  ;
 static char e_regular_expression_missing_from_global[]  =  "E148: Regular expression missing from :global"  ;
@@ -7210,7 +7204,6 @@ static char e_reverse_range_in_character_class[]  =  "E944: Reverse range in cha
 static char e_range_too_large_in_character_class[]  =  "E945: Range too large in character class"  ;
 static char e_file_changed_while_writing[]  =  "E949: File changed while writing"  ;
 static char e_cannot_use_pattern_recursively[]  =  "E956: Cannot use pattern recursively"  ;
-static char e_command_not_allowed_in_rvim[]  =  "E981: Command not allowed in rvim"  ;
 static char e_duplicate_argument_str[]  =  "E983: Duplicate argument: %s"  ;
 static char e_scriptversion_used_outside_of_sourced_file[]  =  "E984: :scriptversion used outside of a sourced file"  ;
 static char e_not_allowed_in_modeline_when_modelineexpr_is_off[]  =  "E992: Not allowed in a modeline when 'modelineexpr' is off"  ;
@@ -35902,7 +35895,7 @@ do_bang(int         addr_count, exarg_T     *eap, int         forceit, int      
     int                 len;
     int                 scroll_save = msg_scroll;
 
-    if (check_restricted() || check_secure())
+    if (check_secure())
     {
         return;
     }
@@ -37510,17 +37503,6 @@ ex_z(exarg_T *eap)
         curwin->w_cursor.col = 0;
     }
     ex_no_reprint = TRUE;
-}
-
-    static int
-check_restricted(void)
-{
-    if (restricted)
-    {
-        emsg(_(e_shell_commands_and_some_functionality_not_allowed_in_rvim));
-        return TRUE;
-    }
-    return FALSE;
 }
 
     static int
@@ -40225,11 +40207,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
 
     if (!ea.skip)
     {
-        if (restricted != 0 && (ea.argt & EX_RESTRICT))
-        {
-            errormsg = _(e_command_not_allowed_in_rvim);
-            goto doend;
-        }
         if (!curbuf->b_p_ma && (ea.argt & EX_MODIFY))
         {
             errormsg = _(e_cannot_make_changes_modifiable_is_off);
@@ -43635,11 +43612,6 @@ ex_hide(exarg_T *eap  __attribute__((unused)) )
     static void
 ex_stop(exarg_T *eap)
 {
-    if (check_restricted())
-    {
-        return;
-    }
-
     if (!eap->forceit)
     {
         autowrite_all();
@@ -101210,15 +101182,6 @@ static struct vimoption options[] =
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
                               },
-    {"viminfo",     "vi",   P_STRING|P_ONECOMMA|P_NODUP|P_SECURE,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
-    {"viminfofile", "vif",  P_STRING|P_EXPAND|P_ONECOMMA|P_NODUP
-                                                            |P_SECURE|P_VI_DEF,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
     {"virtualedit", "ve",   P_STRING|P_ONECOMMA|P_NODUP|P_VI_DEF
                                                             |P_VIM|P_CURSWANT,
                             (char_u *)&p_ve,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_VE)) ))  , did_set_virtualedit, expand_set_virtualedit,
@@ -101628,23 +101591,6 @@ set_init_default_printencoding(void)
 }
 
     static void
-set_init_restricted_mode(void)
-{
-    char_u      *p;
-
-    p = get_isolated_shell_name();
-    if (p == NULL)
-    {
-        return;
-    }
-    if ( vim_fnamecmp((char_u *)(p), (char_u *)("nologin"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("false"))  == 0)
-    {
-        restricted = TRUE;
-    }
-    vim_free(p);
-}
-
-    static void
 set_init_clean_rtp(void)
 {
     int         opt_idx;
@@ -101716,8 +101662,6 @@ set_init_1(int clean_arg)
     set_init_default_printencoding();
 
     set_options_default(0);
-
-    set_init_restricted_mode();
 
     if (clean_arg)
     {
@@ -109915,7 +109859,7 @@ mch_init(void)
 
     out_flush();
 
-    ignore_sigtstp = restricted || SIG_IGN == mch_signal(SIGTSTP, SIG_ERR);
+    ignore_sigtstp = SIG_IGN == mch_signal(SIGTSTP, SIG_ERR);
     set_signals();
 
 }
@@ -143762,9 +143706,9 @@ static struct cmdname cmdnames[] =
     [CMD_lrewind] = {(char_u *)"lrewind", sizeof("lrewind") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
     [CMD_ltag] = {(char_u *)"ltag", sizeof("ltag") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_BANG| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
     [CMD_lunmap] = {(char_u *)"lunmap", sizeof("lunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lua] = {(char_u *)"lua", sizeof("lua") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_luado] = {(char_u *)"luado", sizeof("luado") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_luafile] = {(char_u *)"luafile", sizeof("luafile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
+    [CMD_lua] = {(char_u *)"lua", sizeof("lua") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_luado] = {(char_u *)"luado", sizeof("luado") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_luafile] = {(char_u *)"luafile", sizeof("luafile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_lvimgrep] = {(char_u *)"lvimgrep", sizeof("lvimgrep") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE|EX_LOCK_OK), ADDR_OTHER},
     [CMD_lvimgrepadd] = {(char_u *)"lvimgrepadd", sizeof("lvimgrepadd") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE|EX_LOCK_OK), ADDR_OTHER},
     [CMD_lwindow] = {(char_u *)"lwindow", sizeof("lwindow") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
@@ -143785,8 +143729,8 @@ static struct cmdname cmdnames[] =
     [CMD_mkvimrc] = {(char_u *)"mkvimrc", sizeof("mkvimrc") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_mkview] = {(char_u *)"mkview", sizeof("mkview") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
     [CMD_mode] = {(char_u *)"mode", sizeof("mode") - 1, ex_mode, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_mzscheme] = {(char_u *)"mzscheme", sizeof("mzscheme") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK|EX_RESTRICT), ADDR_LINES},
-    [CMD_mzfile] = {(char_u *)"mzfile", sizeof("mzfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
+    [CMD_mzscheme] = {(char_u *)"mzscheme", sizeof("mzscheme") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_LINES},
+    [CMD_mzfile] = {(char_u *)"mzfile", sizeof("mzfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_next] = {(char_u *)"next", sizeof("next") - 1, ex_next, (long_u)(EX_RANGE|EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
     [CMD_nbkey] = {(char_u *)"nbkey", sizeof("nbkey") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NEEDARG), ADDR_NONE},
     [CMD_nbclose] = {(char_u *)"nbclose", sizeof("nbclose") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -143824,8 +143768,8 @@ static struct cmdname cmdnames[] =
     [CMD_packloadall] = {(char_u *)"packloadall", sizeof("packloadall") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_pbuffer] = {(char_u *)"pbuffer", sizeof("pbuffer") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_BUFNAME|EX_BUFUNL|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_TRLBAR), ADDR_BUFFERS},
     [CMD_pclose] = {(char_u *)"pclose", sizeof("pclose") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
-    [CMD_perl] = {(char_u *)"perl", sizeof("perl") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_perldo] = {(char_u *)"perldo", sizeof("perldo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
+    [CMD_perl] = {(char_u *)"perl", sizeof("perl") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_perldo] = {(char_u *)"perldo", sizeof("perldo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_pedit] = {(char_u *)"pedit", sizeof("pedit") - 1,  ex_ni , (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
     [CMD_pop] = {(char_u *)"pop", sizeof("pop") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_COUNT|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
     [CMD_popup] = {(char_u *)"popup", sizeof("popup") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_BANG|EX_TRLBAR|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -143849,17 +143793,17 @@ static struct cmdname cmdnames[] =
     [CMD_put] = {(char_u *)"put", sizeof("put") - 1, ex_put, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_REGSTR|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_public] = {(char_u *)"public", sizeof("public") - 1, ex_wrongmodifier, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
     [CMD_pwd] = {(char_u *)"pwd", sizeof("pwd") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_python] = {(char_u *)"python", sizeof("python") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_pydo] = {(char_u *)"pydo", sizeof("pydo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_pyfile] = {(char_u *)"pyfile", sizeof("pyfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_py3] = {(char_u *)"py3", sizeof("py3") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_py3do] = {(char_u *)"py3do", sizeof("py3do") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_python3] = {(char_u *)"python3", sizeof("python3") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_py3file] = {(char_u *)"py3file", sizeof("py3file") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_pyx] = {(char_u *)"pyx", sizeof("pyx") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_pyxdo] = {(char_u *)"pyxdo", sizeof("pyxdo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_pythonx] = {(char_u *)"pythonx", sizeof("pythonx") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_pyxfile] = {(char_u *)"pyxfile", sizeof("pyxfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
+    [CMD_python] = {(char_u *)"python", sizeof("python") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_pydo] = {(char_u *)"pydo", sizeof("pydo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_pyfile] = {(char_u *)"pyfile", sizeof("pyfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_py3] = {(char_u *)"py3", sizeof("py3") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_py3do] = {(char_u *)"py3do", sizeof("py3do") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_python3] = {(char_u *)"python3", sizeof("python3") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_py3file] = {(char_u *)"py3file", sizeof("py3file") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_pyx] = {(char_u *)"pyx", sizeof("pyx") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_pyxdo] = {(char_u *)"pyxdo", sizeof("pyxdo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_pythonx] = {(char_u *)"pythonx", sizeof("pythonx") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_pyxfile] = {(char_u *)"pyxfile", sizeof("pyxfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_quit] = {(char_u *)"quit", sizeof("quit") - 1, ex_quit, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_WINDOWS},
     [CMD_quitall] = {(char_u *)"quitall", sizeof("quitall") - 1, ex_quit_all, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_qall] = {(char_u *)"qall", sizeof("qall") - 1, ex_quit_all, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -143879,9 +143823,9 @@ static struct cmdname cmdnames[] =
     [CMD_right] = {(char_u *)"right", sizeof("right") - 1, ex_align, (long_u)(EX_TRLBAR|EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_rightbelow] = {(char_u *)"rightbelow", sizeof("rightbelow") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_runtime] = {(char_u *)"runtime", sizeof("runtime") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG| (EX_XFILE | EX_EXTRA) |EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_ruby] = {(char_u *)"ruby", sizeof("ruby") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_rubydo] = {(char_u *)"rubydo", sizeof("rubydo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_rubyfile] = {(char_u *)"rubyfile", sizeof("rubyfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
+    [CMD_ruby] = {(char_u *)"ruby", sizeof("ruby") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_rubydo] = {(char_u *)"rubydo", sizeof("rubydo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_rubyfile] = {(char_u *)"rubyfile", sizeof("rubyfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_rundo] = {(char_u *)"rundo", sizeof("rundo") - 1,  ex_ni , (long_u)(EX_NEEDARG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
     [CMD_rviminfo] = {(char_u *)"rviminfo", sizeof("rviminfo") - 1,  ex_ni , (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_substitute] = {(char_u *)"substitute", sizeof("substitute") - 1, ex_substitute, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
@@ -143975,9 +143919,9 @@ static struct cmdname cmdnames[] =
     [CMD_tabs] = {(char_u *)"tabs", sizeof("tabs") - 1, ex_tabs, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_tcd] = {(char_u *)"tcd", sizeof("tcd") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_tchdir] = {(char_u *)"tchdir", sizeof("tchdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tcl] = {(char_u *)"tcl", sizeof("tcl") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_tcldo] = {(char_u *)"tcldo", sizeof("tcldo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
-    [CMD_tclfile] = {(char_u *)"tclfile", sizeof("tclfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_RESTRICT), ADDR_LINES},
+    [CMD_tcl] = {(char_u *)"tcl", sizeof("tcl") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_tcldo] = {(char_u *)"tcldo", sizeof("tcldo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_tclfile] = {(char_u *)"tclfile", sizeof("tclfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_tearoff] = {(char_u *)"tearoff", sizeof("tearoff") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_terminal] = {(char_u *)"terminal", sizeof("terminal") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_tfirst] = {(char_u *)"tfirst", sizeof("tfirst") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
@@ -150823,8 +150767,6 @@ win_locked(win_T *wp)
 enum { EDIT_NONE = 0 };
 enum { EDIT_FILE = 1 };
 enum { EDIT_STDIN = 2 };
-enum { EDIT_TAG = 3 };
-
 static void mainerr(int, char_u *);
 static void early_arg_scan(mparm_T *parmp);
 static void read_stdin(void);
@@ -150927,19 +150869,6 @@ vim_main2(void)
     vim_free(start_dir);
 
     shorten_fnames(FALSE);
-
-    if (params.tagname != NULL)
-    {
-        swap_exists_did_quit = FALSE;
-
-        vim_snprintf((char *)IObuff,  (1024+1) , "ta %s", params.tagname);
-        do_cmdline_cmd(IObuff);
-
-        if (swap_exists_did_quit)
-        {
-            getout(1);
-        }
-    }
 
         if (params.n_commands > 0)
         {
@@ -151462,7 +151391,6 @@ command_line_scan(mparm_T *parmp)
                 {
                     parmp->use_vimrc = (char_u *)"DEFAULTS";
                     parmp->clean = TRUE;
-                    set_option_value_give_err((char_u *)"vif", 0L, (char_u *)"NONE", 0);
                 }                if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("noplugin"), (8))  == 0)
                 {
                     p_lpl = FALSE;
@@ -151539,10 +151467,6 @@ command_line_scan(mparm_T *parmp)
                 p_write = FALSE;
                 break;
 
-            case 'y':
-                parmp->evim_mode = TRUE;
-                break;
-
             case 'N':
                 change_compatible(FALSE);
                 break;
@@ -151588,23 +151512,6 @@ command_line_scan(mparm_T *parmp)
                 }
                 break;
 
-            case 't':
-                if (parmp->edit_type != EDIT_NONE)
-                {
-                    mainerr(ME_TOO_MANY_ARGS, (char_u *)argv[0]);
-                }
-                parmp->edit_type = EDIT_TAG;
-                if (argv[0][argv_idx])
-                {
-                    parmp->tagname = (char_u *)argv[0] + argv_idx;
-                    argv_idx = -1;
-                }
-                else
-                {
-                    want_argument = TRUE;
-                }
-                break;
-
             case 'V':
                 p_verbose = get_number_arg((char_u *)argv[0], &argv_idx, 10);
                 if (argv[0][argv_idx] != NUL)
@@ -151628,10 +151535,6 @@ command_line_scan(mparm_T *parmp)
                 want_argument = TRUE;
                 break;
 
-            case 'Z':
-                restricted = TRUE;
-                break;
-
             case 'c':
                 if (argv[0][argv_idx] != NUL)
                 {
@@ -151646,7 +151549,6 @@ command_line_scan(mparm_T *parmp)
                 }
             __attribute__((fallthrough));
             case 'S':
-            case 'i':
             case 'd':
             case 'T':
             case 'u':
@@ -151732,10 +151634,6 @@ command_line_scan(mparm_T *parmp)
 
                     break;
 
-                case 'i':
-                    set_option_value_give_err((char_u *)"vif", 0L, (char_u *)argv[0], 0);
-                    break;
-
                 case 's':
                     if (scriptin[0] != NULL)
                     {
@@ -151758,10 +151656,6 @@ scripterror:
                     {
                         mch_exit(2);
                     }
-                    break;
-
-                case 't':
-                    parmp->tagname = (char_u *)argv[0];
                     break;
 
                 case 'T':
@@ -152159,7 +152053,7 @@ exe_commands(mparm_T *parmp)
     int         i;
 
     msg_scroll = TRUE;
-    if (parmp->tagname == NULL && curwin->w_cursor.lnum <= 1)
+    if (curwin->w_cursor.lnum <= 1)
     {
         curwin->w_cursor.lnum = 0;
     }

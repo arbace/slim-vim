@@ -1025,6 +1025,49 @@ option is what suppresses the search; while the search exists, dropping the
 option would change every harness at once. Once nothing is searched for, `-u
 NONE` is a no-op and the option can go without moving a single recorded output.
 
+## Phase 21 — command-line options that no longer decide anything
+
+Four outlived what they controlled, each in a different way.
+
+| | why it is inert |
+| --- | --- |
+| `-y` | evim mode. `parmp->evim_mode` is assigned and read nowhere — its one reader was the line Phase 20 removed |
+| `-Z` | restricted mode, whose purpose is to refuse shell commands. `check_restricted()` has two callers left: `do_bang()`, stubbed in Phase 10, and `ex_stop()`. No *live* command carries `EX_RESTRICT` either — the ten that do are all `ex_script_ni` |
+| `-t` | jump to a tag at startup, by running `:ta <tag>`. Phase 12 retired `:tag`, so its whole effect is to run a command that reports it is not implemented |
+| `-i` | the viminfo file. `'viminfo'` and `'viminfofile'` are wired to `(char_u *)NULL` in **both** editors — the tiny configuration has no viminfo at all |
+
+**`-u <file>` stays.** Phase 20 removed every path the editor searched on its
+own; a file the user names is not the editor going looking.
+
+### The harnesses change, and that is the check
+
+All three stop passing `-i NONE`, and `slim-vim` — which still has the option —
+must still match its recorded baselines afterwards. It does. That is what proves
+the option was a no-op *there* too, rather than only here: `-i NONE` has been
+doing nothing for as long as this fork has existed, which is exactly why it was
+passed for years without anyone noticing.
+
+`set_init_restricted_mode()` goes with `-Z`, and is a small find of its own: it
+read `$SHELL` at startup and turned restricted mode on when the answer was
+`nologin` or `false`. An environment read, deciding a mode that restricts
+nothing. `EX_RESTRICT` comes out of the twenty-four rows that carry it, because
+a flag nothing reads is a concept the table still has and the code does not.
+
+### Two cuts that landed in the wrong place first
+
+Both are the same mistake and both were caught by the compiler rather than by
+care. `case 't':` occurs in `get_c_indent()` as well, three thousand lines away
+and about `'cinoptions'`, and a substitution with `count=1` takes whichever comes
+first *in the file* — the first attempt cut a branch out of the C indenter.
+`char_u *tagname;` is also a field of `taggy_T`, seventeen hundred lines
+earlier. Everything that edits the option parser is now applied to
+`command_line_scan()`'s body alone, and the struct field is anchored on `int
+edit_type;`, which sits immediately above it and nowhere else.
+
+### The delta
+
+**None.**
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.

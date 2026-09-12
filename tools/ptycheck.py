@@ -11,15 +11,15 @@ ESC = b'\x1b'
 
 SCENARIOS = [
     # name, TERM, argv, keystrokes
-    ('edit_xterm', 'xterm', ['-u', 'NONE', '-i', 'NONE', 'f.txt'],
+    ('edit_xterm', 'xterm', ['-u', 'NONE', 'f.txt'],
      [b'jjlx', b':set term?\r', b':set ts? sw? nu?\r', b':wq\r']),
-    ('arrows', 'xterm', ['-u', 'NONE', '-i', 'NONE', 'f.txt'],
+    ('arrows', 'xterm', ['-u', 'NONE', 'f.txt'],
      [ESC + b'[B' + ESC + b'[B' + ESC + b'[C', b'x', b':wq\r']),
-    ('unknown_term', 'no-such-term-9x', ['-u', 'NONE', '-i', 'NONE', 'f.txt'],
+    ('unknown_term', 'no-such-term-9x', ['-u', 'NONE', 'f.txt'],
      [b'jjlx', b':set term?\r', b':wq\r']),
-    ('insert_esc', 'xterm', ['-u', 'NONE', '-i', 'NONE', 'f.txt'],
+    ('insert_esc', 'xterm', ['-u', 'NONE', 'f.txt'],
      [b'ohello', ESC, b'0Diworld', ESC, b':wq\r']),
-    ('screen_term', 'screen', ['-u', 'NONE', '-i', 'NONE', 'f.txt'],
+    ('screen_term', 'screen', ['-u', 'NONE', 'f.txt'],
      [b'GA!', ESC, b':set term?\r', b':wq\r']),
 ]
 

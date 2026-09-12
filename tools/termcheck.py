@@ -16,7 +16,7 @@ TERMS = ['xterm', 'xterm-256color', 'screen', 'screen-256color',
 def ask(t, settle):
     d = tempfile.mkdtemp(prefix='termcheck-')
     open(os.path.join(d, 'f.txt'), 'w').write('one\ntwo\nthree\n')
-    text, st = ptyrun.session(binary_path, ['-u', 'NONE', '-i', 'NONE', 'f.txt'],
+    text, st = ptyrun.session(binary_path, ['-u', 'NONE', 'f.txt'],
                               [b':set term? t_Co?\r', b':q!\r'],
                               term=t, cwd=d, settle=settle)
     s = text.decode('utf-8', 'replace')

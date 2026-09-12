@@ -112,7 +112,7 @@ for name, text, cmds in CASES:
     d = tempfile.mkdtemp()
     src = os.path.join(d, "in.txt"); dst = os.path.join(d, "out.txt")
     open(src, "w").write(text)
-    argv = [BIN, "-u", "NONE", "-i", "NONE", "-e", "-s"]
+    argv = [BIN, "-u", "NONE", "-e", "-s"]
     for c in cmds: argv += ["-c", c]
     argv += ["-c", "w! " + dst, "-c", "q!", src]
     r = subprocess.run(argv, stdin=subprocess.DEVNULL,
