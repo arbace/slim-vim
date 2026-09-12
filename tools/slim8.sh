@@ -57,75 +57,14 @@ while :; do
         echo "  static       not converging; still external:$(echo $ext | head -c 200)"
         exit 1
     fi
-    for sym in $ext; do
-        # The definition is at column 0 and is not already static.  A prototype
-        # whose name is a function-like macro is a declaration of the expansion,
-        # not of itself -- mch_rename is one, and making it static declares
-        # libc's rename static -- so a name that has a #define is left alone.
-        if grep -q "^# *define  *$sym(" "$f"; then
-            echo "  static       $sym is a macro name, left alone"
-            continue
-        fi
-        python3 - "$f" "$sym" <<'PY'
-import re, sys
-path, sym = sys.argv[1], sys.argv[2]
-lines = open(path, errors='surrogateescape').read().split('\n')
-
-# A declaration at file scope: starts at column 0 with a type or a storage
-# class, names the symbol, and ends the way a declaration or a definition
-# does.  `extern` is REPLACED rather than prefixed -- two storage classes in
-# one declaration is an error, and the globals block is written that way.
-# The terminator is deliberately not required.  Two prototypes carry their
-# attribute on a CONTINUATION line -- `int vim_vsnprintf(...)` then
-# `        ATTRIBUTE_FORMAT_PRINTF(3, 0);` -- so the declaration's own line
-# ends in `)`.  Anchoring at column 0 is enough on its own here: every
-# statement in this file is indented, so a call cannot match.
-decl = re.compile(r'^(?!static\b)[A-Za-z_][A-Za-z0-9_ \t*()\[\]]*\b%s\s*[(\[;=,)]'
-                  % re.escape(sym))
-TYPELINE = re.compile(r'^[ \t]*[A-Za-z_][A-Za-z0-9_ \t*]*$')
-# EVERY file-scope occurrence, not the first.  Objects do not inherit internal
-# linkage: a definition with no storage class is external whatever a prior
-# static declaration said, and gcc rejects the pair outright with "non-static
-# declaration follows static declaration".  The twelve in pathdef.c's region
-# need the keyword on both the declaration and the definition.
-def start_of(i):
-    """Where the declaration containing line i begins.
-
-    A function definition here is written with its return type on the line
-    above, indented, and the name at column 0.  Prefixing the name's line
-    gives `static empty_curbuf(...)` under a line that already says
-    `static int`, which gcc reports as a duplicate storage class.  The keyword
-    belongs at the START of the declaration.
-    """
-    j = i - 1
-    while j >= 0 and lines[j].strip() == '':
-        j -= 1
-    # Only a line that LOOKS like a return type counts -- an identifier and
-    # qualifiers, nothing else.  Testing "does not end in a semicolon" instead
-    # walks back onto whatever happens to precede, and a #define acquires a
-    # `static` in front of its `#`.
-    if j >= 0 and TYPELINE.match(lines[j]):
-        return j
-    return i
-
-hits = 0
-for i, l in enumerate(lines):
-    if not decl.match(l):
-        continue
-    k = start_of(i)
-    if lines[k].lstrip().startswith('static'):
-        continue
-    if lines[k].startswith('extern '):
-        lines[k] = 'static ' + lines[k][len('extern '):]
-    else:
-        indent = len(lines[k]) - len(lines[k].lstrip())
-        lines[k] = lines[k][:indent] + 'static ' + lines[k][indent:]
-    hits += 1
-if not hits:
-    sys.exit('phase8: no file-scope declaration of %s to make static' % sym)
-open(path, 'w', errors='surrogateescape').write('\n'.join(lines))
-PY
-    done
+    # One pass, not one process per symbol.  This used to spawn a python for
+    # each external name, each reading and rewriting a seven-megabyte file:
+    # 2,045 of them, 148 seconds, forty per cent of the phase, to make edits
+    # that touch one line each.  A file-scope declaration names exactly one
+    # thing, so asking every line "what do you declare, and is it in the set?"
+    # is O(lines) where the old shape was O(lines x symbols).
+    echo "$ext" > "$tmp/ext.txt"
+    python3 tools/makestatic.py "$f" --from "$tmp/ext.txt"
 done
 echo "  static       nm on the object prints exactly main, after $round round(s)"
 
