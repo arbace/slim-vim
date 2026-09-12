@@ -1,31 +1,29 @@
 #!/bin/sh
-# Pure phase 17 -- the editor stops re-reading a file it has already read.
-# See PURE-GOAL.md.
+# Pure phase 7 -- the last two encoding options.  See PURE-GOAL.md.
 #
 # Usage: tools/pure17.sh <work-dir>      (run from the repository root)
 #
-# vim watches the files it holds.  check_timestamps() walks every buffer and
-# stats its file -- from the main loop, from insert mode, from the Press ENTER
-# prompt, and whenever the terminal regains focus -- and buf_check_timestamp()
-# does the same for one buffer on entering it.  If the file moved underneath it
-# prompts, and with 'autoread' it reloads.
+# Phase 8 emptied 'fileencodings' and said so.  It was true at startup and not
+# afterwards: set_option_default() special-cases the option, so `:set fencs&`
+# restored ucs-bom,utf-8,default,latin1 from fencs_utf8_default -- a third
+# reference that phase did not find, because it names the STRING rather than the
+# function the other two called.  Measured on the shipped binary: fileencodings=
+# at startup, fileencodings=ucs-bom,utf-8,default,latin1 after a reset.
 #
-# That is the editor initiating filesystem traffic on its own account.  Phase 15
-# retired :checktime, which removed the COMMAND; this removes the POLLING, which
-# is what actually reached the disk.  What is left is an editor that reads a
-# file when told to and writes it when told to.
+# Three readers go, and with them the two options can finally follow:
+# set_option_default() stops special-casing 'fileencodings', which is what makes
+# Phase 8's claim true at every moment rather than one; readfile() stops
+# choosing between an empty list and a list to walk, and takes the buffer's own
+# 'fileencoding', which is the branch the empty case already took; and
+# did_set_encoding() stops setting up a conversion between 'termencoding' and
+# 'encoding', which convert_setup() has answered CONV_NONE to since Phase 8.
 #
-# NOT touched: check_mtime(), which buf_write() calls before overwriting a file
-# that changed since it was read.  That is not polling -- it happens only when
-# the user asks to write, and it is what stops a write silently clobbering
-# someone else's edit.  b_mtime_read is still recorded on read, so it still
-# works.
+# 'encoding' STILL cannot go, and this is where that stops being temporary:
+# p_enc is the NAME of the one encoding, compared against in twenty-nine places.
+# Removing the option would mean removing the name, and the name does work.
 #
-# 'autoread' cannot go: it is PV_BOTH, and its row is what initialises the
-# global.  It stays, and now decides nothing.
-#
-# THE DELTA: none the harness records.  Nothing it does changes a file behind
-# the editor's back, so nothing it does reaches this code.
+# THE DELTA: none.  `:set fencs&` no longer restores a list of encodings this
+# build cannot convert between, which is a correction rather than a change.
 set -eu
 
 work=${1:?usage: pure17.sh <work-dir>}
@@ -35,9 +33,11 @@ before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nostat.py "$f"
+python3 tools/nofencs.py "$f"
 
 
+tools/sweep.sh "$f"
+python3 tools/dropoptions.py "$f" --strict fileencodings termencoding
 tools/sweep.sh "$f"
 
 tools/canon.sh "$f"

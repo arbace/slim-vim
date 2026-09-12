@@ -287,57 +287,21 @@ have missed.
 never writes `\%#=`, and every pattern it does use is compiled by the same
 engine as before. That is what a default the product never changed means.
 
-## Phase 7 — the forward declarations nothing needs
+## Phases 7 and 8 moved to SLIM-GOAL.md
 
-A forward declaration earns its place only when something uses the function
-before it is defined — a caller higher up the file, a table of handlers,
-mutual recursion. This file carries 2,580 and **533 are for functions nothing
-mentions until after their own definition**: they say nothing the compiler does
-not already know by the time it matters.
+They were "the forward declarations nothing needs" and "every definition says
+its own linkage", and this was the wrong home for them. **Neither removes a
+capability**, which is the only thing this document is for; both are simply true
+of a single translation unit whatever it contains, so they belong to whichever
+pipeline first has one — which is the slim one, from its Phase 6 onward. They
+are `SLIM-GOAL.md` Phases 10 and 11 now, and `slim-vim.c` carries their result.
 
-**The hazard, and why this is a phase rather than a `sed`:** a `static`
-declaration is not only a declaration. A definition that follows one inherits
-internal linkage from it, which is why 1,817 of the 3,289 definitions here do
-not say `static` themselves and are static anyway. Delete such a prototype and
-the function silently becomes *external* — `nm` grows a symbol, and this tree's
-whole claim is that `main` is the only one.
+Keeping them here had a cost beyond misfiling. `tools/allstatic.py` did in one
+pass exactly what slim's Phase 8 was doing with one process per symbol — two
+pipelines away from the phase that needed it — and that duplication is why
+slim's Phase 8 took 369 seconds instead of 115.
 
-So every dropped prototype hands `static` to its definition on the way out —
-493 of them needed it — and the phase checks `nm` on the object afterwards
-rather than assuming. Linkage preserved by construction, then verified.
-
-Kept, necessarily: anything used before it is defined, including from a
-file-scope table — `cmdnames[]` names six hundred handlers and sits above most
-of them; one of every mutually recursive pair; and the 26 declarations with no
-definition here at all, which are `osdef.h` describing libc and not ours to
-remove.
-
-**The delta: none.** Declarations are not behaviour.
-
-## Phase 8 — every definition says its own linkage
-
-1,473 definitions do not say `static` and are static anyway, because a
-declaration earlier in the file said it for them and a definition that follows
-one inherits its internal linkage.
-
-That works, and **it is a trap with a long fuse.** Remove the declaration — for
-being redundant, for tidiness, by accident — and the function quietly acquires
-external linkage. Nothing fails. The build is clean, the editor runs, and `nm`
-grows a symbol that this tree's central claim says cannot exist. Phase 7 met
-that trap and worked around it, handing `static` to each definition whose
-declaration it removed; this finishes the job from the other end.
-
-After it, **no declaration anywhere is load-bearing for anything but order**, and
-a prototype can be dropped for being unnecessary without anyone having to think
-about linkage at all.
-
-`main` is the exception and the only one — it is the entry point and the symbol
-that is meant to be external. `nm` on the object proves it.
-
-**The delta: none.** Linkage is not behaviour, and at `-O0` it is not even code,
-which is exactly why `nm` is the only witness this phase has.
-
-## Phase 9 — the table moves below what it names
+## Phase 7 — the table moves below what it names
 
 `cmdnames[]` names six hundred Ex command handlers and sits near the top of the
 file, so each of them needs a forward declaration — **not because anything calls
@@ -367,7 +331,7 @@ topologically sorted to need no declaration at all. That is not worth doing:
 it would buy about 1% of the file and destroy the banner structure that is the
 only navigation 165,000 lines have.
 
-## Phase 10 — the editor stops writing shell scripts, and stops drawing a menu
+## Phase 8 — the editor stops writing shell scripts, and stops drawing a menu
 
 Two cuts, both at the boundary between the editor and everything outside it.
 
@@ -391,7 +355,7 @@ One thing the cut has to carry with it: `save_patterns()` is defined sixty
 thousand lines *below* its new caller, so it needs the forward declaration the
 old expander's used to hold. Reusing that slot keeps `static` on it, which is
 the difference between a file-local function and a new external symbol — hence
-the `nm` check at the end of this phase as well as Phase 8's.
+the `nm` check at the end of this phase as well as SLIM-GOAL.md Phase 11's.
 
 ### The completion menu, in both of its forms
 
@@ -445,14 +409,14 @@ removes 1,025 further lines and **not one libc symbol**. `opendir`, `readdir`,
 `closedir`, `getcwd` and `lstat` all survive it. Lowering the surface is a
 different question from this one, and the answer to it is not here.
 
-## Phase 11 — the editor stops looking for files it was not given
+## Phase 9 — the editor stops looking for files it was not given
 
 Two removals that are the same thing seen from two sides: the editor asking the
 filesystem what is around the file it was handed.
 
 ### Wildcards, the rest of the way
 
-Phase 10 removed the expander that wrote shell scripts. This removes the
+Phase 8 removed the expander that wrote shell scripts. This removes the
 editor's own. `gen_expand_wildcards()` walked directories with `opendir` and
 `readdir` to match `*`, `?`, `[...]`, `~` and `$VAR`, and now hands every
 pattern back unchanged — which is not a stub written for the occasion but the
@@ -498,13 +462,13 @@ not the author: `recover_names()` finds swap files by building the patterns
 expand patterns cannot find a swap file whose name it was not given. That is a
 consequence of removing globbing rather than a bug in it, so it is declared —
 the alternative, widening the list until it fits, is how a delta list stops
-being a check. It also says something about Phase 14: the swap file is already
+being a check. It also says something about Phase 12: the swap file is already
 half unreachable.
 
 Cumulatively: `helpclose intro version cd chdir lcd lchdir tcd tchdir pwd
 recover`.
 
-## Phase 12 — `:!` keeps its name and loses its process
+## Phase 10 — `:!` keeps its name and loses its process
 
 `:!cmd`, `:[range]!cmd`, `:r !cmd`, `:w !cmd` and `:shell` keep their names,
 their ranges and their parsing. What goes is everything under them — the fork,
@@ -554,7 +518,7 @@ Filtering and shelling out report `E319: Sorry, the command is not available in
 this version` instead of running anything. `:language` completion stops listing
 locales, silently.
 
-## Phase 13 — the editor stops asking the environment what language it is in
+## Phase 11 — the editor stops asking the environment what language it is in
 
 `setlocale(LC_ALL, "")` reads `$LANG`, `$LC_ALL` and `$LC_CTYPE` at startup and
 changes how this process compares strings, classifies characters and formats a
@@ -577,7 +541,7 @@ That is not a behaviour change on this target, and that was measured rather than
 assumed: musl answers UTF-8 to `nl_langinfo(CODESET)` unconditionally, so the
 derived value was already `utf-8` — with `$LANG` set, and with `$LANG` unset.
 The change makes the encoding **a property of the build instead of a property of
-the machine**, which is the whole point, and it is what Phase 14 builds on.
+the machine**, which is the whole point, and it is what Phase 12 builds on.
 
 **And `set_init_default_encoding()` is replaced, not deleted**, which took three
 tries to get right. It did three things: ask the locale, re-initialise the
@@ -618,12 +582,12 @@ rule arriving late rather than a new decision, and no behaviour can change.
 the C locale now, which is what it was already running in for every purpose this
 build has. `setlocale`, `nl_langinfo` and `strcoll` leave the symbol table.
 
-## Phase 14 — no tag stack
+## Phase 12 — no tag stack
 
 A tag jump is the editor discovering, on its own, that a file it was never told
 about exists. `get_tagfname()` walks `'tags'` upward from the current file,
 opens whatever it finds and binary-searches it — filesystem-layout knowledge of
-exactly the kind Phase 11 removed from `'path'`, and the largest single item
+exactly the kind Phase 9 removed from `'path'`, and the largest single item
 left in the tree at 2,364 lines.
 
 ### Four entry points that are not commands
@@ -683,7 +647,7 @@ command only shows up in the Ex sweep if the command used to *succeed*: `:tag`,
 tag stack and exited 0, and now reports instead. CTRL-`]` and CTRL-T report what
 `:tag` reports. The declared list is what moved, not what was cut.
 
-## Phase 15 — nothing is written that was not asked for
+## Phase 13 — nothing is written that was not asked for
 
 A swap file is not a recovery add-on bolted to the side of the editor. It is
 **memline's backing store**: created beside every file you open, written to as
@@ -727,18 +691,18 @@ polling. That is a separate cut with a separate delta.
 
 Eight command names report that they are not available; `'directory'`,
 `'updatecount'` and `'swapsync'` stop existing. `'swapfile'` cannot go — it is
-`PV_BUF` and its row is what initialises the global, the trap Phase 14 records —
+`PV_BUF` and its row is what initialises the global, the trap Phase 12 records —
 so it stays and is now always effectively off.
 
 `:mksession` and `:mkview` **do not move**: they already failed. And `:recover`
-**leaves** the cumulative list it joined in Phase 11 — removing globbing had
+**leaves** the cumulative list it joined in Phase 9 — removing globbing had
 made it fail differently from the slim baseline, and `ex_ni` makes it fail the
 same way again, so it stops being a difference. A cumulative delta can shrink,
 which is not something a list maintained by hand would ever discover.
 
-## Phase 16 — UTF-8, and no other encoding, ever
+## Phase 14 — UTF-8, and no other encoding, ever
 
-Phase 13 made `'encoding'` a property of the build rather than of the machine.
+Phase 11 made `'encoding'` a property of the build rather than of the machine.
 This makes it **not a setting at all**: `mb_init()` accepts `utf-8` and returns
 "invalid argument" for anything else, so `:set enc=latin1` fails the way a
 misspelt value fails, and the latin1 and DBCS character paths lose their only
@@ -799,9 +763,9 @@ three times by three different routes:
 | `'encoding'` | `PV_NONE`, but `p_enc` is read in twenty-nine places |
 | `'fileencodings'` | `PV_NONE`, not reached by name — and `readfile()` dereferences `p_fencs` |
 | `'termencoding'` | `PV_NONE` — and `did_set_encoding()` dereferences `p_tenc` |
-| `'fileencoding'`, `'bomb'` | `PV_BUF`, the trap Phase 14 recorded |
+| `'fileencoding'`, `'bomb'` | `PV_BUF`, the trap Phase 12 recorded |
 
-**A row is what initialises its global.** Phase 14 found that for a
+**A row is what initialises its global.** Phase 12 found that for a
 buffer-local option and guarded on `PV_`; this phase found it for a `PV_NONE`
 option reached by *name* (`set_string_option_direct((char_u *)"fencs", …)`,
 which answers `E685` and then segfaults) and then again for one reached only
@@ -830,7 +794,7 @@ A byte-order mark becomes three ordinary bytes at the top of the buffer, which
 is what ignoring it means, and the `bomb_on` behaviour case moves because of it.
 `'charconvert'` stops existing. **No Ex command moves.**
 
-## Phase 17 — the editor stops re-reading a file it has already read
+## Phase 15 — the editor stops re-reading a file it has already read
 
 vim watches the files it holds. `check_timestamps()` walks every buffer and
 stats its file — from the main loop, from insert mode, from the `Press ENTER`
@@ -839,7 +803,7 @@ does the same for one buffer on entering it. If the file moved underneath it
 prompts, and with `'autoread'` it reloads.
 
 That is the editor initiating filesystem traffic on its own account, which is
-the boundary this fork narrows. **Phase 15 retired `:checktime`, which removed
+the boundary this fork narrows. **Phase 13 retired `:checktime`, which removed
 the command; this removes the polling, which is what actually reached the
 disk.** What is left is an editor that reads a file when told to and writes it
 when told to.
@@ -866,10 +830,10 @@ back, so nothing it does reaches this code — which is worth stating rather tha
 glossing, because a phase with no delta is either well-chosen or untested, and
 the only way to tell them apart is to say which you think it is.
 
-## Phase 18 — a file name means the file of that name
+## Phase 16 — a file name means the file of that name
 
 `'path'` searching is the last of the three ways this editor knew where files
-live, after globbing (Phase 11) and `'tags'` (Phase 14). `vim_findfile()` walks a
+live, after globbing (Phase 9) and `'tags'` (Phase 12). `vim_findfile()` walks a
 path list downward and upward, remembers directories it has visited so a symlink
 loop cannot trap it, and can be asked for the second match and the third — 866
 lines of filesystem-layout knowledge behind `:find`, `:sfind`, `:tabfind` and
@@ -898,17 +862,17 @@ what initialises its global. They stay, and now decide nothing.
 ### The delta
 
 `gf` opens the name under the cursor if there is a file of that name rather than
-searching `'path'` for one. **No Ex command moves** — Phase 14's lesson again
+searching `'path'` for one. **No Ex command moves** — Phase 12's lesson again
 rather than a surprise: retiring a command only shows in the sweep if it used to
 *succeed*, and `:find`, `:sfind` and `:tabfind` already failed for want of an
 argument.
 
-## Phase 19 — the last two encoding options
+## Phase 17 — the last two encoding options
 
-**Phase 16 emptied `'fileencodings'` and said so, and it was true at startup and
+**Phase 14 emptied `'fileencodings'` and said so, and it was true at startup and
 not afterwards.** `set_option_default()` special-cases the option, so `:set
 fencs&` restored `ucs-bom,utf-8,default,latin1` from `fencs_utf8_default` — a
-third reference Phase 16 did not find, because it names the *string* rather than
+third reference Phase 14 did not find, because it names the *string* rather than
 the function the other two called. Measured on the shipped binary before this
 was written:
 
@@ -917,18 +881,18 @@ was written:
   after :set fencs&    fileencodings=ucs-bom,utf-8,default,latin1
 ```
 
-That is worth recording as a pattern and not just a fix. Phase 16 cut two
+That is worth recording as a pattern and not just a fix. Phase 14 cut two
 callers of `set_fencs_unicode()` and asked whether anything still called it;
 nothing did. The question it did not ask was whether anything still used the
 *value*, and a search for the function name cannot answer that.
 
 Three readers go, and with them the two options can finally follow.
 `set_option_default()` stops special-casing `'fileencodings'`, which is what
-makes Phase 16's claim true at every moment rather than one. `readfile()` stops
+makes Phase 14's claim true at every moment rather than one. `readfile()` stops
 choosing between an empty list and a list to walk, and takes the buffer's own
 `'fileencoding'` — the branch the empty case already took. And
 `did_set_encoding()` stops setting up a conversion between `'termencoding'` and
-`'encoding'`, which `convert_setup()` has answered `CONV_NONE` to since Phase 16,
+`'encoding'`, which `convert_setup()` has answered `CONV_NONE` to since Phase 14,
 so the block could only ever have succeeded at doing nothing.
 
 **`'encoding'` still cannot go, and here that stops being temporary.** `p_enc`
@@ -942,13 +906,13 @@ Of the six encoding options this fork began with, one remains, and it reports
 **None.** `:set fencs&` no longer restores a list of encodings this build cannot
 convert between, which is a correction rather than a change.
 
-## Phase 20 — six options that no longer decide anything
+## Phase 18 — six options that no longer decide anything
 
 `'path'` and `'suffixesadd'` have been inert since the file finder went,
 `'tags'` and `'tagcase'` since the tag stack, `'autoread'` since the timestamp
 poll, and `'swapfile'` since the swap file. All six were still here, because a
 row is what initialises its global and `tools/dropoptions.py` refuses to leave
-one dangling — **Phase 14's trap, which this phase clears rather than works
+one dangling — **Phase 12's trap, which this phase clears rather than works
 around.**
 
 ### The order is the phase, and it is forced rather than chosen
@@ -970,11 +934,11 @@ its cut however it liked; this one is not.
 ### The three that are not plumbing
 
 `ex_drop()` set `'autoread'` on, checked the timestamp, and set it back —
-and Phase 17 took the check out from between, so what was left was a variable
+and Phase 15 took the check out from between, so what was left was a variable
 saved and restored across nothing at all. `do_set_option_bool()` special-cased
 `:setlocal autoread` to mean "follow the global", the `-1` sentinel, and there
 is no global to follow. `ml_open()` asked whether this buffer may have a swap
-file; since Phase 15 the answer has been no whatever `'swapfile'` said, so it
+file; since Phase 13 the answer has been no whatever `'swapfile'` said, so it
 now says no directly.
 
 Everything else is the five fixed idioms every buffer-local option has — the
@@ -989,12 +953,12 @@ nothing left to look the field up from.
 **None.** All six report `E518: Unknown option` instead of a value that decided
 nothing.
 
-## Phase 21 — the last two per-buffer encoding options
+## Phase 19 — the last two per-buffer encoding options
 
 `'fileencoding'` names the encoding a buffer was read in and will be written
 back in, and `'bomb'` whether it had a byte-order mark. With one encoding and no
-BOM, both have had one possible value since Phase 16 — but **unlike the six
-Phase 20 took, these are not plumbing.** Eight functions read them, and each had
+BOM, both have had one possible value since Phase 14 — but **unlike the six
+Phase 18 took, these are not plumbing.** Eight functions read them, and each had
 to be looked at:
 
 | | what it wanted them for |
@@ -1052,7 +1016,7 @@ working features and call it progress.
 ### What it says today
 
 **47% of `pure-vim`'s functions are never entered** — 1,520 of 3,255, holding
-27,865 lines, about a sixth of the file. Measured after Phase 10:
+27,865 lines, about a sixth of the file. Measured after Phase 8:
 
 ```
     775  reg_equi_class             the backtracking engine's equivalence classes

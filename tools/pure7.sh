@@ -1,22 +1,20 @@
 #!/bin/sh
-# Pure phase 7 -- the forward declarations nothing needs.  See PURE-GOAL.md.
+# Pure phase 7 -- the table moves below what it names.  See PURE-GOAL.md.
 #
 # Usage: tools/pure7.sh <work-dir>       (run from the repository root)
 #
-# A forward declaration earns its place only when something uses the function
-# before it is defined.  This file carries 2,580 of them; 533 are for functions
-# nothing mentions until after their own definition, and say nothing the
-# compiler does not already know by the time it matters.
+# cmdnames[] names six hundred Ex command handlers and sits near the top of the
+# file, so each of them needs a forward declaration -- not because anything
+# calls them early, but because a table mentions them early.  Moving the table
+# below its handlers removes those, and costs one declaration of the table.
 #
-# THE HAZARD, and the reason this is a phase rather than a sed: a `static`
-# declaration is not only a declaration.  A definition that follows one inherits
-# internal linkage from it, which is why 1,817 of the 3,289 definitions here do
-# not say `static` themselves and are static anyway.  Delete such a prototype
-# and the function silently becomes EXTERNAL -- nm grows a symbol, and this
-# tree's whole claim is that main is the only one.  So every dropped prototype
-# hands `static` to its definition on the way out, and nm is checked below.
+# Two of the three candidate tables CANNOT move, and the reason is a language
+# rule rather than a gap in the tooling: options[] and nv_cmds[] are measured
+# with sizeof() by functions defined above them, and a tentative declaration of
+# an array has no size.  Trying it fails at exactly that sizeof.  They keep
+# their 229 declarations; cmdnames gives up 98.
 #
-# THE DELTA: none.  Declarations are not behaviour.
+# THE DELTA: none.  Where a table sits is not behaviour.
 set -eu
 
 work=${1:?usage: pure3.sh <work-dir>}
@@ -24,7 +22,8 @@ f="$work/pure-vim.c"
 
 before_lines=$(grep -c '' "$f")
 
-# --- drop them, repairing linkage as we go --------------------------------
+# --- move it, then take the declarations it was forcing -------------------
+python3 tools/movetables.py "$f" cmdnames
 python3 tools/dropprotos.py "$f" --delete
 
 tools/sweep.sh "$f"

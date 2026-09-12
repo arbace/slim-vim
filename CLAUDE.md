@@ -13,7 +13,7 @@ and deleted.
 Vim 9.2 (upstream patch level 1037) as **one translation unit**. That number
 moves: the input is cloned fresh, upstream keeps patching, and **Phase 1 is
 where this line gets updated** — from `version.c`, not from memory. `slim-vim.c` is
-181,844 lines and is the whole editor; one `gcc` invocation builds it in about
+181,285 lines and is the whole editor; one `gcc` invocation builds it in about
 8 seconds, into a standalone static binary.
 
 **`slim-vim.c` is produced, not edited into shape.** `SLIM-GOAL.md` is the process that
@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-A hundred and forty-six tracked files once both pipelines have run: thirteen
-at the root, and 133 under
-`tools/` — the passes, the harnesses, the phase programs (ten for `slim.mk`,
-twenty-two for `pure.mk`), the memoize
+A hundred and forty-five tracked files once both pipelines have run: thirteen
+at the root, and 132 under
+`tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
+twenty for `pure.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Three of the thirteen are products
 (`slim-vim.c`, `pure-vim.c`, `LICENSE`), two are records (`upstream.sha`,
@@ -81,7 +81,7 @@ driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 slim-vim.c     the editor, headers and forward declarations included
 pure-vim.c     the same editor with no runtime to install
 Makefile       the seed: builds both, and produces them when their input moves
-slim.mk        slim-vim.c = F(upstream@sha), ten phases as make targets
+slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 pure.mk        pure-vim.c = G(slim-vim.c), the same construct
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c pure-vim.c was produced from
@@ -603,8 +603,12 @@ linkage**, which is why three thousand definitions say nothing about it.
 external linkage whatever a prior declaration said, and gcc rejects the pair.
 
 The forward declarations are what keep definition order inside `slim-vim.c` from
-mattering. About half are redundant — the definition already precedes every use
-— and could go; the rest are load-bearing.
+mattering, and **the redundant half is gone**: Phase 10 dropped 534 of them,
+handing `static` to each definition whose declaration went, and Phase 11 then
+gave the keyword to the other 1,482 that had been inheriting it. Every
+definition now states its own linkage, so no declaration is load-bearing for
+anything but order, and one can be removed without anyone having to think about
+linkage at all.
 
 ### Braces are mandatory and nothing spans a line break
 
@@ -952,7 +956,7 @@ make                 # ls-remote, compare against upstream.sha, and if they
                      # claude -p over SLIM-GOAL.md, rm -rf upstream/, record the sha
 ```
 
-**The pass is `slim.mk`, and it is ten make targets, not one agent.** A phase's
+**The pass is `slim.mk`, and it is twelve make targets, not one agent.** A phase's
 prerequisite is the previous phase's boundary, so `make` sequences them — and a
 phase is run by a **program** if `tools/<pipeline><N>.sh` exists and by an **agent**
 if it does not. Converting a phase is therefore adding a file; nothing else
@@ -1058,10 +1062,10 @@ the compiled-in vimrc and the `'lazyredraw'` fix are Phase 1, because Phase 1
 is where behaviour changes and where the baselines are recorded; `-static -s`
 is Phase 3, on the scaffolding makefile that lives inside `upstream/` and dies
 with it — the root `Makefile` is the seed and no phase writes it. There is no
-list of extras to re-apply afterwards — a bare run of Phases 0-9 reproduces
+list of extras to re-apply afterwards — a bare run of Phases 0-11 reproduces
 this tree, not a plainer one, and that is what makes the comparison worth
 running. It has been run: the pass of 2026-09-10 reproduced `slim-vim.c` **byte for
-byte** against the previous one, 181,844 lines, and the binary with it,
+byte** against the previous one, and the binary with it,
 2,208,088 bytes.
 
 ### Import one thing from upstream by hand

@@ -1,31 +1,30 @@
 #!/bin/sh
-# Pure phase 18 -- a file name means the file of that name.  See PURE-GOAL.md.
+# Pure phase 8 -- six options that no longer decide anything.  See PURE-GOAL.md.
 #
 # Usage: tools/pure18.sh <work-dir>      (run from the repository root)
 #
-# 'path' searching is the last of the three ways this editor knew where files
-# live, after globbing (Phase 11) and 'tags' (Phase 14).  vim_findfile() walks a
-# path list downward and upward, remembers directories it has visited so a
-# symlink loop cannot trap it, and can be asked for the second match and the
-# third -- 866 lines behind :find, :sfind, :tabfind and gf.
+# 'path' and 'suffixesadd' have been inert since the file finder went, 'tags'
+# and 'tagcase' since the tag stack, 'autoread' since the timestamp poll, and
+# 'swapfile' since the swap file.  All six are still here, because a row is what
+# initialises its global and tools/dropoptions.py refuses to leave one dangling
+# -- Phase 8's trap, which this phase finally clears rather than works around.
 #
-# :find, :sfind and :tabfind are retired: the whole of what they do is the
-# search.
+# THE ORDER IS THE PHASE, and it is forced rather than chosen:
 #
-# gf IS KEPT, and resolves the name literally.  It is the one place a user names
-# a file from inside the buffer rather than on a command line, and taking it
-# away would be taking away the naming rather than the searching.  Fifteen lines
-# against eight hundred and sixty-six, and it reaches the filesystem no
-# differently from :e.
+#   1. the three readers that are not plumbing (tools/noinertopts.py)
+#   2. the rows, with --local (tools/dropoptions.py)
+#   3. SWEEP -- which is what removes did_set_tagcase() and did_set_swapfile(),
+#      the option callbacks, reachable only from the rows
+#   4. the buffer fields and their plumbing (tools/droplocal.py)
+#   5. sweep again
 #
-# 'path' and 'suffixesadd' cannot go -- PV_BOTH and PV_BUF, and a row is what
-# initialises its global.  They stay, and now decide nothing.
+# Steps 3 and 4 cannot swap.  The callbacks read the buffer field, so removing
+# the field first stops the file compiling; the sweep works by reading gcc's
+# warnings, so a file that does not compile is a file the sweep cannot act on,
+# and the callbacks would stay for ever.
 #
-# THE DELTA: gf opens the name under the cursor if there is a file of that name
-# rather than searching 'path' for one.  NO Ex command moves, and that is Phase
-# 14's lesson again rather than a surprise: retiring a command only shows in the
-# sweep if it used to SUCCEED, and :find, :sfind and :tabfind already failed for
-# want of an argument.
+# THE DELTA: none.  All six options report E518 instead of a value that decided
+# nothing.
 set -eu
 
 work=${1:?usage: pure17.sh <work-dir>}
@@ -35,11 +34,31 @@ before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nofind.py "$f"
-python3 tools/retire.py "$f" find sfind tabfind
+python3 tools/noinertopts.py "$f"
+python3 tools/dropoptions.py "$f" --local \
+    path suffixesadd tags tagcase autoread swapfile
 
 
 tools/sweep.sh "$f"
+python3 tools/droplocal.py "$f" b_p_path b_p_sua b_p_tags b_p_tc b_p_ar b_p_swf
+tools/sweep.sh "$f"
+
+# The post-condition, and the check that was missing when this phase first ran.
+# dropoptions.py --strict asks "does anything still read this global?", but it
+# has to ask BEFORE the sweep, when the option's own callback still does.  After
+# the sweep the question is answerable and the answer must be nothing at all --
+# an unread global is itself swept, so the right count is zero mentions, not one.
+for g in p_path p_sua p_tags p_tc p_ar p_swf; do
+    n=$(grep -c "\b$g\b" "$f" || true)
+    if [ "$n" != 0 ]; then
+        echo "  globals      $g still has $n mentions after the sweep"
+        echo "               a dropped row leaves its global uninitialised, and a"
+        echo "               reader of it is a segfault before the first keystroke"
+        grep -n "\b$g\b" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        exit 1
+    fi
+done
+echo "  globals      none of the six is mentioned anywhere any more"
 
 tools/canon.sh "$f"
 

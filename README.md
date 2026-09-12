@@ -13,13 +13,13 @@ make pure-vim   # pure-vim: the same editor with no runtime to install
 
 `make` asks `git ls-remote` what upstream's branch head is. If it matches the
 committed `upstream.sha`, it compiles `slim-vim.c` and stops. If it does not, it runs
-a pass: clone, transform in ten phases, delete the clone, record the new sha.
+a pass: clone, transform in twelve phases, delete the clone, record the new sha.
 
 ---
 
 ## The three-tier memoize
 
-The pass is ten phases, `pₙ = fₙ(pₙ₋₁)`. Each falls through three
+The pass is twelve phases, `pₙ = fₙ(pₙ₋₁)`. Each falls through three
 implementations, cheapest first:
 
 ```
@@ -88,7 +88,7 @@ inert on a first run — which is self-certifying.
 
 | | |
 | --- | --- |
-| **`SLIM-GOAL.md`** | the process — ten phases, the traps each hits, why the order is what it is |
+| **`SLIM-GOAL.md`** | the process — twelve phases, the traps each hits, why the order is what it is |
 | **`CLAUDE.md`** | the result — what `slim-vim.c` is, how it is built and verified, every divergence from upstream |
 | **`PURE-GOAL.md`** | the second pipeline — what pure-vim drops, what it is measured against, and why |
 | **`tools/README.md`** | the harnesses and passes, and what each is for |

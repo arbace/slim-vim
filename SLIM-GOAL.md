@@ -279,7 +279,7 @@ product.** It asks `git ls-remote` for the branch head, compares it against
 after the pass has left a `vim.c`, so a failure leaves the record alone and the
 next `make` retries.
 
-**The pass itself is `slim.mk`: these ten phases, as ten make targets.** A
+**The pass itself is `slim.mk`: these twelve phases, as twelve make targets.** A
 phase's prerequisite is the previous phase's boundary, and its recipe restores
 that boundary into `upstream/` first, so every phase is a pure function of its
 input rather than of whatever the last attempt left behind.
@@ -360,7 +360,7 @@ there is. Measuring it is two commands and 2 s:
 slim-vim.c .reference/slim-vim.c`.
 
 The pass of 2026-09-10 reproduced all four baselines byte for byte **and the
-finished `vim.c` byte for byte**, 181,844 lines, with the binary identical at
+finished `vim.c` byte for byte**, with the binary identical at
 2,208,088 bytes. Not on the first attempt: it took three convergences on
 formatting the previous pass had settled differently (see *one round* in Phase
 9, *the X-macro rows*, and *the three-line declarations* in Phase 8), each of
@@ -1620,6 +1620,50 @@ once:
 - **The `.gitignore`.** It is upstream's, and after Phase 2 all but two of its
   91 entries name paths that no longer exist. What is left to ignore is the
   binary, the frozen reference and the exported transcript.
+
+## Phase 10 — the forward declarations nothing needs
+
+Phase 8 gave every symbol internal linkage. This is the consequence: about half
+the forward declarations exist only because C wants a name in scope before its
+first use, and for a function nothing mentions until after its own definition
+they say nothing the compiler does not already know by the time it matters.
+
+**The hazard, and the reason this is a phase rather than a sed: a `static`
+declaration is not only a declaration.** A definition that follows one inherits
+internal linkage from it, which is why most definitions here do not say `static`
+themselves and are static anyway. Delete such a prototype and the function
+silently becomes *external* — and nothing fails. The build is clean, the editor
+runs, and the only thing that moved is a symbol table nobody looked at.
+
+So every dropped prototype hands `static` to its definition on the way out, and
+`nm` on the object is checked rather than trusted.
+
+## Phase 11 — every definition says its own linkage
+
+After Phase 10 there are still definitions that are static only because a
+declaration earlier in the file said so. That works, and it is a trap with a
+long fuse: delete the declaration — for being redundant, for tidiness, by
+accident — and the function quietly acquires external linkage.
+
+Phase 10 met that trap and worked around it. This finishes the job from the
+other end: **every definition says what its linkage is, and no declaration
+anywhere is load-bearing for anything but order.** After it a prototype can be
+removed for being unnecessary without anyone having to think about linkage.
+
+`main` is the exception and the only one.
+
+### Why these two are here and not in the pure pipeline
+
+They were `PURE-GOAL.md`'s phases 7 and 8 for a while, and that was the wrong
+home. Neither removes a capability, which is the only thing that document is
+for; both are simply true of a single translation unit whatever it contains, so
+they belong to whichever pipeline first has one — which is this one, from Phase
+6 onward.
+
+Keeping them there had a cost beyond tidiness. `tools/allstatic.py` did in one
+pass exactly what Phase 8's static loop was doing with one process per symbol,
+two pipelines away from the phase that needed it, and that duplication is what
+made Phase 8 take 369 seconds instead of 115.
 
 ## Done when
 

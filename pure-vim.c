@@ -4969,6 +4969,7 @@ static string_T get_last_insert(void);
 static void replace_push(int c);
 static int replace_push_mb(char_u *p);
 static void replace_join(int off);
+int hkmap(int c);
 static int bracketed_paste(paste_mode_T mode, int drop, garray_T *gap);
 static int ins_eol(int c);
 static colnr_T get_nolist_virtcol(void);
@@ -62182,41 +62183,41 @@ ins_ctrl_x(void)
     may_trigger_modechanged();
 }
 
-int ctrl_x_mode_none(void)
+static int ctrl_x_mode_none(void)
     { return ctrl_x_mode == 0; }
-int ctrl_x_mode_normal(void)
+static int ctrl_x_mode_normal(void)
     { return ctrl_x_mode == CTRL_X_NORMAL; }
-int ctrl_x_mode_scroll(void)
+static int ctrl_x_mode_scroll(void)
     { return ctrl_x_mode == CTRL_X_SCROLL; }
-int ctrl_x_mode_whole_line(void)
+static int ctrl_x_mode_whole_line(void)
     { return ctrl_x_mode == CTRL_X_WHOLE_LINE; }
-int ctrl_x_mode_files(void)
+static int ctrl_x_mode_files(void)
     { return ctrl_x_mode == CTRL_X_FILES; }
-int ctrl_x_mode_tags(void)
+static int ctrl_x_mode_tags(void)
     { return ctrl_x_mode ==  (5 + CTRL_X_WANT_IDENT) ; }
-int ctrl_x_mode_path_patterns(void)
+static int ctrl_x_mode_path_patterns(void)
     { return ctrl_x_mode ==  (6 + CTRL_X_WANT_IDENT) ; }
-int ctrl_x_mode_path_defines(void)
+static int ctrl_x_mode_path_defines(void)
     { return ctrl_x_mode ==  (7 + CTRL_X_WANT_IDENT) ; }
-int ctrl_x_mode_dictionary(void)
+static int ctrl_x_mode_dictionary(void)
     { return ctrl_x_mode ==  (9 + CTRL_X_WANT_IDENT) ; }
-int ctrl_x_mode_thesaurus(void)
+static int ctrl_x_mode_thesaurus(void)
     { return ctrl_x_mode ==  (10 + CTRL_X_WANT_IDENT) ; }
-int ctrl_x_mode_cmdline(void)
+static int ctrl_x_mode_cmdline(void)
     { return ctrl_x_mode == CTRL_X_CMDLINE
                 || ctrl_x_mode == CTRL_X_CMDLINE_CTRL_X;
                 }
-int ctrl_x_mode_function(void)
+static int ctrl_x_mode_function(void)
     { return ctrl_x_mode == CTRL_X_FUNCTION; }
-int ctrl_x_mode_omni(void)
+static int ctrl_x_mode_omni(void)
     { return ctrl_x_mode == CTRL_X_OMNI; }
-int ctrl_x_mode_spell(void)
+static int ctrl_x_mode_spell(void)
     { return ctrl_x_mode == CTRL_X_SPELL; }
-int ctrl_x_mode_eval(void)
+static int ctrl_x_mode_eval(void)
     { return ctrl_x_mode == CTRL_X_EVAL; }
-int ctrl_x_mode_line_or_eval(void)
+static int ctrl_x_mode_line_or_eval(void)
     { return ctrl_x_mode == CTRL_X_WHOLE_LINE || ctrl_x_mode == CTRL_X_EVAL; }
-int ctrl_x_mode_register(void)
+static int ctrl_x_mode_register(void)
     { return ctrl_x_mode == CTRL_X_REGISTER; }
 
     static int
@@ -69225,10 +69226,10 @@ struct initmap
 
 static struct initmap vimrc_mappings[] =
 {
-    {(char_u *)"<Tab> %", MODE_NORMAL | MODE_VISUAL | MODE_SELECT | MODE_OP_PENDING},
-    {(char_u *)"\u00a7 <C-_>", MODE_INSERT | MODE_CMDLINE},
-    {(char_u *)"\u00e9 u", MODE_NORMAL},
-    {(char_u *)"\u00e1 <C-R>", MODE_NORMAL},
+        {(char_u *)"<Tab> %", MODE_NORMAL | MODE_VISUAL | MODE_SELECT | MODE_OP_PENDING},
+        {(char_u *)"\u00a7 <C-_>", MODE_INSERT | MODE_CMDLINE},
+        {(char_u *)"\u00e9 u", MODE_NORMAL},
+        {(char_u *)"\u00e1 <C-R>", MODE_NORMAL},
 };
 
     static void
@@ -79443,7 +79444,7 @@ trunc_string(char_u      *s, char_u      *buf, int         room_in, int         
     }
 }
 
-int vim_snprintf(char *str, size_t str_m, const char *fmt, ...);
+static int vim_snprintf(char *str, size_t str_m, const char *fmt, ...);
 
     static int
 smsg(const char *s, ...)

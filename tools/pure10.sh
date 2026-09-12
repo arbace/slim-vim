@@ -1,71 +1,56 @@
 #!/bin/sh
-# Pure phase 10 -- the editor stops writing shell scripts, and stops drawing a
-# completion menu.  See PURE-GOAL.md.
+# Pure phase 8 -- :! keeps its name and loses its process.  See PURE-GOAL.md.
 #
 # Usage: tools/pure10.sh <work-dir>      (run from the repository root)
 #
-# Two cuts, both at the boundary between the editor and everything outside it.
+# `:!cmd`, `:[range]!cmd`, `:r !cmd`, `:w !cmd` and `:shell` keep their names,
+# their ranges and their parsing.  What goes is everything under them -- the
+# fork, the exec, the pipe, the wait -- and the temporary file with them,
+# because a temp file is not interface.  It exists only because a Unix shell
+# needs a file to read a range out of, and there is no longer a shell.
 #
-# WILDCARDS.  `expand_wildcards()` has two expanders behind it and only one is
-# the editor's own.  `gen_expand_wildcards()` walks directories itself and
-# handles *, ?, [...], ~ and $VAR without leaving the process; what it cannot do
-# it hands to `mch_expand_wildcards()`, which sniffs 'shell' for csh, zsh or
-# bash, picks one of five quoting styles, writes a shell function into a
-# temporary file, runs it and parses back a NUL-separated list.  That second one
-# is the editor doing the shell's job in 250 lines.  Shell-out itself STAYS --
-# `:!`, `:%!`, `:r !` are untouched -- but the editor stops generating shell to
-# expand a pattern.  What reaches it is now passed through literally.
+# THE PLACEMENT IS THE PHASE.  do_filter() calls vim_tempname() BEFORE it
+# reaches mch_call_shell(), so stubbing the shell alone leaves the whole
+# temporary-directory layer alive, assembling a file for a command that will
+# never run.  Measured on a scratch build before this was written: cutting at
+# mch_call_shell removes 6 libc symbols; cutting at do_filter/do_shell/
+# get_cmd_output removes 16.
 #
-# WILDMENU.  'wildmenu' draws the completion matches in the status line and
-# rebinds the arrow keys to walk them; 'wildoptions'=pum draws the same matches
-# as a popup.  Both are a display of what Tab completion already computed.
+# This is also the seam to keep in mind for whatever comes after pure-vim.  An
+# embedded editor with no process of its own may still be given a filter by its
+# host, and do_filter() and do_shell() are exactly where that would attach --
+# which is a reason to leave the two of them named and reporting rather than
+# retired to ex_ni.
 #
-# The second cut is the one that needed doing by hand, and the reason is worth
-# keeping: p_wmnu is read at thirteen places, and the dead-code sweep counts
-# references.  A variable that is never assigned TRUE makes every one of those
-# branches unreachable and every one of them is still a reference, so the sweep
-# sees a live option.  Folding it to FALSE at the source turns thirteen
-# reachability questions into the one question the sweep can answer.
-#
-# The popup form goes for the mirror image of that reason: with the option gone
-# `cmdline_pum_active()` can only answer FALSE while still being CALLED ten
-# times, which keeps two hundred lines alive that can no longer run.  The popup
-# menu ITSELF stays -- pum_display() has a second caller in insert-mode
-# completion -- and only the command line's use of it is cut.
-#
-# THE DELTA: `:e {a,b}.txt` and backticks in a file argument stop expanding and
-# name a file literally; `:e *.c`, `:e ~/x`, `:e $HOME/x` and file-name
-# completion are the native path and do not move.  'wildmenu' and the `pum`
-# value of 'wildoptions' stop existing; Tab completion behaves as it does with
-# `set nowildmenu`, which is what this build now always is.  No Ex command
-# changes, and the libc surface does not move at all -- shell-out keeps fork,
-# execvp, pipe and waitpid, and opendir/readdir are held by the TEMP DIRECTORY
-# (vim_opentempdir, and delete_recursive via readdir_core) as much as by the
-# native expander, so cutting the expander would not take them either.  That
-# was expected.  This phase buys complexity, not dependencies.
+# THE DELTA: filtering and shelling out report "E319: Sorry, the command is not
+# available in this version" instead of running anything.  :language completion
+# stops listing locales, silently, because it got them from `locale -a`.
 set -eu
 
-work=${1:?usage: pure10.sh <work-dir>}
+work=${1:?usage: pure12.sh <work-dir>}
 f="$work/pure-vim.c"
 
 before_lines=$(grep -c '' "$f")
+tools/symbols.sh "$f" .cache/symbols/before
 
-# --- cut the two entry points ---------------------------------------------
-python3 tools/nowild.py "$f"
-python3 tools/nowildmenu.py "$f"
-python3 tools/dropoptions.py "$f" wildmenu
+# --- cut above the temp file ----------------------------------------------
+python3 tools/noshellout.py "$f"
 
 tools/sweep.sh "$f"
 
 tools/canon.sh "$f"
 
 
-# Phase 8's invariant, checked again because this phase moved a declaration:
-# nowild.py reuses the slot the shell expander's prototype held, and a
-# declaration that loses its `static` hands external linkage to a definition
-# that never said so itself.  nm the OBJECT -- a static binary defines 1,400
-# symbols of its own and would bury the answer.
+
+# This is the first pure phase whose point is the SYMBOL count, so it is
+# checked rather than reported.  A phase that shrank the source while leaving
+# the surface where it was would have cut in the wrong place, which is exactly
+# the mistake this one exists to avoid.
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
+if [ "$(cat .cache/symbols/last/after)" -ge "$(cat .cache/symbols/last/before)" ]; then
+    echo "  symbols      this phase must lower the count"
+    exit 1
+fi
 
 make -C "$work" clean >/dev/null 2>&1 || true
 if make -C "$work" >/dev/null 2>&1; then
@@ -76,4 +61,5 @@ else
 fi
 
 # --- the delta, cumulative --------------------------------------------------
-tools/puredelta.sh "$work/pure-vim" "$f" helpclose intro version
+tools/puredelta.sh "$work/pure-vim" "$f" --cases filter,read_cmd \
+    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd recover '!' 

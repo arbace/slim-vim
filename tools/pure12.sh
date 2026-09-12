@@ -1,56 +1,60 @@
 #!/bin/sh
-# Pure phase 12 -- :! keeps its name and loses its process.  See PURE-GOAL.md.
+# Pure phase 8 -- no tag stack.  See PURE-GOAL.md.
 #
 # Usage: tools/pure12.sh <work-dir>      (run from the repository root)
 #
-# `:!cmd`, `:[range]!cmd`, `:r !cmd`, `:w !cmd` and `:shell` keep their names,
-# their ranges and their parsing.  What goes is everything under them -- the
-# fork, the exec, the pipe, the wait -- and the temporary file with them,
-# because a temp file is not interface.  It exists only because a Unix shell
-# needs a file to read a range out of, and there is no longer a shell.
+# A tag jump is the editor discovering, on its own, that a file it was never
+# told about exists: get_tagfname() walks 'tags' upward from the current file,
+# opens whatever it finds and binary-searches it.  That is filesystem-layout
+# knowledge, and it is the largest single item left in the tree.
 #
-# THE PLACEMENT IS THE PHASE.  do_filter() calls vim_tempname() BEFORE it
-# reaches mch_call_shell(), so stubbing the shell alone leaves the whole
-# temporary-directory layer alive, assembling a file for a command that will
-# never run.  Measured on a scratch build before this was written: cutting at
-# mch_call_shell removes 6 libc symbols; cutting at do_filter/do_shell/
-# get_cmd_output removes 16.
+# Retiring the fifteen command rows is most of it.  FOUR ENTRY POINTS ARE NOT
+# COMMANDS, and each keeps the whole subtree alive on its own -- which is why
+# this needs a tool and not a list:
 #
-# This is also the seam to keep in mind for whatever comes after pure-vim.  An
-# embedded editor with no process of its own may still be given a filter by its
-# host, and do_filter() and do_shell() are exactly where that would attach --
-# which is a reason to leave the two of them named and reporting rather than
-# retired to ex_ni.
+#   * nv_help(), the <Help> key, calls ex_help(), which calls do_tag().  :help
+#     has been ex_ni since Phase 1, but the KEY was never cut, so the entire
+#     help-tag search survived a phase that thought it had removed it.
+#   * nv_tagpop(), CTRL-T, calls do_tag() straight out of nv_cmds[].
+#   * ExpandFromContext() dispatches EXPAND_TAGS and EXPAND_HELP.
+#   * get_next_completion_match() dispatches CTRL-X CTRL-].
 #
-# THE DELTA: filtering and shelling out report "E319: Sorry, the command is not
-# available in this version" instead of running anything.  :language completion
-# stops listing locales, silently, because it got them from `locale -a`.
+# CTRL-] needs nothing: nv_ident() builds the string ":ta " and runs it as an Ex
+# command, so retiring the row is enough and the key reports what :tag reports.
+#
+# NOT removed here: vim_findfile().  'tags' and 'path' searching share it, and
+# find_file_in_path_option() still serves :find and gf.  That is a separate
+# decision, because gf is a normal-mode command a user would miss.
+#
+# THE DELTA: fifteen command names report "not implemented"; CTRL-] and CTRL-T
+# report the same; the eight tag options stop existing.
 set -eu
 
-work=${1:?usage: pure12.sh <work-dir>}
+work=${1:?usage: pure14.sh <work-dir>}
 f="$work/pure-vim.c"
 
 before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
-# --- cut above the temp file ----------------------------------------------
-python3 tools/noshellout.py "$f"
+# --- cut the entry points -------------------------------------------------
+python3 tools/notags.py "$f"
+python3 tools/retire.py "$f" tag tags tNext tfirst tjump tlast tnext tprevious \
+    trewind tselect stag stjump stselect ltag pop
+# Six of the eight.  'tags' and 'tagcase' are PV_BOTH -- buffer-local -- and
+# their rows also initialise their globals, so removing them leaves p_tags and
+# p_tc NULL and the editor segfaults before the first keystroke.  They stay,
+# inert, until a phase removes the buffer-local fields properly.
+python3 tools/dropoptions.py "$f" tagbsearch taglength tagrelative \
+    tagstack tagsecure showfulltag
 
 tools/sweep.sh "$f"
 
 tools/canon.sh "$f"
 
+# An error is not a warning: ask gcc whether it succeeded before asking what it
+# complained about, or a failed compile ends the phase with nothing to say.
 
-
-# This is the first pure phase whose point is the SYMBOL count, so it is
-# checked rather than reported.  A phase that shrank the source while leaving
-# the surface where it was would have cut in the wrong place, which is exactly
-# the mistake this one exists to avoid.
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
-if [ "$(cat .cache/symbols/last/after)" -ge "$(cat .cache/symbols/last/before)" ]; then
-    echo "  symbols      this phase must lower the count"
-    exit 1
-fi
 
 make -C "$work" clean >/dev/null 2>&1 || true
 if make -C "$work" >/dev/null 2>&1; then
@@ -61,5 +65,11 @@ else
 fi
 
 # --- the delta, cumulative --------------------------------------------------
+# ONE row moves, not fifteen.  Retiring a command only shows up in the sweep if
+# the command used to SUCCEED: :tag, :tjump and the rest already failed with no
+# tags file to read, and ex_ni fails too, so their recorded exit is unchanged.
+# :tags listed an empty tag stack and exited 0, and now reports instead.  The
+# declared list is what moved, not what was cut.
 tools/puredelta.sh "$work/pure-vim" "$f" --cases filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd recover '!' 
+    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd recover '!' language \
+    tags

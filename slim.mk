@@ -28,7 +28,7 @@ SLIMWORK    = upstream
 SLIMBUILD   = .build-slim
 SLIMORACLE  = .reference/slim-phases
 
-SLIMPHASES  = 0 1 2 3 4 5 6 7 8 9
+SLIMPHASES  = 0 1 2 3 4 5 6 7 8 9 10 11
 
 # --- the chain ------------------------------------------------------------
 # p0 hangs off the clone; pN off p(N-1).  Written out rather than computed:
@@ -44,6 +44,8 @@ $(SLIMBUILD)/p6.sha256: $(SLIMBUILD)/p5.sha256
 $(SLIMBUILD)/p7.sha256: $(SLIMBUILD)/p6.sha256
 $(SLIMBUILD)/p8.sha256: $(SLIMBUILD)/p7.sha256
 $(SLIMBUILD)/p9.sha256: $(SLIMBUILD)/p8.sha256
+$(SLIMBUILD)/p10.sha256: $(SLIMBUILD)/p9.sha256
+$(SLIMBUILD)/p11.sha256: $(SLIMBUILD)/p10.sha256
 
 # One recipe for all ten.  $* is the phase number, and the input tar is the
 # prerequisite's name with .sha256 swapped for .tar.
@@ -153,13 +155,13 @@ slim-compare:
 
 # --- what a pass is -------------------------------------------------------
 .PHONY: slim-pass
-slim-pass: $(SLIMBUILD)/p9.sha256
+slim-pass: $(SLIMBUILD)/p11.sha256
 	@cp $(SLIMWORK)/vim.c slim-vim.c
 	@cp $(SLIMWORK)/LICENSE LICENSE
 	@echo
 	@printf '  %-12s %s lines, and LICENSE beside it\n' "slim-vim.c" \
 	    "`grep -c '' slim-vim.c | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"
-	@if [ -f $(SLIMBUILD)/pass-start ]; then 	    t=$$((`date +%s` - `cat $(SLIMBUILD)/pass-start`)); 	    printf '  %-12s %d phases in %dm%02ds -- make slim-times, make slim-residue\n' 	        "pass" 10 "$$((t / 60))" "$$((t % 60))"; 	 else 	    printf '  %-12s ten phases -- make slim-times, make slim-residue\n' "pass"; 	 fi
+	@if [ -f $(SLIMBUILD)/pass-start ]; then 	    t=$$((`date +%s` - `cat $(SLIMBUILD)/pass-start`)); 	    printf '  %-12s %d phases in %dm%02ds -- make slim-times, make slim-residue\n' 	        "pass" 12 "$$((t / 60))" "$$((t % 60))"; 	 else 	    printf '  %-12s twelve phases -- make slim-times, make slim-residue\n' "pass"; 	 fi
 
 # The documents, and only when there is something to describe.  A pass that
 # reproduced the previous slim-vim.c byte for byte made no sentence wrong, and an
