@@ -1490,7 +1490,6 @@ static int      p_eol;
 static int      p_ek;
 static char_u   *p_ei;
 static int      p_et;
-static int      p_exrc;
 static char_u   *p_ff;
 static char_u   *p_ffs;
 static int      p_fic;
@@ -5305,7 +5304,6 @@ static int work_pending(void);
 static void may_trigger_deferred_events(void);
 static void main_loop(int cmdwin, int noexmode);
 static void getout(int exitval);
-static int process_env(char_u *env, int is_viminit);
 static void mainerr_arg_missing(char_u *str);
 
 // ---------------- end main.pro ----------------
@@ -7229,7 +7227,6 @@ static char e_cannot_define_autocommands_for_all_events[]  =  "E1155: Cannot def
 static char e_cannot_change_arglist_recursively[]  =  "E1156: Cannot change the argument list recursively"  ;
 static char e_cannot_split_window_when_closing_buffer[]  =  "E1159: Cannot split a window when closing the buffer"  ;
 static char e_vim9cmd_must_be_followed_by_command[]  =  "E1164: vim9cmd must be followed by a command"  ;
-static char e_failed_to_source_defaults[]  =  "E1187: Failed to source defaults.vim"  ;
 static char e_regexp_number_after_dot_pos_search_chr[]  =  "E1204: No Number allowed after .: '\\%%%c'"  ;
 static char e_no_white_space_allowed_between_option_and[]  =  "E1205: No white space allowed between option and"  ;
 static char e_complete_used_without_allowing_arguments[]  =  "E1208: -complete used without allowing arguments"  ;
@@ -100185,9 +100182,6 @@ static struct vimoption options[] =
     {"expandtab",   "et",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_et,   (idopt_T)(PV_BUF + (int)(BV_ET))  , NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
-    {"exrc",        "ex",   P_BOOL|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_exrc, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
     {"fileformat",  "ff",   P_STRING|P_ALLOCED|P_VI_DEF|P_RSTAT|P_NO_MKRC
                                                                   |P_CURSWANT,
                             (char_u *)&p_ff,   (idopt_T)(PV_BUF + (int)(BV_FF))  , did_set_fileformat, expand_set_fileformat,
@@ -101671,65 +101665,6 @@ set_init_clean_rtp(void)
 }
 
     static void
-set_init_xdg_rtp(void)
-{
-    int         opt_idx;
-    int         has_xdg_env = TRUE;
-    int         should_free_xdg_dir = FALSE;
-    char_u      *vimrc1 = NULL;
-    char_u      *vimrc2 = NULL;
-    char_u      *xdg_dir = NULL;
-    char_u      *xdg_rtp = NULL;
-    string_T    vimrc_xdg = {NULL, 0};
-
-    (void)init_chartab();
-    vimrc1 = expand_env_save((char_u *) "$HOME/.vimrc" );
-    vimrc2 = expand_env_save((char_u *) "~/.vim/vimrc" );
-
-    xdg_dir =  (char_u *)getenv((char *)("XDG_CONFIG_HOME")) ;
-    if (!xdg_dir)
-    {
-        xdg_dir = expand_env_save((char_u *)"~/.config");
-        should_free_xdg_dir = TRUE;
-        has_xdg_env = FALSE;
-    }
-    concat_fnames(xdg_dir,  strlen((char *)(xdg_dir)) , (char_u *)"vim/vimrc",  (sizeof("vim/vimrc" "") - 1) , TRUE, &vimrc_xdg);
-
-    if (file_is_readable(vimrc1) || file_is_readable(vimrc2) || !file_is_readable(vimrc_xdg.string))
-    {
-        goto theend;
-    }
-
-    xdg_rtp = has_xdg_env ? (char_u *) "" 
-        : (char_u *) "" ;
-
-    if ((opt_idx = findoption((char_u *)"runtimepath")) < 0)
-    {
-        goto theend;
-    }
-
-    options[opt_idx].def_val[VI_DEFAULT] = xdg_rtp;
-    p_rtp = xdg_rtp;
-
-    if ((opt_idx = findoption((char_u *)"packpath")) < 0)
-    {
-        goto theend;
-    }
-
-    options[opt_idx].def_val[VI_DEFAULT] = xdg_rtp;
-    p_pp = xdg_rtp;
-
-theend:
-    vim_free(vimrc1);
-    vim_free(vimrc2);
-    vim_free(vimrc_xdg.string);
-    if (should_free_xdg_dir)
-    {
-        vim_free(xdg_dir);
-    }
-}
-
-    static void
 set_init_expand_env(void)
 {
     int         opt_idx;
@@ -101782,7 +101717,6 @@ set_init_1(int clean_arg)
 
     set_options_default(0);
 
-    set_init_xdg_rtp();
     set_init_restricted_mode();
 
     if (clean_arg)
@@ -150891,7 +150825,6 @@ enum { EDIT_FILE = 1 };
 enum { EDIT_STDIN = 2 };
 enum { EDIT_TAG = 3 };
 
-static int file_owned(char *fname);
 static void mainerr(int, char_u *);
 static void early_arg_scan(mparm_T *parmp);
 static void read_stdin(void);
@@ -152255,118 +152188,22 @@ exe_commands(mparm_T *parmp)
     static void
 source_startup_scripts(mparm_T *parmp)
 {
-    int         i;
-
-    if (parmp->evim_mode)
+    // Only a file the user named.  Everything this used to search for -- the
+    // runtime's defaults, $VIM/vimrc, $VIMINIT, ~/.vimrc, ~/.exrc, and .vimrc
+    // or .exrc in the current directory -- is a place the editor went looking,
+    // which is what an embedded editor must not do.
+    if (parmp->use_vimrc == NULL)
     {
-        (void)do_source((char_u *) "$VIMRUNTIME/evim.vim" , FALSE, DOSO_NONE, NULL);
+        return;
     }
-
-    if (parmp->use_vimrc != NULL)
+    if ( strcmp((char *)(parmp->use_vimrc), (char *)("NONE"))  == 0 ||  strcmp((char *)(parmp->use_vimrc), (char *)("NORC"))  == 0 ||  strcmp((char *)(parmp->use_vimrc), (char *)("DEFAULTS"))  == 0)
     {
-        if ( strcmp((char *)(parmp->use_vimrc), (char *)("DEFAULTS"))  == 0)
-        {
-            if (do_source((char_u *) "$VIMRUNTIME/defaults.vim" , FALSE, DOSO_NONE, NULL) != OK)
-            {
-                emsg(_(e_failed_to_source_defaults));
-            }
-        }
-        else if ( strcmp((char *)(parmp->use_vimrc), (char *)("NONE"))  == 0 ||  strcmp((char *)(parmp->use_vimrc), (char *)("NORC"))  == 0)
-        {
-        }
-        else
-        {
-            if (do_source(parmp->use_vimrc, FALSE, DOSO_NONE, NULL) != OK)
-            {
-                semsg(_(e_cannot_read_from_str_2), parmp->use_vimrc);
-            }
-        }
+        return;
     }
-    else if (!silent_mode)
+    if (do_source(parmp->use_vimrc, FALSE, DOSO_NONE, NULL) != OK)
     {
-        (void)do_source((char_u *) "$VIM/vimrc" , FALSE, DOSO_NONE, NULL);
-
-        if (process_env((char_u *)"VIMINIT", TRUE) != OK)
-        {
-            if (do_source((char_u *) "$HOME/.vimrc" , TRUE, DOSO_VIMRC, NULL) == FAIL && do_source((char_u *) "~/.vim/vimrc" , TRUE, DOSO_VIMRC, NULL) == FAIL && do_source((char_u *) ( (char_u *)getenv((char *)((char_u *)"XDG_CONFIG_HOME"))         ? "$XDG_CONFIG_HOME/vim/vimrc"  : "~/.config/vim/vimrc") , TRUE, DOSO_VIMRC, NULL) == FAIL && process_env((char_u *)"EXINIT", FALSE) == FAIL && do_source((char_u *) "$HOME/.exrc" , FALSE, DOSO_NONE, NULL) == FAIL && !has_dash_c_arg)
-            {
-                if (do_source((char_u *) "$VIMRUNTIME/defaults.vim" , FALSE, DOSO_NONE, NULL) == FAIL)
-                {
-                    emsg(_(e_failed_to_source_defaults));
-                }
-            }
-        }
-
-        if (p_exrc)
-        {
-            if (!file_owned( ".vimrc" ))
-            {
-                secure = p_secure;
-            }
-
-            i = FAIL;
-            if (fullpathcmp((char_u *) "$HOME/.vimrc" , (char_u *) ".vimrc" , FALSE, TRUE) != FPC_SAME && fullpathcmp((char_u *) "~/.vim/vimrc" , (char_u *) ".vimrc" , FALSE, TRUE) != FPC_SAME && fullpathcmp((char_u *) "$VIM/vimrc" , (char_u *) ".vimrc" , FALSE, TRUE) != FPC_SAME)
-            {
-                i = do_source((char_u *) ".vimrc" , TRUE, DOSO_VIMRC, NULL);
-            }
-
-            if (i == FAIL)
-            {
-                if (!file_owned( ".exrc" ))
-                {
-                    secure = p_secure;
-                }
-                else
-                {
-                    secure = 0;
-                }
-                if (       fullpathcmp((char_u *) "$HOME/.exrc" , (char_u *) ".exrc" , FALSE, TRUE) != FPC_SAME)
-                {
-                    (void)do_source((char_u *) ".exrc" , FALSE, DOSO_NONE, NULL);
-                }
-            }
-        }
-        if (secure == 2)
-        {
-            need_wait_return = TRUE;
-        }
-        secure = 0;
+        semsg(_(e_cannot_read_from_str_2), parmp->use_vimrc);
     }
-}
-
-    static int
-process_env(char_u      *env, int         is_viminit)
-{
-    char_u      *initstr;
-    sctx_T      save_current_sctx;
-
-    if ((initstr =  (char_u *)getenv((char *)(env)) ) == NULL || *initstr == NUL)
-    {
-        return FAIL;
-    }
-
-    if (is_viminit)
-    {
-        vimrc_found(NULL, NULL);
-    }
-    estack_push(ETYPE_ENV, env, 0);
-    save_current_sctx = current_sctx;
-    current_sctx.sc_version = 1;
-
-    do_cmdline_cmd(initstr);
-
-    estack_pop();
-    current_sctx = save_current_sctx;
-    return OK;
-}
-
-    static int
-file_owned(char *fname)
-{
-    stat_T      s;
-    uid_t       uid = getuid();
-
-    return !( stat((fname), (&s))  != 0 || s.st_uid != uid ||  lstat((fname), (&s))  != 0 || s.st_uid != uid);
 }
 
     static void

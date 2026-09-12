@@ -83,6 +83,15 @@ def drop_row(text, name, strict=False, local=False):
                         text.index('\n', hit.start())]
             if re.match(r'[ \t]*\{"', line):
                 continue
+            # Only a LOOKUP counts.  The name of an option is also an ordinary
+            # word, and `strcasecmp(p + 1, "exrc")` asking whether a FILE is
+            # called .exrc has nothing to do with the option -- the guard
+            # stopped a correct phase on that one.  A lookup goes through one of
+            # these four, and they are the only ones that answer -1 for a row
+            # that is not there.
+            if not re.search(r'\b(findoption|set_string_option_direct'
+                             r'|set_option_value\w*|option_was_set)\s*\(', line):
+                continue
             sys.exit("dropoptions: '%s' is reached by name as \"%s\" here, not "
                      "only through its variable:\n    %s\nA lookup of a row "
                      "that is not there returns -1, and the caller does not "

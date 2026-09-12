@@ -987,6 +987,44 @@ so `file_ff_differs()` keeps those and loses only the two that cannot.
 **None.** Both report `E518` instead of a value with one possible setting. What
 is left is `'encoding'`, alone, reporting `utf-8`.
 
+## Phase 20 — nothing is read at startup that was not named on the command line
+
+An editor that goes looking for its own configuration has a filesystem layout in
+its head. `source_startup_scripts()` tried, in order:
+
+```
+$VIMRUNTIME/evim.vim      $VIMRUNTIME/defaults.vim      $VIM/vimrc
+$VIMINIT                  $HOME/.vimrc                  $HOME/.exrc
+./.vimrc                  ./.exrc
+```
+
+— the last two only with `'exrc'` on, and each guarded by an ownership check,
+because reading a config file out of the current directory is a way to be handed
+someone else's commands.
+
+All of it goes. **`-u <file>` stays, and so does `:source`**: a file the user
+names is not the editor going looking, and Phase 12 already settled `:source`.
+`NONE`, `NORC` and `DEFAULTS` are still recognised as `-u` arguments and still
+mean "read nothing" — which they now do by agreeing with everything else.
+
+`set_init_xdg_rtp()` goes with them. It built a `'runtimepath'` out of
+`$XDG_CONFIG_HOME`, and **Phase 1 emptied that option while this was still
+filling it back in** — an option reported as empty and rebuilt at startup, which
+is the kind of thing only a survey of every `getenv` finds. So does
+`process_env()`, which ran `$VIMINIT` or `$EXINIT` as Ex commands, and `'exrc'`,
+which selected between two searches that no longer happen.
+
+### The delta
+
+**None, and that is the point rather than a surprise.** Every harness passes
+`-u NONE`, so none of these paths was taken in a recorded run. What changes is
+that the editor no longer needs to be told.
+
+That is also why this phase comes before the one that removes `-u` itself. The
+option is what suppresses the search; while the search exists, dropping the
+option would change every harness at once. Once nothing is searched for, `-u
+NONE` is a no-op and the option can go without moving a single recorded output.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.
