@@ -6771,7 +6771,6 @@ static char typename_pointer[]   =  "pointer"  ;
 static char typename_percent[]   =  "percent"  ;
 static char typename_char[]  = "char" ;
 static char typename_string[]    =  "string"  ;
-static char typename_float[]     = "float" ;
 
 static long     sub_nsubs;
 static linenr_T sub_nlines;
@@ -53158,8 +53157,7 @@ fuzzy_match(char_u      *str, char_u      *pat_arg, int         matchseq, int   
             if (fzy_score !=  (-INFINITY) )
             {
                 score = (fzy_score ==  INFINITY ) ? INT_MAX
-                    : (fzy_score < 0) ? (int)ceil(fzy_score * SCORE_SCALE - 0.5)
-                    : (int)floor(fzy_score * SCORE_SCALE + 0.5);
+                    : (int)(fzy_score * SCORE_SCALE + ((fzy_score < 0) ? -0.5 : 0.5));
             }
         }
 
@@ -127280,23 +127278,6 @@ concat_str(char_u *str1, char_u *str2)
     return dest;
 }
 
-    static const char *
-infinity_str(int positive, char fmt_spec, int force_sign, int space_for_positive)
-{
-    static const char *table[] =
-    {
-        "-inf", "inf", "+inf", " inf",
-        "-INF", "INF", "+INF", " INF"
-    };
-    int idx = positive * (1 + force_sign + force_sign * space_for_positive);
-
-    if ( ((unsigned)(fmt_spec) - 'A' < 26) )
-    {
-        idx += 4;
-    }
-    return table[idx];
-}
-
     static int
 vim_snprintf_add(char *str, size_t str_m, const char *fmt, ...)
 {
@@ -127372,8 +127353,7 @@ enum
     TYPE_POINTER,
     TYPE_PERCENT,
     TYPE_CHAR,
-    TYPE_STRING,
-    TYPE_FLOAT
+    TYPE_STRING
 };
 
     static int
@@ -127478,13 +127458,6 @@ format_typeof(const char  *type)
         }
         break;
 
-    case 'f':
-    case 'F':
-    case 'e':
-    case 'E':
-    case 'g':
-    case 'G':
-        return TYPE_FLOAT;
     }
 
     return TYPE_UNKNOWN;
@@ -127525,8 +127498,6 @@ format_typename(const char  *type)
         case TYPE_STRING:
             return _(typename_string);
 
-        case TYPE_FLOAT:
-            return typename_float;
     }
 
     return _(typename_unknown);
@@ -127901,12 +127872,6 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
                 case 's':
                 case 'S':
                 case 'p':
-                case 'f':
-                case 'F':
-                case 'e':
-                case 'E':
-                case 'g':
-                case 'G':
                     if (pos_arg != -1)
                     {
                         if (adjust_types(ap_types, pos_arg, num_posarg, ptype) == FAIL)
@@ -128034,9 +127999,6 @@ skip_to_arg(const char  **ap_types, va_list     ap_start, va_list     *ap, int  
             va_arg(*ap, uvarnumber_T);
             break;
 
-        case TYPE_FLOAT:
-            va_arg(*ap, double);
-            break;
         }
     }
 
@@ -128681,145 +128643,6 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                             number_of_zeros_to_pad += n;
                         }
                     }
-                    break;
-                }
-
-            case 'f':
-            case 'F':
-            case 'e':
-            case 'E':
-            case 'g':
-            case 'G':
-                {
-                    double      f;
-                    double      abs_f;
-                    char        format[40];
-                    int         l;
-                    int         remove_trailing_zeroes = FALSE;
-
-                    f =
-                            (skip_to_arg(ap_types, ap_start, &ap, &arg_idx, &arg_cur, fmt), va_arg(ap, double));
-
-                    abs_f = f < 0 ? -f : f;
-
-                    if (fmt_spec == 'g' || fmt_spec == 'G')
-                    {
-                        if ((abs_f >= 0.001 && abs_f < 10000000.0) || abs_f == 0.0)
-                        {
-                            fmt_spec =  ((unsigned)(fmt_spec) - 'A' < 26)  ? 'F' : 'f';
-                        }
-                        else
-                        {
-                            fmt_spec = fmt_spec == 'g' ? 'e' : 'E';
-                        }
-                        remove_trailing_zeroes = TRUE;
-                    }
-
-                    if ((fmt_spec == 'f' || fmt_spec == 'F') && abs_f > 1.0e307)
-                    {
-                         strcpy((char *)(tmp), (char *)(infinity_str(f > 0.0, fmt_spec, force_sign, space_for_positive))) ;
-                        str_arg_l =  strlen((char *)(tmp)) ;
-                        zero_padding = 0;
-                    }
-                    else
-                    {
-                        if (isnan(f))
-                        {
-                             strcpy((char *)(tmp), (char *)( ((unsigned)(fmt_spec) - 'A' < 26)  ? "NAN" : "nan")) ;
-                            str_arg_l = 3;
-                            zero_padding = 0;
-                        }
-                        else if (isinf(f))
-                        {
-                             strcpy((char *)(tmp), (char *)(infinity_str(f > 0.0, fmt_spec, force_sign, space_for_positive))) ;
-                            str_arg_l =  strlen((char *)(tmp)) ;
-                            zero_padding = 0;
-                        }
-                        else
-                        {
-                            format[0] = '%';
-                            l = 1;
-                            if (force_sign)
-                            {
-                                format[l++] = space_for_positive ? ' ' : '+';
-                            }
-                            if (precision_specified)
-                            {
-                                size_t max_prec = TMP_LEN - 10;
-
-                                if ((fmt_spec == 'f' || fmt_spec == 'F') && abs_f > 1.0)
-                                {
-                                    max_prec -= (size_t)log10(abs_f);
-                                }
-                                if (precision > max_prec)
-                                {
-                                    precision = max_prec;
-                                }
-                                l += sprintf(format + l, ".%d", (int)precision);
-                            }
-                            format[l] = fmt_spec == 'F' ? 'f' : fmt_spec;
-                            format[l + 1] = NUL;
-
-                            str_arg_l = sprintf(tmp, format, f);
-                        }
-
-                        if (remove_trailing_zeroes)
-                        {
-                            int i;
-                            char *tp;
-
-                            if (fmt_spec == 'f' || fmt_spec == 'F')
-                            {
-                                tp = tmp + str_arg_l - 1;
-                            }
-                            else
-                            {
-                                tp = (char *)vim_strchr((char_u *)tmp, fmt_spec == 'e' ? 'e' : 'E');
-                                if (tp != NULL)
-                                {
-                                    if (tp[1] == '+')
-                                    {
-                                          memmove((char *)((tp + 1)), (char *)((tp + 2)),  strlen((char *)(tp + 2))  + 1)  ;
-                                        --str_arg_l;
-                                    }
-                                    i = (tp[1] == '-') ? 2 : 1;
-                                    while (tp[i] == '0')
-                                    {
-                                          memmove((char *)((tp + i)), (char *)((tp + i + 1)),  strlen((char *)(tp + i + 1))  + 1)  ;
-                                        --str_arg_l;
-                                    }
-                                    --tp;
-                                }
-                            }
-
-                            if (tp != NULL && !precision_specified)
-                            {
-                                while (tp > tmp + 2 && *tp == '0' && tp[-1] != '.')
-                                {
-                                      memmove((char *)((tp)), (char *)((tp + 1)),  strlen((char *)(tp + 1))  + 1)  ;
-                                    --tp;
-                                    --str_arg_l;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            char *tp;
-
-                            tp = (char *)vim_strchr((char_u *)tmp, fmt_spec == 'e' ? 'e' : 'E');
-                            if (tp != NULL && (tp[1] == '+' || tp[1] == '-') && tp[2] == '0' && vim_isdigit(tp[3]) && vim_isdigit(tp[4]))
-                            {
-                                  memmove((char *)((tp + 2)), (char *)((tp + 3)),  strlen((char *)(tp + 3))  + 1)  ;
-                                --str_arg_l;
-                            }
-                        }
-                    }
-                    if (zero_padding && min_field_width > str_arg_l && (tmp[0] == '-' || force_sign))
-                    {
-                        number_of_zeros_to_pad = min_field_width - str_arg_l;
-                        zero_padding_insertion_ind = 1;
-                    }
-                    str_arg = tmp;
                     break;
                 }
 
