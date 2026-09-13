@@ -649,7 +649,6 @@ enum { EXPAND_USER_COMMANDS = 22 };
 enum { EXPAND_USER_CMD_FLAGS = 23 };
 enum { EXPAND_USER_NARGS = 24 };
 enum { EXPAND_USER_COMPLETE = 25 };
-enum { EXPAND_ENV_VARS = 26 };
 enum { EXPAND_COLORS = 28 };
 enum { EXPAND_COMPILER = 29 };
 enum { EXPAND_USER_DEFINED = 30 };
@@ -5476,9 +5475,6 @@ static char_u *expand_env_save(char_u *src);
 static char_u *expand_env_save_opt(char_u *src, int one, char_u *esc_chars);
 static size_t expand_env(char_u *src, char_u *dst, int dstlen);
 static size_t expand_env_esc(char_u *srcp, char_u *dst, int dstlen, char_u *esc_chars, int one, char_u *startstr);
-static char_u *vim_getenv(char_u *name, int *mustfree);
-static void vim_setenv(char_u *name, char_u *val);
-static char_u *get_env_name(expand_T *xp, int idx);
 static void line_breakcheck(void);
 static void fast_breakcheck(void);
 static int goto_im(void);
@@ -5900,7 +5896,6 @@ static char *did_set_string_option(int opt_idx, char_u **varp, char_u *oldval, c
 static int check_ff_value(char_u *p);
 static void save_clear_shm_value(void);
 static void restore_shm_value(void);
-static void export_myvimdir(void);
 
 // ---------------- end optionstr.pro ----------------
 // ---------------- begin popupmenu.pro ----------------
@@ -6457,9 +6452,6 @@ static int      intr_char  = 0 ;
 static int      ex_keep_indent  = FALSE ;
 static int      vgetc_busy  = 0 ;
 
-static int      didset_vim  = FALSE ;
-static int      didset_vimruntime  = FALSE ;
-
 static int      lines_left  = -1 ;
 static int      msg_no_more  = FALSE ;
 
@@ -6799,9 +6791,6 @@ static FILE *redir_fd  = NULL ;
 
 static const char *Version;
 static char *longVersion;
-
-static char_u *default_vim_dir;
-static char_u *default_vimruntime_dir;
 
 static char_u   *globaldir  = NULL ;
 
@@ -7276,9 +7265,6 @@ enum { VGR_FUZZY = 4 };
 enum { BAD_REPLACE = '?' };
 
 enum { DOSO_NONE = 0 };
-enum { DOSO_VIMRC = 1 };
-enum { DOSO_GVIMRC = 2 };
-
 enum { BFA_DEL = 1 };
 enum { BFA_WIPE = 2 };
 enum { BFA_KEEP_UNDO = 4 };
@@ -14420,7 +14406,6 @@ enum { VIM_VERSION_MINOR = 2 };
 static const char VIM_VERSION_DATE_ONLY[] = "2026 Feb 14";
 
 static const char VIM_VERSION_SHORT[] = {'0' + VIM_VERSION_MAJOR, '.', '0' + VIM_VERSION_MINOR, NUL};
-static const char VIM_VERSION_NODOT[] = {'v', 'i', 'm', '0' + VIM_VERSION_MAJOR, '0' + VIM_VERSION_MINOR, NUL};
 static const char VIM_VERSION_LONG_ONLY[] = {'V', 'I', 'M', ' ', '-', ' ', 'V', 'i', ' ', 'I', 'M', 'p', 'r', 'o', 'v', 'e', 'd', ' ', '0' + VIM_VERSION_MAJOR, '.', '0' + VIM_VERSION_MINOR, NUL};
 enum { VIM_VERSION_100 = VIM_VERSION_MAJOR * 100 + VIM_VERSION_MINOR };
 
@@ -25035,25 +25020,6 @@ set_context_for_wildcard_arg(exarg_T         *eap, char_u          *arg, int    
         }
     }
 
-    if (*xp->xp_pattern == '$')
-    {
-        for (p = xp->xp_pattern + 1; *p != NUL; ++p)
-        {
-            if (!vim_isIDc(*p))
-            {
-                break;
-            }
-        }
-        if (*p == NUL)
-        {
-            xp->xp_context = EXPAND_ENV_VARS;
-            ++xp->xp_pattern;
-            if (*complp != EXPAND_USER_DEFINED && *complp != EXPAND_USER_LIST)
-            {
-                *complp = EXPAND_ENV_VARS;
-            }
-        }
-    }
 }
 
     static char_u *
@@ -26042,7 +26008,6 @@ ExpandOther(char_u          *pat, expand_T        *xp, regmatch_T      *rmp, cha
         {EXPAND_HIGHLIGHT, get_highlight_name, TRUE, TRUE},
         {EXPAND_EVENTS, get_event_name, TRUE, FALSE},
         {EXPAND_AUGROUP, get_augroup_name, TRUE, FALSE},
-        {EXPAND_ENV_VARS, get_env_name, TRUE, TRUE},
         {EXPAND_ARGLIST, get_arglist_name, TRUE, FALSE},
         {EXPAND_RETAB, get_retab_arg, TRUE, TRUE},
     };
@@ -26476,10 +26441,6 @@ expand_shellcmd(char_u      *filepat, char_u      ***matches, int         *numMa
     }
     else
     {
-        if (!mch_isFullName(pat))
-        {
-            path = vim_getenv((char_u *)"PATH", &mustfree);
-        }
         if (path == NULL)
         {
             path = (char_u *)"";
@@ -52377,19 +52338,6 @@ shorten_dir(char_u *str)
     shorten_dir_len(str, 1);
 }
 
-    static int
-file_is_readable(char_u *fname)
-{
-    int         fd;
-
-    if (*fname && !mch_isdir(fname) && (fd =  open(((char *)fname), (O_RDONLY | O_NONBLOCK), (0)) ) >= 0)
-    {
-        close(fd);
-        return TRUE;
-    }
-    return FALSE;
-}
-
     static size_t
 home_replace(buf_T       *buf, char_u      *src, char_u      *dst, int         dstlen, int         one)
 {
@@ -53342,12 +53290,6 @@ find_file_name_in_path(char_u      *ptr, int         len, int         options, l
     }
 
     return file_name;
-}
-
-    static int
-vim_ispathlistsep(int c)
-{
-    return (c == ':');
 }
 
 // ==================== fuzzy.c ====================
@@ -57219,10 +57161,6 @@ fix_help_buffer(void)
     char_u      *line;
     int         in_example = FALSE;
     int         len;
-    char_u      *fname;
-    char_u      *p;
-    char_u      *rt;
-    int         mustfree;
 
     {
         for (lnum = 1; lnum <= curbuf->b_ml.ml_line_count; ++lnum)
@@ -57255,117 +57193,6 @@ fix_help_buffer(void)
         }
     }
 
-    fname = gettail(curbuf->b_fname);
-    if ( vim_fnamecmp((char_u *)(fname), (char_u *)("help.txt"))  == 0)
-    {
-        for (lnum = 1; lnum < curbuf->b_ml.ml_line_count; ++lnum)
-        {
-            line = ml_get_buf(curbuf, lnum, FALSE);
-            if (strstr((char *)line, "*local-additions*") == NULL)
-            {
-                continue;
-            }
-
-            p = p_rtp;
-            while (*p != NUL)
-            {
-                int NameBufflen;
-
-                NameBufflen = copy_option_part(&p, NameBuff,  PATH_MAX , ",");
-                mustfree = FALSE;
-                rt = vim_getenv((char_u *)"VIMRUNTIME", &mustfree);
-                if (rt != NULL && fullpathcmp(rt, NameBuff, FALSE, TRUE) != FPC_SAME)
-                {
-                    int         fcount;
-                    char_u      **fnames;
-                    FILE        *fd;
-                    char_u      *s;
-                    int         fi;
-                    vimconv_T   vc;
-                    char_u      *cp;
-
-                    if (*NameBuff != NUL && !after_pathsep(NameBuff, NameBuff + NameBufflen))
-                    {
-                         strcpy((char *)(NameBuff + NameBufflen), (char *)( "/" )) ;
-                        NameBufflen += sizeof( ((char_u)'/') );
-                    }
-                     strcpy((char *)(NameBuff + NameBufflen), (char *)("doc/*.txt")) ;
-                    if (gen_expand_wildcards(1, &NameBuff, &fcount, &fnames, EW_FILE|EW_SILENT) == OK && fcount > 0)
-                    {
-                        for (fi = 0; fi < fcount; ++fi)
-                        {
-                            if (fnames[fi] == NULL)
-                            {
-                                continue;
-                            }
-                            fd =  fopen(((char *)fnames[fi]), ("r")) ;
-                            if (fd != NULL)
-                            {
-                                vim_fgets(IObuff,  (1024+1) , fd);
-                                if (IObuff[0] == '*' && (s = vim_strchr(IObuff + 1, '*')) != NULL)
-                                {
-                                    int this_utf = MAYBE;
-
-                                    IObuff[0] = '|';
-                                    *s = '|';
-                                    while (*s != NUL)
-                                    {
-                                        if (*s == '\r' || *s == '\n')
-                                        {
-                                            *s = NUL;
-                                        }
-                                        if (*s >= 0x80 && this_utf != FALSE)
-                                        {
-                                            int l;
-
-                                            this_utf = TRUE;
-                                            l = utf_ptr2len(s);
-                                            if (l == 1)
-                                            {
-                                                this_utf = FALSE;
-                                            }
-                                            s += l - 1;
-                                        }
-                                        ++s;
-                                    }
-
-                                    vc.vc_type = CONV_NONE;
-                                    convert_setup(&vc, (char_u *)(this_utf == TRUE ? "utf-8" : "latin1"), p_enc);
-                                    if (vc.vc_type == CONV_NONE)
-                                    {
-                                        cp = IObuff;
-                                    }
-                                    else
-                                    {
-                                        cp = string_convert(&vc, IObuff, NULL);
-                                        if (cp == NULL)
-                                        {
-                                            cp = IObuff;
-                                        }
-                                    }
-                                    convert_setup(&vc, NULL, NULL);
-
-                                    ml_append(lnum, cp, (colnr_T)0, FALSE);
-                                    if (cp != IObuff)
-                                    {
-                                        vim_free(cp);
-                                    }
-                                    ++lnum;
-                                }
-                                fclose(fd);
-                            }
-                        }
-                        FreeWild(fcount, fnames);
-                    }
-                }
-                if (mustfree)
-                {
-                    vim_free(rt);
-                }
-            }
-            break;
-        }
-    }
 }
 
 // ==================== highlight.c ====================
@@ -82801,337 +82628,29 @@ expand_env(char_u      *src, char_u      *dst, int         dstlen)
 expand_env_esc(char_u      *srcp, char_u      *dst, int         dstlen, char_u      *esc_chars, int         one, char_u      *startstr)
 {
     char_u      *src;
-    char_u      *tail;
-    int         c;
-    char_u      *var;
-    int         copy_char;
-    int         mustfree;
     char_u      *dst_start = dst;
 
+    // $VAR is part of a name, not a place to look one up.  There is no
+    // environment to ask, so what is left of this is the escape handling and
+    // the bound on dstlen: a name reaches its caller as it was written.
     src = skipwhite(srcp);
     --dstlen;
     while (*src && dstlen > 0)
     {
-        copy_char = TRUE;
-        if (*src == '$')
+        if (src[0] == '\\' && src[1] != NUL)
         {
-            mustfree = FALSE;
-
-            tail = src + 1;
-            var = dst;
-            c = dstlen - 1;
-
-            if (*tail == '{' && !vim_isIDc('{'))
-            {
-                tail++;
-                while (c-- > 0 && *tail && *tail != '}')
-                {
-                    *var++ = *tail++;
-                }
-            }
-            else
-            {
-                while (c-- > 0 && *tail != NUL && ((vim_isIDc(*tail))))
-                {
-                    *var++ = *tail++;
-                }
-            }
-
-            if (src[1] == '{' && *tail != '}')
-            {
-                var = NULL;
-            }
-            else
-            {
-                if (src[1] == '{')
-                {
-                    ++tail;
-                }
-                *var = NUL;
-                var = vim_getenv(dst, &mustfree);
-            }
-            if (esc_chars != NULL && var != NULL &&  (char_u *)strpbrk((char *)(var), (char *)(esc_chars))  != NULL)
-            {
-                char_u  *p = vim_strsave_escaped(var, esc_chars);
-
-                if (p != NULL)
-                {
-                    if (mustfree)
-                    {
-                        vim_free(var);
-                    }
-                    var = p;
-                    mustfree = TRUE;
-                }
-            }
-
-            if (var != NULL && *var != NUL)
-            {
-                c = (int) strlen((char *)(var)) ;
-
-                if (c +  strlen((char *)(tail))  + 1 < (unsigned)dstlen)
-                {
-                     strcpy((char *)(dst), (char *)(var)) ;
-                    dstlen -= c;
-                    if (after_pathsep(dst, dst + c) && vim_ispathsep(*tail))
-                    {
-                        ++tail;
-                    }
-                    dst += c;
-                    src = tail;
-                    copy_char = FALSE;
-                }
-            }
-            if (mustfree)
-            {
-                vim_free(var);
-            }
+            *dst++ = *src++;
+            --dstlen;
         }
-
-        if (copy_char)
+        if (dstlen > 0)
         {
-            if (src[0] == '\\' && src[1] != NUL)
-            {
-                *dst++ = *src++;
-                --dstlen;
-            }
-            if (dstlen > 0)
-            {
-                *dst++ = *src++;
-                --dstlen;
-
-            }
+            *dst++ = *src++;
+            --dstlen;
         }
-
     }
     *dst = NUL;
 
     return (size_t)(dst - dst_start);
-}
-
-    static char_u *
-remove_tail(char_u *p, char_u *pend, char_u *name)
-{
-    int         len = (int) strlen((char *)(name))  + 1;
-    char_u      *newend = pend - len;
-
-    if (newend >= p &&  vim_fnamencmp((char_u *)(newend), (char_u *)(name), (len - 1))  == 0 && (newend == p || after_pathsep(p, newend)))
-    {
-        return newend;
-    }
-    return pend;
-}
-
-    static char_u *
-vim_version_dir(char_u *vimdir)
-{
-    string_T    p;
-    size_t      vimdir_len;
-
-    if (vimdir == NULL || *vimdir == NUL)
-    {
-        return NULL;
-    }
-    vimdir_len =  strlen((char *)(vimdir)) ;
-    concat_fnames(vimdir, vimdir_len, (char_u *)VIM_VERSION_NODOT, sizeof(VIM_VERSION_NODOT) - 1, TRUE, &p);
-    if (p.string != NULL && mch_isdir(p.string))
-    {
-        return p.string;
-    }
-    vim_free(p.string);
-    concat_fnames(vimdir, vimdir_len, (char_u *) "runtime" ,  (sizeof( "runtime"  "") - 1) , TRUE, &p);
-    if (p.string != NULL && mch_isdir(p.string))
-    {
-        string_T    fname;
-
-        concat_fnames(p.string, p.length, (char_u *)"defaults.vim",  (sizeof("defaults.vim" "") - 1) , TRUE, &fname);
-
-        if (fname.string != NULL)
-        {
-            int exists = file_is_readable(fname.string);
-
-            vim_free(fname.string);
-            if (exists)
-            {
-                return p.string;
-            }
-        }
-    }
-    vim_free(p.string);
-    return NULL;
-}
-
-    static char_u *
-vim_getenv(char_u *name, int *mustfree)
-{
-    char_u      *p = NULL;
-    char_u      *pend;
-    int         vimruntime;
-    p =  (char_u *)getenv((char *)(name)) ;
-    if (p != NULL && *p == NUL)
-    {
-        p = NULL;
-    }
-
-    if (p != NULL)
-    {
-        return p;
-    }
-
-    vimruntime = FALSE;
-    if (!vimruntime &&  strcmp((char *)(name), (char *)("VIM"))  != 0)
-    {
-        return NULL;
-    }
-
-    if (vimruntime && *default_vimruntime_dir == NUL)
-    {
-        p =  (char_u *)getenv((char *)((char_u *)"VIM")) ;
-        if (p != NULL && *p == NUL)
-        {
-            p = NULL;
-        }
-        if (p != NULL)
-        {
-            p = vim_version_dir(p);
-            if (p != NULL)
-            {
-                *mustfree = TRUE;
-            }
-            else
-            {
-                p =  (char_u *)getenv((char *)((char_u *)"VIM")) ;
-            }
-        }
-    }
-
-    if (p == NULL)
-    {
-        if (p_hf != NULL && vim_strchr(p_hf, '$') == NULL)
-        {
-            p = p_hf;
-        }
-        if (p != NULL)
-        {
-            pend = gettail(p);
-
-            if (p == p_hf)
-            {
-                pend = remove_tail(p, pend, (char_u *)"doc");
-            }
-
-            if (!vimruntime)
-            {
-                pend = remove_tail(p, pend, (char_u *) "runtime" );
-                pend = remove_tail(p, pend, (char_u *)VIM_VERSION_NODOT);
-            }
-
-            if (pend > p && after_pathsep(p, pend))
-            {
-                --pend;
-            }
-
-                p = vim_strnsave(p, pend - p);
-
-            if (p != NULL && !mch_isdir(p))
-            {
-                 vim_free(p);
-                 (p) = NULL;
-            }
-            else
-            {
-                *mustfree = TRUE;
-            }
-        }
-    }
-
-    if (p == NULL)
-    {
-        if (vimruntime && *default_vimruntime_dir != NUL)
-        {
-            p = default_vimruntime_dir;
-            *mustfree = FALSE;
-        }
-        else if (*default_vim_dir != NUL)
-        {
-            if (vimruntime && (p = vim_version_dir(default_vim_dir)) != NULL)
-            {
-                *mustfree = TRUE;
-            }
-            else
-            {
-                p = default_vim_dir;
-                *mustfree = FALSE;
-            }
-        }
-    }
-
-    if (p != NULL)
-    {
-        if (vimruntime)
-        {
-            vim_setenv((char_u *)"VIMRUNTIME", p);
-            didset_vimruntime = TRUE;
-        }
-        else
-        {
-            vim_setenv((char_u *)"VIM", p);
-            didset_vim = TRUE;
-        }
-    }
-    return p;
-}
-
-    static void
-vim_unsetenv(char_u *var)
-{
-    unsetenv((char *)var);
-}
-
-    static void
-vim_unsetenv_ext(char_u *var)
-{
-    vim_unsetenv(var);
-
-    if ( strcasecmp((char *)(var), (char *)("VIM"))  == 0)
-    {
-        didset_vim = FALSE;
-    }
-    else if ( strcasecmp((char *)(var), (char *)("VIMRUNTIME"))  == 0)
-    {
-        didset_vimruntime = FALSE;
-    }
-}
-
-    static void
-vim_setenv(char_u *name, char_u *val)
-{
-     setenv((char *)name, (char *)val, 1) ;
-}
-
-    static char_u *
-get_env_name(expand_T    *xp  __attribute__((unused)) , int         idx)
-{
-    extern char         **environ;
-    char_u              *str;
-    int                 n;
-
-    str = (char_u *)environ[idx];
-    if (str == NULL)
-    {
-        return NULL;
-    }
-
-    for (n = 0; n < EXPAND_BUF_LEN - 1; ++n)
-    {
-        if (str[n] == '=' || str[n] == NUL)
-        {
-            break;
-        }
-        xp->xp_buf[n] = str[n];
-    }
-    xp->xp_buf[n] = NUL;
-    return xp->xp_buf;
 }
 
     static void
@@ -101133,42 +100652,20 @@ static int wc_use_keyname(char_u *varp, long *wcp);
 static void compatible_set(void);
 
     static void
-set_init_default_shell(void)
-{
-    char_u      *p;
-
-    if (((p =  (char_u *)getenv((char *)((char_u *)"SHELL")) ) != NULL && *p != NUL))
-    {
-        set_string_default_esc("sh", p, TRUE);
-    }
-}
-
-    static void
 set_init_default_backupskip(void)
 {
     int         opt_idx;
-    int         i;
     char_u      *p;
     int         plen;
-    static char *(names[4]) = {"", "TMPDIR", "TEMP", "TMP"};
     garray_T    ga;
 
     opt_idx = findoption((char_u *)"backupskip");
 
     ga_init2(&ga, 1, 100);
-    for (i = 0; i < (int) (sizeof(names) / sizeof((names)[0])) ; ++i)
     {
         int             mustfree = FALSE;
-        if (*names[i] == NUL)
-        {
             p = (char_u *)"/tmp";
             plen = (int) (sizeof("/tmp" "") - 1) ;
-        }
-        else
-        {
-            p = vim_getenv((char_u *)names[i], &mustfree);
-            plen = 0;
-        }
         if (p != NULL && *p != NUL)
         {
             char_u  *item;
@@ -101236,60 +100733,6 @@ set_init_default_maxmemtot(void)
 }
 
     static void
-set_init_default_cdpath(void)
-{
-    int         opt_idx;
-    char_u      *cdpath;
-    char_u      *buf;
-    int i;
-    int j;
-    int mustfree = FALSE;
-
-    cdpath = vim_getenv((char_u *)"CDPATH", &mustfree);
-    if (cdpath == NULL)
-    {
-        return;
-    }
-
-    buf = alloc(( strlen((char *)(cdpath))  << 1) + 2);
-    if (buf != NULL)
-    {
-        buf[0] = ',';
-        j = 1;
-        for (i = 0; cdpath[i] != NUL; ++i)
-        {
-            if (vim_ispathlistsep(cdpath[i]))
-            {
-                buf[j++] = ',';
-            }
-            else
-            {
-                if (cdpath[i] == ' ' || cdpath[i] == ',')
-                {
-                    buf[j++] = '\\';
-                }
-                buf[j++] = cdpath[i];
-            }
-        }
-        buf[j] = NUL;
-        opt_idx = findoption((char_u *)"cdpath");
-        if (opt_idx >= 0)
-        {
-            options[opt_idx].def_val[VI_DEFAULT] = buf;
-            options[opt_idx].flags |= P_DEF_ALLOCED;
-        }
-        else
-        {
-            vim_free(buf);
-        }
-    }
-    if (mustfree)
-    {
-        vim_free(cdpath);
-    }
-}
-
-    static void
 set_init_default_printencoding(void)
 {
 }
@@ -101353,16 +100796,8 @@ set_init_1(int clean_arg)
 {
     p_cp = FALSE;
 
-    if ( (char_u *)getenv((char *)((char_u *)"VIM_POSIX"))  != NULL)
-    {
-        set_string_default("cpo", (char_u *) "aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>#{|&/\\.;~" );
-        set_string_default("shm", (char_u *) "AS" );
-    }
-
-    set_init_default_shell();
     set_init_default_backupskip();
     set_init_default_maxmemtot();
-    set_init_default_cdpath();
     set_init_default_printencoding();
 
     set_options_default(0);
@@ -106234,47 +105669,6 @@ shortmess(int x)
 }
 
     static void
-vimrc_found(char_u *fname, char_u *envname)
-{
-    int         opt_idx;
-    int         dofree = FALSE;
-    char_u      *p;
-
-    if (!option_was_set((char_u *)"cp"))
-    {
-        p_cp = FALSE;
-        for (opt_idx = 0; !istermoption_idx(opt_idx); opt_idx++)
-        {
-            if (!(options[opt_idx].flags & (P_WAS_SET|P_VI_DEF)))
-            {
-                set_option_default(opt_idx, OPT_FREE, FALSE);
-            }
-        }
-        didset_options();
-        didset_options2();
-    }
-
-    if (fname != NULL)
-    {
-        p = vim_getenv(envname, &dofree);
-        if (p == NULL)
-        {
-            p = FullName_save(fname, FALSE);
-            if (p != NULL)
-            {
-                vim_setenv(envname, p);
-                vim_free(p);
-            }
-            export_myvimdir();
-        }
-        else if (dofree)
-        {
-            vim_free(p);
-        }
-    }
-}
-
-    static void
 change_compatible(int on)
 {
     int     opt_idx;
@@ -107682,14 +107076,6 @@ expand_set_formatoptions(optexpand_T *args, int *numMatches, char_u ***matches)
     static char *
 did_set_helpfile(optset_T *args  __attribute__((unused)) )
 {
-    if (didset_vim)
-    {
-        vim_unsetenv_ext((char_u *)"VIM");
-    }
-    if (didset_vimruntime)
-    {
-        vim_unsetenv_ext((char_u *)"VIMRUNTIME");
-    }
     return NULL;
 }
 
@@ -108969,11 +108355,6 @@ did_set_string_option(int         opt_idx, char_u      **varp, char_u      *oldv
         }
     }
 
-    if (varp == &p_rtp)
-    {
-        export_myvimdir();
-    }
-
     if (curwin->w_curswant != MAXCOL && (get_option_flags(opt_idx) & (P_CURSWANT | P_RALL)) != 0 && (get_option_flags(opt_idx) & P_HLONLY) == 0)
     {
         curwin->w_set_curswant = true;
@@ -109056,39 +108437,6 @@ restore_shm_value(void)
         set_option_value_give_err((char_u *)"shm", 0L, shm_buf, 0);
          memset((shm_buf), (0), (SHM_LEN)) ;
     }
-}
-
-    static void
-export_myvimdir(void)
-{
-    int         dofree = FALSE;
-    char_u      *p;
-    char_u      *q = p_rtp;
-    string_T    buf;
-
-    buf.string = alloc( PATH_MAX );
-    if (buf.string == NULL)
-    {
-        return;
-    }
-
-    buf.length = (size_t)copy_option_part(&q, buf.string,  PATH_MAX , ",");
-
-    p = vim_getenv((char_u *)"MYVIMDIR", &dofree);
-
-    if (p == NULL ||  strcmp((char *)(p), (char *)(buf.string))  != 0)
-    {
-        if (*buf.string != NUL && !after_pathsep(buf.string, buf.string + buf.length))
-        {
-             strcpy((char *)(buf.string + buf.length), (char *)( "/" )) ;
-        }
-        vim_setenv((char_u *)"MYVIMDIR", buf.string);
-    }
-    if (dofree)
-    {
-        vim_free(p);
-    }
-    vim_free(buf.string);
 }
 
 // ==================== os_unix.c ====================
@@ -110620,8 +109968,6 @@ mch_has_wildcard(char_u *p)
 }
 
 // ==================== pathdef.c ====================
-static char_u *default_vim_dir = (char_u *)"/usr/local/share/vim";
-static char_u *default_vimruntime_dir = (char_u *)"";
 
 // ==================== popupmenu.c ====================
 
@@ -126571,15 +125917,6 @@ do_source_ext(char_u      *fname, int         check_other, int         is_vimrc,
         }
         verbose_leave();
     }
-    if (is_vimrc == DOSO_VIMRC)
-    {
-        vimrc_found(fname_exp, (char_u *)"MYVIMRC");
-    }
-    else if (is_vimrc == DOSO_GVIMRC)
-    {
-        vimrc_found(fname_exp, (char_u *)"MYGVIMRC");
-    }
-
     sticky_cmdmod_flags = 0;
 
     save_current_sctx = current_sctx;
@@ -133189,9 +132526,8 @@ term_ul_color(int n)
     static char_u *
 term_bg_default(void)
 {
-    char_u      *p;
 
-    if ( strcmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("linux"))  == 0 ||  strcmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("screen.linux"))  == 0 ||  strncmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("cygwin"), (6))  == 0 ||  strncmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("putty"), (5))  == 0 || ((p =  (char_u *)getenv((char *)((char_u *)"COLORFGBG")) ) != NULL && (p = vim_strrchr(p, ';')) != NULL && ((p[1] >= '0' && p[1] <= '6') || p[1] == '8') && p[2] == NUL))
+    if ( strcmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("linux"))  == 0 ||  strcmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("screen.linux"))  == 0 ||  strncmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("cygwin"), (6))  == 0 ||  strncmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("putty"), (5))  == 0)
     {
         return (char_u *)"dark";
     }
@@ -138457,23 +137793,9 @@ abort_search:
 
 // ==================== time.c ====================
 
-static char     tz_cache[64];
-
     static struct tm *
 vim_localtime(const time_t        *timep, struct tm           *result  __attribute__((unused)) )
 {
-    char                *tz;
-
-    tz = (char *) (char_u *)getenv((char *)((char_u *)"TZ")) ;
-    if (tz == NULL)
-    {
-        tz = "";
-    }
-    if ( strncmp((char *)(tz_cache), (char *)(tz), (sizeof(tz_cache) - 1))  != 0)
-    {
-        tzset();
-        vim_strncpy((char_u *)tz_cache, (char_u *)tz, sizeof(tz_cache) - 1);
-    }
     return localtime_r(timep, result);
 }
 
@@ -140931,7 +140253,6 @@ static keyvalue_T command_complete_tab[] =
      {(EXPAND_DIFF_BUFFERS), {((char_u *)"diff_buffer"),  (sizeof("diff_buffer" "") - 1) }} ,
      {(EXPAND_DIRECTORIES), {((char_u *)"dir"),  (sizeof("dir" "") - 1) }} ,
      {(EXPAND_DIRS_IN_CDPATH), {((char_u *)"dir_in_path"),  (sizeof("dir_in_path" "") - 1) }} ,
-     {(EXPAND_ENV_VARS), {((char_u *)"environment"),  (sizeof("environment" "") - 1) }} ,
      {(EXPAND_EVENTS), {((char_u *)"event"),  (sizeof("event" "") - 1) }} ,
      {(EXPAND_EXPRESSION), {((char_u *)"expression"),  (sizeof("expression" "") - 1) }} ,
      {(EXPAND_FILES), {((char_u *)"file"),  (sizeof("file" "") - 1) }} ,
