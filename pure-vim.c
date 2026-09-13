@@ -149,8 +149,6 @@ enum { VIM_SIZEOF_INT = 4 };
 
 // ---------------- end config.h ----------------
 
-enum { ROOT_UID = 0 };
-
 // ---------------- begin os_unix.h ----------------
 
 typedef void (*sighandler_T)  (int) ;
@@ -5401,7 +5399,6 @@ static void set_fileformat(int t, int opt_flags);
 static int default_fileformat(void);
 static int get_real_state(void);
 static int after_pathsep(char_u *b, char_u *p);
-static int get_user_name(char_u *buf, int len);
 static int cmp_keyvalue_value_n(const void *a, const void *b);
 static int cmp_keyvalue_value_i(const void *a, const void *b);
 static int cmp_keyvalue_value_ni(const void *a, const void *b);
@@ -15106,7 +15103,7 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
 
     buf->b_saving = true;
 
-    if (forceit && perm >= 0 && !(perm & 0200) && st_old.st_uid == getuid() && vim_strchr(p_cpo, CPO_FWRITE) == NULL)
+    if (forceit && perm >= 0 && !(perm & 0200) && vim_strchr(p_cpo, CPO_FWRITE) == NULL)
     {
         perm |= 0200;
         (void)mch_setperm(fname, perm);
@@ -15221,10 +15218,7 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
                                 made_writable = TRUE;
                             }
                             perm |= 0200;
-                            if (st_old.st_uid != getuid() || st_old.st_gid != getgid())
-                            {
-                                perm &= 0777;
-                            }
+                            perm &= 0777;
                             if (!append)
                             {
                                  unlink((char *)(wfname)) ;
@@ -74219,7 +74213,6 @@ struct data_block
 
 enum { B0_FNAME_SIZE_ORG = 900 };
 enum { B0_FNAME_SIZE_CRYPT = 890 };
-enum { B0_UNAME_SIZE = 40 };
 enum { B0_HNAME_SIZE = 40 };
 enum { B0_MAGIC_LONG = 0x30313233L };
 enum { B0_MAGIC_INT = 0x20212223L };
@@ -74234,7 +74227,6 @@ struct block0
     char_u      b0_mtime[4];
     char_u      b0_ino[4];
     char_u      b0_pid[4];
-    char_u      b0_uname[B0_UNAME_SIZE];
     char_u      b0_hname[B0_HNAME_SIZE];
     char_u      b0_fname[B0_FNAME_SIZE_ORG];
     long        b0_magic_long;
@@ -74330,8 +74322,6 @@ ml_open(buf_T *buf)
         b0p-> b0_fname[B0_FNAME_SIZE_ORG - 1]  = buf->b_changed ? B0_DIRTY : 0;
         b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  = get_fileformat(buf) + 1;
         set_b0_fname(b0p, buf);
-        (void)get_user_name(b0p->b0_uname, B0_UNAME_SIZE);
-        b0p->b0_uname[B0_UNAME_SIZE - 1] = NUL;
         long_to_char(mch_get_pid(), b0p->b0_pid);
     }
 
@@ -74519,23 +74509,12 @@ set_b0_fname(ZERO_BL *b0p, buf_T *buf)
     }
     else
     {
-        size_t  flen;
-        char_u  uname[B0_UNAME_SIZE];
 
-        flen = home_replace(NULL, buf->b_ffname, b0p->b0_fname, B0_FNAME_SIZE_CRYPT, TRUE);
+        (void)home_replace(NULL, buf->b_ffname, b0p->b0_fname, B0_FNAME_SIZE_CRYPT, TRUE);
         if (b0p->b0_fname[0] == '~')
         {
-            size_t  ulen;
 
-            if (get_user_name(uname, B0_UNAME_SIZE) == FAIL || (ulen =  strlen((char *)(uname)) ) + flen > B0_FNAME_SIZE_CRYPT - 1)
-            {
-                vim_strncpy(b0p->b0_fname, buf->b_ffname, B0_FNAME_SIZE_CRYPT - 1);
-            }
-            else
-            {
-                 memmove((char *)(b0p->b0_fname + ulen + 1), (char *)(b0p->b0_fname + 1), flen) ;
-                 memmove((char *)(b0p->b0_fname + 1), (char *)(uname), ulen) ;
-            }
+            vim_strncpy(b0p->b0_fname, buf->b_ffname, B0_FNAME_SIZE_CRYPT - 1);
         }
         if ( stat(((char *)buf->b_ffname), (&st))  >= 0)
         {
@@ -81348,12 +81327,6 @@ after_pathsep(char_u *b, char_u *p)
 {
     return p > b && vim_ispathsep(p[-1])
                              && (!has_mbyte || (*mb_head_off)(b, p - 1) == 0);
-}
-
-    static int
-get_user_name(char_u *buf, int len)
-{
-    return FAIL;
 }
 
     static long
@@ -95692,10 +95665,6 @@ set_option_default(int         opt_idx, int         opt_flags, int         compa
         else
         {
             *(int *)varp = (int)(long)(long_i)options[opt_idx].def_val[dvi];
-            if (options[opt_idx].indir ==   (idopt_T)(PV_BUF + (int)(BV_ML))   && getuid() == ROOT_UID)
-            {
-                *(int *)varp = FALSE;
-            }
             if (both)
             {
                 *(int *)get_varp_scope(&(options[opt_idx]), OPT_GLOBAL) =

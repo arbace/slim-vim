@@ -1687,6 +1687,50 @@ beside what it wrote, which no harness asked for. The phase checks that
 directly — overwrite a file and the directory must hold exactly what it held
 before, with the new contents in it.
 
+## Phase 31 — nobody owns a file
+
+An embedded editor runs where there are no users to tell apart, so asking who
+you are is asking a question with no answer. Four places were still asking.
+
+  * `:w!` on a read-only file makes it writable first, but only **if you own
+    it**: `st_old.st_uid == getuid()`. The ownership test goes and the `chmod`
+    stays. Nothing widens in practice — where the test used to say no, the
+    `chmod` now says no instead, and the same error comes back by a different
+    route.
+  * When a write fails and `!` makes it retry, the mode carried onto the new
+    file is masked to `0777`, dropping setuid, setgid and sticky — but only if
+    you are not the owner. The test goes and **the masking stays**, which is the
+    safe direction: a file this editor writes never carries a setuid bit.
+  * `'modeline'` is forced off when `getuid() == ROOT_UID`, a protection against
+    a modeline running as root. There is no root here and no `+eval` for a
+    modeline to reach.
+  * `get_user_name()` was stubbed to `return FAIL;` in Phase 23, when the
+    password database went, and its two callers were left writing the answer
+    into the swap file's block zero. The second one's `else` — the arm that
+    spliced a user name into the recorded file name — has therefore been dead
+    since Phase 23 and goes now, along with the `b0_uname` field itself. **A
+    struct field is not a variable**: no warning names one that nothing reads,
+    and the sweep cannot see it, so it has to be named here.
+
+### Permissions are not ownership
+
+`chmod` and `fchmod` stay, through `mch_setperm()` and `mch_fsetperm()`. A file
+still has a mode, `:w!` still has to clear the read-only bit to write, and the
+mode of the file that was there is still put back on the file that replaces it.
+Removing those would take `:w!` on a read-only file with them, which is a
+capability and not a concept — so the phase asserts both halves: `getuid` and
+`getgid` gone from `nm -u`, `mch_setperm`/`mch_fsetperm`/`mch_getperm` still
+called, and `:w!` over a `chmod 444` file still writes it. No harness writes to
+a read-only file, which is why that check lives here.
+
+### Where the symbol count moves
+
+**92 → 90**: `getuid`, `getgid`.
+
+### The delta
+
+**None.**
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.
