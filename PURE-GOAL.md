@@ -1624,6 +1624,69 @@ for an option that exists, 1 for one that does not. It is paired with
 `:set ignorecase` as a control, so the check fails if the binary starts exiting
 1 whatever it is asked.
 
+## Phase 30 — a write is a write
+
+Writing a file in vim is not one operation. Before the new contents go anywhere
+the old file may be renamed or copied aside, its permissions, owner, group, ACL
+and timestamps carried over, the write attempted, and the whole thing rolled
+back if it fails — and afterwards the copy is kept, or deleted, or renamed again
+for `'patchmode'`. That is **437 lines of `buf_write()`**, and what `'backup'`,
+`'writebackup'`, `'backupcopy'`, `'backupdir'`, `'backupext'`, `'backupskip'`
+and `'patchmode'` are between them.
+
+An embedded editor writes the file it was asked to write.
+
+**`dobackup` is the hinge.** It is `(p_wb || p_bk || *p_pm != NUL)`, so with the
+options gone it is FALSE, `backup` stays NULL and `backup_copy` stays FALSE —
+and the tests spread through the rest of the function each collapse to the
+branch they were already taking under `:set nobackup nowritebackup`, a
+configuration vim has always supported. One of them is an `if`/`else if` whose
+*else* is the live arm, so the pair collapses to that rather than going;
+`buf_setino()` still has to happen.
+
+Three things fall out that are worth naming separately:
+
+  * **`vim_rename()` has five callers and all five are in here** — make the
+    backup, put it back when the write fails, put it back when it is abandoned,
+    and move it aside for `'patchmode'`. So `vim_copyfile()` goes with it, and
+    that is `readlink`, `symlink` and `rename`.
+  * `set_file_time()` carried the old file's timestamps onto the backup. One
+    caller, and that is `utime`.
+  * `mch_get_acl()`, `mch_set_acl()` and `mch_free_acl()` are **already stubs** —
+    this build has no ACL support, so one returns NULL and the others do nothing
+    with it. They went unnoticed for thirty phases because a stub compiles. The
+    `vim_acl_T` that threaded through `buf_write()` to reach them goes too, and
+    its three forward declarations go *here* rather than in the sweep: the sweep
+    has to compile the file first, and a prototype naming a type this removes is
+    an error, not a warning.
+
+`fchown` and `umask` were not on the list and went anyway — every call to both
+was inside the backup block.
+
+### The same circle, twice more
+
+`'backupcopy'` names `did_set_backupcopy` and `expand_set_backupcopy` in its own
+row, and `'backupext'` and `'patchmode'` share
+`did_set_backupext_or_patchmode`; a row is a root, so the handlers survive the
+sweep, read `p_bkc` and `p_bex`, and `--strict` then refuses to drop the row
+that is the only thing keeping them alive. Phase 29 met this three times. The
+rows are pointed at NULL first.
+
+`didset_string_options()` reads `p_bkc` at startup — the trap Phase 20 records,
+met again — and `set_init_default_backupskip()` looks its row up **by name**,
+the lookup that returns −1 and is not checked.
+
+### Where the symbol count moves
+
+**98 → 92**: `fchown`, `readlink`, `rename`, `symlink`, `umask`, `utime`.
+
+### The delta
+
+**None the harness records.** `:w` writes; it just stops leaving a `~` file
+beside what it wrote, which no harness asked for. The phase checks that
+directly — overwrite a file and the directory must hold exactly what it held
+before, with the new contents in it.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.

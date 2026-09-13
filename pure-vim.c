@@ -1189,8 +1189,6 @@ enum { MAXCOL = 0x7fffffffL };
 
 enum { SHOWCMD_COLS = 10 };
 
-typedef void        *vim_acl_T;
-
 enum { MAX_MCO = 6 };
 
 enum { MB_MAXBYTES = 21 };
@@ -1381,16 +1379,6 @@ static int      p_aw;
 static int      p_awa;
 static char_u   *p_bs;
 static char_u   *p_bg;
-static int      p_bk;
-static char_u   *p_bkc;
-static unsigned bkc_flags;
-enum { BKC_YES = 0x001 };
-enum { BKC_AUTO = 0x002 };
-enum { BKC_NO = 0x004 };
-enum { BKC_BREAKSYMLINK = 0x008 };
-enum { BKC_BREAKHARDLINK = 0x010 };
-static char_u   *p_bdir;
-static char_u   *p_bex;
 static char_u   *p_bo;
 static unsigned bo_flags;
 
@@ -1411,7 +1399,6 @@ enum { BO_REG = 0x8000 };
 enum { BO_SH = 0x10000 };
 enum { BO_WILD = 0x80000 };
 
-static char_u   *p_bsk;
 static char_u   *p_bh;
 static char_u   *p_bt;
 static char_u   *p_cmp;
@@ -1542,7 +1529,6 @@ static char_u   *p_opfunc;
 static char_u   *p_para;
 static int      p_paste;
 static char_u   *p_pt;
-static char_u   *p_pm;
 static char_u   *p_cdpath;
 static int      p_pi;
 static char_u   *p_qe;
@@ -1654,7 +1640,6 @@ static long     p_wm;
 static int      p_ws;
 static int      p_write;
 static int      p_wa;
-static int      p_wb;
 static long     p_wd;
 static int      p_xtermcodes;
 
@@ -3101,7 +3086,6 @@ struct file_buffer
     int         b_p_ac;
     int         b_p_ai;
     int         b_p_ai_nopaste;
-    char_u      *b_p_bkc;
     unsigned    b_bkc_flags;
     int         b_p_ci;
     int         b_p_bin;
@@ -4690,16 +4674,12 @@ static int mch_isFullName(char_u *fname);
 static long mch_getperm(char_u *name);
 static int mch_setperm(char_u *name, long perm);
 static int mch_fsetperm(int fd, long perm);
-static vim_acl_T mch_get_acl(char_u *fname);
-static void mch_set_acl(char_u *fname, vim_acl_T aclent);
-static void mch_free_acl(vim_acl_T aclent);
 static int mch_isdir(char_u *name);
 static int mch_nodetype(char_u *name);
 static void mch_exit(int r);
 static int get_tty_info(int fd, ttyinfo_T *info);
 static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
 static int mch_has_wildcard(char_u *p);
-int  rename(const char *src, const char *dest) ;
 
 // ---------------- end os_unix.pro ----------------
 
@@ -5003,10 +4983,6 @@ static int get_fio_flags(char_u *ptr);
 static char_u *shorten_fname1(char_u *full_path);
 static char_u *shorten_fname(char_u *full_path, char_u *dir_name);
 static void shorten_fnames(int force);
-static char_u *modname(char_u *fname, char_u *ext, int prepend_dot);
-static char_u *buf_modname(int shortname, char_u *fname, char_u *ext, int prepend_dot);
-static int vim_rename(char_u *from, char_u *to);
-static int vim_copyfile(char_u *from, char_u *to);
 static int check_timestamps(int focus);
 static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
 static int match_file_pat(char_u *pattern, regprog_T **prog, char_u *fname, char_u *sfname, char_u *tail, int allow_dirs);
@@ -5266,7 +5242,6 @@ static void ml_open_file(buf_T *buf);
 static void check_need_swap(int newfile);
 static void ml_close(buf_T *buf, int del_file);
 static void ml_timestamp(buf_T *buf);
-static char_u *make_percent_swname(char_u *dir, char_u *dir_end, char_u *name);
 static void ml_sync_all(int check_file, int check_char);
 static void ml_preserve(buf_T *buf, int message);
 static char_u *ml_get(linenr_T lnum);
@@ -5288,7 +5263,6 @@ static int ml_delete_flags(linenr_T lnum, int flags);
 static void ml_setmarked(linenr_T lnum);
 static linenr_T ml_firstmarked(void);
 static void ml_clearmarked(void);
-static char_u *get_file_in_dir(char_u *fname, char_u *dname);
 static void ml_setflags(buf_T *buf);
 
 // ---------------- end memline.pro ----------------
@@ -5661,7 +5635,6 @@ static int can_bs(int what);
 static long get_scrolloff_value(void);
 static long get_scrolloffpad_value(void);
 static long get_sidescrolloff_value(void);
-static unsigned int get_bkc_flags(buf_T *buf);
 static unsigned int get_ve_flags(void);
 static int magic_isset(void);
 static int option_set_callback_func(char_u *optval, callback_T *optcb);
@@ -5682,9 +5655,6 @@ static char *did_set_background(optset_T *args);
 static int expand_set_background(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_backspace(optset_T *args);
 static int expand_set_backspace(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_backupcopy(optset_T *args);
-static int expand_set_backupcopy(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_backupext_or_patchmode(optset_T *args);
 static char *did_set_belloff(optset_T *args);
 static int expand_set_belloff(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_bufhidden(optset_T *args);
@@ -6830,12 +6800,6 @@ static char e_readpre_autocommands_made_file_unreadable[]  =  "E200: *ReadPre au
 static char e_readpre_autocommands_must_not_change_current_buffer[]  =  "E201: *ReadPre autocommands must not change current buffer"  ;
 static char e_autocommands_deleted_or_unloaded_buffer_to_be_written[]  =  "E203: Autocommands deleted or unloaded buffer to be written"  ;
 static char e_autocommands_changed_number_of_lines_in_unexpected_way[]  =  "E204: Autocommand changed number of lines in unexpected way"  ;
-static char e_patchmode_cant_save_original_file[]  =  "E205: Patchmode: can't save original file"  ;
-static char e_patchmode_cant_touch_empty_original_file[]  =  "E206: Patchmode: can't touch empty original file"  ;
-static char e_cant_delete_backup_file[]  =  "E207: Can't delete backup file"  ;
-static char e_error_writing_to_str[]  =  "E208: Error writing to \"%s\""  ;
-static char e_error_closing_str[]  =  "E209: Error closing \"%s\""  ;
-static char e_error_reading_str[]  =  "E210: Error reading \"%s\""  ;
 static char e_cant_open_file_for_writing[]  =  "E212: Can't open file for writing"  ;
 static char e_cannot_convert_add_bang_to_write_without_conversion[]  =  "E213: Cannot convert (add ! to write without conversion)"  ;
 static char e_illegal_character_after_star_str[]  =  "E215: Illegal character after *: %s"  ;
@@ -6955,11 +6919,6 @@ static char e_str_is_not_file_or_writable_device[]  =  "E503: \"%s\" is not a fi
 static char e_is_read_only_cannot_override_W_in_cpoptions[]  =  "is read-only (cannot override: \"W\" in 'cpoptions')"  ;
 static char e_is_read_only_add_bang_to_override[]  =  "is read-only (add ! to override)"  ;
 static char e_str_is_read_only_add_bang_to_override[]  =  "E505: \"%s\" is read-only (add ! to override)"  ;
-static char e_cant_write_to_backup_file_add_bang_to_override[]  =  "E506: Can't write to backup file (add ! to override)"  ;
-static char e_close_error_for_backup_file_add_bang_to_write_anyway[]  =  "E507: Close error for backup file (add ! to write anyway)"  ;
-static char e_cant_read_file_for_backup_add_bang_to_write_anyway[]  =  "E508: Can't read file for backup (add ! to write anyway)"  ;
-static char e_cannot_create_backup_file_add_bang_to_write_anyway[]  =  "E509: Cannot create backup file (add ! to override)"  ;
-static char e_cant_make_backup_file_add_bang_to_write_anyway[]  =  "E510: Can't make backup file (add ! to write anyway)"  ;
 static char e_close_failed[]  =  "E512: Close failed"  ;
 static char e_write_error_conversion_failed_make_fenc_empty_to_override[]  =  "E513: Write error, conversion failed (make 'fenc' empty to override)"  ;
 static char e_write_error_conversion_failed_in_line_nr_make_fenc_empty_to_override[]  =  "E513: Write error, conversion failed in line %ld (make 'fenc' empty to override)"  ;
@@ -6983,7 +6942,6 @@ static char e_pattern_found_in_every_line_str[]  =  "E538: Pattern found in ever
 static char e_illegal_character_str[]  =  "E539: Illegal character <%s>"  ;
 static char e_syntax_error_in_str_curlies[]  =  "E554: Syntax error in %s{...}"  ;
 static char e_not_allowed_to_change_text_or_change_window[]  =  "E565: Not allowed to change text or change window"  ;
-static char e_backupext_and_patchmode_are_equal[]  =  "E589: 'backupext' and 'patchmode' are equal"  ;
 static char e_winheight_cannot_be_smaller_than_winminheight[]  =  "E591: 'winheight' cannot be smaller than 'winminheight'"  ;
 static char e_winwidth_cannot_be_smaller_than_winminwidth[]  =  "E592: 'winwidth' cannot be smaller than 'winminwidth'"  ;
 static char e_need_at_least_nr_lines[]  =  "E593: Need at least %d lines"  ;
@@ -12658,7 +12616,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     buf->b_p_fs = -1;
     buf->b_p_ul =  (-123456) ;
     clear_string_option(&buf->b_p_lw);
-    clear_string_option(&buf->b_p_bkc);
     clear_string_option(&buf->b_p_menc);
 }
 
@@ -14746,16 +14703,6 @@ check_mtime(buf_T *buf, stat_T *st)
     return OK;
 }
 
-    static void
-set_file_time(char_u  *fname, time_t  atime, time_t  mtime)
-{
-    struct utimbuf  buf;
-
-    buf.actime  = atime;
-    buf.modtime = mtime;
-    (void)utime((char *)fname, &buf);
-}
-
     static char *
 new_file_message(void)
 {
@@ -14766,9 +14713,6 @@ new_file_message(void)
 buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname, linenr_T        start, linenr_T        end, exarg_T         *eap, int             append, int             forceit, int             reset_changed, int             filtering)
 {
     int             fd;
-    char_u          *backup = NULL;
-    int             backup_copy = FALSE;
-    int             dobackup;
     char_u          *ffname;
     char_u          *wfname = NULL;
     char_u          *s;
@@ -14782,7 +14726,6 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
     char_u          *errnum = NULL;
     char_u          *buffer;
     char_u          smallbuf[SMALLBUFSIZE];
-    char_u          *backup_ext;
     int             bufsize;
     long            perm;
     int             retval = OK;
@@ -14807,8 +14750,6 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
     char_u          *fenc;
     char_u          *fenc_tofree = NULL;
     int             wb_flags = 0;
-    vim_acl_T       acl = NULL;
-    unsigned int    bkc = get_bkc_flags(buf);
     pos_T           orig_start = buf->b_op_start;
     pos_T           orig_end = buf->b_op_end;
 
@@ -15158,353 +15099,12 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
 
     if (!newfile)
     {
-        acl = mch_get_acl(fname);
-    }
-
-    dobackup = (p_wb || p_bk || *p_pm != NUL);
-    if (dobackup && *p_bsk != NUL && match_file_list(p_bsk, sfname, ffname))
-    {
-        dobackup = FALSE;
-    }
 
     prev_got_int = got_int;
+    }
     got_int = FALSE;
 
     buf->b_saving = true;
-
-    if (!(append && *p_pm == NUL) && !filtering && perm >= 0 && dobackup)
-    {
-        stat_T      st;
-
-        if ((bkc & BKC_YES) || append)
-        {
-            backup_copy = TRUE;
-        }
-        else if ((bkc & BKC_AUTO))
-        {
-            if (st_old.st_nlink > 1 ||  lstat(((char *)fname), (&st))  < 0 || st.st_dev != st_old.st_dev || st.st_ino != st_old.st_ino)
-            {
-                backup_copy = TRUE;
-            }
-            else
-            {
-                size_t  dirlen;
-                char_u  tmp_fname[ PATH_MAX ];
-                int     i;
-
-                dirlen = (size_t)(gettail(fname) - fname);
-                vim_strncpy(tmp_fname, fname, dirlen);
-                fd = -1;
-                for (i = 4913; ; i += 123)
-                {
-                    vim_snprintf((char *)tmp_fname + dirlen, sizeof(tmp_fname) - dirlen, "%d", i);
-                    if ( lstat(((char *)tmp_fname), (&st))  < 0)
-                    {
-                        fd =  open(((char *)tmp_fname), (O_CREAT|O_WRONLY|O_EXCL|O_NOFOLLOW), (perm)) ;
-                        if (fd < 0 && errno == EEXIST)
-                        {
-                            continue;
-                        }
-                        break;
-                    }
-                }
-                if (fd < 0)
-                {
-                    backup_copy = TRUE;
-                }
-                else
-                {
-                    vim_ignored = fchown(fd, st_old.st_uid, st_old.st_gid);
-                    (void)mch_fsetperm(fd, perm);
-                    if ( stat(((char *)tmp_fname), (&st))  < 0 || st.st_uid != st_old.st_uid || st.st_gid != st_old.st_gid || (long)st.st_mode != perm)
-                    {
-                        backup_copy = TRUE;
-                    }
-                    close(fd);
-                     unlink((char *)(tmp_fname)) ;
-                }
-            }
-        }
-
-        if ((bkc & BKC_BREAKSYMLINK) || (bkc & BKC_BREAKHARDLINK))
-        {
-            int lstat_res;
-
-            lstat_res =  lstat(((char *)fname), (&st)) ;
-
-            if ((bkc & BKC_BREAKSYMLINK) && lstat_res == 0 && st.st_ino != st_old.st_ino)
-            {
-                backup_copy = FALSE;
-            }
-
-            if ((bkc & BKC_BREAKHARDLINK) && st_old.st_nlink > 1 && (lstat_res != 0 || st.st_ino == st_old.st_ino))
-            {
-                backup_copy = FALSE;
-            }
-        }
-
-        if (*p_bex == NUL)
-        {
-            backup_ext = (char_u *)".bak";
-        }
-        else
-        {
-            backup_ext = p_bex;
-        }
-
-        if (backup_copy && (fd =  open(((char *)fname), (O_RDONLY | O_EXTRA), (0)) ) >= 0)
-        {
-            int         bfd;
-            char_u      *copybuf;
-            int         some_error = FALSE;
-            stat_T      st_new;
-            char_u      *dirp;
-            char_u      *rootname;
-            int         did_set_shortname;
-            mode_t      umask_save;
-
-            copybuf = alloc(WRITEBUFSIZE + 1);
-            if (copybuf == NULL)
-            {
-                some_error = TRUE;
-                goto nobackup;
-            }
-
-            dirp = p_bdir;
-            while (*dirp)
-            {
-                char_u  *p  __attribute__((unused)) ;
-                int     copybuf_len  __attribute__((unused)) ;
-
-                st_new.st_ino = 0;
-                st_new.st_dev = 0;
-                st_new.st_gid = 0;
-
-                copybuf_len = copy_option_part(&dirp, copybuf, WRITEBUFSIZE, ",");
-
-                p = copybuf + copybuf_len;
-                if (after_pathsep(copybuf, p) && p[-1] == p[-2])
-                {
-                    if ((p = make_percent_swname(copybuf, p, fname)) != NULL)
-                    {
-                        backup = modname(p, backup_ext, FALSE);
-                        vim_free(p);
-                    }
-                }
-                rootname = get_file_in_dir(fname, copybuf);
-                if (rootname == NULL)
-                {
-                    some_error = TRUE;
-                    goto nobackup;
-                }
-
-                did_set_shortname = FALSE;
-
-                for (;;)
-                {
-                    if (backup == NULL)
-                    {
-                        backup = buf_modname((buf->b_p_sn || buf->b_shortname), rootname, backup_ext, FALSE);
-                    }
-                    if (backup == NULL)
-                    {
-                        vim_free(rootname);
-                        some_error = TRUE;
-                        goto nobackup;
-                    }
-
-                    if ( stat(((char *)backup), (&st_new))  >= 0)
-                    {
-                        if (st_new.st_dev == st_old.st_dev && st_new.st_ino == st_old.st_ino)
-                        {
-                             vim_free(backup);
-                             (backup) = NULL;
-                            if (!(buf->b_shortname || buf->b_p_sn))
-                            {
-                                buf->b_shortname = true;
-                                did_set_shortname = TRUE;
-                                continue;
-                            }
-                            if (did_set_shortname)
-                            {
-                                buf->b_shortname = false;
-                            }
-                            break;
-                        }
-
-                        if (!p_bk)
-                        {
-                            char_u      *wp;
-
-                            wp = backup +  strlen((char *)(backup))  - 1
-                                                         -  strlen((char *)(backup_ext)) ;
-                            if (wp < backup)
-                            {
-                                wp = backup;
-                            }
-                            *wp = 'z';
-                            while (*wp > 'a' &&  stat(((char *)backup), (&st_new))  >= 0)
-                            {
-                                --*wp;
-                            }
-                            if (*wp == 'a')
-                            {
-                                 vim_free(backup);
-                                 (backup) = NULL;
-                            }
-                        }
-                    }
-                    break;
-                }
-                vim_free(rootname);
-
-                if (backup != NULL)
-                {
-                     unlink((char *)(backup)) ;
-                    umask_save = umask(0);
-                    bfd =  open(((char *)backup), (O_WRONLY|O_CREAT|O_EXTRA|O_EXCL|O_NOFOLLOW), (perm & 0777)) ;
-                    (void)umask(umask_save);
-                    if (bfd < 0)
-                    {
-                         vim_free(backup);
-                         (backup) = NULL;
-                    }
-                    else
-                    {
-                        if (st_new.st_gid != st_old.st_gid && fchown(bfd, (uid_t)-1, st_old.st_gid) != 0)
-                        {
-                            mch_setperm(backup, (perm & 0707) | ((perm & 07) << 3));
-                        }
-
-                        write_info.bw_fd = bfd;
-                        write_info.bw_buf = copybuf;
-                        write_info.bw_flags = FIO_NOCONVERT;
-                        while ((write_info.bw_len = read_eintr(fd, copybuf, WRITEBUFSIZE)) > 0)
-                        {
-                            if (buf_write_bytes(&write_info) == FAIL)
-                            {
-                                errmsg = (char_u *)_(e_cant_write_to_backup_file_add_bang_to_override);
-                                break;
-                            }
-                            ui_breakcheck();
-                            if (got_int)
-                            {
-                                errmsg = (char_u *)_(e_interrupted);
-                                break;
-                            }
-                        }
-
-                        if (close(bfd) < 0 && errmsg == NULL)
-                        {
-                            errmsg = (char_u *)_(e_close_error_for_backup_file_add_bang_to_write_anyway);
-                        }
-                        if (write_info.bw_len < 0)
-                        {
-                            errmsg = (char_u *)_(e_cant_read_file_for_backup_add_bang_to_write_anyway);
-                        }
-                        set_file_time(backup, st_old.st_atime, st_old.st_mtime);
-                        mch_set_acl(backup, acl);
-                        break;
-                    }
-                }
-            }
-    nobackup:
-            close(fd);
-            vim_free(copybuf);
-
-            if (backup == NULL && errmsg == NULL)
-            {
-                errmsg = (char_u *)_(e_cannot_create_backup_file_add_bang_to_write_anyway);
-            }
-            if ((some_error || errmsg != NULL) && !forceit)
-            {
-                retval = FAIL;
-                goto fail;
-            }
-            errmsg = NULL;
-        }
-        else
-        {
-            char_u      *dirp;
-            char_u      *p;
-            char_u      *rootname;
-
-            if (file_readonly && vim_strchr(p_cpo, CPO_FWRITE) != NULL)
-            {
-                errnum = (char_u *)"E504: ";
-                errmsg = (char_u *)_(e_is_read_only_cannot_override_W_in_cpoptions);
-                goto fail;
-            }
-
-            dirp = p_bdir;
-            while (*dirp)
-            {
-                int IObufflen  __attribute__((unused)) ;
-
-                IObufflen = copy_option_part(&dirp, IObuff,  (1024+1) , ",");
-
-                p = IObuff + IObufflen;
-                if (after_pathsep(IObuff, p) && p[-1] == p[-2])
-                {
-                    if ((p = make_percent_swname(IObuff, p, fname)) != NULL)
-                    {
-                        backup = modname(p, backup_ext, FALSE);
-                        vim_free(p);
-                    }
-                }
-                if (backup == NULL)
-                {
-                    rootname = get_file_in_dir(fname, IObuff);
-                    if (rootname == NULL)
-                    {
-                        backup = NULL;
-                    }
-                    else
-                    {
-                        backup = buf_modname((buf->b_p_sn || buf->b_shortname), rootname, backup_ext, FALSE);
-                        vim_free(rootname);
-                    }
-                }
-
-                if (backup != NULL)
-                {
-                    if (!p_bk && mch_getperm(backup) >= 0)
-                    {
-                        p = backup +  strlen((char *)(backup))  - 1 -  strlen((char *)(backup_ext)) ;
-                        if (p < backup)
-                        {
-                            p = backup;
-                        }
-                        *p = 'z';
-                        while (*p > 'a' && mch_getperm(backup) >= 0)
-                        {
-                            --*p;
-                        }
-                        if (*p == 'a')
-                        {
-                             vim_free(backup);
-                             (backup) = NULL;
-                        }
-                    }
-                }
-                if (backup != NULL)
-                {
-                    if (vim_rename(fname, backup) == 0)
-                    {
-                        break;
-                    }
-
-                     vim_free(backup);
-                     (backup) = NULL;
-                }
-            }
-            if (backup == NULL && !forceit)
-            {
-                errmsg = (char_u *)_(e_cant_make_backup_file_add_bang_to_write_anyway);
-                goto fail;
-            }
-        }
-    }
 
     if (forceit && perm >= 0 && !(perm & 0200) && st_old.st_uid == getuid() && vim_strchr(p_cpo, CPO_FWRITE) == NULL)
     {
@@ -15529,7 +15129,7 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
         start = end + 1;
     }
 
-    if (reset_changed && !newfile && overwriting && !(exiting && backup != NULL))
+    if (reset_changed && !newfile && overwriting)
     {
         ml_preserve(buf, FALSE);
         if (got_int)
@@ -15588,7 +15188,7 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
 
     for (checking_conversion = TRUE; ; checking_conversion = FALSE)
     {
-        if (!converted || dobackup)
+        if (!converted)
         {
             checking_conversion = FALSE;
         }
@@ -15638,25 +15238,6 @@ restore_backup:
                 {
                     stat_T      st;
 
-                    if (backup != NULL && wfname == fname)
-                    {
-                        if (backup_copy)
-                        {
-                            if ( stat(((char *)fname), (&st))  < 0)
-                            {
-                                vim_rename(backup, fname);
-                            }
-                            if ( stat(((char *)fname), (&st))  >= 0)
-                            {
-                                 unlink((char *)(backup)) ;
-                            }
-                        }
-                        else
-                        {
-                            vim_rename(backup, fname);
-                        }
-                    }
-
                     if (!newfile &&  stat(((char *)fname), (&st))  < 0)
                     {
                         end = 0;
@@ -15674,7 +15255,7 @@ restore_backup:
             {
                 stat_T  st;
 
-                if (overwriting && (!dobackup || backup_copy) && fname == wfname && perm >= 0 &&  fstat((fd), (&st))  == 0 && st.st_ino != st_old.st_ino)
+                if (overwriting && fname == wfname && perm >= 0 &&  fstat((fd), (&st))  == 0 && st.st_ino != st_old.st_ino)
                 {
                     close(fd);
                     errmsg = (char_u *)_(e_file_changed_while_writing);
@@ -15819,21 +15400,6 @@ restore_backup:
             end = 0;
         }
 
-        if (backup != NULL && !backup_copy)
-        {
-            stat_T      st;
-
-            if ( stat(((char *)wfname), (&st))  < 0 || st.st_uid != st_old.st_uid || st.st_gid != st_old.st_gid)
-            {
-                vim_ignored = fchown(fd, st_old.st_uid, -1);
-                if (fchown(fd, -1, st_old.st_gid) == -1 && perm > 0)
-                {
-                    perm &= ~070;
-                }
-            }
-            buf_setino(buf);
-        }
-        else if (!buf->b_dev_valid)
         {
             buf_setino(buf);
         }
@@ -15850,11 +15416,6 @@ restore_backup:
         {
             errmsg = (char_u *)_(e_close_failed);
             end = 0;
-        }
-
-        if (!backup_copy)
-        {
-            mch_set_acl(wfname, acl);
         }
 
     }
@@ -15890,45 +15451,6 @@ restore_backup:
             }
         }
 
-        if (backup != NULL)
-        {
-            if (backup_copy)
-            {
-                if (got_int)
-                {
-                    msg(_(e_interrupted));
-                    out_flush();
-                }
-                if ((fd =  open(((char *)backup), (O_RDONLY | O_EXTRA), (0)) ) >= 0)
-                {
-                    if ((write_info.bw_fd =  open(((char *)fname), (O_WRONLY | O_CREAT | O_TRUNC | O_EXTRA), (perm & 0777)) ) >= 0)
-                    {
-                        write_info.bw_buf = smallbuf;
-                        write_info.bw_flags = FIO_NOCONVERT;
-                        while ((write_info.bw_len = read_eintr(fd, smallbuf, SMALLBUFSIZE)) > 0)
-                        {
-                            if (buf_write_bytes(&write_info) == FAIL)
-                            {
-                                break;
-                            }
-                        }
-
-                        if (close(write_info.bw_fd) >= 0 && write_info.bw_len == 0)
-                        {
-                            end = 1;
-                        }
-                    }
-                    close(fd);
-                }
-            }
-            else
-            {
-                if (vim_rename(backup, fname) == 0)
-                {
-                    end = 1;
-                }
-            }
-        }
         goto fail;
     }
 
@@ -16017,51 +15539,6 @@ restore_backup:
         }
     }
 
-    if (*p_pm && dobackup)
-    {
-        char *org = (char *)buf_modname((buf->b_p_sn || buf->b_shortname), fname, p_pm, FALSE);
-
-        if (backup != NULL)
-        {
-            stat_T      st;
-
-            if (org == NULL)
-            {
-                emsg(_(e_patchmode_cant_save_original_file));
-            }
-            else if ( stat((org), (&st))  < 0)
-            {
-                vim_rename(backup, (char_u *)org);
-                 vim_free(backup);
-                 (backup) = NULL;
-                set_file_time((char_u *)org, st_old.st_atime, st_old.st_mtime);
-            }
-        }
-        else
-        {
-            int empty_fd;
-
-            if (org == NULL || (empty_fd =  open((org), (O_CREAT | O_EXTRA | O_EXCL | O_NOFOLLOW), (perm < 0 ? 0666 : (perm & 0777))) ) < 0)
-            {
-              emsg(_(e_patchmode_cant_touch_empty_original_file));
-            }
-            else
-            {
-              close(empty_fd);
-            }
-        }
-        if (org != NULL)
-        {
-            mch_setperm((char_u *)org, mch_getperm(fname) & 0777);
-            vim_free(org);
-        }
-    }
-
-    if (!p_bk && backup != NULL && !write_info.bw_conv_error &&  unlink((char *)(backup))  != 0)
-    {
-        emsg(_(e_cant_delete_backup_file));
-    }
-
     goto nofail;
 
 fail:
@@ -16070,14 +15547,12 @@ nofail:
 
     buf->b_saving = false;
 
-    vim_free(backup);
     if (buffer != smallbuf)
     {
         vim_free(buffer);
     }
     vim_free(fenc_tofree);
     vim_free(write_info.bw_conv_buf);
-    mch_free_acl(acl);
 
     if (errmsg != NULL)
     {
@@ -50959,132 +50434,6 @@ shorten_fnames(int force)
     redraw_tabline = TRUE;
 }
 
-    static char_u *
-modname(char_u *fname, char_u *ext, int     prepend_dot)
-{
-    return buf_modname((curbuf->b_p_sn || curbuf->b_shortname), fname, ext, prepend_dot);
-}
-
-    static char_u *
-buf_modname(int     shortname, char_u  *fname, char_u  *ext, int     prepend_dot)
-{
-    char_u      *retval;
-    char_u      *s;
-    char_u      *e;
-    char_u      *ptr;
-    size_t      ptrlen;
-    int fnamelen;
-    int extlen;
-
-    extlen = (int) strlen((char *)(ext)) ;
-
-    if (fname == NULL || *fname == NUL)
-    {
-        retval = alloc( PATH_MAX  + extlen + 3);
-        if (retval == NULL)
-        {
-            return NULL;
-        }
-        if (mch_dirname(retval,  PATH_MAX ) == FAIL || (fnamelen = (int) strlen((char *)(retval)) ) == 0)
-        {
-            vim_free(retval);
-            return NULL;
-        }
-        if (!after_pathsep(retval, retval + fnamelen))
-        {
-            retval[fnamelen++] =  ((char_u)'/') ;
-            retval[fnamelen] = NUL;
-        }
-        prepend_dot = FALSE;
-    }
-    else
-    {
-        fnamelen = (int) strlen((char *)(fname)) ;
-        retval = alloc(fnamelen + extlen + 3);
-        if (retval == NULL)
-        {
-            return NULL;
-        }
-         strcpy((char *)(retval), (char *)(fname)) ;
-    }
-
-    for (ptr = retval + fnamelen; ptr > retval;  ptr -= has_mbyte ? ((*mb_head_off)(retval, (ptr) - 1) + 1) : 1 )
-    {
-        if (*ext == '.' && shortname)
-        {
-            if (*ptr == '.')
-            {
-                *ptr = '_';
-            }
-        }
-        if (vim_ispathsep(*ptr))
-        {
-            ++ptr;
-            break;
-        }
-    }
-
-    ptrlen = (size_t)(fnamelen - (ptr - retval));
-    if (ptrlen > (unsigned) (MAXNAMLEN - 5) )
-    {
-        ptrlen =  (MAXNAMLEN - 5) ;
-        ptr[ptrlen] = NUL;
-    }
-
-    s = ptr + ptrlen;
-
-    if (shortname)
-    {
-        if (fname == NULL || *fname == NUL || vim_ispathsep(fname[ strlen((char *)(fname))  - 1]))
-        {
-            if (*ext == '.')
-            {
-                *s++ = '_';
-            }
-        }
-        else if (*ext == '.')
-        {
-            if ((size_t)(s - ptr) > (size_t)8)
-            {
-                s = ptr + 8;
-                *s = '\0';
-            }
-        }
-        else if ((e = vim_strchr(ptr, '.')) == NULL)
-        {
-            *s++ = '.';
-        }
-        else if ((int)(ptrlen - (e - retval)) + extlen > 4)
-        {
-            s = e + 4 - extlen;
-        }
-    }
-
-     strcpy((char *)(s), (char *)(ext)) ;
-    if (prepend_dot && !shortname && *(e = gettail(retval)) != '.')
-    {
-         memmove((char *)(e + 1), (char *)(e), (size_t)(((fnamelen + extlen) - (e - retval)) + 1)) ;
-        *e = '.';
-    }
-
-    if (fname != NULL &&  strcmp((char *)(fname), (char *)(retval))  == 0)
-    {
-        while (--s >= ptr)
-        {
-            if (*s != '_')
-            {
-                *s = '_';
-                break;
-            }
-        }
-        if (s < ptr)
-        {
-            *ptr = 'v';
-        }
-    }
-    return retval;
-}
-
     static int
 vim_fgets(char_u *buf, int size, FILE *fp)
 {
@@ -51113,178 +50462,6 @@ vim_fgets(char_u *buf, int size, FILE *fp)
         } while (tbuf[FGETS_SIZE - 2] != NUL && tbuf[FGETS_SIZE - 2] != '\n');
     }
     return (eof == NULL);
-}
-
-    static int
-vim_rename(char_u *from, char_u *to)
-{
-    int         n;
-    int         ret;
-    stat_T      st;
-    int         use_tmp_file = FALSE;
-
-    if ( vim_fnamecmp((char_u *)(from), (char_u *)(to))  == 0)
-    {
-        if (p_fic &&  strcmp((char *)(gettail(from)), (char *)(gettail(to)))  != 0)
-        {
-            use_tmp_file = TRUE;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-
-    if ( stat(((char *)from), (&st))  < 0)
-    {
-        return -1;
-    }
-
-    {
-        stat_T  st_to;
-
-        if ( stat(((char *)to), (&st_to))  >= 0 && st.st_dev == st_to.st_dev && st.st_ino == st_to.st_ino)
-        {
-            use_tmp_file = TRUE;
-        }
-    }
-
-    if (use_tmp_file)
-    {
-        char    tempname[ PATH_MAX  + 1];
-
-        if ( strlen((char *)(from))  >=  PATH_MAX  - 5)
-        {
-            return -1;
-        }
-         strcpy((char *)(tempname), (char *)(from)) ;
-        for (n = 123; n < 99999; ++n)
-        {
-            sprintf((char *)gettail((char_u *)tempname), "%d", n);
-            if ( stat((tempname), (&st))  < 0)
-            {
-                if ( rename((char *)from, tempname)  == 0)
-                {
-                    if ( rename(tempname, (char *)to)  == 0)
-                    {
-                        return 0;
-                    }
-                    (void) rename(tempname, (char *)from) ;
-                    return -1;
-                }
-                return -1;
-            }
-        }
-        return -1;
-    }
-
-     unlink((char *)(to)) ;
-
-    if ( rename((char *)from, (char *)to)  == 0)
-    {
-        return 0;
-    }
-
-    ret = vim_copyfile(from, to);
-    if (ret != OK)
-    {
-        return -1;
-    }
-
-    if ( stat(((char *)from), (&st))  >= 0)
-    {
-         unlink((char *)(from)) ;
-    }
-
-    return 0;
-}
-
-    static int
-vim_copyfile(char_u *from, char_u *to)
-{
-    int         fd_in;
-    int         fd_out;
-    int         n;
-    char        *errmsg = NULL;
-    char        *buffer;
-    long        perm;
-    vim_acl_T   acl;
-
-    int         ret;
-    int         len;
-    stat_T      st;
-    char        linkbuf[ PATH_MAX  + 1];
-
-    ret =  lstat(((char *)from), (&st)) ;
-    if (ret >= 0 && S_ISLNK(st.st_mode))
-    {
-        ret = -1;
-
-        len = readlink((char *)from, linkbuf,  PATH_MAX );
-        if (len > 0)
-        {
-            linkbuf[len] = NUL;
-
-            ret = symlink(linkbuf, (char *)to);
-        }
-
-        return ret == 0 ? OK : FAIL;
-    }
-
-    perm = mch_getperm(from);
-    acl = mch_get_acl(from);
-    fd_in =  open(((char *)from), (O_RDONLY|O_EXTRA), (0)) ;
-    if (fd_in == -1)
-    {
-        mch_free_acl(acl);
-        return FAIL;
-    }
-
-    fd_out =  open(((char *)to), (O_CREAT|O_EXCL|O_WRONLY|O_EXTRA|O_NOFOLLOW), ((int)perm)) ;
-    if (fd_out == -1)
-    {
-        close(fd_in);
-        mch_free_acl(acl);
-        return FAIL;
-    }
-
-    buffer = alloc(WRITEBUFSIZE);
-    if (buffer == NULL)
-    {
-        close(fd_out);
-        close(fd_in);
-        mch_free_acl(acl);
-        return FAIL;
-    }
-
-    while ((n = read_eintr(fd_in, buffer, WRITEBUFSIZE)) > 0)
-    {
-        if (write_eintr(fd_out, buffer, n) != n)
-        {
-            errmsg = _(e_error_writing_to_str);
-            break;
-        }
-    }
-
-    vim_free(buffer);
-    close(fd_in);
-    if (close(fd_out) < 0)
-    {
-        errmsg = _(e_error_closing_str);
-    }
-    if (n < 0)
-    {
-        errmsg = _(e_error_reading_str);
-        to = from;
-    }
-    mch_set_acl(to, acl);
-    mch_free_acl(acl);
-    if (errmsg != NULL)
-    {
-        semsg(errmsg, to);
-        return FAIL;
-    }
-    return OK;
 }
 
     static int
@@ -52164,30 +51341,6 @@ vim_fnamencmp(char_u *x, char_u *y, size_t len)
         return  mb_strnicmp((char_u *)(x), (char_u *)(y), (int)(len)) ;
     }
     return  strncmp((char *)(x), (char *)(y), (len)) ;
-}
-
-    static char_u  *
-concat_fnames(char_u *fname1, size_t fname1len, char_u *fname2, size_t fname2len, int sep, string_T *ret)
-{
-    ret->string = alloc(fname1len + (sep ? sizeof( ((char_u)'/') ) : 0) + fname2len + 1);
-    if (ret->string == NULL)
-    {
-        ret->length = 0;
-    }
-    else
-    {
-         strcpy((char *)(ret->string), (char *)(fname1)) ;
-        ret->length = fname1len;
-        if (sep && *ret->string != NUL && !after_pathsep(ret->string, ret->string + ret->length))
-        {
-             strcpy((char *)(ret->string + ret->length), (char *)( "/" )) ;
-            ret->length += sizeof( ((char_u)'/') );
-        }
-         strcpy((char *)(ret->string + ret->length), (char *)(fname2)) ;
-        ret->length += fname2len;
-    }
-
-    return ret->string;
 }
 
     static void
@@ -75418,36 +74571,6 @@ add_b0_fenc(ZERO_BL     *b0p, buf_T       *buf)
 {
 }
 
-    static char_u *
-make_percent_swname(char_u *dir, char_u *dir_end, char_u *name)
-{
-    string_T    d = {NULL, 0};
-    string_T    fixed_fname;
-    char_u      *p;
-
-    fixed_fname.string = fix_fname(name != NULL ? name : (char_u *)"");
-    if (fixed_fname.string == NULL)
-    {
-        return NULL;
-    }
-
-    for (p = fixed_fname.string; *p != NUL;  p += (*mb_ptr2len)(p) )
-    {
-        if (vim_ispathsep(*p))
-        {
-            *p = '%';
-        }
-    }
-    fixed_fname.length = (size_t)(p - fixed_fname.string);
-
-    p = &dir_end[-1];
-    *p = NUL;
-    concat_fnames(dir, (size_t)(p - dir), fixed_fname.string, fixed_fname.length, TRUE, &d);
-    vim_free(fixed_fname.string);
-
-    return d.string;
-}
-
     static void
 ml_sync_all(int check_file, int check_char)
 {
@@ -76753,59 +75876,6 @@ ml_lineadd(buf_T *buf, int count)
         ip->ip_high += count;
         mf_put(mfp, hp, TRUE, FALSE);
     }
-}
-
-    static char_u *
-get_file_in_dir(char_u  *fname, char_u  *dname)
-{
-    string_T    tail;
-    string_T    retval;
-
-    tail.string = gettail(fname);
-    tail.length =  strlen((char *)(tail.string)) ;
-
-    if (dname[0] == '.' && dname[1] == NUL)
-    {
-        retval.string =
-            vim_strnsave(fname, (size_t)(tail.string - fname) + tail.length);
-    }
-    else
-    {
-        size_t  dname_len =  strlen((char *)(dname)) ;
-
-        if (dname[0] == '.' && vim_ispathsep(dname[1]))
-        {
-            if (tail.string == fname)
-            {
-                concat_fnames(dname + 2, dname_len - 2, tail.string, tail.length, TRUE, &retval);
-            }
-            else
-            {
-                int         save_char;
-                string_T    tmp;
-
-                save_char = *tail.string;
-                *tail.string = NUL;
-                concat_fnames(fname, (size_t)(tail.string - fname), dname + 2, dname_len - 2, TRUE, &tmp);
-                *tail.string = save_char;
-                if (tmp.string == NULL)
-                {
-                    retval.string = NULL;
-                }
-                else
-                {
-                    concat_fnames(tmp.string, tmp.length, tail.string, tail.length, TRUE, &retval);
-                    vim_free(tmp.string);
-                }
-            }
-        }
-        else
-        {
-            concat_fnames(dname, dname_len, tail.string, tail.length, TRUE, &retval);
-        }
-    }
-
-    return retval.string;
 }
 
     static void
@@ -94937,27 +94007,6 @@ static struct vimoption options[] =
     {"backspace",   "bs",   P_STRING|P_VIM|P_ONECOMMA|P_NODUP,
                             (char_u *)&p_bs, PV_NONE, did_set_backspace, expand_set_backspace,
                             {(char_u *)"", (char_u *)"indent,eol,start"}   },
-    {"backup",      "bk",   P_BOOL|P_VI_DEF|P_VIM,
-                            (char_u *)&p_bk, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"backupcopy",  "bkc",  P_STRING|P_VIM|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_bkc,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_BKC)) ))  , did_set_backupcopy, expand_set_backupcopy,
-                            {(char_u *)"yes", (char_u *)"auto"}
-                              },
-    {"backupdir",   "bdir", P_STRING|P_EXPAND|P_VI_DEF|P_ONECOMMA
-                                                            |P_NODUP|P_SECURE,
-                            (char_u *)&p_bdir, PV_NONE, NULL, NULL,
-                            {(char_u *) ".,~/tmp,~/" , (char_u *)0L}   },
-    {"backupext",   "bex",  P_STRING|P_VI_DEF|P_NFNAME,
-                            (char_u *)&p_bex, PV_NONE,
-                            did_set_backupext_or_patchmode, NULL,
-                            {
-                            (char_u *)"~",
-                                            (char_u *)0L}   },
-    {"backupskip",  "bsk",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_bsk, PV_NONE, NULL, NULL,
-                            {(char_u *)"", (char_u *)0L}
-                              },
     {"balloondelay","bdlay",P_NUM|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
@@ -95760,10 +94809,6 @@ static struct vimoption options[] =
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
                               },
-    {"patchmode",   "pm",   P_STRING|P_VI_DEF|P_NFNAME,
-                            (char_u *)&p_pm, PV_NONE,
-                            did_set_backupext_or_patchmode, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
     {"perldll",     NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
@@ -96366,11 +95411,6 @@ static struct vimoption options[] =
     {"writeany",    "wa",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_wa, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"writebackup", "wb",   P_BOOL|P_VI_DEF|P_VIM,
-                            (char_u *)&p_wb, PV_NONE, NULL, NULL,
-                            {
-                            (char_u *)TRUE,
-                                (char_u *)0L}   },
     {"writedelay",  "wd",   P_NUM|P_VI_DEF,
                             (char_u *)&p_wd, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
@@ -96500,64 +95540,6 @@ static int wc_use_keyname(char_u *varp, long *wcp);
 static void compatible_set(void);
 
     static void
-set_init_default_backupskip(void)
-{
-    int         opt_idx;
-    char_u      *p;
-    int         plen;
-    garray_T    ga;
-
-    opt_idx = findoption((char_u *)"backupskip");
-
-    ga_init2(&ga, 1, 100);
-    {
-        int             mustfree = FALSE;
-            p = (char_u *)"/tmp";
-            plen = (int) (sizeof("/tmp" "") - 1) ;
-        if (p != NULL && *p != NUL)
-        {
-            char_u  *item;
-            size_t  itemsize;
-            int     has_trailing_path_sep = FALSE;
-
-            if (plen == 0)
-            {
-                plen = (int) strlen((char *)(p)) ;
-                if (after_pathsep(p, p + plen))
-                {
-                    has_trailing_path_sep = TRUE;
-                }
-            }
-
-            itemsize = plen + (has_trailing_path_sep ? 0 : 1) + 2;
-            item = alloc(itemsize);
-            if (item != NULL)
-            {
-                size_t  itemseplen = (ga.ga_len == 0) ? 0 : 1;
-                size_t  itemlen;
-
-                itemlen = vim_snprintf((char *)item, itemsize, "%s%s*", p, (has_trailing_path_sep) ? "" :  "/" );
-
-                if (find_dup_item(ga.ga_data, item, itemlen, options[opt_idx].flags) == NULL && ga_grow(&ga, (int)(itemseplen + itemlen + 1)) == OK)
-                {
-                    ga.ga_len += vim_snprintf((char *)ga.ga_data + ga.ga_len, itemseplen + itemlen + 1, "%s%s", (itemseplen > 0) ? "," : "", item);
-                }
-                vim_free(item);
-            }
-        }
-        if (mustfree)
-        {
-            vim_free(p);
-        }
-    }
-    if (ga.ga_data != NULL)
-    {
-        set_string_default("bsk", ga.ga_data);
-        vim_free(ga.ga_data);
-    }
-}
-
-    static void
 set_init_default_printencoding(void)
 {
 }
@@ -96621,7 +95603,6 @@ set_init_1(int clean_arg)
 {
     p_cp = FALSE;
 
-    set_init_default_backupskip();
     set_init_default_printencoding();
 
     set_options_default(0);
@@ -97667,11 +96648,6 @@ stropt_get_newval(int         nextchar, int         opt_idx, char_u      **argp,
             save_arg = arg;
             arg = t;
         }
-        else if (*arg == '>' && varp == (char_u *)&p_bdir)
-        {
-            ++arg;
-        }
-
         newval = stropt_copy_value(origval, &arg, op, flags);
         if (newval == NULL)
         {
@@ -100128,8 +99104,6 @@ get_varp_scope(struct vimoption *p, int scope)
                 return (char_u *)&(curbuf->b_p_ul);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_LW)) ))  :
                 return (char_u *)&(curbuf->b_p_lw);
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_BKC)) ))  :
-                return (char_u *)&(curbuf->b_p_bkc);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_MENC)) ))  :
                 return (char_u *)&(curbuf->b_p_menc);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_LCS)) ))  :
@@ -100173,9 +99147,6 @@ get_varp(struct vimoption *p)
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_AC)) ))  :
             return curbuf->b_p_ac >= 0
                                     ? (char_u *)&(curbuf->b_p_ac) : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_BKC)) ))  :
-            return *curbuf->b_p_bkc != NUL
-                                    ? (char_u *)&(curbuf->b_p_bkc) : p->var;
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SISO)) ))  :
             return curwin-> w_onebuf_opt.wo_siso  >= 0
                                     ? (char_u *)&(curwin-> w_onebuf_opt.wo_siso ) : p->var;
@@ -100607,7 +99578,6 @@ buf_copy_options(buf_T *buf, int flags)
             buf->b_p_ac = -1;
             buf->b_p_fs = -1;
             buf->b_p_ul =  (-123456) ;
-            buf->b_p_bkc = empty_option;
             buf->b_bkc_flags = 0;
             buf->b_p_ep = empty_option;
             buf->b_p_kp = empty_option;
@@ -100884,7 +99854,7 @@ set_context_in_set_cmd(expand_T    *xp, char_u      *arg, int         opt_flags)
     if (flags & P_EXPAND)
     {
         p = options[opt_idx].var;
-        if (p == (char_u *)&p_bdir || p == (char_u *)&p_pp || p == (char_u *)&p_rtp || p == (char_u *)&p_cdpath)
+        if (p == (char_u *)&p_pp || p == (char_u *)&p_rtp || p == (char_u *)&p_cdpath)
         {
             xp->xp_context = EXPAND_DIRECTORIES;
             xp->xp_backslash = XP_BS_ONE;
@@ -101591,12 +100561,6 @@ get_sidescrolloff_value(void)
 }
 
     static unsigned int
-get_bkc_flags(buf_T *buf)
-{
-    return buf->b_bkc_flags ? buf->b_bkc_flags : bkc_flags;
-}
-
-    static unsigned int
 get_ve_flags(void)
 {
     return (curwin-> w_onebuf_opt.wo_ve_flags  ? curwin-> w_onebuf_opt.wo_ve_flags  : ve_flags)
@@ -101631,7 +100595,6 @@ static int set_shm_recursive = 0;
 
 static char *(p_ambw_values[]) = {"single", "double", NULL};
 static char *(p_bg_values[]) = {"light", "dark", NULL};
-static char *(p_bkc_values[]) = {"yes", "auto", "no", "breaksymlink", "breakhardlink", NULL};
 static char *(p_bo_values[]) = {"all", "backspace", "cursor", "complete",
                                  "copy", "ctrlg", "error", "esc", "ex",
                                  "hangul", "insertmode", "lang", "mess",
@@ -101670,7 +100633,6 @@ static int opt_strings_flags(char_u *val, char **values, unsigned *flagp, int li
 didset_string_options(void)
 {
     (void)opt_strings_flags(p_cmp, p_cmp_values, &cmp_flags, TRUE);
-    (void)opt_strings_flags(p_bkc, p_bkc_values, &bkc_flags, TRUE);
     (void)opt_strings_flags(p_bo, p_bo_values, &bo_flags, TRUE);
     (void)opt_strings_flags(p_cot, p_cot_values, &cot_flags, TRUE);
     (void)opt_strings_flags(p_dy, p_dy_values, &dy_flags, TRUE);
@@ -101731,7 +100693,6 @@ check_buf_options(buf_T *buf)
     check_string_option(&buf->b_p_dict);
     check_string_option(&buf->b_p_tsr);
     check_string_option(&buf->b_p_lw);
-    check_string_option(&buf->b_p_bkc);
     check_string_option(&buf->b_p_menc);
 }
 
@@ -102181,60 +101142,6 @@ did_set_backspace(optset_T *args  __attribute__((unused)) )
 expand_set_backspace(optexpand_T *args, int *numMatches, char_u ***matches)
 {
     return expand_set_opt_string(args, p_bs_values,  (sizeof(p_bs_values) / sizeof((p_bs_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char *
-did_set_backupcopy(optset_T *args)
-{
-    char_u              *bkc = p_bkc;
-    unsigned int        *flags = &bkc_flags;
-    char                *errmsg = NULL;
-
-    if (args->os_flags & OPT_LOCAL)
-    {
-        bkc = curbuf->b_p_bkc;
-        flags = &curbuf->b_bkc_flags;
-    }
-    else if (!(args->os_flags & OPT_GLOBAL))
-    {
-        curbuf->b_bkc_flags = 0;
-    }
-
-    if ((args->os_flags & OPT_LOCAL) && *bkc == NUL)
-    {
-        *flags = 0;
-    }
-    else
-    {
-        if (opt_strings_flags(bkc, p_bkc_values, flags, TRUE) != OK)
-        {
-            errmsg = e_invalid_argument;
-        }
-        if ((((int)*flags & BKC_AUTO) != 0) + (((int)*flags & BKC_YES) != 0) + (((int)*flags & BKC_NO) != 0) != 1)
-        {
-            (void)opt_strings_flags(args->os_oldval.string, p_bkc_values, flags, TRUE);
-            errmsg = e_invalid_argument;
-        }
-    }
-
-    return errmsg;
-}
-
-    static int
-expand_set_backupcopy(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_bkc_values,  (sizeof(p_bkc_values) / sizeof((p_bkc_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char *
-did_set_backupext_or_patchmode(optset_T *args  __attribute__((unused)) )
-{
-    if ( strcmp((char *)(*p_bex == '.' ? p_bex + 1 : p_bex), (char *)(*p_pm == '.' ? p_pm + 1 : p_pm))  == 0)
-    {
-        return e_backupext_and_patchmode_are_equal;
-    }
-
-    return NULL;
 }
 
     static char *
@@ -104942,31 +103849,6 @@ mch_setperm(char_u *name, long perm)
 mch_fsetperm(int fd, long perm)
 {
     return (fchmod(fd, (mode_t)perm) == 0 ? OK : FAIL);
-}
-
-    static vim_acl_T
-mch_get_acl(char_u *fname  __attribute__((unused)) )
-{
-    vim_acl_T   ret = NULL;
-    return ret;
-}
-
-    static void
-mch_set_acl(char_u *fname  __attribute__((unused)) , vim_acl_T aclent)
-{
-    if (aclent == NULL)
-    {
-        return;
-    }
-}
-
-    static void
-mch_free_acl(vim_acl_T aclent)
-{
-    if (aclent == NULL)
-    {
-        return;
-    }
 }
 
     static int
