@@ -1,33 +1,30 @@
 #!/bin/sh
-# Pure phase 20 -- nothing is read at startup that was not named on the command
-# line.  See PURE-GOAL.md.
+# Pure phase 20 -- nothing is read at startup, and nothing on the command line
+# decides anything any more.  See PURE-GOAL.md.
 #
 # Usage: tools/pure20.sh <work-dir>      (run from the repository root)
 #
-# An editor that goes looking for its own configuration has a filesystem layout
-# in its head.  source_startup_scripts() tried, in order: $VIMRUNTIME/evim.vim,
-# $VIMRUNTIME/defaults.vim, $VIM/vimrc, $VIMINIT, $HOME/.vimrc, $HOME/.exrc,
-# and -- with 'exrc' on -- ./.vimrc and ./.exrc in whatever directory it was
-# started in, each guarded by an ownership check, because reading a config file
-# out of the current directory is a way to be handed someone else's commands.
+# TWO CUTS IN ONE PHASE, and they are one question: what may the invocation
+# say?
 #
-# All of it goes.  `-u <file>` STAYS, and so does :source: a file the user names
-# is not the editor going looking, and Phase 12 already decided :source stays.
-# NONE, NORC and DEFAULTS are still recognised and still mean "read nothing",
-# which they now do by agreeing with everything else.
+# THE FILES.  source_startup_scripts() looked for a vimrc in five places, an
+# exrc in the current directory, and a plugin in every directory of
+# 'runtimepath'.  It now reads the file it was told to read on the command line
+# and nothing else, and 'exrc' -- the option that let a directory carry its own
+# configuration -- goes with it.
 #
-# set_init_xdg_rtp() goes with them -- it built a 'runtimepath' out of
-# $XDG_CONFIG_HOME, and Phase 1 emptied that option while this was still filling
-# it back in -- and process_env(), which ran $VIMINIT or $EXINIT as Ex commands.
+# THE FLAGS.  What is left of the command line is what the flags still decide,
+# and several of them no longer decide anything: -y and -Z chose modes whose
+# machinery has gone, and 'viminfo' and 'viminfofile' name a file nothing reads
+# or writes.
 #
-# 'exrc' is dropped: it selected between two searches that no longer happen.
+# THEY ARE ONE PHASE because the second is what the first leaves behind: a flag
+# is only pointless once the thing it selected is gone.
 #
-# THE DELTA: none, and that is the point rather than a surprise.  Every harness
-# already passes -u NONE, so none of these paths was taken in a recorded run.
-# What changes is that the editor no longer needs to be told.
+# THE DELTA: none the harness records.  A harness passes its own -c and -u.
 set -eu
 
-work=${1:?usage: pure17.sh <work-dir>}
+work=${1:?usage: pure20.sh <work-dir>}
 f="$work/pure-vim.c"
 
 before_lines=$(grep -c '' "$f")
@@ -36,10 +33,12 @@ tools/symbols.sh "$f" .cache/symbols/before
 # --- cut the entry points -------------------------------------------------
 python3 tools/nostartup.py "$f"
 python3 tools/dropoptions.py "$f" --strict exrc
+python3 tools/dropopts.py "$f" -y -Z
+python3 tools/nocmdopts.py "$f"
+python3 tools/dropoptions.py "$f" --strict viminfo viminfofile
 
 
 tools/sweep.sh "$f"
-
 # The post-condition: after the sweep, no config path, no option and no
 # environment name this phase removed is mentioned anywhere.  Asking before the
 # sweep gets the wrong answer -- process_env is still there at that point and it
@@ -56,8 +55,25 @@ for g in p_exrc process_env set_init_xdg_rtp '"VIMINIT"' '"EXINIT"' '"XDG_CONFIG
 done
 echo "  startup      no config path, option or environment name is left"
 
+# The post-condition: after the sweep, no config path, no option and no
+# environment name this phase removed is mentioned anywhere.  Asking before the
+# sweep gets the wrong answer -- process_env is still there at that point and it
+# is the sweep that removes it.
+for g in evim_mode check_restricted EX_RESTRICT restricted '"vif"'; do
+    n=$(grep -c -- "$g" "$f" || true)
+    if [ "$n" != 0 ]; then
+        echo "  globals      $g still has $n mentions after the sweep"
+        echo "               a dropped row leaves its global uninitialised, and a"
+        echo "               reader of it is a segfault before the first keystroke"
+        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        exit 1
+    fi
+done
+echo "  options      nothing names the four, or what they set"
+
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
+
 
 make -C "$work" clean >/dev/null 2>&1 || true
 if make -C "$work" >/dev/null 2>&1; then

@@ -3,7 +3,7 @@ r"""Nothing is read from the environment.
 Usage:
     python3 tools/nogetenv.py <file>
 
-Phase 20 stopped reading configuration files and Phase 23 stopped believing in a
+Phase 20 stopped reading configuration files and Phase 22 stopped believing in a
 home directory; this is the last of the three, and the one that makes the claim
 checkable.  `getenv`, `setenv`, `unsetenv` and `environ` leave `nm -u`, and after
 that no answer this editor gives can depend on how it was invoked.
@@ -18,7 +18,7 @@ set"**, and every caller collapses to the branch it already took:
   * `expand_env_esc()` -- `$VAR` in a file name never expanded, so the whole
     `if (*src == '$')` arm was dead weight.  What is left is `skipwhite`, the
     backslash escape and the bound on `dstlen`: the name arrives intact.  Its
-    `~` half went in Phase 23 and this is the same shape of answer.
+    `~` half went in Phase 22 and this is the same shape of answer.
   * `expand_shellcmd()` -- `$PATH` was the list of directories to complete a
     command name from; without it the search is the pattern's own directory.
   * `fix_help_buffer()` -- `rt` was `vim_getenv("VIMRUNTIME")` and therefore
@@ -38,9 +38,9 @@ set"**, and every caller collapses to the branch it already took:
   * `get_env_name()` walks `environ` to complete `$VAR` on the command line, and
     is the only thing in the file that names `environ` at all.  The completion
     row and the `$`-prefix context that selects it go together -- exactly as the
-    `~user` row and its context did in Phase 23.
+    `~user` row and its context did in Phase 22.
   * `term_bg_default()` -- `$COLORFGBG` is a terminal telling the editor its own
-    background.  Phase 22 already decided what terminal this is.
+    background.  Phase 21 already decided what terminal this is.
 
 WHAT STAYS, and the distinction is worth stating: `vim_localtime()` no longer
 reads `$TZ` to decide whether to call `tzset()`, but it still calls

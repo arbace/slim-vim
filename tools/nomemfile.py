@@ -3,14 +3,14 @@ r"""The memfile is memory, and only memory.
 Usage:
     python3 tools/nomemfile.py <file>
 
-Phase 13 stopped the editor creating a swap file and Phase 25 stopped it reading
+Phase 13 stopped the editor creating a swap file and Phase 23 stopped it reading
 one back.  What is left is a **file back-end with no file**: `memfile_T` still
 carries a descriptor, still knows how to page a block out and read it in, and
 still sizes an LRU cache against how much memory the machine has -- all of it
 behind `if (mfp->mf_fd >= 0)`, and `mf_fd` can no longer be anything but -1.
 
 The proof is short.  `mf_open()` has exactly two callers: `ml_open()` passes
-`(NULL, 0)`, and `ml_recover()` passed a name -- and Phase 25 deleted
+`(NULL, 0)`, and `ml_recover()` passed a name -- and Phase 23 deleted
 `ml_recover()`.  Phase 13 stubbed `ml_open_file()` to `b_may_swap = FALSE`.  So
 nothing can hand the memfile a name, `mf_do_open()` is unreachable, `mf_write()`
 returns FAIL on its first line, and `mf_read()` on its first line too.
@@ -53,9 +53,10 @@ import cutil
 
 MF_OPEN = '''    memfile_T           *mfp;
 
-    // No caller can name a file: ml_open() passes nothing and ml_recover(),
-    // which passed a name, went in Phase 25.  So there is no descriptor, no
-    // block is ever in a file, and the page size is ours to choose.
+    // No caller can name a file: ml_open() passes nothing, and the recovery
+    // reader that passed a name went with the rest of recovery, above.  So
+    // there is no descriptor, no block is ever in a file, and the page size is
+    // ours to choose.
     if ((mfp =  (memfile_T *)alloc(sizeof(memfile_T)) ) == NULL)
     {
         return NULL;

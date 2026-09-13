@@ -20,13 +20,13 @@ and one in the option table were still asking it.
   * `'modeline'` is forced off when `getuid() == ROOT_UID`, a protection against
     a modeline running as root.  There is no root here and no `+eval` for a
     modeline to reach; the option keeps its compiled default.
-  * `get_user_name()` was stubbed to `return FAIL;` in Phase 23, when the
+  * `get_user_name()` was stubbed to `return FAIL;` in Phase 22, when the
     password database went, and its two callers were left writing the answer
     into the swap file's block zero.  There are no swap files and no users, so
     the callers go and the stub with them.  The second is an `if (…FAIL || …)`
     whose condition was already always true, so its `else` -- the arm that
     spliced a user name into the recorded file name -- has been dead since
-    Phase 23 and goes now.
+    Phase 22 and goes now.
 
 WHAT STAYS: `chmod` and `fchmod`, through `mch_setperm()` and `mch_fsetperm()`.
 **Permissions are not ownership.**  A file still has a mode, `:w!` still has to
@@ -93,14 +93,14 @@ def main():
     text = cut(text, r'^enum \{ ROOT_UID = 0 \};\n', 'the ROOT_UID enumerator')
     print("  noowner      'modeline' stops asking whether this is root")
 
-    # --- who wrote the swap file, which Phase 23 left behind ----------------
+    # --- who wrote the swap file, which Phase 22 left behind ----------------
     text = cut(text,
                r'^[ \t]*\(void\)get_user_name\(b0p->b0_uname, B0_UNAME_SIZE\);\n'
                r'[ \t]*b0p->b0_uname\[B0_UNAME_SIZE - 1\] = NUL;\n',
                "block zero's user name")
 
     # The other caller's `if` was already always true -- get_user_name() has
-    # returned FAIL since Phase 23 -- so its `else` has been dead that long.
+    # returned FAIL since Phase 22 -- so its `else` has been dead that long.
     blanked = cutil.blank(text)
     k = text.index('            if (get_user_name(uname, B0_UNAME_SIZE) == FAIL')
     o = blanked.index('{', text.index('\n', k))
@@ -136,7 +136,7 @@ def main():
     text, ok = cutil.delete_definition(text, 'get_user_name')
     if not ok:
         sys.exit('noowner: get_user_name is not defined at file scope')
-    print('  noowner      who wrote the swap file, a stub since Phase 23')
+    print('  noowner      who wrote the swap file, a stub since Phase 22')
 
     path.write_text(text, errors='surrogateescape')
     print('  noowner      %d identity mentions left for the sweep'

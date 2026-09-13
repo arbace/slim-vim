@@ -73639,9 +73639,10 @@ mf_open(void)
 {
     memfile_T           *mfp;
 
-    // No caller can name a file: ml_open() passes nothing and ml_recover(),
-    // which passed a name, went in Phase 25.  So there is no descriptor, no
-    // block is ever in a file, and the page size is ours to choose.
+    // No caller can name a file: ml_open() passes nothing, and the recovery
+    // reader that passed a name went with the rest of recovery, above.  So
+    // there is no descriptor, no block is ever in a file, and the page size is
+    // ours to choose.
     if ((mfp =  (memfile_T *)alloc(sizeof(memfile_T)) ) == NULL)
     {
         return NULL;
@@ -131773,7 +131774,7 @@ vim_time(void)
     static void
 add_time(char_u *buf, size_t buflen, time_t tt)
 {
-    // How long ago, not when.  Phase 24 took away every way this editor could
+    // How long ago, not when.  Phase 22 took away every way this editor could
     // be told what zone the clock is in, and undo history does not outlive the
     // process -- :wundo and :rundo are ex_ni -- so every time this formats is
     // within one session, which is exactly what "ago" measures.

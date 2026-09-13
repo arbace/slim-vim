@@ -1,34 +1,35 @@
 #!/bin/sh
-# Pure phase 25 -- there is nothing to recover.  See PURE-GOAL.md.
+# Pure phase 23 -- no floating-point library.  See PURE-GOAL.md.
 #
 # Usage: tools/pure25.sh <work-dir>      (run from the repository root)
 #
-# Phase 13 made the swap file memory-only: the block structure is still built,
-# still paged, still where every line of the buffer lives, but it never reaches
-# a disk.  What that left behind is the other half of the feature -- the code
-# that reads someone else's swap file back, which is code for reading a file
-# this editor cannot have written.
+# Three calls are the whole of libm here, and they are two different questions.
 #
-# -r and -L are the only two things that ever set `recoverymode`, so the global
-# folds to FALSE and its seven readers each collapse to the branch they were
-# already taking -- three of them in readfile(), which had to know whether it
-# was filling a buffer from a swap file rather than from the file itself.
+# ceil() and floor() appear once, in the fuzzy matcher, as the two halves of
+# rounding half away from zero.  C's double-to-int conversion truncates TOWARD
+# ZERO, which is ceil for a negative value and floor for a positive one, so
+# biasing by half in the sign's own direction and converting is the same answer
+# for every input.  tools/nolibm_check.c sweeps a million values through both
+# forms and requires them to agree; this phase runs it.
 #
-# THIS IS WHERE getpwuid GOES, the fifth of the five password-database symbols
-# and the one phase 23 said would need a phase of its own: swapfile_info()
-# called mch_get_uname() to say who owned a swap file.
+# log10() is NOT TRANSLATED, because it cannot be.  The obvious integer
+# equivalent -- dividing by ten until the value drops below ten -- is not the
+# same function: just below a power of ten log10() returns a double that rounds
+# up to the integer, so (size_t)log10(99.999999999999986) is 2 where counting
+# digits gives 1.  The equivalence check found 79 such values in a million, and
+# that is what turned this phase from a translation into a removal.
 #
-# TIME IS THE PART THAT IS A DECISION.  swapfile_info() was the only caller of
-# get_ctime(), leaving vim_localtime() with one user -- add_time(), the
-# timestamp in :undolist and in "1 change; before #3".  It goes too, and not
-# because it is unreachable: localtime_r() asks libc what the local zone is, and
-# phase 24 took away every way this editor could be told.  Undo history does not
-# outlive the process either (:wundo and :rundo are ex_ni), so every time
-# add_time() formats is within one session and the relative form it already used
-# below 100 seconds is the true one.
+# So the whole floating-point branch of vim_vsnprintf() goes instead, and the
+# justification is that NOTHING CAN REACH IT: there is not one %f, %F, %e, %E,
+# %g or %G conversion in any format string in the file, and the single
+# vim_snprintf() call whose format is not a literal takes a local `char *fmt`
+# that is one of two constants.  Without +eval there is no printf() either.
 #
-# THE DELTA: none.  :recover was pointed at ex_ni earlier and does not move --
-# it already failed, needing a swap file to read.
+# <math.h> STAYS -- INFINITY is the fuzzy matcher's score sentinel.  Under musl
+# libm is part of libc, so the link line does not change; what changes is that
+# nm -u stops naming a floating-point function.
+#
+# THE DELTA: none.
 set -eu
 
 work=${1:?usage: pure25.sh <work-dir>}
@@ -37,34 +38,50 @@ f="$work/pure-vim.c"
 before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
+# The claim, before the cut that relies on it.  A rounding rewrite that is
+# merely believed is how an off-by-one reaches a release.
+chk=$(mktemp -u)
+gcc -O0 -o "$chk" tools/nolibm_check.c
+if ! out=$("$chk"); then
+    echo "  rounding     the rewrite is NOT the same arithmetic:"
+    printf '%s\n' "$out" | sed 's/^/               /'
+    rm -f "$chk"
+    exit 1
+fi
+rm -f "$chk"
+echo "  rounding     $out"
+
+# The premise of the removal -- no float conversion in any format string -- is
+# checked inside nofloat.py, which refuses to cut without it.  It has to scan
+# STRING LITERALS rather than raw text: `indent % get_sw_value(curbuf)` is C,
+# and a terminfo capability's `%e` is an `else`, not a conversion.
+
 # --- cut the entry points -------------------------------------------------
-python3 tools/norecover.py "$f"
+python3 tools/nofloat.py "$f"
 
 
 tools/sweep.sh "$f"
 
-# The post-condition, asked after the sweep.
-for g in recoverymode ml_recover recover_names swapfile_info mch_get_uname \
-         vim_localtime localtime_r strftime; do
-    n=$(grep -cw -- "$g" "$f" || true)
+for g in 'ceil(' 'floor(' 'log10(' 'infinity_str' 'TYPE_FLOAT' 'typename_float'; do
+    n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
-        echo "  recovery     $g still has $n mentions after the sweep"
-        grep -nw -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        echo "  libm         $g still has $n mentions after the sweep"
+        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
         exit 1
     fi
 done
-echo "  recovery     nothing reads a swap file, and nothing asks the wall clock"
+echo "  libm         nothing calls a floating-point function"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-for g in getpwuid localtime_r strftime; do
+for g in ceil floor log10; do
     if grep -qx -- "$g" .cache/symbols/last/undefined; then
         echo "  symbols      $g is still undefined in the object"
         exit 1
     fi
 done
-echo "  symbols      getpwuid is gone -- the last of the five password symbols"
+echo "  symbols      ceil, floor and log10 are gone from nm -u"
 
 make -C "$work" clean >/dev/null 2>&1 || true
 if make -C "$work" >/dev/null 2>&1; then

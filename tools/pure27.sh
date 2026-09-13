@@ -1,36 +1,41 @@
 #!/bin/sh
-# Pure phase 27 -- the working directory is where it started.  See PURE-GOAL.md.
+# Pure phase 24 -- a write is a write, and nobody owns it.  See PURE-GOAL.md.
 #
 # Usage: tools/pure27.sh <work-dir>      (run from the repository root)
 #
-# :cd, :lcd and :tcd are ex_ni, :! no longer forks, and nothing else in this
-# editor moves the process.  So the directory it starts in is the one it dies
-# in, and three pieces of machinery that exist because that was not true stop
-# being needed:
+# TWO CUTS IN ONE PHASE, and they are one story: everything writing a file did
+# beyond writing it.
 #
-#   * mch_FullName() chdir'd into the leading directory of a relative name,
-#     asked getcwd() where that landed, and chdir'd back -- via fchdir() on a
-#     descriptor it held open, falling back to chdir().  That is what resolved
-#     `..` and a symlinked directory on the way to a full name.  FCHDIR.
-#   * win_fix_current_dir() restores a window's or tab's local directory, and
-#     runs only when w_localdir, tp_localdir or globaldir is set.  The first two
-#     come only from :lcd and :tcd; globaldir is assigned only inside this
-#     function.  Unreachable.
-#   * edit_buffers() takes a cwd to return to between -o windows, and is passed
-#     start_dir -- `static char_u *start_dir = NULL;`, which nothing assigns.
-#     CHDIR, once mch_chdir() has no callers left.
+# THE BACKUP.  Before the new contents go anywhere the old file may be renamed
+# or copied aside, its permissions, owner, group, ACL and timestamps carried
+# over, the write attempted, and the whole thing rolled back if it fails -- and
+# afterwards the copy is kept, or deleted, or renamed again for 'patchmode'.
+# That is 437 lines of buf_write() and seven options.  `dobackup` is the hinge:
+# (p_wb || p_bk || *p_pm != NUL), so with the options gone it is FALSE and the
+# tests through the rest of the function collapse to the branch they already
+# took under `:set nobackup nowritebackup`.
 #
-# WHAT IT COSTS, which is why this is a phase and not a cleanup: a full name is
-# now the working directory with the name appended, so `../x/y` becomes
-# /cwd/../x/y rather than /real/x/y.  It opens the same file; what it loses is
-# that two spellings of one path no longer compare equal, so `:e ../x/y` and
-# `:e /real/x/y` are two buffers rather than one.
+# vim_rename() has five callers and all five are in there, so vim_copyfile()
+# goes with it -- readlink, symlink, rename.  set_file_time() carried the old
+# timestamps onto the backup -- utime.  mch_get_acl()/mch_set_acl()/
+# mch_free_acl() were already stubs, this build having no ACL support.  fchown
+# and umask went too: every call to both was inside the backup block.
 #
-# getcwd STAYS, and is now asked once.  shorten_fnames() shortens every
-# displayed name against it and mch_FullName() is how a relative name becomes
-# absolute at all -- dropping it would mean b_ffname could not be a full path,
-# which is a capability cut rather than plumbing.  Since nothing can move the
-# process, the answer cannot change: it is read into a static on the first call.
+# THE OWNER.  An embedded editor runs where there are no users to tell apart,
+# so `st_old.st_uid == getuid()` is a question with no answer.  `:w!` clears the
+# read-only bit without asking whose file it is; the mode is masked to 0777
+# always rather than only for a stranger, which is the safe direction;
+# 'modeline' stops asking whether this is root; and get_user_name(), a stub
+# since phase 20, stops being called at all.
+#
+# WHAT STAYS: chmod and fchmod.  PERMISSIONS ARE NOT OWNERSHIP -- a file still
+# has a mode, `:w!` still has to clear the read-only bit, and the mode of the
+# file that was there is still put back on the one that replaces it.
+#
+# THE TWO CUTS ARE ONE PHASE because the second's sites are inside the code the
+# first reshapes, and because neither moves anything the harness records.  The
+# phase still checks both separately: nothing is left beside a written file, and
+# `:w!` over a read-only file still writes it.
 #
 # THE DELTA: none the harness records.
 set -eu
@@ -42,40 +47,63 @@ before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nochdir.py "$f"
+python3 tools/nobackup.py "$f"
+python3 tools/dropoptions.py "$f" --local --strict \
+    backup backupcopy backupdir backupext backupskip patchmode writebackup
+python3 tools/noowner.py "$f"
 
 
 tools/sweep.sh "$f"
+python3 tools/droplocal.py "$f" b_p_bkc
+tools/sweep.sh "$f"
 
-# Matched as CALLS, not as words: `[CMD_chdir]` is a retired command row that
-# stays, and this phase's own comment says "chdir'd".
-for g in 'mch_chdir(' 'chdir(' 'fchdir(' 'win_fix_current_dir(' \
-         '\bglobaldir\b' '\bstart_dir\b'; do
+for g in 'p_bk\b' 'p_wb\b' 'p_bkc\b' 'p_bdir\b' 'p_bex\b' 'p_bsk\b' 'p_pm\b' \
+         'b_p_bkc' 'vim_rename' 'vim_copyfile' 'set_file_time' 'mch_get_acl' \
+         'vim_acl_T' 'backup_copy' 'dobackup'; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
-        echo "  cwd          $g still has $n mentions after the sweep"
-        grep -nw -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        echo "  backup       $g still has $n mentions after the sweep"
+        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
         exit 1
     fi
 done
-# And the one that stays, asked exactly once.
-n=$(grep -c 'getcwd((char \*)' "$f" || true)
-if [ "$n" != 1 ]; then
-    echo "  cwd          getcwd is called $n times, expected exactly 1"
-    exit 1
-fi
-echo "  cwd          nothing moves the process; getcwd is asked once"
+echo "  backup       nothing is copied aside, renamed, or timestamped"
+
+for g in 'getuid' 'getgid' 'get_user_name' 'ROOT_UID' 'b0_uname'; do
+    n=$(grep -c -- "$g" "$f" || true)
+    if [ "$n" != 0 ]; then
+        echo "  owner        $g still has $n mentions after the sweep"
+        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        exit 1
+    fi
+done
+echo "  owner        nothing asks who you are"
+
+# And the distinction this phase rests on: a file still has a mode.
+for g in mch_setperm mch_fsetperm mch_getperm; do
+    if [ "$(grep -c "\b$g(" "$f" || true)" = 0 ]; then
+        echo "  permissions  $g went too -- permissions are not ownership"
+        exit 1
+    fi
+done
+echo "  permissions  chmod and fchmod stay: a file still has a mode"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
-
-for g in chdir fchdir; do
+for g in utime readlink symlink rename; do
     if grep -qx -- "$g" .cache/symbols/last/undefined; then
         echo "  symbols      $g is still undefined in the object"
         exit 1
     fi
 done
-echo "  symbols      chdir and fchdir are gone from nm -u"
+echo "  symbols      utime, readlink, symlink and rename are gone from nm -u"
+for g in getuid getgid; do
+    if grep -qx -- "$g" .cache/symbols/last/undefined; then
+        echo "  symbols      $g is still undefined in the object"
+        exit 1
+    fi
+done
+echo "  symbols      getuid and getgid are gone from nm -u"
 
 make -C "$work" clean >/dev/null 2>&1 || true
 if make -C "$work" >/dev/null 2>&1; then
@@ -85,20 +113,34 @@ else
     exit 1
 fi
 
-# A relative name with a directory in it must still open, write and read back.
-# That is the path mch_FullName used to chdir through, and no harness walks it:
-# every harness edits a file in the directory it is standing in.
-rel=$(cd "$work" && rm -rf .reltest && mkdir -p .reltest/sub && cd .reltest \
-      && printf 'one\ntwo\n' > sub/f.txt \
-      && ../pure-vim -e -s -c 'normal Gothree' -c 'wq' sub/f.txt </dev/null >/dev/null 2>&1
-      cd sub && ../../pure-vim -e -s -c '%s/two/2/' -c 'wq' ../sub/f.txt </dev/null >/dev/null 2>&1
-      tr '\n' ' ' < f.txt)
-rm -rf "$work/.reltest"
-if [ "$rel" != "one 2 three " ]; then
-    echo "  relative     a relative path gave '$rel', expected 'one 2 three '"
+# THE CHECK THIS PHASE EXISTS FOR, and no build can make it: overwriting a file
+# must leave the file and nothing beside it.  `:set backup` is what would have
+# produced `f.txt~`, and the option is gone -- so the test is that the directory
+# holds exactly what it held before.
+bk=$(cd "$work" && rm -rf .bktest && mkdir .bktest && cd .bktest \
+     && printf 'one\n' > f.txt \
+     && ../pure-vim -e -s -c '%s/one/two/' -c 'wq' f.txt </dev/null >/dev/null 2>&1
+     printf '%s:%s' "$(ls -A | tr '\n' ' ')" "$(cat f.txt)")
+rm -rf "$work/.bktest"
+if [ "$bk" != "f.txt :two" ]; then
+    echo "  overwrite    a write left '$bk', expected 'f.txt :two'"
     exit 1
 fi
-echo "  relative     a relative path with a directory in it opens and writes"
+echo "  overwrite    overwriting a file leaves the file, and nothing beside it"
+
+# The capability this phase must NOT have removed: `:w!` over a read-only file.
+# No harness writes to one, which is why it is checked here.
+ro=$(cd "$work" && rm -rf .rotest && mkdir .rotest && cd .rotest \
+     && printf 'one\n' > f.txt && chmod 444 f.txt \
+     && ../pure-vim -e -s -c '%s/one/two/' -c 'wq!' f.txt </dev/null >/dev/null 2>&1
+     cat f.txt 2>/dev/null)
+chmod -R u+w "$work/.rotest" 2>/dev/null || true
+rm -rf "$work/.rotest"
+if [ "$ro" != "two" ]; then
+    echo "  readonly     :w! over a read-only file gave '$ro', expected 'two'"
+    exit 1
+fi
+echo "  readonly     :w! over a read-only file still writes it"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/puredelta.sh "$work/pure-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \

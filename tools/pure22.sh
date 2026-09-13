@@ -1,54 +1,57 @@
 #!/bin/sh
-# Pure phase 22 -- the terminal is what the build says.  See PURE-GOAL.md.
+# Pure phase 21 -- nothing outside the process is consulted.  See PURE-GOAL.md.
 #
 # Usage: tools/pure22.sh <work-dir>      (run from the repository root)
 #
-# Five environment variables describe the terminal and the editor believes all
-# of them: $TERM picks a capability table, $LINES and $COLUMNS override the size
-# the kernel reports, $COLORS overrides the colour count the table gives, and
-# $COLORFGBG is read for the background.
+# TWO CUTS IN ONE PHASE, and the second finishes a function the first cuts in
+# half.
 #
-# THE COMPILED NAME IS xterm-256color, NOT xterm, and that is the whole care in
-# this phase.  Measured on the shipped binary before choosing:
+# THERE IS NO HOME DIRECTORY.  `$HOME` is where an editor keeps the things it
+# was told not to keep; phase 13 stopped writing them and phase 19 stopped
+# looking for them, and what is left is the NOTION -- `~/x` meaning a path,
+# `~bob` meaning someone else's, and `/home/you/x` displayed back as `~/x`.
+# home_replace() has thirteen callers, every one a place that shows the user a
+# file name, so it becomes a bounded copy rather than going.  The password
+# database goes with it: getpwnam, getpwent, setpwent, endpwent.
 #
-#     TERM=xterm-256color   -> term=xterm-256color  t_Co=256
-#     TERM=xterm            -> term=xterm           t_Co=8
-#     TERM= (unset)         -> term=xterm           t_Co=8
+# AND NOTHING IS READ FROM THE ENVIRONMENT.  vim_getenv() was already half dead
+# -- phase 1 folded its `vimruntime` flag to FALSE -- so it CAN ONLY EVER ANSWER
+# "not set", and every caller collapses to the branch it was already taking:
+# $VAR in a file name, $PATH, $VIMRUNTIME, $SHELL, $CDPATH, $TMPDIR, $VIM_POSIX,
+# $COLORFGBG, $TZ, and the $VIM/$VIMRUNTIME/$MYVIMDIR that vimrc_found() used to
+# publish -- itself unreachable since phase 19.
 #
-# set_termname() keeps the requested name and tests strstr(requested, "256color")
-# to apply builtin_256colors on top of whichever table it chose.  So the obvious
-# fallback -- the one the unset case already took -- would have cost eight of
-# every nine colours the terminal can show, silently, for nothing.
-# xterm-256color resolves to the same builtin_xterm table and keeps the add-on.
+# THEY ARE ONE PHASE because expand_env_esc() handles `~` and `$VAR` in one
+# loop: the first cut takes the `~` half and the second takes the `$` half, and
+# what is left is skipwhite, the backslash escape and the bound on dstlen.
 #
-# -T <term> STAYS.  It is not the environment, and with one compiled default it
-# is the only way left to say "this is a dumb terminal".  The ten built-in
-# entries are still there and -T still reaches them.
+# THE CHECK IS THE OBJECT: getenv, setenv, unsetenv and environ leave `nm -u`.
+# Grepping the source is not enough -- the sweep is what removes vim_getenv,
+# and asking before it runs gets the wrong answer.
 #
-# THE DELTA: the terminal table collapses.  Every TERM resolved to its own row
-# before; now every one of them resolves to xterm-256color with 256 colours,
-# because nothing consults TERM.  That is declared with --term-moved, which
-# puredelta.sh grew for this phase -- until now no phase could move that table,
-# so "expected unchanged" was the whole check.
+# WHAT STAYS: vim_localtime() still calls localtime_r(), and musl reads $TZ
+# inside it.  The rule is that THIS SOURCE asks the environment nothing.
+#
+# THE DELTA: none the harness records.
 set -eu
 
-work=${1:?usage: pure17.sh <work-dir>}
+work=${1:?usage: pure22.sh <work-dir>}
 f="$work/pure-vim.c"
 
 before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/noterm.py "$f"
+python3 tools/nohome.py "$f"
+python3 tools/nogetenv.py "$f"
 
 
 tools/sweep.sh "$f"
-
 # The post-condition: after the sweep, no config path, no option and no
 # environment name this phase removed is mentioned anywhere.  Asking before the
 # sweep gets the wrong answer -- process_env is still there at that point and it
 # is the sweep that removes it.
-for g in 'getenv((char \*)((char_u \*)"TERM")' 'getenv("LINES")' 'getenv("COLUMNS")' 'getenv((char \*)((char_u \*)"COLORS")'; do
+for g in 'getenv((char \*)((char_u \*)"HOME")' homedir init_users match_user getpwnam; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
         echo "  globals      $g still has $n mentions after the sweep"
@@ -58,10 +61,32 @@ for g in 'getenv((char \*)((char_u \*)"TERM")' 'getenv("LINES")' 'getenv("COLUMN
         exit 1
     fi
 done
-echo "  terminal     nothing asks the environment what terminal this is"
+echo "  home         nothing asks where home is, or who this is"
+
+# The post-condition, asked AFTER the sweep for the reason above.
+for g in getenv setenv unsetenv environ vim_getenv; do
+    n=$(grep -cw -- "$g" "$f" || true)
+    if [ "$n" != 0 ]; then
+        echo "  environment  $g still has $n mentions after the sweep"
+        grep -nw -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        exit 1
+    fi
+done
+echo "  environment  nothing in the source asks the environment anything"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
+
+# And the same question of the object, which is the one that cannot be argued
+# with: a libc call this source no longer writes could still arrive through a
+# macro or an inline.
+for g in getenv setenv unsetenv environ; do
+    if grep -qx -- "$g" .cache/symbols/last/undefined; then
+        echo "  symbols      $g is still undefined in the object"
+        exit 1
+    fi
+done
+echo "  symbols      getenv, setenv, unsetenv and environ are gone from nm -u"
 
 make -C "$work" clean >/dev/null 2>&1 || true
 if make -C "$work" >/dev/null 2>&1; then
@@ -72,6 +97,9 @@ else
 fi
 
 # --- the delta, cumulative --------------------------------------------------
+# --term-moved is CUMULATIVE, like the command list: the comparison is always
+# against the slim baseline, and phase 21 collapsed that table for good.  Every
+# phase after it declares the same thing.
 tools/puredelta.sh "$work/pure-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
     helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
     tags preserve swapname mkvimrc mkexrc checktime

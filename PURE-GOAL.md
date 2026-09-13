@@ -700,7 +700,7 @@ so it stays and is now always effectively off.
 It is in the list above no longer, and the correction is worth more than the
 line it takes. A row is also what **initialises** its global, so a row can only
 go once nothing reads the global — and `recover_names()` scans every directory
-in `p_dir` looking for swap files, right up until Phase 25 deletes it. Dropping
+in `p_dir` looking for swap files, right up until Phase 23 deletes it. Dropping
 the row here left `p_dir` NULL for ever, with a live dereference in
 `check_overwrite()`, which asks whether *another* vim has a swap file beside the
 file you are about to overwrite. So this shipped for twelve phases:
@@ -720,7 +720,7 @@ shape that reaches it.
 `dropoptions.py --strict` refuses exactly this and did not exist when this phase
 was written. The repair has three parts, and only the first is about this bug:
 
-1. `'directory'` moves to Phase 26, where its last reader goes. Phase 13 keeps
+1. `'directory'` moves to Phase 23, where its last reader goes. Phase 13 keeps
    the row, so `p_dir` is initialised for every phase in between.
 2. `tools/orphanopts.py` runs in **every** pure phase, out of `puredelta.sh`. It
    parses `options[]`, collects every `&p_xx` it names, and compares that with
@@ -729,7 +729,7 @@ was written. The repair has three parts, and only the first is about this bug:
    fatal. `'updatecount'` is genuinely safe to drop here for that reason —
    `p_uc` reading 0 *is* "never create a swap file".
 3. `--strict` learned that `varp == (char_u *)&p_x` takes an address rather than
-   reading a value. Counting those made it refuse `'directory'` in Phase 26,
+   reading a value. Counting those made it refuse `'directory'` in Phase 23,
    where the row genuinely was inert — a guard that cries wolf gets turned off,
    which would have cost more than the bug did.
 
@@ -1030,7 +1030,9 @@ so `file_ff_differs()` keeps those and loses only the two that cannot.
 **None.** Both report `E518` instead of a value with one possible setting. What
 is left is `'encoding'`, alone, reporting `utf-8`.
 
-## Phase 20 — nothing is read at startup that was not named on the command line
+## Phase 20 — nothing is read at startup, and nothing on the command line decides anything
+
+### nothing is read at startup that was not named on the command line
 
 An editor that goes looking for its own configuration has a filesystem layout in
 its head. `source_startup_scripts()` tried, in order:
@@ -1057,7 +1059,7 @@ is the kind of thing only a survey of every `getenv` finds. So does
 `process_env()`, which ran `$VIMINIT` or `$EXINIT` as Ex commands, and `'exrc'`,
 which selected between two searches that no longer happen.
 
-### The delta
+#### The delta
 
 **None, and that is the point rather than a surprise.** Every harness passes
 `-u NONE`, so none of these paths was taken in a recorded run. What changes is
@@ -1068,7 +1070,7 @@ option is what suppresses the search; while the search exists, dropping the
 option would change every harness at once. Once nothing is searched for, `-u
 NONE` is a no-op and the option can go without moving a single recorded output.
 
-## Phase 21 — command-line options that no longer decide anything
+### command-line options that no longer decide anything
 
 Four outlived what they controlled, each in a different way.
 
@@ -1082,7 +1084,7 @@ Four outlived what they controlled, each in a different way.
 **`-u <file>` stays.** Phase 20 removed every path the editor searched on its
 own; a file the user names is not the editor going looking.
 
-### The harnesses change, and that is the check
+#### The harnesses change, and that is the check
 
 All three stop passing `-i NONE`, and `slim-vim` — which still has the option —
 must still match its recorded baselines afterwards. It does. That is what proves
@@ -1096,7 +1098,7 @@ read `$SHELL` at startup and turned restricted mode on when the answer was
 nothing. `EX_RESTRICT` comes out of the twenty-four rows that carry it, because
 a flag nothing reads is a concept the table still has and the code does not.
 
-### Two cuts that landed in the wrong place first
+#### Two cuts that landed in the wrong place first
 
 Both are the same mistake and both were caught by the compiler rather than by
 care. `case 't':` occurs in `get_c_indent()` as well, three thousand lines away
@@ -1107,11 +1109,11 @@ earlier. Everything that edits the option parser is now applied to
 `command_line_scan()`'s body alone, and the struct field is anchored on `int
 edit_type;`, which sits immediately above it and nowhere else.
 
-### The delta
+#### The delta
 
 **None.**
 
-## Phase 22 — the terminal is what the build says
+## Phase 21 — the terminal is what the build says
 
 Five environment variables describe the terminal and the editor believed all of
 them: `$TERM` picks a capability table, `$LINES` and `$COLUMNS` override the size
@@ -1166,7 +1168,9 @@ which stops at the first line that is only a brace — an inner block's, wheneve
 there is one. This phase made it five. It is one function in `cutil.py` now,
 brace-matched, refusing a block that has an `else`.
 
-## Phase 23 — there is no home directory
+## Phase 22 — nothing outside the process is consulted
+
+### there is no home directory
 
 `$HOME` is where an editor keeps the things it was told not to keep. This fork
 stopped writing them in Phase 13 and stopped looking for them in Phase 20, and
@@ -1185,13 +1189,13 @@ be taken by hand, because `-Wunused-but-set-variable` is not a shape the sweep
 deletes: `at_start`, which existed only to know whether a `~` began a path, and
 `startstr_len`, measured for the one test that used it.
 
-### Where the symbol count moves
+#### Where the symbol count moves
 
 `getpwnam`, `getpwent`, `setpwent`, `endpwent` — 119 → 115. CLAUDE.md notes that
 `getpwnam()` working under static musl is one of the two things that make this
 binary honestly standalone. It no longer needs it.
 
-### Two corrections to what this phase was planned to do
+#### Two corrections to what this phase was planned to do
 
 **`getuid` and `getgid` do not go.** `buf_write()` uses them to check ownership
 before overwriting a read-only file and to preserve owner and group. That is
@@ -1203,20 +1207,20 @@ file writing, which pure-vim keeps, and the plan was wrong to list them here.
 of its own rather than a corner of this one: `ml_recover()` alone is 559 lines,
 `recover_names()` 216 and `swapfile_info()` 103.
 
-### The delta
+#### The delta
 
 **None the harness records.** `:e ~/notes` opens a file called `~/notes` in the
 current directory, which no harness asks for.
 
 `--term-moved` is **cumulative**, like the command list — the comparison is
-always against the slim baseline, and Phase 22 collapsed that table for good, so
+always against the slim baseline, and Phase 21 collapsed that table for good, so
 every phase after it declares the same thing. Discovered by this phase failing
 when it did not.
 
-## Phase 24 — nothing is read from the environment
+### nothing is read from the environment
 
 The third and last of the standalone phases. Phase 20 stopped reading
-configuration files, Phase 23 stopped believing in a home directory, and this
+configuration files, Phase 22 stopped believing in a home directory, and this
 one removes the environment itself — after it, no answer this editor gives
 depends on how it was invoked.
 
@@ -1235,12 +1239,12 @@ already taking:
 | `$VIMRUNTIME` (`fix_help_buffer`) | the `*local-additions*` scan, 111 lines, already a no-op |
 | `$SHELL`, `$CDPATH`, `$VIM_POSIX` | the compiled-in defaults |
 | `$TMPDIR`, `$TEMP`, `$TMP` | `/tmp`, which was always in the list |
-| `$COLORFGBG` | what Phase 22 decided the terminal is |
+| `$COLORFGBG` | what Phase 21 decided the terminal is |
 | `$TZ` | `localtime_r`, which does the zone setup itself |
 | `$VIM`, `$VIMRUNTIME`, `$MYVIMDIR`, written | nothing writes them |
 | `environ`, walked for `$VAR` completion | the row and its `$`-prefix context go, as `~user`'s did |
 
-`expand_env_esc` is the same answer Phase 23 gave `home_replace`: with the `$`
+`expand_env_esc` is the same answer Phase 22 gave `home_replace`: with the `$`
 arm gone what remains is `skipwhite`, the backslash escape and the bound on
 `dstlen`, and a name reaches its caller intact.
 
@@ -1250,28 +1254,30 @@ published. Every `do_source()` call in the file passes `DOSO_NONE`, so the two
 arms that called it have been dead since Phase 20. Deleting them takes
 `vim_setenv`, `export_myvimdir` and `$MYVIMDIR` with them.
 
-### The check is the object, not the source
+#### The check is the object, not the source
 
 `getenv`, `setenv`, `unsetenv` and `environ` leave `nm -u`: **115 → 110**, the
 fifth being `tzset`. Grepping the source is not sufficient and the phase does
 both — the sweep is what removes `vim_getenv`, so asking before it runs gets
 the wrong answer, which this pipeline has now learned four times.
 
-### What stays
+#### What stays
 
 `vim_localtime()` still calls `localtime_r()`, and musl reads `$TZ` inside it.
 The rule this phase enforces is that *this source* asks the environment
 nothing; making a file's timestamp display in UTC would be a different
 decision, and not this one.
 
-### The delta
+#### The delta
 
 **None the harness records.** `:w $FOO.txt` writes a file called `$FOO.txt`,
 `:e $HOME/notes.txt` needs a directory literally named `$HOME`, and
 `:set shell?` says `sh` whatever `$SHELL` was — verified by hand, none of it
 something a harness asks for.
 
-## Phase 25 — there is nothing to recover
+## Phase 23 — there is nothing to recover, and the memfile is memory
+
+### there is nothing to recover
 
 Phase 13 made the swap file memory-only: the block structure is still built,
 still paged, still where every line of the buffer lives, but it never reaches a
@@ -1288,20 +1294,20 @@ the recovery arm of `create_windows()`. `ml_recover()` (559 lines),
 `recover_names()` (216) and `swapfile_info()` (103) go with them.
 
 **This is where `getpwuid` goes** — the fifth of the five password-database
-symbols, and the one Phase 23 said would need a phase of its own.
+symbols, and the one Phase 22 said would need a phase of its own.
 `swapfile_info()` called `mch_get_uname()` to say who owned a swap file.
 
 `:recover` was pointed at `ex_ni` earlier and does not move. It already failed,
 needing a swap file to read — which is Rule 3's other half: retiring a command
 only shows in the Ex sweep if it used to *succeed*.
 
-### Time, which is the part that is a decision rather than a consequence
+#### Time, which is the part that is a decision rather than a consequence
 
 `swapfile_info()` was the only caller of `get_ctime()`, which left
 `vim_localtime()` with exactly one user: `add_time()`, the timestamp in
 `:undolist` and in `1 change; before #3`. It is dropped too, and **not because
 it is unreachable**. `localtime_r()` asks libc what the local zone is, and
-Phase 24 took away every way this editor could be told; a wall-clock time
+Phase 22 took away every way this editor could be told; a wall-clock time
 without a zone is a wrong answer rather than a partial one. Undo history does
 not outlive the process either — `:wundo` and `:rundo` have been `ex_ni` since
 Phase 13 — so every time `add_time()` formats is within one session, and the
@@ -1309,25 +1315,25 @@ relative form it already used below 100 seconds is the true one. `strftime` and
 both format strings go with it, and `:undolist` now reads `1 second ago` where
 it used to read `14:23:07`.
 
-### Where the symbol count moves
+#### Where the symbol count moves
 
 **110 → 107**: `getpwuid`, `localtime_r`, `strftime`.
 
-### The delta
+#### The delta
 
 **None.** Verified by hand: `-r` is now `Unknown option argument: "-r"`,
 `:undolist` prints `1 second ago`, and editing is untouched.
 
-## Phase 26 — the memfile is memory, and only memory
+### the memfile is memory, and only memory
 
-Phase 13 stopped the editor creating a swap file and Phase 25 stopped it reading
+Phase 13 stopped the editor creating a swap file and Phase 23 stopped it reading
 one back. What was left is a **file back-end with no file**: `memfile_T` still
 carried a descriptor, still knew how to page a block out and read it in, and
 still sized an LRU cache against how much memory the machine has — all of it
 behind `if (mfp->mf_fd >= 0)`, and `mf_fd` could no longer be anything but −1.
 
 The proof is short. `mf_open()` has two callers: `ml_open()` passes `(NULL, 0)`,
-and `ml_recover()` passed a name — Phase 25 deleted it. Phase 13 stubbed
+and `ml_recover()` passed a name — Phase 23 deleted it. Phase 13 stubbed
 `ml_open_file()` to `b_may_swap = FALSE`. So nothing can hand the memfile a
 name, `mf_do_open()` is unreachable, and `mf_write()` and `mf_read()` return
 FAIL on their first lines.
@@ -1356,7 +1362,7 @@ elsewhere (**`uname`**); `lalloc()`'s retry loop, whose whole point was that
 blocks still have numbers, `mf_trans` still maps them. This removes the ability
 to *evict* a block, which was already impossible — not the ability to have one.
 
-### A bug this phase fixes, and where it came from
+#### A bug this phase fixes, and where it came from
 
 `check_overwrite()` is the last reader of `p_dir`, so **`'directory'` can
 finally go**. Phase 13 dropped its row while this still read it, and a row is
@@ -1379,18 +1385,18 @@ pure phase, and is type-aware — a `long` orphan reads as 0 and is reported, a
 takes an address rather than reading a value, which is what made it refuse a row
 that was genuinely inert.
 
-### Where the symbol count moves
+#### Where the symbol count moves
 
 **107 → 104**: `sysinfo`, `getrlimit`, `uname`. `sysconf` stays — its other
 caller is `_SC_SIGSTKSZ`, for `sigaltstack`.
 
-### The delta
+#### The delta
 
 **None.** `:w!` over an existing other file stops crashing and writes it, which
 is what it should always have done, and the phase asserts that directly — no
 harness does.
 
-## Phase 27 — the working directory is where it started
+## Phase 24 — the working directory is where it started
 
 `:cd`, `:lcd` and `:tcd` are `ex_ni`, `:!` no longer forks, and nothing else in
 this editor moves the process. So **the directory it starts in is the one it
@@ -1455,7 +1461,7 @@ directory it is standing in. So it writes `sub/f.txt` from above and then
 `../sub/f.txt` from inside `sub`, and requires the file to come back correct
 both times.
 
-## Phase 28 — no floating-point library
+## Phase 25 — no floating-point library
 
 Three calls are the whole of libm in this editor, and they turn out to be two
 different questions.
@@ -1515,7 +1521,7 @@ either — what changes is that `nm -u` stops naming a floating-point function.
 
 **None.**
 
-## Phase 29 — there is no mouse
+## Phase 26 — there is no mouse
 
 A terminal mouse is a protocol, not a device: the terminal is asked to report
 clicks, it sends escape sequences, the editor decodes them into key codes, and
@@ -1624,7 +1630,9 @@ for an option that exists, 1 for one that does not. It is paired with
 `:set ignorecase` as a control, so the check fails if the binary starts exiting
 1 whatever it is asked.
 
-## Phase 30 — a write is a write
+## Phase 27 — a write is a write, and nobody owns it
+
+### a write is a write
 
 Writing a file in vim is not one operation. Before the new contents go anywhere
 the old file may be renamed or copied aside, its permissions, owner, group, ACL
@@ -1663,31 +1671,31 @@ Three things fall out that are worth naming separately:
 `fchown` and `umask` were not on the list and went anyway — every call to both
 was inside the backup block.
 
-### The same circle, twice more
+#### The same circle, twice more
 
 `'backupcopy'` names `did_set_backupcopy` and `expand_set_backupcopy` in its own
 row, and `'backupext'` and `'patchmode'` share
 `did_set_backupext_or_patchmode`; a row is a root, so the handlers survive the
 sweep, read `p_bkc` and `p_bex`, and `--strict` then refuses to drop the row
-that is the only thing keeping them alive. Phase 29 met this three times. The
+that is the only thing keeping them alive. Phase 26 met this three times. The
 rows are pointed at NULL first.
 
 `didset_string_options()` reads `p_bkc` at startup — the trap Phase 20 records,
 met again — and `set_init_default_backupskip()` looks its row up **by name**,
 the lookup that returns −1 and is not checked.
 
-### Where the symbol count moves
+#### Where the symbol count moves
 
 **98 → 92**: `fchown`, `readlink`, `rename`, `symlink`, `umask`, `utime`.
 
-### The delta
+#### The delta
 
 **None the harness records.** `:w` writes; it just stops leaving a `~` file
 beside what it wrote, which no harness asked for. The phase checks that
 directly — overwrite a file and the directory must hold exactly what it held
 before, with the new contents in it.
 
-## Phase 31 — nobody owns a file
+### nobody owns a file
 
 An embedded editor runs where there are no users to tell apart, so asking who
 you are is asking a question with no answer. Four places were still asking.
@@ -1704,15 +1712,15 @@ you are is asking a question with no answer. Four places were still asking.
   * `'modeline'` is forced off when `getuid() == ROOT_UID`, a protection against
     a modeline running as root. There is no root here and no `+eval` for a
     modeline to reach.
-  * `get_user_name()` was stubbed to `return FAIL;` in Phase 23, when the
+  * `get_user_name()` was stubbed to `return FAIL;` in Phase 22, when the
     password database went, and its two callers were left writing the answer
     into the swap file's block zero. The second one's `else` — the arm that
     spliced a user name into the recorded file name — has therefore been dead
-    since Phase 23 and goes now, along with the `b0_uname` field itself. **A
+    since Phase 22 and goes now, along with the `b0_uname` field itself. **A
     struct field is not a variable**: no warning names one that nothing reads,
     and the sweep cannot see it, so it has to be named here.
 
-### Permissions are not ownership
+#### Permissions are not ownership
 
 `chmod` and `fchmod` stay, through `mch_setperm()` and `mch_fsetperm()`. A file
 still has a mode, `:w!` still has to clear the read-only bit to write, and the
@@ -1723,11 +1731,11 @@ capability and not a concept — so the phase asserts both halves: `getuid` and
 called, and `:w!` over a `chmod 444` file still writes it. No harness writes to
 a read-only file, which is why that check lives here.
 
-### Where the symbol count moves
+#### Where the symbol count moves
 
 **92 → 90**: `getuid`, `getgid`.
 
-### The delta
+#### The delta
 
 **None.**
 

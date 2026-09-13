@@ -27,7 +27,7 @@
 #
 # THE DELTA: eight command names report that they are not available.
 # 'updatecount' and 'swapsync' stop existing; 'directory' CANNOT go here, since
-# recover_names() scans it for swap files until phase 25, and dropping its row
+# recover_names() scans it for swap files until phase 20, and dropping its row
 # while a reader survives is what left p_dir NULL and made `:w!` over an
 # existing other file segfault for twelve phases.  'swapfile' cannot
 # go -- it is PV_BUF and its row is what initialises the global -- so it stays

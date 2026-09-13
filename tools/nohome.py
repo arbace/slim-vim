@@ -16,7 +16,7 @@ working and a name is displayed as what it is.
   * `init_homedir()` -- read `$HOME`, and chdir into it and back to resolve
     symlinks -- loses its call in `common_init_2()`.
   * `expand_env_esc()` stops treating a leading `~`.  Its `$VAR` half stays;
-    Phase 24 takes that.
+    Phase 22 takes that.
   * the user database goes: `init_users()`, `add_user()`, `match_user()` and
     `get_users()` exist so that `~bob` can complete, and `mch_get_uname()` and
     `mch_get_user_name()` so that a swap file could say who wrote it.

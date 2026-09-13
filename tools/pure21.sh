@@ -1,35 +1,35 @@
 #!/bin/sh
-# Pure phase 21 -- command-line options that no longer decide anything.
-# See PURE-GOAL.md.
+# Pure phase 20 -- the terminal is what the build says.  See PURE-GOAL.md.
 #
 # Usage: tools/pure21.sh <work-dir>      (run from the repository root)
 #
-# Four options outlived what they controlled, each in a different way.
+# Five environment variables describe the terminal and the editor believes all
+# of them: $TERM picks a capability table, $LINES and $COLUMNS override the size
+# the kernel reports, $COLORS overrides the colour count the table gives, and
+# $COLORFGBG is read for the background.
 #
-#   -y  evim mode.  parmp->evim_mode is assigned and read nowhere: its one
-#       reader was the line in source_startup_scripts() that sourced
-#       $VIMRUNTIME/evim.vim, and phase 20 removed it.
-#   -Z  restricted mode, whose whole purpose is to refuse shell commands.
-#       check_restricted() has two callers left -- do_bang(), stubbed in phase
-#       10, and ex_stop() -- and no LIVE command carries EX_RESTRICT: the ten
-#       that do are all ex_script_ni.  It guards nothing.
-#   -t  jump to a tag at startup, by running `:ta <tag>`.  Phase 12 retired
-#       :tag, so the option's whole effect is to run a command that reports it
-#       is not implemented.
-#   -i  the viminfo file.  'viminfo' and 'viminfofile' are wired to
-#       (char_u *)NULL in BOTH editors -- the tiny configuration has no viminfo
-#       at all -- so `-i NONE` has been a no-op for as long as this fork has
-#       existed.  That is why the harnesses passed it without anyone noticing.
+# THE COMPILED NAME IS xterm-256color, NOT xterm, and that is the whole care in
+# this phase.  Measured on the shipped binary before choosing:
 #
-# -u <file> STAYS.  Phase 20 removed every path the editor searched on its own;
-# a file the user names is not the editor going looking.
+#     TERM=xterm-256color   -> term=xterm-256color  t_Co=256
+#     TERM=xterm            -> term=xterm           t_Co=8
+#     TERM= (unset)         -> term=xterm           t_Co=8
 #
-# THE HARNESSES CHANGE, and that is the check rather than a side effect.  All
-# three stop passing -i NONE, and slim-vim -- which still has the option -- must
-# still match its recorded baselines afterwards.  It does, which is what proves
-# the option was a no-op there too rather than merely here.
+# set_termname() keeps the requested name and tests strstr(requested, "256color")
+# to apply builtin_256colors on top of whichever table it chose.  So the obvious
+# fallback -- the one the unset case already took -- would have cost eight of
+# every nine colours the terminal can show, silently, for nothing.
+# xterm-256color resolves to the same builtin_xterm table and keeps the add-on.
 #
-# THE DELTA: none.
+# -T <term> STAYS.  It is not the environment, and with one compiled default it
+# is the only way left to say "this is a dumb terminal".  The ten built-in
+# entries are still there and -T still reaches them.
+#
+# THE DELTA: the terminal table collapses.  Every TERM resolved to its own row
+# before; now every one of them resolves to xterm-256color with 256 colours,
+# because nothing consults TERM.  That is declared with --term-moved, which
+# puredelta.sh grew for this phase -- until now no phase could move that table,
+# so "expected unchanged" was the whole check.
 set -eu
 
 work=${1:?usage: pure17.sh <work-dir>}
@@ -39,9 +39,7 @@ before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/dropopts.py "$f" -y -Z
-python3 tools/nocmdopts.py "$f"
-python3 tools/dropoptions.py "$f" --strict viminfo viminfofile
+python3 tools/noterm.py "$f"
 
 
 tools/sweep.sh "$f"
@@ -50,7 +48,7 @@ tools/sweep.sh "$f"
 # environment name this phase removed is mentioned anywhere.  Asking before the
 # sweep gets the wrong answer -- process_env is still there at that point and it
 # is the sweep that removes it.
-for g in evim_mode check_restricted EX_RESTRICT restricted '"vif"'; do
+for g in 'getenv((char \*)((char_u \*)"TERM")' 'getenv("LINES")' 'getenv("COLUMNS")' 'getenv((char \*)((char_u \*)"COLORS")'; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
         echo "  globals      $g still has $n mentions after the sweep"
@@ -60,7 +58,7 @@ for g in evim_mode check_restricted EX_RESTRICT restricted '"vif"'; do
         exit 1
     fi
 done
-echo "  options      nothing names the four, or what they set"
+echo "  terminal     nothing asks the environment what terminal this is"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
@@ -74,6 +72,6 @@ else
 fi
 
 # --- the delta, cumulative --------------------------------------------------
-tools/puredelta.sh "$work/pure-vim" "$f" --cases bomb_on,filter,read_cmd \
+tools/puredelta.sh "$work/pure-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
     helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
     tags preserve swapname mkvimrc mkexrc checktime

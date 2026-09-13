@@ -74,7 +74,7 @@ if [ "$moved" != "$cases" ]; then
 fi
 
 # The terminal table is declared the same way the behaviour cases are.  Until
-# Phase 22 no phase could move it, so "expected unchanged" was the whole check;
+# Phase 20 no phase could move it, so "expected unchanged" was the whole check;
 # a phase that makes every TERM resolve to one entry has to be able to say so.
 if [ "$term_moved" = yes ]; then
     if diff -q "$base/ref-term.txt" "$tmp/m" >/dev/null; then
