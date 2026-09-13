@@ -45,39 +45,41 @@ sys.path.insert(0, __file__.rsplit('/', 1)[0])
 import cutil
 
 FULLNAME = '''    int         buflen = 0;
-    char_u      *p;
-    int         retval = OK;
 
     // The dance that used to be here chdir'd into the leading directory of a
     // relative name, asked getcwd() where that landed, and chdir'd back -- so
-    // that `..` and a symlinked directory were resolved.  Nothing moves this
-    // process any more, so the answer is the working directory with the name
-    // appended, and `..` survives in it.
-    if ((force || !mch_isFullName(fname)) && ((p = vim_strrchr(fname, '/')) == NULL || p != fname))
+    // that `..` and a symlinked directory were resolved on the way.  Nothing
+    // moves this process any more, so a full name is the working directory
+    // with the name appended, and a `..` in it survives into the answer.
+    //
+    // `force` asked for that re-resolution even when the name was already
+    // absolute.  There is nothing left to re-resolve, so an absolute name is
+    // its own answer -- and prepending the cwd to one was the whole of the
+    // first attempt at this, which moved :read, :write and :wq.
+    if (!mch_isFullName(fname))
     {
         if (mch_dirname(buf, len) == FAIL)
         {
             *buf = NUL;
-            retval = FAIL;
+            return FAIL;
         }
         buflen = (int) strlen((char *)(buf)) ;
         if (buflen >= len - 1)
         {
-            retval = FAIL;
+            return FAIL;
         }
-        else if (buflen > 0 && buf[buflen - 1] !=  ((char_u)'/')  && *fname != NUL &&  strcmp((char *)(fname), (char *)("."))  != 0)
+        if (buflen > 0 && buf[buflen - 1] !=  ((char_u)'/')  && *fname != NUL &&  strcmp((char *)(fname), (char *)("."))  != 0)
         {
              strcpy((char *)(buf + buflen), (char *)( "/" )) ;
             buflen += sizeof( ((char_u)'/') );
         }
     }
-
-    if (buflen == 0)
+    else
     {
-        buflen = (int) strlen((char *)(buf)) ;
+        *buf = NUL;
     }
 
-    if (retval == FAIL || (int)(buflen +  strlen((char *)(fname)) ) >= len)
+    if ((int)(buflen +  strlen((char *)(fname)) ) >= len)
     {
         return FAIL;
     }
@@ -150,9 +152,32 @@ def main():
     text = cut(text, r'^[ \t]*win_fix_current_dir\(\);\n\n?', 'its unconditional call')
     print('  nochdir      win_fix_current_dir, whose guard cannot be true')
 
+    # `globaldir` remembers the directory to come back to when a window-local
+    # one is in force.  win_fix_current_dir() was the only thing that ever set
+    # it, so what is left is aucmd_prepbuf()/aucmd_restbuf() saving and
+    # restoring a pointer that is always NULL.  A STRUCT FIELD IS NOT A
+    # VARIABLE -- no warning would report this one -- so it is named here.
+    for pattern, what in (
+            (r'^[ \t]*aco->globaldir = globaldir;\n[ \t]*globaldir = NULL;\n', 'the save'),
+            (r'^[ \t]*vim_free\(globaldir\);\n[ \t]*globaldir = aco->globaldir;\n', 'the restore'),
+            (r'^[ \t]*char_u      \*globaldir;\n', 'the field'),
+            (r'^static char_u   \*globaldir  = NULL ;\n', 'the global')):
+        text = cut(text, pattern, 'globaldir -- %s' % what)
+    print('  nochdir      globaldir, saved and restored and always NULL')
+
     # edit_buffers() returns to `cwd` between -o windows.  It is passed
     # start_dir, which nothing assigns.
     text = cutil.drop_if(text, r'^[ \t]*if \(cwd != NULL\)$', flags=re.M)
+    for pattern, what in (
+            (r'^static char_u \*start_dir = NULL;\n\n?', 'start_dir itself'),
+            (r'^[ \t]*vim_free\(start_dir\);\n', 'the free of it')):
+        text = cut(text, pattern, 'start_dir -- %s' % what)
+    text = text.replace('edit_buffers(&params, start_dir);',
+                        'edit_buffers(&params);', 1)
+    text = text.replace('static void edit_buffers(mparm_T *parmp, char_u *cwd);',
+                        'static void edit_buffers(mparm_T *parmp);', 1)
+    text = text.replace('edit_buffers(mparm_T     *parmp, char_u      *cwd)',
+                        'edit_buffers(mparm_T     *parmp)', 1)
     print('  nochdir      the -o window walk stops returning to a directory it '
           'was never given')
 

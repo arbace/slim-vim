@@ -3562,7 +3562,6 @@ typedef struct
     int         save_prevwin_id;
     bufref_T    new_curbuf;
     char_u      *tp_localdir;
-    char_u      *globaldir;
     int         save_VIsual_active;
 } aco_save_T;
 
@@ -4731,7 +4730,6 @@ struct slang_S
 
 // ---------------- begin os_unix.pro ----------------
 static sighandler_T mch_signal(int sig, sighandler_T func);
-static int mch_chdir(char *path);
 static void reset_signals(void);
 static int vim_handle_signal(int sig);
 static int mch_can_restore_title(void);
@@ -6257,7 +6255,6 @@ static void goto_tabpage_win(tabpage_T *tp, win_T *wp);
 static void tabpage_move(int nr);
 static void win_goto(win_T *wp);
 static void win_enter(win_T *wp, int undo_sync);
-static void win_fix_current_dir(void);
 static win_T *buf_jump_open_win(buf_T *buf);
 static win_T *buf_jump_open_tab(buf_T *buf);
 static int win_unlisted(win_T *wp);
@@ -6514,7 +6511,6 @@ static int      really_exiting  = FALSE ;
 static int      v_dying  = 0 ;
 static int      stdout_isatty  = TRUE ;
 
-static char     *last_chdir_reason  = NULL ;
 static volatile sig_atomic_t full_screen  = FALSE ;
 
 static int      secure  = FALSE ;
@@ -6753,8 +6749,6 @@ static FILE *redir_fd  = NULL ;
 
 static const char *Version;
 static char *longVersion;
-
-static char_u   *globaldir  = NULL ;
 
 static int      km_stopsel  = FALSE ;
 static int      km_startsel  = FALSE ;
@@ -7011,7 +7005,6 @@ static char e_other_window_contains_changes[]  =  "E445: Other window contains c
 static char e_no_file_name_under_cursor[]  =  "E446: No file name under cursor"  ;
 static char e_cant_find_file_str_in_path_2[]  =  "E447: Can't find file \"%s\" in path"  ;
 static char e_ul_color_unknown[]  =  "E453: UL color unknown"  ;
-static char e_cannot_go_back_to_previous_directory[]  =  "E459: Cannot go back to previous directory"  ;
 static char e_ambiguous_use_of_user_defined_command[]  =  "E464: Ambiguous use of user-defined command"  ;
 static char e_winsize_requires_two_number_arguments[]  =  "E465: :winsize requires two number arguments"  ;
 static char e_winpos_requires_two_number_arguments[]  =  "E466: :winpos requires two number arguments"  ;
@@ -10233,8 +10226,6 @@ aucmd_prepbuf(aco_save_T  *aco, buf_T       *buf)
 
         aco->tp_localdir = curtab->tp_localdir;
         curtab->tp_localdir = NULL;
-        aco->globaldir = globaldir;
-        globaldir = NULL;
 
         block_autocmds();
         make_snapshot(SNAP_AUCMD_IDX);
@@ -10318,14 +10309,8 @@ win_found:
         }
         curbuf = curwin->w_buffer;
         prevwin = win_find_by_id(aco->save_prevwin_id);
-        if (awp->w_localdir != NULL)
-        {
-            win_fix_current_dir();
-        }
         vim_free(curtab->tp_localdir);
         curtab->tp_localdir = aco->tp_localdir;
-        vim_free(globaldir);
-        globaldir = aco->globaldir;
 
         VIsual_active = aco->save_VIsual_active;
         check_cursor();
@@ -106592,18 +106577,6 @@ mch_signal(int sig, sighandler_T func)
     return blocked ? SIG_HOLD: old.sa_handler;
 }
 
-    static int
-mch_chdir(char *path)
-{
-    if (p_verbose >= 5)
-    {
-        verbose_enter();
-        smsg("chdir(%s)", path);
-        verbose_leave();
-    }
-    return chdir(path);
-}
-
     static void
 mch_write(char_u *s, int len)
 {
@@ -107171,11 +107144,27 @@ mch_get_pid(void)
     static int
 mch_dirname(char_u *buf, int len)
 {
-    if (getcwd((char *)buf, len) == NULL)
+    // Asked once.  Nothing can move this process -- :cd, :lcd and :tcd are
+    // ex_ni, :! does not fork, and mch_FullName() no longer chdirs -- so every
+    // later call is asking the kernel a question whose answer cannot have
+    // changed since the first one.
+    static char_u   cwd[ PATH_MAX ];
+    static int      cwd_len = -1;
+
+    if (cwd_len < 0)
     {
-         strcpy((char *)(buf), (char *)(strerror(errno))) ;
+        if (getcwd((char *)cwd, sizeof(cwd)) == NULL)
+        {
+             strcpy((char *)(buf), (char *)(strerror(errno))) ;
+            return FAIL;
+        }
+        cwd_len = (int) strlen((char *)(cwd)) ;
+    }
+    if (cwd_len >= len)
+    {
         return FAIL;
     }
+     strcpy((char *)(buf), (char *)(cwd)) ;
     return OK;
 }
 
@@ -107183,124 +107172,41 @@ mch_dirname(char_u *buf, int len)
 mch_FullName(char_u      *fname, char_u      *buf, int         len, int         force)
 {
     int         buflen = 0;
-    int         fd = -1;
-    static int  dont_fchdir = FALSE;
-    char_u      olddir[ PATH_MAX ];
-    char_u      *p;
-    int         retval = OK;
 
-    if ((force || !mch_isFullName(fname)) && ((p = vim_strrchr(fname, '/')) == NULL || p != fname))
+    // The dance that used to be here chdir'd into the leading directory of a
+    // relative name, asked getcwd() where that landed, and chdir'd back -- so
+    // that `..` and a symlinked directory were resolved on the way.  Nothing
+    // moves this process any more, so a full name is the working directory
+    // with the name appended, and a `..` in it survives into the answer.
+    //
+    // `force` asked for that re-resolution even when the name was already
+    // absolute.  There is nothing left to re-resolve, so an absolute name is
+    // its own answer -- and prepending the cwd to one was the whole of the
+    // first attempt at this, which moved :read, :write and :wq.
+    if (!mch_isFullName(fname))
     {
-        if (p == NULL &&  strcmp((char *)(fname), (char *)(".."))  == 0)
-        {
-            p = fname + 2;
-        }
-        if (p != NULL)
-        {
-            if ( strcmp((char *)(p), (char *)("/.."))  == 0)
-            {
-                p += 3;
-            }
-
-            if (!dont_fchdir)
-            {
-                fd = open(".", O_RDONLY | O_EXTRA, 0);
-                if (fd >= 0 && fchdir(fd) < 0)
-                {
-                    close(fd);
-                    fd = -1;
-                    dont_fchdir = TRUE;
-                }
-            }
-
-            if (fd < 0 && (mch_dirname(olddir,  PATH_MAX ) == FAIL || mch_chdir((char *)olddir) != 0))
-            {
-                p = NULL;
-                retval = FAIL;
-            }
-            else
-            {
-                if (p - fname >= len)
-                {
-                    retval = FAIL;
-                }
-                else
-                {
-                    vim_strncpy(buf, fname, p - fname);
-                    if (mch_chdir((char *)buf))
-                    {
-                        if (mch_isFullName(fname))
-                        {
-                            retval = FAIL;
-                        }
-                        else
-                        {
-                            p = NULL;
-                        }
-                    }
-                    else if (*p == '/')
-                    {
-                        fname = p + 1;
-                    }
-                    else
-                    {
-                        fname = p;
-                    }
-                    *buf = NUL;
-                }
-            }
-        }
         if (mch_dirname(buf, len) == FAIL)
         {
-            retval = FAIL;
             *buf = NUL;
+            return FAIL;
         }
-        if (p != NULL)
-        {
-            int l;
-
-            if (fd >= 0)
-            {
-                if (p_verbose >= 5)
-                {
-                    verbose_enter();
-                    msg("fchdir() to previous dir");
-                    verbose_leave();
-                }
-                l = fchdir(fd);
-            }
-            else
-            {
-                l = mch_chdir((char *)olddir);
-            }
-            if (l != 0)
-            {
-                emsg(_(e_cannot_go_back_to_previous_directory));
-            }
-        }
-        if (fd >= 0)
-        {
-            close(fd);
-        }
-
         buflen = (int) strlen((char *)(buf)) ;
         if (buflen >= len - 1)
         {
-            retval = FAIL;
+            return FAIL;
         }
-        else if (buflen > 0 && buf[buflen - 1] !=  ((char_u)'/')  && *fname != NUL &&  strcmp((char *)(fname), (char *)("."))  != 0)
+        if (buflen > 0 && buf[buflen - 1] !=  ((char_u)'/')  && *fname != NUL &&  strcmp((char *)(fname), (char *)("."))  != 0)
         {
              strcpy((char *)(buf + buflen), (char *)( "/" )) ;
             buflen += sizeof( ((char_u)'/') );
         }
     }
-
-    if (buflen == 0)
+    else
     {
-        buflen = (int) strlen((char *)(buf)) ;
+        *buf = NUL;
     }
 
-    if (retval == FAIL || (int)(buflen +  strlen((char *)(fname)) ) >= len)
+    if ((int)(buflen +  strlen((char *)(fname)) ) >= len)
     {
         return FAIL;
     }
@@ -145406,47 +145312,6 @@ win_enter(win_T *wp, int undo_sync)
     (void)win_enter_ext(wp, (undo_sync ? WEE_UNDO_SYNC : 0) | WEE_TRIGGER_ENTER_AUTOCMDS | WEE_TRIGGER_LEAVE_AUTOCMDS);
 }
 
-    static void
-win_fix_current_dir(void)
-{
-    if (curwin->w_localdir != NULL || curtab->tp_localdir != NULL)
-    {
-        char_u  *dirname;
-
-        if (globaldir == NULL)
-        {
-            char_u      cwd[ PATH_MAX ];
-
-            if (mch_dirname(cwd,  PATH_MAX ) == OK)
-            {
-                globaldir = vim_strsave(cwd);
-            }
-        }
-        if (curwin->w_localdir != NULL)
-        {
-            dirname = curwin->w_localdir;
-        }
-        else
-        {
-            dirname = curtab->tp_localdir;
-        }
-
-        if (mch_chdir((char *)dirname) == 0)
-        {
-            last_chdir_reason = NULL;
-            shorten_fnames(TRUE);
-        }
-    }
-    else if (globaldir != NULL)
-    {
-        vim_ignored = mch_chdir((char *)globaldir);
-         vim_free(globaldir);
-         (globaldir) = NULL;
-        last_chdir_reason = NULL;
-        shorten_fnames(TRUE);
-    }
-}
-
     static int
 win_enter_ext(win_T *wp, int flags)
 {
@@ -145511,8 +145376,6 @@ win_enter_ext(win_T *wp, int flags)
     {
         win_fix_cursor(get_real_state() & (MODE_NORMAL|MODE_CMDLINE|MODE_TERMINAL));
     }
-
-    win_fix_current_dir();
 
     if (flags & WEE_TRIGGER_NEW_AUTOCMDS)
     {
@@ -147620,7 +147483,7 @@ static void mainerr(int, char_u *);
 static void early_arg_scan(mparm_T *parmp);
 static void read_stdin(void);
 static void create_windows(mparm_T *parmp);
-static void edit_buffers(mparm_T *parmp, char_u *cwd);
+static void edit_buffers(mparm_T *parmp);
 static void exe_commands(mparm_T *parmp);
 static void check_swap_exists_action(void);
 
@@ -147637,8 +147500,6 @@ static char *(main_errors[]) =
 static mparm_T  params;
 
 static void *s_vbuf = NULL;
-
-static char_u *start_dir = NULL;
 
 static int has_dash_c_arg = FALSE;
 
@@ -147708,8 +147569,7 @@ vim_main2(void)
     apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
     setpcmark();
 
-    edit_buffers(&params, start_dir);
-    vim_free(start_dir);
+    edit_buffers(&params);
 
     shorten_fnames(FALSE);
 
@@ -148738,7 +148598,7 @@ create_windows(mparm_T *parmp  __attribute__((unused)) )
 }
 
     static void
-edit_buffers(mparm_T     *parmp, char_u      *cwd)
+edit_buffers(mparm_T     *parmp)
 {
     int         arg_idx;
     int         i;
@@ -148758,10 +148618,6 @@ edit_buffers(mparm_T     *parmp, char_u      *cwd)
     arg_idx = 1;
     for (i = 1; i < parmp->window_count; ++i)
     {
-        if (cwd != NULL)
-        {
-            mch_chdir((char *)cwd);
-        }
         if (curwin->w_arg_idx == -1)
         {
             ++arg_idx;
