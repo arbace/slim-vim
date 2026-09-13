@@ -1123,6 +1123,53 @@ which stops at the first line that is only a brace — an inner block's, wheneve
 there is one. This phase made it five. It is one function in `cutil.py` now,
 brace-matched, refusing a block that has an `else`.
 
+## Phase 23 — there is no home directory
+
+`$HOME` is where an editor keeps the things it was told not to keep. This fork
+stopped writing them in Phase 13 and stopped looking for them in Phase 20, and
+what was left is the *notion* of a home directory — `~/x` meaning a path, `~bob`
+meaning someone else's, and `/home/you/x` displayed back as `~/x`.
+
+All three go, and the last is why this is not only a `getenv` removal:
+`home_replace()` has **thirteen callers**, every one a place that shows the user
+a file name. It becomes a bounded copy, so the thirteen keep working and a name
+is shown as what it is.
+
+The user database goes with them — `init_users()`, `add_user()`, `match_user()`
+and `get_users()` exist so that `~bob` can complete, and `mch_get_uname()` so
+that a swap file could say who wrote it. Two smaller things fall out and had to
+be taken by hand, because `-Wunused-but-set-variable` is not a shape the sweep
+deletes: `at_start`, which existed only to know whether a `~` began a path, and
+`startstr_len`, measured for the one test that used it.
+
+### Where the symbol count moves
+
+`getpwnam`, `getpwent`, `setpwent`, `endpwent` — 119 → 115. CLAUDE.md notes that
+`getpwnam()` working under static musl is one of the two things that make this
+binary honestly standalone. It no longer needs it.
+
+### Two corrections to what this phase was planned to do
+
+**`getuid` and `getgid` do not go.** `buf_write()` uses them to check ownership
+before overwriting a read-only file and to preserve owner and group. That is
+file writing, which pure-vim keeps, and the plan was wrong to list them here.
+
+**`getpwuid` does not go either.** `mch_get_uname()` is still reached from
+`swapfile_info()`, under `-r`, which lists swap files that cannot exist — Phase
+13 removed the swap file and left the option that reads them. That wants a phase
+of its own rather than a corner of this one: `ml_recover()` alone is 559 lines,
+`recover_names()` 216 and `swapfile_info()` 103.
+
+### The delta
+
+**None the harness records.** `:e ~/notes` opens a file called `~/notes` in the
+current directory, which no harness asks for.
+
+`--term-moved` is **cumulative**, like the command list — the comparison is
+always against the slim baseline, and Phase 22 collapsed that table for good, so
+every phase after it declares the same thing. Discovered by this phase failing
+when it did not.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.

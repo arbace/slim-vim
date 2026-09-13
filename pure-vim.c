@@ -4760,7 +4760,6 @@ static int mch_can_restore_icon(void);
 static void mch_settitle(char_u *title, char_u *icon);
 static void mch_restore_title(int which);
 static int use_xterm_mouse(void);
-static int mch_get_user_name(char_u *s, int len);
 static int mch_get_uname(uid_t uid, char_u *s, int len);
 static void mch_get_host_name(char_u *s, int len);
 static long mch_get_pid(void);
@@ -5480,8 +5479,6 @@ static size_t expand_env_esc(char_u *srcp, char_u *dst, int dstlen, char_u *esc_
 static char_u *vim_getenv(char_u *name, int *mustfree);
 static void vim_setenv(char_u *name, char_u *val);
 static char_u *get_env_name(expand_T *xp, int idx);
-static char_u *get_users(expand_T *xp, int idx);
-static int match_user(char_u *name);
 static void line_breakcheck(void);
 static void fast_breakcheck(void);
 static int goto_im(void);
@@ -6805,8 +6802,6 @@ static char *longVersion;
 
 static char_u *default_vim_dir;
 static char_u *default_vimruntime_dir;
-
-static char_u   *homedir  = NULL ;
 
 static char_u   *globaldir  = NULL ;
 
@@ -25059,18 +25054,6 @@ set_context_for_wildcard_arg(exarg_T         *eap, char_u          *arg, int    
             }
         }
     }
-    if (*xp->xp_pattern == '~')
-    {
-        for (p = xp->xp_pattern + 1; *p != NUL && *p != '/'; ++p)
-        {
-            ;
-        }
-        if (*p == NUL && p > xp->xp_pattern + 1 && match_user(xp->xp_pattern + 1) >= 1)
-        {
-            xp->xp_context = EXPAND_USER;
-            ++xp->xp_pattern;
-        }
-    }
 }
 
     static char_u *
@@ -26060,7 +26043,6 @@ ExpandOther(char_u          *pat, expand_T        *xp, regmatch_T      *rmp, cha
         {EXPAND_EVENTS, get_event_name, TRUE, FALSE},
         {EXPAND_AUGROUP, get_augroup_name, TRUE, FALSE},
         {EXPAND_ENV_VARS, get_env_name, TRUE, TRUE},
-        {EXPAND_USER, get_users, TRUE, FALSE},
         {EXPAND_ARGLIST, get_arglist_name, TRUE, FALSE},
         {EXPAND_RETAB, get_retab_arg, TRUE, TRUE},
     };
@@ -52411,103 +52393,24 @@ file_is_readable(char_u *fname)
     static size_t
 home_replace(buf_T       *buf, char_u      *src, char_u      *dst, int         dstlen, int         one)
 {
-    size_t dirlen = 0;
-    size_t envlen = 0;
-    size_t      len;
-    char_u *homedir_env;
-    char_u *homedir_env_orig;
-    char_u      *p;
-    char_u      *dst_start;
+    size_t len;
 
+    // A name is shown as what it is.  This was the shortening of a path under
+    // $HOME to ~/..., and its thirteen callers are every place that displays a
+    // file name to the user; they keep working, and see the name unchanged.
     if (src == NULL)
     {
         *dst = NUL;
         return 0;
     }
-
-    if (buf != NULL && buf->b_help)
+    len =  strlen((char *)(src)) ;
+    if (len >= (size_t)dstlen)
     {
-        return vim_snprintf_safelen((char *)dst, dstlen, "%s", gettail(src));
+        len = (size_t)dstlen - 1;
     }
-
-    if (homedir != NULL)
-    {
-        dirlen =  strlen((char *)(homedir)) ;
-    }
-
-    homedir_env_orig = homedir_env =  (char_u *)getenv((char *)((char_u *)"HOME")) ;
-    if (homedir_env != NULL && *homedir_env == NUL)
-    {
-        homedir_env = NULL;
-    }
-
-    if (homedir_env != NULL && *homedir_env == '~')
-    {
-        size_t  usedlen = 0;
-        size_t  flen;
-        char_u  *fbuf = NULL;
-
-        flen =  strlen((char *)(homedir_env)) ;
-        (void)modify_fname((char_u *)":p", FALSE, &usedlen, &homedir_env, &fbuf, &flen);
-        flen =  strlen((char *)(homedir_env)) ;
-        if (flen > 0 && vim_ispathsep(homedir_env[flen - 1]))
-        {
-            homedir_env[flen - 1] = NUL;
-        }
-    }
-
-    if (homedir_env != NULL)
-    {
-        envlen =  strlen((char *)(homedir_env)) ;
-    }
-
-    if (!one)
-    {
-        src = skipwhite(src);
-    }
-    dst_start = dst;
-    while (*src && dstlen > 0)
-    {
-        p = homedir;
-        len = dirlen;
-        for (;;)
-        {
-            if (   len &&  vim_fnamencmp((char_u *)(src), (char_u *)(p), (len))  == 0 && (vim_ispathsep(src[len]) || (!one && (src[len] == ',' || src[len] == ' ')) || src[len] == NUL))
-            {
-                src += len;
-                if (--dstlen > 0)
-                {
-                    *dst++ = '~';
-                }
-
-                break;
-            }
-            if (p == homedir_env)
-            {
-                break;
-            }
-            p = homedir_env;
-            len = envlen;
-        }
-
-        while (*src && (one || (*src != ',' && *src != ' ')) && --dstlen > 0)
-        {
-            *dst++ = *src++;
-        }
-        while ((*src == ' ' || *src == ',') && --dstlen > 0)
-        {
-            *dst++ = *src++;
-        }
-    }
-
-    *dst = NUL;
-
-    if (homedir_env != homedir_env_orig)
-    {
-        vim_free(homedir_env);
-    }
-
-    return (size_t)(dst - dst_start);
+     memmove((char *)(dst), (char *)(src), len) ;
+    dst[len] = NUL;
+    return len;
 }
 
     static char_u  *
@@ -82038,8 +81941,6 @@ msg_warn_missing_clipboard(void)
 enum { URL_SLASH = 1 };
 enum { URL_BACKSLASH = 2 };
 
-static garray_T ga_users;
-
     static int
 get_leader_len(char_u      *line, char_u      **flags, int         backward, int         include_space)
 {
@@ -82871,33 +82772,6 @@ vim_beep(unsigned val)
     }
 }
 
-    static void
-init_homedir(void)
-{
-    char_u  *var;
-
-     vim_free(homedir);
-     (homedir) = NULL;
-
-    var =  (char_u *)getenv((char *)((char_u *)"HOME")) ;
-
-    if (var != NULL)
-    {
-        if (mch_dirname(NameBuff,  PATH_MAX ) == OK && mch_chdir((char *)NameBuff) == 0)
-        {
-            if (!mch_chdir((char *)var) && mch_dirname(IObuff,  (1024+1) ) == OK)
-            {
-                var = IObuff;
-            }
-            if (mch_chdir((char *)NameBuff) != 0)
-            {
-                emsg(_(e_cannot_go_back_to_previous_directory));
-            }
-        }
-        homedir = vim_strsave(var);
-    }
-}
-
     static char_u *
 expand_env_save(char_u *src)
 {
@@ -82932,93 +82806,50 @@ expand_env_esc(char_u      *srcp, char_u      *dst, int         dstlen, char_u  
     char_u      *var;
     int         copy_char;
     int         mustfree;
-    int         at_start = TRUE;
-    int         startstr_len = 0;
     char_u      *dst_start = dst;
-
-    if (startstr != NULL)
-    {
-        startstr_len = (int) strlen((char *)(startstr)) ;
-    }
 
     src = skipwhite(srcp);
     --dstlen;
     while (*src && dstlen > 0)
     {
         copy_char = TRUE;
-        if ((*src == '$') || (*src == '~' && at_start))
+        if (*src == '$')
         {
             mustfree = FALSE;
 
-            if (*src != '~')
-            {
-                tail = src + 1;
-                var = dst;
-                c = dstlen - 1;
+            tail = src + 1;
+            var = dst;
+            c = dstlen - 1;
 
-                if (*tail == '{' && !vim_isIDc('{'))
-                {
-                    tail++;
-                    while (c-- > 0 && *tail && *tail != '}')
-                    {
-                        *var++ = *tail++;
-                    }
-                }
-                else
-                {
-                    while (c-- > 0 && *tail != NUL && ((vim_isIDc(*tail))))
-                    {
-                        *var++ = *tail++;
-                    }
-                }
-
-                if (src[1] == '{' && *tail != '}')
-                {
-                    var = NULL;
-                }
-                else
-                {
-                    if (src[1] == '{')
-                    {
-                        ++tail;
-                    }
-                    *var = NUL;
-                    var = vim_getenv(dst, &mustfree);
-                }
-            }
-            else if (  src[1] == NUL || vim_ispathsep(src[1]) || vim_strchr((char_u *)" ,\t\n", src[1]) != NULL)
+            if (*tail == '{' && !vim_isIDc('{'))
             {
-                var = homedir;
-                tail = src + 1;
-            }
-            else
-            {
-                tail = src;
-                var = dst;
-                c = dstlen - 1;
-                while (    c-- > 0 && *tail && vim_isfilec(*tail) && !vim_ispathsep(*tail))
+                tail++;
+                while (c-- > 0 && *tail && *tail != '}')
                 {
                     *var++ = *tail++;
                 }
-                *var = NUL;
+            }
+            else
+            {
+                while (c-- > 0 && *tail != NUL && ((vim_isIDc(*tail))))
                 {
-                    struct passwd *pw = (*dst == NUL)
-                                        ? NULL : getpwnam((char *)dst + 1);
-
-                    var = (pw == NULL) ? NULL : (char_u *)pw->pw_dir;
+                    *var++ = *tail++;
                 }
-                if (var == NULL)
-                {
-                    expand_T    xpc;
-
-                    ExpandInit(&xpc);
-                    xpc.xp_context = EXPAND_FILES;
-                    var = ExpandOne(&xpc, dst, NULL, WILD_ADD_SLASH|WILD_SILENT, WILD_EXPAND_FREE);
-                    mustfree = TRUE;
-                }
-
             }
 
+            if (src[1] == '{' && *tail != '}')
+            {
+                var = NULL;
+            }
+            else
+            {
+                if (src[1] == '{')
+                {
+                    ++tail;
+                }
+                *var = NUL;
+                var = vim_getenv(dst, &mustfree);
+            }
             if (esc_chars != NULL && var != NULL &&  (char_u *)strpbrk((char *)(var), (char *)(esc_chars))  != NULL)
             {
                 char_u  *p = vim_strsave_escaped(var, esc_chars);
@@ -83059,25 +82890,16 @@ expand_env_esc(char_u      *srcp, char_u      *dst, int         dstlen, char_u  
 
         if (copy_char)
         {
-            at_start = FALSE;
             if (src[0] == '\\' && src[1] != NUL)
             {
                 *dst++ = *src++;
                 --dstlen;
-            }
-            else if ((src[0] == ' ' || src[0] == ',') && !one)
-            {
-                at_start = TRUE;
             }
             if (dstlen > 0)
             {
                 *dst++ = *src++;
                 --dstlen;
 
-                if (startstr != NULL && src - startstr_len >= srcp &&  strncmp((char *)(src - startstr_len), (char *)(startstr), (startstr_len))  == 0)
-                {
-                    at_start = TRUE;
-                }
             }
         }
 
@@ -83313,109 +83135,6 @@ get_env_name(expand_T    *xp  __attribute__((unused)) , int         idx)
 }
 
     static void
-add_user(char_u *user, int need_copy)
-{
-    char_u      *user_copy = (user != NULL && need_copy)
-                                                    ? vim_strsave(user) : user;
-
-    if (user_copy == NULL || *user_copy == NUL || ga_grow(&ga_users, 1) == FAIL)
-    {
-        if (need_copy)
-        {
-            vim_free(user_copy);
-        }
-        return;
-    }
-    ((char_u **)(ga_users.ga_data))[ga_users.ga_len++] = user_copy;
-}
-
-    static void
-init_users(void)
-{
-    static int  lazy_init_done = FALSE;
-
-    if (lazy_init_done)
-    {
-        return;
-    }
-
-    lazy_init_done = TRUE;
-    ga_init2(&ga_users, sizeof(char_u *), 20);
-
-    {
-        struct passwd*  pw;
-
-        setpwent();
-        while ((pw = getpwent()) != NULL)
-        {
-            add_user((char_u *)pw->pw_name, TRUE);
-        }
-        endpwent();
-    }
-    {
-        char_u  *user_env =  (char_u *)getenv((char *)((char_u *)"USER")) ;
-
-        if (user_env != NULL && *user_env != NUL)
-        {
-            int i;
-
-            for (i = 0; i < ga_users.ga_len; i++)
-            {
-                char_u  *local_user = ((char_u **)ga_users.ga_data)[i];
-
-                if ( strcmp((char *)(local_user), (char *)(user_env))  == 0)
-                {
-                    break;
-                }
-            }
-
-            if (i == ga_users.ga_len)
-            {
-                struct passwd   *pw = getpwnam((char *)user_env);
-
-                if (pw != NULL)
-                {
-                    add_user((char_u *)pw->pw_name, TRUE);
-                }
-            }
-        }
-    }
-}
-
-    static char_u*
-get_users(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    init_users();
-    if (idx < ga_users.ga_len)
-    {
-        return ((char_u **)ga_users.ga_data)[idx];
-    }
-    return NULL;
-}
-
-    static int
-match_user(char_u *name)
-{
-    int i;
-    int n = (int) strlen((char *)(name)) ;
-    int result = 0;
-
-    init_users();
-    for (i = 0; i < ga_users.ga_len; i++)
-    {
-        if ( strcmp((char *)(((char_u **)ga_users.ga_data)[i]), (char *)(name))  == 0)
-        {
-            return 2;
-        }
-        if ( strncmp((char *)(((char_u **)ga_users.ga_data)[i]), (char *)(name), (n))  == 0)
-        {
-            result = 1;
-        }
-    }
-    return result;
-}
-
-    static void
 prepare_to_exit(void)
 {
     mch_signal(SIGHUP, SIG_IGN);
@@ -83587,8 +83306,6 @@ trim_to_int(vimlong_T x)
 }
 
 // ==================== misc2.c ====================
-
-static char_u   *username = NULL;
 
 static int coladvance2(pos_T *pos, int addspaces, int finetune, colnr_T wcol);
 
@@ -85242,19 +84959,7 @@ same_directory(char_u *f1, char_u *f2)
     static int
 get_user_name(char_u *buf, int len)
 {
-    if (username == NULL)
-    {
-        if (mch_get_user_name(buf, len) == FAIL)
-        {
-            return FAIL;
-        }
-        username = vim_strsave(buf);
-    }
-    else
-    {
-        vim_strncpy(buf, username, len - 1);
-    }
-    return OK;
+    return FAIL;
 }
 
     static long
@@ -110139,12 +109844,6 @@ use_xterm_mouse(void)
         return 1;
     }
     return 0;
-}
-
-    static int
-mch_get_user_name(char_u *s, int len)
-{
-    return mch_get_uname(getuid(), s, len);
 }
 
     static int
@@ -150897,7 +150596,6 @@ common_init_2(mparm_T *paramp)
     alist_init(&global_alist);
     global_alist.id = 0;
 
-    init_homedir();
     set_init_1(paramp->clean);
 
 }
