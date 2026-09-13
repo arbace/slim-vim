@@ -1228,6 +1228,53 @@ decision, and not this one.
 `:set shell?` says `sh` whatever `$SHELL` was — verified by hand, none of it
 something a harness asks for.
 
+## Phase 25 — there is nothing to recover
+
+Phase 13 made the swap file memory-only: the block structure is still built,
+still paged, still where every line of the buffer lives, but it never reaches a
+disk. What that left behind is the other half of the feature — the code that
+reads *someone else's* swap file back, which is code for reading a file this
+editor cannot have written.
+
+`-r` and `-L` are the only two things that ever set `recoverymode`, so the
+global folds to FALSE and its seven readers each collapse to the branch they
+were already taking. Three of them are in `readfile()`, which had to know
+whether it was filling a buffer from a swap file rather than from the file
+itself; the other four are the two `-r`-with-no-file arms, the stdin arm, and
+the recovery arm of `create_windows()`. `ml_recover()` (559 lines),
+`recover_names()` (216) and `swapfile_info()` (103) go with them.
+
+**This is where `getpwuid` goes** — the fifth of the five password-database
+symbols, and the one Phase 23 said would need a phase of its own.
+`swapfile_info()` called `mch_get_uname()` to say who owned a swap file.
+
+`:recover` was pointed at `ex_ni` earlier and does not move. It already failed,
+needing a swap file to read — which is Rule 3's other half: retiring a command
+only shows in the Ex sweep if it used to *succeed*.
+
+### Time, which is the part that is a decision rather than a consequence
+
+`swapfile_info()` was the only caller of `get_ctime()`, which left
+`vim_localtime()` with exactly one user: `add_time()`, the timestamp in
+`:undolist` and in `1 change; before #3`. It is dropped too, and **not because
+it is unreachable**. `localtime_r()` asks libc what the local zone is, and
+Phase 24 took away every way this editor could be told; a wall-clock time
+without a zone is a wrong answer rather than a partial one. Undo history does
+not outlive the process either — `:wundo` and `:rundo` have been `ex_ni` since
+Phase 13 — so every time `add_time()` formats is within one session, and the
+relative form it already used below 100 seconds is the true one. `strftime` and
+both format strings go with it, and `:undolist` now reads `1 second ago` where
+it used to read `14:23:07`.
+
+### Where the symbol count moves
+
+**110 → 107**: `getpwuid`, `localtime_r`, `strftime`.
+
+### The delta
+
+**None.** Verified by hand: `-r` is now `Unknown option argument: "-r"`,
+`:undolist` prints `1 second ago`, and editing is untouched.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.

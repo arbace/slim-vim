@@ -728,7 +728,6 @@ enum { EW_ICASE = 0x100 };
 enum { EW_NOERROR = 0x200 };
 enum { EW_ALLLINKS = 0x1000 };
 enum { EW_SHELLCMD = 0x2000 };
-enum { EW_NOTENV = 0x10000 };
 enum { EW_CDPATH = 0x20000 };
 
 enum { SEARCH_REV = 0x01 };
@@ -4759,10 +4758,8 @@ static int mch_can_restore_icon(void);
 static void mch_settitle(char_u *title, char_u *icon);
 static void mch_restore_title(int which);
 static int use_xterm_mouse(void);
-static int mch_get_uname(uid_t uid, char_u *s, int len);
 static void mch_get_host_name(char_u *s, int len);
 static long mch_get_pid(void);
-static int mch_process_running(long pid);
 static int mch_dirname(char_u *buf, int len);
 static int mch_FullName(char_u *fname, char_u *buf, int len, int force);
 static int mch_isFullName(char_u *fname);
@@ -5351,8 +5348,6 @@ static void ml_open_file(buf_T *buf);
 static void check_need_swap(int newfile);
 static void ml_close(buf_T *buf, int del_file);
 static void ml_timestamp(buf_T *buf);
-static void ml_recover(int checkext);
-static int recover_names(char_u *fname, int do_list, list_T *ret_list, int nr, char_u **fname_out);
 static char_u *make_percent_swname(char_u *dir, char_u *dir_end, char_u *name);
 static void ml_sync_all(int check_file, int check_char);
 static void ml_preserve(buf_T *buf, int message);
@@ -5418,8 +5413,6 @@ static void msg_start(void);
 static void msg_starthere(void);
 static void msg_putchar(int c);
 static void msg_putchar_attr(int c, int attr);
-static void msg_outnum(long n);
-static void msg_home_replace(char_u *fname);
 static int msg_outtrans(char_u *str);
 static int msg_outtrans_attr(char_u *str, int attr);
 static int msg_outtrans_len(char_u *str, int len);
@@ -5467,7 +5460,6 @@ static char_u *skip_to_option_part(char_u *p);
 static void check_status(buf_T *buf);
 static int ask_yesno(char_u *str, int direct);
 static int get_keystroke(void);
-static int get_number(int colon, int *mouse_used);
 static void msgmore(long n);
 static void beep_flush(void);
 static void vim_beep(unsigned val);
@@ -6169,7 +6161,6 @@ static void format_lines(linenr_T line_count, int avoid_fex);
 // ---------------- end textformat.pro ----------------
 // ---------------- begin time.pro ----------------
 static time_T vim_time(void);
-static char *get_ctime(time_t thetime, int add_newline);
 // ---------------- end time.pro ----------------
 // ---------------- begin ui.pro ----------------
 static void ui_write(char_u *s, int len, int console);
@@ -6716,7 +6707,6 @@ static char     msg_buf[MSG_BUF_LEN];
 static int      RedrawingDisabled  = 0 ;
 
 static int      readonlymode  = FALSE ;
-static int      recoverymode  = FALSE ;
 
 static typebuf_T typebuf
                     = {NULL, NULL, 0, 0, 0, 0, 0, 0, 0}
@@ -6999,14 +6989,6 @@ static char e_didnt_get_block_nr_one[]  = "E298: Didn't get block nr 1?" ;
 static char e_didnt_get_block_nr_two[]  = "E298: Didn't get block nr 2?" ;
 static char e_swap_file_already_exists_symlink_attack[]  =  "E300: Swap file already exists (symlink attack?)"  ;
 static char e_ml_upd_block0_didnt_get_block_zero[]  = "E304: ml_upd_block0(): Didn't get block 0??" ;
-static char e_no_swap_file_found_for_str[]  =  "E305: No swap file found for %s"  ;
-static char e_cannot_open_str[]  =  "E306: Cannot open %s"  ;
-static char e_str_does_not_look_like_vim_swap_file[]  =  "E307: %s does not look like a Vim swap file"  ;
-static char e_warning_original_file_may_have_been_changed[]  =  "E308: Warning: Original file may have been changed"  ;
-static char e_unable_to_read_block_one_from_str[]  =  "E309: Unable to read block 1 from %s"  ;
-static char e_block_one_id_wrong_str_not_swp_file[]  =  "E310: Block 1 ID wrong (%s not a .swp file?)"  ;
-static char e_recovery_interrupted[]  =  "E311: Recovery Interrupted"  ;
-static char e_errors_detected_while_recovering_look_for_lines_starting_with_questions[]  =  "E312: Errors detected while recovering; look for lines starting with ???"  ;
 static char e_ml_get_invalid_lnum_nr[]  = "E315: ml_get: Invalid lnum: %ld" ;
 static char e_ml_get_cannot_find_line_nr_in_buffer_nr_str[]  = "E316: ml_get: Cannot find line %ld in buffer %d %s" ;
 static char e_pointer_block_id_wrong[]  = "E317: Pointer block id wrong" ;
@@ -7166,7 +7148,6 @@ static char e_autocommands_changed_buffer_or_buffer_name[]  =  "E812: Autocomman
 static char e_cannot_close_autocmd_or_popup_window[]  =  "E813: Cannot close autocmd or popup window"  ;
 static char e_cannot_close_window_only_autocmd_window_would_remain[]  =  "E814: Cannot close window, only autocmd window would remain"  ;
 static char e_undo_number_nr_not_found[]  =  "E830: Undo number %ld not found"  ;
-static char e_str_is_encrypted_and_this_version_of_vim_does_not_support_encryption[]  =  "E833: %s is encrypted and this version of Vim does not support encryption"  ;
 static char e_conflicts_with_value_of_listchars[]  =  "E834: Conflicts with value of 'listchars'"  ;
 static char e_conflicts_with_value_of_fillchars[]  =  "E835: Conflicts with value of 'fillchars'"  ;
 static char e_reserved_name_cannot_be_used_for_user_defined_command[]  =  "E841: Reserved name, cannot be used for user defined command"  ;
@@ -7222,7 +7203,6 @@ static char e_cannot_change_user_commands_while_listing[]  =  "E1311: Cannot cha
 static char e_not_allowed_to_change_window_layout_in_this_autocmd[]  =  "E1312: Not allowed to change the window layout in this autocmd"  ;
 static char e_not_allowed_to_add_or_remove_entries_str[]  =  "E1313: Not allowed to add or remove entries (%s)"  ;
 static char e_internal_error_shortmess_too_long[]  = "E1336: Internal error: shortmess too long" ;
-static char e_warning_pointer_block_corrupted[]  =  "E1364: Warning: Pointer block corrupted"  ;
 static char e_cannot_mix_positional_and_non_positional_str[]  =  "E1500: Cannot mix positional and non-positional arguments: %s"  ;
 static char e_fmt_arg_nr_unused_str[]  =  "E1501: format argument %d unused in $-style format: %s"  ;
 static char e_positional_num_field_spec_reused_str_str[]  =  "E1502: Positional argument %d used as field width reused as different type: %s/%s"  ;
@@ -49664,7 +49644,7 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
 
     wasempty = (curbuf->b_ml.ml_flags & ML_EMPTY);
 
-    if (!recoverymode && !filtering && !(flags & READ_DUMMY))
+    if (!filtering && !(flags & READ_DUMMY))
     {
         if (read_stdin)
         {
@@ -50725,162 +50705,159 @@ failed:
     }
     --no_wait_return;
 
-    if (!recoverymode)
+    if (newfile && wasempty && !(curbuf->b_ml.ml_flags & ML_EMPTY))
     {
-        if (newfile && wasempty && !(curbuf->b_ml.ml_flags & ML_EMPTY))
-        {
-            ml_delete(curbuf->b_ml.ml_line_count);
-            --linecnt;
-        }
-        linecnt = curbuf->b_ml.ml_line_count - linecnt;
-        if (filesize == 0)
-        {
-            linecnt = 0;
-        }
-        if (newfile || read_buffer)
-        {
-            redraw_curbuf_later(UPD_NOT_VALID);
-        }
-        else if (linecnt)
-        {
-            appended_lines_mark(from, linecnt);
-        }
-
-        if (read_stdin)
-        {
-            settmode(TMODE_RAW);
-            starttermcap();
-            screenclear();
-        }
-
-        if (got_int)
-        {
-            if (!(flags & READ_DUMMY))
-            {
-                filemess(curbuf, sfname, (char_u *)_(e_interrupted), 0);
-                if (newfile)
-                {
-                    curbuf->b_p_ro = TRUE;
-                }
-            }
-            msg_scroll = msg_save;
-            retval = OK;
-            goto theend;
-        }
-
-        if (!filtering && !(flags & READ_DUMMY))
-        {
-            int buflen;
-
-            msg_add_fname(curbuf, sfname);
-            c = FALSE;
-
-            buflen = (int) strlen((char *)(IObuff)) ;
-            if (S_ISFIFO(perm))
-            {
-                buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[fifo]"));
-                c = TRUE;
-            }
-            if (S_ISSOCK(perm))
-            {
-                buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[socket]"));
-                c = TRUE;
-            }
-            if (curbuf->b_p_ro)
-            {
-                buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, "%s", shortmess(SHM_RO) ? _("[RO]") : _("[readonly]"));
-                c = TRUE;
-            }
-            if (read_no_eol_lnum)
-            {
-                msg_add_eol();
-                c = TRUE;
-            }
-            if (ff_error == EOL_DOS)
-            {
-                buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[CR missing]"));
-                c = TRUE;
-            }
-            if (split)
-            {
-                buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[long lines split]"));
-                c = TRUE;
-            }
-            if (notconverted)
-            {
-                buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[NOT converted]"));
-                c = TRUE;
-            }
-            else if (converted)
-            {
-                buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[converted]"));
-                c = TRUE;
-            }
-            if (conv_error != 0)
-            {
-                vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[CONVERSION ERROR in line %ld]"), (long)conv_error);
-                c = TRUE;
-            }
-            else if (illegal_byte > 0)
-            {
-                vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[ILLEGAL BYTE in line %ld]"), (long)illegal_byte);
-                c = TRUE;
-            }
-            else if (error)
-            {
-                vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[READ ERRORS]"));
-                c = TRUE;
-            }
-            if (msg_add_fileformat(fileformat))
-            {
-                c = TRUE;
-            }
-                msg_add_lines(c, (long)linecnt, filesize);
-
-             vim_free(keep_msg);
-             (keep_msg) = NULL;
-            msg_scrolled_ign = TRUE;
-            {
-                if (msg_col > 0)
-                {
-                    msg_putchar('\r');
-                }
-                p = (char_u *)msg_trunc_attr((char *)IObuff, FALSE, 0);
-            }
-            if (read_stdin || read_buffer || restart_edit != 0 || (msg_scrolled != 0 && !need_wait_return))
-            {
-                set_keep_msg(p, 0);
-            }
-            msg_scrolled_ign = FALSE;
-        }
-
-        if (newfile && (error || conv_error != 0 || (illegal_byte > 0 && bad_char_behavior !=  (-1) )))
-        {
-            curbuf->b_p_ro = TRUE;
-        }
-
-        u_clearline();
-
-        if (exmode_active)
-        {
-            curwin->w_cursor.lnum = from + linecnt;
-        }
-        else
-        {
-            curwin->w_cursor.lnum = from + 1;
-        }
-        check_cursor_lnum();
-        beginline(BL_WHITE | BL_FIX);
-
-        if ((cmdmod.cmod_flags & CMOD_LOCKMARKS) == 0)
-        {
-            curbuf->b_op_start.lnum = from + 1;
-            curbuf->b_op_start.col = 0;
-            curbuf->b_op_end.lnum = from + linecnt;
-            curbuf->b_op_end.col = 0;
-        }
-
+        ml_delete(curbuf->b_ml.ml_line_count);
+        --linecnt;
     }
+    linecnt = curbuf->b_ml.ml_line_count - linecnt;
+    if (filesize == 0)
+    {
+        linecnt = 0;
+    }
+    if (newfile || read_buffer)
+    {
+        redraw_curbuf_later(UPD_NOT_VALID);
+    }
+    else if (linecnt)
+    {
+        appended_lines_mark(from, linecnt);
+    }
+
+    if (read_stdin)
+    {
+        settmode(TMODE_RAW);
+        starttermcap();
+        screenclear();
+    }
+
+    if (got_int)
+    {
+        if (!(flags & READ_DUMMY))
+        {
+            filemess(curbuf, sfname, (char_u *)_(e_interrupted), 0);
+            if (newfile)
+            {
+                curbuf->b_p_ro = TRUE;
+            }
+        }
+        msg_scroll = msg_save;
+        retval = OK;
+        goto theend;
+    }
+
+    if (!filtering && !(flags & READ_DUMMY))
+    {
+        int buflen;
+
+        msg_add_fname(curbuf, sfname);
+        c = FALSE;
+
+        buflen = (int) strlen((char *)(IObuff)) ;
+        if (S_ISFIFO(perm))
+        {
+            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[fifo]"));
+            c = TRUE;
+        }
+        if (S_ISSOCK(perm))
+        {
+            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[socket]"));
+            c = TRUE;
+        }
+        if (curbuf->b_p_ro)
+        {
+            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, "%s", shortmess(SHM_RO) ? _("[RO]") : _("[readonly]"));
+            c = TRUE;
+        }
+        if (read_no_eol_lnum)
+        {
+            msg_add_eol();
+            c = TRUE;
+        }
+        if (ff_error == EOL_DOS)
+        {
+            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[CR missing]"));
+            c = TRUE;
+        }
+        if (split)
+        {
+            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[long lines split]"));
+            c = TRUE;
+        }
+        if (notconverted)
+        {
+            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[NOT converted]"));
+            c = TRUE;
+        }
+        else if (converted)
+        {
+            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[converted]"));
+            c = TRUE;
+        }
+        if (conv_error != 0)
+        {
+            vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[CONVERSION ERROR in line %ld]"), (long)conv_error);
+            c = TRUE;
+        }
+        else if (illegal_byte > 0)
+        {
+            vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[ILLEGAL BYTE in line %ld]"), (long)illegal_byte);
+            c = TRUE;
+        }
+        else if (error)
+        {
+            vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[READ ERRORS]"));
+            c = TRUE;
+        }
+        if (msg_add_fileformat(fileformat))
+        {
+            c = TRUE;
+        }
+            msg_add_lines(c, (long)linecnt, filesize);
+
+         vim_free(keep_msg);
+         (keep_msg) = NULL;
+        msg_scrolled_ign = TRUE;
+        {
+            if (msg_col > 0)
+            {
+                msg_putchar('\r');
+            }
+            p = (char_u *)msg_trunc_attr((char *)IObuff, FALSE, 0);
+        }
+        if (read_stdin || read_buffer || restart_edit != 0 || (msg_scrolled != 0 && !need_wait_return))
+        {
+            set_keep_msg(p, 0);
+        }
+        msg_scrolled_ign = FALSE;
+    }
+
+    if (newfile && (error || conv_error != 0 || (illegal_byte > 0 && bad_char_behavior !=  (-1) )))
+    {
+        curbuf->b_p_ro = TRUE;
+    }
+
+    u_clearline();
+
+    if (exmode_active)
+    {
+        curwin->w_cursor.lnum = from + linecnt;
+    }
+    else
+    {
+        curwin->w_cursor.lnum = from + 1;
+    }
+    check_cursor_lnum();
+    beginline(BL_WHITE | BL_FIX);
+
+    if ((cmdmod.cmod_flags & CMOD_LOCKMARKS) == 0)
+    {
+        curbuf->b_op_start.lnum = from + 1;
+        curbuf->b_op_start.col = 0;
+        curbuf->b_op_end.lnum = from + linecnt;
+        curbuf->b_op_end.col = 0;
+    }
+
     msg_scroll = msg_save;
 
     curbuf->b_no_eol_lnum = read_no_eol_lnum;
@@ -50923,10 +50900,7 @@ failed:
         }
     }
 
-    if (!(recoverymode && error))
-    {
-        retval = OK;
-    }
+    retval = OK;
 
 theend:
     if (curbuf->b_ml.ml_mfp != NULL && curbuf->b_ml.ml_mfp->mf_dirty == MF_DIRTY_YES_NOSYNC)
@@ -75040,13 +75014,6 @@ mf_close(memfile_T *mfp, int del_file)
     vim_free(mfp);
 }
 
-    static void
-mf_new_page_size(memfile_T *mfp, unsigned new_size)
-{
-    total_mem_used += new_size - mfp->mf_page_size;
-    mfp->mf_page_size = new_size;
-}
-
     static bhdr_T *
 mf_new(memfile_T *mfp, int negative, int page_count)
 {
@@ -76031,17 +75998,13 @@ static void ml_upd_block0(buf_T *buf, upd_block0_T what);
 static void set_b0_fname(ZERO_BL *, buf_T *buf);
 static void set_b0_dir_flag(ZERO_BL *b0p, buf_T *buf);
 static void add_b0_fenc(ZERO_BL *b0p, buf_T *buf);
-static time_t swapfile_info(char_u *);
-static int recov_file_names(char_u **, char_u *, int prepend_dot);
 static void ml_flush_line(buf_T *);
 static bhdr_T *ml_new_data(memfile_T *, int, int);
 static bhdr_T *ml_new_ptr(memfile_T *);
 static bhdr_T *ml_find_line(buf_T *, linenr_T, int);
 static int ml_add_stack(buf_T *);
 static void ml_lineadd(buf_T *, int);
-static int b0_magic_wrong(ZERO_BL *);
 static void long_to_char(long, char_u *);
-static long char_to_long(char_u *);
 
     static int
 ml_open(buf_T *buf)
@@ -76350,798 +76313,6 @@ add_b0_fenc(ZERO_BL     *b0p, buf_T       *buf)
 {
 }
 
-    static int
-swapfile_process_running(ZERO_BL *b0p, char_u *swap_fname  __attribute__((unused)) )
-{
-    stat_T          st;
-    struct sysinfo  sinfo;
-
-    if ( stat(((char *)swap_fname), (&st))  != -1 && sysinfo(&sinfo) == 0 && st.st_mtime < time(NULL) - (time_t)(sinfo.uptime))
-    {
-        return FALSE;
-    }
-    return mch_process_running(char_to_long(b0p->b0_pid));
-}
-
-    static void
-ml_recover(int checkext)
-{
-    buf_T       *buf = NULL;
-    memfile_T   *mfp = NULL;
-    char_u      *fname;
-    char_u      *fname_used = NULL;
-    bhdr_T      *hp = NULL;
-    ZERO_BL     *b0p;
-    int         b0_ff;
-    PTR_BL      *pp;
-    DATA_BL     *dp;
-    infoptr_T   *ip;
-    blocknr_T   bnum;
-    int         page_count;
-    stat_T org_stat;
-    stat_T swp_stat;
-    int         len;
-    int         directly;
-    linenr_T    lnum;
-    char_u      *p;
-    int         i;
-    long        error;
-    int         cannot_open;
-    linenr_T    line_count;
-    int         has_error;
-    int         idx;
-    int         top;
-    int         txt_start;
-    off_T       size;
-    int         called_from_main;
-    int         serious_error = TRUE;
-    long        mtime;
-    int         attr;
-    int         orig_file_status = NOTDONE;
-
-    recoverymode = TRUE;
-    called_from_main = (curbuf->b_ml.ml_mfp == NULL);
-    attr =  highlight_attr[(int)(HLF_E)] ;
-
-    fname = curbuf->b_fname;
-    if (fname == NULL)
-    {
-        fname = (char_u *)"";
-    }
-    len = (int) strlen((char *)(fname)) ;
-    if (checkext && len >= 4 &&  strncasecmp((char *)(fname + len - 4), (char *)(".s"), (2))  == 0 && vim_strchr((char_u *)"abcdefghijklmnopqrstuvw",  (((fname[len - 2]) < 'A' || (fname[len - 2]) > 'Z') ? (fname[len - 2]) : (fname[len - 2]) + ('a' - 'A')) ) != NULL &&  ( ((unsigned)(fname[len - 1]) - 'A' < 26)  ||  ((unsigned)(fname[len - 1]) - 'a' < 26) ) )
-    {
-        directly = TRUE;
-        fname_used = vim_strsave(fname);
-    }
-    else
-    {
-        directly = FALSE;
-
-        len = recover_names(fname, FALSE, NULL, 0, NULL);
-        if (len == 0)
-        {
-            semsg(_(e_no_swap_file_found_for_str), fname);
-            goto theend;
-        }
-        if (len == 1)
-        {
-            i = 1;
-        }
-        else
-        {
-            (void)recover_names(fname, TRUE, NULL, 0, NULL);
-            msg_putchar('\n');
-            msg_puts(_("Enter number of swap file to use (0 to quit): "));
-            i = get_number(FALSE, NULL);
-            if (i < 1 || i > len)
-            {
-                goto theend;
-            }
-        }
-        (void)recover_names(fname, FALSE, NULL, i, &fname_used);
-    }
-    if (fname_used == NULL)
-    {
-        goto theend;
-    }
-
-    if (called_from_main && ml_open(curbuf) == FAIL)
-    {
-        getout(1);
-    }
-
-    buf =  (buf_T *)alloc(sizeof(buf_T)) ;
-    if (buf == NULL)
-    {
-        goto theend;
-    }
-
-    buf->b_ml.ml_stack_size = 0;
-    buf->b_ml.ml_stack = NULL;
-    buf->b_ml.ml_stack_top = 0;
-    buf->b_ml.ml_line_lnum = 0;
-    buf->b_ml.ml_locked = NULL;
-    buf->b_ml.ml_flags = 0;
-
-    p = vim_strsave(fname_used);
-    mfp = mf_open(fname_used, O_RDONLY);
-    fname_used = p;
-    if (mfp == NULL || mfp->mf_fd < 0)
-    {
-        if (fname_used != NULL)
-        {
-            semsg(_(e_cannot_open_str), fname_used);
-        }
-        goto theend;
-    }
-    buf->b_ml.ml_mfp = mfp;
-
-    mfp->mf_page_size = MIN_SWAP_PAGE_SIZE;
-
-    if ((hp = mf_get(mfp, (blocknr_T)0, 1)) == NULL)
-    {
-        msg_start();
-        msg_puts_attr(_("Unable to read block 0 from "), attr | MSG_HIST);
-        msg_outtrans_attr(mfp->mf_fname, attr | MSG_HIST);
-        msg_puts_attr(_("\nMaybe no changes were made or Vim did not update the swap file."), attr | MSG_HIST);
-        msg_end();
-        goto theend;
-    }
-    b0p = (ZERO_BL *)(hp->bh_data);
-    if ( strncmp((char *)(b0p->b0_version), (char *)("VIM 3.0"), (7))  == 0)
-    {
-        msg_start();
-        msg_outtrans_attr(mfp->mf_fname, MSG_HIST);
-        msg_puts_attr(_(" cannot be used with this version of Vim.\n"), MSG_HIST);
-        msg_puts_attr(_("Use Vim version 3.0.\n"), MSG_HIST);
-        msg_end();
-        goto theend;
-    }
-    if (ml_check_b0_id(b0p) == FAIL)
-    {
-        semsg(_(e_str_does_not_look_like_vim_swap_file), mfp->mf_fname);
-        goto theend;
-    }
-    if (b0_magic_wrong(b0p))
-    {
-        msg_start();
-        msg_outtrans_attr(mfp->mf_fname, attr | MSG_HIST);
-            msg_puts_attr(_(" cannot be used on this computer.\n"), attr | MSG_HIST);
-        msg_puts_attr(_("The file was created on "), attr | MSG_HIST);
-        b0p->b0_fname[0] = NUL;
-        msg_puts_attr((char *)b0p->b0_hname, attr | MSG_HIST);
-        msg_puts_attr(_(",\nor the file has been damaged."), attr | MSG_HIST);
-        msg_end();
-        goto theend;
-    }
-
-    if (b0p->b0_id[1] != BLOCK0_ID1)
-    {
-        semsg(_(e_str_is_encrypted_and_this_version_of_vim_does_not_support_encryption), mfp->mf_fname);
-        goto theend;
-    }
-
-    if (mfp->mf_page_size != (unsigned)char_to_long(b0p->b0_page_size))
-    {
-        unsigned previous_page_size = mfp->mf_page_size;
-
-        mf_new_page_size(mfp, (unsigned)char_to_long(b0p->b0_page_size));
-        if (mfp->mf_page_size < previous_page_size)
-        {
-            msg_start();
-            msg_outtrans_attr(mfp->mf_fname, attr | MSG_HIST);
-            msg_puts_attr(_(" has been damaged (page size is smaller than minimum value).\n"), attr | MSG_HIST);
-            msg_end();
-            goto theend;
-        }
-        if ((size =  lseek (mfp->mf_fd, (off_T)0L, SEEK_END)) <= 0)
-        {
-            mfp->mf_blocknr_max = 0;
-        }
-        else
-        {
-            mfp->mf_blocknr_max = (blocknr_T)(size / mfp->mf_page_size);
-        }
-        mfp->mf_infile_count = mfp->mf_blocknr_max;
-
-        p = alloc(mfp->mf_page_size);
-        if (p == NULL)
-        {
-            goto theend;
-        }
-         memmove((char *)(p), (char *)(hp->bh_data), previous_page_size) ;
-        vim_free(hp->bh_data);
-        hp->bh_data = p;
-        b0p = (ZERO_BL *)(hp->bh_data);
-    }
-
-    if (directly)
-    {
-        expand_env(b0p->b0_fname, NameBuff,  PATH_MAX );
-        if (setfname(curbuf, NameBuff, NULL, TRUE) == FAIL)
-        {
-            goto theend;
-        }
-    }
-
-    home_replace(NULL, mfp->mf_fname, NameBuff,  PATH_MAX , TRUE);
-    smsg(_("Using swap file \"%s\""), NameBuff);
-
-    if (buf_spname(curbuf) != NULL)
-    {
-        vim_strncpy(NameBuff, buf_spname(curbuf),  PATH_MAX  - 1);
-    }
-    else
-    {
-        home_replace(NULL, curbuf->b_ffname, NameBuff,  PATH_MAX , TRUE);
-    }
-    smsg(_("Original file \"%s\""), NameBuff);
-    msg_putchar('\n');
-
-    mtime = char_to_long(b0p->b0_mtime);
-    if (curbuf->b_ffname != NULL &&  stat(((char *)curbuf->b_ffname), (&org_stat))  != -1 && (( stat(((char *)mfp->mf_fname), (&swp_stat))  != -1 && org_stat.st_mtime > swp_stat.st_mtime) || org_stat.st_mtime != mtime))
-    {
-        emsg(_(e_warning_original_file_may_have_been_changed));
-    }
-    out_flush();
-
-    b0_ff = (b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  & B0_FF_MASK);
-    mf_put(mfp, hp, FALSE, FALSE);
-    hp = NULL;
-
-    while (!(curbuf->b_ml.ml_flags & ML_EMPTY))
-    {
-        ml_delete((linenr_T)1);
-    }
-
-    if (curbuf->b_ffname != NULL)
-    {
-        orig_file_status = readfile(curbuf->b_ffname, NULL, (linenr_T)0, (linenr_T)0, (linenr_T) LONG_MAX , NULL, READ_NEW);
-    }
-
-    if (b0_ff != 0)
-    {
-        set_fileformat(b0_ff - 1, OPT_LOCAL);
-    }
-    unchanged(curbuf, TRUE, TRUE);
-
-    bnum = 1;
-    page_count = 1;
-    lnum = 0;
-    line_count = 0;
-    idx = 0;
-    error = 0;
-    buf->b_ml.ml_stack_top = 0;
-    buf->b_ml.ml_stack = NULL;
-    buf->b_ml.ml_stack_size = 0;
-
-    if (curbuf->b_ffname == NULL)
-    {
-        cannot_open = TRUE;
-    }
-    else
-    {
-        cannot_open = FALSE;
-    }
-
-    serious_error = FALSE;
-    for ( ; !got_int; line_breakcheck())
-    {
-        if (hp != NULL)
-        {
-            mf_put(mfp, hp, FALSE, FALSE);
-        }
-
-        if ((hp = mf_get(mfp, bnum, page_count)) == NULL)
-        {
-            if (bnum == 1)
-            {
-                semsg(_(e_unable_to_read_block_one_from_str), mfp->mf_fname);
-                goto theend;
-            }
-            ++error;
-            ml_append(lnum++, (char_u *)_("???MANY LINES MISSING"), (colnr_T)0, TRUE);
-        }
-        else
-        {
-            pp = (PTR_BL *)(hp->bh_data);
-            if (pp->pb_id ==  (('p' << 8) + 't') )
-            {
-                int ptr_block_error = FALSE;
-                if (pp->pb_count_max !=  (short_u)(((mfp)->mf_page_size - offsetof(PTR_BL, pb_pointer)) / sizeof(PTR_EN)) )
-                {
-                    ptr_block_error = TRUE;
-                    pp->pb_count_max =  (short_u)(((mfp)->mf_page_size - offsetof(PTR_BL, pb_pointer)) / sizeof(PTR_EN)) ;
-                }
-                if (pp->pb_count > pp->pb_count_max)
-                {
-                    ptr_block_error = TRUE;
-                    pp->pb_count = pp->pb_count_max;
-                }
-                if (ptr_block_error)
-                {
-                    emsg(_(e_warning_pointer_block_corrupted));
-                }
-
-                if (idx == 0 && line_count != 0)
-                {
-                    for (i = 0; i < (int)pp->pb_count; ++i)
-                    {
-                        line_count -= pp->pb_pointer[i].pe_line_count;
-                    }
-                    if (line_count != 0)
-                    {
-                        ++error;
-                        ml_append(lnum++, (char_u *)_("???LINE COUNT WRONG"), (colnr_T)0, TRUE);
-                    }
-                }
-
-                if (pp->pb_count == 0)
-                {
-                    ml_append(lnum++, (char_u *)_("???EMPTY BLOCK"), (colnr_T)0, TRUE);
-                    ++error;
-                }
-                else if (idx < (int)pp->pb_count)
-                {
-                    if (pp->pb_pointer[idx].pe_bnum < 0)
-                    {
-                        if (!cannot_open)
-                        {
-                            line_count = pp->pb_pointer[idx].pe_line_count;
-                            linenr_T pe_old_lnum = pp->pb_pointer[idx].pe_old_lnum;
-                            if (line_count <= 0 || pe_old_lnum < 1 || readfile(curbuf->b_ffname, NULL, lnum, pe_old_lnum - 1, line_count, NULL, 0) != OK)
-                            {
-                                cannot_open = TRUE;
-                            }
-                            else
-                            {
-                                lnum += line_count;
-                            }
-                        }
-                        if (cannot_open)
-                        {
-                            ++error;
-                            ml_append(lnum++, (char_u *)_("???LINES MISSING"), (colnr_T)0, TRUE);
-                        }
-                        ++idx;
-                        continue;
-                    }
-
-                    if ((top = ml_add_stack(buf)) < 0)
-                    {
-                        ++error;
-                        break;
-                    }
-                    ip = &(buf->b_ml.ml_stack[top]);
-                    ip->ip_bnum = bnum;
-                    ip->ip_index = idx;
-
-                    bnum = pp->pb_pointer[idx].pe_bnum;
-                    line_count = pp->pb_pointer[idx].pe_line_count;
-                    page_count = pp->pb_pointer[idx].pe_page_count;
-                    if (page_count < 1 || bnum + page_count > mfp->mf_blocknr_max + 1)
-                    {
-                        ++error;
-                        ml_append(lnum++, (char_u *)_("???ILLEGAL BLOCK NUMBER"), (colnr_T)0, TRUE);
-                        idx = ip->ip_index + 1;
-                        bnum = ip->ip_bnum;
-                        page_count = 1;
-                        --buf->b_ml.ml_stack_top;
-                        continue;
-                    }
-                    idx = 0;
-                    continue;
-                }
-            }
-            else
-            {
-                dp = (DATA_BL *)(hp->bh_data);
-                if (dp->db_id !=  (('d' << 8) + 'a') )
-                {
-                    if (bnum == 1)
-                    {
-                        semsg(_(e_block_one_id_wrong_str_not_swp_file), mfp->mf_fname);
-                        goto theend;
-                    }
-                    ++error;
-                    ml_append(lnum++, (char_u *)_("???BLOCK MISSING"), (colnr_T)0, TRUE);
-                }
-                else
-                {
-                    has_error = FALSE;
-
-                    if (hp->bh_page_count != page_count)
-                    {
-                        ++error;
-                        ml_append(lnum++, (char_u *)_("??? BLOCK PAGE COUNT MISMATCH"), (colnr_T)0, TRUE);
-                        page_count = hp->bh_page_count;
-                    }
-
-                    if (page_count * mfp->mf_page_size != dp->db_txt_end)
-                    {
-                        ml_append(lnum++, (char_u *)_("??? from here until ???END lines may be messed up"), (colnr_T)0, TRUE);
-                        ++error;
-                        has_error = TRUE;
-                        dp->db_txt_end = page_count * mfp->mf_page_size;
-                    }
-
-                    if (dp->db_txt_start <  (offsetof(DATA_BL, db_index))  || dp->db_txt_start > dp->db_txt_end)
-                    {
-                        ml_append(lnum++, (char_u *)_("??? block header corrupted"), (colnr_T)0, TRUE);
-                        ++error;
-                        has_error = TRUE;
-                        dp->db_txt_start = dp->db_txt_end;
-                    }
-                    *((char_u *)dp + dp->db_txt_end - 1) = NUL;
-
-                    if (line_count != dp->db_line_count)
-                    {
-                        ml_append(lnum++, (char_u *)_("??? from here until ???END lines may have been inserted/deleted"), (colnr_T)0, TRUE);
-                        ++error;
-                        has_error = TRUE;
-                    }
-
-                    int did_questions = FALSE;
-                    for (i = 0; i < dp->db_line_count; ++i)
-                    {
-                        if ((char_u *)&(dp->db_index[i]) >= (char_u *)dp + dp->db_txt_start)
-                        {
-                            ++error;
-                            ml_append(lnum++, (char_u *)_("??? lines may be missing"), (colnr_T)0, TRUE);
-                            break;
-                        }
-
-                        txt_start = (dp->db_index[i] &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) );
-                        if (txt_start <= (int) (offsetof(DATA_BL, db_index))  || txt_start >= (int)dp->db_txt_end)
-                        {
-                            ++error;
-                            if (did_questions)
-                            {
-                                continue;
-                            }
-                            did_questions = TRUE;
-                            p = (char_u *)"???";
-                        }
-                        else
-                        {
-                            did_questions = FALSE;
-                            p = (char_u *)dp + txt_start;
-                        }
-                        ml_append(lnum++, p, (colnr_T)0, TRUE);
-                    }
-                    if (has_error)
-                    {
-                        ml_append(lnum++, (char_u *)_("???END"), (colnr_T)0, TRUE);
-                    }
-                }
-            }
-        }
-
-        if (buf->b_ml.ml_stack_top == 0)
-        {
-            break;
-        }
-
-        ip = &(buf->b_ml.ml_stack[--(buf->b_ml.ml_stack_top)]);
-        bnum = ip->ip_bnum;
-        idx = ip->ip_index + 1;
-        page_count = 1;
-    }
-
-    if (orig_file_status != OK || curbuf->b_ml.ml_line_count != lnum * 2 + 1)
-    {
-        if (!(curbuf->b_ml.ml_line_count == 2 && *ml_get(1) == NUL))
-        {
-            changed_internal();
-            ++ ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-        }
-    }
-    else
-    {
-        for (idx = 1; idx <= lnum; ++idx)
-        {
-            p = vim_strnsave(ml_get(idx), ml_get_len(idx));
-            i =  strcmp((char *)(p), (char *)(ml_get(idx + lnum))) ;
-            vim_free(p);
-            if (i != 0)
-            {
-                changed_internal();
-                ++ ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-                break;
-            }
-        }
-    }
-
-    while (curbuf->b_ml.ml_line_count > lnum && !(curbuf->b_ml.ml_flags & ML_EMPTY))
-    {
-        ml_delete(curbuf->b_ml.ml_line_count);
-    }
-    curbuf->b_flags |= BF_RECOVERED;
-    check_cursor();
-
-    recoverymode = FALSE;
-    if (got_int)
-    {
-        emsg(_(e_recovery_interrupted));
-    }
-    else if (error)
-    {
-        ++no_wait_return;
-        msg(">>>>>>>>>>>>>");
-        emsg(_(e_errors_detected_while_recovering_look_for_lines_starting_with_questions));
-        --no_wait_return;
-        msg(_("See \":help E312\" for more information."));
-        msg(">>>>>>>>>>>>>");
-    }
-    else
-    {
-        if (curbuf->b_changed)
-        {
-            msg(_("Recovery completed. You should check if everything is OK."));
-            msg_puts(_("\n(You might want to write out this file under another name\n"));
-            msg_puts(_("and run diff with the original file to check for changes)"));
-        }
-        else
-        {
-            msg(_("Recovery completed. Buffer contents equals file contents."));
-        }
-        msg_puts(_("\nYou may want to delete the .swp file now."));
-        if (swapfile_process_running(b0p, fname_used))
-        {
-            msg_puts(_("\nNote: process STILL RUNNING: "));
-            msg_outnum(char_to_long(b0p->b0_pid));
-        }
-        msg_puts("\n\n");
-        cmdline_row = msg_row;
-    }
-    redraw_curbuf_later(UPD_NOT_VALID);
-
-theend:
-    vim_free(fname_used);
-    recoverymode = FALSE;
-    if (mfp != NULL)
-    {
-        if (hp != NULL)
-        {
-            mf_put(mfp, hp, FALSE, FALSE);
-        }
-        mf_close(mfp, FALSE);
-    }
-    if (buf != NULL)
-    {
-        vim_free(buf->b_ml.ml_stack);
-        vim_free(buf);
-    }
-    if (serious_error && called_from_main)
-    {
-        ml_close(curbuf, TRUE);
-    }
-    else
-    {
-        apply_autocmds(EVENT_BUFREADPOST, NULL, curbuf->b_fname, FALSE, curbuf);
-        apply_autocmds(EVENT_BUFWINENTER, NULL, curbuf->b_fname, FALSE, curbuf);
-    }
-}
-
-    static int
-recover_names(char_u      *fname, int         do_list, list_T      *ret_list  __attribute__((unused)) , int         nr, char_u      **fname_out)
-{
-    int         num_names;
-    char_u      *(names[6]);
-    char_u      *p;
-    int         num_files;
-    int         file_count = 0;
-    char_u      **files;
-    char_u      *dirp;
-    string_T    dir_name;
-    char_u      *fname_res = NULL;
-    char_u      fname_buf[ PATH_MAX ];
-
-    if (fname != NULL)
-    {
-        if (resolve_symlink(fname, fname_buf) == OK)
-        {
-            fname_res = fname_buf;
-        }
-        else
-        {
-            fname_res = fname;
-        }
-    }
-
-    if (do_list)
-    {
-        msg(_("Swap files found:"));
-        msg_putchar('\n');
-    }
-
-    dir_name.string = alloc( strlen((char *)(p_dir))  + 1);
-    dirp = p_dir;
-    while (dir_name.string != NULL && *dirp)
-    {
-        dir_name.length = (size_t)copy_option_part(&dirp, dir_name.string, 31000, ",");
-
-        if (dir_name.string[0] == '.' && dir_name.string[1] == NUL)
-        {
-            if (fname == NULL)
-            {
-                names[0] = vim_strnsave((char_u *)"*.sw?",  (sizeof("*.sw?" "") - 1) );
-                names[1] = vim_strnsave((char_u *)".*.sw?",  (sizeof(".*.sw?" "") - 1) );
-                names[2] = vim_strnsave((char_u *)".sw?",  (sizeof(".sw?" "") - 1) );
-                num_names = 3;
-            }
-            else
-            {
-                num_names = recov_file_names(names, fname_res, TRUE);
-            }
-        }
-        else
-        {
-            if (fname == NULL)
-            {
-                string_T    ret;
-
-                names[0] = concat_fnames(dir_name.string, dir_name.length, (char_u *)"*.sw?",  (sizeof("*.sw?" "") - 1) , TRUE, &ret);
-                names[1] = concat_fnames(dir_name.string, dir_name.length, (char_u *)".*.sw?",  (sizeof(".*.sw?" "") - 1) , TRUE, &ret);
-                names[2] = concat_fnames(dir_name.string, dir_name.length, (char_u *)".sw?",  (sizeof(".sw?" "") - 1) , TRUE, &ret);
-                num_names = 3;
-            }
-            else
-            {
-                char_u  *tail;
-
-                p = dir_name.string + dir_name.length;
-                if (after_pathsep(dir_name.string, p) && dir_name.length > 1 && p[-1] == p[-2])
-                {
-                    tail = make_percent_swname(dir_name.string, p, fname_res);
-                }
-                else
-                {
-                    string_T    ret;
-
-                    tail = gettail(fname_res);
-                    tail = concat_fnames(dir_name.string, dir_name.length, tail,  strlen((char *)(tail)) , TRUE, &ret);
-                }
-                if (tail == NULL)
-                {
-                    num_names = 0;
-                }
-                else
-                {
-                    num_names = recov_file_names(names, tail, FALSE);
-                    vim_free(tail);
-                }
-            }
-        }
-
-        for (int i = 0; i < num_names; ++i)
-        {
-            if (names[i] == NULL)
-            {
-                for (i = 0; i < num_names; ++i)
-                {
-                    vim_free(names[i]);
-                }
-                num_names = 0;
-            }
-        }
-        if (num_names == 0)
-        {
-            num_files = 0;
-        }
-        else if (expand_wildcards(num_names, names, &num_files, &files, EW_NOTENV|EW_KEEPALL|EW_FILE|EW_SILENT) == FAIL)
-        {
-            num_files = 0;
-        }
-
-        if (*dirp == NUL && file_count + num_files == 0 && fname != NULL)
-        {
-            stat_T          st;
-            char_u          *swapname;
-
-            swapname = modname(fname_res, (char_u *)".swp", TRUE);
-            if (swapname != NULL)
-            {
-                if ( stat(((char *)swapname), (&st))  != -1)
-                {
-                    files =  (char_u * *)alloc(sizeof(char_u *)) ;
-                    if (files != NULL)
-                    {
-                        files[0] = swapname;
-                        swapname = NULL;
-                        num_files = 1;
-                    }
-                }
-                vim_free(swapname);
-            }
-        }
-
-        if (curbuf->b_ml.ml_mfp != NULL && (p = curbuf->b_ml.ml_mfp->mf_fname) != NULL && ret_list == NULL)
-        {
-            for (int i = 0; i < num_files; ++i)
-            {
-                if (fullpathcmp(p, files[i], TRUE, FALSE) & FPC_SAME)
-                {
-                    vim_free(files[i]);
-                    if (--num_files == 0)
-                    {
-                        vim_free(files);
-                    }
-                    else
-                    {
-                        for ( ; i < num_files; ++i)
-                        {
-                            files[i] = files[i + 1];
-                        }
-                    }
-                }
-            }
-        }
-        if (nr > 0)
-        {
-            file_count += num_files;
-            if (nr <= file_count)
-            {
-                *fname_out = vim_strsave(files[nr - 1 + num_files - file_count]);
-                dirp = (char_u *)"";
-            }
-        }
-        else if (do_list)
-        {
-            if (dir_name.string[0] == '.' && dir_name.string[1] == NUL)
-            {
-                if (fname == NULL)
-                {
-                    msg_puts(_("   In current directory:\n"));
-                }
-                else
-                {
-                    msg_puts(_("   Using specified name:\n"));
-                }
-            }
-            else
-            {
-                msg_puts(_("   In directory "));
-                msg_home_replace(dir_name.string);
-                msg_puts(":\n");
-            }
-
-            if (num_files)
-            {
-                for (int i = 0; i < num_files; ++i)
-                {
-                    msg_outnum((long)++file_count);
-                    msg_puts(".    ");
-                    msg_puts((char *)gettail(files[i]));
-                    msg_putchar('\n');
-                    (void)swapfile_info(files[i]);
-                }
-            }
-            else
-            {
-                msg_puts(_("      -- none --\n"));
-            }
-            out_flush();
-        }
-        else
-        {
-            file_count += num_files;
-        }
-
-        for (int i = 0; i < num_names; ++i)
-        {
-            vim_free(names[i]);
-        }
-        if (num_files > 0)
-        {
-            FreeWild(num_files, files);
-        }
-    }
-    vim_free(dir_name.string);
-    return file_count;
-}
-
     static char_u *
 make_percent_swname(char_u *dir, char_u *dir_end, char_u *name)
 {
@@ -77170,191 +76341,6 @@ make_percent_swname(char_u *dir, char_u *dir_end, char_u *name)
     vim_free(fixed_fname.string);
 
     return d.string;
-}
-
-    static time_t
-swapfile_info(char_u *fname)
-{
-    stat_T          st;
-    int             fd;
-    struct block0   b0;
-    char_u          uname[B0_UNAME_SIZE];
-
-    if ( stat(((char *)fname), (&st))  != -1)
-    {
-        if (mch_get_uname(st.st_uid, uname, B0_UNAME_SIZE) == OK)
-        {
-            msg_puts(_("          owned by: "));
-            msg_outtrans(uname);
-            msg_puts(_("   dated: "));
-        }
-        else
-        {
-            msg_puts(_("             dated: "));
-        }
-        msg_puts(get_ctime(st.st_mtime, TRUE));
-    }
-    else
-    {
-        st.st_mtime = 0;
-    }
-
-    fd =  open(((char *)fname), (O_RDONLY | O_EXTRA), (0)) ;
-    if (fd >= 0)
-    {
-        if (read_eintr(fd, &b0, sizeof(b0)) == sizeof(b0))
-        {
-            if ( strncmp((char *)(b0.b0_version), (char *)("VIM 3.0"), (7))  == 0)
-            {
-                msg_puts(_("         [from Vim version 3.0]"));
-            }
-            else if (ml_check_b0_id(&b0) == FAIL)
-            {
-                msg_puts(_("         [does not look like a Vim swap file]"));
-            }
-            else
-            {
-                msg_puts(_("         file name: "));
-                if (b0.b0_fname[0] == NUL)
-                {
-                    msg_puts(_("[No Name]"));
-                }
-                else
-                {
-                    msg_outtrans(b0.b0_fname);
-                }
-
-                msg_puts(_("\n          modified: "));
-                msg_puts(b0. b0_fname[B0_FNAME_SIZE_ORG - 1]  ? _("YES") : _("no"));
-
-                if (*(b0.b0_uname) != NUL)
-                {
-                    msg_puts(_("\n         user name: "));
-                    msg_outtrans(b0.b0_uname);
-                }
-
-                if (*(b0.b0_hname) != NUL)
-                {
-                    if (*(b0.b0_uname) != NUL)
-                    {
-                        msg_puts(_("   host name: "));
-                    }
-                    else
-                    {
-                        msg_puts(_("\n         host name: "));
-                    }
-                    msg_outtrans(b0.b0_hname);
-                }
-
-                if (char_to_long(b0.b0_pid) != 0L)
-                {
-                    msg_puts(_("\n        process ID: "));
-                    msg_outnum(char_to_long(b0.b0_pid));
-                    if (swapfile_process_running(&b0, fname))
-                    {
-                        msg_puts(_(" (STILL RUNNING)"));
-                    }
-                }
-
-                if (b0_magic_wrong(&b0))
-                {
-                        msg_puts(_("\n         [not usable on this computer]"));
-                }
-            }
-        }
-        else
-        {
-            msg_puts(_("         [cannot be read]"));
-        }
-        close(fd);
-    }
-    else
-    {
-        msg_puts(_("         [cannot be opened]"));
-    }
-    msg_putchar('\n');
-
-    return st.st_mtime;
-}
-
-    static int
-recov_file_names(char_u **names, char_u *path, int prepend_dot)
-{
-    int         num_names;
-
-    char_u      *p;
-    int         i;
-    bool    shortname = curbuf->b_shortname;
-
-    curbuf->b_shortname = false;
-    string_T    ret;
-
-    num_names = 0;
-
-    if (prepend_dot)
-    {
-        names[num_names] = modname(path, (char_u *)".sw?", TRUE);
-        if (names[num_names] == NULL)
-        {
-            goto end;
-        }
-        ++num_names;
-    }
-
-    names[num_names] = concat_fnames(path,  strlen((char *)(path)) , (char_u *)".sw?",  (sizeof(".sw?" "") - 1) , FALSE, &ret);
-    if (names[num_names] == NULL)
-    {
-        goto end;
-    }
-    if (num_names >= 1)
-    {
-        p = names[num_names - 1];
-        i = (int) strlen((char *)(names[num_names - 1]))  - (int) strlen((char *)(names[num_names])) ;
-        if (i > 0)
-        {
-            p += i;
-        }
-
-        if ( strcmp((char *)(p), (char *)(names[num_names]))  != 0)
-        {
-            ++num_names;
-        }
-        else
-        {
-            vim_free(names[num_names]);
-        }
-    }
-    else
-    {
-        ++num_names;
-    }
-
-    curbuf->b_shortname = true;
-    names[num_names] = modname(path, (char_u *)".sw?", FALSE);
-    if (names[num_names] == NULL)
-    {
-        goto end;
-    }
-
-    p = names[num_names];
-    i =  strlen((char *)(names[num_names]))  -  strlen((char *)(names[num_names - 1])) ;
-    if (i > 0)
-    {
-        p += i;
-    }
-    if ( strcmp((char *)(names[num_names - 1]), (char *)(p))  == 0)
-    {
-        vim_free(names[num_names]);
-    }
-    else
-    {
-        ++num_names;
-    }
-
-end:
-    curbuf->b_shortname = shortname;
-
-    return num_names;
 }
 
     static void
@@ -78814,12 +77800,6 @@ get_file_in_dir(char_u  *fname, char_u  *dname)
     return retval.string;
 }
 
-    static int
-b0_magic_wrong(ZERO_BL *b0p)
-{
-    return (b0p->b0_magic_long != (long)B0_MAGIC_LONG || b0p->b0_magic_int != (int)B0_MAGIC_INT || b0p->b0_magic_short != (short)B0_MAGIC_SHORT || b0p->b0_magic_char != B0_MAGIC_CHAR);
-}
-
     static void
 long_to_char(long n, char_u *s)
 {
@@ -78830,22 +77810,6 @@ long_to_char(long n, char_u *s)
     s[2] = (char_u)(n & 0xff);
     n = (unsigned)n >> 8;
     s[3] = (char_u)(n & 0xff);
-}
-
-    static long
-char_to_long(char_u *s)
-{
-    long    retval;
-
-    retval = s[3];
-    retval <<= 8;
-    retval |= s[2];
-    retval <<= 8;
-    retval |= s[1];
-    retval <<= 8;
-    retval |= s[0];
-
-    return retval;
 }
 
     static void
@@ -78879,7 +77843,6 @@ ml_setflags(buf_T *buf)
 static void add_msg_hist(char_u *s, int len, int attr);
 static void check_msg_hist(void);
 static void hit_return_msg(void);
-static void msg_home_replace_attr(char_u *fname, int attr);
 static void msg_puts_attr_len(char *str, int maxlen, int attr);
 static void msg_puts_display(char_u *str, int maxlen, int attr, int recurse);
 static void msg_scroll_up(void);
@@ -80037,34 +79000,6 @@ msg_putchar_attr(int c, int attr)
         buf[(*mb_char2bytes)(c, buf)] = NUL;
     }
     msg_puts_attr((char *)buf, attr);
-}
-
-    static void
-msg_outnum(long n)
-{
-    char        buf[20];
-
-    sprintf(buf, "%ld", n);
-    msg_puts(buf);
-}
-
-    static void
-msg_home_replace(char_u *fname)
-{
-    msg_home_replace_attr(fname, 0);
-}
-
-    static void
-msg_home_replace_attr(char_u *fname, int attr)
-{
-    char_u      *name;
-
-    name = home_replace_save(NULL, fname);
-    if (name != NULL)
-    {
-        msg_outtrans_attr(name, attr);
-    }
-    vim_free(name);
 }
 
     static int
@@ -82421,91 +81356,6 @@ get_keystroke(void)
 
     mapped_ctrl_c = save_mapped_ctrl_c;
     return merge_modifyOtherKeys(n, &mod_mask);
-}
-
-    static int
-vim_append_digit_int(int *value, int digit)
-{
-    int x = *value;
-    if (x > ((INT_MAX - digit) / 10))
-    {
-        return FAIL;
-    }
-    *value = x * 10 + digit;
-    return OK;
-}
-
-    static int
-get_number(int     colon, int     *mouse_used)
-{
-    int n = 0;
-    int c;
-    int typed = 0;
-
-    if (mouse_used != NULL)
-    {
-        *mouse_used = FALSE;
-    }
-
-    if (msg_silent != 0)
-    {
-        return 0;
-    }
-
-    ++no_mapping;
-    ++allow_keys;
-    for (;;)
-    {
-        windgoto(msg_row, cmdline_col_off + msg_col);
-        c = safe_vgetc();
-        if ( ((unsigned)(c) - '0' < 10) )
-        {
-            if (vim_append_digit_int(&n, c - '0') == FAIL)
-            {
-                return 0;
-            }
-            msg_putchar(c);
-            ++typed;
-        }
-        else if (c ==   (-(('k') + ((int)('D') << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_KDEL) << 8)))   || c ==   (-(('k') + ((int)('b') << 8)))   || c == Ctrl_H)
-        {
-            if (typed > 0)
-            {
-                msg_puts("\b \b");
-                --typed;
-            }
-            n /= 10;
-        }
-        else if (mouse_used != NULL && c ==   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))  )
-        {
-            *mouse_used = TRUE;
-            n = mouse_row + 1;
-            break;
-        }
-        else if (n == 0 && c == ':' && colon)
-        {
-            stuffcharReadbuff(':');
-            if (!exmode_active)
-            {
-                cmdline_row = msg_row;
-            }
-            skip_redraw = TRUE;
-            do_redraw = FALSE;
-            break;
-        }
-        else if (c == Ctrl_C || c == ESC || c == 'q')
-        {
-            n = 0;
-            break;
-        }
-        else if (c == CAR || c == NL )
-        {
-            break;
-        }
-    }
-    --no_mapping;
-    --allow_keys;
-    return n;
 }
 
     static void
@@ -109194,20 +108044,6 @@ use_xterm_mouse(void)
     return 0;
 }
 
-    static int
-mch_get_uname(uid_t uid, char_u *s, int len)
-{
-    struct passwd   *pw;
-
-    if ((pw = getpwuid(uid)) != NULL && pw->pw_name != NULL && *(pw->pw_name) != NUL)
-    {
-        vim_strncpy(s, (char_u *)pw->pw_name, len - 1);
-        return OK;
-    }
-    sprintf((char *)s, "%d", (int)uid);
-    return FAIL;
-}
-
     static void
 mch_get_host_name(char_u *s, int len)
 {
@@ -109227,20 +108063,6 @@ mch_get_host_name(char_u *s, int len)
 mch_get_pid(void)
 {
     return (long)getpid();
-}
-
-    static int
-mch_process_running(long pid)
-{
-    if (kill(pid, 0) == 0)
-    {
-        return TRUE;
-    }
-    if (errno == ESRCH)
-    {
-        return FALSE;
-    }
-    return TRUE;
 }
 
     static int
@@ -137793,73 +136615,22 @@ abort_search:
 
 // ==================== time.c ====================
 
-    static struct tm *
-vim_localtime(const time_t        *timep, struct tm           *result  __attribute__((unused)) )
-{
-    return localtime_r(timep, result);
-}
-
     static time_T
 vim_time(void)
 {
     return time(NULL);
 }
 
-    static char *
-get_ctime(time_t thetime, int add_newline)
-{
-    static char buf[100];
-    struct tm   tmval;
-    struct tm   *curtime;
-
-    curtime = vim_localtime(&thetime, &tmval);
-    if (curtime == NULL)
-    {
-        vim_strncpy((char_u *)buf, (char_u *)_("(Invalid)"), sizeof(buf) - 2);
-    }
-    else
-    {
-        if (strftime(buf, sizeof(buf) - 2, _("%a %b %d %H:%M:%S %Y"), curtime) == 0)
-        {
-            vim_strncpy((char_u *)buf, (char_u *)_("(Invalid)"), sizeof(buf) - 2);
-        }
-    }
-    if (add_newline)
-    {
-         strcat((char *)(buf), (char *)("\n")) ;
-    }
-    return buf;
-}
-
     static void
 add_time(char_u *buf, size_t buflen, time_t tt)
 {
-    struct tm   tmval;
-    struct tm   *curtime;
-    size_t      n;
+    // How long ago, not when.  Phase 24 took away every way this editor could
+    // be told what zone the clock is in, and undo history does not outlive the
+    // process -- :wundo and :rundo are ex_ni -- so every time this formats is
+    // within one session, which is exactly what "ago" measures.
+    long seconds = (long)(vim_time() - tt);
 
-    if (vim_time() - tt >= 100)
-    {
-        curtime = vim_localtime(&tt, &tmval);
-        if (vim_time() - tt < (60L * 60L * 12L))
-        {
-            n = strftime((char *)buf, buflen, "%H:%M:%S", curtime);
-        }
-        else
-        {
-            n = strftime((char *)buf, buflen, "%Y/%m/%d %H:%M:%S", curtime);
-        }
-        if (n == 0)
-        {
-            buf[0] = NUL;
-        }
-    }
-    else
-    {
-        long seconds = (long)(vim_time() - tt);
-
-        vim_snprintf((char *)buf, buflen, NGETTEXT("%ld second ago", "%ld seconds ago", seconds), seconds);
-    }
+    vim_snprintf((char *)buf, buflen, NGETTEXT("%ld second ago", "%ld seconds ago", seconds), seconds);
 }
 
 // ==================== ui.c ====================
@@ -149782,12 +148553,6 @@ static int has_dash_c_arg = FALSE;
     static int
 vim_main2(void)
 {
-    if (recoverymode && params.fname == NULL)
-    {
-        recover_names(NULL, TRUE, NULL, 0, NULL);
-        mch_exit(0);
-    }
-
     set_init_3();
 
     if (params.no_swap_file)
@@ -149802,7 +148567,7 @@ vim_main2(void)
         msg_scroll = FALSE;
     }
 
-    if (params.edit_type == EDIT_STDIN && !recoverymode)
+    if (params.edit_type == EDIT_STDIN)
     {
         read_stdin();
     }
@@ -150481,11 +149246,6 @@ command_line_scan(mparm_T *parmp)
                 p_uc = 10000;
                 break;
 
-            case 'r':
-            case 'L':
-                recoverymode = 1;
-                break;
-
             case 's':
                 if (exmode_active)
                 {
@@ -150806,96 +149566,83 @@ create_windows(mparm_T *parmp  __attribute__((unused)) )
         parmp->window_count = 1;
     }
 
-    if (recoverymode)
+    ++autocmd_no_enter;
+    ++autocmd_no_leave;
+    dorewind = TRUE;
+    while (done++ < 1000)
     {
-        msg_scroll = TRUE;
-        ml_recover(TRUE);
-        if (curbuf->b_ml.ml_mfp == NULL)
+        if (dorewind)
         {
-            getout(1);
-        }
-        do_modelines(0);
-    }
-    else
-    {
-        ++autocmd_no_enter;
-        ++autocmd_no_leave;
-        dorewind = TRUE;
-        while (done++ < 1000)
-        {
-            if (dorewind)
+            if (parmp->window_layout == WIN_TABS)
             {
-                if (parmp->window_layout == WIN_TABS)
-                {
-                    goto_tabpage(1);
-                }
-                else
-                {
-                    curwin = firstwin;
-                }
-            }
-            else if (parmp->window_layout == WIN_TABS)
-            {
-                if (curtab->tp_next == NULL)
-                {
-                    break;
-                }
-                goto_tabpage(0);
+                goto_tabpage(1);
             }
             else
             {
-                if (curwin->w_next == NULL)
-                {
-                    break;
-                }
-                curwin = curwin->w_next;
-            }
-            dorewind = FALSE;
-            curbuf = curwin->w_buffer;
-            if (curbuf->b_ml.ml_mfp == NULL)
-            {
-                swap_exists_action = SEA_DIALOG;
-
-                set_buflisted(TRUE);
-
-                (void)open_buffer(FALSE, NULL, 0);
-
-                if (swap_exists_action == SEA_QUIT)
-                {
-                    if (got_int || only_one_window())
-                    {
-                        did_emsg = FALSE;
-                        getout(1);
-                    }
-                    setfname(curbuf, NULL, NULL, FALSE);
-                    curwin->w_arg_idx = -1;
-                    swap_exists_action = SEA_NONE;
-                }
-                else
-                {
-                    handle_swap_exists(NULL);
-                }
-                dorewind = TRUE;
-            }
-            ui_breakcheck();
-            if (got_int)
-            {
-                (void)vgetc();
-                break;
+                curwin = firstwin;
             }
         }
-        if (parmp->window_layout == WIN_TABS)
+        else if (parmp->window_layout == WIN_TABS)
         {
-            goto_tabpage(1);
+            if (curtab->tp_next == NULL)
+            {
+                break;
+            }
+            goto_tabpage(0);
         }
         else
         {
-            curwin = firstwin;
+            if (curwin->w_next == NULL)
+            {
+                break;
+            }
+            curwin = curwin->w_next;
         }
+        dorewind = FALSE;
         curbuf = curwin->w_buffer;
-        --autocmd_no_enter;
-        --autocmd_no_leave;
+        if (curbuf->b_ml.ml_mfp == NULL)
+        {
+            swap_exists_action = SEA_DIALOG;
+
+            set_buflisted(TRUE);
+
+            (void)open_buffer(FALSE, NULL, 0);
+
+            if (swap_exists_action == SEA_QUIT)
+            {
+                if (got_int || only_one_window())
+                {
+                    did_emsg = FALSE;
+                    getout(1);
+                }
+                setfname(curbuf, NULL, NULL, FALSE);
+                curwin->w_arg_idx = -1;
+                swap_exists_action = SEA_NONE;
+            }
+            else
+            {
+                handle_swap_exists(NULL);
+            }
+            dorewind = TRUE;
+        }
+        ui_breakcheck();
+        if (got_int)
+        {
+            (void)vgetc();
+            break;
+        }
     }
+    if (parmp->window_layout == WIN_TABS)
+    {
+        goto_tabpage(1);
+    }
+    else
+    {
+        curwin = firstwin;
+    }
+    curbuf = curwin->w_buffer;
+    --autocmd_no_enter;
+    --autocmd_no_leave;
 }
 
     static void
@@ -151157,11 +149904,6 @@ main
     }
 
     ++RedrawingDisabled;
-
-    if (recoverymode && params.fname == NULL)
-    {
-        params.want_full_screen = FALSE;
-    }
 
     mch_init();
 
