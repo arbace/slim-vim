@@ -92,11 +92,55 @@ def declaration_extent(lines, lineno):
         b = cutil.blank(lines[j])
         depth += b.count('{') - b.count('}') + b.count('(') - b.count(')')
         if depth <= 0 and b.rstrip().endswith(';'):
-            return (i, j)
+            break
         j += 1
         if j - i > 4000:            # runaway: decline rather than guess
             return None
-    return None
+    else:
+        return None
+
+    # AND BACKWARDS, when the declarator closes a type definition.  There are
+    # five of these:
+    #
+    #     static struct mousetable
+    #     {
+    #         int     pseudo_code;
+    #         ...
+    #     } mouse_table[] =
+    #     {
+    #         ...
+    #     };
+    #
+    # gcc reports the unused variable at `} mouse_table[] =`, and running
+    # forward from there takes the initialiser and leaves the struct body open.
+    # The next declaration then lands inside it and gcc says
+    # "expected specifier-qualifier-list before 'static'" a hundred lines later
+    # -- which is how this was found, in the phase that removed the mouse.
+    #
+    # It is the same class of mistake as keying on the warning's sentence
+    # instead of its option: the extent of a thing is not "the line it was
+    # reported on".
+    if lines[i].lstrip().startswith('}'):
+        depth = 1
+        k = i - 1
+        while k >= 0:
+            b = cutil.blank(lines[k])
+            depth += b.count('}') - b.count('{')
+            if depth == 0:
+                break
+            k -= 1
+        if k < 0:
+            return None             # unbalanced: decline rather than guess
+        # and the type's head, on the lines above its opening brace
+        while k > 0:
+            prev = lines[k - 1].strip()
+            if (not prev or prev.endswith((';', '}', '{', ':'))
+                    or prev.startswith(('//', '#'))):
+                break
+            k -= 1
+        i = k
+
+    return (i, j)
 
 
 def main():

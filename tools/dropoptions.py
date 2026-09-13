@@ -41,6 +41,18 @@ def drop_row(text, name, strict=False, local=False):
         return text, False
     start = m.start()
 
+    # THE ROW'S OWN EXTENT, computed here rather than after the guards, because
+    # every guard below asks a question about "this row" and a fixed window of
+    # 400 characters is not one.  'mousefocus' and 'mousehide' are `(char_u
+    # *)NULL` -- GUI options with no global at all -- so a 400-character look
+    # for `(char_u *)&var` ran past the end of the row and found the NEXT
+    # option's variable, and the guard refused to drop 'mousehide' because
+    # something read p_mousem.
+    _b = cutil.blank(text)
+    row_end = cutil.match(text, text.index('{', start), _b)
+    if row_end < 0:
+        return text, False
+
     # A BUFFER-LOCAL OR WINDOW-LOCAL ROW CANNOT SIMPLY GO, and the failure is
     # silent until the editor runs.  A row whose `indir` is anything but
     # PV_NONE owns two things: the global `p_xx`, and a `b_p_xx` or `w_p_xx`
@@ -75,9 +87,9 @@ def drop_row(text, name, strict=False, local=False):
     # guard below did not fire, because the row is PV_NONE; nothing about the
     # row says it is spoken for.  So look for the name instead, anywhere but
     # the table itself.
-    for spelling in ([] if not strict else re.findall(r'"([^"]+)"', text[m.start():m.start() + 60])[:2]):
+    for spelling in ([] if not strict else re.findall(r'"([^"]+)"', text[start:row_end])[:2]):
         for hit in re.finditer(r'"%s"' % re.escape(spelling), text):
-            if abs(hit.start() - m.start()) < 400:
+            if start <= hit.start() <= row_end:
                 continue
             line = text[text.rfind('\n', 0, hit.start()) + 1:
                         text.index('\n', hit.start())]
@@ -107,11 +119,11 @@ def drop_row(text, name, strict=False, local=False):
     # An option whose feature has really gone has an unread global, and the
     # dead-code sweep will delete it a moment later.  One that is still read is
     # not inert; it is live code with its initialiser removed.
-    var = re.search(r'\(char_u \*\)&(\w+)', text[m.start():m.start() + 400])
+    var = re.search(r'\(char_u \*\)&(\w+)', text[start:row_end])
     if var and strict:
         name_of_var = var.group(1)
         others = [h.start() for h in re.finditer(r'\b%s\b' % name_of_var, text)
-                  if abs(h.start() - m.start()) >= 400]
+                  if not (start <= h.start() <= row_end)]
         # Mentions inside options[] itself are other rows' business, not a read.
         reads = []
         for o in others:
@@ -148,7 +160,7 @@ def drop_row(text, name, strict=False, local=False):
     # else: the name test and the global-read test above still apply, and the
     # phase still has to run the binary afterwards.  Without the pairing this
     # is the flag that reintroduces Phase 14's segfault.
-    indir = re.search(r'PV_\w+', text[m.start():m.start() + 400])
+    indir = re.search(r'PV_\w+', text[start:row_end])
     if local:
         indir = None
     if indir and indir.group(0) != 'PV_NONE':

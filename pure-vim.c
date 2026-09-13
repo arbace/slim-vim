@@ -1319,13 +1319,6 @@ enum { CPO_PRESERVE = '&' };
 enum { CPO_SUBPERCENT = '/' };
 enum { CPO_BACKSL = '\\' };
 enum { CPO_SCOLON = ';' };
-enum { MOUSE_NORMAL = 'n' };
-enum { MOUSE_VISUAL = 'v' };
-enum { MOUSE_INSERT = 'i' };
-enum { MOUSE_COMMAND = 'c' };
-enum { MOUSE_HELP = 'h' };
-enum { MOUSE_RETURN = 'r' };
-
 enum { SHM_RO = 'r' };
 enum { SHM_MOD = 'm' };
 enum { SHM_FILE = 'f' };
@@ -1542,9 +1535,6 @@ static long     p_mls;
 static int      p_mlstr;
 static int      p_ma;
 static int      p_mod;
-static char_u   *p_mouse;
-static char_u   *p_mousem;
-static long     p_mouset;
 static int      p_more;
 static char_u   *p_nf;
 static long     p_ost;
@@ -1631,12 +1621,6 @@ static long     p_ttm;
 static int      p_tbi;
 static int      p_tf;
 static long     p_ttyscroll;
-static char_u   *p_ttym;
-static unsigned ttym_flags;
-enum { TTYM_XTERM = 0x01 };
-enum { TTYM_XTERM2 = 0x02 };
-enum { TTYM_URXVT = 0x40 };
-enum { TTYM_SGR = 0x80 };
 static long     p_ul;
 static long     p_ur;
 static long     p_uc;
@@ -3635,12 +3619,6 @@ typedef struct {
     tasave_T    tabuf;
 } save_state_T;
 
-typedef enum {
-    IGNORE_POPUP,
-    FIND_POPUP,
-    FAIL_POPUP
-} mouse_find_T;
-
 enum { DELETION_REGISTER = 36 };
 
 enum { NUM_REGISTERS = 37 };
@@ -3868,38 +3846,7 @@ int xdl_merge(mmfile_t *orig, mmfile_t *mf1, mmfile_t *mf2, xmparam_t const *xmp
 
 // ---------------- end xdiff.h ----------------
 
-enum { MOUSE_LEFT = 0x00 };
-enum { MOUSE_MIDDLE = 0x01 };
-enum { MOUSE_RIGHT = 0x02 };
 enum { MOUSE_RELEASE = 0x03 };
-
-enum { MOUSE_SHIFT = 0x04 };
-enum { MOUSE_ALT = 0x08 };
-enum { MOUSE_CTRL = 0x10 };
-
-enum { MOUSE_X1 = 0x300 };
-enum { MOUSE_X2 = 0x400 };
-
-enum { MOUSE_DRAG_XTERM = 0x40 };
-
-enum { MOUSEWHEEL_LOW = 0x60 };
-
-enum { MOUSESIDEBUTTONS_LOW = 0xa0 };
-
-enum { MOUSE_CLICK_MASK = 0x03 };
-
-enum { IN_UNKNOWN = 0 };
-enum { IN_BUFFER = 1 };
-enum { IN_STATUS_LINE = 2 };
-enum { IN_SEP_LINE = 4 };
-enum { CURSOR_MOVED = 0x100 };
-
-enum { MOUSE_FOCUS = 0x01 };
-enum { MOUSE_MAY_VIS = 0x02 };
-enum { MOUSE_DID_MOVE = 0x04 };
-enum { MOUSE_SETPOS = 0x08 };
-enum { MOUSE_MAY_STOP_VIS = 0x10 };
-enum { MOUSE_RELEASED = 0x20 };
 
 enum { VALID_PATH = 1 };
 enum { VALID_HEAD = 2 };
@@ -4736,7 +4683,6 @@ static int mch_can_restore_title(void);
 static int mch_can_restore_icon(void);
 static void mch_settitle(char_u *title, char_u *icon);
 static void mch_restore_title(int which);
-static int use_xterm_mouse(void);
 static long mch_get_pid(void);
 static int mch_dirname(char_u *buf, int len);
 static int mch_FullName(char_u *fname, char_u *buf, int len, int force);
@@ -4751,8 +4697,6 @@ static int mch_isdir(char_u *name);
 static int mch_nodetype(char_u *name);
 static void mch_exit(int r);
 static int get_tty_info(int fd, ttyinfo_T *info);
-static void mch_setmouse(int on);
-static void check_mouse_termcode(void);
 static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
 static int mch_has_wildcard(char_u *p);
 int  rename(const char *src, const char *dest) ;
@@ -5491,17 +5435,7 @@ static void *mergesort_list(void *head, void *(*get_next)(void *), void (*set_ne
 
 // ---------------- end misc2.pro ----------------
 // ---------------- begin mouse.pro ----------------
-static void ins_mouse(int c);
-static void ins_mousescroll(int dir);
 static int is_mouse_key(int c);
-static int get_mouse_button(int code, int *is_click, int *is_drag);
-static void setmouse(void);
-static int mouse_has(int c);
-static int mouse_model_popup(void);
-static int jump_to_mouse(int flags, int *inclusive, int which_button);
-static int do_mousescroll_horiz(long_u leftcol);
-static int mouse_comp_pos(win_T *win, int *rowp, int *colp, linenr_T *lnump, int *plines_cache);
-static win_T *mouse_find_win(int *rowp, int *colp, mouse_find_T popup);
 
 // ---------------- end mouse.pro ----------------
 // ---------------- begin move.pro ----------------
@@ -5807,10 +5741,6 @@ static int expand_set_lispoptions(optexpand_T *args, int *numMatches, char_u ***
 static char *did_set_matchpairs(optset_T *args);
 static char *did_set_messagesopt(optset_T *args);
 static int expand_set_messagesopt(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_mouse(optset_T *args);
-static int expand_set_mouse(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_mousemodel(optset_T *args);
-static int expand_set_mousemodel(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_nrformats(optset_T *args);
 static int expand_set_nrformats(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_pastetoggle(optset_T *args);
@@ -5840,8 +5770,6 @@ static char *did_set_term_option(optset_T *args);
 static char *did_set_termresize(optset_T *args);
 static int expand_set_termresize(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_titlestring(optset_T *args);
-static char *did_set_ttymouse(optset_T *args);
-static int expand_set_ttymouse(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_verbosefile(optset_T *args);
 static char *did_set_virtualedit(optset_T *args);
 static int expand_set_virtualedit(optexpand_T *args, int *numMatches, char_u ***matches);
@@ -5898,7 +5826,6 @@ static int valid_yank_reg(int regname, int writing);
 static int get_yank_register(int regname, int writing);
 static void *get_register(int name, int copy);
 static void put_register(int name, void *reg);
-static int yank_register_mline(int regname);
 static int do_record(int c);
 static int do_execreg(int regname, int colon, int addcr, int silent);
 static int insert_reg(int regname, int literally_arg);
@@ -6052,7 +5979,6 @@ static void term_windgoto(int row, int col);
 static void term_cursor_right(int i);
 static void term_append_lines(int line_count);
 static void term_delete_lines(int line_count);
-static void term_enable_mouse(int enable);
 static void term_set_winsize(int height, int width);
 static void term_font(int n);
 static void term_fg_color(int n);
@@ -6063,7 +5989,6 @@ static void term_settitle(char_u *title);
 static void term_push_title(int which);
 static void term_pop_title(int which);
 static void ttest(int pairs);
-static int get_bytes_from_buf(char_u *buf, char_u *bytes, int num_bytes);
 static void check_shellsize(void);
 static void limit_screen_size(void);
 static void win_new_shellsize(void);
@@ -6089,10 +6014,7 @@ static void clear_termcodes(void);
 static void add_termcode(char_u *name, char_u *string, int flags);
 static char_u *find_termcode(char_u *name);
 static char_u *get_termcode(int i);
-static int get_termcode_len(int idx);
 static void del_termcode(char_u *name);
-static void set_mouse_topline(win_T *wp);
-static int is_mouse_topline(win_T *wp);
 static int put_string_in_typebuf(int offset, int slen, char_u *string, int new_slen, char_u *buf, int bufsize, int *buflen);
 static int decode_modifiers(int n);
 static bool in_osc_sequence(void);
@@ -6154,8 +6076,6 @@ static void fill_input_buf(int exit_on_error);
 static void read_error_exit(void);
 static int check_col(int col);
 static int check_row(int row);
-static long scroll_line_len(linenr_T lnum);
-static linenr_T ui_find_longest_lnum(void);
 static void ui_focus_change(int in_focus);
 
 // ---------------- end ui.pro ----------------
@@ -6273,8 +6193,6 @@ static void win_setwidth(int width);
 static void win_setwidth_win(int width, win_T *wp);
 static void win_setminheight(void);
 static void win_setminwidth(void);
-static void win_drag_status_line(win_T *dragwin, int offset);
-static void win_drag_vsep_line(win_T *dragwin, int offset);
 static void set_fraction(win_T *wp);
 static void win_new_height(win_T *wp, int height);
 static void scroll_to_fraction(win_T *wp, int prev_height);
@@ -6332,9 +6250,6 @@ static int      no_hlsearch  = FALSE ;
 static int redrawing_for_callback  = 0 ;
 
 static short    *TabPageIdxs  = NULL ;
-
-static stl_click_region_T *tabline_stl_click  = NULL ;
-static int      tabline_stl_click_count  = 0 ;
 
 static long     p_po  = 100 ;
 
@@ -6459,8 +6374,6 @@ static win_T    *au_pending_free_win  = NULL ;
 
 static int      mouse_row;
 static int      mouse_col;
-static int      mouse_past_bottom  = FALSE ;
-static int      mouse_past_eol  = FALSE ;
 static int      mouse_dragging  = 0 ;
 
 static int      updating_screen  = FALSE ;
@@ -7205,9 +7118,6 @@ enum { BFA_DEL = 1 };
 enum { BFA_WIPE = 2 };
 enum { BFA_KEEP_UNDO = 4 };
 enum { BFA_IGNORE_ABORT = 8 };
-
-enum { MSCR_DOWN = 0 };
-enum { MSCR_UP = 1 };
 
 enum { KEYLEN_REMOVED = 9999 };
 
@@ -30737,7 +30647,6 @@ edit(int         cmdchar, int         startln, long        count)
         State |= MODE_LANGMAP;
     }
 
-    setmouse();
     clear_showcmd();
     if (!p_ek)
     {
@@ -31252,43 +31161,6 @@ doESCkey:
                  if (ins_compl_has_autocomplete() && !char_avail()                       && curwin->w_cursor.col > 0)
                      {                                                                   (c) = char_before_cursor();                                     if (vim_isprintc(c))                                                                                                  update_screen(UPD_VALID);          out_flush();                                    ins_compl_enable_autocomplete();                ins_compl_arm_autostart();                      if (!ins_compl_arm_autocomplete_delay())            goto docomplete;                                                          }
             }
-            break;
-
-        case   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE_NM) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_LEFTDRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE_NM) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSEMOVE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_MIDDLEDRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_MIDDLERELEASE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_RIGHTMOUSE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_RIGHTDRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X1MOUSE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X1DRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X1RELEASE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X2MOUSE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X2DRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X2RELEASE) << 8)))  :
-            ins_mouse(c);
-            break;
-
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))  :
-            ins_mousescroll(MSCR_DOWN);
-            break;
-
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))  :
-            ins_mousescroll(MSCR_UP);
-            break;
-
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))  :
-            ins_mousescroll( (-1) );
-            break;
-
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))  :
-            ins_mousescroll( (-2) );
             break;
 
         case   (-(('P') + ((int)('S') << 8)))  :
@@ -33269,7 +33141,6 @@ ins_esc(long        *count, int         cmdchar, int         nomove)
         curwin->w_valid &= ~(VALID_WROW|VALID_WCOL|VALID_VIRTCOL);
     }
 
-    setmouse();
     if (!p_ek)
     {
           ;
@@ -37860,7 +37731,6 @@ ex_substitute(exarg_T *eap)
 
                     save_State = State;
                     State = MODE_CONFIRM;
-                    setmouse();
                     curwin->w_cursor.col = regmatch.startpos[0].col;
                     if (curwin-> w_onebuf_opt.wo_crb )
                     {
@@ -38037,7 +37907,6 @@ ex_substitute(exarg_T *eap)
                         }
                     }
                     State = save_State;
-                    setmouse();
                     if (vim_strchr(p_cpo, CPO_UNDO) != NULL)
                     {
                         --no_u_sync;
@@ -44875,7 +44744,6 @@ ex_normal(exarg_T *eap)
 
     restore_current_state(&save_state);
     --ex_normal_busy;
-    setmouse();
 
     vim_free(arg);
 }
@@ -45362,14 +45230,12 @@ ex_behave(exarg_T *eap)
     {
         set_option_value_give_err((char_u *)"selection", 0L, (char_u *)"exclusive", 0);
         set_option_value_give_err((char_u *)"selectmode", 0L, (char_u *)"mouse,key", 0);
-        set_option_value_give_err((char_u *)"mousemodel", 0L, (char_u *)"popup", 0);
         set_option_value_give_err((char_u *)"keymodel", 0L, (char_u *)"startsel,stopsel", 0);
     }
     else if ( strcmp((char *)(eap->arg), (char *)("xterm"))  == 0)
     {
         set_option_value_give_err((char_u *)"selection", 0L, (char_u *)"inclusive", 0);
         set_option_value_give_err((char_u *)"selectmode", 0L, (char_u *)"", 0);
-        set_option_value_give_err((char_u *)"mousemodel", 0L, (char_u *)"extend", 0);
         set_option_value_give_err((char_u *)"keymodel", 0L, (char_u *)"", 0);
     }
     else
@@ -46583,41 +46449,6 @@ cmdline_insert_reg(int *gotesc  __attribute__((unused)) )
     return literally ? CMDLINE_CHANGED : CMDLINE_NOT_CHANGED;
 }
 
-    static void
-cmdline_left_right_mouse(int c, int *ignore_drag_release)
-{
-    if (c ==   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))  )
-    {
-        *ignore_drag_release = TRUE;
-    }
-    else
-    {
-        *ignore_drag_release = FALSE;
-    }
-        if (!mouse_has(MOUSE_COMMAND))
-        {
-            return;
-        }
-
-    set_cmdspos();
-    for (ccline.cmdpos = 0; ccline.cmdpos < ccline.cmdlen; ++ccline.cmdpos)
-    {
-        int     i;
-
-        i = cmdline_charsize(ccline.cmdpos);
-        if (mouse_row <= cmdline_row + ccline.cmdspos / cmdline_width && mouse_col < ccline.cmdspos % cmdline_width + i)
-        {
-            break;
-        }
-        if (has_mbyte)
-        {
-            correct_cmdspos(ccline.cmdpos, i);
-            ccline.cmdpos += (*mb_ptr2len)(ccline.cmdbuff + ccline.cmdpos) - 1;
-        }
-        ccline.cmdspos += i;
-    }
-}
-
     static int
 cmdline_browse_history(int     c, int     firstc, char_u  **curcmdstr, size_t  *curcmdstrlen, int     histype, int     *hiscnt_p, expand_T *xp)
 {
@@ -46846,7 +46677,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
     int         save_msg_scroll = msg_scroll;
     int         save_State = State;
     int         some_key_typed = FALSE;
-    int         ignore_drag_release = TRUE;
     expand_T    xpc;
     long        *b_im_ptr = NULL;
     buf_T       *b_im_ptr_buf = NULL;
@@ -46921,8 +46751,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
             State |= MODE_LANGMAP;
         }
     }
-
-    setmouse();
 
     settmode(TMODE_RAW);
 
@@ -47313,48 +47141,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
         case   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  :
                 goto cmdline_not_changed;
 
-        case   (-((KS_EXTRA) + ((int)(KE_MIDDLEDRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_MIDDLERELEASE) << 8)))  :
-                goto cmdline_not_changed;
-
-        case   (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))  :
-                    if (!mouse_has(MOUSE_COMMAND))
-                    {
-                        goto cmdline_not_changed;
-                    }
-                    cmdline_paste(0, TRUE, TRUE);
-                redrawcmd();
-                goto cmdline_changed;
-
-        case   (-((KS_EXTRA) + ((int)(KE_LEFTDRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_RIGHTDRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))  :
-                if (ignore_drag_release)
-                {
-                    goto cmdline_not_changed;
-                }
-        __attribute__((fallthrough));
-        case   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_RIGHTMOUSE) << 8)))  :
-                cmdline_left_right_mouse(c, &ignore_drag_release);
-                goto cmdline_not_changed;
-
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))  :
-                goto cmdline_not_changed;
-
-        case   (-((KS_EXTRA) + ((int)(KE_X1MOUSE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X1DRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X1RELEASE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X2MOUSE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X2DRAG) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_X2RELEASE) << 8)))  :
-        case   (-((KS_EXTRA) + ((int)(KE_MOUSEMOVE) << 8)))  :
-                goto cmdline_not_changed;
-
         case   (-((KS_SELECT) + ((int)( ('X') ) << 8)))  :
                 goto cmdline_not_changed;
 
@@ -47440,7 +47226,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
         case Ctrl_V:
         case Ctrl_Q:
                 {
-                    ignore_drag_release = TRUE;
                     putcmdline('^', TRUE);
 
                     c = get_literal(mod_mask & MOD_MASK_SHIFT);
@@ -47578,7 +47363,6 @@ returncmd:
 
     State = save_State;
 
-    setmouse();
     sb_text_end_cmdline();
 
 theend:
@@ -48953,7 +48737,6 @@ open_cmdwin(void)
 
     State = MODE_NORMAL;
     check_cursor();
-    setmouse();
     clear_showcmd();
 
     cmdwin_result = 0;
@@ -49072,7 +48855,6 @@ open_cmdwin(void)
 
     State = save_State;
     may_trigger_modechanged();
-    setmouse();
 
     return cmdwin_result;
 }
@@ -77971,7 +77753,6 @@ wait_return(int redraw)
         screenalloc(FALSE);
 
         State =  (0x2000 | MODE_NORMAL) ;
-        setmouse();
         cmdline_row = msg_row;
 
         if (need_check_timestamps)
@@ -78036,12 +77817,11 @@ wait_return(int redraw)
                         c =   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  ;
                     }
                 }
-            } while ((had_got_int && c == Ctrl_C) || c ==   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_LEFTDRAG) << 8)))     || c ==   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MIDDLEDRAG) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MIDDLERELEASE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTDRAG) << 8)))    || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))    || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))    || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEMOVE) << 8)))   || (!mouse_has(MOUSE_RETURN) && mouse_row < msg_row && (c ==   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTMOUSE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_X1MOUSE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_X2MOUSE) << 8)))  )));
+            } while ((had_got_int && c == Ctrl_C) || c ==   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_LEFTDRAG) << 8)))     || c ==   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MIDDLEDRAG) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MIDDLERELEASE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTDRAG) << 8)))    || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))    || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))    || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEMOVE) << 8)))  );
             ui_breakcheck();
 
             if (c ==   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTMOUSE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_X1MOUSE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_X2MOUSE) << 8)))  )
             {
-                (void)jump_to_mouse(MOUSE_SETPOS, NULL, 0);
             }
             else if (!KeyTyped || (vim_strchr((char_u *)"\r\n ", c) == NULL && c != Ctrl_C && c != 'q'))
             {
@@ -78069,7 +77849,6 @@ wait_return(int redraw)
 
     tmpState = State;
     State = oldState;
-    setmouse();
     msg_check();
 
     if (swapping_screen() && !termcap_active)
@@ -79372,7 +79151,6 @@ do_more_prompt(int typed_char)
     }
 
     State = MODE_ASKMORE;
-    setmouse();
     if (typed_char == NUL)
     {
         msg_moremsg(FALSE);
@@ -79545,7 +79323,6 @@ do_more_prompt(int typed_char)
 
     screen_fill((int)Rows - 1, (int)Rows, cmdline_col_off, cmdline_col_off + cmdline_width, ' ', ' ', msg_attr);
     State = oldState;
-    setmouse();
     if (quit_more)
     {
         msg_row = Rows - 1;
@@ -80437,7 +80214,6 @@ ask_yesno(char_u *str, int direct)
     }
     ++no_wait_return;
     State = MODE_CONFIRM;
-    setmouse();
     ++no_mapping;
     ++allow_keys;
 
@@ -80461,7 +80237,6 @@ ask_yesno(char_u *str, int direct)
     }
     --no_wait_return;
     State = save_State;
-    setmouse();
     --no_mapping;
     --allow_keys;
 
@@ -80739,7 +80514,6 @@ prepare_to_exit(void)
 
         if (!full_screen)
         {
-            mch_setmouse(FALSE);
         }
 
         settmode(TMODE_COOK);
@@ -81720,20 +81494,13 @@ static struct key_name_entry
     {TRUE,   (-(('K') + ((int)('6') << 8)))  ,  {(char_u *)("kPlus"),  (sizeof("kPlus" "") - 1) } , FALSE},
     {TRUE,   (-(('K') + ((int)('B') << 8)))  ,  {(char_u *)("kPoint"),  (sizeof("kPoint" "") - 1) } , FALSE},
     {TRUE,   (-(('k') + ((int)('l') << 8)))  ,  {(char_u *)("Left"),  (sizeof("Left" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_LEFTDRAG) << 8)))  ,  {(char_u *)("LeftDrag"),  (sizeof("LeftDrag" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))  ,  {(char_u *)("LeftMouse"),  (sizeof("LeftMouse" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE_NM) << 8)))  ,  {(char_u *)("LeftMouseNM"),  (sizeof("LeftMouseNM" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE) << 8)))  ,  {(char_u *)("LeftRelease"),  (sizeof("LeftRelease" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE_NM) << 8)))  ,  {(char_u *)("LeftReleaseNM"),  (sizeof("LeftReleaseNM" "") - 1) } , FALSE},
     {TRUE, NL,  {(char_u *)("LF"),  (sizeof("LF" "") - 1) } , TRUE},
     {TRUE, NL,  {(char_u *)("LineFeed"),  (sizeof("LineFeed" "") - 1) } , TRUE},
     {TRUE, '<',  {(char_u *)("lt"),  (sizeof("lt" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_MIDDLEDRAG) << 8)))  ,  {(char_u *)("MiddleDrag"),  (sizeof("MiddleDrag" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))  ,  {(char_u *)("MiddleMouse"),  (sizeof("MiddleMouse" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_MIDDLERELEASE) << 8)))  ,  {(char_u *)("MiddleRelease"),  (sizeof("MiddleRelease" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_MOUSE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("Mouse"),  (sizeof("Mouse" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))  ,  {(char_u *)("MouseDown"),  (sizeof("MouseDown" "") - 1) } , TRUE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MOUSEMOVE) << 8)))  ,  {(char_u *)("MouseMove"),  (sizeof("MouseMove" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))  ,  {(char_u *)("MouseUp"),  (sizeof("MouseUp" "") - 1) } , TRUE},
     {
     FALSE,
@@ -81753,13 +81520,8 @@ static struct key_name_entry
     {TRUE, CAR,  {(char_u *)("Return"),  (sizeof("Return" "") - 1) } , TRUE},
     {TRUE,   (-(('k') + ((int)('r') << 8)))  ,  {(char_u *)("Right"),  (sizeof("Right" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_RIGHTDRAG) << 8)))  ,  {(char_u *)("RightDrag"),  (sizeof("RightDrag" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_RIGHTMOUSE) << 8)))  ,  {(char_u *)("RightMouse"),  (sizeof("RightMouse" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))  ,  {(char_u *)("RightRelease"),  (sizeof("RightRelease" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_SCRIPT_COMMAND) << 8)))  ,  {(char_u *)("ScriptCmd"),  (sizeof("ScriptCmd" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))  ,  {(char_u *)("ScrollWheelDown"),  (sizeof("ScrollWheelDown" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))  ,  {(char_u *)("ScrollWheelLeft"),  (sizeof("ScrollWheelLeft" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))  ,  {(char_u *)("ScrollWheelRight"),  (sizeof("ScrollWheelRight" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))  ,  {(char_u *)("ScrollWheelUp"),  (sizeof("ScrollWheelUp" "") - 1) } , FALSE},
     {TRUE,   (-((KS_SGR_MOUSE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("SgrMouse"),  (sizeof("SgrMouse" "") - 1) } , FALSE},
     {TRUE,   (-((KS_SGR_MOUSE_RELEASE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("SgrMouseRelease"),  (sizeof("SgrMouseRelease" "") - 1) } , FALSE},
     {
@@ -81774,10 +81536,8 @@ static struct key_name_entry
     FALSE,
           (-((KS_URXVT_MOUSE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("UrxvtMouse"),  (sizeof("UrxvtMouse" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_X1DRAG) << 8)))  ,  {(char_u *)("X1Drag"),  (sizeof("X1Drag" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_X1MOUSE) << 8)))  ,  {(char_u *)("X1Mouse"),  (sizeof("X1Mouse" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_X1RELEASE) << 8)))  ,  {(char_u *)("X1Release"),  (sizeof("X1Release" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_X2DRAG) << 8)))  ,  {(char_u *)("X2Drag"),  (sizeof("X2Drag" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_X2MOUSE) << 8)))  ,  {(char_u *)("X2Mouse"),  (sizeof("X2Mouse" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_X2RELEASE) << 8)))  ,  {(char_u *)("X2Release"),  (sizeof("X2Release" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_CSI) << 8)))  ,  {(char_u *)("xCSI"),  (sizeof("xCSI" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_XDOWN) << 8)))  ,  {(char_u *)("xDown"),  (sizeof("xDown" "") - 1) } , FALSE},
@@ -82689,926 +82449,7 @@ mergesort_list(void        *head, void        *(*get_next)(void *), void        
 
 // ==================== mouse.c ====================
 
-static long mouse_hor_step = 6;
-static long mouse_vert_step = 3;
 static win_T *dragwin = NULL;
-static int stl_click_handler(win_T *wp, int mrow, int mcol, int which_button, int mods);
-static int stl_click_handler_regions(stl_click_region_T *regions, int region_count, int winid, char_u *area_name, int mrow, int mcol, int which_button, int mods);
-
-    static long
-time_diff_ms(struct timeval *t1, struct timeval *t2)
-{
-    return (t2->tv_sec - t1->tv_sec) * 1000
-         + (t2->tv_usec - t1->tv_usec) / 1000;
-}
-
-    static int
-get_mouse_class(char_u *p)
-{
-    int         c;
-
-    if (has_mbyte &&  mb_bytelen_tab[p[0]]  > 1)
-    {
-        return mb_get_class(p);
-    }
-
-    c = *p;
-    if (c == ' ' || c == '\t')
-    {
-        return 0;
-    }
-
-    if (vim_iswordc(c))
-    {
-        return 2;
-    }
-
-    if (c != NUL && vim_strchr((char_u *)"-+*/%<>&|^!=", c) != NULL)
-    {
-        return 1;
-    }
-    return c;
-}
-
-    static void
-find_start_of_word(pos_T *pos)
-{
-    char_u      *line;
-    int         cclass;
-    int         col;
-
-    line = ml_get(pos->lnum);
-    cclass = get_mouse_class(line + pos->col);
-
-    while (pos->col > 0)
-    {
-        col = pos->col - 1;
-        col -= (*mb_head_off)(line, line + col);
-        if (get_mouse_class(line + col) != cclass)
-        {
-            break;
-        }
-        pos->col = col;
-    }
-}
-
-    static void
-find_end_of_word(pos_T *pos)
-{
-    char_u      *line;
-    int         cclass;
-    int         col;
-
-    line = ml_get(pos->lnum);
-    if (*p_sel == 'e' && pos->col > 0)
-    {
-        --pos->col;
-        pos->col -= (*mb_head_off)(line, line + pos->col);
-    }
-    cclass = get_mouse_class(line + pos->col);
-    while (line[pos->col] != NUL)
-    {
-        col = pos->col + (*mb_ptr2len)(line + pos->col);
-        if (get_mouse_class(line + col) != cclass)
-        {
-            if (*p_sel == 'e')
-            {
-                pos->col = col;
-            }
-            break;
-        }
-        pos->col = col;
-    }
-}
-
-    static int
-do_mouse(oparg_T     *oap, int         c, int         dir, long        count, int         fixindent)
-{
-    static int  do_always = FALSE;
-    static int  got_click = FALSE;
-
-    int         which_button;
-    int         is_click = FALSE;
-    int         is_drag = FALSE;
-    int         jump_flags = 0;
-    pos_T       start_visual;
-    int         moved;
-    int         in_status_line;
-    static int  in_tab_line = FALSE;
-    static int  in_tabpanel = FALSE;
-    int         in_sep_line;
-    int c1;
-    int c2;
-    win_T       *old_curwin = curwin;
-    static pos_T orig_cursor;
-    colnr_T leftcol;
-    colnr_T rightcol;
-    pos_T       end_visual;
-    int         diff;
-    int         old_active = VIsual_active;
-    int         old_mode = VIsual_mode;
-    int         regname;
-
-    if (do_always)
-    {
-        do_always = FALSE;
-    }
-    else
-        {
-            if (VIsual_active)
-            {
-                if (!mouse_has(MOUSE_VISUAL))
-                {
-                    return FALSE;
-                }
-            }
-            else if (State == MODE_NORMAL && !mouse_has(MOUSE_NORMAL))
-            {
-                return FALSE;
-            }
-        }
-
-    for (;;)
-    {
-        which_button = get_mouse_button( (((unsigned)(-(c)) >> 8) & 0xff) , &is_click, &is_drag);
-        if (is_drag)
-        {
-            if (!KeyStuffed && vpeekc() != NUL)
-            {
-                int nc;
-                int save_mouse_row = mouse_row;
-                int save_mouse_col = mouse_col;
-
-                nc = safe_vgetc();
-                if (c == nc)
-                {
-                    continue;
-                }
-                vungetc(nc);
-                mouse_row = save_mouse_row;
-                mouse_col = save_mouse_col;
-            }
-        }
-        break;
-    }
-
-    if (c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEMOVE) << 8)))  )
-    {
-        return FALSE;
-    }
-
-    if (is_click)
-    {
-        got_click = TRUE;
-        in_tab_line = FALSE;
-        in_tabpanel = FALSE;
-    }
-    else
-    {
-        if (!got_click)
-        {
-            return FALSE;
-        }
-        if (!is_drag)
-        {
-            got_click = FALSE;
-            if (in_tab_line || in_tabpanel)
-            {
-                in_tab_line = FALSE;
-                in_tabpanel = FALSE;
-                return FALSE;
-            }
-        }
-    }
-
-    if (is_click && (mod_mask & MOD_MASK_CTRL) && which_button == MOUSE_RIGHT)
-    {
-        if (State & MODE_INSERT)
-        {
-            stuffcharReadbuff(Ctrl_O);
-        }
-        if (count > 1)
-        {
-            stuffnumReadbuff(count);
-        }
-        stuffcharReadbuff(Ctrl_T);
-        got_click = FALSE;
-        return FALSE;
-    }
-
-    if ((mod_mask & MOD_MASK_CTRL) && which_button != MOUSE_LEFT)
-    {
-        return FALSE;
-    }
-
-    if ((mod_mask & (MOD_MASK_SHIFT | MOD_MASK_CTRL | MOD_MASK_ALT | MOD_MASK_META)) && (!is_click || (mod_mask &  (MOD_MASK_2CLICK|MOD_MASK_3CLICK|MOD_MASK_4CLICK) ) || which_button == MOUSE_MIDDLE) && !((mod_mask & (MOD_MASK_SHIFT|MOD_MASK_ALT)) && mouse_model_popup() && which_button == MOUSE_LEFT) && !((mod_mask & MOD_MASK_ALT) && !mouse_model_popup() && which_button == MOUSE_RIGHT))
-    {
-        return FALSE;
-    }
-
-    if (!is_click && which_button == MOUSE_MIDDLE)
-    {
-        return FALSE;
-    }
-
-    if (oap != NULL)
-    {
-        regname = oap->regname;
-    }
-    else
-    {
-        regname = 0;
-    }
-
-    if (which_button == MOUSE_MIDDLE)
-    {
-        if (State == MODE_NORMAL)
-        {
-            if (oap != NULL && oap->op_type != OP_NOP)
-            {
-                clearopbeep(oap);
-                return FALSE;
-            }
-
-            if (VIsual_active)
-            {
-                if (VIsual_select)
-                {
-                    stuffcharReadbuff(Ctrl_G);
-                    stuffReadbuff((char_u *)"\"+p");
-                }
-                else
-                {
-                    stuffcharReadbuff('y');
-                    stuffcharReadbuff(  (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))  );
-                }
-                do_always = TRUE;
-                return FALSE;
-            }
-        }
-
-        else if ((State & MODE_INSERT) == 0)
-        {
-            return FALSE;
-        }
-
-        if ((State & MODE_INSERT) || !mouse_has(MOUSE_NORMAL))
-        {
-            if (regname == '.')
-            {
-                insert_reg(regname, TRUE);
-            }
-            else
-            {
-                if ((State & REPLACE_FLAG) && !yank_register_mline(regname))
-                {
-                    insert_reg(regname, TRUE);
-                }
-                else
-                {
-                    do_put(regname, NULL,  (-1) , 1L, fixindent | PUT_CURSEND);
-
-                    AppendCharToRedobuff(Ctrl_R);
-                    AppendCharToRedobuff(fixindent ? Ctrl_P : Ctrl_O);
-                    AppendCharToRedobuff(regname == 0 ? '"' : regname);
-                }
-            }
-            return FALSE;
-        }
-    }
-
-    if (!is_click)
-    {
-        jump_flags |= MOUSE_FOCUS | MOUSE_DID_MOVE;
-    }
-
-    start_visual.lnum = 0;
-
-    struct tabpage_label_info {
-        bool is_panel;
-        bool just_in;
-        bool just_click;
-        int nr;
-    } tp_label = { false, false, false, 0 };
-
-    if (TabPageIdxs != NULL && mouse_row == 0 && firstwin->w_winrow > 0)
-    {
-        if (is_click && !is_drag && stl_click_handler_regions(tabline_stl_click, tabline_stl_click_count, 0, (char_u *)"tabline", mouse_row, mouse_col, which_button, mod_mask))
-        {
-            return FALSE;
-        }
-
-        tp_label.just_in = true;
-        tp_label.nr = TabPageIdxs[mouse_col];
-
-        if (is_click && cmdwin_type == 0 && mouse_col < firstwin->w_wincol + topframe->fr_width)
-        {
-            tp_label.just_click = true;
-        }
-    }
-
-    if (tp_label.just_in)
-    {
-        if (is_drag)
-        {
-            if (in_tabpanel || in_tab_line)
-            {
-                c1 = tp_label.nr;
-                tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab) ? c1 - 1 : c1);
-            }
-            return FALSE;
-        }
-
-        if (tp_label.just_click)
-        {
-            if (tp_label.is_panel)
-            {
-                in_tabpanel = TRUE;
-            }
-            else
-            {
-                in_tab_line = TRUE;
-            }
-            c1 = tp_label.nr;
-            if (c1 >= 0)
-            {
-                if ((mod_mask &  (MOD_MASK_2CLICK|MOD_MASK_3CLICK|MOD_MASK_4CLICK) ) == MOD_MASK_2CLICK && !tp_label.is_panel)
-                {
-                    end_visual_mode_keep_button();
-                    tabpage_new();
-                    tabpage_move(c1 == 0 ? 9999 : c1 - 1);
-                }
-                else
-                {
-                    goto_tabpage(c1);
-
-                    if (curwin != old_curwin)
-                    {
-                        end_visual_mode_keep_button();
-                    }
-                }
-            }
-            else
-            {
-                tabpage_T       *tp;
-
-                if (c1 == -999)
-                {
-                    tp = curtab;
-                }
-                else
-                {
-                    tp = find_tabpage(-c1);
-                }
-                if (tp == curtab)
-                {
-                    if (first_tabpage->tp_next != NULL)
-                    {
-                        tabpage_close(FALSE);
-                    }
-                }
-                else if (tp != NULL)
-                {
-                    tabpage_close_other(tp, FALSE);
-                }
-            }
-        }
-        return TRUE;
-    }
-    else if (is_drag && (in_tabpanel || (in_tab_line && TabPageIdxs != NULL)))
-    {
-            c1 = TabPageIdxs[mouse_col];
-        tabpage_move(c1 <= 0 ? 9999 : c1 - 1);
-        return FALSE;
-    }
-
-    if (mouse_model_popup())
-    {
-        if (which_button == MOUSE_RIGHT && !(mod_mask & (MOD_MASK_SHIFT | MOD_MASK_CTRL)))
-        {
-            return FALSE;
-        }
-        if (which_button == MOUSE_LEFT && (mod_mask & (MOD_MASK_SHIFT|MOD_MASK_ALT)))
-        {
-            which_button = MOUSE_RIGHT;
-            mod_mask &= ~MOD_MASK_SHIFT;
-        }
-    }
-
-    if ((State & (MODE_NORMAL | MODE_INSERT)) && !(mod_mask & (MOD_MASK_SHIFT | MOD_MASK_CTRL)))
-    {
-        if (which_button == MOUSE_LEFT)
-        {
-            if (is_click)
-            {
-                if (VIsual_active)
-                {
-                    jump_flags |= MOUSE_MAY_STOP_VIS;
-                }
-            }
-            else if (mouse_has(MOUSE_VISUAL))
-            {
-                jump_flags |= MOUSE_MAY_VIS;
-            }
-        }
-        else if (which_button == MOUSE_RIGHT)
-        {
-            if (is_click && VIsual_active)
-            {
-                if ( (((curwin->w_cursor).lnum != (VIsual).lnum)               ? (curwin->w_cursor).lnum < (VIsual).lnum                   : (curwin->w_cursor).col != (VIsual).col                        ? (curwin->w_cursor).col < (VIsual).col                     : (curwin->w_cursor).coladd < (VIsual).coladd) )
-                {
-                    start_visual = curwin->w_cursor;
-                    end_visual = VIsual;
-                }
-                else
-                {
-                    start_visual = VIsual;
-                    end_visual = curwin->w_cursor;
-                }
-            }
-            jump_flags |= MOUSE_FOCUS;
-            if (mouse_has(MOUSE_VISUAL))
-            {
-                jump_flags |= MOUSE_MAY_VIS;
-            }
-        }
-    }
-
-    if (!is_drag && oap != NULL && oap->op_type != OP_NOP)
-    {
-        got_click = FALSE;
-        oap->motion_type = MCHAR;
-    }
-
-    if (!is_click && !is_drag)
-    {
-        jump_flags |= MOUSE_RELEASED;
-    }
-
-    jump_flags = jump_to_mouse(jump_flags, oap == NULL ? NULL : &(oap->inclusive), which_button);
-
-    moved = (jump_flags & CURSOR_MOVED);
-    in_status_line = (jump_flags & IN_STATUS_LINE);
-    in_sep_line = (jump_flags & IN_SEP_LINE);
-
-    if (in_status_line && is_click && !is_drag && stl_click_handler(dragwin, mouse_row, mouse_col, which_button, mod_mask))
-    {
-        return FALSE;
-    }
-
-    if (curwin != old_curwin && oap != NULL && oap->op_type != OP_NOP)
-    {
-        clearop(oap);
-    }
-
-    if (VIsual_active && is_drag && get_scrolloff_value())
-    {
-        if (mouse_row == 0)
-        {
-            mouse_dragging = 2;
-        }
-        else
-        {
-            mouse_dragging = 1;
-        }
-    }
-
-    if (is_drag && mouse_row < 0 && !in_status_line)
-    {
-        scroll_redraw(FALSE, 1L);
-        mouse_row = 0;
-    }
-
-    if (start_visual.lnum)
-    {
-       if (mod_mask & MOD_MASK_ALT)
-       {
-           VIsual_mode = Ctrl_V;
-       }
-
-        if (VIsual_mode == Ctrl_V)
-        {
-            getvcols(curwin, &start_visual, &end_visual, &leftcol, &rightcol, 0);
-            if (curwin->w_curswant > (leftcol + rightcol) / 2)
-            {
-                end_visual.col = leftcol;
-            }
-            else
-            {
-                end_visual.col = rightcol;
-            }
-            if (curwin->w_cursor.lnum >= (start_visual.lnum + end_visual.lnum) / 2)
-            {
-                end_visual.lnum = start_visual.lnum;
-            }
-
-            start_visual = curwin->w_cursor;
-            curwin->w_cursor = end_visual;
-            coladvance(end_visual.col);
-            VIsual = curwin->w_cursor;
-            curwin->w_cursor = start_visual;
-        }
-        else
-        {
-            if ( (((curwin->w_cursor).lnum != (start_visual).lnum)               ? (curwin->w_cursor).lnum < (start_visual).lnum                   : (curwin->w_cursor).col != (start_visual).col                        ? (curwin->w_cursor).col < (start_visual).col                     : (curwin->w_cursor).coladd < (start_visual).coladd) )
-            {
-                VIsual = end_visual;
-            }
-            else if ( (((end_visual).lnum != (curwin->w_cursor).lnum)               ? (end_visual).lnum < (curwin->w_cursor).lnum                   : (end_visual).col != (curwin->w_cursor).col                        ? (end_visual).col < (curwin->w_cursor).col                     : (end_visual).coladd < (curwin->w_cursor).coladd) )
-            {
-                VIsual = start_visual;
-            }
-            else
-            {
-                if (end_visual.lnum == start_visual.lnum)
-                {
-                    if (curwin->w_cursor.col - start_visual.col > end_visual.col - curwin->w_cursor.col)
-                    {
-                        VIsual = start_visual;
-                    }
-                    else
-                    {
-                        VIsual = end_visual;
-                    }
-                }
-
-                else
-                {
-                    diff = (curwin->w_cursor.lnum - start_visual.lnum) -
-                                (end_visual.lnum - curwin->w_cursor.lnum);
-
-                    if (diff > 0)
-                    {
-                        VIsual = start_visual;
-                    }
-                    else if (diff < 0)
-                    {
-                        VIsual = end_visual;
-                    }
-                    else
-                    {
-                        if (curwin->w_cursor.col < (start_visual.col + end_visual.col) / 2)
-                        {
-                            VIsual = end_visual;
-                        }
-                        else
-                        {
-                            VIsual = start_visual;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    else if ((State & MODE_INSERT) && VIsual_active)
-    {
-        stuffcharReadbuff(Ctrl_O);
-    }
-
-    if (which_button == MOUSE_MIDDLE)
-    {
-        if (yank_register_mline(regname))
-        {
-            if (mouse_past_bottom)
-            {
-                dir = FORWARD;
-            }
-        }
-        else if (mouse_past_eol)
-        {
-            dir = FORWARD;
-        }
-
-        if (fixindent)
-        {
-            c1 = (dir ==  (-1) ) ? '[' : ']';
-            c2 = 'p';
-        }
-        else
-        {
-            c1 = (dir == FORWARD) ? 'p' : 'P';
-            c2 = NUL;
-        }
-        prep_redo(regname, count, NUL, c1, NUL, c2, NUL);
-
-        if (restart_edit != 0)
-        {
-            where_paste_started = curwin->w_cursor;
-        }
-        do_put(regname, NULL, dir, count, fixindent | PUT_CURSEND);
-    }
-
-    else if ((mod_mask & MOD_MASK_CTRL) || (curbuf->b_help && (mod_mask &  (MOD_MASK_2CLICK|MOD_MASK_3CLICK|MOD_MASK_4CLICK) ) == MOD_MASK_2CLICK))
-    {
-        if (State & MODE_INSERT)
-        {
-            stuffcharReadbuff(Ctrl_O);
-        }
-        stuffcharReadbuff(Ctrl_RSB);
-        got_click = FALSE;
-    }
-
-    else if ((mod_mask & MOD_MASK_SHIFT))
-    {
-        if ((State & MODE_INSERT) || (VIsual_active && VIsual_select))
-        {
-            stuffcharReadbuff(Ctrl_O);
-        }
-        if (which_button == MOUSE_LEFT)
-        {
-            stuffcharReadbuff('*');
-        }
-        else
-        {
-            stuffcharReadbuff('#');
-        }
-    }
-
-    else if (in_status_line)
-    {
-    }
-    else if (in_sep_line)
-    {
-    }
-    else if ((mod_mask &  (MOD_MASK_2CLICK|MOD_MASK_3CLICK|MOD_MASK_4CLICK) ) && (State & (MODE_NORMAL | MODE_INSERT)) && mouse_has(MOUSE_VISUAL))
-    {
-        if (is_click || !VIsual_active)
-        {
-            if (VIsual_active)
-            {
-                orig_cursor = VIsual;
-            }
-            else
-            {
-                check_visual_highlight();
-                VIsual = curwin->w_cursor;
-                orig_cursor = VIsual;
-                VIsual_active = TRUE;
-                VIsual_reselect = TRUE;
-                may_start_select('o');
-                setmouse();
-            }
-            if ((mod_mask &  (MOD_MASK_2CLICK|MOD_MASK_3CLICK|MOD_MASK_4CLICK) ) == MOD_MASK_2CLICK)
-            {
-                if (mod_mask & MOD_MASK_ALT)
-                {
-                    VIsual_mode = Ctrl_V;
-                }
-                else
-                {
-                    VIsual_mode = 'v';
-                }
-            }
-            else if ((mod_mask &  (MOD_MASK_2CLICK|MOD_MASK_3CLICK|MOD_MASK_4CLICK) ) == MOD_MASK_3CLICK)
-            {
-                VIsual_mode = 'V';
-            }
-            else if ((mod_mask &  (MOD_MASK_2CLICK|MOD_MASK_3CLICK|MOD_MASK_4CLICK) ) == MOD_MASK_4CLICK)
-            {
-                VIsual_mode = Ctrl_V;
-            }
-        }
-        if ((mod_mask &  (MOD_MASK_2CLICK|MOD_MASK_3CLICK|MOD_MASK_4CLICK) ) == MOD_MASK_2CLICK)
-        {
-            pos_T       *pos = NULL;
-            int         gc;
-
-            if (is_click)
-            {
-                end_visual = curwin->w_cursor;
-                while (gc = gchar_pos(&end_visual),  ((gc) == ' ' || (gc) == '\t') )
-                {
-                    inc(&end_visual);
-                }
-                if (oap != NULL)
-                {
-                    oap->motion_type = MCHAR;
-                }
-                if (oap != NULL && VIsual_mode == 'v' && !vim_iswordc(gchar_pos(&end_visual)) &&  (((curwin->w_cursor).lnum == (VIsual).lnum) && ((curwin->w_cursor).col == (VIsual).col) && ((curwin->w_cursor).coladd == (VIsual).coladd))  && (pos = findmatch(oap, NUL)) != NULL)
-                {
-                    curwin->w_cursor = *pos;
-                    if (oap->motion_type == MLINE)
-                    {
-                        VIsual_mode = 'V';
-                    }
-                    else if (*p_sel == 'e')
-                    {
-                        if ( (((curwin->w_cursor).lnum != (VIsual).lnum)               ? (curwin->w_cursor).lnum < (VIsual).lnum                   : (curwin->w_cursor).col != (VIsual).col                        ? (curwin->w_cursor).col < (VIsual).col                     : (curwin->w_cursor).coladd < (VIsual).coladd) )
-                        {
-                            ++VIsual.col;
-                        }
-                        else
-                        {
-                            ++curwin->w_cursor.col;
-                        }
-                    }
-                }
-            }
-
-            if (pos == NULL && (is_click || is_drag))
-            {
-                if ( (((curwin->w_cursor).lnum != (orig_cursor).lnum)               ? (curwin->w_cursor).lnum < (orig_cursor).lnum                   : (curwin->w_cursor).col != (orig_cursor).col                        ? (curwin->w_cursor).col < (orig_cursor).col                     : (curwin->w_cursor).coladd < (orig_cursor).coladd) )
-                {
-                    find_start_of_word(&curwin->w_cursor);
-                    find_end_of_word(&VIsual);
-                }
-                else
-                {
-                    find_start_of_word(&VIsual);
-                    if (*p_sel == 'e' && *ml_get_cursor() != NUL)
-                    {
-                        curwin->w_cursor.col +=
-                                         (*mb_ptr2len)(ml_get_cursor());
-                    }
-                    find_end_of_word(&curwin->w_cursor);
-                }
-            }
-            curwin->w_set_curswant = true;
-        }
-        if (is_click)
-        {
-            redraw_curbuf_later(UPD_INVERTED);
-        }
-    }
-    else if (VIsual_active && !old_active)
-    {
-        if (mod_mask & MOD_MASK_ALT)
-        {
-            VIsual_mode = Ctrl_V;
-        }
-        else
-        {
-            VIsual_mode = 'v';
-        }
-    }
-
-    if ((!VIsual_active && old_active && mode_displayed) || (VIsual_active && p_smd && msg_silent == 0 && (!old_active || VIsual_mode != old_mode)))
-    {
-        redraw_cmdline = TRUE;
-    }
-
-    return moved;
-}
-
-    static void
-ins_mouse(int c)
-{
-    pos_T       tpos;
-    win_T       *old_curwin = curwin;
-
-        if (!mouse_has(MOUSE_INSERT))
-        {
-            return;
-        }
-
-    undisplay_dollar();
-    tpos = curwin->w_cursor;
-    if (do_mouse(NULL, c,  (-1) , 1L, 0))
-    {
-        win_T   *new_curwin = curwin;
-
-        if (curwin != old_curwin && win_valid(old_curwin))
-        {
-            curwin = old_curwin;
-            curbuf = curwin->w_buffer;
-        }
-        start_arrow(curwin == old_curwin ? &tpos : NULL);
-        if (curwin != new_curwin && win_valid(new_curwin))
-        {
-            curwin = new_curwin;
-            curbuf = curwin->w_buffer;
-        }
-        set_can_cindent(TRUE);
-    }
-
-    redraw_statuslines();
-}
-
-    static void
-do_mousescroll(cmdarg_T *cap)
-{
-    int shift_or_ctrl = mod_mask & (MOD_MASK_SHIFT | MOD_MASK_CTRL);
-
-    if (cap->arg == MSCR_UP || cap->arg == MSCR_DOWN)
-    {
-        if (!(State & MODE_INSERT) && (mouse_vert_step < 0 || shift_or_ctrl))
-        {
-            pagescroll(cap->arg == MSCR_UP ? FORWARD :  (-1) , 1L, FALSE);
-        }
-        else
-        {
-            if (mouse_vert_step < 0 || shift_or_ctrl)
-            {
-                cap->count1 = (long)(curwin->w_botline - curwin->w_topline);
-            }
-            else if (curwin->w_height < mouse_vert_step * 2)
-            {
-                cap->count1 = curwin->w_height / 2;
-                if (cap->count1 == 0)
-                {
-                    cap->count1 = 1;
-                }
-            }
-            else
-            {
-                cap->count1 = mouse_vert_step;
-            }
-            cap->count0 = cap->count1;
-            nv_scroll_line(cap);
-        }
-
-    }
-    else
-    {
-        long step = (mouse_hor_step < 0 || shift_or_ctrl)
-                                            ? curwin->w_width : mouse_hor_step;
-        long leftcol = curwin->w_leftcol
-                                     + (cap->arg ==  (-2)  ? -step : step);
-        if (leftcol < 0)
-        {
-            leftcol = 0;
-        }
-        do_mousescroll_horiz((long_u)leftcol);
-    }
-    may_trigger_win_scrolled_resized();
-}
-
-    static void
-ins_mousescroll(int dir)
-{
-    cmdarg_T    cap;
-    oparg_T     oa;
-      memset((&(cap)), (0), (sizeof(cap)))  ;
-    clear_oparg(&oa);
-    cap.oap = &oa;
-    cap.arg = dir;
-
-    switch (dir)
-    {
-        case MSCR_UP:
-            cap.cmdchar =   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))  ;
-            break;
-        case MSCR_DOWN:
-            cap.cmdchar =   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))  ;
-            break;
-        case  (-1) :
-            cap.cmdchar =   (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))  ;
-            break;
-        case  (-2) :
-            cap.cmdchar =   (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))  ;
-            break;
-        default:
-            siemsg("Invalid ins_mousescroll() argument: %d", dir);
-    }
-
-    win_T *old_curwin = curwin;
-    if (mouse_row >= 0 && mouse_col >= 0)
-    {
-        int row = mouse_row;
-        int col = mouse_col;
-        curwin = mouse_find_win(&row, &col, FIND_POPUP);
-        if (curwin == NULL)
-        {
-            curwin = old_curwin;
-            return;
-        }
-        curbuf = curwin->w_buffer;
-    }
-
-    if (curwin == old_curwin)
-    {
-        if (pum_visible())
-        {
-            return;
-        }
-
-        undisplay_dollar();
-    }
-
-    linenr_T    orig_topline = curwin->w_topline;
-    colnr_T     orig_leftcol = curwin->w_leftcol;
-    pos_T       orig_cursor = curwin->w_cursor;
-
-    do_mousescroll(&cap);
-
-    int did_scroll = (orig_topline != curwin->w_topline || orig_leftcol != curwin->w_leftcol);
-
-    curwin->w_redr_status = true;
-    curwin = old_curwin;
-    curbuf = curwin->w_buffer;
-
-    if (did_scroll && pum_visible())
-    {
-        redraw_all_later(UPD_NOT_VALID);
-        ins_compl_show_pum();
-    }
-
-    if (! (((curwin->w_cursor).lnum == (orig_cursor).lnum) && ((curwin->w_cursor).col == (orig_cursor).col) && ((curwin->w_cursor).coladd == (orig_cursor).coladd)) )
-    {
-        start_arrow(&orig_cursor);
-        set_can_cindent(TRUE);
-    }
-}
 
     static int
 is_mouse_key(int c)
@@ -83637,578 +82478,10 @@ is_mouse_key(int c)
         || c ==   (-((KS_EXTRA) + ((int)(KE_X2RELEASE) << 8)))  ;
 }
 
-static struct mousetable
-{
-    int     pseudo_code;
-    int     button;
-    int     is_click;
-    int     is_drag;
-} mouse_table[] =
-{
-    {(int)KE_LEFTMOUSE,         MOUSE_LEFT,     TRUE,   FALSE},
-    {(int)KE_LEFTDRAG,          MOUSE_LEFT,     FALSE,  TRUE},
-    {(int)KE_LEFTRELEASE,       MOUSE_LEFT,     FALSE,  FALSE},
-    {(int)KE_MIDDLEMOUSE,       MOUSE_MIDDLE,   TRUE,   FALSE},
-    {(int)KE_MIDDLEDRAG,        MOUSE_MIDDLE,   FALSE,  TRUE},
-    {(int)KE_MIDDLERELEASE,     MOUSE_MIDDLE,   FALSE,  FALSE},
-    {(int)KE_RIGHTMOUSE,        MOUSE_RIGHT,    TRUE,   FALSE},
-    {(int)KE_RIGHTDRAG,         MOUSE_RIGHT,    FALSE,  TRUE},
-    {(int)KE_RIGHTRELEASE,      MOUSE_RIGHT,    FALSE,  FALSE},
-    {(int)KE_X1MOUSE,           MOUSE_X1,       TRUE,   FALSE},
-    {(int)KE_X1DRAG,            MOUSE_X1,       FALSE,  TRUE},
-    {(int)KE_X1RELEASE,         MOUSE_X1,       FALSE,  FALSE},
-    {(int)KE_X2MOUSE,           MOUSE_X2,       TRUE,   FALSE},
-    {(int)KE_X2DRAG,            MOUSE_X2,       FALSE,  TRUE},
-    {(int)KE_X2RELEASE,         MOUSE_X2,       FALSE,  FALSE},
-    {(int)KE_MOUSEMOVE,         MOUSE_RELEASE,  FALSE,  TRUE},
-    {(int)KE_IGNORE,            MOUSE_RELEASE,  FALSE,  FALSE},
-    {0,                         0,              0,      0},
-};
-
-    static int
-get_mouse_button(int code, int *is_click, int *is_drag)
-{
-    int     i;
-
-    for (i = 0; mouse_table[i].pseudo_code; i++)
-    {
-        if (code == mouse_table[i].pseudo_code)
-        {
-            *is_click = mouse_table[i].is_click;
-            *is_drag = mouse_table[i].is_drag;
-            return mouse_table[i].button;
-        }
-    }
-    return 0;
-}
-
-    static int
-get_pseudo_mouse_code(int     button, int     is_click, int     is_drag)
-{
-    int     i;
-
-    for (i = 0; mouse_table[i].pseudo_code; i++)
-    {
-        if (button == mouse_table[i].button && is_click == mouse_table[i].is_click && is_drag == mouse_table[i].is_drag)
-        {
-            return mouse_table[i].pseudo_code;
-        }
-    }
-    return (int)KE_IGNORE;
-}
-
-enum { HMT_NORMAL = 1 };
-enum { HMT_SGR = 128 };
-enum { HMT_SGR_REL = 256 };
-static int has_mouse_termcode = 0;
-
-    static void
-set_mouse_termcode(int         n, char_u      *s)
-{
-    char_u      name[2];
-
-    name[0] = n;
-    name[1] =  ('X') ;
-    add_termcode(name, s, FALSE);
-    if (n == KS_SGR_MOUSE)
-    {
-        has_mouse_termcode |= HMT_SGR;
-    }
-    else if (n == KS_SGR_MOUSE_RELEASE)
-    {
-        has_mouse_termcode |= HMT_SGR_REL;
-    }
-    else
-    {
-        has_mouse_termcode |= HMT_NORMAL;
-    }
-}
-
-    static void
-del_mouse_termcode(int         n)
-{
-    char_u      name[2];
-
-    name[0] = n;
-    name[1] =  ('X') ;
-    del_termcode(name);
-    if (n == KS_SGR_MOUSE)
-    {
-        has_mouse_termcode &= ~HMT_SGR;
-    }
-    else if (n == KS_SGR_MOUSE_RELEASE)
-    {
-        has_mouse_termcode &= ~HMT_SGR_REL;
-    }
-    else
-    {
-        has_mouse_termcode &= ~HMT_NORMAL;
-    }
-}
-
-    static void
-setmouse(void)
-{
-    int     checkfor;
-
-    if (*p_mouse == NUL || has_mouse_termcode == 0)
-    {
-        return;
-    }
-
-    if (cur_tmode != TMODE_RAW)
-    {
-        mch_setmouse(FALSE);
-        return;
-    }
-
-    if (VIsual_active)
-    {
-        checkfor = MOUSE_VISUAL;
-    }
-    else if (State ==  (0x2000 | MODE_NORMAL)  || State == MODE_ASKMORE || State == MODE_SETWSIZE)
-    {
-        checkfor = MOUSE_RETURN;
-    }
-    else if (State & MODE_INSERT)
-    {
-        checkfor = MOUSE_INSERT;
-    }
-    else if (State & MODE_CMDLINE)
-    {
-        checkfor = MOUSE_COMMAND;
-    }
-    else if (State == MODE_CONFIRM || State == MODE_EXTERNCMD)
-    {
-        checkfor = ' ';
-    }
-    else
-    {
-        checkfor = MOUSE_NORMAL;
-    }
-
-    if (mouse_has(checkfor))
-    {
-        mch_setmouse(TRUE);
-    }
-    else
-    {
-        mch_setmouse(FALSE);
-    }
-}
-
-    static int
-mouse_has(int c)
-{
-    char_u      *p;
-
-    for (p = p_mouse; *p; ++p)
-    {
-        switch (*p)
-        {
-            case 'a':
-                if (vim_strchr((char_u *) "nvich" , c) != NULL)
-                {
-                          return TRUE;
-                }
-                      break;
-            case MOUSE_HELP:
-                if (c != MOUSE_RETURN && curbuf->b_help)
-                {
-                                 return TRUE;
-                }
-                             break;
-            default:
-                if (c == *p)
-                {
-                    return TRUE;
-                }
-                break;
-        }
-    }
-    return FALSE;
-}
-
-    static int
-mouse_model_popup(void)
-{
-    return (p_mousem[0] == 'p');
-}
-
-    static int
-stl_click_handler_regions(stl_click_region_T  *regions, int                 region_count, int                 winid, char_u              *area_name, int                 mrow, int                 mcol, int                 which_button, int                 mods)
-{
-    (void)regions;
-    (void)region_count;
-    (void)winid;
-    (void)area_name;
-    (void)mrow;
-    (void)mcol;
-    (void)which_button;
-    (void)mods;
-    return FALSE;
-}
-
-    static int
-stl_click_handler(win_T *wp, int mrow, int mcol, int which_button, int mods)
-{
-    if (wp == NULL)
-    {
-        return FALSE;
-    }
-    return stl_click_handler_regions(wp->w_stl_click, wp->w_stl_click_count, wp->w_id, (char_u *)"statusline", mrow, mcol, which_button, mods);
-}
-
     static void
 reset_dragwin(void)
 {
     dragwin = NULL;
-}
-
-    static int
-jump_to_mouse(int         flags, int         *inclusive, int         which_button)
-{
-    static int  on_status_line = 0;
-    static int  on_sep_line = 0;
-    static int  prev_row = -1;
-    static int  prev_col = -1;
-    static int  did_drag = FALSE;
-
-    win_T *wp;
-    win_T *old_curwin;
-    pos_T       old_cursor;
-    int         count;
-    int         first;
-    int         row = mouse_row;
-    int         col = mouse_col;
-    colnr_T     col_from_screen = -1;
-
-    mouse_past_bottom = FALSE;
-    mouse_past_eol = FALSE;
-
-    if (flags & MOUSE_RELEASED)
-    {
-        if (dragwin != NULL && !did_drag)
-        {
-            flags &= ~(MOUSE_FOCUS | MOUSE_DID_MOVE);
-        }
-        dragwin = NULL;
-        did_drag = FALSE;
-    }
-
-    if ((flags & MOUSE_DID_MOVE) && prev_row == mouse_row && prev_col == mouse_col)
-    {
-retnomove:
-        if (on_status_line)
-        {
-            return IN_STATUS_LINE;
-        }
-        if (on_sep_line)
-        {
-            return IN_SEP_LINE;
-        }
-        if (flags & MOUSE_MAY_STOP_VIS)
-        {
-            end_visual_mode_keep_button();
-            redraw_curbuf_later(UPD_INVERTED);
-        }
-        return IN_BUFFER;
-    }
-
-    prev_row = mouse_row;
-    prev_col = mouse_col;
-
-    if (flags & MOUSE_SETPOS)
-    {
-        goto retnomove;
-    }
-
-    old_curwin = curwin;
-    old_cursor = curwin->w_cursor;
-
-    if (!(flags & MOUSE_FOCUS))
-    {
-        if (row < 0 || col < 0)
-        {
-            return IN_UNKNOWN;
-        }
-
-        wp = mouse_find_win(&row, &col, FIND_POPUP);
-        if (wp == NULL)
-        {
-            return IN_UNKNOWN;
-        }
-        dragwin = NULL;
-
-        if (row >= wp->w_height)
-        {
-            on_status_line = row - wp->w_height + 1;
-            dragwin = wp;
-        }
-        else
-        {
-            on_status_line = 0;
-        }
-        if (col >= wp->w_width)
-        {
-            on_sep_line = col - wp->w_width + 1;
-            dragwin = wp;
-        }
-        else
-        {
-            on_sep_line = 0;
-        }
-
-        if (on_status_line && on_sep_line)
-        {
-            if (stl_connected(wp))
-            {
-                on_sep_line = 0;
-            }
-            else
-            {
-                on_status_line = 0;
-            }
-        }
-
-        if (VIsual_active && (wp->w_buffer != curwin->w_buffer || (!on_status_line && !on_sep_line && (flags & MOUSE_MAY_STOP_VIS))))
-        {
-            end_visual_mode_keep_button();
-            redraw_curbuf_later(UPD_INVERTED);
-        }
-        if (cmdwin_type != 0 && wp != cmdwin_win)
-        {
-            on_sep_line = 0;
-            row = 0;
-            col += wp->w_wincol;
-            wp = cmdwin_win;
-        }
-        if (dragwin == NULL || (flags & MOUSE_RELEASED))
-        {
-            win_enter(wp, TRUE);
-        }
-
-        if (curwin != old_curwin)
-        {
-            set_mouse_topline(curwin);
-        }
-        if (on_status_line)
-        {
-            if (curwin == old_curwin)
-            {
-                return IN_STATUS_LINE;
-            }
-            else
-            {
-                return IN_STATUS_LINE | CURSOR_MOVED;
-            }
-        }
-        if (on_sep_line)
-        {
-            if (curwin == old_curwin)
-            {
-                return IN_SEP_LINE;
-            }
-            else
-            {
-                return IN_SEP_LINE | CURSOR_MOVED;
-            }
-        }
-
-        curwin->w_cursor.lnum = curwin->w_topline;
-    }
-    else if (on_status_line && which_button == MOUSE_LEFT)
-    {
-        if (dragwin != NULL)
-        {
-            count = row -  (dragwin->w_winrow)  - dragwin->w_height + 1
-                                                             - on_status_line;
-            win_drag_status_line(dragwin, count);
-            did_drag |= count;
-        }
-        return IN_STATUS_LINE;
-    }
-    else if (on_sep_line && which_button == MOUSE_LEFT)
-    {
-        if (dragwin != NULL)
-        {
-            count = col - dragwin->w_wincol - dragwin->w_width + 1
-                                                                - on_sep_line;
-            win_drag_vsep_line(dragwin, count);
-            did_drag |= count;
-        }
-        return IN_SEP_LINE;
-    }
-    else
-    {
-        if (flags & MOUSE_MAY_STOP_VIS)
-        {
-            end_visual_mode_keep_button();
-            redraw_curbuf_later(UPD_INVERTED);
-        }
-
-        row -=  (curwin->w_winrow) ;
-        col -= curwin->w_wincol;
-
-        if (row < 0)
-        {
-            count = 0;
-            for (first = TRUE; curwin->w_topline > 1; )
-            {
-                    count += plines(curwin->w_topline - 1);
-                if (!first && count > -row)
-                {
-                    break;
-                }
-                first = FALSE;
-                {
-                    --curwin->w_topline;
-                }
-            }
-            curwin->w_valid &=
-                      ~(VALID_WROW|VALID_CROW|VALID_BOTLINE|VALID_BOTLINE_AP);
-            redraw_later(UPD_VALID);
-            row = 0;
-        }
-        else if (row >= curwin->w_height)
-        {
-            count = 0;
-            for (first = TRUE; curwin->w_topline < curbuf->b_ml.ml_line_count; )
-            {
-                    count += plines(curwin->w_topline);
-                if (!first && count > row - curwin->w_height + 1)
-                {
-                    break;
-                }
-                first = FALSE;
-                {
-                    ++curwin->w_topline;
-                }
-            }
-            redraw_later(UPD_VALID);
-            curwin->w_valid &=
-                      ~(VALID_WROW|VALID_CROW|VALID_BOTLINE|VALID_BOTLINE_AP);
-            row = curwin->w_height - 1;
-        }
-        else if (row == 0)
-        {
-            if (mouse_dragging > 0 && curwin->w_cursor.lnum == curwin->w_buffer->b_ml.ml_line_count && curwin->w_cursor.lnum == curwin->w_topline)
-            {
-                curwin->w_valid &= ~(VALID_TOPLINE);
-            }
-        }
-    }
-
-    if (prev_row >=  (curwin->w_winrow)  && prev_row <  (curwin->w_winrow)  + curwin->w_height && prev_col >= curwin->w_wincol && prev_col <  ((curwin)->w_wincol + (curwin)->w_width)  && ScreenLines != NULL)
-    {
-        int off = LineOffset[prev_row] + prev_col;
-
-        if (curwin->w_redr_type <= UPD_VALID_NO_UPDATE)
-        {
-            col_from_screen = ScreenCols[off];
-        }
-    }
-
-    if (mouse_comp_pos(curwin, &row, &col, &curwin->w_cursor.lnum, NULL))
-    {
-        mouse_past_bottom = TRUE;
-    }
-
-    if ((flags & MOUSE_MAY_VIS) && !VIsual_active)
-    {
-        check_visual_highlight();
-        VIsual = old_cursor;
-        VIsual_active = TRUE;
-        VIsual_reselect = TRUE;
-        may_start_select('o');
-        setmouse();
-        if (p_smd && msg_silent == 0)
-        {
-            redraw_cmdline = TRUE;
-        }
-    }
-
-    if (col_from_screen >= 0)
-    {
-        col = col_from_screen;
-    }
-
-    curwin->w_curswant = col;
-    curwin->w_set_curswant = false;
-    if (coladvance(col) == FAIL)
-    {
-        if (inclusive != NULL)
-        {
-            *inclusive = TRUE;
-        }
-        mouse_past_eol = TRUE;
-    }
-    else if (inclusive != NULL)
-    {
-        *inclusive = FALSE;
-    }
-
-    count = IN_BUFFER;
-    if (curwin != old_curwin || curwin->w_cursor.lnum != old_cursor.lnum || curwin->w_cursor.col != old_cursor.col)
-    {
-        count |= CURSOR_MOVED;
-    }
-
-    return count;
-}
-
-    static int
-do_mousescroll_horiz(long_u leftcol)
-{
-    if (curwin-> w_onebuf_opt.wo_wrap )
-    {
-        return FALSE;
-    }
-
-    if (curwin->w_leftcol == (colnr_T)leftcol)
-    {
-        return FALSE;
-    }
-
-    if (!virtual_active() && (long)leftcol > scroll_line_len(curwin->w_cursor.lnum))
-    {
-        curwin->w_cursor.lnum = ui_find_longest_lnum();
-        curwin->w_cursor.col = 0;
-    }
-
-    return set_leftcol((colnr_T)leftcol);
-}
-
-    static void
-nv_mousescroll(cmdarg_T *cap)
-{
-    win_T   *old_curwin = curwin;
-
-    if (mouse_row >= 0 && mouse_col >= 0)
-    {
-        int row = mouse_row;
-        int col = mouse_col;
-        curwin = mouse_find_win(&row, &col, FIND_POPUP);
-        if (curwin == NULL)
-        {
-            curwin = old_curwin;
-            return;
-        }
-
-        curbuf = curwin->w_buffer;
-    }
-
-    do_mousescroll(cap);
-
-    curwin->w_redr_status = true;
-    curwin = old_curwin;
-    curbuf = curwin->w_buffer;
-}
-
-    static void
-nv_mouse(cmdarg_T *cap)
-{
-    (void)do_mouse(cap->oap, cap->cmdchar,  (-1) , cap->count1, 0);
 }
 
 static int      held_button = MOUSE_RELEASE;
@@ -84217,410 +82490,6 @@ static int      held_button = MOUSE_RELEASE;
 reset_held_button(void)
 {
     held_button = MOUSE_RELEASE;
-}
-
-    static int
-check_termcode_mouse(char_u      *tp, int         *slen, char_u      *key_name, char_u      *modifiers_start, int         idx, int         *modifiers)
-{
-    int         j;
-    char_u      *p;
-    char_u      bytes[6];
-    int         num_bytes;
-    int         mouse_code = 0;
-    int is_click;
-    int is_drag;
-    int is_release;
-    int release_is_ambiguous;
-    int         wheel_code = 0;
-    int         current_button;
-    static int  orig_num_clicks = 1;
-    static int  orig_mouse_code = 0x0;
-    static int  orig_mouse_col = 0;
-    static int  orig_mouse_row = 0;
-    static struct timeval  orig_mouse_time = {0, 0};
-    struct timeval  mouse_time;
-    long        timediff;
-
-    is_click = is_drag = is_release = release_is_ambiguous = FALSE;
-
-    if (key_name[0] == KS_MOUSE)
-    {
-        for (;;)
-        {
-            {
-                num_bytes = get_bytes_from_buf(tp + *slen, bytes, 3);
-                if (num_bytes == -1)
-                {
-                    return -1;
-                }
-                mouse_code = bytes[0];
-                mouse_col = bytes[1] - ' ' - 1;
-                mouse_row = bytes[2] - ' ' - 1;
-            }
-            *slen += num_bytes;
-
-                j = get_termcode_len(idx);
-            if ( strncmp((char *)(tp), (char *)(tp + *slen), ((size_t)j))  == 0 && tp[*slen + j] == mouse_code && tp[*slen + j + 1] != NUL && tp[*slen + j + 2] != NUL)
-            {
-                *slen += j;
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    if (key_name[0] == KS_URXVT_MOUSE || key_name[0] == KS_SGR_MOUSE || key_name[0] == KS_SGR_MOUSE_RELEASE)
-    {
-        p = modifiers_start;
-        if (p == NULL)
-        {
-            return -1;
-        }
-
-        mouse_code = getdigits(&p);
-        if (*p++ != ';')
-        {
-            return -1;
-        }
-
-        if (key_name[0] == KS_SGR_MOUSE || key_name[0] == KS_SGR_MOUSE_RELEASE)
-        {
-            mouse_code += 32;
-        }
-
-        mouse_col = getdigits(&p) - 1;
-        if (*p++ != ';')
-        {
-            return -1;
-        }
-
-        mouse_row = getdigits(&p) - 1;
-
-        *modifiers = 0;
-    }
-
-    if (key_name[0] == KS_SGR_MOUSE || key_name[0] == KS_SGR_MOUSE_RELEASE)
-    {
-        if (key_name[0] == KS_SGR_MOUSE_RELEASE)
-        {
-            is_release = TRUE;
-            mouse_code |= MOUSE_RELEASE;
-        }
-    }
-    else
-    {
-        release_is_ambiguous = TRUE;
-        if ((mouse_code & MOUSE_RELEASE) == MOUSE_RELEASE)
-        {
-            is_release = TRUE;
-        }
-    }
-
-    if (key_name[0] == KS_MOUSE || key_name[0] == KS_SGR_MOUSE || key_name[0] == KS_SGR_MOUSE_RELEASE)
-    {
-        if (mouse_code >= MOUSEWHEEL_LOW && mouse_code < MOUSESIDEBUTTONS_LOW)
-        {
-            if (use_xterm_mouse() > 1 && mouse_code >= 0x80)
-            {
-                mouse_code =  (0x40 | MOUSE_RELEASE) ;
-            }
-            else
-            {
-                wheel_code = mouse_code;
-            }
-        }
-        else if (held_button == MOUSE_RELEASE && (mouse_code == 0x23 || mouse_code == 0x24 || mouse_code == 0x40 || mouse_code == 0x41))
-        {
-            wheel_code = mouse_code - (mouse_code >= 0x40 ? 0x40 : 0x23)
-                                                              + MOUSEWHEEL_LOW;
-        }
-
-        else if (use_xterm_mouse() > 1)
-        {
-            if (mouse_code & MOUSE_DRAG_XTERM)
-            {
-                mouse_code |=  (0x40 | MOUSE_RELEASE) ;
-            }
-        }
-    }
-
-    current_button = (mouse_code & MOUSE_CLICK_MASK);
-    if (is_release)
-    {
-        current_button |= MOUSE_RELEASE;
-    }
-
-    if (current_button == MOUSE_RELEASE && wheel_code == 0)
-    {
-        if ((mouse_code &  (0x40 | MOUSE_RELEASE) ) ==  (0x40 | MOUSE_RELEASE) )
-        {
-            is_drag = TRUE;
-        }
-        current_button = held_button;
-    }
-    else
-    {
-      if (wheel_code == 0)
-      {
-                {
-                    gettimeofday(&mouse_time, NULL);
-                    if (orig_mouse_time.tv_sec == 0)
-                    {
-                        timediff = p_mouset;
-                    }
-                    else
-                    {
-                        timediff = time_diff_ms(&orig_mouse_time, &mouse_time);
-                    }
-                    orig_mouse_time = mouse_time;
-                    if (mouse_code == orig_mouse_code && timediff < p_mouset && orig_num_clicks != 4 && orig_mouse_col == mouse_col && orig_mouse_row == mouse_row && (is_mouse_topline(curwin) || (mouse_row == 0 && firstwin->w_winrow > 0)))
-                    {
-                        ++orig_num_clicks;
-                    }
-                    else
-                    {
-                        orig_num_clicks = 1;
-                    }
-                    orig_mouse_col = mouse_col;
-                    orig_mouse_row = mouse_row;
-                    set_mouse_topline(curwin);
-                }
-        is_click = TRUE;
-      }
-      orig_mouse_code = mouse_code;
-    }
-    if (!is_drag)
-    {
-        held_button = mouse_code & MOUSE_CLICK_MASK;
-    }
-
-    if (orig_mouse_code & MOUSE_SHIFT)
-    {
-        *modifiers |= MOD_MASK_SHIFT;
-    }
-    if (orig_mouse_code & MOUSE_CTRL)
-    {
-        *modifiers |= MOD_MASK_CTRL;
-    }
-    if (orig_mouse_code & MOUSE_ALT)
-    {
-        *modifiers |= MOD_MASK_ALT;
-    }
-    if (orig_num_clicks == 2)
-    {
-        *modifiers |= MOD_MASK_2CLICK;
-    }
-    else if (orig_num_clicks == 3)
-    {
-        *modifiers |= MOD_MASK_3CLICK;
-    }
-    else if (orig_num_clicks == 4)
-    {
-        *modifiers |= MOD_MASK_4CLICK;
-    }
-
-    key_name[0] = KS_EXTRA;
-    if (wheel_code != 0 && (!is_release || release_is_ambiguous))
-    {
-        if (wheel_code & MOUSE_CTRL)
-        {
-            *modifiers |= MOD_MASK_CTRL;
-        }
-        if (wheel_code & MOUSE_ALT)
-        {
-            *modifiers |= MOD_MASK_ALT;
-        }
-
-        if (wheel_code & 1 && wheel_code & 2)
-        {
-            key_name[1] = (int)KE_MOUSELEFT;
-        }
-        else if (wheel_code & 2)
-        {
-            key_name[1] = (int)KE_MOUSERIGHT;
-        }
-        else if (wheel_code & 1)
-        {
-            key_name[1] = (int)KE_MOUSEUP;
-        }
-        else
-        {
-            key_name[1] = (int)KE_MOUSEDOWN;
-        }
-
-        held_button = MOUSE_RELEASE;
-    }
-    else
-    {
-        if (use_xterm_mouse() && orig_mouse_code >= MOUSESIDEBUTTONS_LOW)
-        {
-            current_button = (current_button) ? MOUSE_X2 : MOUSE_X1;
-        }
-        key_name[1] = get_pseudo_mouse_code(current_button, is_click, is_drag);
-    }
-
-    if (mouse_col >= Columns)
-    {
-        mouse_col = Columns - 1;
-    }
-    if (mouse_row >= Rows)
-    {
-        mouse_row = Rows - 1;
-    }
-
-    return 0;
-}
-
-    static int
-mouse_comp_pos(win_T       *win, int         *rowp, int         *colp, linenr_T    *lnump, int         *plines_cache)
-{
-    int         col = *colp;
-    int         row = *rowp;
-    linenr_T    lnum;
-    int         retval = FALSE;
-    int         off;
-    int         count;
-
-    lnum = win->w_topline;
-
-    while (row > 0)
-    {
-        int cache_idx = lnum - win->w_topline;
-
-        if (plines_cache != NULL && cache_idx < Rows && plines_cache[cache_idx] > 0)
-        {
-            count = plines_cache[cache_idx];
-        }
-        else
-        {
-                count = plines_win(win, lnum, FALSE);
-            if (plines_cache != NULL && cache_idx < Rows)
-            {
-                plines_cache[cache_idx] = count;
-            }
-        }
-
-        if (win->w_skipcol > 0 && lnum == win->w_topline)
-        {
-            int width1 = win->w_width - win_col_off(win);
-
-            if (width1 > 0)
-            {
-                int skip_lines = 0;
-
-                if (win->w_skipcol > width1)
-                {
-                    skip_lines = (win->w_skipcol - width1)
-                                            / (width1 + win_col_off2(win)) + 1;
-                }
-                else if (win->w_skipcol > 0)
-                {
-                    skip_lines = 1;
-                }
-
-                count -= skip_lines;
-            }
-        }
-
-        if (count > row)
-        {
-            break;
-        }
-        if (lnum == win->w_buffer->b_ml.ml_line_count)
-        {
-            retval = TRUE;
-            break;
-        }
-        row -= count;
-        ++lnum;
-    }
-
-    if (!retval)
-    {
-        off = win_col_off(win) - win_col_off2(win);
-        if (col < off)
-        {
-            col = off;
-        }
-        col += row * (win->w_width - off);
-
-        if (lnum == win->w_topline)
-        {
-            col += win->w_skipcol;
-        }
-    }
-
-    if (!win-> w_onebuf_opt.wo_wrap )
-    {
-        col += win->w_leftcol;
-    }
-
-    col -= win_col_off(win);
-    if (col <= 0)
-    {
-        col = 0;
-    }
-
-    *colp = col;
-    *rowp = row;
-    *lnump = lnum;
-    return retval;
-}
-
-    static win_T *
-mouse_find_win(int *rowp, int *colp, mouse_find_T popup  __attribute__((unused)) )
-{
-    frame_T     *fp;
-    win_T       *wp;
-
-    fp = topframe;
-
-    if (*colp < firstwin->w_wincol || *colp >= firstwin->w_wincol + fp->fr_width || *rowp < firstwin->w_winrow)
-    {
-        return NULL;
-    }
-
-    *rowp -= firstwin->w_winrow;
-    *colp -= firstwin->w_wincol;
-    for (;;)
-    {
-        if (fp->fr_layout == FR_LEAF)
-        {
-            break;
-        }
-        if (fp->fr_layout == FR_ROW)
-        {
-            for (fp = fp->fr_child; fp->fr_next != NULL; fp = fp->fr_next)
-            {
-                if (*colp < fp->fr_width)
-                {
-                    break;
-                }
-                *colp -= fp->fr_width;
-            }
-        }
-        else
-        {
-            for (fp = fp->fr_child; fp->fr_next != NULL; fp = fp->fr_next)
-            {
-                if (*rowp < fp->fr_height)
-                {
-                    break;
-                }
-                *rowp -= fp->fr_height;
-            }
-        }
-    }
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        if (wp == fp->fr_win)
-        {
-            return wp;
-        }
-     }
-    return NULL;
 }
 
 // ==================== move.c ====================
@@ -87174,28 +85043,6 @@ static const struct nv_cmd
      {'~', nv_tilde, 0, 0} ,
 
      {POUND, nv_ident, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))  , nv_mousescroll, 0, MSCR_UP} ,
-     {  (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))  , nv_mousescroll, 0, MSCR_DOWN} ,
-     {  (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))  , nv_mousescroll, 0,  (-1) } ,
-     {  (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))  , nv_mousescroll, 0,  (-2) } ,
-     {  (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE_NM) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_LEFTDRAG) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE_NM) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_MOUSEMOVE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_MIDDLEDRAG) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_MIDDLERELEASE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_RIGHTMOUSE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_RIGHTDRAG) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_X1MOUSE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_X1DRAG) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_X1RELEASE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_X2MOUSE) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_X2DRAG) << 8)))  , nv_mouse, 0, 0} ,
-     {  (-((KS_EXTRA) + ((int)(KE_X2RELEASE) << 8)))  , nv_mouse, 0, 0} ,
      {  (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  , nv_ignore, NV_KEEPREG, 0} ,
      {  (-((KS_EXTRA) + ((int)(KE_NOP) << 8)))  , nv_nop, 0, 0} ,
      {  (-(('k') + ((int)('I') << 8)))  , nv_edit, 0, 0} ,
@@ -88141,7 +85988,6 @@ end_visual_mode(void)
 end_visual_mode_keep_button(void)
 {
     VIsual_active = FALSE;
-    setmouse();
     mouse_dragging = 0;
 
     curbuf->b_visual.vi_mode = VIsual_mode;
@@ -90721,7 +88567,6 @@ nv_brackets(cmdarg_T *cap)
 
     else if (cap->nchar >=   (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))   && cap->nchar <=   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))  )
     {
-        (void)do_mouse(cap->oap, cap->nchar, (cap->cmdchar == ']') ? FORWARD :  (-1) , cap->count1, PUT_FIXINDENT);
     }
 
     else
@@ -91542,7 +89387,6 @@ nv_visual(cmdarg_T *cap)
             {
                 may_start_select('c');
             }
-            setmouse();
             if (p_smd && msg_silent == 0)
             {
                 redraw_cmdline = TRUE;
@@ -91654,7 +89498,6 @@ n_start_visual_mode(int c)
     VIsual = curwin->w_cursor;
 
     may_trigger_modechanged();
-    setmouse();
 
     if (p_smd && msg_silent == 0)
     {
@@ -91746,7 +89589,6 @@ nv_gv_cmd(cmdarg_T *cap)
     {
         may_start_select('c');
     }
-    setmouse();
     redraw_curbuf_later(UPD_INVERTED);
     showmode();
 }
@@ -92192,7 +90034,6 @@ nv_g_cmd(cmdarg_T *cap)
     case   (-((KS_EXTRA) + ((int)(KE_X2DRAG) << 8)))  :
     case   (-((KS_EXTRA) + ((int)(KE_X2RELEASE) << 8)))  :
         mod_mask = MOD_MASK_CTRL;
-        (void)do_mouse(oap, cap->nchar,  (-1) , cap->count1, 0);
         break;
 
     case   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  :
@@ -96683,7 +94524,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
             if (!gui_yank)
             {
                 VIsual_active = FALSE;
-                setmouse();
                 mouse_dragging = 0;
                 may_clear_cmdline();
                 if ((oap->op_type == OP_YANK || oap->op_type == OP_COLON || oap->op_type == OP_FUNCTION || oap->op_type == OP_FILTER) && oap->motion_force == NUL)
@@ -97852,32 +95692,6 @@ static struct vimoption options[] =
     {"more",        NULL,   P_BOOL|P_VIM,
                             (char_u *)&p_more, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)TRUE}   },
-    {"mouse",       NULL,   P_STRING|P_VI_DEF|P_FLAGLIST,
-                            (char_u *)&p_mouse, PV_NONE, did_set_mouse, expand_set_mouse,
-                            {
-                                (char_u *)"",
-                                (char_u *)0L}   },
-    {"mousefocus",   "mousef", P_BOOL|P_VI_DEF,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"mousehide",   "mh",   P_BOOL|P_VI_DEF,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
-    {"mousemodel",  "mousem", P_STRING|P_VI_DEF,
-                            (char_u *)&p_mousem, PV_NONE, did_set_mousemodel, expand_set_mousemodel,
-                            {
-                                (char_u *)"extend",
-                                (char_u *)0L}   },
-    {"mousemoveevent",   "mousemev",   P_BOOL|P_VI_DEF,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"mouseshape",  "mouses",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)NULL, (char_u *)0L}
-                              },
-    {"mousetime",   "mouset",   P_NUM|P_VI_DEF,
-                            (char_u *)&p_mouset, PV_NONE, NULL, NULL,
-                            {(char_u *)500L, (char_u *)0L}   },
     {"mzquantum",  "mzq",   P_NUM,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)100L, (char_u *)100L}   },
@@ -98392,9 +96206,6 @@ static struct vimoption options[] =
     {"ttyfast",     "tf",   P_BOOL|P_NO_MKRC|P_VI_DEF,
                             (char_u *)&p_tf, PV_NONE, NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
-    {"ttymouse",    "ttym", P_STRING|P_NODEFAULT|P_NO_MKRC|P_VI_DEF,
-                            (char_u *)&p_ttym, PV_NONE, did_set_ttymouse, expand_set_ttymouse,
-                            {(char_u *)"", (char_u *)0L}   },
     {"ttyscroll",   "tsl",  P_NUM|P_VI_DEF,
                             (char_u *)&p_ttyscroll, PV_NONE, NULL, NULL,
                             {(char_u *)999L, (char_u *)0L}   },
@@ -102189,7 +100000,6 @@ showoneopt(struct vimoption    *p, int                 opt_flags)
     static void
 clear_termoptions(void)
 {
-    mch_setmouse(FALSE);
     mch_restore_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
     stoptermcap();
 
@@ -103836,11 +101646,9 @@ static char *(p_kpc_protocol_values[]) = {"none", "mok2", "kitty", NULL};
 static char *(p_swb_values[]) = {"useopen", "usetab", "split", "newtab", "vsplit", "uselast", NULL};
 static char *(p_spk_values[]) = {"cursor", "screen", "topline", NULL};
 static char *(p_tcl_values[]) = {"left", "uselast", NULL};
-static char *(p_ttym_values[]) = {"xterm", "xterm2", "dec", "netterm", "jsbterm", "pterm", "urxvt", "sgr", NULL};
 static char *(p_ve_values[]) = {"block", "insert", "all", "onemore", "none", "NONE", NULL};
 static char *(p_wim_values[]) = {"full", "longest", "list", "lastused", "noselect", "noinsert", NULL};
 static char *(p_wop_values[]) = {"fuzzy", "tagfile", "exacttext", NULL};
-static char *(p_mousem_values[]) = {"extend", "popup", "popup_setpos", "mac", NULL};
 static char *(p_sel_values[]) = {"inclusive", "exclusive", "old", NULL};
 static char *(p_slm_values[]) = {"mouse", "key", "cmd", NULL};
 static char *(p_km_values[]) = {"startsel", "stopsel", NULL};
@@ -103868,7 +101676,6 @@ didset_string_options(void)
     (void)opt_strings_flags(p_dy, p_dy_values, &dy_flags, TRUE);
     (void)opt_strings_flags(p_jop, p_jop_values, &jop_flags, TRUE);
     (void)opt_strings_flags(p_ve, p_ve_values, &ve_flags, TRUE);
-    (void)opt_strings_flags(p_ttym, p_ttym_values, &ttym_flags, FALSE);
     (void)opt_strings_flags(p_swb, p_swb_values, &swb_flags, TRUE);
     (void)opt_strings_flags(p_tcl, p_tcl_values, &tcl_flags, TRUE);
 }
@@ -105439,47 +103246,6 @@ expand_set_messagesopt(optexpand_T *args, int *numMatches, char_u ***matches)
 }
 
     static char *
-did_set_mouse(optset_T *args)
-{
-    char_u      **varp = (char_u **)args->os_varp;
-    char        *retval;
-
-    retval = did_set_option_listflag(*varp, (char_u *) "anvichr" , args->os_errbuf, args->os_errbuflen);
-    if (retval == NULL)
-    {
-        redraw_tabline = TRUE;
-        if (tabline_height() > 0)
-        {
-            update_screen(UPD_VALID);
-        }
-    }
-    return retval;
-}
-
-    static int
-expand_set_mouse(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_listflag(args, (char_u*) "anvichr" , numMatches, matches);
-}
-
-    static char *
-did_set_mousemodel(optset_T *args  __attribute__((unused)) )
-{
-    if (check_opt_strings(p_mousem, p_mousem_values, FALSE) != OK)
-    {
-        return e_invalid_argument;
-    }
-
-    return NULL;
-}
-
-    static int
-expand_set_mousemodel(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_mousem_values,  (sizeof(p_mousem_values) / sizeof((p_mousem_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char *
 did_set_nrformats(optset_T *args)
 {
     char_u      **varp = (char_u **)args->os_varp;
@@ -106089,34 +103855,6 @@ did_set_titlestring(optset_T *args)
 }
 
     static char *
-did_set_ttymouse(optset_T *args  __attribute__((unused)) )
-{
-    char *errmsg = NULL;
-
-    mch_setmouse(FALSE);
-    if (opt_strings_flags(p_ttym, p_ttym_values, &ttym_flags, FALSE) != OK)
-    {
-        errmsg = e_invalid_argument;
-    }
-    else
-    {
-        check_mouse_termcode();
-    }
-    if (termcap_active)
-    {
-        setmouse();
-    }
-
-    return errmsg;
-}
-
-    static int
-expand_set_ttymouse(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_ttym_values,  (sizeof(p_ttym_values) / sizeof((p_ttym_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char *
 did_set_verbosefile(optset_T *args  __attribute__((unused)) )
 {
     verbose_stop();
@@ -106356,18 +104094,6 @@ did_set_string_option(int         opt_idx, char_u      **varp, char_u      *oldv
         }
     }
 
-    if (varp == &p_mouse)
-    {
-        if (*p_mouse == NUL)
-        {
-            mch_setmouse(FALSE);
-        }
-        else
-        {
-            setmouse();
-        }
-    }
-
     if (curwin->w_curswant != MAXCOL && (get_option_flags(opt_idx) & (P_CURSWANT | P_RALL)) != 0 && (get_option_flags(opt_idx) & P_HLONLY) == 0)
     {
         curwin->w_set_curswant = true;
@@ -106465,7 +104191,6 @@ static int      did_set_icon = FALSE;
 static void may_core_dump(void);
 
 static int  WaitForChar(long msec, int *interrupted, int ignore_input);
-static int  WaitForCharOrMouse(long msec, int *interrupted, int ignore_input);
 static int  RealWaitForChar(int, long, int *, int *interrupted);
 
 static void handle_resize(void);
@@ -107105,34 +104830,6 @@ vim_is_xterm(char_u *name)
     return (( strncasecmp((char *)(name), (char *)("xterm"), (5))  == 0 &&  strncasecmp((char *)(name), (char *)("xterm-kitty"), (11))  != 0) ||  strncasecmp((char *)(name), (char *)("nxterm"), (6))  == 0 ||  strncasecmp((char *)(name), (char *)("kterm"), (5))  == 0 ||  strncasecmp((char *)(name), (char *)("mlterm"), (6))  == 0 ||  strncasecmp((char *)(name), (char *)("rxvt"), (4))  == 0 ||  strncasecmp((char *)(name), (char *)("screen.xterm"), (12))  == 0 ||  strcmp((char *)(name), (char *)("builtin_xterm"))  == 0);
 }
 
-    static int
-use_xterm_like_mouse(char_u *name)
-{
-    return (name != NULL && (term_is_xterm ||  strncasecmp((char *)(name), (char *)("screen"), (6))  == 0 ||  strncasecmp((char *)(name), (char *)("tmux"), (4))  == 0 ||  strncasecmp((char *)(name), (char *)("gnome"), (5))  == 0 ||  strcasecmp((char *)(name), (char *)("st"))  == 0 ||  strncasecmp((char *)(name), (char *)("st-"), (3))  == 0 ||  strncasecmp((char *)(name), (char *)("stterm"), (6))  == 0));
-}
-
-    static int
-use_xterm_mouse(void)
-{
-    if (ttym_flags == TTYM_SGR)
-    {
-        return 4;
-    }
-    if (ttym_flags == TTYM_URXVT)
-    {
-        return 3;
-    }
-    if (ttym_flags == TTYM_XTERM2)
-    {
-        return 2;
-    }
-    if (ttym_flags == TTYM_XTERM)
-    {
-        return 1;
-    }
-    return 0;
-}
-
     static long
 mch_get_pid(void)
 {
@@ -107521,81 +105218,6 @@ get_tty_info(int fd, ttyinfo_T *info)
     return FAIL;
 }
 
-static int      mouse_ison = FALSE;
-
-    static void
-mch_setmouse(int on)
-{
-    int         xterm_mouse_vers;
-
-    if (on == mouse_ison)
-    {
-        return;
-    }
-
-    xterm_mouse_vers = use_xterm_mouse();
-
-    if ( ( term_strings[(int)(KS_CXM)] )  != NULL && * ( term_strings[(int)(KS_CXM)] )  != NUL)
-    {
-        term_enable_mouse(on);
-    }
-    else if (ttym_flags == TTYM_SGR)
-    {
-        out_str_nf((char_u *)(on ? "\033[?1006h" : "\033[?1006l"));
-        mouse_ison = on;
-    }
-
-    if (xterm_mouse_vers > 0)
-    {
-        if (on)
-        {
-            out_str_nf((char_u *) (xterm_mouse_vers > 1 ? ("\033[?1002h") : "\033[?1000h"));
-        }
-        else
-        {
-            out_str_nf((char_u *) (xterm_mouse_vers > 1 ? "\033[?1002l" : "\033[?1000l"));
-        }
-        mouse_ison = on;
-    }
-
-}
-
-    static void
-check_mouse_termcode(void)
-{
-    if (use_xterm_mouse())
-    {
-        set_mouse_termcode(KS_MOUSE, (char_u *)(term_is_8bit( ( term_strings[(int)(KS_NAME)] ) ) ? "\233M" : "\033[M"));
-        if (*p_mouse != NUL)
-        {
-            mch_setmouse(FALSE);
-            setmouse();
-        }
-    }
-    else
-    {
-        del_mouse_termcode(KS_MOUSE);
-    }
-
-    if (use_xterm_mouse() == 4)
-    {
-        set_mouse_termcode(KS_SGR_MOUSE, (char_u *)(term_is_8bit( ( term_strings[(int)(KS_NAME)] ) ) ? "\233<*M" : "\033[<*M"));
-
-        set_mouse_termcode(KS_SGR_MOUSE_RELEASE, (char_u *)(term_is_8bit( ( term_strings[(int)(KS_NAME)] ) ) ? "\233<*m" : "\033[<*m"));
-
-        if (*p_mouse != NUL)
-        {
-            mch_setmouse(FALSE);
-            setmouse();
-        }
-    }
-    else
-    {
-        del_mouse_termcode(KS_SGR_MOUSE);
-        del_mouse_termcode(KS_SGR_MOUSE_RELEASE);
-    }
-}
-
     static int
 mch_get_shellsize(void)
 {
@@ -107655,12 +105277,6 @@ mch_breakcheck(int force)
 
     static int
 WaitForChar(long msec, int *interrupted, int ignore_input)
-{
-    return WaitForCharOrMouse(msec, interrupted, ignore_input);
-}
-
-    static int
-WaitForCharOrMouse(long msec, int *interrupted, int ignore_input)
 {
     int         avail;
 
@@ -117437,21 +115053,6 @@ put_register(int name, void *reg)
 }
 
     static int
-yank_register_mline(int regname)
-{
-    if (regname != 0 && !valid_yank_reg(regname, FALSE))
-    {
-        return FALSE;
-    }
-    if (regname == '_')
-    {
-        return FALSE;
-    }
-    get_yank_register(regname, FALSE);
-    return (y_current->y_type == MLINE);
-}
-
-    static int
 do_record(int c)
 {
     char_u          *p;
@@ -122242,13 +119843,6 @@ recording_mode(int attr)
     msg_puts_attr(s, attr);
 }
 
-    static int
-mouse_has_any(void)
-{
-    return mouse_has(MOUSE_NORMAL) || mouse_has(MOUSE_INSERT)
-        || mouse_has(MOUSE_VISUAL);
-}
-
     static void
 draw_tabline(void)
 {
@@ -122428,11 +120022,6 @@ draw_tabline(void)
             showcmd_update_clear_state();
         }
 
-        if (tabcount > 1 && mouse_has_any())
-        {
-            screen_putchar('X', 0, (int)Columns - 1, attr_nosel);
-            TabPageIdxs[Columns - 1] = -999;
-        }
     }
 
     redraw_tabline = FALSE;
@@ -126645,7 +124234,6 @@ current_search(long        count, int         forward)
     }
 
     may_start_select('c');
-    setmouse();
     redraw_curbuf_later(UPD_INVERTED);
     showmode();
 
@@ -129658,47 +127246,6 @@ set_termname(char_u *term)
 
     term_is_xterm = vim_is_xterm(term);
 
-    int did_set_ttym = FALSE;
-    if ( ( term_strings[(int)(KS_CXM)] )  != NULL && * ( term_strings[(int)(KS_CXM)] )  != NUL && !option_was_set((char_u *)"ttym"))
-    {
-        char_u *p =  ( term_strings[(int)(KS_CXM)] ) ;
-
-        while (*p != NUL && ! ((unsigned)(*p) - '0' < 10) )
-        {
-            ++p;
-        }
-        if (getdigits(&p) == 1006)
-        {
-            did_set_ttym = TRUE;
-            set_option_value_give_err((char_u *)"ttym", 0L, (char_u *)"sgr", 0);
-        }
-    }
-
-    {
-        char_u  *p = (char_u *)"";
-
-        if (use_xterm_like_mouse(term))
-        {
-            if (use_xterm_mouse())
-            {
-                p = NULL;
-            }
-            else
-            {
-                p = (char_u *)"xterm";
-            }
-        }
-        if (p != NULL && !did_set_ttym)
-        {
-            set_option_value_give_err((char_u *)"ttym", 0L, p, 0);
-            reset_option_was_set((char_u *)"ttym");
-        }
-        if (p == NULL)
-        {
-            check_mouse_termcode();
-        }
-    }
-
     {
         char_u name[3];
 
@@ -129722,7 +127269,6 @@ set_termname(char_u *term)
     if (starting != NO_SCREEN)
     {
         starttermcap();
-        setmouse();
         maketitle();
     }
 
@@ -130092,13 +127638,6 @@ term_delete_lines(int line_count)
 }
 
     static void
-term_enable_mouse(int enable)
-{
-    int on = enable ? 1 : 0;
-     out_str((char_u *)(tgoto((char *) ( term_strings[(int)(KS_CXM)] ) , 0, on))) ;
-}
-
-    static void
 term_set_winsize(int height, int width)
 {
      out_str((char_u *)(tgoto((char *) ( term_strings[(int)(KS_CWS)] ) , width, height))) ;
@@ -130325,43 +127864,6 @@ ttest(int pairs)
     need_gather = TRUE;
 
     t_colors = atoi((char *) ( term_strings[(int)(KS_CCO)] ) );
-}
-
-    static int
-get_bytes_from_buf(char_u *buf, char_u *bytes, int num_bytes)
-{
-    int     len = 0;
-    int     i;
-    char_u  c;
-
-    for (i = 0; i < num_bytes; i++)
-    {
-        if ((c = buf[len++]) == NUL)
-        {
-            return -1;
-        }
-        if (c ==  (0x80) )
-        {
-            if (buf[len] == NUL || buf[len + 1] == NUL)
-            {
-                return -1;
-            }
-            if (buf[len++] == (int)KS_ZERO)
-            {
-                c = NUL;
-            }
-            if (buf[len++] == (int)KE_CSI)
-            {
-                c = CSI;
-            }
-        }
-        else if (c == CSI && buf[len] == KS_EXTRA && buf[len + 1] == (int)KE_CSI)
-        {
-            len += 2;
-        }
-        bytes[i] = c;
-    }
-    return len;
 }
 
     static void
@@ -130613,7 +128115,6 @@ settmode(tmode_T tmode)
     {
         if (tmode != TMODE_RAW)
         {
-            mch_setmouse(FALSE);
         }
 
         if (termcap_active && tmode != TMODE_SLEEP && cur_tmode != TMODE_SLEEP)
@@ -130636,7 +128137,6 @@ settmode(tmode_T tmode)
         cur_tmode = tmode;
         if (tmode == TMODE_RAW)
         {
-            setmouse();
         }
         out_flush();
     }
@@ -131012,12 +128512,6 @@ get_termcode(int i)
     return &termcodes[i].name[0];
 }
 
-    static int
-get_termcode_len(int idx)
-{
-    return termcodes[idx].len;
-}
-
     static void
 del_termcode(char_u *name)
 {
@@ -131073,20 +128567,6 @@ switch_to_8bit(void)
         need_gather = TRUE;
     }
     detected_8bit = TRUE;
-}
-
-static linenr_T orig_topline = 0;
-    static void
-set_mouse_topline(win_T *wp)
-{
-    orig_topline = wp->w_topline;
-}
-
-    static int
-is_mouse_topline(win_T *wp)
-{
-    return orig_topline == wp->w_topline
-        ;
 }
 
     static int
@@ -131339,11 +128819,6 @@ handle_version_response(int first, int *arg, int argc, char_u *tp)
         if (term_props[TPR_UNDERLINE_RGB].tpr_status != TPR_YES && * ( term_strings[(int)(KS_8U)] )  != NUL && !option_was_set((char_u *)"t_8u"))
         {
             set_string_option_direct((char_u *)"t_8u", -1, (char_u *)"", OPT_FREE, 0);
-        }
-
-        if (!option_was_set((char_u *)"ttym") && (term_props[TPR_MOUSE].tpr_status == TPR_MOUSE_XTERM2 || term_props[TPR_MOUSE].tpr_status == TPR_MOUSE_SGR))
-        {
-            set_option_value_give_err((char_u *)"ttym", 0L, term_props[TPR_MOUSE].tpr_status == TPR_MOUSE_SGR ? (char_u *)"sgr" : (char_u *)"xterm2", 0);
         }
 
     }
@@ -132255,10 +129730,6 @@ handle_osc:
 
         if (key_name[0] == KS_MOUSE || key_name[0] == KS_SGR_MOUSE || key_name[0] == KS_SGR_MOUSE_RELEASE)
         {
-            if (check_termcode_mouse(tp, &slen, key_name, modifiers_start, idx, &modifiers) == -1)
-            {
-                return -1;
-            }
         }
 
         if (key_name[0] == KS_EXTRA)
@@ -135979,61 +133450,6 @@ check_row(int row)
         return screen_Rows - 1;
     }
     return row;
-}
-
-    static long
-scroll_line_len(linenr_T lnum)
-{
-    char_u      *p = ml_get(lnum);
-    colnr_T     col = 0;
-
-    if (*p != NUL)
-    {
-        for (;;)
-        {
-            int     w = chartabsize(p, col);
-             p += (*mb_ptr2len)(p) ;
-            if (*p == NUL)
-            {
-                break;
-            }
-            col += w;
-        }
-    }
-    return col;
-}
-
-    static linenr_T
-ui_find_longest_lnum(void)
-{
-    linenr_T ret = 0;
-
-    if (curwin->w_topline <= curwin->w_cursor.lnum && curwin->w_botline > curwin->w_cursor.lnum && curwin->w_botline <= curbuf->b_ml.ml_line_count + 1)
-    {
-        linenr_T    lnum;
-        long        n;
-        long        max = 0;
-
-        for (lnum = curwin->w_topline; lnum < curwin->w_botline; ++lnum)
-        {
-            n = scroll_line_len(lnum);
-            if (n > max)
-            {
-                max = n;
-                ret = lnum;
-            }
-            else if (n == max && abs((int)(lnum - curwin->w_cursor.lnum)) < abs((int)(ret - curwin->w_cursor.lnum)))
-            {
-                ret = lnum;
-            }
-        }
-    }
-    else
-    {
-        ret = curwin->w_cursor.lnum;
-    }
-
-    return ret;
 }
 
     static void
@@ -145237,8 +142653,6 @@ win_enter_ext(win_T *wp, int flags)
         win_setwidth((int)p_wiw);
     }
 
-    setmouse();
-
     return did_decrement;
 }
 
@@ -146155,257 +143569,6 @@ win_setminwidth(void)
             first = FALSE;
         }
     }
-}
-
-    static void
-win_drag_status_line(win_T *dragwin, int offset)
-{
-    frame_T     *curfr;
-    frame_T     *fr;
-    int         room;
-    int         up;
-    int         n;
-
-    fr = dragwin->w_frame;
-    curfr = fr;
-    if (fr != topframe)
-    {
-        fr = fr->fr_parent;
-        if (fr->fr_layout != FR_COL)
-        {
-            curfr = fr;
-            if (fr != topframe)
-            {
-                fr = fr->fr_parent;
-            }
-        }
-    }
-
-    while (curfr != topframe && curfr->fr_next == NULL)
-    {
-        if (fr != topframe)
-        {
-            fr = fr->fr_parent;
-        }
-        curfr = fr;
-        if (fr != topframe)
-        {
-            fr = fr->fr_parent;
-        }
-    }
-
-    if (offset < 0)
-    {
-        up = TRUE;
-        offset = -offset;
-        if (fr == curfr)
-        {
-            room = fr->fr_height - frame_minheight(fr, NULL);
-        }
-        else
-        {
-            room = 0;
-            for (fr = fr->fr_child; ; fr = fr->fr_next)
-            {
-                room += fr->fr_height - frame_minheight(fr, NULL);
-                if (fr == curfr)
-                {
-                    break;
-                }
-            }
-        }
-        fr = curfr->fr_next;
-    }
-    else
-    {
-        up = FALSE;
-        room = Rows - cmdline_row;
-        if (curfr->fr_next == NULL)
-        {
-            --room;
-        }
-        else
-        {
-            room -= p_ch;
-        }
-        if (room < 0)
-        {
-            room = 0;
-        }
-         for ((fr) = curfr->fr_next; (fr) != NULL; (fr) = (fr)->fr_next) 
-         {
-            room += fr->fr_height - frame_minheight(fr, NULL);
-         }
-        fr = curfr;
-    }
-
-    if (room < offset)
-    {
-        offset = room;
-    }
-    if (offset <= 0)
-    {
-        return;
-    }
-
-    if (fr != NULL)
-    {
-        frame_new_height(fr, fr->fr_height + offset, up, FALSE, TRUE);
-    }
-
-    if (up)
-    {
-        fr = curfr;
-    }
-    else
-    {
-        fr = curfr->fr_next;
-    }
-
-    while (fr != NULL && offset > 0)
-    {
-        n = frame_minheight(fr, NULL);
-        if (fr->fr_height - offset <= n)
-        {
-            offset -= fr->fr_height - n;
-            frame_new_height(fr, n, !up, FALSE, TRUE);
-        }
-        else
-        {
-            frame_new_height(fr, fr->fr_height - offset, !up, FALSE, TRUE);
-            break;
-        }
-        if (up)
-        {
-            fr = fr->fr_prev;
-        }
-        else
-        {
-            fr = fr->fr_next;
-        }
-    }
-    win_comp_pos();
-    win_fix_scroll(TRUE);
-
-    redraw_all_later(UPD_SOME_VALID);
-    showmode();
-}
-
-    static void
-win_drag_vsep_line(win_T *dragwin, int offset)
-{
-    frame_T     *curfr;
-    frame_T     *fr;
-    int         room;
-    int         left;
-    int         n;
-
-    fr = dragwin->w_frame;
-    if (fr == topframe)
-    {
-        return;
-    }
-    curfr = fr;
-    fr = fr->fr_parent;
-    if (fr->fr_layout != FR_ROW)
-    {
-        if (fr == topframe)
-        {
-            return;
-        }
-        curfr = fr;
-        fr = fr->fr_parent;
-    }
-
-    while (curfr->fr_next == NULL)
-    {
-        if (fr == topframe)
-        {
-            break;
-        }
-        curfr = fr;
-        fr = fr->fr_parent;
-        if (fr != topframe)
-        {
-            curfr = fr;
-            fr = fr->fr_parent;
-        }
-    }
-
-    if (offset < 0)
-    {
-        left = TRUE;
-        offset = -offset;
-        room = 0;
-        for (fr = fr->fr_child; ; fr = fr->fr_next)
-        {
-            room += fr->fr_width - frame_minwidth(fr, NULL);
-            if (fr == curfr)
-            {
-                break;
-            }
-        }
-        fr = curfr->fr_next;
-    }
-    else
-    {
-        left = FALSE;
-        room = 0;
-         for ((fr) = curfr->fr_next; (fr) != NULL; (fr) = (fr)->fr_next) 
-         {
-            room += fr->fr_width - frame_minwidth(fr, NULL);
-         }
-        fr = curfr;
-    }
-
-    if (room < offset)
-    {
-        offset = room;
-    }
-    if (offset <= 0)
-    {
-        return;
-    }
-    if (fr == NULL)
-    {
-        return;
-    }
-
-    frame_new_width(fr, fr->fr_width + offset, left, FALSE);
-
-    if (left)
-    {
-        fr = curfr;
-    }
-    else
-    {
-        fr = curfr->fr_next;
-    }
-
-    while (fr != NULL && offset > 0)
-    {
-        n = frame_minwidth(fr, NULL);
-        if (fr->fr_width - offset <= n)
-        {
-            offset -= fr->fr_width - n;
-            frame_new_width(fr, n, !left, FALSE);
-        }
-        else
-        {
-            frame_new_width(fr, fr->fr_width - offset, !left, FALSE);
-            break;
-        }
-        if (left)
-        {
-            fr = fr->fr_prev;
-        }
-        else
-        {
-            fr = fr->fr_next;
-        }
-    }
-    win_comp_pos();
-    redraw_all_later(UPD_NOT_VALID);
 }
 
 enum { FRACTION_MULT = 16384L };
@@ -147362,7 +144525,6 @@ vim_main2(void)
 
     starttermcap();
 
-    setmouse();
     if (scroll_region)
     {
         scroll_region_reset();
