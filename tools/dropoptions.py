@@ -125,6 +125,17 @@ def drop_row(text, name, strict=False, local=False):
                     or re.match(r'[ \t]*\(char_u \*\)&', line)
                     or re.match(r'static\b[^=]*\b%s;$' % re.escape(name_of_var), line)):
                 continue
+            # Nor is TAKING THE ADDRESS a read.  `varp == (char_u *)&p_dir`
+            # asks which option a pointer refers to; it never touches the
+            # value, so a NULL global cannot hurt it.  Counting these made the
+            # guard refuse a row that genuinely was inert -- the guard exists
+            # to catch a dereference of something nothing initialises, and an
+            # identity comparison is not one.  A line that both takes the
+            # address AND reads the value still counts, because the read is
+            # what is checked for next.
+            bare = re.sub(r'&\s*%s\b' % re.escape(name_of_var), '', line)
+            if not re.search(r'\b%s\b' % re.escape(name_of_var), bare):
+                continue
             reads.append(line.strip()[:90])
         if reads:
             sys.exit("dropoptions: '%s' still has readers of %s, so its row is "

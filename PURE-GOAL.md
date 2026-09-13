@@ -689,10 +689,52 @@ polling. That is a separate cut with a separate delta.
 
 ### The delta, and three things the harness knew better than the author
 
-Eight command names report that they are not available; `'directory'`,
-`'updatecount'` and `'swapsync'` stop existing. `'swapfile'` cannot go — it is
+Eight command names report that they are not available; `'updatecount'` and
+`'swapsync'` stop existing. `'swapfile'` cannot go — it is
 `PV_BUF` and its row is what initialises the global, the trap Phase 12 records —
 so it stays and is now always effectively off.
+
+### `'directory'` was dropped here once, and that was a bug
+
+It is in the list above no longer, and the correction is worth more than the
+line it takes. A row is also what **initialises** its global, so a row can only
+go once nothing reads the global — and `recover_names()` scans every directory
+in `p_dir` looking for swap files, right up until Phase 25 deletes it. Dropping
+the row here left `p_dir` NULL for ever, with a live dereference in
+`check_overwrite()`, which asks whether *another* vim has a swap file beside the
+file you are about to overwrite. So this shipped for twelve phases:
+
+```
+:w! <an existing other file>      ->      Segmentation fault
+```
+
+**Nothing saw it, and each reason is worth knowing.** The build is clean. The
+dead-code sweep is silent, because an orphaned global is *used* — no
+unused-variable warning names it. The linkage and symbol checks pass. The Ex
+sweep runs every command from its own scratch directory, where the target does
+not exist; the 67 behaviour cases write to the file they opened; and neither
+writes over an existing file *under a different name* with `!`, which is the one
+shape that reaches it.
+
+`dropoptions.py --strict` refuses exactly this and did not exist when this phase
+was written. The repair has three parts, and only the first is about this bug:
+
+1. `'directory'` moves to Phase 26, where its last reader goes. Phase 13 keeps
+   the row, so `p_dir` is initialised for every phase in between.
+2. `tools/orphanopts.py` runs in **every** pure phase, out of `puredelta.sh`. It
+   parses `options[]`, collects every `&p_xx` it names, and compares that with
+   every `p_xx` declared at file scope. It is type-aware, which is the whole
+   trick: a `long` orphan reads as 0 and is reported, a `char_u *` orphan is
+   fatal. `'updatecount'` is genuinely safe to drop here for that reason —
+   `p_uc` reading 0 *is* "never create a swap file".
+3. `--strict` learned that `varp == (char_u *)&p_x` takes an address rather than
+   reading a value. Counting those made it refuse `'directory'` in Phase 26,
+   where the row genuinely was inert — a guard that cries wolf gets turned off,
+   which would have cost more than the bug did.
+
+`mf_sync()`'s `MFS_FLUSH` tail goes here too, as the last reader of `p_sws`, and
+takes `sync()` with it. It sat behind `if (mfp->mf_fd < 0) return FAIL;` and so
+was never reached — latent rather than live, and removed for the same reason.
 
 `:mksession` and `:mkview` **do not move**: they already failed. And `:recover`
 **leaves** the cumulative list it joined in Phase 9 — removing globbing had
@@ -1274,6 +1316,78 @@ it used to read `14:23:07`.
 
 **None.** Verified by hand: `-r` is now `Unknown option argument: "-r"`,
 `:undolist` prints `1 second ago`, and editing is untouched.
+
+## Phase 26 — the memfile is memory, and only memory
+
+Phase 13 stopped the editor creating a swap file and Phase 25 stopped it reading
+one back. What was left is a **file back-end with no file**: `memfile_T` still
+carried a descriptor, still knew how to page a block out and read it in, and
+still sized an LRU cache against how much memory the machine has — all of it
+behind `if (mfp->mf_fd >= 0)`, and `mf_fd` could no longer be anything but −1.
+
+The proof is short. `mf_open()` has two callers: `ml_open()` passes `(NULL, 0)`,
+and `ml_recover()` passed a name — Phase 25 deleted it. Phase 13 stubbed
+`ml_open_file()` to `b_may_swap = FALSE`. So nothing can hand the memfile a
+name, `mf_do_open()` is unreachable, and `mf_write()` and `mf_read()` return
+FAIL on their first lines.
+
+Which makes **`'maxmem'` and `'maxmemtot'` options that decide nothing**:
+
+```c
+need_release = (mfp->mf_used_count >= mfp->mf_used_count_max
+                || (total_mem_used >> 10) >= (long_u)p_mmt);
+...
+if (mfp->mf_fd < 0 || !need_release) { return NULL; }
+```
+
+`need_release` is the only place either is read, and the test in front of it is
+always true — so the answer is computed and discarded. `mch_total_mem()` went to
+real trouble to size that cache, through `sysinfo`, `sysconf` and `getrlimit`,
+for a cache that never evicts.
+
+Three more things fall out: `mch_get_host_name()`, which wrote the machine's
+name into block zero so a recovering vim could say the swap file came from
+elsewhere (**`uname`**); `lalloc()`'s retry loop, whose whole point was that
+`mf_release_all()` might have freed memory by paging blocks to disk; and
+`check_overwrite()`'s "swap file exists" warning.
+
+**What does not change is the block structure.** Lines still live in blocks,
+blocks still have numbers, `mf_trans` still maps them. This removes the ability
+to *evict* a block, which was already impossible — not the ability to have one.
+
+### A bug this phase fixes, and where it came from
+
+`check_overwrite()` is the last reader of `p_dir`, so **`'directory'` can
+finally go**. Phase 13 dropped its row while this still read it, and a row is
+what initialises its global — so `p_dir` was NULL for ever, and
+
+```
+:w! <an existing other file>      ->      Segmentation fault
+```
+
+shipped for twelve phases. Nothing saw it. The build is clean; an orphaned
+global is *used*, so no unused-variable warning names it; the linkage and symbol
+checks pass; and neither the Ex sweep nor the 67 behaviour cases write over an
+existing file under a different name with `!`.
+
+`dropoptions.py --strict` refuses exactly this and had not been written when
+Phase 13 was. The repair is in three parts: Phase 13 keeps `'directory'` and
+drops it here instead; `tools/orphanopts.py` checks the invariant in **every**
+pure phase, and is type-aware — a `long` orphan reads as 0 and is reported, a
+`char_u *` orphan is fatal; and `--strict` learned that `varp == (char_u *)&p_x`
+takes an address rather than reading a value, which is what made it refuse a row
+that was genuinely inert.
+
+### Where the symbol count moves
+
+**107 → 104**: `sysinfo`, `getrlimit`, `uname`. `sysconf` stays — its other
+caller is `_SC_SIGSTKSZ`, for `sigaltstack`.
+
+### The delta
+
+**None.** `:w!` over an existing other file stops crashing and writes it, which
+is what it should always have done, and the phase asserts that directly — no
+harness does.
 
 ## Unused, and unuseful
 

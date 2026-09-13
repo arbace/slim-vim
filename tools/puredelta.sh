@@ -34,6 +34,14 @@ if [ "${1:-}" = "--cases" ]; then
 fi
 expected=$(printf '%s\n' "$@" | sort -u | tr '\n' ' ')
 
+# Before anything behavioural: no option global may be left without the row
+# that initialises it.  This is a source question rather than a behavioural one,
+# but it belongs here because it is the pure pipeline that drops rows, and
+# because the thing it catches is invisible to every check that follows -- an
+# orphaned global is *used*, so no warning names it, and it segfaults only on
+# the one command that reaches it.  See tools/orphanopts.py.
+python3 tools/orphanopts.py "$src"
+
 base=.reference/baselines
 [ -d "$base/behaviour" ] || { echo "  delta        no slim baselines to compare against"; exit 0; }
 

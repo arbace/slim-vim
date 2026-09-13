@@ -26,7 +26,10 @@
 # a separate delta.
 #
 # THE DELTA: eight command names report that they are not available.
-# 'directory', 'updatecount' and 'swapsync' stop existing.  'swapfile' cannot
+# 'updatecount' and 'swapsync' stop existing; 'directory' CANNOT go here, since
+# recover_names() scans it for swap files until phase 25, and dropping its row
+# while a reader survives is what left p_dir NULL and made `:w!` over an
+# existing other file segfault for twelve phases.  'swapfile' cannot
 # go -- it is PV_BUF and its row is what initialises the global -- so it stays
 # and is now always effectively off.
 set -eu
@@ -41,7 +44,7 @@ tools/symbols.sh "$f" .cache/symbols/before
 python3 tools/noswap.py "$f"
 python3 tools/retire.py "$f" recover preserve swapname \
     mkvimrc mkexrc mksession mkview checktime
-python3 tools/dropoptions.py "$f" directory updatecount swapsync
+python3 tools/dropoptions.py "$f" updatecount swapsync
 
 tools/sweep.sh "$f"
 

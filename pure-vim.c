@@ -853,9 +853,6 @@ enum { BL_WHITE = 1 };
 enum { BL_SOL = 2 };
 enum { BL_FIX = 4 };
 
-enum { MFS_ALL = 1 };
-enum { MFS_STOP = 2 };
-enum { MFS_FLUSH = 4 };
 enum { MFS_ZERO = 8 };
 
 enum { BCO_ENTER = 1 };
@@ -928,9 +925,6 @@ enum { NO_BUFFERS = 1 };
 enum { SEA_NONE = 0 };
 enum { SEA_DIALOG = 1 };
 enum { SEA_QUIT = 2 };
-enum { MIN_SWAP_PAGE_SIZE = 1048 };
-enum { MAX_SWAP_PAGE_SIZE = 50000 };
-
 enum auto_event
 {
     EVENT_BUFADD = 0,
@@ -1470,7 +1464,6 @@ static char_u   *p_com;
 static char_u   *p_cpo;
 static char_u   *p_debug;
 static char_u   *p_dict;
-static char_u   *p_dir;
 static char_u   *p_dy;
 static unsigned dy_flags;
 enum { DY_LASTLINE = 0x001 };
@@ -1540,9 +1533,7 @@ static char_u   *p_mps;
 static long     p_mat;
 static long     p_mco;
 static long     p_mmd;
-static long     p_mm;
 static long     p_mmp;
-static long     p_mmt;
 static char_u   *p_mopt;
 static long     p_msc;
 static int      p_ml;
@@ -1606,7 +1597,6 @@ static long     p_tpm;
 static int      p_spr;
 static int      p_sol;
 static char_u   *p_su;
-static char_u   *p_sws;
 static char_u   *p_swb;
 static unsigned swb_flags;
 enum { SWB_USEOPEN = 0x001 };
@@ -2235,22 +2225,14 @@ typedef enum {
 
 struct memfile
 {
-    char_u      *mf_fname;
-    char_u      *mf_ffname;
-    int         mf_fd;
-    int         mf_flags;
-    int         mf_reopen;
     bhdr_T      *mf_free_first;
     bhdr_T      *mf_used_first;
     bhdr_T      *mf_used_last;
-    unsigned    mf_used_count;
-    unsigned    mf_used_count_max;
     mf_hashtab_T mf_hash;
     mf_hashtab_T mf_trans;
     blocknr_T   mf_blocknr_max;
     blocknr_T   mf_blocknr_min;
     blocknr_T   mf_neg_count;
-    blocknr_T   mf_infile_count;
     unsigned    mf_page_size;
     mfdirty_T   mf_dirty;
 };
@@ -4750,7 +4732,6 @@ struct slang_S
 // ---------------- begin os_unix.pro ----------------
 static sighandler_T mch_signal(int sig, sighandler_T func);
 static int mch_chdir(char *path);
-static long_u mch_total_mem(int special);
 static void reset_signals(void);
 static int vim_handle_signal(int sig);
 static int mch_can_restore_title(void);
@@ -4758,7 +4739,6 @@ static int mch_can_restore_icon(void);
 static void mch_settitle(char_u *title, char_u *icon);
 static void mch_restore_title(int which);
 static int use_xterm_mouse(void);
-static void mch_get_host_name(char_u *s, int len);
 static long mch_get_pid(void);
 static int mch_dirname(char_u *buf, int len);
 static int mch_FullName(char_u *fname, char_u *buf, int len, int force);
@@ -4769,7 +4749,6 @@ static int mch_fsetperm(int fd, long perm);
 static vim_acl_T mch_get_acl(char_u *fname);
 static void mch_set_acl(char_u *fname, vim_acl_T aclent);
 static void mch_free_acl(vim_acl_T aclent);
-static void mch_hide(char_u *name);
 static int mch_isdir(char_u *name);
 static int mch_nodetype(char_u *name);
 static void mch_exit(int r);
@@ -5116,7 +5095,6 @@ static int expand_wildcards(int num_pat, char_u **pat, int *num_files, char_u **
 static int match_suffix(char_u *fname);
 static int gen_expand_wildcards(int num_pat, char_u **pat, int *num_file, char_u ***file, int flags);
 static void FreeWild(int count, char_u **files);
-static int pathcmp(const char *p, const char *q, int maxlen);
 static int vim_isAbsName(char_u *name);
 static int vim_FullName(char_u *fname, char_u *buf, int len, int force);
 
@@ -5338,8 +5316,6 @@ static int get_prevcol_hl_flag(win_T *wp, match_T *search_hl, long curcol);
 static void get_search_match_hl(win_T *wp, match_T *search_hl, long col, int *char_attr);
 // ---------------- end match.pro ----------------
 // ---------------- begin memfile.pro ----------------
-static int mf_release_all(void);
-static void mf_fullname(memfile_T *mfp);
 // ---------------- end memfile.pro ----------------
 // ---------------- begin memline.pro ----------------
 static int ml_open(buf_T *buf);
@@ -5370,8 +5346,6 @@ static int ml_delete_flags(linenr_T lnum, int flags);
 static void ml_setmarked(linenr_T lnum);
 static linenr_T ml_firstmarked(void);
 static void ml_clearmarked(void);
-static int resolve_symlink(char_u *fname, char_u *buf);
-static char_u *makeswapname(char_u *fname, char_u *ffname, buf_T *buf, char_u *dir_name);
 static char_u *get_file_in_dir(char_u *fname, char_u *dname);
 static void ml_setflags(buf_T *buf);
 
@@ -5511,7 +5485,6 @@ static void set_fileformat(int t, int opt_flags);
 static int default_fileformat(void);
 static int get_real_state(void);
 static int after_pathsep(char_u *b, char_u *p);
-static int same_directory(char_u *f1, char_u *f2);
 static int get_user_name(char_u *buf, int len);
 static int cmp_keyvalue_value_n(const void *a, const void *b);
 static int cmp_keyvalue_value_i(const void *a, const void *b);
@@ -6166,7 +6139,6 @@ static time_T vim_time(void);
 static void ui_write(char_u *s, int len, int console);
 static int ui_inchar(char_u *buf, int maxlen, long wtime, int tb_change_cnt);
 static int inchar_loop(char_u *buf, int maxlen, long wtime, int tb_change_cnt, int (*wait_func)(long wtime, int *interrupted, int ignore_input), int (*resize_func)(int check_only));
-static int ui_char_avail(void);
 static void ui_delay(long msec_arg, int ignoreinput);
 static void ui_suspend(void);
 static int ui_get_shellsize(void);
@@ -6888,7 +6860,6 @@ static char e_invalid_character_after_bsl_z[]  =  "E68: Invalid character after 
 static char e_missing_sb_after_str[]  =  "E69: Missing ] after %s%%["  ;
 static char e_empty_str_brackets[]  =  "E70: Empty %s%%[]"  ;
 static char e_invalid_character_after_str[]  =  "E71: Invalid character after %s%%"  ;
-static char e_close_error_on_swap_file[]  =  "E72: Close error on swap file"  ;
 static char e_command_too_complex[]  =  "E74: Command too complex"  ;
 static char e_name_too_long[]  =  "E75: Name too long"  ;
 static char e_too_many_brackets[]  =  "E76: Too many ["  ;
@@ -6980,14 +6951,9 @@ static char e_cannot_read_from_str_2[]  =  "E282: Cannot read from \"%s\""  ;
 static char e_no_marks_matching_str[]  =  "E283: No marks matching \"%s\""  ;
 static char e_invalid_count_for_del_bytes_nr[]  = "E292: Invalid count for del_bytes(): %ld" ;
 static char e_block_was_not_locked[]  = "E293: Block was not locked" ;
-static char e_seek_error_in_swap_file_read[]  =  "E294: Seek error in swap file read"  ;
-static char e_read_error_in_swap_file[]  =  "E295: Read error in swap file"  ;
-static char e_seek_error_in_swap_file_write[]  =  "E296: Seek error in swap file write"  ;
-static char e_write_error_in_swap_file[]  =  "E297: Write error in swap file"  ;
 static char e_didnt_get_block_nr_zero[]  = "E298: Didn't get block nr 0?" ;
 static char e_didnt_get_block_nr_one[]  = "E298: Didn't get block nr 1?" ;
 static char e_didnt_get_block_nr_two[]  = "E298: Didn't get block nr 2?" ;
-static char e_swap_file_already_exists_symlink_attack[]  =  "E300: Swap file already exists (symlink attack?)"  ;
 static char e_ml_upd_block0_didnt_get_block_zero[]  = "E304: ml_upd_block0(): Didn't get block 0??" ;
 static char e_ml_get_invalid_lnum_nr[]  = "E315: ml_get: Invalid lnum: %ld" ;
 static char e_ml_get_cannot_find_line_nr_in_buffer_nr_str[]  = "E316: ml_get: Cannot find line %ld in buffer %d %s" ;
@@ -7131,9 +7097,7 @@ static char e_internal_error_str[]  =  "E685: Internal error: %s"  ;
 static char e_no_previously_used_register[]  =  "E748: No previously used register"  ;
 static char e_empty_buffer[]  =  "E749: Empty buffer"  ;
 static char e_too_many_arguments_to_printf[]  =  "E767: Too many arguments for printf()"  ;
-static char e_swap_file_exists_str_silent_overrides[]  =  "E768: Swap file exists: %s (:silent! overrides)"  ;
 static char e_missing_rsb_after_str_lsb[]  =  "E769: Missing ] after %s["  ;
-static char e_symlink_loop_for_str[]  =  "E773: Symlink loop for \"%s\""  ;
 static char e_eval_feature_not_available[]  =  "E775: Eval feature not available"  ;
 static char e_cannot_close_last_tab_page[]  =  "E784: Cannot close last tab page"  ;
 static char e_not_allowed_to_edit_another_buffer_now[]  =  "E788: Not allowed to edit another buffer now"  ;
@@ -7338,7 +7302,6 @@ lalloc(size_t size, int message)
 {
     void        *p;
     static int  releasing = FALSE;
-    int         try_again;
 
     if (size == 0)
     {
@@ -7347,26 +7310,16 @@ lalloc(size_t size, int message)
         return NULL;
     }
 
-    for (;;)
+    p = malloc(size);
+    if (p == NULL && !releasing)
     {
-        if ((p = malloc(size)) != NULL)
-        {
-            goto theend;
-        }
-        if (releasing)
-        {
-            break;
-        }
+        // The scrollback is the only memory left to reclaim.  This used to be
+        // a retry loop, because mf_release_all() could page buffer blocks out
+        // to the swap file and free them; it cannot, so there is nothing to
+        // retry with.  `releasing` stays, because clear_sb_text() allocates.
         releasing = TRUE;
-
         clear_sb_text(TRUE);
-        try_again = mf_release_all();
-
         releasing = FALSE;
-        if (!try_again)
-        {
-            break;
-        }
     }
 
     if (message && p == NULL)
@@ -7374,7 +7327,6 @@ lalloc(size_t size, int message)
         do_outofmem_msg(size);
     }
 
-theend:
     return p;
 }
 
@@ -36283,45 +36235,6 @@ check_overwrite(exarg_T     *eap, buf_T       *buf, char_u      *fname, char_u  
             }
         }
 
-        if (other && !emsg_silent)
-        {
-            char_u      *dir;
-            char_u      *p;
-            int         r;
-            char_u      *swapname;
-
-            if (*p_dir == NUL)
-            {
-                dir = alloc(5);
-                if (dir == NULL)
-                {
-                    return FAIL;
-                }
-                 strcpy((char *)(dir), (char *)(".")) ;
-            }
-            else
-            {
-                dir = alloc( PATH_MAX );
-                if (dir == NULL)
-                {
-                    return FAIL;
-                }
-                p = p_dir;
-                copy_option_part(&p, dir,  PATH_MAX , ",");
-            }
-            swapname = makeswapname(fname, ffname, curbuf, dir);
-            vim_free(dir);
-            r = vim_fexists(swapname);
-            if (r)
-            {
-                {
-                    semsg(_(e_swap_file_exists_str_silent_overrides), swapname);
-                    vim_free(swapname);
-                    return FAIL;
-                }
-            }
-            vim_free(swapname);
-        }
     }
     return OK;
 }
@@ -49278,7 +49191,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
     int         ff_error =  (-1) ;
     long        linerest = 0;
     int         perm = 0;
-    int         swap_mode = -1;
     int         fileformat = 0;
     int         keep_fileformat = FALSE;
     stat_T      st;
@@ -49449,7 +49361,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
             buf_store_time(curbuf, &st, fname);
             curbuf->b_mtime_read = curbuf->b_mtime;
             curbuf->b_mtime_read_ns = curbuf->b_mtime_ns;
-            swap_mode = (st.st_mode & 0644) | 0600;
         }
         else
         {
@@ -49550,22 +49461,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
                 close(fd);
             }
             goto theend;
-        }
-        if (swap_mode > 0 && curbuf->b_ml.ml_mfp != NULL && curbuf->b_ml.ml_mfp->mf_fname != NULL)
-        {
-            char_u *swap_fname = curbuf->b_ml.ml_mfp->mf_fname;
-
-            if ((swap_mode & 044) == 040)
-            {
-                stat_T  swap_st;
-
-                if ( stat(((char *)swap_fname), (&swap_st))  >= 0 && st.st_gid != swap_st.st_gid && fchown(curbuf->b_ml.ml_mfp->mf_fd, -1, st.st_gid) == -1)
-                {
-                    swap_mode &= 0600;
-                }
-            }
-
-            (void)mch_setperm(swap_fname, (long)swap_mode);
         }
     }
 
@@ -51293,7 +51188,6 @@ shorten_fnames(int force)
     {
         shorten_buf_fname(buf, dirname, force);
 
-        mf_fullname(buf->b_ml.ml_mfp);
     }
     status_redraw_all();
     redraw_tabline = TRUE;
@@ -52757,73 +52651,6 @@ FreeWild(int count, char_u **files)
         vim_free(files[count]);
     }
     vim_free(files);
-}
-
-    static int
-pathcmp(const char *p, const char *q, int maxlen)
-{
-    int i;
-    int j;
-    int c1;
-    int c2;
-    const char  *s = NULL;
-
-    i = 0;
-    for (j = 0; maxlen < 0 || (i < maxlen && j < maxlen);)
-    {
-        c1 =  (has_mbyte ? mb_ptr2char((char_u *)p + i) : (int)*((char_u *)p + i)) ;
-        c2 =  (has_mbyte ? mb_ptr2char((char_u *)q + j) : (int)*((char_u *)q + j)) ;
-
-        if (c1 == NUL)
-        {
-            if (c2 == NUL)
-            {
-                return 0;
-            }
-            s = q;
-            i = j;
-            break;
-        }
-
-        if (c2 == NUL)
-        {
-            s = p;
-            break;
-        }
-
-        if ((p_fic ?  vim_toupper(c1)  !=  vim_toupper(c2)  : c1 != c2))
-        {
-            if (vim_ispathsep(c1))
-            {
-                return -1;
-            }
-            if (vim_ispathsep(c2))
-            {
-                return 1;
-            }
-            return p_fic ?  vim_toupper(c1)  -  vim_toupper(c2) 
-                    : c1 - c2;
-        }
-
-        i += mb_ptr2len((char_u *)p + i);
-        j += mb_ptr2len((char_u *)q + j);
-    }
-    if (s == NULL)
-    {
-        return 0;
-    }
-
-    c1 =  (has_mbyte ? mb_ptr2char((char_u *)s + i) : (int)*((char_u *)s + i)) ;
-    c2 =  (has_mbyte ? mb_ptr2char((char_u *)s + i + mb_ptr2len((char_u *)s + i)) : (int)*((char_u *)s + i + mb_ptr2len((char_u *)s + i))) ;
-    if (c2 == NUL && i > 0 && !after_pathsep((char_u *)s, (char_u *)s + i) && c1 == '/')
-    {
-        return 0;
-    }
-    if (s == q)
-    {
-        return -1;
-    }
-    return 1;
 }
 
     static int
@@ -74877,23 +74704,16 @@ get_encoding_name(expand_T *xp  __attribute__((unused)) , int idx)
 
 enum { MEMFILE_PAGE_SIZE = 4096 };
 
-static long_u   total_mem_used = 0;
-
 static void mf_ins_hash(memfile_T *, bhdr_T *);
 static void mf_rem_hash(memfile_T *, bhdr_T *);
 static bhdr_T *mf_find_hash(memfile_T *, blocknr_T);
 static void mf_ins_used(memfile_T *, bhdr_T *);
 static void mf_rem_used(memfile_T *, bhdr_T *);
-static bhdr_T *mf_release(memfile_T *, int);
 static bhdr_T *mf_alloc_bhdr(memfile_T *, int);
 static void mf_free_bhdr(bhdr_T *);
 static void mf_ins_free(memfile_T *, bhdr_T *);
 static bhdr_T *mf_rem_free(memfile_T *);
-static int  mf_read(memfile_T *, bhdr_T *);
-static int  mf_write(memfile_T *, bhdr_T *);
-static int  mf_write_block(memfile_T *mfp, bhdr_T *hp, off_T offset, unsigned size);
 static int  mf_trans_add(memfile_T *, bhdr_T *);
-static void mf_do_open(memfile_T *, char_u *, int);
 static void mf_hash_init(mf_hashtab_T *);
 static void mf_hash_free(mf_hashtab_T *);
 static void mf_hash_free_all(mf_hashtab_T *);
@@ -74903,75 +74723,28 @@ static void mf_hash_rem_item(mf_hashtab_T *, mf_hashitem_T *);
 static int mf_hash_grow(mf_hashtab_T *);
 
     static memfile_T *
-mf_open(char_u *fname, int flags)
+mf_open(void)
 {
     memfile_T           *mfp;
-    off_T               size;
-    struct  stat        stf;
 
+    // No caller can name a file: ml_open() passes nothing and ml_recover(),
+    // which passed a name, went in Phase 25.  So there is no descriptor, no
+    // block is ever in a file, and the page size is ours to choose.
     if ((mfp =  (memfile_T *)alloc(sizeof(memfile_T)) ) == NULL)
     {
         return NULL;
-    }
-
-    if (fname == NULL)
-    {
-        mfp->mf_fname = NULL;
-        mfp->mf_ffname = NULL;
-        mfp->mf_fd = -1;
-    }
-    else
-    {
-        mf_do_open(mfp, fname, flags);
-
-        if (mfp->mf_fd < 0)
-        {
-            vim_free(mfp);
-            return NULL;
-        }
     }
 
     mfp->mf_free_first = NULL;
     mfp->mf_used_first = NULL;
     mfp->mf_used_last = NULL;
     mfp->mf_dirty = MF_DIRTY_NO;
-    mfp->mf_used_count = 0;
     mf_hash_init(&mfp->mf_hash);
     mf_hash_init(&mfp->mf_trans);
     mfp->mf_page_size = MEMFILE_PAGE_SIZE;
-
-    if (mfp->mf_fd >= 0 &&   fstat(((mfp->mf_fd)), ((&stf)))   == 0 && stf. st_blksize  >= MIN_SWAP_PAGE_SIZE && stf. st_blksize  <= MAX_SWAP_PAGE_SIZE)
-    {
-        mfp->mf_page_size = stf. st_blksize ;
-    }
-
-    if (mfp->mf_fd < 0 || (flags & (O_TRUNC|O_EXCL)) || (size =  lseek (mfp->mf_fd, (off_T)0L, SEEK_END)) <= 0)
-    {
-        mfp->mf_blocknr_max = 0;
-    }
-    else
-    {
-        mfp->mf_blocknr_max = (blocknr_T)((size + mfp->mf_page_size - 1) / mfp->mf_page_size);
-    }
+    mfp->mf_blocknr_max = 0;
     mfp->mf_blocknr_min = -1;
     mfp->mf_neg_count = 0;
-    mfp->mf_infile_count = mfp->mf_blocknr_max;
-
-    {
-        int         shift = 10;
-        unsigned    page_size = mfp->mf_page_size;
-
-        while (shift > 0 && (page_size & 1) == 0)
-        {
-            page_size = page_size >> 1;
-            --shift;
-        }
-        mfp->mf_used_count_max = (p_mm << shift) / page_size;
-        if (mfp->mf_used_count_max < 10)
-        {
-            mfp->mf_used_count_max = 10;
-        }
-    }
 
     return mfp;
 }
@@ -74986,20 +74759,8 @@ mf_close(memfile_T *mfp, int del_file)
     {
         return;
     }
-    if (mfp->mf_fd >= 0)
-    {
-        if (close(mfp->mf_fd) < 0)
-        {
-            emsg(_(e_close_error_on_swap_file));
-        }
-    }
-    if (del_file && mfp->mf_fname != NULL)
-    {
-         unlink((char *)(mfp->mf_fname)) ;
-    }
     for (hp = mfp->mf_used_first; hp != NULL; hp = nextp)
     {
-        total_mem_used -= (long_u)hp->bh_page_count * mfp->mf_page_size;
         nextp = hp->bh_next;
         mf_free_bhdr(hp);
     }
@@ -75009,8 +74770,6 @@ mf_close(memfile_T *mfp, int del_file)
     }
     mf_hash_free(&mfp->mf_hash);
     mf_hash_free_all(&mfp->mf_trans);
-    vim_free(mfp->mf_fname);
-    vim_free(mfp->mf_ffname);
     vim_free(mfp);
 }
 
@@ -75021,7 +74780,7 @@ mf_new(memfile_T *mfp, int negative, int page_count)
     bhdr_T      *freep;
     char_u      *p;
 
-    hp = mf_release(mfp, page_count);
+    hp = NULL;
 
     freep = mfp->mf_free_first;
     if (!negative && freep != NULL && freep->bh_page_count >= page_count)
@@ -75092,30 +74851,10 @@ mf_get(memfile_T *mfp, blocknr_T nr, int page_count)
     hp = mf_find_hash(mfp, nr);
     if (hp == NULL)
     {
-        if (nr < 0 || nr >= mfp->mf_infile_count)
-        {
+            // A block that is not in the hash is not anywhere: it could only
+            // ever have come back from the file, and there is no file.
             return NULL;
         }
-
-        hp = mf_release(mfp, page_count);
-        if (hp == NULL && page_count > 0)
-        {
-            hp = mf_alloc_bhdr(mfp, page_count);
-        }
-        if (hp == NULL)
-        {
-            return NULL;
-        }
-
-        hp-> bh_hashitem.mhi_key  = nr;
-        hp->bh_flags = 0;
-        hp->bh_page_count = page_count;
-        if (mf_read(mfp, hp) == FAIL)
-        {
-            mf_free_bhdr(hp);
-            return NULL;
-        }
-    }
     else
     {
         mf_rem_used(mfp, hp);
@@ -75176,76 +74915,10 @@ mf_free(memfile_T *mfp, bhdr_T *hp)
     static int
 mf_sync(memfile_T *mfp, int flags)
 {
-    int         status;
-    bhdr_T      *hp;
-    int         got_int_save = got_int;
-
-    if (mfp->mf_fd < 0)
-    {
-        mfp->mf_dirty = MF_DIRTY_NO;
-        return FAIL;
-    }
-
-    got_int = FALSE;
-
-    status = OK;
-    for (hp = mfp->mf_used_last; hp != NULL; hp = hp->bh_prev)
-    {
-        if (((flags & MFS_ALL) || hp-> bh_hashitem.mhi_key  >= 0) && (hp->bh_flags & BH_DIRTY) && (status == OK || (hp-> bh_hashitem.mhi_key  >= 0 && hp-> bh_hashitem.mhi_key  < mfp->mf_infile_count)))
-        {
-            if ((flags & MFS_ZERO) && hp-> bh_hashitem.mhi_key  != 0)
-            {
-                continue;
-            }
-            if (mf_write(mfp, hp) == FAIL)
-            {
-                if (status == FAIL)
-                {
-                    break;
-                }
-                status = FAIL;
-            }
-            if (flags & MFS_STOP)
-            {
-                if (ui_char_avail())
-                {
-                    break;
-                }
-            }
-            else
-            {
-                ui_breakcheck();
-            }
-            if (got_int)
-            {
-                break;
-            }
-        }
-    }
-
-    if (hp == NULL || status == FAIL)
-    {
-        mfp->mf_dirty = MF_DIRTY_NO;
-    }
-
-    if ((flags & MFS_FLUSH) && *p_sws != NUL)
-    {
-        if ( strcmp((char *)(p_sws), (char *)("fsync"))  == 0)
-        {
-            if (vim_fsync(mfp->mf_fd))
-            {
-                status = FAIL;
-            }
-        }
-        else
-        {
-            sync();
-        }
-    }
-
-    got_int |= got_int_save;
-
-    return status;
+    // Nothing to sync to.  Reporting the buffer clean is what the fd-less arm
+    // of this always did; it is now the whole function.
+    mfp->mf_dirty = MF_DIRTY_NO;
+    return FAIL;
 }
 
     static void
@@ -75280,8 +74953,6 @@ mf_ins_used(memfile_T *mfp, bhdr_T *hp)
     {
         hp->bh_next->bh_prev = hp;
     }
-    mfp->mf_used_count += hp->bh_page_count;
-    total_mem_used += (long_u)hp->bh_page_count * mfp->mf_page_size;
 }
 
     static void
@@ -75303,121 +74974,6 @@ mf_rem_used(memfile_T *mfp, bhdr_T *hp)
     {
         hp->bh_prev->bh_next = hp->bh_next;
     }
-    mfp->mf_used_count -= hp->bh_page_count;
-    total_mem_used -= (long_u)hp->bh_page_count * mfp->mf_page_size;
-}
-
-    static bhdr_T *
-mf_release(memfile_T *mfp, int page_count)
-{
-    bhdr_T      *hp;
-    int         need_release;
-    buf_T       *buf;
-
-    if (mf_dont_release)
-    {
-        return NULL;
-    }
-
-    need_release = ((mfp->mf_used_count >= mfp->mf_used_count_max) || (total_mem_used >> 10) >= (long_u)p_mmt);
-
-    if (mfp->mf_fd < 0 && need_release && p_uc)
-    {
-         for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-         {
-            if (buf->b_ml.ml_mfp == mfp)
-            {
-                break;
-            }
-         }
-        if (buf != NULL && buf->b_may_swap)
-        {
-            ml_open_file(buf);
-        }
-    }
-
-    if (mfp->mf_fd < 0 || !need_release)
-    {
-        return NULL;
-    }
-
-    for (hp = mfp->mf_used_last; hp != NULL; hp = hp->bh_prev)
-    {
-        if (!(hp->bh_flags & BH_LOCKED))
-        {
-            break;
-        }
-    }
-    if (hp == NULL)
-    {
-        return NULL;
-    }
-
-    if ((hp->bh_flags & BH_DIRTY) && mf_write(mfp, hp) == FAIL)
-    {
-        return NULL;
-    }
-
-    mf_rem_used(mfp, hp);
-    mf_rem_hash(mfp, hp);
-
-    if (hp->bh_page_count != page_count)
-    {
-         vim_free(hp->bh_data);
-         (hp->bh_data) = NULL;
-        if (page_count > 0)
-        {
-            hp->bh_data = alloc((size_t)mfp->mf_page_size * page_count);
-        }
-        if (hp->bh_data == NULL)
-        {
-            vim_free(hp);
-            return NULL;
-        }
-        hp->bh_page_count = page_count;
-    }
-    return hp;
-}
-
-    static int
-mf_release_all(void)
-{
-    buf_T       *buf;
-    memfile_T   *mfp;
-    bhdr_T      *hp;
-    int         retval = FALSE;
-
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-    {
-        mfp = buf->b_ml.ml_mfp;
-        if (mfp != NULL)
-        {
-            if (mfp->mf_fd < 0 && buf->b_may_swap)
-            {
-                ml_open_file(buf);
-            }
-
-            if (mfp->mf_fd >= 0)
-            {
-                for (hp = mfp->mf_used_last; hp != NULL; )
-                {
-                    if (!(hp->bh_flags & BH_LOCKED) && (!(hp->bh_flags & BH_DIRTY) || mf_write(mfp, hp) != FAIL))
-                    {
-                        mf_rem_used(mfp, hp);
-                        mf_rem_hash(mfp, hp);
-                        mf_free_bhdr(hp);
-                        hp = mfp->mf_used_last;
-                        retval = TRUE;
-                    }
-                    else
-                    {
-                        hp = hp->bh_prev;
-                    }
-                }
-            }
-        }
-    }
-    return retval;
 }
 
     static bhdr_T *
@@ -75461,152 +75017,6 @@ mf_rem_free(memfile_T *mfp)
     hp = mfp->mf_free_first;
     mfp->mf_free_first = hp->bh_next;
     return hp;
-}
-
-    static int
-mf_read(memfile_T *mfp, bhdr_T *hp)
-{
-    off_T       offset;
-    unsigned    page_size;
-    unsigned    size;
-
-    if (mfp->mf_fd < 0)
-    {
-        return FAIL;
-    }
-
-    page_size = mfp->mf_page_size;
-    offset = (off_T)page_size * hp-> bh_hashitem.mhi_key ;
-    size = page_size * hp->bh_page_count;
-    if ( lseek (mfp->mf_fd, offset, SEEK_SET) != offset)
-    {
-         (void)semsg("%s: %s", (char *)(_(e_seek_error_in_swap_file_read)), strerror(errno)) ;
-        return FAIL;
-    }
-    if ((unsigned)read_eintr(mfp->mf_fd, hp->bh_data, size) != size)
-    {
-         (void)semsg("%s: %s", (char *)(_(e_read_error_in_swap_file)), strerror(errno)) ;
-        return FAIL;
-    }
-
-    return OK;
-}
-
-    static int
-mf_write(memfile_T *mfp, bhdr_T *hp)
-{
-    off_T       offset;
-    blocknr_T   nr;
-    bhdr_T      *hp2;
-    unsigned    page_size;
-    unsigned    page_count;
-    unsigned    size;
-
-    if (mfp->mf_fd < 0 && !mfp->mf_reopen)
-    {
-        return FAIL;
-    }
-
-    if (hp-> bh_hashitem.mhi_key  < 0)
-    {
-        if (mf_trans_add(mfp, hp) == FAIL)
-        {
-            return FAIL;
-        }
-    }
-
-    page_size = mfp->mf_page_size;
-
-    for (;;)
-    {
-        int attempt;
-
-        nr = hp-> bh_hashitem.mhi_key ;
-        if (nr > mfp->mf_infile_count)
-        {
-            nr = mfp->mf_infile_count;
-            hp2 = mf_find_hash(mfp, nr);
-        }
-        else
-        {
-            hp2 = hp;
-        }
-
-        offset = (off_T)page_size * nr;
-        if (hp2 == NULL)
-        {
-            page_count = 1;
-        }
-        else
-        {
-            page_count = hp2->bh_page_count;
-        }
-        size = page_size * page_count;
-
-        for (attempt = 1; attempt <= 2; ++attempt)
-        {
-            if (mfp->mf_fd >= 0)
-            {
-                if ( lseek (mfp->mf_fd, offset, SEEK_SET) != offset)
-                {
-                     (void)semsg("%s: %s", (char *)(_(e_seek_error_in_swap_file_write)), strerror(errno)) ;
-                    return FAIL;
-                }
-                if (mf_write_block(mfp, hp2 == NULL ? hp : hp2, offset, size) == OK)
-                {
-                    break;
-                }
-            }
-
-            if (attempt == 1)
-            {
-                if (mfp->mf_fd >= 0)
-                {
-                    close(mfp->mf_fd);
-                }
-                mfp->mf_fd =   open((((char *)mfp->mf_fname)), ((mfp->mf_flags)), ((mode_t)0600))  ;
-                mfp->mf_reopen = (mfp->mf_fd < 0);
-            }
-            if (attempt == 2 || mfp->mf_fd < 0)
-            {
-                if (!did_swapwrite_msg)
-                {
-                    emsg(_(e_write_error_in_swap_file));
-                }
-                did_swapwrite_msg = TRUE;
-                return FAIL;
-            }
-        }
-
-        did_swapwrite_msg = FALSE;
-        if (hp2 != NULL)
-        {
-            hp2->bh_flags &= ~BH_DIRTY;
-        }
-        if (nr + (blocknr_T)page_count > mfp->mf_infile_count)
-        {
-            mfp->mf_infile_count = nr + page_count;
-        }
-        if (nr == hp-> bh_hashitem.mhi_key )
-        {
-            break;
-        }
-    }
-    return OK;
-}
-
-    static int
-mf_write_block(memfile_T   *mfp, bhdr_T      *hp, off_T       offset  __attribute__((unused)) , unsigned    size)
-{
-    char_u      *data = hp->bh_data;
-    int         result = OK;
-
-    if ((unsigned)write_eintr(mfp->mf_fd, data, size) != size)
-    {
-        result = FAIL;
-    }
-
-    return result;
 }
 
     static int
@@ -75682,64 +75092,6 @@ mf_trans_del(memfile_T *mfp, blocknr_T old_nr)
     vim_free(np);
 
     return new_bnum;
-}
-
-    static void
-mf_set_ffname(memfile_T *mfp)
-{
-    mfp->mf_ffname = FullName_save(mfp->mf_fname, FALSE);
-}
-
-    static void
-mf_fullname(memfile_T *mfp)
-{
-    if (mfp == NULL || mfp->mf_fname == NULL || mfp->mf_ffname == NULL)
-    {
-        return;
-    }
-
-    vim_free(mfp->mf_fname);
-    mfp->mf_fname = mfp->mf_ffname;
-    mfp->mf_ffname = NULL;
-}
-
-    static void
-mf_do_open(memfile_T   *mfp, char_u      *fname, int         flags)
-{
-    stat_T      sb;
-
-    mfp->mf_fname = fname;
-
-    mf_set_ffname(mfp);
-
-    if ((flags & O_CREAT) &&  lstat(((char *)mfp->mf_fname), (&sb))  >= 0)
-    {
-        mfp->mf_fd = -1;
-        emsg(_(e_swap_file_already_exists_symlink_attack));
-    }
-    else
-    {
-        flags |= O_EXTRA | O_NOFOLLOW;
-        mfp->mf_flags = flags;
-        mfp->mf_fd =   open((((char *)mfp->mf_fname)), ((flags)), ((mode_t)0600))  ;
-    }
-
-    if (mfp->mf_fd < 0)
-    {
-         vim_free(mfp->mf_fname);
-         (mfp->mf_fname) = NULL;
-         vim_free(mfp->mf_ffname);
-         (mfp->mf_ffname) = NULL;
-    }
-    else
-    {
-        int fdflags = fcntl(mfp->mf_fd, F_GETFD);
-        if (fdflags >= 0 && (fdflags & FD_CLOEXEC) == 0)
-        {
-            (void)fcntl(mfp->mf_fd, F_SETFD, fdflags | FD_CLOEXEC);
-        }
-        mch_hide(mfp->mf_fname);
-    }
 }
 
 enum { MHT_LOG_LOAD_FACTOR = 6 };
@@ -75977,8 +75329,6 @@ enum { B0_DIRTY = 0x55 };
 
 enum { B0_FF_MASK = 3 };
 
-enum { B0_SAME_DIR = 4 };
-
 enum { STACK_INCR = 5 };
 
 static linenr_T lowest_marked = 0;
@@ -76027,7 +75377,7 @@ ml_open(buf_T *buf)
 
     buf->b_may_swap = false;
 
-    mfp = mf_open(NULL, 0);
+    mfp = mf_open();
     if (mfp == NULL)
     {
         goto error;
@@ -76064,8 +75414,6 @@ ml_open(buf_T *buf)
         set_b0_fname(b0p, buf);
         (void)get_user_name(b0p->b0_uname, B0_UNAME_SIZE);
         b0p->b0_uname[B0_UNAME_SIZE - 1] = NUL;
-        mch_get_host_name(b0p->b0_hname, B0_HNAME_SIZE);
-        b0p->b0_hname[B0_HNAME_SIZE - 1] = NUL;
         long_to_char(mch_get_pid(), b0p->b0_pid);
     }
 
@@ -76298,14 +75646,6 @@ set_b0_fname(ZERO_BL *b0p, buf_T *buf)
     static void
 set_b0_dir_flag(ZERO_BL *b0p, buf_T *buf)
 {
-    if (same_directory(buf->b_ml.ml_mfp->mf_fname, buf->b_ffname))
-    {
-        b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  |= B0_SAME_DIR;
-    }
-    else
-    {
-        b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  &= ~B0_SAME_DIR;
-    }
 }
 
     static void
@@ -77648,103 +76988,6 @@ ml_lineadd(buf_T *buf, int count)
         ip->ip_high += count;
         mf_put(mfp, hp, TRUE, FALSE);
     }
-}
-
-    static int
-resolve_symlink(char_u *fname, char_u *buf)
-{
-    char_u      tmp[ PATH_MAX ];
-    int         ret;
-    int         depth = 0;
-
-    if (fname == NULL)
-    {
-        return FAIL;
-    }
-
-    vim_strncpy(tmp, fname,  PATH_MAX  - 1);
-
-    for (;;)
-    {
-        if (++depth == 100)
-        {
-            semsg(_(e_symlink_loop_for_str), fname);
-            return FAIL;
-        }
-
-        ret = readlink((char *)tmp, (char *)buf,  PATH_MAX  - 1);
-        if (ret <= 0)
-        {
-            if (errno == EINVAL || errno == ENOENT)
-            {
-                if (depth == 1)
-                {
-                    return FAIL;
-                }
-
-                break;
-            }
-
-            return FAIL;
-        }
-        buf[ret] = NUL;
-
-        if (mch_isFullName(buf))
-        {
-             strcpy((char *)(tmp), (char *)(buf)) ;
-        }
-        else
-        {
-            char_u *tail;
-
-            tail = gettail(tmp);
-            if ( strlen((char *)(tail))  +  strlen((char *)(buf))  >=  PATH_MAX )
-            {
-                return FAIL;
-            }
-             strcpy((char *)(tail), (char *)(buf)) ;
-        }
-    }
-
-    return vim_FullName(tmp, buf,  PATH_MAX , TRUE);
-}
-
-    static char_u *
-makeswapname(char_u      *fname, char_u      *ffname  __attribute__((unused)) , buf_T       *buf, char_u      *dir_name)
-{
-    char_u *r;
-    char_u *s;
-    char_u      *fname_res = fname;
-    char_u      fname_buf[ PATH_MAX ];
-
-    if (resolve_symlink(fname, fname_buf) == OK)
-    {
-        fname_res = fname_buf;
-    }
-
-    int         len = (int) strlen((char *)(dir_name)) ;
-
-    s = dir_name + len;
-    if (after_pathsep(dir_name, s) && len > 1 && s[-1] == s[-2])
-    {
-        r = NULL;
-        if ((s = make_percent_swname(dir_name, s, fname_res)) != NULL)
-        {
-            r = modname(s, (char_u *)".swp", FALSE);
-            vim_free(s);
-        }
-        return r;
-    }
-
-    r = buf_modname((buf->b_p_sn || buf->b_shortname), fname_res, (char_u *) ".swp", dir_name[0] == '.' && dir_name[1] == NUL);
-    if (r == NULL)
-    {
-        return NULL;
-    }
-
-    s = get_file_in_dir(r, dir_name);
-    vim_free(r);
-    return s;
 }
 
     static char_u *
@@ -81525,7 +80768,6 @@ prepare_to_exit(void)
     static void
 preserve_exit(void)
 {
-    buf_T       *buf;
 
     prepare_to_exit();
 
@@ -81536,18 +80778,6 @@ preserve_exit(void)
     out_flush();
 
     ml_close_notmod();
-
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-    {
-        if (buf->b_ml.ml_mfp != NULL && buf->b_ml.ml_mfp->mf_fname != NULL)
-        {
-             out_str((char_u *)("Vim: preserving files...\r\n")) ;
-            screen_start();
-            out_flush();
-            ml_sync_all(FALSE, FALSE);
-            break;
-        }
-    }
 
     ml_close_all(FALSE);
 
@@ -83305,24 +82535,6 @@ after_pathsep(char_u *b, char_u *p)
 {
     return p > b && vim_ispathsep(p[-1])
                              && (!has_mbyte || (*mb_head_off)(b, p - 1) == 0);
-}
-
-    static int
-same_directory(char_u *f1, char_u *f2)
-{
-    char_u      ffname[ PATH_MAX ];
-    char_u      *t1;
-    char_u      *t2;
-
-    if (f1 == NULL || f2 == NULL)
-    {
-        return FALSE;
-    }
-
-    (void)vim_FullName(f1, ffname,  PATH_MAX , FALSE);
-    t1 = gettail_sep(ffname);
-    t2 = gettail_sep(f2);
-    return (t1 - ffname == t2 - f2 && pathcmp((char *)ffname, (char *)f2, (int)(t1 - ffname)) == 0);
 }
 
     static int
@@ -98620,17 +97832,9 @@ static struct vimoption options[] =
     {"maxmapdepth", "mmd",  P_NUM|P_VI_DEF,
                             (char_u *)&p_mmd, PV_NONE, NULL, NULL,
                             {(char_u *)1000L, (char_u *)0L}   },
-    {"maxmem",      "mm",   P_NUM|P_VI_DEF,
-                            (char_u *)&p_mm, PV_NONE, NULL, NULL,
-                            {(char_u *) (5*1024) , (char_u *)0L}
-                              },
     {"maxmempattern","mmp", P_NUM|P_VI_DEF,
                             (char_u *)&p_mmp, PV_NONE, NULL, NULL,
                             {(char_u *)1000L, (char_u *)0L}   },
-    {"maxmemtot",   "mmt",  P_NUM|P_VI_DEF,
-                            (char_u *)&p_mmt, PV_NONE, NULL, NULL,
-                            {(char_u *) (10*1024) , (char_u *)0L}
-                              },
     {"maxsearchcount", "msc", P_NUM|P_VI_DEF,
                             (char_u *)&p_msc, PV_NONE, did_set_maxsearchcount, NULL,
                             {(char_u *)99L, (char_u *)0L}   },
@@ -99560,29 +98764,6 @@ set_init_default_backupskip(void)
 }
 
     static void
-set_init_default_maxmemtot(void)
-{
-    int         opt_idx;
-    long_u      n;
-
-    opt_idx = findoption((char_u *)"maxmemtot");
-    if (opt_idx < 0)
-    {
-        return;
-    }
-
-    {
-        n = (mch_total_mem(FALSE) >> 1);
-        options[opt_idx].def_val[VI_DEFAULT] = (char_u *)n;
-        opt_idx = findoption((char_u *)"maxmem");
-        if (opt_idx >= 0)
-        {
-                options[opt_idx].def_val[VI_DEFAULT] = (char_u *)n;
-        }
-    }
-}
-
-    static void
 set_init_default_printencoding(void)
 {
 }
@@ -99647,7 +98828,6 @@ set_init_1(int clean_arg)
     p_cp = FALSE;
 
     set_init_default_backupskip();
-    set_init_default_maxmemtot();
     set_init_default_printencoding();
 
     set_options_default(0);
@@ -100693,7 +99873,7 @@ stropt_get_newval(int         nextchar, int         opt_idx, char_u      **argp,
             save_arg = arg;
             arg = t;
         }
-        else if (*arg == '>' && (varp == (char_u *)&p_dir || varp == (char_u *)&p_bdir))
+        else if (*arg == '>' && varp == (char_u *)&p_bdir)
         {
             ++arg;
         }
@@ -103911,7 +103091,7 @@ set_context_in_set_cmd(expand_T    *xp, char_u      *arg, int         opt_flags)
     if (flags & P_EXPAND)
     {
         p = options[opt_idx].var;
-        if (p == (char_u *)&p_bdir || p == (char_u *)&p_dir || p == (char_u *)&p_pp || p == (char_u *)&p_rtp || p == (char_u *)&p_cdpath)
+        if (p == (char_u *)&p_bdir || p == (char_u *)&p_pp || p == (char_u *)&p_rtp || p == (char_u *)&p_cdpath)
         {
             xp->xp_context = EXPAND_DIRECTORIES;
             xp->xp_backslash = XP_BS_ONE;
@@ -107461,68 +106641,6 @@ handle_resize(void)
     shell_resized();
 }
 
-    static int
-mch_char_avail(void)
-{
-    return WaitForChar(0L, NULL, FALSE);
-}
-
-    static long_u
-mch_total_mem(int special  __attribute__((unused)) )
-{
-    long_u      mem = 0;
-    long_u      shiftright = 10;
-
-    if (mem == 0)
-    {
-        struct sysinfo sinfo;
-
-        if (sysinfo(&sinfo) == 0)
-        {
-            while (shiftright > 0 && (sinfo.mem_unit & 1) == 0)
-            {
-                sinfo.mem_unit = sinfo.mem_unit >> 1;
-                --shiftright;
-            }
-            mem = sinfo.totalram * sinfo.mem_unit;
-        }
-    }
-
-    if (mem == 0)
-    {
-        long pagesize;
-        long pagecount;
-
-        pagesize = sysconf(_SC_PAGESIZE);
-        pagecount = sysconf(_SC_PHYS_PAGES);
-        if (pagesize > 0 && pagecount > 0)
-        {
-            while (shiftright > 0 && (pagesize & 1) == 0)
-            {
-                pagesize = (long_u)pagesize >> 1;
-                --shiftright;
-            }
-            mem = (long_u)pagesize * pagecount;
-        }
-    }
-
-    {
-        struct rlimit   rlp;
-
-        if (getrlimit(RLIMIT_DATA, &rlp) == 0 && rlp.rlim_cur < ((rlim_t)1 << (sizeof(long_u) * 8 - 1)) && rlp.rlim_cur != RLIM_INFINITY && ((long_u)rlp.rlim_cur >> 10) < (mem >> shiftright))
-        {
-            mem = (long_u)rlp.rlim_cur;
-            shiftright = 10;
-        }
-    }
-
-    if (mem > 0)
-    {
-        return mem >> shiftright;
-    }
-    return (long_u)0x1fffff;
-}
-
     static void
 mch_delay(long msec, int flags)
 {
@@ -108044,21 +107162,6 @@ use_xterm_mouse(void)
     return 0;
 }
 
-    static void
-mch_get_host_name(char_u *s, int len)
-{
-    struct utsname vutsname;
-
-    if (uname(&vutsname) < 0)
-    {
-        *s = NUL;
-    }
-    else
-    {
-        vim_strncpy(s, (char_u *)vutsname.nodename, len - 1);
-    }
-}
-
     static long
 mch_get_pid(void)
 {
@@ -108263,11 +107366,6 @@ mch_free_acl(vim_acl_T aclent)
     {
         return;
     }
-}
-
-    static void
-mch_hide(char_u *name  __attribute__((unused)) )
-{
 }
 
     static int
@@ -136829,12 +135927,6 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
         break;
     }
     return 0;
-}
-
-    static int
-ui_char_avail(void)
-{
-    return mch_char_avail();
 }
 
     static void

@@ -29,10 +29,19 @@ callers one at a time would be seven chances to miss one:
 
 THE DELTA: `:recover`, `:preserve` and `:swapname` report that they are not
 available; so do `:mkvimrc`, `:mkexrc`, `:mksession` and `:mkview`, which wrote
-a script into the current directory, and `:checktime`.  `'directory'`,
-`'updatecount'` and `'swapsync'` stop existing.  `'swapfile'` cannot go -- it is
+a script into the current directory, and `:checktime`.  `'updatecount'` and
+`'swapsync'` stop existing.  `'swapfile'` cannot go -- it is
 PV_BUF, and its row is what initialises the global -- so it stays and is now
 always effectively off.
+
+AND `'directory'` IS NOT ONE OF THEM ANY MORE.  A row is what initialises its
+global, and `recover_names()` scans every directory in `p_dir` for swap files
+until Phase 25 -- so dropping the row here left `p_dir` NULL with a live
+dereference in `check_overwrite()`, and `:w!` over an existing other file
+segfaulted for twelve phases.  `dropoptions.py --strict` refuses that and did
+not exist when this phase was written; it runs here now, `'directory'` goes in
+Phase 26 once its last reader has, and `tools/orphanopts.py` checks the
+invariant in every pure phase.
 """
 
 import re
@@ -89,6 +98,32 @@ def main():
                  'only way into ml_recover once :recover is retired, and '
                  'leaving it keeps 576 lines alive' % n)
     print('  noswap       the SEA_RECOVER arm of the ATTENTION prompt')
+
+    # --- and the reader of the option this phase drops ----------------------
+    # A ROW IS WHAT INITIALISES ITS GLOBAL, so a row can only go once nothing
+    # reads the global -- otherwise a `char_u *` stays NULL for ever and the
+    # first dereference is a segfault.  Two of the three options here were
+    # dropped without that check, before `dropoptions.py --strict` existed:
+    #
+    #   'swapsync'   p_sws, read in mf_sync()'s MFS_FLUSH tail.  Removed here.
+    #                It is also the only caller of sync().
+    #   'directory'  p_dir, read in check_overwrite() -- and in recover_names(),
+    #                which scans every directory in it for swap files and lives
+    #                until Phase 25.  So 'directory' CANNOT be dropped here at
+    #                all, and used to be: it left p_dir NULL, and for twelve
+    #                phases `:w!` over an existing other file segfaulted.
+    #                It goes in Phase 26, once its last reader has.
+    #
+    # Invisible to everything until then -- the build is clean, an orphaned
+    # global is *used* so no warning names it, and no harness writes over an
+    # existing file under a different name with `!`.  tools/orphanopts.py is the
+    # standing check now, and it runs in every pure phase.
+    #
+    # 'updatecount' is the third and is safe: p_uc is a long, so an orphan reads
+    # as 0 -- which is exactly "never create a swap file".
+    text = cutil.drop_if(
+        text, r"^[ \t]*if \(\(flags & MFS_FLUSH\) && \*p_sws != NUL\)$", flags=re.M)
+    print("  noswap       mf_sync's fsync/sync tail, the last reader of p_sws")
 
     path.write_text(text, errors='surrogateescape')
     print('  noswap       %d lines stubbed; %d findswapname mentions left for '
