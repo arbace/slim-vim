@@ -70,9 +70,6 @@ for g in mf_fd mf_fname mf_ffname mf_write mf_read mf_release total_mem_used p_m
 done
 echo "  memfile      no descriptor, no eviction, no memory budget"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

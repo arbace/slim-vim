@@ -13,6 +13,8 @@ Deleting a function orphans its callees, so run this to a fixpoint.
 Usage: deadsweep.py <file>
 """
 import re
+import hashlib
+import os
 import subprocess
 import sys
 
@@ -32,10 +34,39 @@ DEAD_VARIABLE = re.compile(
     r" \[-Wunused(?:-const)?-variable=?\]")
 
 
-def warnings(path):
+def warnings(path, keep=None):
+    """Ask gcc what it warned about, and optionally keep what it produced.
+
+    THE LAST ROUND OF A SWEEP COMPILES A FILE IT THEN DOES NOT CHANGE -- that is
+    what "no round changed anything" means -- and phasecheck.sh used to compile
+    exactly that file again, for exactly the same two answers: the warnings, and
+    the object to run `nm` over.  Five compiles of a 145,000-line file per phase,
+    and two of them were the same compile.
+
+    So when `keep` is given the object is written there instead of thrown away,
+    beside the stderr and the sha256 of the source it came from.  phasecheck.sh
+    uses them only if that sha still matches, which is the same content key as
+    the tier-3 cache: a different file has a different key, so nothing goes
+    stale.  It costs one 5 MB write per round and saves a whole compile.
+
+    It goes in .cache/ and NOT in the work tree.  A file left in the work tree
+    is a file the boundary digest counts -- the mistake that changed twenty-one
+    boundaries when the symbol cache first landed.
+    """
+    obj = '/dev/null'
+    if keep:
+        os.makedirs(keep, exist_ok=True)
+        obj = os.path.join(keep, 'last.o')
     r = subprocess.run(['gcc', '-c', '-O0', '-Wall', '-Wextra',
-                        '-Wno-unused-parameter', '-o', '/dev/null', path],
+                        '-Wno-unused-parameter', '-o', obj, path],
                        capture_output=True, text=True)
+    if keep:
+        with open(os.path.join(keep, 'last.txt'), 'w') as fh:
+            fh.write(r.stderr)
+        with open(path, 'rb') as fh:
+            digest = hashlib.sha256(fh.read()).hexdigest()
+        with open(os.path.join(keep, 'last.sha'), 'w') as fh:
+            fh.write(digest + '\n')
     out = []
     for line in r.stderr.splitlines():
         m = W.match(line)
@@ -145,10 +176,13 @@ def declaration_extent(lines, lineno):
 
 def main():
     path = sys.argv[1]
+    keep = None
+    if '--keep' in sys.argv:
+        keep = sys.argv[sys.argv.index('--keep') + 1]
     lines = open(path, encoding='utf-8', errors='surrogateescape').read().split('\n')
     kill = set()
     counts = {'proto': 0, 'func': 0, 'var': 0, 'other': 0}
-    for lineno, text in warnings(path):
+    for lineno, text in warnings(path, keep):
         if NEVER_DEFINED.search(text):
             kill.add(lineno - 1)
             counts['proto'] += 1

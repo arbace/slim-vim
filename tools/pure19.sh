@@ -64,9 +64,6 @@ for g in p_fenc p_bomb b_start_fenc b_start_bomb '"fenc"' '"bomb"'; do
 done
 echo "  globals      neither option is named or read anywhere any more"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

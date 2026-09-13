@@ -54,9 +54,6 @@ for g in getenv setenv unsetenv environ vim_getenv; do
 done
 echo "  environment  nothing in the source asks the environment anything"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

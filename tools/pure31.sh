@@ -59,9 +59,6 @@ for g in mch_setperm mch_fsetperm mch_getperm; do
 done
 echo "  permissions  chmod and fchmod stay: a file still has a mode"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

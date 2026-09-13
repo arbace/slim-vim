@@ -48,8 +48,6 @@ python3 tools/dropoptions.py "$f" updatecount swapsync
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

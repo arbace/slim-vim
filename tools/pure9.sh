@@ -51,8 +51,6 @@ python3 tools/retire.py "$f" cd chdir lcd lchdir tcd tchdir pwd
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

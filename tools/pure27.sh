@@ -66,9 +66,6 @@ if [ "$n" != 1 ]; then
 fi
 echo "  cwd          nothing moves the process; getcwd is asked once"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

@@ -44,10 +44,6 @@ python3 tools/dropoptions.py "$f" langmap langmenu langnoremap langremap
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
-
-
 
 # The check this phase would be sunk without: an editor that quietly became
 # latin1 passes every build and linkage test there is.

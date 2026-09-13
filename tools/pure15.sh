@@ -40,9 +40,6 @@ python3 tools/nostat.py "$f"
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

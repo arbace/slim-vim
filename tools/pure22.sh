@@ -60,9 +60,6 @@ for g in 'getenv((char \*)((char_u \*)"TERM")' 'getenv("LINES")' 'getenv("COLUMN
 done
 echo "  terminal     nothing asks the environment what terminal this is"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

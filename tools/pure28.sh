@@ -72,9 +72,6 @@ for g in 'ceil(' 'floor(' 'log10(' 'infinity_str' 'TYPE_FLOAT' 'typename_float';
 done
 echo "  libm         nothing calls a floating-point function"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

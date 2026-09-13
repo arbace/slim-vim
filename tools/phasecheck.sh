@@ -28,7 +28,18 @@ src=${2:?}
 before=${3:?}
 
 obj=$work/phase.o
-if ! gcc -c -O0 -Wall -Wextra -Wno-unused-parameter -o "$obj" "$src" \
+
+# THE SWEEP ALREADY COMPILED THIS FILE.  Its last round is, by definition, a
+# compile of a file that the round then did not change -- so if the source is
+# still what that round saw, its object and its stderr answer both of the
+# questions below and this compile is pure waste.  Keyed by content, like tier 3
+# of the memoize: a different file has a different sha, so nothing goes stale.
+src_sha=$(sha256sum "$src" | cut -d' ' -f1)
+if [ -f .cache/compile/last.sha ] && [ -f .cache/compile/last.o ] \
+        && [ "$(cat .cache/compile/last.sha)" = "$src_sha" ]; then
+    cp .cache/compile/last.o "$obj"
+    cp .cache/compile/last.txt "$work/gcc.txt"
+elif ! gcc -c -O0 -Wall -Wextra -Wno-unused-parameter -o "$obj" "$src" \
         2>"$work/gcc.txt"; then
     echo "  compile      FAILED -- the cut did not leave valid C"
     grep -m5 'error:' "$work/gcc.txt" | sed 's/^/               /'

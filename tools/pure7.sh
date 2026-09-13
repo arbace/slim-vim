@@ -28,8 +28,6 @@ python3 tools/dropprotos.py "$f" --delete
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
 
 # The invariant this phase could silently break, checked rather than assumed.
 # nm the OBJECT: a static binary defines 1,400-odd symbols of its own and would

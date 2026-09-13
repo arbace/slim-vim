@@ -60,9 +60,6 @@ for g in p_path p_sua p_tags p_tc p_ar p_swf; do
 done
 echo "  globals      none of the six is mentioned anywhere any more"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

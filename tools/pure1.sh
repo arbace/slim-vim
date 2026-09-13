@@ -35,7 +35,6 @@ python3 tools/noruntime.py "$f"
 # and a type sweep run once would miss both.
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
 
 # --- it must build, and say nothing --------------------------------------
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before

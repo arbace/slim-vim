@@ -55,9 +55,6 @@ for g in recoverymode ml_recover recover_names swapfile_info mch_get_uname \
 done
 echo "  recovery     nothing reads a swap file, and nothing asks the wall clock"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

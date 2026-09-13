@@ -62,9 +62,6 @@ for g in 'getenv((char \*)((char_u \*)"HOME")' homedir init_users match_user get
 done
 echo "  home         nothing asks where home is, or who this is"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

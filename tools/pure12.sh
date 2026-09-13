@@ -49,7 +49,6 @@ python3 tools/dropoptions.py "$f" tagbsearch taglength tagrelative \
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
 
 # An error is not a warning: ask gcc whether it succeeded before asking what it
 # complained about, or a failed compile ends the phase with nothing to say.

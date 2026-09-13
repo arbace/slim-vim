@@ -56,9 +56,6 @@ for g in 'do_mouse' 'jump_to_mouse' 'setmouse' 'mouse_has' 'nv_mouse' \
 done
 echo "  mouse        no handler, no option, no key name, no protocol"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

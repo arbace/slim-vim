@@ -57,8 +57,6 @@ python3 tools/dropoptions.py "$f" wildmenu
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
 
 # SLIM-GOAL.md phase 7's invariant, checked again because this phase moved a
 # declaration: nowild.py reuses the slot the shell expander's prototype held,

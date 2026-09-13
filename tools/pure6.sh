@@ -50,7 +50,6 @@ python3 tools/funcreach.py "$f" --delete
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

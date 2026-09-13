@@ -62,9 +62,6 @@ for g in evim_mode check_restricted EX_RESTRICT restricted '"vif"'; do
 done
 echo "  options      nothing names the four, or what they set"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

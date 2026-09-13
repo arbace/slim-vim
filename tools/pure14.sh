@@ -55,9 +55,6 @@ tools/sweep.sh "$f"
 python3 tools/dropoptions.py "$f" --strict charconvert
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
-
 
 # The named check, asked of the OBJECT and after the sweep.  Asking it of the
 # source before the sweep gets the wrong answer: iconv_string() is still there

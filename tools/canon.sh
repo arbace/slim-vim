@@ -24,6 +24,16 @@ set -eu
 file=${1:?usage: canon.sh <file>}
 here=$(dirname "$0")
 
+# --once runs the seven passes a single time instead of to a fixpoint.  It is
+# for a caller that has a fixpoint of its own: sweep.sh loops until a whole
+# round changes nothing, and canon is part of that round, so proving canon has
+# settled separately proves it twice.  A caller with no such loop must not use
+# it -- one pass is not enough, which is the whole point of the paragraph above.
+once=no
+if [ "${2:-}" = --once ]; then
+    once=yes
+fi
+
 round=0
 while :; do
     round=$((round + 1))
@@ -38,6 +48,7 @@ while :; do
     python3 "$here/forcomma.py"   "$file" >/dev/null
 
     after=$(sha256sum "$file" | cut -d' ' -f1)
+    [ "$once" = yes ] && break
     [ "$before" = "$after" ] && break
 
     if [ "$round" -ge 20 ]; then
@@ -48,4 +59,8 @@ while :; do
     fi
 done
 
-echo "  canon        fixpoint after $round round$([ "$round" = 1 ] || echo s)"
+if [ "$once" = yes ]; then
+    [ "$before" = "$after" ] && echo "canon settled" || echo "canon changed it"
+else
+    echo "  canon        fixpoint after $round round$([ "$round" = 1 ] || echo s)"
+fi

@@ -49,7 +49,22 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 fail=0
 
-python3 tools/behaviour.py "$bin" "$tmp/b" >/dev/null
+# THE THREE HARNESSES ARE INDEPENDENT, so they run at once.  Each writes into
+# its own directory under $tmp and reads nothing the others write; verify.sh has
+# always run its harnesses this way.  Serially they were 4.4 + 1.7 + 2.2
+# seconds, which is a third of a phase that does its actual work in two.
+#
+# They are started here and waited for before the first comparison, rather than
+# each being waited for in turn, because the slowest of the three is the first
+# one compared.
+python3 tools/behaviour.py "$bin" "$tmp/b" >/dev/null &
+pid_b=$!
+python3 tools/termcheck.py "$bin" "$tmp/m" >/dev/null &
+pid_m=$!
+python3 tools/exsweep.py "$bin" "$src" "$tmp/s" >/dev/null &
+pid_s=$!
+wait $pid_b $pid_m $pid_s
+
 moved=$(diff -rq "$base/behaviour" "$tmp/b" 2>/dev/null | grep '^Files' | sed 's/.*behaviour\///; s/ and .*//' | sort -u | tr '\n' ' ')
 if [ "$moved" != "$cases" ]; then
     echo "  delta        behaviour cases that moved:"
@@ -58,7 +73,6 @@ if [ "$moved" != "$cases" ]; then
     fail=1
 fi
 
-python3 tools/termcheck.py "$bin" "$tmp/m" >/dev/null
 # The terminal table is declared the same way the behaviour cases are.  Until
 # Phase 22 no phase could move it, so "expected unchanged" was the whole check;
 # a phase that makes every TERM resolve to one entry has to be able to say so.
@@ -74,7 +88,6 @@ else
     fi
 fi
 
-python3 tools/exsweep.py "$bin" "$src" "$tmp/s" >/dev/null
 changed=$(diff "$base/ref-exsweep.txt" "$tmp/s" | grep '^[<>]' | awk '{print $2}' | sort -u | tr '\n' ' ')
 if [ "$changed" != "$expected" ]; then
     echo "  delta        Ex commands that moved:"

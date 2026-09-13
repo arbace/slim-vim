@@ -41,9 +41,6 @@ python3 tools/retire.py "$f" find sfind tabfind
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 

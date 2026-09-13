@@ -38,9 +38,6 @@ python3 tools/noshellout.py "$f"
 
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
-
 
 # This is the first pure phase whose point is the SYMBOL count, so it is
 # checked rather than reported.  A phase that shrank the source while leaving

@@ -40,9 +40,6 @@ tools/sweep.sh "$f"
 python3 tools/dropoptions.py "$f" --strict fileencodings termencoding
 tools/sweep.sh "$f"
 
-tools/canon.sh "$f"
-
-
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
