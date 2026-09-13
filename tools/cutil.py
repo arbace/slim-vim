@@ -369,3 +369,54 @@ def balanced(s):
             if not st or _PAIR[st.pop()] != ch:
                 return False
     return not st
+
+
+def drop_if(s, pattern, count=1, flags=0):
+    r"""Delete an `if (...)` and the block it guards, by matching braces.
+
+    Every phase tool that has needed this wrote its own, and four of them wrote
+    the same bug: a lazy `(?:[^\n]*\n)*?\}` to find the end of the block.  That
+    stops at the FIRST line which is only a brace, which is an inner block's
+    whenever there is one -- so the cut takes the header and half the body and
+    leaves the rest at file scope.  gcc then reports it hundreds of lines away
+    as "expected identifier before 'else'", "data definition has no type or
+    storage class", or a duplicate case value in an unrelated function.
+
+    It is the same mistake as funcreach.py's two regexes and it kept coming
+    back because the helper lived in whichever tool met it last.  It lives here
+    now.
+
+    `pattern` matches the `if` line; the block is found from the condition's
+    parentheses onward.  Refuses a block followed by `else`, because deleting
+    the `if` alone would orphan it and change which branch runs.
+    """
+    import re as _re
+    for _ in range(count):
+        b = blank(s)
+        m = _re.search(pattern, s, flags)
+        if not m:
+            raise ValueError('drop_if: no match for %r' % pattern)
+        lp = s.index('(', m.start())
+        rp = match(s, lp, b)
+        if rp < 0:
+            raise ValueError('drop_if: unbalanced condition')
+        i = rp + 1
+        while i < len(s) and s[i] in ' \t\n':
+            i += 1
+        if s[i] != '{':
+            raise ValueError('drop_if: the condition does not open a block')
+        close = match(s, i, b)
+        if close < 0:
+            raise ValueError('drop_if: unbalanced block')
+        if _re.match(r'[ \t]*\n[ \t]*else\b', s[close + 1:close + 40]):
+            raise ValueError('drop_if: block has an else; deleting the if '
+                             'alone would orphan it')
+        end = close + 1
+        while end < len(s) and s[end] in ' \t':
+            end += 1
+        if end < len(s) and s[end] == '\n':
+            end += 1
+        if s[end:end + 1] == '\n':
+            end += 1
+        s = s[:m.start()] + s[end:]
+    return s

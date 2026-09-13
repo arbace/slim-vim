@@ -1323,7 +1323,6 @@ enum { CPO_SPECI = '<' };
 enum { CPO_REGAPPEND = '>' };
 enum { CPO_HASH = '#' };
 enum { CPO_PARA = '{' };
-enum { CPO_TSIZE = '|' };
 enum { CPO_PRESERVE = '&' };
 enum { CPO_SUBPERCENT = '/' };
 enum { CPO_BACKSL = '\\' };
@@ -110731,7 +110730,6 @@ mch_get_shellsize(void)
 {
     long        rows = 0;
     long        columns = 0;
-    char_u      *p;
 
     {
         struct winsize  ws;
@@ -110745,18 +110743,6 @@ mch_get_shellsize(void)
         {
             columns = ws.ws_col;
             rows = ws.ws_row;
-        }
-    }
-
-    if (columns == 0 || rows == 0 || vim_strchr(p_cpo, CPO_TSIZE) != NULL)
-    {
-        if ((p = (char_u *)getenv("LINES")))
-        {
-            rows = atoi((char *)p);
-        }
-        if ((p = (char_u *)getenv("COLUMNS")))
-        {
-            columns = atoi((char *)p);
         }
     }
 
@@ -133251,13 +133237,9 @@ termcapinit(char_u *name)
         term = NULL;
     }
 
-    if (term == NULL)
-    {
-        term =  (char_u *)getenv((char *)((char_u *)"TERM")) ;
-    }
     if (term == NULL || *term == NUL)
     {
-        term =  (char_u *)"xterm" ;
+        term =  (char_u *)"xterm-256color" ;
     }
     set_string_option_direct((char_u *)"term", -1, term, OPT_FREE, 0);
 
@@ -133563,7 +133545,6 @@ term_pop_title(int which)
     static void
 ttest(int pairs)
 {
-    char_u *env_colors;
 
     check_options();
 
@@ -133660,18 +133641,6 @@ ttest(int pairs)
     need_gather = TRUE;
 
     t_colors = atoi((char *) ( term_strings[(int)(KS_CCO)] ) );
-    {
-        env_colors =  (char_u *)getenv((char *)((char_u *)"COLORS")) ;
-        if (env_colors != NULL &&  (isdigit ((unsigned char)(*env_colors))) )
-        {
-            int colors = atoi((char *)env_colors);
-
-            if (colors != t_colors)
-            {
-                set_color_count(colors);
-            }
-        }
-    }
 }
 
     static int
@@ -134589,10 +134558,7 @@ handle_version_response(int first, int *arg, int argc, char_u *tp)
 
         if ((version == 100 || version == 115) && arg[0] == 0 && arg[2] == 0)
         {
-            if ( (char_u *)getenv((char *)((char_u *)"COLORS"))  == NULL)
-            {
                 may_adjust_color_count(256);
-            }
             term_props[TPR_MOUSE].tpr_status = TPR_MOUSE_SGR;
         }
 
