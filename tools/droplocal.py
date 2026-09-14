@@ -79,7 +79,12 @@ def main():
             sys.exit('droplocal: %s: only %d plumbing sites, expected at least '
                      'the field, an initialiser and a get_varp case -- the shape '
                      'has moved' % (bvar, n))
-        left = text.count(bvar)
+        # A WORD BOUNDARY, because these names nest: b_p_cin is a prefix of
+        # b_p_cink, b_p_cino, b_p_cinsd and b_p_cinw, and a plain count said
+        # b_p_cin still had 23 readers when it had none -- they were the other
+        # four.  Ordering the arguments around it would have hidden the bug
+        # rather than fixed it.
+        left = len(re.findall(r'\b%s\b' % re.escape(bvar), text))
         if left:
             sys.exit('droplocal: %s still has %d mentions after the plumbing '
                      'went -- those are readers, and the phase has to deal with '
