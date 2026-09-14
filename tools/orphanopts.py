@@ -60,10 +60,18 @@ def main():
             continue
         if len(re.findall(r'\b%s\b' % name, s)) <= 1:
             continue          # declared and unread; the sweep takes it
-        # The declaration itself spells `*p_dir`; it is what the row would
-        # have initialised, not a read of it.
-        sites = [h.group(0).strip() for h in re.finditer(r'^.*\*\s*%s\b.*$' % name, s, re.M)
-                 if not h.group(0).lstrip().startswith('static')]
+        # ANY MENTION AT ALL, not just a `*p_x` dereference.  This counted
+        # only explicit dereferences at first and missed `'completeopt'` in
+        # Phase 35: `opt_strings_flags(p_cot, p_cot_values, &cot_flags, TRUE)`
+        # passes the NULL pointer to something that dereferences it, and the
+        # editor segfaulted before the first keystroke.
+        #
+        # A pointer nothing mentions is harmless -- the sweep takes it.  One
+        # that is mentioned at all, having no row to initialise it, is a NULL
+        # going somewhere, and the shape of the somewhere is not this tool's
+        # business to judge.
+        sites = [h.group(0).strip() for h in re.finditer(r'^.*\b%s\b.*$' % name, s, re.M)
+                 if not re.match(r'static\b[^=]*\b%s\s*;' % name, h.group(0).strip())]
         bad.append((name, '*' in typ, sites))
 
     fatal = [b for b in bad if b[1]]

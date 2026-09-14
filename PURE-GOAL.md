@@ -2111,6 +2111,83 @@ NULL for everything.
 
 Measured: 136,451 → 135,825 lines.
 
+## Phase 35 — insert completion and the popup menu
+
+CTRL-N, CTRL-P and the whole CTRL-X family — `CTRL-X CTRL-F` for file names,
+`CTRL-X CTRL-K` for a dictionary, `CTRL-X CTRL-L` for whole lines — plus the
+popup menu that displays the matches. This is the largest single subsystem left
+after the regexp engine, and it is the one whose sources are all gone already:
+the tag stack went in Phase 12 and the `CTRL-]` key in Phase 33, the shell in Phases 8 and 10, `'dictionary'` and `'thesaurus'`
+name files this editor has no business reading, and `'completefunc'` needs the
+eval layer.
+
+**Nine predicates become constants**, which is the whole of the cut — everything
+else is the sweep following them:
+
+```
+ins_complete              FAIL        pum_visible                    FALSE
+ins_compl_prep            FALSE       pum_redraw_in_same_position    FALSE
+ins_compl_active          FALSE       pum_may_redraw   pum_undisplay   pum_display
+ins_compl_has_autocomplete FALSE
+```
+
+Twelve option rows go with them — `autocomplete complete completefunc
+completeopt dictionary infercase pumborder pummaxwidth pumopt pumheight pumwidth
+thesaurus` — and six buffer-local fields, `b_p_cpt b_p_cot b_p_dict b_p_tsr
+b_p_inf b_p_ac`.
+
+### `didset_string_options()`, for the fourth time
+
+This is the fourth phase to be caught by it — 20, 29, 30 and now 35 — and this
+time it was a **segfault before the first keystroke**. The function dereferences
+every string option's global at startup, so dropping `'completeopt'`'s row while
+leaving
+
+```c
+opt_strings_flags(p_cot, p_cot_values, &cot_flags, TRUE);
+```
+
+hands a NULL to something that reads it. The editor did not mis-complete; it
+did not start.
+
+`orphanopts.py` existed precisely to catch this and did not, because it looked
+for an explicit `*p_x` dereference and this is a bare argument. **It now counts
+any mention at all.** A pointer nothing mentions is harmless — the sweep takes
+it — and one that is mentioned while having no row to initialise it is a NULL
+going somewhere, which is enough to fail on without judging the shape of the
+somewhere. Re-run over every earlier boundary: no new complaints, so the
+stricter rule costs nothing and closes the trap that has now cost four phases.
+
+### Checking that a key does nothing
+
+Bare CTRL-N in insert mode is **already inert** in a build with nothing to
+complete from, so a before/after comparison of it proves nothing either way.
+`tools/complcheck.py` uses `CTRL-X CTRL-N` instead, which is unambiguous, and
+checks the half that must survive in the same run: **insert mode still
+inserts**. A completion check that only proves completion is gone also passes on
+a binary that cannot type.
+
+### What it did not take, measured afterwards
+
+Measured: 135,825 → **130,161** lines, 5,664 of them — the largest single pure
+phase, and symbols 88 → 88, the subsystem being pure computation over things
+already removed.
+
+**It is not the whole subsystem, and the count says so: 70 functions named
+`ins_compl_*`, `pum_*` or `compl_*` are still in the file.** They are
+*reachable*, so no sweep can touch them, and they are never *entered*, because
+`ins_complete()` returns FAIL before any of them runs. The reason is that
+`edit()` does not reach completion through one door: it calls
+`ins_compl_addleader()`, `ins_compl_addfrommatch()`, `ins_compl_accept_char()`
+and a dozen more directly, and `update_screen()`, `win_line()`, `showruler()`
+and `screen_puts_len()` each ask `pum_visible()` on their own account. Stubbing
+the nine predicates makes completion **produce nothing**; it does not remove the
+state machine that would have driven it.
+
+So this phase is the sources and the display, and **the key handling is a phase
+of its own** — the largest remaining candidate, and the one the coverage list
+now points at.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.
@@ -2139,29 +2216,36 @@ working features and call it progress.
 
 ### What it says today
 
-**47% of `pure-vim`'s functions are never entered** — 1,520 of 3,255, holding
-27,865 lines, about a sixth of the file. Measured after Phase 8:
+**42% of `pure-vim`'s functions are never entered** — 1,163 of 2,738, holding
+17,806 lines. Measured after Phase 35:
 
 ```
-    775  reg_equi_class             the backtracking engine's equivalence classes
-    713  get_c_indent               'cindent', which nothing here turns on
-    284  do_mouse                   'mouse' is empty by default
-    251  do_window                  CTRL-W, which no harness presses
-    168  vim_findfile_init
-    160  modify_fname
+    235  do_window                  CTRL-W, which no harness presses
     158  win_equal_rec
-    147  vim_findfile
+    145  getexmodeline
+    139  open_cmdwin
+    136  eval_vars
+    124  set_context_in_set_cmd     command-line completion
+    123  set_context_by_cmdname
+    119  op_replace
+    117  scroll_cursor_bot
+    108  op_insert
 ```
 
-**Compare it to the last reading and the list is doing its job.** It was taken
-before Phase 6 and said 1,590 of 3,329 over 35,486 lines, with one entry —
-`nfa_emit_equi_class`, 4,122 lines — as the whole top of it. Phases 6 to 10
-removed 7,621 lines of never-entered code, and most of that is the NFA engine
-Phase 6 cut. What is left at the top is a different
-kind: `get_c_indent`, `do_mouse` and `do_window` are *kind 2*, reachable and
-useful and simply not exercised, which is a finding about the harness rather
-than about the code. Only `vim_findfile` and `vim_findfile_init` are kind 3 —
-the file-lookup layer, which is a phase of its own.
+**The list is doing its job, and the way to read it is against the last
+reading.** After Phase 8 it said 1,520 of 3,255 over 27,865 lines, with
+`reg_equi_class` (775), `get_c_indent` (713), `do_mouse` (284) and
+`modify_fname` (160) at the top. Phases 26, 30, 31 and 34 removed **all four**,
+and 10,059 lines of never-entered code with them. That is what a kind-3 entry
+looks like when it is acted on.
+
+What is left at the top has changed kind. `do_window`, `op_replace`,
+`op_insert` and `scroll_cursor_bot` are **kind 2** — reachable, useful, and
+simply not exercised, which is a finding about the harness rather than the code;
+nothing here should press CTRL-W on its behalf. The kind-3 entries are now
+`set_context_in_set_cmd` and `set_context_by_cmdname`, which is command-line
+completion, and `ins_compl_build_pum` at 98 lines — the tail of Phase 35, whose
+key handling survives it.
 
 **Also measured: the harness itself.** `tools/coverage.sh` was resolving the
 source path relative to the wrong directory, so `exsweep.py` exited 1 and the
