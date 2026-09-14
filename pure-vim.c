@@ -6092,8 +6092,6 @@ static int      read_cmd_fd  = 0 ;
 
 static volatile sig_atomic_t got_int  = FALSE ;
 
-static volatile sig_atomic_t got_sigusr1  = FALSE ;
-
 static int      termcap_active  = FALSE ;
 static tmode_T  cur_tmode  = TMODE_COOK ;
 static int      bangredo  = FALSE ;
@@ -79036,7 +79034,21 @@ prepare_to_exit(void)
         {
         }
 
-        settmode(TMODE_COOK);
+        // settmode() returns at once when !full_screen, and deathtrap()
+        // clears it before this runs -- so on the way out from a signal
+        // the one thing this function exists for never happened: the
+        // terminal was left with ICANON and ECHO off and the shell that
+        // got it back was unusable.  The guard is there to avoid drawing
+        // on a screen that is not there, and putting the terminal back is
+        // not drawing, so it is lent full_screen for the length of the
+        // call.  Upstream has the same hole.
+        {
+            int was_full_screen = full_screen;
+
+            full_screen = TRUE;
+            settmode(TMODE_COOK);
+            full_screen = was_full_screen;
+        }
         stoptermcap();
         out_flush();
     }
@@ -102533,8 +102545,6 @@ static int      unix_did_set_title = FALSE;
 static char_u   *oldicon = NULL;
 static int      did_set_icon = FALSE;
 
-static void may_core_dump(void);
-
 static int  WaitForChar(long msec, int *interrupted, int ignore_input);
 static int  RealWaitForChar(int, long, int *, int *interrupted);
 
@@ -102544,8 +102554,6 @@ static void sig_winch  (int) ;
 static void sig_tstp  (int) ;
 static volatile sig_atomic_t in_mch_suspend = FALSE;
 static void catch_sigint  (int) ;
-static void catch_sigusr1  (int) ;
-static void catch_sigpwr  (int) ;
 static void deathtrap  (int) ;
 
 static void catch_int_signal(void);
@@ -102569,26 +102577,10 @@ static struct signalinfo
 } signal_info[] =
 {
     {SIGHUP,        "HUP",      TRUE},
-    {SIGQUIT,       "QUIT",     TRUE},
-    {SIGILL,        "ILL",      TRUE},
-    {SIGTRAP,       "TRAP",     TRUE},
-    {SIGABRT,       "ABRT",     TRUE},
-    {SIGFPE,        "FPE",      TRUE},
-    {SIGBUS,        "BUS",      TRUE},
-    {SIGSEGV,       "SEGV",     TRUE},
-    {SIGSYS,        "SYS",      TRUE},
-    {SIGALRM,       "ALRM",     FALSE},
     {SIGTERM,       "TERM",     TRUE},
-    {SIGVTALRM,     "VTALRM",   TRUE},
-    {SIGPROF,       "PROF",     TRUE},
-    {SIGXCPU,       "XCPU",     TRUE},
-    {SIGXFSZ,       "XFSZ",     TRUE},
-    {SIGUSR1,       "USR1",     FALSE},
-    {SIGUSR2,       "USR2",     TRUE},
     {SIGINT,        "INT",      FALSE},
     {SIGWINCH,      "WINCH",    FALSE},
     {SIGTSTP,       "TSTP",     FALSE},
-    {SIGPIPE,       "PIPE",     FALSE},
     {-1,            "Unknown!", FALSE}
 };
 
@@ -102719,38 +102711,6 @@ mch_delay(long msec, int flags)
     }
 }
 
-static stack_t sigstk;
-
-static long int get_signal_stack_size(void)
-{
-    long int size = -1;
-
-    if ((size = sysconf(_SC_SIGSTKSZ)) > -1)
-    {
-        return size;
-    }
-
-    return SIGSTKSZ;
-
-    return 8000;
-}
-
-static char *signal_stack;
-
-    static void
-init_signal_stack(void)
-{
-    if (signal_stack == NULL)
-    {
-        return;
-    }
-
-    sigstk.ss_sp = signal_stack;
-    sigstk.ss_size = get_signal_stack_size();
-    sigstk.ss_flags = 0;
-    (void)sigaltstack(&sigstk, NULL);
-}
-
     static void
 sig_winch  (int sigarg  __attribute__((unused)) ) 
 {
@@ -102782,31 +102742,12 @@ catch_sigint  (int sigarg  __attribute__((unused)) )
 }
 
     static void
-catch_sigusr1  (int sigarg  __attribute__((unused)) ) 
-{
-    mch_signal(SIGUSR1, catch_sigusr1);
-    got_sigusr1 = TRUE;
-}
-
-    static void
-catch_sigpwr  (int sigarg  __attribute__((unused)) ) 
-{
-    mch_signal(SIGPWR, catch_sigpwr);
-    ml_sync_all(FALSE, FALSE);
-}
-
-    static void
 deathtrap  (int sigarg  __attribute__((unused)) ) 
 {
     static int  entered = 0;
     int         i;
 
-    if (in_mch_delay && sigarg == SIGQUIT)
-    {
-        return;
-    }
-
-    if (entered == 0 && (0 || sigarg == SIGHUP || sigarg == SIGQUIT || sigarg == SIGTERM || sigarg == SIGPWR || sigarg == SIGUSR1 || sigarg == SIGUSR2) && !vim_handle_signal(sigarg))
+    if (entered == 0 && (sigarg == SIGHUP || sigarg == SIGTERM) && !vim_handle_signal(sigarg))
     {
         return;
     }
@@ -102830,7 +102771,6 @@ deathtrap  (int sigarg  __attribute__((unused)) )
     if (entered >= 3)
     {
         reset_signals();
-        may_core_dump();
         if (entered >= 4)
         {
             _exit(8);
@@ -102942,11 +102882,7 @@ set_signals(void)
 
     catch_int_signal();
 
-    mch_signal(SIGUSR1, catch_sigusr1);
-
     mch_signal(SIGALRM, SIG_IGN);
-
-    mch_signal(SIGPWR, catch_sigpwr);
 
     catch_signals(deathtrap, SIG_ERR);
 
@@ -102978,7 +102914,7 @@ catch_signals(void (*func_deadly)(int), void (*func_other)(int))
 
             sa.sa_handler = func_deadly;
             sigemptyset(&sa.sa_mask);
-            sa.sa_flags = SA_ONSTACK;
+            sa.sa_flags = 0;
             sigaction(signal_info[i].sig, &sa, NULL);
         }
         else if (func_other != SIG_ERR)
@@ -103015,10 +102951,7 @@ vim_handle_signal(int sig)
                                  return TRUE;
             }
                              got_signal = sig;
-                             if (sig != SIGPWR)
-                             {
-                                 got_int = TRUE;
-                             }
+                             got_int = TRUE;
                              break;
     }
     return FALSE;
@@ -103328,8 +103261,6 @@ mch_nodetype(char_u *name)
     static void
 mch_early_init(void)
 {
-    signal_stack = alloc(get_signal_stack_size());
-    init_signal_stack();
 
 }
 
@@ -103399,19 +103330,7 @@ mch_exit(int r)
     out_flush();
     ml_close_all(TRUE);
 
-    may_core_dump();
-
     exit(r);
-}
-
-    static void
-may_core_dump(void)
-{
-    if (deadly_signal != 0)
-    {
-        mch_signal(deadly_signal, SIG_DFL);
-        kill(getpid(), deadly_signal);
-    }
 }
 
     static int
