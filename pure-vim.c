@@ -4465,7 +4465,6 @@ static long write_eintr(int fd, void *buf, size_t bufsize);
 
 // ---------------- end fileio.pro ----------------
 // ---------------- begin filepath.pro ----------------
-static int modify_fname(char_u *src, int tilde_file, size_t *usedlen, char_u **fnamep, char_u **bufp, size_t *fnamelen);
 static size_t home_replace(buf_T *buf, char_u *src, char_u *dst, int dstlen, int one);
 static char_u *home_replace_save(buf_T *buf, char_u *src);
 static int fullpathcmp(char_u *s1, char_u *s2, int checkname, int expandenv);
@@ -4477,7 +4476,6 @@ static int vim_ispathsep_nocolon(int c);
 static int dir_of_file_exists(char_u *fname);
 static int vim_fnamecmp(char_u *x, char_u *y);
 static int vim_fnamencmp(char_u *x, char_u *y, size_t len);
-static void add_pathsep(char_u *p);
 static char_u *FullName_save(char_u *fname, int force);
 static int vim_fexists(char_u *fname);
 static int expand_wildcards_eval(char_u **pat, int *num_file, char_u ***file, int flags);
@@ -4485,7 +4483,6 @@ static int expand_wildcards(int num_pat, char_u **pat, int *num_files, char_u **
 static int match_suffix(char_u *fname);
 static int gen_expand_wildcards(int num_pat, char_u **pat, int *num_file, char_u ***file, int flags);
 static void FreeWild(int count, char_u **files);
-static int vim_isAbsName(char_u *name);
 static int vim_FullName(char_u *fname, char_u *buf, int len, int force);
 
 // ---------------- end filepath.pro ----------------
@@ -5250,7 +5247,6 @@ static char_u *skip_regexp(char_u *startp, int delim, int magic);
 static char_u *skip_regexp_err(char_u *startp, int delim, int magic);
 static char_u *skip_regexp_ex(char_u *startp, int dirc, int magic, char_u **newp, int *dropped, magic_T *magic_val);
 static char_u *regtilde(char_u *source, int magic);
-static int vim_regsub(regmatch_T *rmp, char_u *source, typval_T *expr, char_u *dest, int destlen, int flags);
 static int vim_regsub_multi(regmmatch_T *rmp, linenr_T lnum, char_u *source, char_u *dest, int destlen, int flags);
 static regprog_T *vim_regcomp(char_u *expr_arg, int re_flags);
 static void vim_regfree(regprog_T *prog);
@@ -5382,7 +5378,6 @@ static char_u *vim_strnsave(char_u *string, size_t len);
 static char_u *vim_strsave_escaped(char_u *string, char_u *esc_chars);
 static char_u *vim_strsave_escaped_ext(char_u *string, char_u *esc_chars, int cc, int bsl);
 static int csh_like_shell(void);
-static char_u *vim_strsave_shellescape(char_u *string, int do_special, int do_newline);
 static char_u *vim_strnsave_up(char_u *string, size_t len);
 static void vim_strup(char_u *p);
 static void del_trailing_spaces(char_u *ptr);
@@ -6070,10 +6065,8 @@ static pos_T    last_cursormoved
                     = {0, 0, 0}
                     ;
 
-static int      postponed_split  = 0 ;
 static int      postponed_split_flags  = 0 ;
 static int      postponed_split_tab  = 0 ;
-static int      g_tag_at_cursor  = FALSE ;
 
 static int      replace_offset  = 0 ;
 
@@ -29458,109 +29451,6 @@ ins_apply_autocmds(event_T event)
 
 // ==================== eval.c ====================
 
-    static char_u *
-do_string_sub(char_u      *str, size_t      len, char_u      *pat, char_u      *sub, typval_T    *expr, char_u      *flags, size_t      *ret_len)
-{
-    regmatch_T  regmatch;
-    garray_T    ga;
-    char_u      *ret;
-    char_u      *save_cpo;
-
-    save_cpo = p_cpo;
-    p_cpo = empty_option;
-
-    ga_init2(&ga, 1, 200);
-
-    regmatch.rm_ic = p_ic;
-    regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
-    if (regmatch.regprog != NULL)
-    {
-        char_u  *tail = str;
-        char_u  *end = str + len;
-        int     do_all = (flags[0] == 'g');
-        int     sublen;
-        int     i;
-        char_u  *zero_width = NULL;
-
-        while (vim_regexec_nl(&regmatch, str, (colnr_T)(tail - str)))
-        {
-            if (regmatch.startp[0] == regmatch.endp[0])
-            {
-                if (zero_width == regmatch.startp[0])
-                {
-                    i = mb_ptr2len(tail);
-                     memmove((char *)((char_u *)ga.ga_data + ga.ga_len), (char *)(tail), (size_t)i) ;
-                    ga.ga_len += i;
-                    tail += i;
-                    continue;
-                }
-                zero_width = regmatch.startp[0];
-            }
-
-            sublen = vim_regsub(&regmatch, sub, expr, tail, 0, REGSUB_MAGIC);
-            if (sublen <= 0)
-            {
-                ga_clear(&ga);
-                break;
-            }
-            if (ga_grow(&ga, (int)((end - tail) + sublen - (regmatch.endp[0] - regmatch.startp[0]))) == FAIL)
-            {
-                ga_clear(&ga);
-                break;
-            }
-
-            i = (int)(regmatch.startp[0] - tail);
-             memmove((char *)((char_u *)ga.ga_data + ga.ga_len), (char *)(tail), (size_t)i) ;
-            (void)vim_regsub(&regmatch, sub, expr, (char_u *)ga.ga_data + ga.ga_len + i, sublen, REGSUB_COPY | REGSUB_MAGIC);
-            ga.ga_len += i + sublen - 1;
-            tail = regmatch.endp[0];
-            if (*tail == NUL)
-            {
-                break;
-            }
-            if (!do_all)
-            {
-                break;
-            }
-        }
-
-        if (ga.ga_data != NULL)
-        {
-             strcpy((char *)((char *)ga.ga_data + ga.ga_len), (char *)(tail)) ;
-            ga.ga_len += (int)(end - tail);
-        }
-
-        vim_regfree(regmatch.regprog);
-    }
-
-    if (ga.ga_data != NULL)
-    {
-        str = (char_u *)ga.ga_data;
-        len = (size_t)ga.ga_len;
-    }
-    ret = vim_strnsave(str, len);
-    ga_clear(&ga);
-    if (p_cpo == empty_option)
-    {
-        p_cpo = save_cpo;
-    }
-    else
-    {
-        if (*p_cpo == NUL)
-        {
-            set_option_value_give_err((char_u *)"cpo", 0L, save_cpo, 0);
-        }
-        free_string_option(save_cpo);
-    }
-
-    if (ret_len != NULL)
-    {
-        *ret_len = len;
-    }
-
-    return ret;
-}
-
 // ==================== ex_cmds.c ====================
 
 static int linelen(int *has_tab);
@@ -39961,8 +39851,6 @@ eval_vars(char_u      *src, char_u      *srcstart, size_t      *usedlen, linenr_
     buf_T       *buf;
     int         valid = VALID_HEAD + VALID_PATH;
     int         spec_idx;
-    int         tilde_file = FALSE;
-    int         skip_mod = FALSE;
     char_u      strbuf[30];
 
     *errormsg = NULL;
@@ -40011,7 +39899,6 @@ eval_vars(char_u      *src, char_u      *srcstart, size_t      *usedlen, linenr_
                     else
                     {
                         result = curbuf->b_fname;
-                        tilde_file =  strcmp((char *)(result), (char *)("~"))  == 0;
                     }
                     break;
                 }
@@ -40025,7 +39912,6 @@ eval_vars(char_u      *src, char_u      *srcstart, size_t      *usedlen, linenr_
                     {
                         *escaped = TRUE;
                     }
-                    skip_mod = TRUE;
                     break;
                 }
                 s = src + off + 1;
@@ -40074,7 +39960,6 @@ eval_vars(char_u      *src, char_u      *srcstart, size_t      *usedlen, linenr_
                     else
                     {
                         result = buf->b_fname;
-                        tilde_file =  strcmp((char *)(result), (char *)("~"))  == 0;
                     }
                 }
                 break;
@@ -40172,15 +40057,6 @@ eval_vars(char_u      *src, char_u      *srcstart, size_t      *usedlen, linenr_
             if ((s = vim_strrchr(result, '.')) != NULL && s >= gettail(result))
             {
                 resultlen = s - result;
-            }
-        }
-        else if (!skip_mod)
-        {
-            valid |= modify_fname(src, tilde_file, usedlen, &result, &resultbuf, &resultlen);
-            if (result == NULL)
-            {
-                *errormsg = "";
-                return NULL;
             }
         }
     }
@@ -46336,331 +46212,6 @@ write_eintr(int fd, void *buf, size_t bufsize)
 
 // ==================== filepath.c ====================
 
-    static int
-modify_fname(char_u      *src, int         tilde_file, size_t      *usedlen, char_u      **fnamep, char_u      **bufp, size_t      *fnamelen)
-{
-    int         valid = 0;
-    char_u      *tail;
-    char_u *s;
-    char_u *p;
-    char_u *pbuf;
-    char_u      dirname[ PATH_MAX ];
-    int         c;
-    int         has_fullname = 0;
-    int         has_homerelative = 0;
-
-repeat:
-    if (src[*usedlen] == ':' && src[*usedlen + 1] == 'p')
-    {
-        has_fullname = 1;
-
-        valid |= VALID_PATH;
-        *usedlen += 2;
-
-        if ((*fnamep)[0] == '~' && !(tilde_file && (*fnamep)[1] == NUL))
-        {
-            *fnamep = expand_env_save(*fnamep);
-            vim_free(*bufp);
-            *bufp = *fnamep;
-            if (*fnamep == NULL)
-            {
-                return -1;
-            }
-        }
-
-        for (p = *fnamep; *p != NUL;  p += (*mb_ptr2len)(p) )
-        {
-            if (vim_ispathsep(*p) && p[1] == '.' && (p[2] == NUL || vim_ispathsep(p[2]) || (p[2] == '.' && (p[3] == NUL || vim_ispathsep(p[3])))))
-            {
-                break;
-            }
-        }
-
-        if (*p != NUL || !vim_isAbsName(*fnamep))
-        {
-            *fnamep = FullName_save(*fnamep, *p != NUL);
-            vim_free(*bufp);
-            *bufp = *fnamep;
-            if (*fnamep == NULL)
-            {
-                return -1;
-            }
-        }
-
-        if (mch_isdir(*fnamep))
-        {
-            *fnamep = vim_strnsave(*fnamep,  strlen((char *)(*fnamep))  + 2);
-            vim_free(*bufp);
-            *bufp = *fnamep;
-            if (*fnamep == NULL)
-            {
-                return -1;
-            }
-            add_pathsep(*fnamep);
-        }
-    }
-
-    while (src[*usedlen] == ':' && ((c = src[*usedlen + 1]) == '.' || c == '~' || c == '8'))
-    {
-        *usedlen += 2;
-        if (c == '8')
-        {
-            continue;
-        }
-        pbuf = NULL;
-        if (!has_fullname && !has_homerelative)
-        {
-            if (**fnamep == '~')
-            {
-                p = pbuf = expand_env_save(*fnamep);
-            }
-            else
-            {
-                p = pbuf = FullName_save(*fnamep, FALSE);
-            }
-        }
-        else
-        {
-            p = *fnamep;
-        }
-
-        has_fullname = 0;
-
-        if (p != NULL)
-        {
-            size_t  dirnamelen = 0;
-
-            if (c == '.')
-            {
-                mch_dirname(dirname,  PATH_MAX );
-                if (has_homerelative)
-                {
-                    s = vim_strsave(dirname);
-                    if (s != NULL)
-                    {
-                        dirnamelen = home_replace(NULL, s, dirname,  PATH_MAX , TRUE);
-                        vim_free(s);
-                    }
-                }
-
-                if (dirnamelen == 0)
-                {
-                    dirnamelen =  strlen((char *)(dirname)) ;
-                }
-
-                if ( vim_fnamencmp((char_u *)(p), (char_u *)(dirname), (dirnamelen))  == 0)
-                {
-                    p += dirnamelen;
-                    if (vim_ispathsep(*p))
-                    {
-                        while (*p && vim_ispathsep(*p))
-                        {
-                            ++p;
-                        }
-                        *fnamep = p;
-                        if (pbuf != NULL)
-                        {
-                            vim_free(*bufp);
-                            *bufp = pbuf;
-                            pbuf = NULL;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                dirnamelen = home_replace(NULL, p, dirname,  PATH_MAX , TRUE);
-                if (*dirname == '~')
-                {
-                    s = vim_strnsave(dirname, dirnamelen);
-                    if (s != NULL)
-                    {
-                        *fnamep = s;
-                        vim_free(*bufp);
-                        *bufp = s;
-                        has_homerelative = TRUE;
-                    }
-                }
-            }
-            vim_free(pbuf);
-        }
-    }
-
-    tail = gettail(*fnamep);
-    *fnamelen =  strlen((char *)(*fnamep)) ;
-
-    while (src[*usedlen] == ':' && src[*usedlen + 1] == 'h')
-    {
-        valid |= VALID_HEAD;
-        *usedlen += 2;
-        s = get_past_head(*fnamep);
-        while (tail > s && after_pathsep(s, tail))
-        {
-             tail -= has_mbyte ? ((*mb_head_off)(*fnamep, (tail) - 1) + 1) : 1 ;
-        }
-        *fnamelen = tail - *fnamep;
-        if (*fnamelen == 0)
-        {
-            p = vim_strsave((char_u *)".");
-            if (p == NULL)
-            {
-                return -1;
-            }
-            vim_free(*bufp);
-            *bufp = *fnamep = tail = p;
-            *fnamelen = 1;
-        }
-        else
-        {
-            while (tail > s && !after_pathsep(s, tail))
-            {
-                 tail -= has_mbyte ? ((*mb_head_off)(*fnamep, (tail) - 1) + 1) : 1 ;
-            }
-        }
-    }
-
-    if (src[*usedlen] == ':' && src[*usedlen + 1] == '8')
-    {
-        *usedlen += 2;
-    }
-
-    if (src[*usedlen] == ':' && src[*usedlen + 1] == 't')
-    {
-        *usedlen += 2;
-        *fnamelen -= tail - *fnamep;
-        *fnamep = tail;
-    }
-
-    while (src[*usedlen] == ':' && (src[*usedlen + 1] == 'e' || src[*usedlen + 1] == 'r'))
-    {
-        if (src[*usedlen + 1] == 'e' && *fnamep > tail)
-        {
-            s = *fnamep - 2;
-        }
-        else
-        {
-            s = *fnamep + *fnamelen - 1;
-        }
-        for ( ; s > tail; --s)
-        {
-            if (s[0] == '.')
-            {
-                break;
-            }
-        }
-        if (src[*usedlen + 1] == 'e')
-        {
-            if (s > tail)
-            {
-                *fnamelen += (*fnamep - (s + 1));
-                *fnamep = s + 1;
-            }
-            else if (*fnamep <= tail)
-            {
-                *fnamelen = 0;
-            }
-        }
-        else
-        {
-            char_u *limit = *fnamep;
-
-            if (limit < tail)
-            {
-                limit = tail;
-            }
-            if (s > limit)
-            {
-                *fnamelen = s - *fnamep;
-            }
-        }
-        *usedlen += 2;
-    }
-
-    if (src[*usedlen] == ':' && (src[*usedlen + 1] == 's' || (src[*usedlen + 1] == 'g' && src[*usedlen + 2] == 's')))
-    {
-        char_u      *str;
-        char_u      *pat;
-        char_u      *sub;
-        int         sep;
-        char_u      *flags;
-        int         didit = FALSE;
-
-        flags = (char_u *)"";
-        s = src + *usedlen + 2;
-        if (src[*usedlen + 1] == 'g')
-        {
-            flags = (char_u *)"g";
-            ++s;
-        }
-
-        sep = *s++;
-        if (sep)
-        {
-            p = vim_strchr(s, sep);
-            if (p != NULL)
-            {
-                pat = vim_strnsave(s, p - s);
-                if (pat != NULL)
-                {
-                    s = p + 1;
-                    p = vim_strchr(s, sep);
-                    if (p != NULL)
-                    {
-                        sub = vim_strnsave(s, p - s);
-                        str = vim_strnsave(*fnamep, *fnamelen);
-                        if (sub != NULL && str != NULL)
-                        {
-                            size_t slen;
-
-                            *usedlen = p + 1 - src;
-                            s = do_string_sub(str, *fnamelen, pat, sub, NULL, flags, &slen);
-                            if (s != NULL)
-                            {
-                                *fnamep = s;
-                                *fnamelen = slen;
-                                vim_free(*bufp);
-                                *bufp = s;
-                                didit = TRUE;
-                            }
-                        }
-                        vim_free(sub);
-                        vim_free(str);
-                    }
-                    vim_free(pat);
-                }
-            }
-            if (didit)
-            {
-                goto repeat;
-            }
-        }
-    }
-
-    if (src[*usedlen] == ':' && src[*usedlen + 1] == 'S')
-    {
-        c = (*fnamep)[*fnamelen];
-        if (c != NUL)
-        {
-            (*fnamep)[*fnamelen] = NUL;
-        }
-        p = vim_strsave_shellescape(*fnamep, FALSE, FALSE);
-        if (c != NUL)
-        {
-            (*fnamep)[*fnamelen] = c;
-        }
-        if (p == NULL)
-        {
-            return -1;
-        }
-        vim_free(*bufp);
-        *bufp = *fnamep = p;
-        *fnamelen =  strlen((char *)(p)) ;
-        *usedlen += 2;
-    }
-
-    return valid;
-}
-
     static void
 shorten_dir_len(char_u *str, int trim_len)
 {
@@ -46914,23 +46465,6 @@ vim_fnamencmp(char_u *x, char_u *y, size_t len)
     return  strncmp((char *)(x), (char *)(y), (len)) ;
 }
 
-    static void
-add_pathsep(char_u *p)
-{
-    size_t  plen;
-
-    if (*p == NUL)
-    {
-        return;
-    }
-
-    plen =  strlen((char *)(p)) ;
-    if (!after_pathsep(p, p + plen))
-    {
-         strcpy((char *)(p + plen), (char *)( "/" )) ;
-    }
-}
-
     static char_u  *
 FullName_save(char_u      *fname, int         force)
 {
@@ -47141,12 +46675,6 @@ FreeWild(int count, char_u **files)
         vim_free(files[count]);
     }
     vim_free(files);
-}
-
-    static int
-vim_isAbsName(char_u *name)
-{
-    return (path_with_url(name) != 0 || mch_isFullName(name));
 }
 
     static int
@@ -79517,7 +79045,7 @@ static const struct nv_cmd
      {Ctrl_Z, nv_suspend, 0, 0} ,
      {ESC, nv_esc, 0, FALSE} ,
      {Ctrl_BSL, nv_normal,  (0x04|NV_NCH) , 0} ,
-     {Ctrl_RSB, nv_ident, NV_NCW, 0} ,
+     {Ctrl_RSB, nv_error, NV_NCW, 0} ,
      {Ctrl_HAT, nv_hat, NV_NCW, 0} ,
      {Ctrl__, nv_error, 0, 0} ,
      {' ', nv_right, 0, 0} ,
@@ -79563,7 +79091,7 @@ static const struct nv_cmd
      {'H', nv_scroll, 0, 0} ,
      {'I', nv_edit, 0, 0} ,
      {'J', nv_join, 0, 0} ,
-     {'K', nv_ident, 0, 0} ,
+     {'K', nv_error, 0, 0} ,
      {'L', nv_scroll, 0, 0} ,
      {'M', nv_scroll, 0, 0} ,
      {'N', nv_next, 0, SEARCH_REV} ,
@@ -82121,103 +81649,16 @@ nv_Zet(cmdarg_T *cap)
 }
 
     static void
-do_nv_ident(int c1, int c2)
-{
-    oparg_T     oa;
-    cmdarg_T    ca;
-
-    clear_oparg(&oa);
-      memset((&(ca)), (0), (sizeof(ca)))  ;
-    ca.oap = &oa;
-    ca.cmdchar = c1;
-    ca.nchar = c2;
-    nv_ident(&ca);
-}
-
-    static int
-nv_K_getcmd(cmdarg_T        *cap, char_u          *kp, int             kp_help, int             kp_ex, char_u          **ptr_arg, int             n, char_u          *buf, size_t          bufsize, size_t          *buflen)
-{
-    char_u      *ptr = *ptr_arg;
-    int         isman;
-    int         isman_s;
-
-    if (kp_help)
-    {
-         strcpy((char *)(buf), (char *)("he! ")) ;
-        *buflen =  (sizeof("he! " "") - 1) ;
-        return n;
-    }
-
-    if (kp_ex)
-    {
-        if (cap->count0 != 0)
-        {
-            *buflen = vim_snprintf((char *)buf, bufsize, "%s %ld ", kp, cap->count0);
-        }
-        else
-        {
-            *buflen = vim_snprintf((char *)buf, bufsize, "%s ", kp);
-        }
-        return n;
-    }
-
-    while (*ptr == '-' && n > 0)
-    {
-        ++ptr;
-        --n;
-    }
-    if (n == 0)
-    {
-        emsg(_(e_no_identifier_under_cursor));
-        vim_free(buf);
-        *ptr_arg = ptr;
-        return 0;
-    }
-
-    isman = ( strcmp((char *)(kp), (char *)("man"))  == 0);
-    isman_s = ( strcmp((char *)(kp), (char *)("man -s"))  == 0);
-    if (cap->count0 != 0 && !(isman || isman_s))
-    {
-        *buflen = vim_snprintf((char *)buf, bufsize, ".,.+%ld! ", cap->count0 - 1);
-    }
-    else
-    {
-        *buflen = vim_snprintf((char *)buf, bufsize, "! ");
-    }
-
-    if (cap->count0 == 0 && isman_s)
-    {
-        *buflen += vim_snprintf((char *)buf + *buflen, bufsize - *buflen, "man ");
-    }
-    else
-    {
-        *buflen += vim_snprintf((char *)buf + *buflen, bufsize - *buflen, "%s ", kp);
-    }
-    if (cap->count0 != 0 && (isman || isman_s))
-    {
-        *buflen += vim_snprintf((char *)buf + *buflen, bufsize - *buflen, "%ld ", cap->count0);
-    }
-
-    *ptr_arg = ptr;
-    return n;
-}
-
-    static void
 nv_ident(cmdarg_T *cap)
 {
     char_u      *ptr = NULL;
     char_u      *buf;
     size_t      bufsize;
     size_t      buflen;
-    char_u      *newbuf;
     char_u      *p;
-    char_u      *kp;
-    int         kp_help;
-    int         kp_ex;
     int         n = 0;
     int         cmdchar;
     int         g_cmd;
-    int         tag_cmd = FALSE;
     char_u      *aux_ptr;
 
     if (cap->cmdchar == 'g')
@@ -82236,33 +81677,13 @@ nv_ident(cmdarg_T *cap)
         cmdchar = '#';
     }
 
-    if (cmdchar == ']' || cmdchar == Ctrl_RSB || cmdchar == 'K')
-    {
-        if (VIsual_active && get_visual_text(cap, &ptr, &n) == FAIL)
-        {
-            return;
-        }
-        if (checkclearopq(cap->oap))
-        {
-            return;
-        }
-    }
-
     if (ptr == NULL && (n = find_ident_under_cursor(&ptr, (cmdchar == '*' || cmdchar == '#') ? FIND_IDENT|FIND_STRING : FIND_IDENT)) == 0)
     {
         clearop(cap->oap);
         return;
     }
 
-    kp = (*curbuf->b_p_kp == NUL ? p_kp : curbuf->b_p_kp);
-    kp_help = (*kp == NUL ||  strcmp((char *)(kp), (char *)(":he"))  == 0 ||  strcmp((char *)(kp), (char *)(":help"))  == 0);
-    if (kp_help && *skipwhite(ptr) == NUL)
-    {
-        emsg(_(e_no_identifier_under_cursor));
-        return;
-    }
-    kp_ex = (*kp == ':');
-    bufsize = (size_t)(n * 2 + 30 +  strlen((char *)(kp)) );
+    bufsize = (size_t)(n * 2 + 30);
     buf = alloc(bufsize);
     if (buf == NULL)
     {
@@ -82271,164 +81692,58 @@ nv_ident(cmdarg_T *cap)
     buf[0] = NUL;
     buflen = 0;
 
-    switch (cmdchar)
+    setpcmark();
+    curwin->w_cursor.col = (colnr_T) (ptr - ml_get_curline());
+
+    if (!g_cmd && vim_iswordp(ptr))
     {
-        case '*':
-        case '#':
-            setpcmark();
-            curwin->w_cursor.col = (colnr_T) (ptr - ml_get_curline());
-
-            if (!g_cmd && vim_iswordp(ptr))
-            {
-                 strcpy((char *)(buf), (char *)("\\<")) ;
-                buflen =  (sizeof("\\<" "") - 1) ;
-            }
-            no_smartcase = TRUE;
-            break;
-
-        case 'K':
-            n = nv_K_getcmd(cap, kp, kp_help, kp_ex, &ptr, n, buf, bufsize, &buflen);
-            if (n == 0)
-            {
-                return;
-            }
-            break;
-
-        case ']':
-            tag_cmd = TRUE;
-            {
-                 strcpy((char *)(buf), (char *)("ts ")) ;
-                buflen =  (sizeof("ts " "") - 1) ;
-            }
-            break;
-
-        default:
-            tag_cmd = TRUE;
-            if (curbuf->b_help)
-            {
-                 strcpy((char *)(buf), (char *)("he! ")) ;
-                buflen =  (sizeof("he! " "") - 1) ;
-            }
-            else
-            {
-                if (g_cmd)
-                {
-                     strcpy((char *)(buf), (char *)("tj ")) ;
-                    buflen =  (sizeof("tj " "") - 1) ;
-                }
-                else if (cap->count0 == 0)
-                {
-                     strcpy((char *)(buf), (char *)("ta ")) ;
-                    buflen =  (sizeof("ta " "") - 1) ;
-                }
-                else
-                {
-                    buflen = vim_snprintf((char *)buf, bufsize, ":%ldta ", cap->count0);
-                }
-            }
+         strcpy((char *)(buf), (char *)("\\<")) ;
+        buflen =  (sizeof("\\<" "") - 1) ;
     }
+    no_smartcase = TRUE;
 
-    if (cmdchar == 'K' && !kp_help)
+    if (cmdchar == '*')
     {
-        size_t plen;
-
-        ptr = vim_strnsave(ptr, n);
-        if (kp_ex)
-        {
-            p = vim_strsave_fnameescape(ptr, VSE_NONE);
-        }
-        else
-        {
-            p = vim_strsave_shellescape(ptr, TRUE, TRUE);
-        }
-        vim_free(ptr);
-        if (p == NULL)
-        {
-            vim_free(buf);
-            return;
-        }
-        plen =  strlen((char *)(p)) ;
-        newbuf =  realloc((buf), (buflen + plen + 1)) ;
-        if (newbuf == NULL)
-        {
-            vim_free(buf);
-            vim_free(p);
-            return;
-        }
-        buf = newbuf;
-         strcpy((char *)(buf + buflen), (char *)(p)) ;
-        buflen += plen;
-        vim_free(p);
+        aux_ptr = (char_u *)(magic_isset() ? "/.*~[^$\\" : "/^$\\");
     }
     else
     {
-        if (cmdchar == '*')
-        {
-            aux_ptr = (char_u *)(magic_isset() ? "/.*~[^$\\" : "/^$\\");
-        }
-        else if (cmdchar == '#')
-        {
-            aux_ptr = (char_u *)(magic_isset() ? "/?.*~[^$\\" : "/?^$\\");
-        }
-        else if (tag_cmd)
-        {
-            if ( strcmp((char *)(curbuf->b_p_ft), (char *)("help"))  == 0)
-            {
-                aux_ptr = (char_u *)"";
-            }
-            else
-            {
-                aux_ptr = (char_u *)"\\|\"\n[";
-            }
-        }
-        else
-        {
-            aux_ptr = (char_u *)"\\|\"\n*?[";
-        }
-
-        p = buf + buflen;
-        while (n-- > 0)
-        {
-            if (vim_strchr(aux_ptr, *ptr) != NULL)
-            {
-                *p++ = '\\';
-            }
-
-            if (has_mbyte)
-            {
-                int i;
-                int len = (*mb_ptr2len)(ptr) - 1;
-
-                for (i = 0; i < len && n >= 1; ++i, --n)
-                {
-                    *p++ = *ptr++;
-                }
-            }
-            *p++ = *ptr++;
-        }
-        *p = NUL;
-        buflen = p - buf;
+        aux_ptr = (char_u *)(magic_isset() ? "/?.*~[^$\\" : "/?^$\\");
     }
 
-    if (cmdchar == '*' || cmdchar == '#')
+    p = buf + buflen;
+    while (n-- > 0)
     {
-        if (!g_cmd && (has_mbyte ? vim_iswordp(mb_prevptr(ml_get_curline(), ptr)) : vim_iswordc(ptr[-1])))
+        if (vim_strchr(aux_ptr, *ptr) != NULL)
         {
-             strcpy((char *)(buf + buflen), (char *)("\\>")) ;
-            buflen +=  (sizeof("\\>" "") - 1) ;
+            *p++ = '\\';
         }
 
-        init_history();
-        add_to_history(HIST_SEARCH, buf, buflen, TRUE, NUL);
+        if (has_mbyte)
+        {
+            int i;
+            int len = (*mb_ptr2len)(ptr) - 1;
 
-        (void)normal_search(cap, cmdchar == '*' ? '/' : '?', buf, buflen, 0, NULL);
+            for (i = 0; i < len && n >= 1; ++i, --n)
+            {
+                *p++ = *ptr++;
+            }
+        }
+        *p++ = *ptr++;
     }
-    else
+    *p = NUL;
+    buflen = p - buf;
+
+    if (!g_cmd && (has_mbyte ? vim_iswordp(mb_prevptr(ml_get_curline(), ptr)) : vim_iswordc(ptr[-1])))
     {
-        g_tag_at_cursor = TRUE;
-        do_cmdline_cmd(buf);
-        g_tag_at_cursor = FALSE;
+         strcpy((char *)(buf + buflen), (char *)("\\>")) ;
+        buflen +=  (sizeof("\\>" "") - 1) ;
     }
+
+    init_history();
+    add_to_history(HIST_SEARCH, buf, buflen, TRUE, NUL);
+
+    (void)normal_search(cap, cmdchar == '*' ? '/' : '?', buf, buflen, 0, NULL);
 
     vim_free(buf);
 }
@@ -84502,8 +83817,6 @@ nv_g_cmd(cmdarg_T *cap)
     case '*':
     case '#':
     case POUND:
-    case Ctrl_RSB:
-    case ']':
         nv_ident(cap);
         break;
 
@@ -102424,35 +101737,6 @@ regtilde(char_u *source, int magic)
 }
 
     static int
-vim_regsub(regmatch_T  *rmp, char_u      *source, typval_T    *expr, char_u      *dest, int         destlen, int         flags)
-{
-    int         result;
-    regexec_T   rex_save;
-    int         rex_in_use_save = rex_in_use;
-
-    if (rex_in_use)
-    {
-        rex_save = rex;
-    }
-    rex_in_use = TRUE;
-
-    rex.reg_match = rmp;
-    rex.reg_mmatch = NULL;
-    rex.reg_maxline = 0;
-    rex.reg_buf = curbuf;
-    rex.reg_line_lbr = TRUE;
-    result = vim_regsub_both(source, expr, dest, destlen, flags);
-
-    rex_in_use = rex_in_use_save;
-    if (rex_in_use)
-    {
-        rex = rex_save;
-    }
-
-    return result;
-}
-
-    static int
 vim_regsub_multi(regmmatch_T *rmp, linenr_T    lnum, char_u      *source, char_u      *dest, int         destlen, int         flags)
 {
     int         result;
@@ -117249,133 +116533,6 @@ csh_like_shell(void)
     return (strstr((char *)gettail(p_sh), "csh") != NULL);
 }
 
-    static int
-fish_like_shell(void)
-{
-    return (strstr((char *)gettail(p_sh), "fish") != NULL);
-}
-
-    static char_u *
-vim_strsave_shellescape(char_u *string, int do_special, int do_newline)
-{
-    unsigned    length;
-    char_u      *p;
-    char_u      *d;
-    char_u      *escaped_string;
-    size_t      l;
-    int         csh_like;
-    int         fish_like;
-    char_u      *shname;
-    int         powershell;
-
-    csh_like = csh_like_shell();
-
-    fish_like = fish_like_shell();
-
-    shname = gettail(p_sh);
-    powershell = strstr((char *)shname, "pwsh") != NULL;
-
-    length = (unsigned) strlen((char *)(string))  + 3;
-    for (p = string; *p != NUL;  p += (*mb_ptr2len)(p) )
-    {
-        if (*p == '\'')
-        {
-            if (powershell)
-            {
-                length += 2;
-            }
-            else
-            {
-                length += 3;
-            }
-        }
-        if ((*p == '\n' && (csh_like || do_newline)) || (*p == '!' && (csh_like || do_special)))
-        {
-            ++length;
-            if (csh_like && do_special)
-            {
-                ++length;
-            }
-        }
-        if (do_special && find_cmdline_var(p, &l) >= 0)
-        {
-            ++length;
-            p += l - 1;
-        }
-        if (*p == '\\' && fish_like)
-        {
-            ++length;
-        }
-    }
-
-    escaped_string = alloc(length);
-    if (escaped_string != NULL)
-    {
-        d = escaped_string;
-
-            *d++ = '\'';
-
-        for (p = string; *p != NUL; )
-        {
-            if (*p == '\'')
-            {
-                if (powershell)
-                {
-                    *d++ = '\'';
-                    *d++ = '\'';
-                }
-                else
-                {
-                    *d++ = '\'';
-                    *d++ = '\\';
-                    *d++ = '\'';
-                    *d++ = '\'';
-                }
-                ++p;
-                continue;
-            }
-            if ((*p == '\n' && (csh_like || do_newline)) || (*p == '!' && (csh_like || do_special)))
-            {
-                *d++ = '\\';
-                if (csh_like && do_special)
-                {
-                    *d++ = '\\';
-                }
-                *d++ = *p++;
-                continue;
-            }
-            if (do_special && find_cmdline_var(p, &l) >= 0)
-            {
-                *d++ = '\\';
-                memcpy(d, p, l);
-                d += l;
-                p += l;
-                continue;
-            }
-            if (*p == '\\' && fish_like)
-            {
-                *d++ = '\\';
-                *d++ = *p++;
-                continue;
-            }
-
-             if (has_mbyte)
-             {
-                 mb_copy_char(&(p), &(d));
-             }
-             else
-             {
-                 *(d)++ = *(p)++;
-             }
-        }
-
-            *d++ = '\'';
-        *d = NUL;
-    }
-
-    return escaped_string;
-}
-
     static char_u *
 vim_strnsave_up(char_u *string, size_t len)
 {
@@ -129315,23 +128472,6 @@ newwindow:
                 win_setwidth(Prenum != 0 ? (int)Prenum : 9999);
                 break;
 
-    case ']':
-    case Ctrl_RSB:
-                 if (cmdwin_type != 0)
-                     {           emsg(_(e_invalid_in_cmdline_window));           return;     }
-                if (Prenum)
-                {
-                    postponed_split = Prenum;
-                }
-                else
-                {
-                    postponed_split = -1;
-                }
-
-                do_nv_ident(Ctrl_RSB, NUL);
-                postponed_split = 0;
-                break;
-
     case 'f':
     case 'F':
     case Ctrl_F:
@@ -129403,21 +128543,6 @@ wingotofile:
 
                 switch (xchar)
                 {
-                    case ']':
-                    case Ctrl_RSB:
-                        if (Prenum)
-                        {
-                            postponed_split = Prenum;
-                        }
-                        else
-                        {
-                            postponed_split = -1;
-                        }
-
-                        do_nv_ident('g', xchar);
-                        postponed_split = 0;
-                        break;
-
                     case 'f':
                     case 'F':
                         cmdmod.cmod_tab = tabpage_index(curtab) + 1;
