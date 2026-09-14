@@ -124,12 +124,12 @@ each reproduces that boundary byte for byte.
 
 - **`phase0.sh`** — configure, build, delete the asserts, rebuild, and check
   the harness disagrees with the baselines in exactly the six cases Phase 1
-  owns. **32 s against 2 m 57 s.** Uses `dropasserts.py`.
+  owns. **33 s against 2 m 57 s.** Uses `dropasserts.py`.
 - **`phase1.sh`** — apply `patches/slim1.patch`, delete the configure
-  machinery, rebuild, and run all four harnesses against the baselines. **18 s
+  machinery, rebuild, and run all four harnesses against the baselines. **17 s
   against 17 m 16 s.** This is the phase that changes behaviour, so it is also
   the phase that pins it.
-- **`phase2.sh`** — prune to what the compiler opens, and flatten. **4 s against
+- **`phase2.sh`** — prune to what the compiler opens, and flatten. **5 s against
   7 m 13 s.** Both deletions are *computed*: a source whose object defines no
   symbols compiles to nothing (61 of 128), and a file the `-MD` dependency
   files never name was never opened. Installs `templates/pruned.mk` rather than
@@ -142,7 +142,7 @@ each reproduces that boundary byte for byte.
 - **`phase5.sh`** — plant, tally, resolve, drop `#undef`, tier 2 across all 67
   units. **8 s against 7 m 00 s.** 8,251 conditional groups become 17.
 - **`phase7.sh`** — the seven canonicalisers to a joint fixpoint, checked by
-  tier 1. **40 s against 5 m 24 s.** Uses `canon.sh`.
+  tier 1. **39 s against 5 m 24 s.** Uses `canon.sh`.
 - **`phase9.sh`** — delete, split the X-macro, convert, expand, unwrap,
   canonicalise. **34 s against 943 s**, with a 134-line residue where it began
   as a 33,670-line recording. Uses `dropmacros.py`, `xmacro9.py`,

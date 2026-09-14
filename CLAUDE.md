@@ -363,12 +363,14 @@ that the *warning set* is unchanged rather than that it builds. And macros are
 deleted before conversion in exactly one round, because the round count decides
 how many constants ever reach `toenum.py`.
 
-**A pass costs about ten minutes** with every phase a program: 31 s, 20 s, 6 s,
-1 s, 63 s, 12 s, 11 s, 40 s, 385 s, 34 s. It cost 24 minutes with Phase 9 at
-tier 1, and 67 when one agent did all of it. **Phase 8 is now two thirds of the
-total**, being compile-bound — the static loop plus eight sweep rounds, each
-running gcc twice over a 177,000-line file — and is where the next minute comes
-from.
+**A pass costs 411 seconds** with every phase a program, measured by a cold `make
+slim-repass` from an empty cache: 33 s, 17 s, 5 s, 1 s, 63 s, 8 s, 12 s, 39 s,
+153 s, 34 s, 22 s, 24 s. It cost 24 minutes with Phase 9 at tier 1, and 67 when
+one agent did all of it. **Phase 8 is the largest part, 153 s and over a third of
+the total**, being compile-bound — the static loop plus eight sweep rounds, each
+a gcc compile of a 177,000-line file — and is where the next minute comes from.
+The pass is sequential by nature; checking its twelve recorded boundaries is not,
+and `make slim-verify` does that in the 170 s of its slowest phase.
 
 **The last pass produced a binary byte-identical to the committed one** and a
 `slim-vim.c` differing by 49 lines, all of it Phase 8: a redundant `static` on

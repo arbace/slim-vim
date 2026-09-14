@@ -430,21 +430,25 @@ seconds; `gcc -E` over 67 units is 0.15 s, `expand.py` over a five-megabyte
 file is 8.4 s, `resolve.py` is 3 s. Everything else was an agent reading,
 deciding and typing.
 
-| phase | elapsed | what dominated |
-| --- | --- | --- |
-| phase | one agent, whole pass | one agent per phase | **as a program** |
+| phase | one agent, whole pass | one agent per phase | **as a program, cold** |
 | --- | --- | --- | --- |
-| 0 reference, tools, harness | 2 m 57 s | — | **32 s** |
-| 1 freeze the configuration | 13 m 12 s | 17 m 16 s | **18 s** |
-| 2 prune the tree | 4 m 39 s | 7 m 13 s | **4 s** |
+| 0 reference, tools, harness | 2 m 57 s | — | **33 s** |
+| 1 freeze the configuration | 13 m 12 s | 17 m 16 s | **17 s** |
+| 2 prune the tree | 4 m 39 s | 7 m 13 s | **5 s** |
 | 3 one Makefile | 47 s | 7 m 02 s | **1 s** |
 | 4 line-level normalisations | 1 m 20 s | 5 m 41 s | **63 s** |
 | 5 resolve conditionals | 3 m 14 s | 7 m 00 s | **8 s** |
-| 6 merge | 3 m 36 s | 10 m 15 s | |
-| 7 canonicalise | 2 m 15 s | 5 m 24 s | **40 s** |
-| 8 internal linkage, dead code | 6 m 33 s | 13 m 09 s | |
-| 9 leave the preprocessor behind | 16 m 9 s | 16 m 26 s | |
+| 6 merge | 3 m 36 s | 10 m 15 s | **12 s** |
+| 7 canonicalise | 2 m 15 s | 5 m 24 s | **39 s** |
+| 8 internal linkage, dead code | 6 m 33 s | 13 m 09 s | **153 s** |
+| 9 leave the preprocessor behind | 16 m 9 s | 16 m 26 s | **34 s** |
+| 10 the forward declarations nothing needs | — | — | **22 s** |
+| 11 every definition says its own linkage | — | — | **24 s** |
 | documents, `.reference/`, verification | ~12 m | conditional | |
+
+The agent columns are the history, and phases 10 and 11 did not exist then. The
+last column is a cold `make slim-repass` from an empty cache: **411 seconds**, and
+all twelve boundaries matched their recordings.
 
 **All ten are programs now.** Measured end to end at 24 minutes with Phase 9
 still running as an agent, and Phase 9's own program was synthesised from that
@@ -460,9 +464,9 @@ fall-through attributes, the three `pum_set_*` functions, the version strings.
 Phase 1 is 797 lines of deliberate patch, which is the right answer for edits
 the tree cannot state. Everything else computes what it does.
 
-**A pass is about ten minutes now**, and Phase 8 is two thirds of it, being
-compile-bound: the static loop plus eight sweep rounds, each running gcc twice
-over a 177,000-line file. That is where the next minute comes from --
+**A pass is 411 seconds now**, and Phase 8 is the largest part of it at 153 s,
+being compile-bound: the static loop plus eight sweep rounds, each a gcc compile
+of a 177,000-line file. That is where the next minute comes from --
 `deadsweep.py --fixpoint`, and caching the warning list between the tool's own
 gcc run and the loop's check.
 
@@ -529,7 +533,7 @@ The three changes measured to be worth the most, in order:
 
 ## Phase 0 — reference, tools, harness
 
-**This phase is a program: `tools/slim0.sh`, 30 seconds against the 2 m 57 s
+**This phase is a program: `tools/slim0.sh`, 33 seconds against the 2 m 57 s
 an agent took.** What follows is what it does and why, which is still worth
 reading — it is the specification the program was written from, and what to
 check it against when upstream moves. It configures, builds, deletes the
@@ -637,7 +641,7 @@ later phase and costs a bisect.
 
 ## Phase 1 — freeze the configuration
 
-**This phase is a program: `tools/slim1.sh`, 18 seconds against 17 minutes.**
+**This phase is a program: `tools/slim1.sh`, 17 seconds against 17 minutes.**
 Everything it does is a fixed edit to a fixed upstream file, so it is a
 checked-in patch -- `tools/patches/slim1.patch`, 1,297 lines across 13 files --
 plus twelve deletions, and then all four harnesses against the recorded
@@ -817,7 +821,7 @@ rule 7, and it is cheaper than it sounds.
 
 ## Phase 2 — prune the tree
 
-**This phase is a program: `tools/slim2.sh`, 4 seconds against 7 m 13 s.** It
+**This phase is a program: `tools/slim2.sh`, 5 seconds against 7 m 13 s.** It
 installs `tools/templates/pruned.mk` rather than performing surgery on
 upstream's 4,910-line makefile -- Phase 3 replaces the makefile anyway, so
 nothing that surgery produced survives one more phase, and the fork bomb below
@@ -1242,7 +1246,7 @@ there is only one file now. Make it shape-agnostic
 
 ## Phase 7 — canonicalise, before anything reads C syntax
 
-**This phase is a program: `tools/slim7.sh`, 40 seconds against 5 m 24 s.** It
+**This phase is a program: `tools/slim7.sh`, 39 seconds against 5 m 24 s.** It
 builds tier 1's left-hand side first, runs `tools/canon.sh` to a joint fixpoint
 (six rounds here), and requires the binary to come out byte-identical. What
 follows is what it does and why.
