@@ -9,6 +9,7 @@ recorded the same way agreed for the wrong reason.
 
 Usage: exsweep.py <vim-binary> <ex_cmds.h|vim.c> <outfile>
 """
+import concurrent.futures
 import os
 import shutil
 import subprocess
@@ -37,11 +38,9 @@ def main():
     # is not reproducible from one run to the next.
     SKIP = {'shell', 'suspend', 'stop', 'terminal', 'gui', 'gvim'}
 
-    rows = []
-    for name in names:
+    def one(name):
         if name in SKIP:
-            rows.append('%-24s SKIPPED (hands over the terminal)' % name)
-            continue
+            return '%-24s SKIPPED (hands over the terminal)' % name
         d = tempfile.mkdtemp(prefix='exsweep-')
         try:
             src = os.path.join(d, 'f.txt')
@@ -58,12 +57,20 @@ def main():
             err = r.stderr.decode('utf-8', 'replace').strip().replace('\n', ' | ')
             # Files a command left behind in the cwd are part of what it did.
             left = sorted(x for x in os.listdir(d) if x != 'f.txt')
-            rows.append('%-24s exit=%-3d left=%-40s err=%s'
-                        % (name, r.returncode, ','.join(left) or '-', err))
+            return ('%-24s exit=%-3d left=%-40s err=%s'
+                    % (name, r.returncode, ','.join(left) or '-', err))
         except subprocess.TimeoutExpired:
-            rows.append('%-24s TIMEOUT' % name)
+            return '%-24s TIMEOUT' % name
         finally:
             shutil.rmtree(d, ignore_errors=True)
+
+    # EVERY COMMAND AT ONCE, in rows kept in table order.  Each dispatch has its
+    # own scratch directory and its own session, so nothing one command does can
+    # reach another -- which the sweep already required, to keep :mkvimrc's file
+    # out of the next command's listing -- and map() returns in submission order,
+    # so the recording is the same bytes it always was.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as ex:
+        rows = list(ex.map(one, names))
 
     shutil.rmtree(stage, ignore_errors=True)
     open(out, 'w').write('\n'.join(rows) + '\n')

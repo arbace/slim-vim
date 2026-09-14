@@ -36,11 +36,11 @@ always effectively off.
 
 AND `'directory'` IS NOT ONE OF THEM ANY MORE.  A row is what initialises its
 global, and `recover_names()` scans every directory in `p_dir` for swap files
-until Phase 23 -- so dropping the row here left `p_dir` NULL with a live
+until Phase 21 -- so dropping the row here left `p_dir` NULL with a live
 dereference in `check_overwrite()`, and `:w!` over an existing other file
 segfaulted for twelve phases.  `dropoptions.py --strict` refuses that and did
 not exist when this phase was written; it runs here now, `'directory'` goes in
-Phase 23 once its last reader has, and `tools/orphanopts.py` checks the
+Phase 21 once its last reader has, and `tools/orphanopts.py` checks the
 invariant in every whim phase.
 """
 
@@ -109,10 +109,10 @@ def main():
     #                It is also the only caller of sync().
     #   'directory'  p_dir, read in check_overwrite() -- and in recover_names(),
     #                which scans every directory in it for swap files and lives
-    #                until Phase 23.  So 'directory' CANNOT be dropped here at
+    #                until Phase 21.  So 'directory' CANNOT be dropped here at
     #                all, and used to be: it left p_dir NULL, and for twelve
     #                phases `:w!` over an existing other file segfaulted.
-    #                It goes in Phase 23, once its last reader has.
+    #                It goes in Phase 21, once its last reader has.
     #
     # Invisible to everything until then -- the build is clean, an orphaned
     # global is *used* so no warning names it, and no harness writes over an

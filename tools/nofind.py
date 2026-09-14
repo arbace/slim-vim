@@ -5,7 +5,7 @@ Usage:
     python3 tools/nofind.py <file>
 
 `'path'` searching is the last of the three ways this editor knew where files
-live, after globbing (Phase 11) and `'tags'` (Phase 14).  `vim_findfile()`
+live, after globbing (Phase 7) and `'tags'` (Phase 10).  `vim_findfile()`
 walks a path list downward and upward, remembers directories it has visited so
 a symlink loop cannot trap it, and can be asked for the second match and the
 third -- 866 lines of filesystem-layout knowledge behind `:find`, `:sfind`,

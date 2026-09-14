@@ -21,7 +21,11 @@ name could select has a command-line option that selects it explicitly, and
 this refuses to run unless all of them are still there:
 
     -Z  restricted      -R  readonly       -y  evim
-    -e  ex mode         -E  improved ex    -d  diff
+    -e  ex mode         -E  improved ex
+
+`diff` is not among them because it never selected a mode here: this build has
+no diff feature, and the name only ever printed that and exited.  `-d`, which
+looks like its option, was an argument that went nowhere and Phase 3 dropped it.
 
 The one difference worth knowing: invoking vim as `view` also set
 `'undolevels'` to 10000, and `-R` does not.  Upstream's own option is the

@@ -18,8 +18,8 @@ WHAT STAYS, and why:
   * **SIGTSTP** -- CTRL-Z and `:suspend`, through `sig_tstp()` and `got_tstp`.
     It is the only caller of `raise`.
   * **SIGHUP and SIGTERM**, reaching `deathtrap()`.  Its historical job was
-    preserving files and it cannot do that any more -- Phase 23 emptied
-    `ml_sync_all()` and Phase 26 removed `preserve_exit()`'s loop.  What it
+    preserving files and it cannot do that any more -- Phase 21 emptied
+    `ml_sync_all()` and Phase 24 removed `preserve_exit()`'s loop.  What it
     still does is the reason to keep it: `prepare_to_exit()` runs
     `settmode(TMODE_COOK)` and `stoptermcap()`, so a killed editor **puts the
     terminal back**.  Without that the user's shell is left in raw mode with no
@@ -29,18 +29,18 @@ WHAT STAYS, and why:
 WHAT GOES, sixteen entries and three handlers:
 
   * `SIGPWR` -> `catch_sigpwr()`, which calls `ml_sync_all()` -- **an empty
-    function** since Phase 23.  A handler installed to do nothing.
+    function** since Phase 21.  A handler installed to do nothing.
   * `SIGUSR1` -> `catch_sigusr1()`, which sets `got_sigusr1`, **which nothing
     reads**.  It is assigned and never examined, so `-Wunused-variable` does not
     fire and the sweep would never find it.
   * `SIGQUIT`, `SIGILL`, `SIGTRAP`, `SIGABRT`, `SIGFPE`, `SIGBUS`, `SIGSEGV`,
     `SIGSYS`, `SIGALRM`, `SIGVTALRM`, `SIGPROF`, `SIGXCPU`, `SIGXFSZ`,
-    `SIGUSR2`, `SIGPIPE` -- there is no `fork` and no pipe since Phase 10, and
+    `SIGUSR2`, `SIGPIPE` -- there is no `fork` and no pipe since Phase 8, and
     the rest describe conditions with nobody left to report them to.
   * `sigaltstack` and its stack, which existed so a SIGSEGV caused by stack
     overflow could still run a handler -- and SEGV no longer reaches one.
     `sysconf` goes with it: `_SC_SIGSTKSZ` was its last caller, the other having
-    gone with `mch_total_mem()` in Phase 23.
+    gone with `mch_total_mem()` in Phase 21.
   * `may_core_dump()`, which re-raises to produce a core there is nobody to read.
 
 THE COST, stated because it is real: **a crash no longer restores the
@@ -162,7 +162,7 @@ def main():
     #
     # And it uses settmode() rather than mch_settmode(), because mch_settmode()
     # is defined 89,000 lines further down with no forward declaration left to
-    # reach it -- Phase 10 removed the ones nothing needed.  Lending
+    # reach it -- Phase 8 removed the ones nothing needed.  Lending
     # full_screen for the length of the call is enough: the guard exists to
     # avoid drawing on a screen that is not there, and putting the terminal
     # back is not drawing.

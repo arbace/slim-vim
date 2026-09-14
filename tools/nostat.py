@@ -11,7 +11,7 @@ stats its file -- from the main loop, from insert mode, from the
 file has moved underneath, it prompts, and with `'autoread'` it reloads.
 
 That is the editor initiating filesystem traffic on its own account, which is
-the boundary this fork narrows.  Phase 15 retired `:checktime`, which removed
+the boundary this fork narrows.  Phase 11 retired `:checktime`, which removed
 the *command*; this removes the *polling*, which is what actually reached the
 disk.  What is left is an editor that reads a file when told to and writes it
 when told to.

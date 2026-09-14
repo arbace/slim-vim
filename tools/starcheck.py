@@ -4,7 +4,7 @@
 Usage:
     python3 tools/starcheck.py <binary>
 
-Phase 33 keeps `*` and `#` while removing the rest of `nv_ident()`, so this is
+Phase 30 keeps `*` and `#` while removing the rest of `nv_ident()`, so this is
 the half that has to go on working -- and no behaviour case presses `*`.
 
 **IT HAS TO BE A PTY.**  The first version of this check ran the editor under

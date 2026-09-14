@@ -14,9 +14,9 @@ the first step -- read the identifier under the cursor:
 `nv_ident()` wholesale would take them, which is why this phase rewrites the
 function rather than removing it.
 
-`K` runs `'keywordprg'` through a shell, and Phase 8 took the shell.  The tag
+`K` runs `'keywordprg'` through a shell, and Phase 6 took the shell.  The tag
 jumps build an Ex command -- `ta `, `tj `, `ts `, `he! ` -- and hand it to
-`do_cmdline_cmd()`; Phase 12 retired the tag stack, so every one of those names
+`do_cmdline_cmd()`; Phase 10 retired the tag stack, so every one of those names
 is already `ex_ni`.  Both arms have been building commands that fail.
 
 What the rewrite drops with them: `nv_K_getcmd()`, the `kp`/`kp_help`/`kp_ex`

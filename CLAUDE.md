@@ -13,7 +13,7 @@ and deleted.
 Vim 9.2 (upstream patch level 1037) as **one translation unit**. That number
 moves: the input is cloned fresh, upstream keeps patching, and **Phase 1 is
 where this line gets updated** — from `version.c`, not from memory. `slim-vim.c` is
-181,285 lines and is the whole editor; one `gcc` invocation builds it in about
+180,848 lines and is the whole editor; one `gcc` invocation builds it in about
 8 seconds, into a standalone static binary.
 
 **`slim-vim.c` is produced, not edited into shape.** `SLIM-GOAL.md` is the process that
@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-A hundred and ninety-four tracked files once both pipelines have run:
-thirteen at the root, and 181 under
+A hundred and ninety-two tracked files once both pipelines have run:
+thirteen at the root, and 179 under
 `tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
-thirty-eight for `whim.mk`), the memoize
+thirty-three for `whim.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Three of the thirteen are products
 (`slim-vim.c`, `whim-vim.c`, `LICENSE`), two are records (`upstream.sha`,
@@ -105,6 +105,7 @@ that exists on one side and not the other is a question rather than an accident:
 | one phase, replay | `slim-phase-N` `slim-replay-N` | `whim-phase-N` `whim-replay-N` |
 | add a phase at the end | `slim-tip` | `whim-tip` |
 | record, time, score | `slim-record` `slim-times` `slim-residue` | `whim-record` `whim-times` `whim-residue` |
+| check every boundary at once | `slim-verify` | `whim-verify` |
 | throw away the work | `slim-clean` | `whim-clean` |
 
 Three targets are deliberately one-sided and each says why. `slim-promote-N` has
@@ -129,11 +130,12 @@ records it, and that is the whole loop while an idea is being tried out.
 **Editing an existing phase's program does not re-run it, and `make whim-pass`
 will not tell you so.** The content-keyed tier-3 check lives *inside* the
 recipe, and make never gets there: a phase's prerequisite is the previous
-boundary *file*, so an existing `q28.sha256` that is newer than `q27.sha256` is
+boundary *file*, so an existing `q27.sha256` that is newer than `q26.sha256` is
 "up to date" and the recipe is skipped whatever the implementation digest now
-says. Measured: with `tools/whim37.sh` edited so `implhash.sh` returns a
+says. Measured: with `tools/whim32.sh` edited so `implhash.sh` returns a
 different key, `make -n whim-pass` plans **no phase recipes at all**. A rewrite
-of `whim28.sh` silently did not execute this way, and the pass reported success.
+of the unreachability phase's program silently did not execute this way, and the
+pass reported success.
 
 Three targets do force it, and one of them is the one to reach for: `make
 whim-phase-N` and `make whim-tip` are `.PHONY`, so their recipes always run and
@@ -144,10 +146,17 @@ the tier-3 key then decides; `make whim-repass` removes `.build-whim` outright.
 distinction matters more than the minutes it saves. A tier 3 replay **copies**
 the recorded digest rather than recomputing it, so a warm pass agrees with the
 oracle whatever the oracle says — which is how a wrong boundary went unnoticed
-for eleven phases. Only a run from an empty cache can catch that:
-`make clean-cache && make whim-repass`. Do it before a push, and whenever a
+for eleven phases. Only a run that recomputes every digest can catch that, and
+there are two. **`make whim-verify`** runs every phase at once, each on the
+recorded boundary before it in a scratch root of its own, and requires each
+recorded boundary back — by induction the same proof, in about two and a half
+minutes on 64 CPUs where the sequential pass is 2,489 seconds. `make clean-cache
+&& make whim-repass` is the sequential run, and the one that *produces*
+boundaries rather than checks them: record from a cold pass, then verify. Do it
+before a push, and whenever a
 **shared** tool changes — `sweep.sh`, `canon.sh`, `deadsweep.py`,
-`typereach.py`, `funcreach.py`, `phasecheck.sh`, `whimdelta.sh`, `cutil.py` —
+`typereach.py`, `funcreach.py`, `deadfields.py`, `deadenums.py`,
+`phasecheck.sh`, `whimdelta.sh`, `cutil.py` —
 though those are in every phase's implhash, so everything re-runs then anyway.
 
 **`upstream.sha` is tracked, and that is load-bearing rather than tidy.** It is
@@ -449,6 +458,11 @@ CTRL-V/CTRL-W/backspace, multibyte motions and case changes, substitution
 flavours, operators and text objects, macros, undo/redo, registers, marks, sort,
 filters, `'fileformat'`/`'bomb'`/`'binary'`, and four cases for `+extra_search`.
 
+**The cases run at once**, and so do `exsweep.py`'s 600 dispatches: each already
+had a directory of its own, and each writes a result nothing else reads, so the
+recordings are the same bytes — checked against the baselines — while the harness
+takes 1.2 s instead of 4.4.
+
 A case that writes no file records `<NO FILE WRITTEN>`, so a crash cannot pass
 as a match, and every artifact is deleted before the run — **a harness that
 diffs an output file it did not first delete keeps passing on the previous
@@ -616,9 +630,9 @@ The 3,433 `#define`s became:
 
 | | how many |
 | --- | --- |
-| deleted, nothing mentioned them | 909 |
+| deleted, nothing mentioned them | 912 |
 | enumerators (`enum { … }`, `enum : long { … }`) | 1,443 |
-| expanded at the use site | 1,027 macros |
+| expanded at the use site | 1,041 macros |
 | `static inline` function | 2 (`_`, `NGETTEXT`) |
 | character arrays | 3 (the version strings) |
 | written out (token pasting) | 3 (`pum_set_border`/`shadow`/`margin`) |
@@ -633,9 +647,10 @@ initialiser or a static initialiser, and these do.
 
 `main()` is the only symbol with external linkage. `nm` on a build made without
 `-s` is the check — the shipped binary is stripped and `nm` says "no symbols" —
-and the only other globals are the C runtime's. Everything else is `static` — 4,288
-declarations, of which 1,993 are the former `proto/*.pro` block near the top of
-the file, the rest of that block having gone to the dead-code sweep.
+and the only other globals are the C runtime's. Everything else is `static`:
+3,578 file-scope lines begin with the keyword, and 1,951 of those are prototypes
+— what the dead-code sweep and Phase 10 left of the former `proto/*.pro` block
+near the top of the file.
 
 **A *function* definition following a `static` declaration inherits internal
 linkage**, which is why three thousand definitions say nothing about it.
@@ -643,9 +658,10 @@ linkage**, which is why three thousand definitions say nothing about it.
 external linkage whatever a prior declaration said, and gcc rejects the pair.
 
 The forward declarations are what keep definition order inside `slim-vim.c` from
-mattering, and **the redundant half is gone**: Phase 10 dropped 534 of them,
-handing `static` to each definition whose declaration went, and Phase 11 then
-gave the keyword to the other 1,482 that had been inheriting it. Every
+mattering, and **the redundant ones are gone**: Phase 10 moved the command table
+below the handlers it names and then dropped 640 of them, handing `static` to
+each definition whose declaration went, and Phase 11 then gave the keyword to the
+other 1,441 that had been inheriting it. Every
 definition now states its own linkage, so no declaration is load-bearing for
 anything but order, and one can be removed without anyone having to think about
 linkage at all.
@@ -672,7 +688,7 @@ check worth keeping, not just a fact.
 **No parenthesised group spans a line break.** Every condition is on one line,
 and so is every argument list — of a call, a declaration or a definition. A
 body's extent is brace matching and a condition's extent is one line, so a
-line-oriented tool never has to parse C. The trade is width: 2,479 lines are
+line-oriented tool never has to parse C. The trade is width: 2,468 lines are
 over 120 columns and 461 over 200, the longest 1,084. Nothing here wraps to a
 terminal.
 
@@ -702,8 +718,8 @@ command string in `trigger_undo_ftplugin()`, and one inside the default
 
 Upstream is `noet`, so anything imported from there needs expanding first.
 
-**The paragraphing was never lost.** 17,264 blank lines, 9.5% of the file and
-**5.21 per function** — the density of a build that kept its comments. Every
+**The paragraphing was never lost.** 17,193 blank lines, 9.5% of the file and
+**5.31 per function** — the density of a build that kept its comments. Every
 function is separated from the next, every declaration block from its body, no
 run of two blank lines anywhere and none after an opening brace.
 
@@ -937,8 +953,20 @@ tools/enumvals.sh slim-vim.c before.txt      # dump, make the change, dump again
 ```
 
 Dump before and after; every name present in both must have the same value.
-There are 2,935. That is a stronger check than the build, which is perfectly
+There are 2,862. That is a stronger check than the build, which is perfectly
 happy to renumber a table index.
+
+**Every sweep does this now, in both pipelines.** `tools/deadenums.py` runs in
+slim's Phase 8 loop and in every whim phase's `sweep.sh`: it dumps the values on
+first need, pins the first survivor after each deleted run, keeps a run whose
+next survivor DWARF has no value for — gcc does not emit every enum, and an
+unpinned survivor would renumber invisibly — and dumps again with `--verify`
+once the loop is done. `tools/deadfields.py` sits beside it for struct fields,
+which no warning covers either, and **refuses while `ml_recover()` exists**:
+removing a field moves the ones after it, and while the editor can read a swap
+file, block zero and the memfile's pages are a disk format. So `slim-vim.c`
+keeps every field, and `whim-vim.c` loses its dead ones from the phase that
+removes recovery on.
 
 ### Add a constant
 
@@ -1017,10 +1045,17 @@ embeds `__DATE__` and `__TIME__`, so no whim boundary was ever equal to itself
 twice. **Nothing caught it for eleven phases**, and the reason is worth keeping:
 a phase replayed from the tier 3 cache copies the recorded digest rather than
 recomputing it, so a cached pass agrees with the oracle whatever the oracle
-says. **Only a run from an empty cache can falsify a boundary.** `make whim-repass`
-after `rm -rf .cache/q*` is that run, and it is the check to make before
-trusting a recording — every whim boundary reproduces under it, each phase a
-program.
+says. **Only a run that recomputes a digest can falsify a boundary.** `make
+whim-verify` is the fast one and `make whim-repass` after `make clean-cache` the
+sequential one, and one of them is the check to make before trusting a recording
+— every whim boundary reproduces under both, each phase a program.
+
+`src/xxd/xxd`, upstream's other built binary, is excluded for a reason of the same
+kind: its debug info records the directory it was built in, so slim's first two
+boundaries depended on *where* the phase ran. A pass that always runs in
+`upstream/` could never show that. `make slim-verify`, which runs each phase in a
+scratch root of its own, showed it on its first run — and stripped of that path
+the two binaries were identical.
 
 ```sh
 make slim-repass          # force a pass on a tree whose sha already matches

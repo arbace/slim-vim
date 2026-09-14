@@ -70,7 +70,16 @@ echo "  static       nm on the object prints exactly main, after $round round(s)
 
 # --- dead code, to a joint fixpoint ---------------------------------------
 # Functions and variables from -Wall -Wextra; types by reachability, for which
-# no warning exists.  Alternating, because each orphans the other.
+# no warning exists; and enumerators, which nothing warns about either and
+# which renumber the ones after them when they go -- so survivors are pinned to
+# their DWARF values (tools/enumvals.sh), dumped on first need and compared
+# again once the loop is done.  Alternating, because each orphans the others.
+#
+# Struct fields are asked too, and deadfields.py refuses here: this editor can
+# still read a swap file, so block zero and the memfile's pages are a disk
+# format, and a field nothing in the code reads is still a field another vim
+# wrote.  Unreachable code goes; a file format stays.
+vals="$tmp/enumvals.txt"
 # The fixpoint is the FILE, not any tool's report.  Keying on a count means
 # parsing three tools' prose, and reading only the first number of
 # "prototypes 0, functions 1, variables 2" stops the loop with work left to do
@@ -87,7 +96,9 @@ while :; do
     # apiece.  So this belongs inside the loop, between the two.
     c=$(python3 tools/deadprotos.py "$f" | tail -1)
     b=$(python3 tools/typereach.py "$f" --delete | tail -1)
-    echo "  sweep $sweep      $a; $c; $b"
+    g=$(python3 tools/deadfields.py "$f" --delete | tail -1)
+    h=$(python3 tools/deadenums.py "$f" "$vals" --delete | tail -1)
+    echo "  sweep $sweep      $a; $c; $b; $g; $h"
 
     [ "$(sha256sum "$f" | cut -d' ' -f1)" = "$before" ] && break
     if [ "$sweep" -ge 15 ]; then
@@ -95,6 +106,9 @@ while :; do
         exit 1
     fi
 done
+if [ -f "$vals" ]; then
+    python3 tools/deadenums.py "$f" "$vals" --verify
+fi
 
 # --- the two warnings that are findings, not dead code --------------------
 # SLIM-GOAL.md predicts both, and both were there.  They are the reason the sweep is

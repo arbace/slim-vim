@@ -4,7 +4,7 @@ r"""Stop expanding wildcards at all.  A pattern names a file, literally.
 Usage:
     python3 tools/noglob.py <file>
 
-Phase 10 removed the expander that wrote shell scripts.  What was left was the
+Phase 6 removed the expander that wrote shell scripts.  What was left was the
 editor's own: `gen_expand_wildcards()` walking directories with `opendir` and
 `readdir`, matching `*`, `?`, `[...]`, `~` and `$VAR` in process.  That is the
 editor knowing what is on the disk around the file it was given, and it is the

@@ -35,7 +35,7 @@ Three things fall out that are worth naming separately:
 WHAT STAYS: the write itself, `'fsync'`, the check that the file did not change
 underneath you, and the restore-on-failure path for the file being written --
 none of which needs a copy.  `'backupcopy'` is `PV_BOTH` and buffer-local, so it
-needs `droplocal.py` and `dropoptions.py --local`, which is the pairing Phase 14
+needs `droplocal.py` and `dropoptions.py --local`, which is the pairing Phase 16
 records.
 """
 
@@ -166,7 +166,7 @@ def main():
 
     # set_init_default_backupskip() builds 'backupskip' from /tmp at startup and
     # looks the row up BY NAME -- the lookup that returns -1 for a row that is
-    # not there, is not checked, and indexes options[-1].  Phase 22 had already
+    # not there, is not checked, and indexes options[-1].  Phase 20 had already
     # reduced it to one pass over one directory.
     text, ok = cutil.delete_definition(text, 'set_init_default_backupskip')
     if not ok:
@@ -177,7 +177,7 @@ def main():
     # --- the callback its own row keeps reachable ---------------------------
     # An option row is a ROOT for reachability, so did_set_backupcopy() survives
     # the sweep and reads p_bkc, and --strict then refuses to drop the row that
-    # is the only thing keeping the reader alive.  Phase 26 met this circle
+    # is the only thing keeping the reader alive.  Phase 24 met this circle
     # three times; the answer is the same, and it is to point the row at NULL
     # first.  The row goes a moment later.
     for handler, rows in (('did_set_backupcopy', 1),
@@ -195,7 +195,7 @@ def main():
     print('  nobackup     the three handlers the rows kept reachable')
 
     # didset_string_options() dereferences every string option's global once at
-    # startup -- the trap Phase 20 records, and the one Phase 26 met again.  A
+    # startup -- the trap Phase 18 records, and the one Phase 24 met again.  A
     # row can be inert to every other reader and still be read there.
     text = cut(text,
                r'^[ \t]*\(void\)opt_strings_flags\(p_bkc, p_bkc_values, '
@@ -204,7 +204,7 @@ def main():
     print("  nobackup     didset_string_options stops reading 'backupcopy'")
 
     # And the two places that compare an option's ADDRESS against p_bdir, which
-    # is how Phase 23 left `:set dir>`: neither reads the value, so neither was
+    # is how Phase 21 left `:set dir>`: neither reads the value, so neither was
     # a crash, but with the row gone `varp` can never equal &p_bdir and both
     # say something that is no longer true.
     text = cutil.drop_if(

@@ -1,43 +1,28 @@
 #!/bin/sh
-# Whim phase 24 -- a write is a write, and nobody owns it.  See WHIM-GOAL.md.
+# Whim phase 27 -- `[[=a=]]` stops meaning "a with any accent".  See WHIM-GOAL.md.
 #
 # Usage: tools/whim27.sh <work-dir>      (run from the repository root)
 #
-# TWO CUTS IN ONE PHASE, and they are one story: everything writing a file did
-# beyond writing it.
+# A POSIX bracket expression has three bracketed forms inside it, and they are
+# three different features sharing a syntax:
 #
-# THE BACKUP.  Before the new contents go anywhere the old file may be renamed
-# or copied aside, its permissions, owner, group, ACL and timestamps carried
-# over, the write attempted, and the whole thing rolled back if it fails -- and
-# afterwards the copy is kept, or deleted, or renamed again for 'patchmode'.
-# That is 437 lines of buf_write() and seven options.  `dobackup` is the hinge:
-# (p_wb || p_bk || *p_pm != NUL), so with the options gone it is FALSE and the
-# tests through the rest of the function collapse to the branch they already
-# took under `:set nobackup nowritebackup`.
+#     [[:alpha:]]   a character CLASS     -- stays
+#     [[.x.]]       a collating ELEMENT   -- stays
+#     [[=a=]]       an equivalence CLASS  -- goes
 #
-# vim_rename() has five callers and all five are in there, so vim_copyfile()
-# goes with it -- readlink, symlink, rename.  set_file_time() carried the old
-# timestamps onto the backup -- utime.  mch_get_acl()/mch_set_acl()/
-# mch_free_acl() were already stubs, this build having no ACL support.  fchown
-# and umask went too: every call to both was inside the backup block.
+# The third means "this character and every accented form of it", and expanding
+# it takes reg_equi_class(), 1,397 LINES -- a switch over every base letter
+# listing its variants across Latin-1 and Latin Extended-A and -B.  It is the
+# largest single function left in the file, and it is reached only when a
+# pattern contains `[=`.
 #
-# THE OWNER.  An embedded editor runs where there are no users to tell apart,
-# so `st_old.st_uid == getuid()` is a question with no answer.  `:w!` clears the
-# read-only bit without asking whose file it is; the mode is masked to 0777
-# always rather than only for a stranger, which is the safe direction;
-# 'modeline' stops asking whether this is root; and get_user_name(), a stub
-# since phase 20, stops being called at all.
+# Two call sites and the sweep does the rest.  \w, \a and [[:alpha:]] are a
+# different mechanism and are untouched.
 #
-# WHAT STAYS: chmod and fchmod.  PERMISSIONS ARE NOT OWNERSHIP -- a file still
-# has a mode, `:w!` still has to clear the read-only bit, and the mode of the
-# file that was there is still put back on the one that replaces it.
-#
-# THE TWO CUTS ARE ONE PHASE because the second's sites are inside the code the
-# first reshapes, and because neither moves anything the harness records.  The
-# phase still checks both separately: nothing is left beside a written file, and
-# `:w!` over a read-only file still writes it.
-#
-# THE DELTA: none the harness records.
+# THE DELTA: none the harness records.  No behaviour case and no Ex command
+# writes `[=` in a pattern -- which is the point.  The phase checks the change
+# itself instead: `[[=a=]]` must stop matching an accented a and start matching
+# the literal characters.
 set -eu
 
 work=${1:?usage: whim27.sh <work-dir>}
@@ -47,100 +32,50 @@ before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nobackup.py "$f"
-python3 tools/dropoptions.py "$f" --local --strict \
-    backup backupcopy backupdir backupext backupskip patchmode writebackup
-python3 tools/noowner.py "$f"
+python3 tools/noequiclass.py "$f"
 
 
 tools/sweep.sh "$f"
-python3 tools/droplocal.py "$f" b_p_bkc
-tools/sweep.sh "$f"
 
-for g in 'p_bk\b' 'p_wb\b' 'p_bkc\b' 'p_bdir\b' 'p_bex\b' 'p_bsk\b' 'p_pm\b' \
-         'b_p_bkc' 'vim_rename' 'vim_copyfile' 'set_file_time' 'mch_get_acl' \
-         'vim_acl_T' 'backup_copy' 'dobackup'; do
+for g in reg_equi_class get_equi_class; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
-        echo "  backup       $g still has $n mentions after the sweep"
-        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        echo "  equiclass    $g still has $n mentions after the sweep"
         exit 1
     fi
 done
-echo "  backup       nothing is copied aside, renamed, or timestamped"
-
-for g in 'getuid' 'getgid' 'get_user_name' 'ROOT_UID' 'b0_uname'; do
-    n=$(grep -c -- "$g" "$f" || true)
-    if [ "$n" != 0 ]; then
-        echo "  owner        $g still has $n mentions after the sweep"
-        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
-        exit 1
-    fi
-done
-echo "  owner        nothing asks who you are"
-
-# And the distinction this phase rests on: a file still has a mode.
-for g in mch_setperm mch_fsetperm mch_getperm; do
+# and the two that stay
+for g in get_char_class get_coll_element; do
     if [ "$(grep -c "\b$g(" "$f" || true)" = 0 ]; then
-        echo "  permissions  $g went too -- permissions are not ownership"
+        echo "  equiclass    $g went too -- [[:alpha:]] and [[.x.]] are different"
         exit 1
     fi
 done
-echo "  permissions  chmod and fchmod stay: a file still has a mode"
-
+echo "  equiclass    [[=a=]] is gone; [[:alpha:]] and [[.x.]] are not"
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
-for g in utime readlink symlink rename; do
-    if grep -qx -- "$g" .cache/symbols/last/undefined; then
-        echo "  symbols      $g is still undefined in the object"
-        exit 1
-    fi
-done
-echo "  symbols      utime, readlink, symlink and rename are gone from nm -u"
-for g in getuid getgid; do
-    if grep -qx -- "$g" .cache/symbols/last/undefined; then
-        echo "  symbols      $g is still undefined in the object"
-        exit 1
-    fi
-done
-echo "  symbols      getuid and getgid are gone from nm -u"
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
+tools/phasebuild.sh "$work" "$before_lines"
+
+# What the cut actually did, which no harness asks: [[=a=]] used to match an
+# accented a and must now match the literal characters, while [[:alpha:]] must
+# go on working.  Both halves, because only the pair is a check.
+t=$(cd "$work" && rm -rf .eqtest && mkdir .eqtest && cd .eqtest \
+    && printf 'xax\nx\303\241x\nx=x\n' > f.txt \
+    && ../whim-vim -e -s -c 's/[[=a=]]/#/g' -c 'wq' f.txt </dev/null >/dev/null 2>&1
+    tr '\n' ' ' < f.txt)
+alpha=$(cd "$work" && cd .eqtest && printf 'a1b\n' > g.txt \
+    && ../whim-vim -e -s -c 's/[[:alpha:]]/#/g' -c 'wq' g.txt </dev/null >/dev/null 2>&1
+    tr '\n' ' ' < g.txt)
+rm -rf "$work/.eqtest"
+case $t in
+    *'x#x'*) echo "  equiclass    [[=a=]] still matched an accented a"; exit 1 ;;
+esac
+if [ "$alpha" != "#1# " ]; then
+    echo "  equiclass    [[:alpha:]] gave '$alpha', expected '#1# '"
     exit 1
 fi
-
-# THE CHECK THIS PHASE EXISTS FOR, and no build can make it: overwriting a file
-# must leave the file and nothing beside it.  `:set backup` is what would have
-# produced `f.txt~`, and the option is gone -- so the test is that the directory
-# holds exactly what it held before.
-bk=$(cd "$work" && rm -rf .bktest && mkdir .bktest && cd .bktest \
-     && printf 'one\n' > f.txt \
-     && ../whim-vim -e -s -c '%s/one/two/' -c 'wq' f.txt </dev/null >/dev/null 2>&1
-     printf '%s:%s' "$(ls -A | tr '\n' ' ')" "$(cat f.txt)")
-rm -rf "$work/.bktest"
-if [ "$bk" != "f.txt :two" ]; then
-    echo "  overwrite    a write left '$bk', expected 'f.txt :two'"
-    exit 1
-fi
-echo "  overwrite    overwriting a file leaves the file, and nothing beside it"
-
-# The capability this phase must NOT have removed: `:w!` over a read-only file.
-# No harness writes to one, which is why it is checked here.
-ro=$(cd "$work" && rm -rf .rotest && mkdir .rotest && cd .rotest \
-     && printf 'one\n' > f.txt && chmod 444 f.txt \
-     && ../whim-vim -e -s -c '%s/one/two/' -c 'wq!' f.txt </dev/null >/dev/null 2>&1
-     cat f.txt 2>/dev/null)
-chmod -R u+w "$work/.rotest" 2>/dev/null || true
-rm -rf "$work/.rotest"
-if [ "$ro" != "two" ]; then
-    echo "  readonly     :w! over a read-only file gave '$ro', expected 'two'"
-    exit 1
-fi
-echo "  readonly     :w! over a read-only file still writes it"
+echo "  equiclass    [[=a=]] is literal now, and [[:alpha:]] still classifies"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \

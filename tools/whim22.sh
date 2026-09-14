@@ -1,36 +1,36 @@
 #!/bin/sh
-# Whim phase 21 -- nothing outside the process is consulted.  See WHIM-GOAL.md.
+# Whim phase 22 -- the working directory is where it started.  See WHIM-GOAL.md.
 #
 # Usage: tools/whim22.sh <work-dir>      (run from the repository root)
 #
-# TWO CUTS IN ONE PHASE, and the second finishes a function the first cuts in
-# half.
+# :cd, :lcd and :tcd are ex_ni, :! no longer forks, and nothing else in this
+# editor moves the process.  So the directory it starts in is the one it dies
+# in, and three pieces of machinery that exist because that was not true stop
+# being needed:
 #
-# THERE IS NO HOME DIRECTORY.  `$HOME` is where an editor keeps the things it
-# was told not to keep; phase 13 stopped writing them and phase 19 stopped
-# looking for them, and what is left is the NOTION -- `~/x` meaning a path,
-# `~bob` meaning someone else's, and `/home/you/x` displayed back as `~/x`.
-# home_replace() has thirteen callers, every one a place that shows the user a
-# file name, so it becomes a bounded copy rather than going.  The password
-# database goes with it: getpwnam, getpwent, setpwent, endpwent.
+#   * mch_FullName() chdir'd into the leading directory of a relative name,
+#     asked getcwd() where that landed, and chdir'd back -- via fchdir() on a
+#     descriptor it held open, falling back to chdir().  That is what resolved
+#     `..` and a symlinked directory on the way to a full name.  FCHDIR.
+#   * win_fix_current_dir() restores a window's or tab's local directory, and
+#     runs only when w_localdir, tp_localdir or globaldir is set.  The first two
+#     come only from :lcd and :tcd; globaldir is assigned only inside this
+#     function.  Unreachable.
+#   * edit_buffers() takes a cwd to return to between -o windows, and is passed
+#     start_dir -- `static char_u *start_dir = NULL;`, which nothing assigns.
+#     CHDIR, once mch_chdir() has no callers left.
 #
-# AND NOTHING IS READ FROM THE ENVIRONMENT.  vim_getenv() was already half dead
-# -- phase 1 folded its `vimruntime` flag to FALSE -- so it CAN ONLY EVER ANSWER
-# "not set", and every caller collapses to the branch it was already taking:
-# $VAR in a file name, $PATH, $VIMRUNTIME, $SHELL, $CDPATH, $TMPDIR, $VIM_POSIX,
-# $COLORFGBG, $TZ, and the $VIM/$VIMRUNTIME/$MYVIMDIR that vimrc_found() used to
-# publish -- itself unreachable since phase 19.
+# WHAT IT COSTS, which is why this is a phase and not a cleanup: a full name is
+# now the working directory with the name appended, so `../x/y` becomes
+# /cwd/../x/y rather than /real/x/y.  It opens the same file; what it loses is
+# that two spellings of one path no longer compare equal, so `:e ../x/y` and
+# `:e /real/x/y` are two buffers rather than one.
 #
-# THEY ARE ONE PHASE because expand_env_esc() handles `~` and `$VAR` in one
-# loop: the first cut takes the `~` half and the second takes the `$` half, and
-# what is left is skipwhite, the backslash escape and the bound on dstlen.
-#
-# THE CHECK IS THE OBJECT: getenv, setenv, unsetenv and environ leave `nm -u`.
-# Grepping the source is not enough -- the sweep is what removes vim_getenv,
-# and asking before it runs gets the wrong answer.
-#
-# WHAT STAYS: vim_localtime() still calls localtime_r(), and musl reads $TZ
-# inside it.  The rule is that THIS SOURCE asks the environment nothing.
+# getcwd STAYS, and is now asked once.  shorten_fnames() shortens every
+# displayed name against it and mch_FullName() is how a relative name becomes
+# absolute at all -- dropping it would mean b_ffname could not be a full path,
+# which is a capability cut rather than plumbing.  Since nothing can move the
+# process, the answer cannot change: it is read into a static on the first call.
 #
 # THE DELTA: none the harness records.
 set -eu
@@ -42,64 +42,59 @@ before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nohome.py "$f"
-python3 tools/nogetenv.py "$f"
+python3 tools/nochdir.py "$f"
 
 
 tools/sweep.sh "$f"
-# The post-condition: after the sweep, no config path, no option and no
-# environment name this phase removed is mentioned anywhere.  Asking before the
-# sweep gets the wrong answer -- process_env is still there at that point and it
-# is the sweep that removes it.
-for g in 'getenv((char \*)((char_u \*)"HOME")' homedir init_users match_user getpwnam; do
+
+# Matched as CALLS, not as words: `[CMD_chdir]` is a retired command row that
+# stays, and this phase's own comment says "chdir'd".
+for g in 'mch_chdir(' 'chdir(' 'fchdir(' 'win_fix_current_dir(' \
+         '\bglobaldir\b' '\bstart_dir\b'; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
-        echo "  globals      $g still has $n mentions after the sweep"
-        echo "               a dropped row leaves its global uninitialised, and a"
-        echo "               reader of it is a segfault before the first keystroke"
-        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
-        exit 1
-    fi
-done
-echo "  home         nothing asks where home is, or who this is"
-
-# The post-condition, asked AFTER the sweep for the reason above.
-for g in getenv setenv unsetenv environ vim_getenv; do
-    n=$(grep -cw -- "$g" "$f" || true)
-    if [ "$n" != 0 ]; then
-        echo "  environment  $g still has $n mentions after the sweep"
+        echo "  cwd          $g still has $n mentions after the sweep"
         grep -nw -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
         exit 1
     fi
 done
-echo "  environment  nothing in the source asks the environment anything"
+# And the one that stays, asked exactly once.
+n=$(grep -c 'getcwd((char \*)' "$f" || true)
+if [ "$n" != 1 ]; then
+    echo "  cwd          getcwd is called $n times, expected exactly 1"
+    exit 1
+fi
+echo "  cwd          nothing moves the process; getcwd is asked once"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-# And the same question of the object, which is the one that cannot be argued
-# with: a libc call this source no longer writes could still arrive through a
-# macro or an inline.
-for g in getenv setenv unsetenv environ; do
+for g in chdir fchdir; do
     if grep -qx -- "$g" .cache/symbols/last/undefined; then
         echo "  symbols      $g is still undefined in the object"
         exit 1
     fi
 done
-echo "  symbols      getenv, setenv, unsetenv and environ are gone from nm -u"
+echo "  symbols      chdir and fchdir are gone from nm -u"
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
+tools/phasebuild.sh "$work" "$before_lines"
+
+# A relative name with a directory in it must still open, write and read back.
+# That is the path mch_FullName used to chdir through, and no harness walks it:
+# every harness edits a file in the directory it is standing in.
+rel=$(cd "$work" && rm -rf .reltest && mkdir -p .reltest/sub && cd .reltest \
+      && printf 'one\ntwo\n' > sub/f.txt \
+      && ../whim-vim -e -s -c 'normal Gothree' -c 'wq' sub/f.txt </dev/null >/dev/null 2>&1
+      cd sub && ../../whim-vim -e -s -c '%s/two/2/' -c 'wq' ../sub/f.txt </dev/null >/dev/null 2>&1
+      tr '\n' ' ' < f.txt)
+rm -rf "$work/.reltest"
+if [ "$rel" != "one 2 three " ]; then
+    echo "  relative     a relative path gave '$rel', expected 'one 2 three '"
     exit 1
 fi
+echo "  relative     a relative path with a directory in it opens and writes"
 
 # --- the delta, cumulative --------------------------------------------------
-# --term-moved is CUMULATIVE, like the command list: the comparison is always
-# against the slim baseline, and phase 21 collapsed that table for good.  Every
-# phase after it declares the same thing.
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
     helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
     tags preserve swapname mkvimrc mkexrc checktime

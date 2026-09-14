@@ -1,35 +1,43 @@
 #!/bin/sh
-# Whim phase 23 -- no floating-point library.  See WHIM-GOAL.md.
+# Whim phase 25 -- a write is a write, and nobody owns it.  See WHIM-GOAL.md.
 #
 # Usage: tools/whim25.sh <work-dir>      (run from the repository root)
 #
-# Three calls are the whole of libm here, and they are two different questions.
+# TWO CUTS IN ONE PHASE, and they are one story: everything writing a file did
+# beyond writing it.
 #
-# ceil() and floor() appear once, in the fuzzy matcher, as the two halves of
-# rounding half away from zero.  C's double-to-int conversion truncates TOWARD
-# ZERO, which is ceil for a negative value and floor for a positive one, so
-# biasing by half in the sign's own direction and converting is the same answer
-# for every input.  tools/nolibm_check.c sweeps a million values through both
-# forms and requires them to agree; this phase runs it.
+# THE BACKUP.  Before the new contents go anywhere the old file may be renamed
+# or copied aside, its permissions, owner, group, ACL and timestamps carried
+# over, the write attempted, and the whole thing rolled back if it fails -- and
+# afterwards the copy is kept, or deleted, or renamed again for 'patchmode'.
+# That is 437 lines of buf_write() and seven options.  `dobackup` is the hinge:
+# (p_wb || p_bk || *p_pm != NUL), so with the options gone it is FALSE and the
+# tests through the rest of the function collapse to the branch they already
+# took under `:set nobackup nowritebackup`.
 #
-# log10() is NOT TRANSLATED, because it cannot be.  The obvious integer
-# equivalent -- dividing by ten until the value drops below ten -- is not the
-# same function: just below a power of ten log10() returns a double that rounds
-# up to the integer, so (size_t)log10(99.999999999999986) is 2 where counting
-# digits gives 1.  The equivalence check found 79 such values in a million, and
-# that is what turned this phase from a translation into a removal.
+# vim_rename() has five callers and all five are in there, so vim_copyfile()
+# goes with it -- readlink, symlink, rename.  set_file_time() carried the old
+# timestamps onto the backup -- utime.  mch_get_acl()/mch_set_acl()/
+# mch_free_acl() were already stubs, this build having no ACL support.  fchown
+# and umask went too: every call to both was inside the backup block.
 #
-# So the whole floating-point branch of vim_vsnprintf() goes instead, and the
-# justification is that NOTHING CAN REACH IT: there is not one %f, %F, %e, %E,
-# %g or %G conversion in any format string in the file, and the single
-# vim_snprintf() call whose format is not a literal takes a local `char *fmt`
-# that is one of two constants.  Without +eval there is no printf() either.
+# THE OWNER.  An embedded editor runs where there are no users to tell apart,
+# so `st_old.st_uid == getuid()` is a question with no answer.  `:w!` clears the
+# read-only bit without asking whose file it is; the mode is masked to 0777
+# always rather than only for a stranger, which is the safe direction;
+# 'modeline' stops asking whether this is root; and get_user_name(), a stub
+# since phase 20, stops being called at all.
 #
-# <math.h> STAYS -- INFINITY is the fuzzy matcher's score sentinel.  Under musl
-# libm is part of libc, so the link line does not change; what changes is that
-# nm -u stops naming a floating-point function.
+# WHAT STAYS: chmod and fchmod.  PERMISSIONS ARE NOT OWNERSHIP -- a file still
+# has a mode, `:w!` still has to clear the read-only bit, and the mode of the
+# file that was there is still put back on the one that replaces it.
 #
-# THE DELTA: none.
+# THE TWO CUTS ARE ONE PHASE because the second's sites are inside the code the
+# first reshapes, and because neither moves anything the harness records.  The
+# phase still checks both separately: nothing is left beside a written file, and
+# `:w!` over a read-only file still writes it.
+#
+# THE DELTA: none the harness records.
 set -eu
 
 work=${1:?usage: whim25.sh <work-dir>}
@@ -38,58 +46,95 @@ f="$work/whim-vim.c"
 before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
-# The claim, before the cut that relies on it.  A rounding rewrite that is
-# merely believed is how an off-by-one reaches a release.
-chk=$(mktemp -u)
-gcc -O0 -o "$chk" tools/nolibm_check.c
-if ! out=$("$chk"); then
-    echo "  rounding     the rewrite is NOT the same arithmetic:"
-    printf '%s\n' "$out" | sed 's/^/               /'
-    rm -f "$chk"
-    exit 1
-fi
-rm -f "$chk"
-echo "  rounding     $out"
-
-# The premise of the removal -- no float conversion in any format string -- is
-# checked inside nofloat.py, which refuses to cut without it.  It has to scan
-# STRING LITERALS rather than raw text: `indent % get_sw_value(curbuf)` is C,
-# and a terminfo capability's `%e` is an `else`, not a conversion.
-
 # --- cut the entry points -------------------------------------------------
-python3 tools/nofloat.py "$f"
+python3 tools/nobackup.py "$f"
+python3 tools/dropoptions.py "$f" --local --strict \
+    backup backupcopy backupdir backupext backupskip patchmode writebackup
+python3 tools/noowner.py "$f"
 
 
 tools/sweep.sh "$f"
+python3 tools/droplocal.py "$f" b_p_bkc
+tools/sweep.sh "$f"
 
-for g in 'ceil(' 'floor(' 'log10(' 'infinity_str' 'TYPE_FLOAT' 'typename_float'; do
+for g in 'p_bk\b' 'p_wb\b' 'p_bkc\b' 'p_bdir\b' 'p_bex\b' 'p_bsk\b' 'p_pm\b' \
+         'b_p_bkc' 'vim_rename' 'vim_copyfile' 'set_file_time' 'mch_get_acl' \
+         'vim_acl_T' 'backup_copy' 'dobackup'; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
-        echo "  libm         $g still has $n mentions after the sweep"
+        echo "  backup       $g still has $n mentions after the sweep"
         grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
         exit 1
     fi
 done
-echo "  libm         nothing calls a floating-point function"
+echo "  backup       nothing is copied aside, renamed, or timestamped"
+
+for g in 'getuid' 'getgid' 'get_user_name' 'ROOT_UID' 'b0_uname'; do
+    n=$(grep -c -- "$g" "$f" || true)
+    if [ "$n" != 0 ]; then
+        echo "  owner        $g still has $n mentions after the sweep"
+        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        exit 1
+    fi
+done
+echo "  owner        nothing asks who you are"
+
+# And the distinction this phase rests on: a file still has a mode.
+for g in mch_setperm mch_fsetperm mch_getperm; do
+    if [ "$(grep -c "\b$g(" "$f" || true)" = 0 ]; then
+        echo "  permissions  $g went too -- permissions are not ownership"
+        exit 1
+    fi
+done
+echo "  permissions  chmod and fchmod stay: a file still has a mode"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
-
-for g in ceil floor log10; do
+for g in utime readlink symlink rename; do
     if grep -qx -- "$g" .cache/symbols/last/undefined; then
         echo "  symbols      $g is still undefined in the object"
         exit 1
     fi
 done
-echo "  symbols      ceil, floor and log10 are gone from nm -u"
+echo "  symbols      utime, readlink, symlink and rename are gone from nm -u"
+for g in getuid getgid; do
+    if grep -qx -- "$g" .cache/symbols/last/undefined; then
+        echo "  symbols      $g is still undefined in the object"
+        exit 1
+    fi
+done
+echo "  symbols      getuid and getgid are gone from nm -u"
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
+tools/phasebuild.sh "$work" "$before_lines"
+
+# THE CHECK THIS PHASE EXISTS FOR, and no build can make it: overwriting a file
+# must leave the file and nothing beside it.  `:set backup` is what would have
+# produced `f.txt~`, and the option is gone -- so the test is that the directory
+# holds exactly what it held before.
+bk=$(cd "$work" && rm -rf .bktest && mkdir .bktest && cd .bktest \
+     && printf 'one\n' > f.txt \
+     && ../whim-vim -e -s -c '%s/one/two/' -c 'wq' f.txt </dev/null >/dev/null 2>&1
+     printf '%s:%s' "$(ls -A | tr '\n' ' ')" "$(cat f.txt)")
+rm -rf "$work/.bktest"
+if [ "$bk" != "f.txt :two" ]; then
+    echo "  overwrite    a write left '$bk', expected 'f.txt :two'"
     exit 1
 fi
+echo "  overwrite    overwriting a file leaves the file, and nothing beside it"
+
+# The capability this phase must NOT have removed: `:w!` over a read-only file.
+# No harness writes to one, which is why it is checked here.
+ro=$(cd "$work" && rm -rf .rotest && mkdir .rotest && cd .rotest \
+     && printf 'one\n' > f.txt && chmod 444 f.txt \
+     && ../whim-vim -e -s -c '%s/one/two/' -c 'wq!' f.txt </dev/null >/dev/null 2>&1
+     cat f.txt 2>/dev/null)
+chmod -R u+w "$work/.rotest" 2>/dev/null || true
+rm -rf "$work/.rotest"
+if [ "$ro" != "two" ]; then
+    echo "  readonly     :w! over a read-only file gave '$ro', expected 'two'"
+    exit 1
+fi
+echo "  readonly     :w! over a read-only file still writes it"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \

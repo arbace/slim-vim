@@ -18,7 +18,7 @@
 WHIMWORK   = whim
 WHIMBUILD  = .build-whim
 WHIMORACLE = .reference/whim-phases
-WHIMPHASES = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37
+WHIMPHASES = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
 
 # --- the chain ------------------------------------------------------------
 $(WHIMBUILD)/q0.sha256: $(WHIMBUILD)/input.sha256
@@ -54,11 +54,6 @@ $(WHIMBUILD)/q29.sha256: $(WHIMBUILD)/q28.sha256
 $(WHIMBUILD)/q30.sha256: $(WHIMBUILD)/q29.sha256
 $(WHIMBUILD)/q31.sha256: $(WHIMBUILD)/q30.sha256
 $(WHIMBUILD)/q32.sha256: $(WHIMBUILD)/q31.sha256
-$(WHIMBUILD)/q33.sha256: $(WHIMBUILD)/q32.sha256
-$(WHIMBUILD)/q34.sha256: $(WHIMBUILD)/q33.sha256
-$(WHIMBUILD)/q35.sha256: $(WHIMBUILD)/q34.sha256
-$(WHIMBUILD)/q36.sha256: $(WHIMBUILD)/q35.sha256
-$(WHIMBUILD)/q37.sha256: $(WHIMBUILD)/q36.sha256
 
 $(WHIMBUILD)/q%.sha256:
 	@tools/restore.sh $(patsubst %.sha256,%.tar,$<) $(WHIMWORK)
@@ -103,7 +98,7 @@ whim-vim.c: force
 
 # --- what a whim pass is --------------------------------------------------
 .PHONY: whim-pass
-whim-pass: $(WHIMBUILD)/q37.sha256
+whim-pass: $(WHIMBUILD)/q32.sha256
 	@cp $(WHIMWORK)/whim-vim.c whim-vim.c
 	@echo
 	@printf '  %-12s %s lines, from slim-vim.c\n' "whim-vim.c" \
@@ -153,17 +148,27 @@ whim-repass:
 # WHAT THIS DOES NOT DO, and must not be mistaken for: falsify the boundaries
 # before it.  A tier 3 replay COPIES the recorded digest rather than recomputing
 # it, so a warm pass agrees with the oracle whatever the oracle says -- which is
-# how a wrong boundary went unnoticed for eleven phases once.  Only a run from
-# an empty cache can do that, and `make whim-repass` after `make clean-cache` is
-# that run.  Do it before a push, and whenever a SHARED tool changes
-# (sweep.sh, canon.sh, deadsweep.py, typereach.py, funcreach.py, phasecheck.sh,
-# whimdelta.sh, cutil.py) -- those are in every phase's implhash, so everything
-# re-runs then anyway.
+# how a wrong boundary went unnoticed for eleven phases once.  Only a run that
+# recomputes every digest can do that: `make whim-verify`, every phase at once on
+# the recorded boundary before it, or `make whim-repass` after `make clean-cache`,
+# which is sequential and is the one that records.  Do it before a push, and
+# whenever a SHARED tool changes (sweep.sh, canon.sh, deadsweep.py, typereach.py,
+# funcreach.py, deadfields.py, deadenums.py, phasecheck.sh, whimdelta.sh,
+# cutil.py) -- those are in every phase's implhash, so everything re-runs then
+# anyway.
 .PHONY: whim-tip
 whim-tip:
 	@last=$$(for q in $(WHIMPHASES); do echo $$q; done | tail -1); \
 	 $(MAKE) --no-print-directory whim-phase-$$last && \
 	 $(MAKE) --no-print-directory whim-record | tail -1
+
+# Every recorded boundary, checked at once.  Each phase is run on the recorded
+# boundary before it, in a scratch root of its own, and must reproduce the one it
+# recorded -- by induction the same proof as a repass from an empty cache, in the
+# wall time of the slowest phase instead of the sum of them all.
+.PHONY: whim-verify
+whim-verify:
+	@tools/verifypass.sh whim
 
 .PHONY: whim-record
 whim-record:

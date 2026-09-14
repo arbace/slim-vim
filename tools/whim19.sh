@@ -1,58 +1,54 @@
 #!/bin/sh
-# Whim phase 7 -- the last two per-buffer encoding options.  See WHIM-GOAL.md.
+# Whim phase 19 -- the terminal is what the build says.  See WHIM-GOAL.md.
 #
 # Usage: tools/whim19.sh <work-dir>      (run from the repository root)
 #
-# 'fileencoding' names the encoding a buffer was read in and will be written
-# back in, and 'bomb' whether it had a byte-order mark.  With one encoding and no
-# BOM, both have had one possible value since Phase 8 -- but unlike the six
-# Phase 8 took, these are not plumbing: eight functions read them, and each had
-# to be looked at.  buf_write() and readfile() take the buffer's encoding as a
-# conversion target; bomb_size() reports how many bytes of the file are a BOM
-# for the g CTRL-G count; save_file_ff() and file_ff_differs() remember the pair
-# so :w can warn that they changed; g8 converts to the buffer's encoding to find
-# a byte illegal in it; and add_b0_fenc() writes the name into a swap file's
-# block zero, of which there have been none since Phase 7.
+# Five environment variables describe the terminal and the editor believes all
+# of them: $TERM picks a capability table, $LINES and $COLUMNS override the size
+# the kernel reports, $COLORS overrides the colour count the table gives, and
+# $COLORFGBG is read for the background.
 #
-# What the options leave behind once nothing compares them is a pair of
-# REMEMBERED COPIES in buf_T, written on every read and looked at by nobody.  A
-# struct field is not a variable, so no warning reports it and the sweep cannot
-# see it -- which is why those are listed in the tool rather than swept.
+# THE COMPILED NAME IS xterm-256color, NOT xterm, and that is the whole care in
+# this phase.  Measured on the shipped binary before choosing:
 #
-# 'fileformat', 'endofline' and 'endoffile' can still change under a buffer, so
-# file_ff_differs() keeps those and loses only the two that cannot.
+#     TERM=xterm-256color   -> term=xterm-256color  t_Co=256
+#     TERM=xterm            -> term=xterm           t_Co=8
+#     TERM= (unset)         -> term=xterm           t_Co=8
 #
-# THE DELTA: none.  Both options report E518 instead of a value with one
-# possible setting, and what is left is 'encoding', alone, reporting utf-8.
+# set_termname() keeps the requested name and tests strstr(requested, "256color")
+# to apply builtin_256colors on top of whichever table it chose.  So the obvious
+# fallback -- the one the unset case already took -- would have cost eight of
+# every nine colours the terminal can show, silently, for nothing.
+# xterm-256color resolves to the same builtin_xterm table and keeps the add-on.
+#
+# -T <term> STAYS.  It is not the environment, and with one compiled default it
+# is the only way left to say "this is a dumb terminal".  The ten built-in
+# entries are still there and -T still reaches them.
+#
+# THE DELTA: the terminal table collapses.  Every TERM resolved to its own row
+# before; now every one of them resolves to xterm-256color with 256 colours,
+# because nothing consults TERM.  That is declared with --term-moved, which
+# whimdelta.sh grew for this phase -- until now no phase could move that table,
+# so "expected unchanged" was the whole check.
 set -eu
 
-work=${1:?usage: whim17.sh <work-dir>}
+work=${1:?usage: whim19.sh <work-dir>}
 f="$work/whim-vim.c"
 
 before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nofenc.py "$f"
-python3 tools/dropoptions.py "$f" --local fileencoding bomb
+python3 tools/noterm.py "$f"
 
 
 tools/sweep.sh "$f"
-python3 tools/droplocal.py "$f" b_p_fenc b_p_bomb
-tools/sweep.sh "$f"
 
-# The post-condition, and the check that was missing when this phase first ran.
-# dropoptions.py --strict asks "does anything still read this global?", but it
-# has to ask BEFORE the sweep, when the option's own callback still does.  After
-# the sweep the question is answerable and the answer must be nothing at all --
-# an unread global is itself swept, so the right count is zero mentions, not one.
-# The names as well as the globals.  set_string_option_direct((char_u *)"fenc")
-# resolves an option through findoption(), which answers -1 for a row that is
-# not there, and the caller does not check -- silent Ex mode then exits 1
-# without printing, and every recorded exit status in the harness moves at once.
-# That is what this phase did on its first run, and what Phase 7 did with
-# "fencs".  dropoptions.py's name guard is --strict, and --local skips it.
-for g in p_fenc p_bomb b_start_fenc b_start_bomb '"fenc"' '"bomb"'; do
+# The post-condition: after the sweep, no config path, no option and no
+# environment name this phase removed is mentioned anywhere.  Asking before the
+# sweep gets the wrong answer -- process_env is still there at that point and it
+# is the sweep that removes it.
+for g in 'getenv((char \*)((char_u \*)"TERM")' 'getenv("LINES")' 'getenv("COLUMNS")' 'getenv((char \*)((char_u \*)"COLORS")'; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
         echo "  globals      $g still has $n mentions after the sweep"
@@ -62,20 +58,14 @@ for g in p_fenc p_bomb b_start_fenc b_start_bomb '"fenc"' '"bomb"'; do
         exit 1
     fi
 done
-echo "  globals      neither option is named or read anywhere any more"
+echo "  terminal     nothing asks the environment what terminal this is"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
-    exit 1
-fi
+tools/phasebuild.sh "$work" "$before_lines"
 
 # --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --cases bomb_on,filter,read_cmd \
+tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
     helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
     tags preserve swapname mkvimrc mkexrc checktime

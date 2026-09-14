@@ -4,7 +4,7 @@
 Usage:
     python3 tools/termrestore.py <binary>
 
-This is the single thing Phase 29 keeps SIGHUP and SIGTERM for, and no harness
+This is the single thing Phase 26 keeps SIGHUP and SIGTERM for, and no harness
 here asks it.  The behaviour cases and the Ex sweep run the editor to
 completion; the pty harness types keys and quits cleanly.  None of them kills
 one halfway and then looks at the terminal.

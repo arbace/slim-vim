@@ -18,10 +18,11 @@ actually happened was an import crash.
 
 ## Checking
 
-- **`behaviour.py`** — 67 independent editing cases.
+- **`behaviour.py`** — 67 independent editing cases, run at once.
   `behaviour.py <binary> <outdir>`.
 - **`exsweep.py`** — dispatch all 600 Ex command names, each in its own scratch
-  directory and its own session.
+  directory and its own session, all at once, with the rows written in table
+  order so the recording is the same bytes it was when they ran in sequence.
 - **`ptyrun.py`**, **`ptycheck.py`** — drive a real terminal; the second records
   a fixed set of scenarios.
 - **`termcheck.py`** — what each `$TERM` resolves to and how many colours it
@@ -101,6 +102,19 @@ themselves.
   agent-recorded boundary is *advisory* and a mismatch is a report; a boundary
   promoted after an end-to-end verified run is a *check* and a mismatch is a
   failure.
+- **`verifypass.sh slim|whim [phase...]`** — every recorded boundary checked at
+  once. Each phase runs on the recorded boundary before it, in a scratch root of
+  its own with `tools/` linked in and a `.cache/` nobody else writes, and must
+  reproduce the boundary it recorded: by induction the same proof as a repass
+  from an empty cache, in the wall time of the slowest phase. `make slim-verify`,
+  `make whim-verify`; `JOBS=n` to run fewer at once.
+- **`phasebuild.sh <work> <lines-before>`** — a whim phase's build. `sweep.sh`
+  compiles a plain object of each round's starting text in the background, and
+  the round that changes nothing started from the final text, so this links that
+  object with the work makefile's own flags instead of compiling again: 0.06 s
+  against 5.5, and byte-identical to `make`. Not the sweep's `-Wall -Wextra`
+  object — those flags move the code, 64 bytes of `.text`. Anything whose text no
+  longer matches the object's recorded sha builds the ordinary way.
 
 ## Phases that are programs
 
@@ -191,7 +205,15 @@ each reproduces that boundary byte for byte.
 warning *option*, never the sentence, and deletes a variable's whole
 declaration rather than its first line, because 39 file-scope tables put the
 initialiser on the next one) · `typereach.py`
-(type definitions nothing outside a type definition mentions)
+(type definitions nothing outside a type definition mentions) · `funcreach.py`
+(functions no root reaches, islands included) · `deadprotos.py` (declarations
+of functions that no longer exist) · `deadenums.py` (enumerators nothing
+mentions, survivors pinned to their DWARF values, `--verify` afterwards) ·
+`deadfields.py` (struct fields nothing outside a type names — refused while
+`ml_recover()` exists, because a struct layout is then a disk format)
+
+Slim's Phase 8 runs all of them but `funcreach.py`, in one loop; whim's
+`sweep.sh` runs all six in every phase.
 
 ## The passes a run needs
 

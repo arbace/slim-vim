@@ -59,13 +59,7 @@ tools/sweep.sh "$f"
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
-    exit 1
-fi
+tools/phasebuild.sh "$work" "$before_lines"
 
 # --- the delta: nothing NEW, which is the claim ---------------------------
 # The declared list is CUMULATIVE, measured against slim-vim's own recorded

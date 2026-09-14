@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""The last two encoding options, and the default that outlived Phase 16.
+"""The last two encoding options, and the default that outlived Phase 12.
 
 Usage:
     python3 tools/nofencs.py <file>
 
-Phase 16 emptied `'fileencodings'` and said so.  It was true at startup and not
+Phase 12 emptied `'fileencodings'` and said so.  It was true at startup and not
 afterwards: `set_option_default()` special-cases the option, so `:set fencs&`
 restored `ucs-bom,utf-8,default,latin1` from `fencs_utf8_default` -- a third
 reference that phase did not find, because it names the string rather than the
@@ -15,12 +15,12 @@ after a reset.
 Three readers, and with them the two options can finally go:
 
   * `set_option_default()` stops special-casing `'fileencodings'`, which is what
-    makes Phase 16's claim true at every moment rather than one.
+    makes Phase 12's claim true at every moment rather than one.
   * `readfile()` stops choosing between an empty `'fileencodings'` and a list to
     walk.  There is no list, so it takes the buffer's own `'fileencoding'`, which
     is the branch the empty case already took.
   * `did_set_encoding()` stops setting up a conversion between `'termencoding'`
-    and `'encoding'`.  `convert_setup()` has answered CONV_NONE since Phase 16,
+    and `'encoding'`.  `convert_setup()` has answered CONV_NONE since Phase 12,
     so the block could only ever succeed at doing nothing.
 
 `'encoding'` still cannot go, and this is where that stops being a temporary

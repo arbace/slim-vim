@@ -212,6 +212,14 @@ slim-tip:
 	 $(MAKE) --no-print-directory slim-phase-$$last && \
 	 $(MAKE) --no-print-directory slim-record | tail -1
 
+# Every recorded boundary, checked at once.  Each phase is run on the recorded
+# boundary before it, in a scratch root of its own, and must reproduce the one it
+# recorded -- by induction the same proof as a repass from an empty cache, in the
+# wall time of the slowest phase instead of the sum of them all.
+.PHONY: slim-verify
+slim-verify:
+	@tools/verifypass.sh slim
+
 .PHONY: slim-record
 slim-record:
 	@mkdir -p $(SLIMORACLE)

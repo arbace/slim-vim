@@ -5,6 +5,7 @@ never incremented a hex number or stripped autoindent.  This one drives the
 normal-mode and Ex surface broadly.  Every case writes a file; a case that
 writes nothing records that fact, so a crash cannot pass as a match.
 """
+import concurrent.futures
 import os, subprocess, sys, tempfile, shutil
 
 _ARG, OUT = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
@@ -107,8 +108,8 @@ CASES = [
  ("binary_mode",  "a\nb\n",             ["set binary"]),
 ]
 
-shutil.rmtree(OUT, ignore_errors=True); os.makedirs(OUT)
-for name, text, cmds in CASES:
+def run_case(case):
+    name, text, cmds = case
     d = tempfile.mkdtemp()
     src = os.path.join(d, "in.txt"); dst = os.path.join(d, "out.txt")
     open(src, "w").write(text)
@@ -124,5 +125,13 @@ for name, text, cmds in CASES:
         f.write(b"stderr=" + r.stderr + b"\n")
         f.write(b"file=" + body)
     shutil.rmtree(d)
+
+
+shutil.rmtree(OUT, ignore_errors=True); os.makedirs(OUT)
+# EVERY CASE AT ONCE.  Each has a directory of its own and writes one output file
+# named after itself, so the order they finish in cannot reach the recording --
+# and in sequence 67 launches of an editor were 4.4 seconds of every phase.
+with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(CASES), os.cpu_count() or 1)) as ex:
+    list(ex.map(run_case, CASES))
 shutil.rmtree(_STAGE, ignore_errors=True)
 print(len(CASES), "cases ->", OUT)

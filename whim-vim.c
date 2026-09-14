@@ -3027,8 +3027,6 @@ enum { MAX_ARG_CMDS = 10 };
 
 enum { WIN_HOR = 1 };
 enum { WIN_VER = 2 };
-enum { WIN_TABS = 3 };
-
 typedef struct
 {
     int         argc;
@@ -3037,7 +3035,6 @@ typedef struct
     char_u      *fname;
 
     char_u      *use_vimrc;
-    int         clean;
 
     int         n_commands;
     char_u      *commands[MAX_ARG_CMDS];
@@ -3048,10 +3045,8 @@ typedef struct
     int         edit_type;
 
     int         want_full_screen;
-    int         not_a_term;
     int         tty_fail;
     char_u      *term;
-    int         no_swap_file;
     int         window_count;
     int         window_layout;
 
@@ -4440,7 +4435,6 @@ static hash_T hash_hash(char_u *key);
 // ---------------- begin help.pro ----------------
 static void prepare_help_buffer(void);
 static void fix_help_buffer(void);
-
 // ---------------- end help.pro ----------------
 // ---------------- begin highlight.pro ----------------
 static int load_colors(char_u *name);
@@ -4497,8 +4491,6 @@ static int ins_compl_win_active(win_T *wp);
 
 // ---------------- end locale.pro ----------------
 // ---------------- begin main.pro ----------------
-static int is_not_a_term(void);
-static int is_not_a_term_or_gui(void);
 static void may_trigger_safestate(int safe);
 static void state_no_longer_safe(char *reason);
 static int work_pending(void);
@@ -5106,6 +5098,7 @@ static estack_T *estack_push(etype_T type, char_u *name, long lnum);
 static estack_T *estack_pop(void);
 static char_u *estack_sfile(estack_arg_T which);
 static void set_context_in_runtime_cmd(expand_T *xp, char_u *arg);
+static int do_in_path(char_u *path, char *prefix, char_u *name, int flags, void (*callback)(char_u *fname, void *ck), void *cookie);
 static int source_runtime(char_u *name, int flags);
 static int source_in_path(char_u *path, char_u *name, int flags, int *ret_sid);
 static void remove_duplicates(garray_T *gap);
@@ -5372,7 +5365,6 @@ static char_u *may_get_cmd_block(exarg_T *eap, char_u *p, char_u **tofree, int *
 // ---------------- end usercmd.pro ----------------
 // ---------------- begin version.pro ----------------
 static void list_in_columns(char_u **items, int size, int current);
-
 // ---------------- end version.pro ----------------
 // ---------------- begin vim9script.pro ----------------
 static int in_vim9script(void);
@@ -43729,10 +43721,7 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
     {
         if (read_stdin)
         {
-            if (!is_not_a_term())
-            {
-                     printf("%s", (_("Vim: Reading from stdin...\n"))) ;
-            }
+                 printf("%s", (_("Vim: Reading from stdin...\n"))) ;
         }
         else if (!read_buffer)
         {
@@ -50179,6 +50168,13 @@ fix_help_buffer(void)
     char_u      *line;
     int         in_example = FALSE;
     int         len;
+
+    if ( strcmp((char *)(curbuf->b_p_ft), (char *)("help"))  != 0)
+    {
+        ++curbuf_lock;
+        set_option_value_give_err((char_u *)"ft", 0L, (char_u *)"help", OPT_LOCAL);
+        --curbuf_lock;
+    }
 
     {
         for (lnum = 1; lnum <= curbuf->b_ml.ml_line_count; ++lnum)
@@ -78040,7 +78036,7 @@ nv_esc(cmdarg_T *cap)
     {
         if (restart_edit == 0 && cmdwin_type == 0 && !VIsual_active && no_reason)
         {
-            int out_redir = !stdout_isatty && !is_not_a_term_or_gui();
+            int out_redir = !stdout_isatty;
 
             if (anyBufIsChanged())
             {
@@ -83939,26 +83935,6 @@ set_init_default_printencoding(void)
 }
 
     static void
-set_init_clean_rtp(void)
-{
-    int         opt_idx;
-
-    opt_idx = findoption((char_u *)"runtimepath");
-    if (opt_idx >= 0)
-    {
-        options[opt_idx].def_val[VI_DEFAULT] = (char_u *) "" ;
-        p_rtp = (char_u *) "" ;
-    }
-    opt_idx = findoption((char_u *)"packpath");
-    if (opt_idx < 0)
-    {
-        return;
-    }
-    options[opt_idx].def_val[VI_DEFAULT] = (char_u *) "" ;
-    p_pp = (char_u *) "" ;
-}
-
-    static void
 set_init_expand_env(void)
 {
     int         opt_idx;
@@ -83993,18 +83969,13 @@ set_init_lang_env(void)
 }
 
     static void
-set_init_1(int clean_arg)
+set_init_1(void)
 {
     p_cp = FALSE;
 
     set_init_default_printencoding();
 
     set_options_default(0);
-
-    if (clean_arg)
-    {
-        set_init_clean_rtp();
-    }
 
     curbuf->b_p_initialized = true;
     curbuf->b_p_fs = -1;
@@ -88798,23 +88769,6 @@ shortmess(int x)
             (   vim_strchr(p_shm, x) != NULL || (vim_strchr(p_shm, 'a') != NULL && vim_strchr((char_u *) "rmfixlnw" , x) != NULL));
 }
 
-    static void
-change_compatible(int on)
-{
-    int     opt_idx;
-
-    if (p_cp != on)
-    {
-        p_cp = on;
-        compatible_set();
-    }
-    opt_idx = findoption((char_u *)"cp");
-    if (opt_idx >= 0)
-    {
-        options[opt_idx].flags |= P_WAS_SET;
-    }
-}
-
     static int
 option_was_set(char_u *name)
 {
@@ -91697,7 +91651,7 @@ exit_scroll(void)
             out_char('\n');
         }
     }
-    else if (!is_not_a_term())
+    else
     {
         restore_cterm_colors();
         msg_clr_eos_force();
@@ -91712,11 +91666,8 @@ mch_exit(int r)
 
     {
         settmode(TMODE_COOK);
-        if (!is_not_a_term())
-        {
-            mch_restore_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
-            term_pop_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
-        }
+        mch_restore_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
+        term_pop_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
 
         if (swapping_screen() && !newline_on_exit)
         {
@@ -116589,7 +116540,7 @@ vim_time(void)
     static void
 add_time(char_u *buf, size_t buflen, time_t tt)
 {
-    // How long ago, not when.  Phase 22 took away every way this editor could
+    // How long ago, not when.  Phase 20 took away every way this editor could
     // be told what zone the clock is in, and undo history does not outlive the
     // process -- :wundo and :rundo are ex_ni -- so every time this formats is
     // within one session, which is exactly what "ago" measures.
@@ -123698,32 +123649,6 @@ may_open_tabpage(void)
 }
 
     static int
-make_tabpages(int maxcount)
-{
-    int         count = maxcount;
-    int         todo;
-
-    if (count > p_tpm)
-    {
-        count = p_tpm;
-    }
-
-    block_autocmds();
-
-    for (todo = count - 1; todo > 0; --todo)
-    {
-        if (win_new_tabpage(0) == FAIL)
-        {
-            break;
-        }
-    }
-
-    unblock_autocmds();
-
-    return (count - todo);
-}
-
-    static int
 valid_tabpage(tabpage_T *tpc)
 {
     tabpage_T   *tp;
@@ -126188,7 +126113,6 @@ enum { EDIT_NONE = 0 };
 enum { EDIT_FILE = 1 };
 enum { EDIT_STDIN = 2 };
 static void mainerr(int, char_u *);
-static void early_arg_scan(mparm_T *parmp);
 static void read_stdin(void);
 static void create_windows(mparm_T *parmp);
 static void edit_buffers(mparm_T *parmp);
@@ -126209,17 +126133,10 @@ static mparm_T  params;
 
 static void *s_vbuf = NULL;
 
-static int has_dash_c_arg = FALSE;
-
     static int
 vim_main2(void)
 {
     set_init_3();
-
-    if (params.no_swap_file)
-    {
-        p_uc = 0;
-    }
 
     starting = NO_BUFFERS;
     no_wait_return = FALSE;
@@ -126327,8 +126244,6 @@ common_init_1(void)
     static void
 common_init_2(mparm_T *paramp)
 {
-    early_arg_scan(paramp);
-
     stdout_isatty = (mch_check_win(paramp->argc, paramp->argv) != FAIL);
 
     if (win_alloc_first() == FAIL)
@@ -126341,21 +126256,8 @@ common_init_2(mparm_T *paramp)
     alist_init(&global_alist);
     global_alist.id = 0;
 
-    set_init_1(paramp->clean);
+    set_init_1();
 
-}
-
-    static int
-is_not_a_term(void)
-{
-    return params.not_a_term;
-}
-
-    static int
-is_not_a_term_or_gui(void)
-{
-    return params.not_a_term
-        ;
 }
 
 static int      was_safe = FALSE;
@@ -126599,10 +126501,7 @@ getout(int exitval)
         exitval += ex_exitval;
     }
 
-    if (!is_not_a_term_or_gui())
-    {
-        windgoto((int)Rows - 1, 0);
-    }
+    windgoto((int)Rows - 1, 0);
 
     if (v_dying <= 1)
     {
@@ -126688,37 +126587,11 @@ getout(int exitval)
         wait_return(FALSE);
     }
 
-    if (!is_not_a_term_or_gui())
-    {
-        windgoto((int)Rows - 1, 0);
-    }
+    windgoto((int)Rows - 1, 0);
 
     term_disable_dec();
 
     mch_exit(exitval);
-}
-
-    static void
-early_arg_scan(mparm_T *parmp  __attribute__((unused)) )
-{
-    int         argc = parmp->argc;
-    char        **argv = parmp->argv;
-    int         i;
-
-    for (i = 1; i < argc; i++)
-    {
-        if ( strcmp((char *)(argv[i]), (char *)("--"))  == 0)
-        {
-            break;
-        }
-
-        else if (strncmp(argv[i], "-nb", (size_t)3) == 0)
-        {
-             fprintf(stderr, "%s", (_("'-nb' cannot be used: not enabled at compile time\n"))) ;
-            mch_exit(2);
-        }
-
-    }
 }
 
     static int
@@ -126793,35 +126666,11 @@ command_line_scan(mparm_T *parmp)
                 break;
 
             case '-':
-                if ( strcasecmp((char *)(argv[0] + argv_idx), (char *)("help"))  == 0)
-                {
-                    mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
-                }                if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("clean"), (5))  == 0)
-                {
-                    parmp->use_vimrc = (char_u *)"DEFAULTS";
-                    parmp->clean = TRUE;
-                }                if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("noplugin"), (8))  == 0)
-                {
-                    p_lpl = FALSE;
-                }
-                else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("not-a-term"), (10))  == 0)
-                {
-                    parmp->not_a_term = TRUE;
-                }                if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("ttyfail"), (7))  == 0)
+                if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("ttyfail"), (7))  == 0)
                 {
                     parmp->tty_fail = TRUE;
                 }
                 else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("cmd"), (3))  == 0)
-                {
-                    want_argument = TRUE;
-                    argv_idx += 3;
-                }
-                else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("startuptime"), (11))  == 0)
-                {
-                    want_argument = TRUE;
-                    argv_idx += 11;
-                }
-                else if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("log"), (3))  == 0)
                 {
                     want_argument = TRUE;
                     argv_idx += 3;
@@ -126845,11 +126694,6 @@ command_line_scan(mparm_T *parmp)
                 curbuf->b_p_bin = 1;
                 break;
 
-            case 'C':
-                change_compatible(TRUE);
-                has_dash_c_arg = TRUE;
-                break;
-
             case 'e':
                 exmode_active = EXMODE_NORMAL;
                 break;
@@ -126858,35 +126702,12 @@ command_line_scan(mparm_T *parmp)
                 exmode_active = EXMODE_VIM;
                 break;
 
-            case '?':
-            case 'h':
-                mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
-                break;
-
-            case 'l':
-                set_option_value_give_err((char_u *)"lisp", 1L, NULL, 0);
-                p_sm = TRUE;
-                break;
-
             case 'M':
                 reset_modifiable();
 
             __attribute__((fallthrough));
             case 'm':
                 p_write = FALSE;
-                break;
-
-            case 'N':
-                change_compatible(FALSE);
-                break;
-
-            case 'n':
-                parmp->no_swap_file = TRUE;
-                break;
-
-            case 'p':
-                parmp->window_count = get_number_arg((char_u *)argv[0], &argv_idx, 0);
-                parmp->window_layout = WIN_TABS;
                 break;
 
             case 'o':
@@ -126913,15 +126734,6 @@ command_line_scan(mparm_T *parmp)
                 else
                 {
                     want_argument = TRUE;
-                }
-                break;
-
-            case 'V':
-                p_verbose = get_number_arg((char_u *)argv[0], &argv_idx, 10);
-                if (argv[0][argv_idx] != NUL)
-                {
-                    set_option_value_give_err((char_u *)"verbosefile", 0L, (char_u *)argv[0] + argv_idx, 0);
-                    argv_idx = (int) strlen((char *)(argv[0])) ;
                 }
                 break;
 
@@ -126953,10 +126765,8 @@ command_line_scan(mparm_T *parmp)
                 }
             __attribute__((fallthrough));
             case 'S':
-            case 'd':
             case 'T':
             case 'u':
-            case 'U':
             case 'W':
                 want_argument = TRUE;
                 break;
@@ -127032,9 +126842,6 @@ command_line_scan(mparm_T *parmp)
                         parmp->pre_commands[parmp->n_pre_commands++] =
                                                             (char_u *)argv[0];
                     }
-                    if (argv[-1][2] == 'g')
-                    {
-                    }
 
                     break;
 
@@ -127068,9 +126875,6 @@ scripterror:
 
                 case 'u':
                     parmp->use_vimrc = (char_u *)argv[0];
-                    break;
-
-                case 'U':
                     break;
 
                 case 'w':
@@ -127143,7 +126947,7 @@ check_tty(mparm_T *parmp)
             silent_mode = TRUE;
         }
     }
-    else if (parmp->want_full_screen && (!stdout_isatty || !input_isatty) && !parmp->not_a_term)
+    else if (parmp->want_full_screen && (!stdout_isatty || !input_isatty))
     {
         if (!stdout_isatty)
         {
@@ -127207,11 +127011,7 @@ create_windows(mparm_T *parmp  __attribute__((unused)) )
         {
             parmp->window_layout = WIN_HOR;
         }
-        if (parmp->window_layout == WIN_TABS)
-        {
-            parmp->window_count = make_tabpages(parmp->window_count);
-        }
-        else if (firstwin->w_next == NULL)
+        if (firstwin->w_next == NULL)
         {
             parmp->window_count = make_windows(parmp->window_count, parmp->window_layout == WIN_VER);
         }
@@ -127232,22 +127032,7 @@ create_windows(mparm_T *parmp  __attribute__((unused)) )
     {
         if (dorewind)
         {
-            if (parmp->window_layout == WIN_TABS)
-            {
-                goto_tabpage(1);
-            }
-            else
-            {
-                curwin = firstwin;
-            }
-        }
-        else if (parmp->window_layout == WIN_TABS)
-        {
-            if (curtab->tp_next == NULL)
-            {
-                break;
-            }
-            goto_tabpage(0);
+            curwin = firstwin;
         }
         else
         {
@@ -127291,14 +127076,7 @@ create_windows(mparm_T *parmp  __attribute__((unused)) )
             break;
         }
     }
-    if (parmp->window_layout == WIN_TABS)
-    {
-        goto_tabpage(1);
-    }
-    else
-    {
-        curwin = firstwin;
-    }
+    curwin = firstwin;
     curbuf = curwin->w_buffer;
     --autocmd_no_enter;
     --autocmd_no_leave;
@@ -127311,7 +127089,6 @@ edit_buffers(mparm_T     *parmp)
     int         i;
     int         advance = TRUE;
     win_T       *win;
-    char_u      *p_shm_save = NULL;
 
     ++autocmd_no_enter;
     ++autocmd_no_leave;
@@ -127335,30 +127112,11 @@ edit_buffers(mparm_T     *parmp)
 
         if (advance)
         {
-            if (parmp->window_layout == WIN_TABS)
+            if (curwin->w_next == NULL)
             {
-                if (curtab->tp_next == NULL)
-                {
-                    break;
-                }
-                goto_tabpage(0);
-                if (i == 1)
-                {
-                    char buf[100];
-
-                    p_shm_save = vim_strsave(p_shm);
-                    vim_snprintf(buf, 100, "F%s", p_shm);
-                    set_option_value_give_err((char_u *)"shm", 0L, (char_u *)buf, 0);
-                }
+                break;
             }
-            else
-            {
-                if (curwin->w_next == NULL)
-                {
-                    break;
-                }
-                win_enter(curwin->w_next, FALSE);
-            }
+            win_enter(curwin->w_next, FALSE);
         }
         advance = TRUE;
 
@@ -127391,23 +127149,13 @@ edit_buffers(mparm_T     *parmp)
         }
     }
 
-    if (p_shm_save != NULL)
-    {
-        set_option_value_give_err((char_u *)"shm", 0L, p_shm_save, 0);
-        vim_free(p_shm_save);
-    }
-
-    if (parmp->window_layout == WIN_TABS)
-    {
-        goto_tabpage(1);
-    }
     --autocmd_no_enter;
 
     win = firstwin;
     win_enter(win, FALSE);
 
     --autocmd_no_leave;
-    if (parmp->window_count > 1 && parmp->window_layout != WIN_TABS)
+    if (parmp->window_count > 1)
     {
         win_equal(curwin, FALSE, 'b');
     }
@@ -127526,7 +127274,6 @@ check_swap_exists_action(void)
 main
 (int argc, char **argv)
 {
-    int         i;
 
     mch_early_init();
 
@@ -127539,15 +127286,6 @@ main
     autocmd_init();
 
     common_init_1();
-
-    for (i = 1; i < argc; ++i)
-    {
-        if ( strcasecmp((char *)(argv[i]), (char *)("--clean"))  == 0)
-        {
-            params.clean = TRUE;
-            break;
-        }
-    }
 
     common_init_2(&params);
 
@@ -127573,7 +127311,7 @@ main
         }
     }
 
-    if ( (global_alist.al_ga.ga_len)  > 1 && !silent_mode && !is_not_a_term())
+    if ( (global_alist.al_ga.ga_len)  > 1 && !silent_mode)
     {
         printf(_("%d files to edit\n"),  (global_alist.al_ga.ga_len) );
     }

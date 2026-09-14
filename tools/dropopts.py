@@ -1,105 +1,149 @@
 #!/usr/bin/env python3
-"""Delete command-line options that accept and do nothing, or only refuse.
+"""Delete command-line options, so that each reaches the error an unknown one does.
 
 Usage:
     python3 tools/dropopts.py <file> -X -Y --name ...
 
-Three kinds end up here, and the argument for removing them is the one that
-removed `'spelllang'` in phase 2: an option the editor accepts and ignores is a
-lie, and an option whose whole body is an error message is a branch that exists
-only to say no.  Both are better expressed by the option not existing -- which
-this build already has a path for, `mainerr(ME_UNKNOWN_OPTION)`, reached by
-anything the parser does not recognise.
+An option the editor accepts and ignores is a lie, and an option whose whole
+body is an error message is a branch that exists only to say no.  Both are
+better expressed by the option not existing -- which this build already has a
+path for, `mainerr(ME_UNKNOWN_OPTION)`, reached by anything the parser does not
+recognise.  WHIM-GOAL.md's Phase 3 says which options, and why each.
 
-  inert     `-f`, `-X`, `-Y`, `--nofork`, `--literal`, `--gui-dialog-file` --
-            accepted, with an empty body or an argument that goes nowhere.
-  refusing  `-A`, `-F`, `-H`, `-g` -- print "not enabled at compile time" and
-            exit, which is what an unknown option does anyway, one message less
-            specifically.
-  vestigial `--help`, `--version` -- cut in phase 3, but left as string
-            comparisons that matched and then called mainerr.  A branch that
-            exists only to reach the default is worse than no branch.
+A SHORT OPTION has up to two `case` labels, one in each of command_line_scan()'s
+two switches: the one that reads the option, and the one that reads its argument
+when it takes one.  A label that shares its body with other options (`case 'S':
+case 'd': case 'T':`) goes alone and the body stays for the rest; a label that is
+the last of its group goes with the body.  A whole group is refused if the case
+before it falls through into it, because the body would vanish from under an
+option that is staying.
 
-A short option is removed by deleting its `case` label and body up to and
-including the `break;`, so it falls to `default:`.  A long one is removed with
-its `else if` block, by brace matching.  Both refuse if what they find does not
-have the expected shape, because a partial removal here leaves an option that
-parses and then falls through to something else's body.
+A LONG OPTION is a link in an `if ... else if` chain, removed by brace matching.
+THE CHAIN MUST STAY A CHAIN, and the first version of this tool did not keep it.
+It asked whether the text before the removed link ended in `else` -- which it
+never does, because the match had already consumed that `else` -- so removing
+ANY link turned the next `else if` into a bare `if`.  `--clean`, `--noplugin` and
+`--not-a-term` then each matched their own branch, failed every test of the
+split chain after it, and reached `mainerr` anyway: three options broken for
+thirty phases, because no harness passed them.  The removed link's own `else`
+decides now, and tools/clicheck.py runs every option the parser has left.
+
+Everything is bounded by command_line_scan()'s own text.  `case 'X':` occurs in
+several switches in this file -- the normal-mode tables and get_c_indent() have
+their own -- and a scan over the whole file finds the wrong one.  Everything
+refuses a shape it does not recognise, because a partial removal here leaves an
+option that parses and then runs something else's body.
 """
 
 import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, __file__.rsplit('/', 1)[0])
+import cutil
 
-def parser_region(lines):
-    """The argument switch, and nothing else.
-
-    `case 'X':` occurs in several switches in this file -- the normal-mode
-    tables have their own -- and a scan over the whole file finds the wrong one
-    and then reports something confusing about a shared body.  The argument
-    parser is the switch that ends in mainerr(ME_UNKNOWN_OPTION).
-    """
-    end = max(i for i, l in enumerate(lines)
-              if 'mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);' in l)
-    for i in range(end, 0, -1):
-        if re.match(r'^\s*switch \(', lines[i]):
-            return i, end
-    sys.exit('dropopts: cannot find the argument switch')
+LABEL = re.compile(r"^[ \t]*case '(.)':[ \t]*$")
+DEFAULT = re.compile(r'^[ \t]*default:[ \t]*$')
 
 
-def drop_short(lines, letter):
-    """Delete `case 'x':` and its body, up to and including its break."""
-    lo, hi = parser_region(lines)
-    for i, line in enumerate(lines):
-        if not (lo <= i <= hi):
+def switches(fn):
+    """The option switch and the argument switch, as (open, close) offsets in `fn`."""
+    b = cutil.blank(fn)
+    found = []
+    for m in re.finditer(r'\bswitch \(c\)', b):
+        o = b.index('{', m.end())
+        found.append((o, cutil.match(fn, o, b)))
+    if len(found) != 2:
+        sys.exit('dropopts: expected the option switch and the argument switch, '
+                 'found %d switches on c' % len(found))
+    return found, b
+
+
+def groups(lines, blines):
+    """Each group of adjacent labels at the switch's own depth: (labels, body start, body end)."""
+    depth, depths = 0, []
+    for bl in blines:
+        depths.append(depth)
+        depth += bl.count('{') - bl.count('}')
+
+    def is_label(k):
+        return depths[k] == 0 and LABEL.match(lines[k])
+
+    out, i = [], 0
+    while i < len(lines):
+        if not is_label(i):
+            i += 1
             continue
-        if re.match(r"^\s*case '%s':\s*$" % re.escape(letter), line):
-            j = i + 1
-            while j < len(lines) and lines[j].strip() != 'break;':
-                if re.match(r"^\s*case '", lines[j]):
-                    sys.exit("dropopts: -%s shares its body with the next case; "
-                             "removing it would take that one too" % letter)
-                if j - i > 8:
-                    sys.exit("dropopts: -%s has no break within eight lines" % letter)
-                j += 1
-            if j >= len(lines):
-                sys.exit("dropopts: -%s has no break at all" % letter)
+        labels = []
+        while i < len(lines) and is_label(i):
+            labels.append(i)
+            i += 1
+        j = i
+        while j < len(lines) and not (is_label(j) or
+                                      (depths[j] == 0 and DEFAULT.match(lines[j]))):
             j += 1
-            while j < len(lines) and lines[j].strip() == '':
-                j += 1
-            return lines[:i] + lines[j:], True
-    return lines, False
+        out.append((labels, i, j))
+        i = j
+    return out
 
 
-def drop_long(text, name):
-    """Delete the `else if (...("name")...) { ... }` block, by brace matching."""
-    m = re.search(r'\n[ \t]*(?:else )?if \([^\n]*\("%s"\)[^\n]*\)\n[ \t]*\{'
-                  % re.escape(name), text)
-    if not m:
-        return text, False
-    open_brace = text.index('{', m.end() - 1)
-    depth, k = 0, open_brace
-    while k < len(text):
-        if text[k] == '{':
-            depth += 1
-        elif text[k] == '}':
-            depth -= 1
-            if depth == 0:
-                break
-        k += 1
-    end = k + 1
-    if text[end:end + 1] == '\n':
+def drop_short(fn, which, letters):
+    """Remove `letters` from one switch; return (fn, the letters it held)."""
+    sw, b = switches(fn)
+    o, c = sw[which]
+    lines = fn[o + 1:c].split('\n')
+    gs = groups(lines, b[o + 1:c].split('\n'))
+    remove, held = set(), set()
+    for n, (labels, bs, be) in enumerate(gs):
+        names = [LABEL.match(lines[k]).group(1) for k in labels]
+        gone = [k for k, name in zip(labels, names) if name in letters]
+        if not gone:
+            continue
+        held.update(LABEL.match(lines[k]).group(1) for k in gone)
+        if len(gone) < len(labels):
+            remove.update(gone)
+            continue
+        if n > 0:
+            prev = [l.strip() for l in lines[gs[n - 1][1]:gs[n - 1][2]] if l.strip()]
+            if prev and prev[-1] != 'break;':
+                sys.exit("dropopts: -%s -- the case before it falls through into it, "
+                         "so removing its body would change what that option runs"
+                         % '/-'.join(names))
+        tail = [l.strip() for l in lines[bs:be] if l.strip()]
+        if not tail or tail[-1] != 'break;':
+            sys.exit("dropopts: -%s -- its body does not end in break" % '/-'.join(names))
+        remove.update(range(labels[0], be))
+    kept = [l for k, l in enumerate(lines) if k not in remove]
+    return fn[:o + 1] + '\n'.join(kept) + fn[c:], held
+
+
+def drop_long(fn, name):
+    """Remove the chain link comparing against "name", keeping the chain a chain."""
+    sw, _ = switches(fn)
+    o, c = sw[0]
+    seg = fn[o + 1:c]
+    pat = re.compile(r'^[ \t]*(else )?if \([^\n]*\("%s"\)[^\n]*\)\n[ \t]*\{'
+                     % re.escape(name), re.M)
+    ms = list(pat.finditer(seg))
+    if len(ms) != 1:
+        sys.exit('dropopts: --%s -- expected one branch in the option switch, found %d'
+                 % (name, len(ms)))
+    m = ms[0]
+    b = cutil.blank(seg)
+    ob = b.index('{', m.end() - 1)
+    cb = cutil.match(seg, ob, b)
+    end = cb + 1
+    if seg[end:end + 1] == '\n':
         end += 1
-    head = text[:m.start()]
-    tail = text[end:]
-    # The chain must stay a chain: if what followed was an `else if`, and what
-    # preceded was too, removing the middle is safe; if this was the FIRST
-    # link, the next one has to stop being an `else`.
-    if not re.search(r'\belse\s*$', head.rstrip()[-8:]) and \
-       re.match(r'\s*else if', tail):
-        tail = re.sub(r'^(\s*)else if', r'\1if', tail, count=1)
-    return head + tail, True
+    head, tail = seg[:m.start()], seg[end:]
+    if not m.group(1):
+        # The FIRST link: whatever followed it has to stop being an `else`.
+        nxt = re.match(r'([ \t]*)else if\b', tail)
+        if nxt:
+            tail = nxt.group(1) + 'if' + tail[nxt.end():]
+        elif re.match(r'[ \t]*else\b', tail):
+            sys.exit('dropopts: --%s is the only test before a bare else' % name)
+    return fn[:o + 1] + head + tail + fn[c:]
 
 
 def main():
@@ -108,30 +152,47 @@ def main():
     path = Path(sys.argv[1])
     text = path.read_text(errors='surrogateescape')
 
-    shorts = [a[1:] for a in sys.argv[2:] if re.fullmatch(r'-[A-Za-z?]', a)]
-    longs = [a[2:] for a in sys.argv[2:] if a.startswith('--')]
+    shorts, longs = [], []
+    for a in sys.argv[2:]:
+        if re.fullmatch(r'-[A-Za-z?]', a):
+            shorts.append(a[1])
+        elif re.fullmatch(r'--[a-z][a-z-]*', a):
+            longs.append(a[2:])
+        else:
+            sys.exit('dropopts: not an option this can remove: %r' % a)
 
-    lines = text.split('\n')
-    done_s = []
-    for c in shorts:
-        lines, ok = drop_short(lines, c)
-        if not ok:
-            sys.exit('dropopts: no `case %r:` in the parser -- it has gone '
-                     'already, or the switch has moved' % c)
-        done_s.append(c)
-    text = '\n'.join(lines)
+    span = cutil.find_definition(text, 'command_line_scan')
+    if not span:
+        sys.exit('dropopts: command_line_scan is not defined at file scope')
+    a, z = span
+    fn = text[a:z]
 
-    done_l = []
+    fn, held = drop_short(fn, 0, set(shorts))
+    missing = sorted(set(shorts) - held)
+    if missing:
+        sys.exit('dropopts: no `case` in the option switch for %s -- it has gone '
+                 'already, or the switch has moved' % ' '.join('-' + c for c in missing))
+    fn, in_args = drop_short(fn, 1, set(shorts))
+
     for n in longs:
-        text, ok = drop_long(text, n)
-        if not ok:
-            sys.exit('dropopts: no branch for --%s' % n)
-        done_l.append(n)
+        fn = drop_long(fn, n)
 
-    path.write_text(text, errors='surrogateescape')
-    print('  dropopts     %d short (%s), %d long (%s)'
-          % (len(done_s), ' '.join('-' + c for c in done_s),
-             len(done_l), ' '.join('--' + n for n in done_l)))
+    # A long option that took an argument had a test in the argument switch,
+    # and once its branch is gone that test compares against a name nothing
+    # can produce.  An EMPTY one is dead whatever it names -- the one left
+    # behind by --gui-dialog-file had been empty since the GUI went.
+    sw, _ = switches(fn)
+    o, c = sw[1]
+    seg, empty = re.subn(r'^[ \t]*if \(argv\[-1\]\[2\] == \'.\'\)\n[ \t]*\{\n[ \t]*\}\n',
+                         '', fn[o + 1:c], flags=re.M)
+    fn = fn[:o + 1] + seg + fn[c:]
+
+    path.write_text(text[:a] + fn + text[z:], errors='surrogateescape')
+    print('  dropopts     %d short (%s), %d of them also in the argument switch; '
+          '%d long (%s); %d empty argument test%s'
+          % (len(shorts), ' '.join('-' + c for c in shorts), len(in_args),
+             len(longs), ' '.join('--' + n for n in longs),
+             empty, '' if empty == 1 else 's'))
 
 
 if __name__ == '__main__':

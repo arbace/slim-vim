@@ -1,38 +1,30 @@
 #!/bin/sh
-# Whim phase 22 -- the working directory is where it started.  See WHIM-GOAL.md.
+# Whim phase 24 -- there is no mouse.  See WHIM-GOAL.md.
 #
 # Usage: tools/whim24.sh <work-dir>      (run from the repository root)
 #
-# :cd, :lcd and :tcd are ex_ni, :! no longer forks, and nothing else in this
-# editor moves the process.  So the directory it starts in is the one it dies
-# in, and three pieces of machinery that exist because that was not true stop
-# being needed:
+# A terminal mouse is a protocol, not a device: the terminal is asked to report
+# clicks, it sends escape sequences, and the editor decodes them into key codes
+# that the normal, insert and command-line loops dispatch like any other key.
+# All four layers are here, and an editor driven from a keyboard needs none.
 #
-#   * mch_FullName() chdir'd into the leading directory of a relative name,
-#     asked getcwd() where that landed, and chdir'd back -- via fchdir() on a
-#     descriptor it held open, falling back to chdir().  That is what resolved
-#     `..` and a symlinked directory on the way to a full name.  FCHDIR.
-#   * win_fix_current_dir() restores a window's or tab's local directory, and
-#     runs only when w_localdir, tp_localdir or globaldir is set.  The first two
-#     come only from :lcd and :tcd; globaldir is assigned only inside this
-#     function.  Unreachable.
-#   * edit_buffers() takes a cwd to return to between -o windows, and is passed
-#     start_dir -- `static char_u *start_dir = NULL;`, which nothing assigns.
-#     CHDIR, once mch_chdir() has no callers left.
+# THE ISLAND IS BOUNDED, which is what makes this a cut rather than a rewrite:
+# thirty-five functions mention the mouse and all but two are reached only from
+# each other, so funcreach.py deletes the interior once the roots are gone.
+# tools/nomouse.py removes only the roots -- the tables, the dispatch, the
+# decoder, setmouse()'s 31 bare calls, and the three conditions outside the
+# island that asked whether the mouse was enabled.
 #
-# WHAT IT COSTS, which is why this is a phase and not a cleanup: a full name is
-# now the working directory with the name appended, so `../x/y` becomes
-# /cwd/../x/y rather than /real/x/y.  It opens the same file; what it loses is
-# that two spellings of one path no longer compare equal, so `:e ../x/y` and
-# `:e /real/x/y` are two buffers rather than one.
+# THE EIGHT OPTIONS GO AFTER THE SWEEP, under --strict, which is what proves
+# nothing reads their globals any anymore.  Asking before it is the mistake this
+# pipeline keeps relearning.
 #
-# getcwd STAYS, and is now asked once.  shorten_fnames() shortens every
-# displayed name against it and mch_FullName() is how a relative name becomes
-# absolute at all -- dropping it would mean b_ffname could not be a full path,
-# which is a capability cut rather than plumbing.  Since nothing can move the
-# process, the answer cannot change: it is read into a static on the first call.
+# THE KE_* AND KS_* ENUMERATORS STAY: they are constants, they cost nothing, and
+# deleting an enumerator renumbers every one after it -- several enums here
+# index a parallel table.
 #
-# THE DELTA: none the harness records.
+# THE DELTA: none the harness records.  No Ex command is a mouse command, no
+# behaviour case clicks, and the pty harness types keys.
 set -eu
 
 work=${1:?usage: whim24.sh <work-dir>}
@@ -42,63 +34,54 @@ before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nochdir.py "$f"
+python3 tools/nomouse.py "$f"
 
 
 tools/sweep.sh "$f"
 
-# Matched as CALLS, not as words: `[CMD_chdir]` is a retired command row that
-# stays, and this phase's own comment says "chdir'd".
-for g in 'mch_chdir(' 'chdir(' 'fchdir(' 'win_fix_current_dir(' \
-         '\bglobaldir\b' '\bstart_dir\b'; do
+python3 tools/dropoptions.py "$f" --strict mouse mousefocus mousehide \
+    mousemodel mousemoveevent mouseshape mousetime ttymouse
+tools/sweep.sh "$f"
+
+# The post-condition: no mouse function, no mouse option, no mouse key name.
+for g in 'do_mouse' 'jump_to_mouse' 'setmouse' 'mouse_has' 'nv_mouse' \
+         'check_termcode_mouse' 'p_mouse' 'ttymouse' '"LeftMouse"' \
+         'ScrollWheelUp' 'WaitForCharOrMouse'; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
-        echo "  cwd          $g still has $n mentions after the sweep"
-        grep -nw -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        echo "  mouse        $g still has $n mentions after the sweep"
+        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
         exit 1
     fi
 done
-# And the one that stays, asked exactly once.
-n=$(grep -c 'getcwd((char \*)' "$f" || true)
-if [ "$n" != 1 ]; then
-    echo "  cwd          getcwd is called $n times, expected exactly 1"
-    exit 1
-fi
-echo "  cwd          nothing moves the process; getcwd is asked once"
+echo "  mouse        no handler, no option, no key name, no protocol"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-for g in chdir fchdir; do
-    if grep -qx -- "$g" .cache/symbols/last/undefined; then
-        echo "  symbols      $g is still undefined in the object"
-        exit 1
-    fi
-done
-echo "  symbols      chdir and fchdir are gone from nm -u"
+tools/phasebuild.sh "$work" "$before_lines"
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
+# `:set mouse=a` must now fail.  CHECK WHAT IT DID, NOT WHAT IT SAID -- silent
+# Ex mode prints nothing, so a first version read an empty message and called it
+# a failure.  Nor does a failing `-c` abandon the ones after it: `set nosuchopt`
+# followed by `w` still writes the file, so "did the file appear" is not the
+# answer either.  The exit status is: 0 for an option that exists, 1 for one
+# that does not.  The control is what makes that a check rather than a
+# tautology -- it fails if the binary exits 1 no matter what it is asked.
+probe() {
+    (cd "$work" && ./whim-vim -e -s -c "set $1" -c 'qa!' </dev/null \
+        >/dev/null 2>&1)
+    echo $?
+}
+if [ "$(probe ignorecase)" != 0 ]; then
+    echo "  options      the control failed: :set ignorecase exits non-zero too"
     exit 1
 fi
-
-# A relative name with a directory in it must still open, write and read back.
-# That is the path mch_FullName used to chdir through, and no harness walks it:
-# every harness edits a file in the directory it is standing in.
-rel=$(cd "$work" && rm -rf .reltest && mkdir -p .reltest/sub && cd .reltest \
-      && printf 'one\ntwo\n' > sub/f.txt \
-      && ../whim-vim -e -s -c 'normal Gothree' -c 'wq' sub/f.txt </dev/null >/dev/null 2>&1
-      cd sub && ../../whim-vim -e -s -c '%s/two/2/' -c 'wq' ../sub/f.txt </dev/null >/dev/null 2>&1
-      tr '\n' ' ' < f.txt)
-rm -rf "$work/.reltest"
-if [ "$rel" != "one 2 three " ]; then
-    echo "  relative     a relative path gave '$rel', expected 'one 2 three '"
+if [ "$(probe mouse=a)" = 0 ]; then
+    echo "  options      :set mouse=a was accepted, so the option is still there"
     exit 1
 fi
-echo "  relative     a relative path with a directory in it opens and writes"
+echo "  options      :set mouse=a is refused, :set ignorecase still taken"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \

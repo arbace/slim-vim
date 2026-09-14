@@ -11,7 +11,7 @@ global ever gets.  A `long` then stays 0, which is usually harmless.  A
 
 `dropoptions.py --strict` refuses to drop a row while anything still reads its
 global, which is the guard for this.  It was written after the fact, though, and
-Phase 13 dropped `'directory'`, `'updatecount'` and `'swapsync'` before it
+Phase 11 dropped `'directory'`, `'updatecount'` and `'swapsync'` before it
 existed -- leaving `p_dir` and `p_sws` NULL and dereferenced.  `p_sws` sat behind
 `if (mfp->mf_fd < 0) return FAIL;` and could not be reached; `p_dir` could:
 
@@ -62,7 +62,7 @@ def main():
             continue          # declared and unread; the sweep takes it
         # ANY MENTION AT ALL, not just a `*p_x` dereference.  This counted
         # only explicit dereferences at first and missed `'completeopt'` in
-        # Phase 35: `opt_strings_flags(p_cot, p_cot_values, &cot_flags, TRUE)`
+        # Phase 32: `opt_strings_flags(p_cot, p_cot_values, &cot_flags, TRUE)`
         # passes the NULL pointer to something that dereferences it, and the
         # editor segfaulted before the first keystroke.
         #

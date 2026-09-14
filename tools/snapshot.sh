@@ -41,12 +41,17 @@ mkdir -p "$(dirname "$tar_out")"
 # builds without SOURCE_DATE_EPOCH on purpose: an ordinary build should record
 # the real time.  Tier 1 pins it separately.)
 #
+# `src/xxd/xxd` is upstream's other built binary, and its debug info embeds the
+# directory it was built in: a boundary counting it depends on WHERE a phase
+# ran.  tools/verifypass.sh, which runs each phase in a scratch root of its own,
+# is what showed it -- stripped of that path the two binaries were identical.
+#
 # `/vim$` alone did not cover `./whim-vim`, because the `/` has to sit right
 # before `vim`.  Every whim boundary counted its own binary for as long as that
 # was true, which nothing caught: a phase replayed from the tier 3 cache
 # reproduces a recorded digest exactly, and only a genuine re-run of the
 # program disagrees with it.  `make whim-repass` is what finally asked the question.
-exclude='/objects/|/auto/config\.(log|status|cache)$|\.(o|d)$|/(whim-)?vim$'
+exclude='/objects/|/auto/config\.(log|status|cache)$|\.(o|d)$|/(whim-)?vim$|/xxd/xxd$'
 
 # find | sort makes the order the tree's, not the filesystem's.
 ( cd "$dir" && find . -type f ! -path './.git/*' -print0 \

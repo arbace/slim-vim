@@ -3,7 +3,7 @@ r"""There is nothing to recover.
 Usage:
     python3 tools/norecover.py <file>
 
-Phase 13 made the swap file memory-only: the block structure is still built,
+Phase 11 made the swap file memory-only: the block structure is still built,
 still paged, still the thing every line of the buffer lives in, but it never
 reaches a disk.  What it left behind is the other half of the feature -- the
 code that reads someone else's swap file back, which is now code for reading a
@@ -18,7 +18,7 @@ file that this editor cannot have written.
   * `ml_recover()` (559 lines), `recover_names()` (216) and `swapfile_info()`
     (103).
   * `mch_get_uname()`, and with it **`getpwuid`** -- the fifth of the five
-    password-database symbols, and the one Phase 22 said would need a phase of
+    password-database symbols, and the one Phase 20 said would need a phase of
     its own.  `swapfile_info()` called it to say who owned a swap file.
 
 `:recover` was pointed at `ex_ni` earlier and does not move: it already failed,
@@ -28,9 +28,9 @@ TIME, WHICH IS THE PART THAT IS A DECISION.  `swapfile_info()` was the only
 caller of `get_ctime()`, so `vim_localtime()` is left with one user, `add_time()`
 -- the timestamp in `:undolist` and in "1 change; before #3".  It is dropped
 too, and the argument is not that it is unreachable but that it is wrong:
-`localtime_r()` asks libc what the local zone is, and Phase 22 took away every
+`localtime_r()` asks libc what the local zone is, and Phase 20 took away every
 way this editor could be told.  Undo history does not survive the process
-either, `:wundo` and `:rundo` being `ex_ni` since Phase 13 -- so every time
+either, `:wundo` and `:rundo` being `ex_ni` since Phase 11 -- so every time
 `add_time()` formats is within one session, and the relative form it already
 used for anything under 100 seconds is the true one.  `strftime` and both format
 strings go with it.
@@ -43,7 +43,7 @@ from pathlib import Path
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
 import cutil
 
-RELATIVE = '''    // How long ago, not when.  Phase 22 took away every way this editor could
+RELATIVE = '''    // How long ago, not when.  Phase 20 took away every way this editor could
     // be told what zone the clock is in, and undo history does not outlive the
     // process -- :wundo and :rundo are ex_ni -- so every time this formats is
     // within one session, which is exactly what "ago" measures.

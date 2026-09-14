@@ -4,7 +4,7 @@
 Usage:
     python3 tools/noenc.py <file>
 
-Phase 13 made `'encoding'` a property of the build rather than of the machine.
+Phase 9 made `'encoding'` a property of the build rather than of the machine.
 This makes it not a setting at all: `mb_init()` accepts utf-8 and returns
 "invalid argument" for anything else, so `:set enc=latin1` fails the way a
 misspelt value fails, and the latin1 and DBCS character paths become
@@ -33,7 +33,7 @@ nothing reaches them any more.
 
 `'encoding'` itself CANNOT be dropped even though it is PV_NONE: its row is
 what initialises `p_enc`, which is read in twenty-nine places, so removing it
-would leave a NULL global -- the trap Phase 14 recorded, in its other form.  It
+would leave a NULL global -- the trap Phase 10 recorded, in its other form.  It
 stays, reports utf-8, and refuses anything else.
 """
 

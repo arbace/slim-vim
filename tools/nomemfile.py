@@ -3,15 +3,15 @@ r"""The memfile is memory, and only memory.
 Usage:
     python3 tools/nomemfile.py <file>
 
-Phase 13 stopped the editor creating a swap file and Phase 23 stopped it reading
+Phase 11 stopped the editor creating a swap file and Phase 21 stopped it reading
 one back.  What is left is a **file back-end with no file**: `memfile_T` still
 carries a descriptor, still knows how to page a block out and read it in, and
 still sizes an LRU cache against how much memory the machine has -- all of it
 behind `if (mfp->mf_fd >= 0)`, and `mf_fd` can no longer be anything but -1.
 
 The proof is short.  `mf_open()` has exactly two callers: `ml_open()` passes
-`(NULL, 0)`, and `ml_recover()` passed a name -- and Phase 23 deleted
-`ml_recover()`.  Phase 13 stubbed `ml_open_file()` to `b_may_swap = FALSE`.  So
+`(NULL, 0)`, and `ml_recover()` passed a name -- and Phase 21 deleted
+`ml_recover()`.  Phase 11 stubbed `ml_open_file()` to `b_may_swap = FALSE`.  So
 nothing can hand the memfile a name, `mf_do_open()` is unreachable, `mf_write()`
 returns FAIL on its first line, and `mf_read()` on its first line too.
 
@@ -33,7 +33,7 @@ Three more things fall out:
     recovering vim could say the swap file came from elsewhere.  **`uname`.**
   * `check_overwrite()`'s "swap file exists" warning, which asks whether ANOTHER
     vim is editing the file you are about to overwrite.  It is the last reader
-    of `p_dir`, so **`'directory'` can finally go** -- Phase 13 dropped its row
+    of `p_dir`, so **`'directory'` can finally go** -- Phase 11 dropped its row
     while this still read it, and `:w!` over an existing other file segfaulted
     for twelve phases as a result.  See tools/orphanopts.py.
   * `lalloc()`'s retry loop, whose whole point was that `mf_release_all()` might

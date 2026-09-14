@@ -39,13 +39,7 @@ tools/sweep.sh "$f"
 # --- it must build, and say nothing --------------------------------------
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
-    exit 1
-fi
+tools/phasebuild.sh "$work" "$before_lines"
 
 # --- the delta, stated in advance and checked ----------------------------
 # Exactly ONE command changes what the sweep records, and the reason is worth

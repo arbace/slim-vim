@@ -9,9 +9,9 @@ tags, file names, spelling, whole lines, the command line, a register, a user
 function.  The matches are shown in a popup menu, kept in a growable array,
 cycled, filtered as more is typed, and re-indented on accept.
 
-Almost none of those sources still exists.  Tags went in Phase 12, spelling was
+Almost none of those sources still exists.  Tags went in Phase 10, spelling was
 never in a `tiny` build, `'completefunc'` needs `+eval`, and file-name
-completion goes through the globbing Phase 9 removed.  What is left is the
+completion goes through the globbing Phase 7 removed.  What is left is the
 current file -- and an editor with no vimrc, whose user is typing into it
 directly, is not a place where a word list earns 3,831 lines.
 

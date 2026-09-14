@@ -420,3 +420,102 @@ def drop_if(s, pattern, count=1, flags=0):
             end += 1
         s = s[:m.start()] + s[end:]
     return s
+
+
+def _dedent4(body):
+    return ''.join(l[4:] if l.startswith('    ') else l
+                   for l in body.splitlines(keepends=True))
+
+
+def _guarded(s, m, b):
+    """(line start, open brace, close brace) of the block the `if` at `m` guards."""
+    k = s.rfind('\n', 0, m.start()) + 1
+    lp = s.index('(', m.start())
+    rp = match(s, lp, b)
+    if rp < 0:
+        raise ValueError('unbalanced condition')
+    o = rp + 1
+    while o < len(s) and s[o] in ' \t\n':
+        o += 1
+    if o >= len(s) or s[o] != '{':
+        raise ValueError('the condition does not open a block')
+    c = match(s, o, b)
+    if c < 0:
+        raise ValueError('unbalanced block')
+    return k, o, c, s[k:lp].strip()
+
+
+def _fold(s, pattern, count, flags, one, what):
+    import re as _re
+    n = len(list(_re.finditer(pattern, s, flags)))
+    if n != count:
+        raise ValueError('%s: %r matches %d times, expected %d -- a fold that is '
+                         'not counted is a guess' % (what, pattern, n, count))
+    for _ in range(count):
+        b = blank(s)
+        s = one(s, _re.search(pattern, s, flags), b)
+    return s
+
+
+def fold_always(s, pattern, count=1, flags=0):
+    r"""An `if` whose condition is now always true: keep its body, lose the test.
+
+    For a plain `if` with no `else`, which is the only shape that has needed it.
+    `pattern` matches the `if` line, and must match exactly `count` times: a
+    fold applied to "the first one" of several is the cut that took the wrong
+    block in Phase 35, so the number is stated rather than found.
+
+    norecover.py, nowildmenu.py and noenc.py each carry a private version of
+    this from before it lived here.
+    """
+    import re as _re
+
+    def one(s, m, b):
+        k, o, c, head = _guarded(s, m, b)
+        if head != 'if':
+            raise ValueError('fold_always: only a plain if, not %r' % head)
+        end = s.index('\n', c) + 1
+        if _re.match(r'[ \t]*else\b', s[end:]):
+            raise ValueError('fold_always: the block has an else')
+        body = _dedent4(s[s.index('\n', o) + 1:s.rfind('\n', 0, c) + 1])
+        return s[:k] + body + s[end:]
+    return _fold(s, pattern, count, flags, one, 'fold_always')
+
+
+def fold_never(s, pattern, count=1, flags=0):
+    r"""An `if` whose condition is now always false: lose it, keep what it chose between.
+
+    Every shape of chain, because the condition can sit anywhere in one:
+
+        if (F) { A }                     -> nothing
+        if (F) { A } else { C }          -> C
+        if (F) { A } else if (X) { B }   -> if (X) { B }
+        ... else if (F) { A } ...        -> ... ...
+
+    `pattern` matches the `if` or `else if` line, exactly `count` times.
+    """
+    import re as _re
+
+    def tidy(before, after):
+        if before.endswith('\n\n') and after.startswith('\n'):
+            after = after[1:]
+        return before + after
+
+    def one(s, m, b):
+        k, o, c, head = _guarded(s, m, b)
+        end = s.index('\n', c) + 1
+        rest = s[end:]
+        if head == 'else if':
+            return s[:k] + rest
+        if head != 'if':
+            raise ValueError('fold_never: not an if: %r' % head)
+        nxt = _re.match(r'([ \t]*)else\b([ \t]+if\b)?', rest)
+        if not nxt:
+            return tidy(s[:k], rest)
+        if nxt.group(2):
+            return s[:k] + nxt.group(1) + 'if' + rest[nxt.end():]
+        o2 = b.index('{', end + nxt.end())
+        c2 = match(s, o2, b)
+        body = _dedent4(s[s.index('\n', o2) + 1:s.rfind('\n', 0, c2) + 1])
+        return s[:k] + body + s[s.index('\n', c2) + 1:]
+    return _fold(s, pattern, count, flags, one, 'fold_never')

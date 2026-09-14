@@ -1,75 +1,81 @@
 #!/bin/sh
-# Whim phase 8 -- six options that no longer decide anything.  See WHIM-GOAL.md.
+# Whim phase 18 -- nothing is read at startup, and nothing on the command line
+# decides anything any more.  See WHIM-GOAL.md.
 #
 # Usage: tools/whim18.sh <work-dir>      (run from the repository root)
 #
-# 'path' and 'suffixesadd' have been inert since the file finder went, 'tags'
-# and 'tagcase' since the tag stack, 'autoread' since the timestamp poll, and
-# 'swapfile' since the swap file.  All six are still here, because a row is what
-# initialises its global and tools/dropoptions.py refuses to leave one dangling
-# -- Phase 8's trap, which this phase finally clears rather than works around.
+# TWO CUTS IN ONE PHASE, and they are one question: what may the invocation
+# say?
 #
-# THE ORDER IS THE PHASE, and it is forced rather than chosen:
+# THE FILES.  source_startup_scripts() looked for a vimrc in five places, an
+# exrc in the current directory, and a plugin in every directory of
+# 'runtimepath'.  It now reads the file it was told to read on the command line
+# and nothing else, and 'exrc' -- the option that let a directory carry its own
+# configuration -- goes with it.
 #
-#   1. the three readers that are not plumbing (tools/noinertopts.py)
-#   2. the rows, with --local (tools/dropoptions.py)
-#   3. SWEEP -- which is what removes did_set_tagcase() and did_set_swapfile(),
-#      the option callbacks, reachable only from the rows
-#   4. the buffer fields and their plumbing (tools/droplocal.py)
-#   5. sweep again
+# THE FLAGS.  What is left of the command line is what the flags still decide,
+# and several of them no longer decide anything: -y and -Z chose modes whose
+# machinery has gone, and 'viminfo' and 'viminfofile' name a file nothing reads
+# or writes.
 #
-# Steps 3 and 4 cannot swap.  The callbacks read the buffer field, so removing
-# the field first stops the file compiling; the sweep works by reading gcc's
-# warnings, so a file that does not compile is a file the sweep cannot act on,
-# and the callbacks would stay for ever.
+# THEY ARE ONE PHASE because the second is what the first leaves behind: a flag
+# is only pointless once the thing it selected is gone.
 #
-# THE DELTA: none.  All six options report E518 instead of a value that decided
-# nothing.
+# THE DELTA: none the harness records.  A harness passes its own -c and -u.
 set -eu
 
-work=${1:?usage: whim17.sh <work-dir>}
+work=${1:?usage: whim18.sh <work-dir>}
 f="$work/whim-vim.c"
 
 before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/noinertopts.py "$f"
-python3 tools/dropoptions.py "$f" --local \
-    path suffixesadd tags tagcase autoread swapfile
+python3 tools/nostartup.py "$f"
+python3 tools/dropoptions.py "$f" --strict exrc
+python3 tools/dropopts.py "$f" -y -Z
+python3 tools/nocmdopts.py "$f"
+python3 tools/dropoptions.py "$f" --strict viminfo viminfofile
 
 
 tools/sweep.sh "$f"
-python3 tools/droplocal.py "$f" b_p_path b_p_sua b_p_tags b_p_tc b_p_ar b_p_swf
-tools/sweep.sh "$f"
-
-# The post-condition, and the check that was missing when this phase first ran.
-# dropoptions.py --strict asks "does anything still read this global?", but it
-# has to ask BEFORE the sweep, when the option's own callback still does.  After
-# the sweep the question is answerable and the answer must be nothing at all --
-# an unread global is itself swept, so the right count is zero mentions, not one.
-for g in p_path p_sua p_tags p_tc p_ar p_swf; do
-    n=$(grep -c "\b$g\b" "$f" || true)
+# The post-condition: after the sweep, no config path, no option and no
+# environment name this phase removed is mentioned anywhere.  Asking before the
+# sweep gets the wrong answer -- process_env is still there at that point and it
+# is the sweep that removes it.
+for g in p_exrc process_env set_init_xdg_rtp '"VIMINIT"' '"EXINIT"' '"XDG_CONFIG_HOME"'; do
+    n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
         echo "  globals      $g still has $n mentions after the sweep"
         echo "               a dropped row leaves its global uninitialised, and a"
         echo "               reader of it is a segfault before the first keystroke"
-        grep -n "\b$g\b" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
         exit 1
     fi
 done
-echo "  globals      none of the six is mentioned anywhere any more"
+echo "  startup      no config path, option or environment name is left"
+
+# The post-condition: after the sweep, no config path, no option and no
+# environment name this phase removed is mentioned anywhere.  Asking before the
+# sweep gets the wrong answer -- process_env is still there at that point and it
+# is the sweep that removes it.
+for g in evim_mode check_restricted EX_RESTRICT restricted '"vif"'; do
+    n=$(grep -c -- "$g" "$f" || true)
+    if [ "$n" != 0 ]; then
+        echo "  globals      $g still has $n mentions after the sweep"
+        echo "               a dropped row leaves its global uninitialised, and a"
+        echo "               reader of it is a segfault before the first keystroke"
+        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        exit 1
+    fi
+done
+echo "  options      nothing names the four, or what they set"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
-    exit 1
-fi
+
+tools/phasebuild.sh "$work" "$before_lines"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --cases bomb_on,filter,read_cmd \

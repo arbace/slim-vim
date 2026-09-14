@@ -28,7 +28,7 @@ WHAT IT WILL NOT TOUCH, because being wrong here is silent:
 ON LAYOUT: removing a field moves the ones after it, and that is only safe
 because no struct this file defines describes anything outside the process any
 more -- there are no swap files to read, no session files to write, and no
-structure is passed to a library.  Phase 13 and phase 23 are what make that
+structure is passed to a library.  Phase 11 and phase 21 are what make that
 true; before them this tool would have been wrong about block zero.
 """
 
@@ -51,6 +51,17 @@ def main():
         sys.exit(__doc__)
     path = Path(sys.argv[1])
     text = path.read_text(errors='surrogateescape')
+    # NOT WHILE A STRUCT CAN STILL DESCRIBE A FILE.  Removing a field moves the
+    # ones after it, and until the editor can no longer read a swap file, block
+    # zero and the memfile's pages are a disk format -- a field nothing in the
+    # code reads is still a field another vim wrote.  ml_recover() is what reads
+    # them, so its presence is the question, asked of the file rather than of a
+    # phase number: slim-vim.c always has it, and whim-vim.c has it until the
+    # phase that removes recovery.
+    if cutil.find_definition(text, 'ml_recover'):
+        print('  deadfields   not while ml_recover() can read a swap file: a struct '
+              'layout is still a disk format')
+        return 0
     b = cutil.blank(text)
     defs = T.definitions(text, b)
 

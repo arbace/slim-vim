@@ -4,7 +4,7 @@ Usage:
     python3 tools/nohome.py <file>
 
 `$HOME` is where an editor keeps the things it was told not to keep: this fork
-stopped writing them in Phase 13 and stopped looking for them in Phase 20, and
+stopped writing them in Phase 11 and stopped looking for them in Phase 18, and
 what is left is the *notion* of a home directory -- `~/x` meaning a path, `~bob`
 meaning someone else's, and `/home/you/x` displayed back as `~/x`.
 
@@ -16,7 +16,7 @@ working and a name is displayed as what it is.
   * `init_homedir()` -- read `$HOME`, and chdir into it and back to resolve
     symlinks -- loses its call in `common_init_2()`.
   * `expand_env_esc()` stops treating a leading `~`.  Its `$VAR` half stays;
-    Phase 22 takes that.
+    Phase 20 takes that.
   * the user database goes: `init_users()`, `add_user()`, `match_user()` and
     `get_users()` exist so that `~bob` can complete, and `mch_get_uname()` and
     `mch_get_user_name()` so that a swap file could say who wrote it.

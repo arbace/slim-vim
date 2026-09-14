@@ -246,7 +246,7 @@ def main():
           "'ttymouse'")
 
     # didset_string_options() dereferences every string option's global once at
-    # startup, which is the trap Phase 20 records: a row can be inert to every
+    # startup, which is the trap Phase 18 records: a row can be inert to every
     # other reader and still be read here.
     text = cut(text,
                r'^[ \t]*\(void\)opt_strings_flags\(p_ttym, p_ttym_values, '

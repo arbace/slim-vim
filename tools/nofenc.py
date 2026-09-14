@@ -6,18 +6,18 @@ Usage:
 
 `'fileencoding'` names the encoding a buffer was read in and will be written
 back in, and `'bomb'` whether it had a byte-order mark.  With one encoding and
-no BOM, both have had one possible value since Phase 16 -- but unlike the six
-options Phase 20 took, these are not plumbing: eight functions read them, and
+no BOM, both have had one possible value since Phase 12 -- but unlike the six
+options Phase 16 took, these are not plumbing: eight functions read them, and
 each has to be looked at.
 
   * `buf_write()` takes the buffer's `'fileencoding'` as the target and asks
     `need_conversion()`.  The answer for an empty string is "no", which is the
     honest one now, so it passes the empty string.
   * `buf_write()` writes a BOM when `'bomb'` is set.  `make_bom()` has written
-    nothing since Phase 16, so the block was already a call that returned 0.
+    nothing since Phase 12, so the block was already a call that returned 0.
   * `readfile()` takes the buffer's `'fileencoding'` when there is no list to
     walk, and sets `'bomb'` when it strips one.  `check_for_bom()` has found
-    none since Phase 16, so the only assignment that could fire is the one
+    none since Phase 12, so the only assignment that could fire is the one
     clearing it.
   * `bomb_size()` answers how many bytes of the file are a BOM, for the
     `g CTRL-G` byte count.  None of them are.
@@ -29,7 +29,7 @@ each has to be looked at.
     the buffer's `'fileencoding'` to find a byte that is illegal in it.  With
     one encoding there is nothing to convert between.
   * `add_b0_fenc()` writes the encoding name into a swap file's block zero.
-    There have been no swap files since Phase 15.
+    There have been no swap files since Phase 11.
 
 What is left after this is `'encoding'`, alone, reporting utf-8.
 """
@@ -89,7 +89,7 @@ EDITS = [
      r'^[ \t]*(?:cur)?buf->b_start_bomb = FALSE;\n', '', 3),
     ("did_set_encoding's arm for 'fileencoding'",
      None, None),   # brace-matched below
-    ("the empty test Phase 19 left in did_set_encoding",
+    ("the empty test Phase 15 left in did_set_encoding",
      r'\n[ \t]*if \(errmsg == NULL\)\n[ \t]*\{\n[ \t]*\}\n', ''),
     # gvarp existed to ask which of the three encoding options was being set.
     # There is one.  -Wunused-but-set-variable is not a shape deadsweep.py
@@ -99,7 +99,7 @@ EDITS = [
     # through findoption(), which answers -1 for a row that is not there; the
     # caller does not check, so silent Ex mode exits 1 without printing
     # anything, and every recorded exit status in the harness moves at once.
-    # Phase 19 met the same thing as "fencs".  dropoptions.py's name guard
+    # Phase 15 met the same thing as "fencs".  dropoptions.py's name guard
     # would have caught it, but that guard is --strict and --local skips it.
     ("readfile recording the encoding it read a file in",
      r'\n[ \t]*if \(set_options\)\n[ \t]*\{\n'

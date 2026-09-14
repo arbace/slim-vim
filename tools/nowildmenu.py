@@ -239,7 +239,7 @@ def main():
 
     # `'wildoptions'` keeps its other three values and loses the one that
     # selected a menu that is no longer there.  An option value that is still
-    # accepted and now does nothing is the thing Phase 5 exists to prevent.
+    # accepted and now does nothing is the thing Phase 3 exists to prevent.
     c.sub(r'\{"fuzzy", "tagfile", "pum", "exacttext", NULL\}',
           '{"fuzzy", "tagfile", "exacttext", NULL}', 1,
           "the `pum` value of 'wildoptions'")

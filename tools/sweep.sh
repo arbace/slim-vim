@@ -1,13 +1,35 @@
 #!/bin/sh
-# Delete what the cut left unreachable, to a fixpoint.
+# Delete what the cut left unreachable, to a fixpoint -- all six kinds.
 #
 # Usage: tools/sweep.sh <file.c>
 #
-# Four tools, run in turn until a whole round changes nothing.  deadsweep.py
-# asks gcc what it warned about; deadprotos.py, typereach.py and funcreach.py
-# read the text.  Each feeds the others -- deleting a function orphans a type,
-# deleting a type orphans a prototype -- so none of them is finished until all
-# of them are.
+# Six tools, run in turn until a whole round changes nothing.  deadsweep.py
+# asks gcc what it warned about; deadprotos.py, typereach.py, funcreach.py,
+# deadfields.py and deadenums.py read the text.  Each feeds the others --
+# deleting a function orphans a type, deleting a type orphans a prototype,
+# deleting a field orphans an enumerator -- so none of them is finished until
+# all of them are.
+#
+#   functions     deadsweep.py (gcc) and funcreach.py -- reachability, so an
+#                 island that only calls itself dies too
+#   prototypes    deadprotos.py
+#   types         typereach.py -- reachability, same argument
+#   variables     deadsweep.py, via -Wunused-variable
+#   struct fields deadfields.py -- A FIELD IS NOT A VARIABLE, so no warning
+#                 names one nothing reads.  It refuses while ml_recover() can
+#                 still read a swap file, because until then a struct layout is
+#                 a disk format.
+#   enumerators   deadenums.py -- gcc has no warning either, and deleting one
+#                 renumbers the ones after it, so survivors are pinned to their
+#                 DWARF values (tools/enumvals.sh), dumped on first need and
+#                 compared again once the sweep is done.
+#
+# THIS USED TO BE FOUR KINDS, and the other two were a phase of their own that
+# ran twice -- once part way through the pipeline and once at the tip -- because
+# every phase after the first run deleted code that orphaned more fields and
+# enumerators and nothing in its own sweep would notice.  An invariant that holds
+# only where it is asserted is not one.  Every sweep asserts it now, so every
+# boundary satisfies it.
 #
 # Every phase ran its own copy of this loop, character for character, and the
 # copies had begun to drift: the later ones had funcreach.py in the round and
@@ -47,16 +69,59 @@ set -eu
 
 f=${1:?usage: sweep.sh <file.c>}
 
+# The enumerator values of THIS input, kept for the whole sweep so that every
+# round pins to the original numbering.  deadenums.py writes it the first time
+# something is dead, and not before -- most sweeps never pay for the -g build.
+vals=$(mktemp -u)
+
+# THE BUILD RIDES ALONG.  A phase ends by building its binary, which used to be
+# a second full compile of the text this loop's last round had just compiled.
+# That compile cannot be reused -- -Wall -Wextra move the code, 64 bytes of
+# .text -- so each round also compiles a PLAIN object of the text it starts
+# from, in the background, on a core that was idle anyway.  The round that
+# changes nothing started from the final text, so its object is the one
+# tools/phasebuild.sh links: byte-identical to `make`, in a twentieth of a second.
+# A round that does change the file makes its object stale, and the next round's
+# replaces it.
+mkdir -p .cache/compile
+spec_pid=
+spec() {
+    if [ -n "$spec_pid" ]; then kill "$spec_pid" 2>/dev/null || true; wait "$spec_pid" 2>/dev/null || true; fi
+    rm -f .cache/compile/spec.*
+    cp "$f" ".cache/compile/spec.$round.c"
+    sha256sum "$f" | cut -d' ' -f1 > ".cache/compile/spec.$round.sha"
+    gcc -c -O0 -o ".cache/compile/spec.$round.o" ".cache/compile/spec.$round.c" 2>/dev/null &
+    spec_pid=$!
+}
+trap 'rm -f "$vals"; [ -n "$spec_pid" ] && kill "$spec_pid" 2>/dev/null; rm -f .cache/compile/spec.*' EXIT
+rm -f .cache/compile/build.o .cache/compile/build.sha
+
 round=0
 while :; do
     round=$((round + 1))
     was=$(sha256sum "$f" | cut -d' ' -f1)
+    spec
     a=$(python3 tools/deadsweep.py "$f" --keep .cache/compile | tail -1)
     c=$(python3 tools/deadprotos.py "$f" | tail -1)
     b=$(python3 tools/typereach.py "$f" --delete | tail -1)
     d=$(python3 tools/funcreach.py "$f" --delete | tail -1)
+    g=$(python3 tools/deadfields.py "$f" --delete | tail -1)
+    h=$(python3 tools/deadenums.py "$f" "$vals" --delete | tail -1)
     e=$(tools/canon.sh "$f" --once)
-    echo "  sweep $round      $a; $c; $b; $d;   $e"
+    echo "  sweep $round      $a; $c; $b; $d; $g; $h;   $e"
     [ "$(sha256sum "$f" | cut -d' ' -f1)" = "$was" ] && break
     [ "$round" -ge 15 ] && { echo "  sweep        not converging"; exit 1; }
 done
+
+# Only if an enumerator was dumped for, which is only if one was dead.
+if [ -f "$vals" ]; then
+    python3 tools/deadenums.py "$f" "$vals" --verify
+fi
+
+# The last round started from the final text, so its object is the build's --
+# once it has finished, and only if it compiled.
+if wait "$spec_pid" && [ "$(cat ".cache/compile/spec.$round.sha")" = "$(sha256sum "$f" | cut -d' ' -f1)" ]; then
+    mv ".cache/compile/spec.$round.o" .cache/compile/build.o
+    mv ".cache/compile/spec.$round.sha" .cache/compile/build.sha
+fi
+spec_pid=

@@ -12,7 +12,7 @@ replacement text; and a listing mode.
 
 **Without `+eval` a user command can only invoke built-in commands**, which
 makes it a way of writing an alias. That is worth 1,451 lines to somebody with a
-vimrc, and this editor reads no vimrc — Phase 20 saw to that — so the only way
+vimrc, and this editor reads no vimrc — Phase 18 saw to that — so the only way
 to define one is to type `:command` by hand in the session where it is used.
 
 Three commands are retired and one dispatch goes:

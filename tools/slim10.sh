@@ -32,6 +32,20 @@ tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
 before=$(grep -c '' "$f")
 
+# THE TABLE MOVES FIRST.  cmdnames[] names six hundred Ex command handlers and
+# sits near the top of the file, so each of them needs a forward declaration --
+# not because anything calls them early, but because a table mentions them
+# early.  Moved below its handlers, those declarations become droppable with the
+# rest: 640 go instead of 534.
+#
+# Two of the three candidate tables CANNOT move, and the reason is a language
+# rule rather than a gap in the tooling: options[] and nv_cmds[] are measured
+# with sizeof() by functions defined above them, and a tentative declaration of
+# an array has no size.  They keep their declarations.
+#
+# This was the whim pipeline's phase 6, the wrong home for the reason this phase
+# once was: where a table sits is not a capability.
+python3 tools/movetables.py "$f" cmdnames
 python3 tools/dropprotos.py "$f" --delete
 
 # --- the invariant this phase could silently break ------------------------

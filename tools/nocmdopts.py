@@ -8,12 +8,12 @@ Four options outlived what they controlled, and each in a different way:
 
   -y   evim mode.  `parmp->evim_mode` is assigned here and read nowhere: its
        one reader was the line in source_startup_scripts() that sourced
-       $VIMRUNTIME/evim.vim, and Phase 20 removed it.
+       $VIMRUNTIME/evim.vim, and Phase 18 removed it.
   -Z   restricted mode.  Its whole purpose is to refuse shell commands, and
        check_restricted() has exactly two callers left -- do_bang(), stubbed in
-       Phase 10, and ex_stop().  No live command carries EX_RESTRICT either;
+       Phase 8, and ex_stop().  No live command carries EX_RESTRICT either;
        the ten that do are all ex_script_ni.  It guards nothing.
-  -t   jump to a tag at startup, by running `:ta <tag>`.  Phase 12 retired
+  -t   jump to a tag at startup, by running `:ta <tag>`.  Phase 10 retired
        :tag, so the option's whole effect is to run a command that reports it
        is not implemented.
   -i   the viminfo file.  `'viminfo'` and `'viminfofile'` are wired to
@@ -22,14 +22,14 @@ Four options outlived what they controlled, and each in a different way:
        for as long as this fork has existed, which is why the harnesses passed
        it without anyone noticing it did nothing.
 
-`-u <file>` STAYS.  Phase 20 removed every path the editor searched on its own;
+`-u <file>` STAYS.  Phase 18 removed every path the editor searched on its own;
 a file the user names is not the editor going looking, and `:source` stays for
 the same reason.
 
-`--clean` keeps its other effects and loses its `'viminfofile'` line, because
-that reached the option BY NAME -- set_option_value_give_err((char_u *)"vif") --
-and a name lookup of a row that is not there answers -1 without the caller
-checking.  That is the trap Phases 17 and 19 both met.
+`--clean` used to be edited here too, for its `'viminfofile'` line: that reached
+the option BY NAME, and a name lookup of a row that is not there answers -1
+without the caller checking -- the trap Phases 15 and 17 both met.  Phase 3 drops
+`--clean` outright now, so there is no line left to take.
 """
 
 import re
@@ -55,17 +55,15 @@ IN_PARSER = [
      r'[ \t]*case \'i\':\n'
      r'[ \t]*set_option_value_give_err\(\(char_u \*\)"vif", 0L, \(char_u \*\)argv\[0\], 0\);\n'
      r'[ \t]*break;\n\n', ''),
-    ("-i and -t from the list of options that take one",
-     r'([ \t]*case \'S\':\n)[ \t]*case \'i\':\n[ \t]*case \'d\':\n[ \t]*case \'T\':\n',
-     r"\1            case 'd':\n            case 'T':\n"),
-    ("--clean setting a viminfo file",
-     r'[ \t]*set_option_value_give_err\(\(char_u \*\)"vif", 0L, \(char_u \*\)"NONE", 0\);\n', ''),
+    # Phase 3 already took `case 'd':` out of this group, with -d itself.
+    ("-i from the list of options that take one",
+     r'([ \t]*case \'S\':\n)[ \t]*case \'i\':\n', r'\1'),
 ]
 
 ELSEWHERE = [
     # The fields the four options set, and their now-unreachable readers.  A
     # struct field is not a variable, so no warning reports it and the sweep
-    # cannot see it -- the same shape Phase 19 met with b_start_fenc.
+    # cannot see it -- the same shape Phase 17 met with b_start_fenc.
     # SCOPED BY THEIR NEIGHBOUR.  `char_u *tagname;` is also a field of
     # taggy_T, seventeen hundred lines earlier, and an unanchored pattern takes
     # the first -- which removed the tag stack's field and broke five lines in

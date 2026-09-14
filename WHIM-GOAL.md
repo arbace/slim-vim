@@ -49,8 +49,9 @@ the phase is wrong.**
 ## The rules
 
 1. **Removal is computed, not listed.** Cut the entry points — a command row,
-   an option default, a branch of the environment layer — and let the dead-code
-   sweep find what becomes unreachable. A phase that names 900 functions to
+   an option default, a branch of the environment layer — and let the sweep
+   find what becomes unreachable: all six kinds of dead thing, in every phase
+   (see *The sweep*). A phase that names 900 functions to
    delete has written down what the compiler already knows, and will be wrong
    the first time upstream moves.
 2. **Every phase states its delta, in advance, as a check.** This is the whole
@@ -68,6 +69,92 @@ the phase is wrong.**
    pass. The two pipelines are decoupled: `make whim-vim` needs no clone, no
    network and no agent, and the memoize key is `slim-vim.c`'s digest and the
    implementation's, exactly as the other pipeline keys on upstream's sha.
+
+## The sweep, and what unreachable covers
+
+Every phase ends the same way: `tools/sweep.sh` deletes what the phase's cut
+left unreachable, to a fixpoint, because each kind of dead thing orphans the
+others — deleting a function orphans a type, deleting a type orphans a
+prototype, deleting a field orphans an enumerator. **Six kinds, in every
+phase:**
+
+| | by what | islands? |
+| --- | --- | --- |
+| functions | `deadsweep.py` (gcc) and `funcreach.py` | yes — reachability |
+| prototypes | `deadprotos.py` | n/a |
+| types | `typereach.py` | yes — reachability |
+| variables | `deadsweep.py`, `-Wunused-variable` | no — reference counting |
+| struct fields | `deadfields.py` | no — a mention outside every type definition |
+| enumerators | `deadenums.py` | no — a mention anywhere |
+
+**The last two are covered by no warning at all**, and for a while they were
+covered by no sweep either. A phase of its own asserted them, part way through
+the pipeline and then again at the tip, because the first assertion had been
+followed by nine phases that orphaned 40 more fields and 14 more enumerators and
+nothing in their own sweeps noticed. **An invariant asserted in one place is a
+cleanup.** Asserted in every sweep, it holds at every boundary, and no phase is
+ever handed dead code by the one before it.
+
+**A struct field is not a variable.** `deadfields.py` calls a field live if its
+name appears outside every type definition, since a mention inside another struct
+is a different field with the same name. It refuses what it cannot be sure of,
+because being wrong here is silent:
+
+- a bitfield or anonymous member, whose declaration does not say plainly what
+  it declares;
+- the last field of a struct, since an empty struct is not C and whole types
+  are `typereach.py`'s;
+- any field of a type that is ever initialised positionally.
+  `static termrequest_T crv_status = {STATUS_GET, -1};` fills two fields and
+  names neither, so the second looks dead, and removing it gives *"excess
+  elements in struct initializer"* — a warning, not an error, which a sweep keyed
+  on errors would have shipped;
+- **every field, while `ml_recover()` exists.** Removing a field moves the ones
+  after it, and until the editor cannot read a swap file, block zero and the
+  memfile's pages are a disk format: a field nothing in the code reads is still
+  a field another vim wrote. The question is asked of the file rather than of a
+  phase number, so the field sweep starts by itself in the phase that removes
+  recovery — and never in `slim-vim.c`, which keeps it. Measured: no phase before
+  Phase 21 removes a field, and Phase 21 removes 80.
+
+**An enumerator's value is its position**, so deleting one renumbers every
+implicit one after it, and several enums index a parallel table. `deadenums.py`
+reads the values from DWARF — `tools/enumvals.sh`, where the compiler has already
+done the arithmetic for `1 << 3` and `0x80000000L` — pins the first survivor
+after each deleted run, and dumps DWARF again after the sweep to require that no
+survivor moved. The dump costs a debug build, so it is taken **on first need**:
+most sweeps find no dead enumerator and never pay for it. A survivor DWARF has no
+value for cannot be pinned, so the run before it stays — an unpinned survivor
+renumbers silently, and a before-and-after comparison cannot see a name that is
+in neither dump.
+
+### The bug that asking about fields found first
+
+`typereach.py` had a blind spot that no amount of new tooling would have
+covered. `START` matched `struct X {` with the brace on the same line, and
+**111 of this file's type definitions put the brace on the next line**. Those
+were not definitions as far as the tool was concerned, so every field inside
+them counted as a *root* — and a whole dead island lived on because of it:
+`channel_T` is mentioned exactly twice outside its own definitions, and both are
+fields, `jv_channel` in `jobvar_S` and `ch_next` in `channel_S`. `jobvar_S` was
+invisible, so `jv_channel` was a root, so the `+channel` and `+job` types sat
+there complete, long after every function that used them had gone.
+
+Recognising the form took two goes, and both failures are the same shape as the
+`deadsweep` bug in Phase 24:
+
+1. `static struct modmasktable { … } mod_mask_table[] = { … };` is a type
+   definition **and a variable** in one construct, and the declarator sits
+   between the *struct's* closing brace and the `=` — not after the last `}`,
+   which belongs to the initialiser. So the name was never collected, the tag
+   was unreachable, and the whole construct went, leaving `mod_mask_table[i]`
+   undeclared 40,000 lines away. A construct that declares a variable is not a
+   type definition to delete; it is a variable, and `deadsweep.py` owns those.
+2. `typedef struct { … } chanpart_T;` does **not** declare a variable — there
+   the declarator names the type — so the rule above had to exclude typedefs.
+
+Fixed, it removes **378 lines** on its own, and it made every sweep stronger.
+
 
 ## Phase 0 — seed, and prove the copy is a copy
 
@@ -142,36 +229,109 @@ rather than settings, so it records nothing new. The evidence that this phase
 did something is the score, not the delta — which is the honest way round, and
 better than inventing a delta to point at.
 
-## Phase 3 — no splash screen, no `:intro`, no `:version`
+## Phase 3 — no introduction, and the command line says only what the editor still decides
 
-**An embedded editor starts in a buffer, not on a title card.** Three entry
-points, and the third is why this is not simply two more rows repointed:
+**An embedded editor starts in a buffer, not on a title card, and is started by
+something that knows what it wants.** This was two phases with a third's worth
+of work left undone between them. They were one question — *what may an
+invocation say?* — and are answered once.
+
+### The introduction
 
 - **`:intro` and `:version` point at `ex_ni`.**
 - **The splash screen's two call sites go.** `maybe_intro_message()` is called
   from the *redraw path* when the buffer is empty and no file was named. It is
   not a command, so an editor whose `:intro` was `ex_ni` would still greet you
   on startup.
+- **`-h`, `-?`, `--help` and `--version` go**, and with them `usage()` and
+  `list_version()`, which `--version` was the other door to.
 
-- **`--version`, `--help` and `-h`/`-?` stop being options.** Their branches
-  become `mainerr(ME_UNKNOWN_OPTION, ...)` — what an unrecognised option
-  already does — so nothing is left that exists only to refuse.
+That last is where the removal pays. With `list_version()` gone the sweep takes
+the version tables, the feature lists, and `pathdef`'s `compiled_user` and
+`compiled_sys`, which bake the *building machine's hostname* into the binary.
+Measured: the name appears once in this phase's input and nowhere in its output.
+That is worth removing on an embedded artifact's account and worth removing
+twice on a reproducible one — a binary that names the machine that built it
+cannot be byte-identical anywhere else.
 
-That last one is where the phase pays. `--version` was the other door to
-`list_version()`, and with that gone the sweep removed **1,041 lines in a single
-round**: the version tables, the feature lists, and `pathdef`'s `compiled_user`
-and `compiled_sys`, which bake the *building machine's hostname* into the
-binary. Measured: the string `satoshi` appears once in `slim-vim` and not at all
-in `whim-vim`. That is worth removing on an embedded artifact's account and
-worth removing twice on a reproducible one — a binary that names the machine
-that built it cannot be byte-identical anywhere else.
+### The command line
 
-**The delta**, cumulative against slim-vim's baselines: `:helpclose` from phase
-1, and now `:intro` and `:version`, which succeed in slim-vim and report E319
-here. Nothing else may move — and the pty scenarios are the ones to watch,
-since a startup screen is exactly the kind of thing a terminal harness records.
-The command-line flags change nothing the harness can see, because it never
-passes them; the evidence for those is the score and the missing hostname.
+`tools/dropopts.py` deletes each option's `case` label or `else if` link, so the
+option reaches `mainerr(ME_UNKNOWN_OPTION)` — the path anything unrecognised
+already takes. `tools/optreaders.py` then removes what only a dropped option
+could ever set, and every reader of it, because a field nothing sets is still
+*read*: no warning names it and no sweep can take it.
+
+| | options | |
+| --- | --- | --- |
+| **refusing** | `-A`, `-F`, `-H`, `-g`, `-nb` | print "not enabled at compile time" and exit — what an unknown option does anyway, one message less specifically |
+| **inert** | `-f`, `-X`, `-Y`, `-d`, `-U`, `--nofork`, `--literal`, `--gui-dialog-file`, `--startuptime`, `--log` | accepted with an empty body, or an argument that goes nowhere |
+| **said another way** | `-l`, `-C`, `-N`, `-V`, `--noplugin` | each is a `:set` — `lisp showmatch`, `compatible`, `nocompatible`, `verbose` and `verbosefile`, `noloadplugins` |
+| | `-n` | `'updatecount'` to 0, so no swap file is written; `:set updatecount=0` says the same, and from Phase 11 there is no swap file on disk to avoid |
+| | `-p` | the files as tab pages; `-o` and `-O` still lay them out as windows |
+| | `--clean` | `-u DEFAULTS`, and empty defaults for `'runtimepath'` and `'packpath'` |
+| **a capability** | `--not-a-term` | see below |
+
+**`--not-a-term` goes on purpose, and it is the one that removes something.** It
+told a full-screen run with no terminal not to warn, not to wait, and not to
+restore a title. Without it that run warns and waits two seconds, as it did
+before the option existed. An embedded editor is given a terminal or run with
+`-e`, and every harness here runs `-e -s`.
+
+What goes with them, found by `optreaders.py` rather than by the sweep:
+`early_arg_scan()`, which existed to refuse `-nb` before anything else ran; the
+pre-scan of `argv` at the top of `main()` that set `params.clean` before options
+existed, `set_init_1()`'s parameter, and `set_init_clean_rtp()`; `is_not_a_term()`
+and `is_not_a_term_or_gui()`, whose eight callers each keep the branch they took
+without the option; the reader that turned `-n` into `'updatecount'`;
+`WIN_TABS` at seven tests in `create_windows()` and `edit_buffers()`,
+`p_shm_save`, and `make_tabpages()`; and `More info with: "vim -h"`, which ended
+every usage error by naming a removed option and a binary this one is not.
+
+**Not here:** `-y`, `-Z`, `-t` and `-i` go in Phase 18, and `-r` and `-L` in
+Phase 21, each with the capability it selected — a flag is pointless only once
+the thing it chose is gone.
+
+### The trap, and the harness it needed
+
+`dropopts.py` removed a long option's `else if` and then asked whether the text
+*before* it ended in `else` — which it never did, because the match had already
+consumed that `else`. So removing **any** link turned the next `else if` into a
+bare `if`, and the chain came apart: `--clean`, `--noplugin` and `--not-a-term`
+each matched their own branch, failed every test after it, and reached `mainerr`
+anyway. **Three options broken for thirty phases, and nothing noticed, because no
+harness passed a single option** — `behaviour.py`, `exsweep.py` and
+`termcheck.py` all run `-u NONE -e -s` and nothing else. The removed link's own
+`else` decides now.
+
+`tools/clicheck.py` is the harness that was missing. It runs every option the
+parser has. A dropped one must exit 1 naming itself as unknown; a kept one must
+not, and must do what it says wherever `:set`, a file or an exit status can show
+it — `-c`, `+`, `--cmd`, `-S` and `-u` each set an option the run then reports,
+`-b`, `-R`, `-m`, `-M` and `-w7` report theirs, `-W` and `-w` write their file,
+`-v` leaves Ex mode and so warns that there is no terminal, and `--ttyfail`
+exits 1. "It did not complain" is accepted only for `-s`, `-o`, `-O`, `-T`, `-`
+and `--`, whose effects need a terminal to see. **Proven able to fail:** against
+`slim-vim` 30 of its 52 cases are wrong, and against the `whim-vim` built before
+this phase 12 are — every option this phase newly drops that still worked,
+counting `-p2` and `-V9`.
+
+`case 'X':` also appears in more than one switch in this file — the normal-mode
+tables and `get_c_indent()` have their own — so everything `dropopts.py` does is
+bounded by `command_line_scan()`'s own text, and a label it removes from one of
+the parser's two switches it removes from the other.
+
+### The delta
+
+Cumulative against slim-vim's baselines: `:helpclose` from phase 1, and now
+`:intro` and `:version`, which succeed in slim-vim and report E319 here. Nothing
+else may move — and the pty scenarios are the ones to watch, since a startup
+screen is exactly the kind of thing a terminal harness records. The command line
+is `clicheck.py`'s to check, because nothing else ever passes an option.
+
+Measured: **180,333 → 178,436 lines**, 1,368 of them taken by the sweep in three
+rounds, and libc symbols 146 → 146 — the introduction and the command line were
+never what the editor needed from the world.
 
 ## Phase 4 — the binary's name stops choosing what it does
 
@@ -194,7 +354,12 @@ name could select has an option that selects it explicitly, and
 | | | |
 | --- | --- | --- |
 | `-Z` restricted | `-R` readonly | `-y` evim |
-| `-e` Ex mode | `-E` improved Ex | `-d` diff |
+| `-e` Ex mode | `-E` improved Ex | |
+
+`diff` is not among them because it never selected a mode here: this build has
+no diff feature, and the name only ever printed that and exited. `-d`, which
+looks like its option, was an argument that went nowhere, and Phase 3 dropped
+it.
 
 **Corrected:** an earlier draft of this section claimed `view` set
 `'undolevels'` to 10000 where `-R` did not. It is wrong. `p_uc = 10000` appears
@@ -208,36 +373,7 @@ plain vim mode before and selects it now, so nothing they record can move. The
 evidence is the score — and the fact that `whim-vim` can now be called anything
 at all.
 
-## Phase 5 — options that accept and do nothing, or only refuse
-
-The argument that removed `'spelllang'` in phase 2, applied to the command line.
-**An option the editor accepts and ignores is a lie**, and an option whose whole
-body is an error message is a branch that exists only to say no. Both are better
-expressed by the option not existing — a path this build already has, since
-`mainerr(ME_UNKNOWN_OPTION)` is what anything unrecognised reaches.
-
-| | |
-| --- | --- |
-| **inert** | `-f`, `-X`, `-Y`, `--nofork`, `--literal`, `--gui-dialog-file` — accepted, empty body, or an argument that goes nowhere |
-| **refusing** | `-A`, `-F`, `-H` print "not enabled at compile time" and exit; `-g` starts a GUI that does the same |
-| **vestigial** | `--help` and `--version`, cut in phase 3 but left as string comparisons that matched and then called `mainerr` |
-
-That last row is phase 3 finishing its own job. A branch that exists only to
-reach the default is worse than no branch, and leaving it was an oversight the
-option listing found.
-
-**The delta: none the harness records**, because it never passes these. The
-evidence is the score and the error strings leaving the binary.
-
-### The trap
-
-`case 'X':` appears in more than one switch in this file — the normal-mode
-command tables have their own — so a scan for it over the whole file finds the
-wrong one and then says something confusing about a shared body. The argument
-parser is the switch that ends in `mainerr(ME_UNKNOWN_OPTION)`, and
-`tools/dropopts.py` bounds itself to that before it looks for anything.
-
-## Phase 6 — one regexp engine, not two
+## Phase 5 — one regexp engine, not two
 
 vim carries two regexp engines and an option to choose between them. **That is a
 migration path** — the NFA engine was new once, and `'regexpengine'` existed so a
@@ -287,7 +423,7 @@ have missed.
 never writes `\%#=`, and every pattern it does use is compiled by the same
 engine as before. That is what a default the product never changed means.
 
-## Phases 7 and 8 moved to SLIM-GOAL.md
+## Three phases moved to SLIM-GOAL.md
 
 They were "the forward declarations nothing needs" and "every definition says
 its own linkage", and this was the wrong home for them. **Neither removes a
@@ -301,37 +437,12 @@ pass exactly what slim's Phase 8 was doing with one process per symbol — two
 pipelines away from the phase that needed it — and that duplication is why
 slim's Phase 8 took 369 seconds instead of 115.
 
-## Phase 7 — the table moves below what it names
+The third followed them later. "The table moves below what it names" moved
+`cmdnames[]` below its handlers so the declarations it forced could go with the
+rest, and that is a fact about a translation unit too: it is part of slim's
+Phase 10 now.
 
-`cmdnames[]` names six hundred Ex command handlers and sits near the top of the
-file, so each of them needs a forward declaration — **not because anything calls
-them early, but because a table mentions them early.** Moving the table below
-its handlers removes 98 of those and costs one declaration of the table itself.
-
-**Two of the three candidate tables cannot move**, and the reason is a language
-rule rather than a gap in the tooling. `options[]` and `nv_cmds[]` are measured
-with `sizeof()` by functions defined *above* them, and a tentative declaration
-of an array has no size — the attempt fails at exactly that `sizeof`. They keep
-their 229 declarations. Measuring that was cheaper than arguing about it.
-
-The struct *type* stays where it was. These tables are written
-`static struct cmdname { ... } cmdnames[] = {...};` — a type definition and an
-object in one — and moving both would leave the declaration behind naming an
-incomplete type.
-
-**The delta: none.** Where a table sits is not behaviour.
-
-### And that is the end of what ordering can buy
-
-The remaining declarations were measured rather than guessed at. Of 3,234
-functions, **1,335 are in a single mutually recursive component** that no
-ordering can untangle — breaking it is a minimum feedback arc set, which is
-NP-hard — and the other 1,895 are acyclic and could in principle be
-topologically sorted to need no declaration at all. That is not worth doing:
-it would buy about 1% of the file and destroy the banner structure that is the
-only navigation 165,000 lines have.
-
-## Phase 8 — the editor stops writing shell scripts, and stops drawing a menu
+## Phase 6 — the editor stops writing shell scripts, and stops drawing a menu
 
 Two cuts, both at the boundary between the editor and everything outside it.
 
@@ -378,7 +489,7 @@ ten times, which keeps two hundred lines alive that can no longer run. **The
 popup menu itself stays**: `pum_display()` has a second caller in insert-mode
 completion, so only the command line's use of it is cut. `'wildoptions'` keeps
 its other three values and loses `pum`, because an option value that is still
-accepted and now does nothing is what Phase 5 exists to prevent.
+accepted and now does nothing is what Phase 3 exists to prevent.
 
 ### The delta
 
@@ -409,14 +520,14 @@ removes 1,025 further lines and **not one libc symbol**. `opendir`, `readdir`,
 `closedir`, `getcwd` and `lstat` all survive it. Lowering the surface is a
 different question from this one, and the answer to it is not here.
 
-## Phase 9 — the editor stops looking for files it was not given
+## Phase 7 — the editor stops looking for files it was not given
 
 Two removals that are the same thing seen from two sides: the editor asking the
 filesystem what is around the file it was handed.
 
 ### Wildcards, the rest of the way
 
-Phase 8 removed the expander that wrote shell scripts. This removes the
+Phase 6 removed the expander that wrote shell scripts. This removes the
 editor's own. `gen_expand_wildcards()` walked directories with `opendir` and
 `readdir` to match `*`, `?`, `[...]`, `~` and `$VAR`, and now hands every
 pattern back unchanged — which is not a stub written for the occasion but the
@@ -462,13 +573,13 @@ not the author: `recover_names()` finds swap files by building the patterns
 expand patterns cannot find a swap file whose name it was not given. That is a
 consequence of removing globbing rather than a bug in it, so it is declared —
 the alternative, widening the list until it fits, is how a delta list stops
-being a check. It also says something about Phase 12: the swap file is already
+being a check. It also says something about Phase 10: the swap file is already
 half unreachable.
 
 Cumulatively: `helpclose intro version cd chdir lcd lchdir tcd tchdir pwd
 recover`.
 
-## Phase 10 — `:!` keeps its name and loses its process
+## Phase 8 — `:!` keeps its name and loses its process
 
 `:!cmd`, `:[range]!cmd`, `:r !cmd`, `:w !cmd` and `:shell` keep their names,
 their ranges and their parsing. What goes is everything under them — the fork,
@@ -518,7 +629,7 @@ Filtering and shelling out report `E319: Sorry, the command is not available in
 this version` instead of running anything. `:language` completion stops listing
 locales, silently.
 
-## Phase 11 — the editor stops asking the environment what language it is in
+## Phase 9 — the editor stops asking the environment what language it is in
 
 `setlocale(LC_ALL, "")` reads `$LANG`, `$LC_ALL` and `$LC_CTYPE` at startup and
 changes how this process compares strings, classifies characters and formats a
@@ -541,7 +652,7 @@ That is not a behaviour change on this target, and that was measured rather than
 assumed: musl answers UTF-8 to `nl_langinfo(CODESET)` unconditionally, so the
 derived value was already `utf-8` — with `$LANG` set, and with `$LANG` unset.
 The change makes the encoding **a property of the build instead of a property of
-the machine**, which is the whole point, and it is what Phase 12 builds on.
+the machine**, which is the whole point, and it is what Phase 10 builds on.
 
 **And `set_init_default_encoding()` is replaced, not deleted**, which took three
 tries to get right. It did three things: ask the locale, re-initialise the
@@ -573,7 +684,7 @@ before asking what it complained about.
 ### The four `lang*` options
 
 `'langmap'`, `'langmenu'`, `'langnoremap'` and `'langremap'` are all wired to
-`(char_u *)NULL` — they accept a value and store it nowhere. They are Phase 5's
+`(char_u *)NULL` — they accept a value and store it nowhere. They are Phase 3's
 rule arriving late rather than a new decision, and no behaviour can change.
 
 ### The delta
@@ -582,12 +693,12 @@ rule arriving late rather than a new decision, and no behaviour can change.
 the C locale now, which is what it was already running in for every purpose this
 build has. `setlocale`, `nl_langinfo` and `strcoll` leave the symbol table.
 
-## Phase 12 — no tag stack
+## Phase 10 — no tag stack
 
 A tag jump is the editor discovering, on its own, that a file it was never told
 about exists. `get_tagfname()` walks `'tags'` upward from the current file,
 opens whatever it finds and binary-searches it — filesystem-layout knowledge of
-exactly the kind Phase 9 removed from `'path'`, and the largest single item
+exactly the kind Phase 7 removed from `'path'`, and the largest single item
 left in the tree at 2,364 lines.
 
 ### Four entry points that are not commands
@@ -647,7 +758,7 @@ command only shows up in the Ex sweep if the command used to *succeed*: `:tag`,
 tag stack and exited 0, and now reports instead. CTRL-`]` and CTRL-T report what
 `:tag` reports. The declared list is what moved, not what was cut.
 
-## Phase 13 — nothing is written that was not asked for
+## Phase 11 — nothing is written that was not asked for
 
 A swap file is not a recovery add-on bolted to the side of the editor. It is
 **memline's backing store**: created beside every file you open, written to as
@@ -686,13 +797,13 @@ file that was edited.
 still called from `main_loop()`, `edit()` and `wait_return()`, so the editor
 still notices a file changing underneath it — retiring `:checktime` removed the
 command, not the polling. That is a separate cut with a separate delta, and
-**Phase 15 is where it happens**.
+**Phase 13 is where it happens**.
 
 ### The delta, and three things the harness knew better than the author
 
 Eight command names report that they are not available; `'updatecount'` and
 `'swapsync'` stop existing. `'swapfile'` cannot go — it is
-`PV_BUF` and its row is what initialises the global, the trap Phase 12 records —
+`PV_BUF` and its row is what initialises the global, the trap Phase 10 records —
 so it stays and is now always effectively off.
 
 ### `'directory'` was dropped here once, and that was a bug
@@ -700,7 +811,7 @@ so it stays and is now always effectively off.
 It is in the list above no longer, and the correction is worth more than the
 line it takes. A row is also what **initialises** its global, so a row can only
 go once nothing reads the global — and `recover_names()` scans every directory
-in `p_dir` looking for swap files, right up until Phase 23 deletes it. Dropping
+in `p_dir` looking for swap files, right up until Phase 21 deletes it. Dropping
 the row here left `p_dir` NULL for ever, with a live dereference in
 `check_overwrite()`, which asks whether *another* vim has a swap file beside the
 file you are about to overwrite. So this shipped for twelve phases:
@@ -720,7 +831,7 @@ shape that reaches it.
 `dropoptions.py --strict` refuses exactly this and did not exist when this phase
 was written. The repair has three parts, and only the first is about this bug:
 
-1. `'directory'` moves to Phase 23, where its last reader goes. Phase 13 keeps
+1. `'directory'` moves to Phase 21, where its last reader goes. Phase 11 keeps
    the row, so `p_dir` is initialised for every phase in between.
 2. `tools/orphanopts.py` runs in **every** whim phase, out of `whimdelta.sh`. It
    parses `options[]`, collects every `&p_xx` it names, and compares that with
@@ -729,7 +840,7 @@ was written. The repair has three parts, and only the first is about this bug:
    fatal. `'updatecount'` is genuinely safe to drop here for that reason —
    `p_uc` reading 0 *is* "never create a swap file".
 3. `--strict` learned that `varp == (char_u *)&p_x` takes an address rather than
-   reading a value. Counting those made it refuse `'directory'` in Phase 23,
+   reading a value. Counting those made it refuse `'directory'` in Phase 21,
    where the row genuinely was inert — a guard that cries wolf gets turned off,
    which would have cost more than the bug did.
 
@@ -738,14 +849,14 @@ takes `sync()` with it. It sat behind `if (mfp->mf_fd < 0) return FAIL;` and so
 was never reached — latent rather than live, and removed for the same reason.
 
 `:mksession` and `:mkview` **do not move**: they already failed. And `:recover`
-**leaves** the cumulative list it joined in Phase 9 — removing globbing had
+**leaves** the cumulative list it joined in Phase 7 — removing globbing had
 made it fail differently from the slim baseline, and `ex_ni` makes it fail the
 same way again, so it stops being a difference. A cumulative delta can shrink,
 which is not something a list maintained by hand would ever discover.
 
-## Phase 14 — UTF-8, and no other encoding, ever
+## Phase 12 — UTF-8, and no other encoding, ever
 
-Phase 11 made `'encoding'` a property of the build rather than of the machine.
+Phase 9 made `'encoding'` a property of the build rather than of the machine.
 This makes it **not a setting at all**: `mb_init()` accepts `utf-8` and returns
 "invalid argument" for anything else, so `:set enc=latin1` fails the way a
 misspelt value fails, and the latin1 and DBCS character paths lose their only
@@ -806,9 +917,9 @@ three times by three different routes:
 | `'encoding'` | `PV_NONE`, but `p_enc` is read in twenty-nine places |
 | `'fileencodings'` | `PV_NONE`, not reached by name — and `readfile()` dereferences `p_fencs` |
 | `'termencoding'` | `PV_NONE` — and `did_set_encoding()` dereferences `p_tenc` |
-| `'fileencoding'`, `'bomb'` | `PV_BUF`, the trap Phase 12 recorded |
+| `'fileencoding'`, `'bomb'` | `PV_BUF`, the trap Phase 10 recorded |
 
-**A row is what initialises its global.** Phase 12 found that for a
+**A row is what initialises its global.** Phase 10 found that for a
 buffer-local option and guarded on `PV_`; this phase found it for a `PV_NONE`
 option reached by *name* (`set_string_option_direct((char_u *)"fencs", …)`,
 which answers `E685` and then segfaults) and then again for one reached only
@@ -822,7 +933,7 @@ with its initialiser removed.
 distinction is not tidiness.** `PV_BUF` is a property of the row, true whenever
 you look. "Nothing reads this global" is only true *after the sweep*, and most
 phases drop their options before it — so asking then names the readers the sweep
-is about to delete. Phase 2 (`'spell'`) and Phase 6 (`'regexpengine'`) both
+is about to delete. Phase 2 (`'spell'`) and Phase 5 (`'regexpengine'`) both
 fail that question and are both correct. This phase drops after sweeping and so
 asks in strict mode. It is the same mistake this phase made twice more — a check
 placed one step too early — and it is worth naming because it looks like
@@ -837,7 +948,7 @@ A byte-order mark becomes three ordinary bytes at the top of the buffer, which
 is what ignoring it means, and the `bomb_on` behaviour case moves because of it.
 `'charconvert'` stops existing. **No Ex command moves.**
 
-## Phase 15 — the editor stops re-reading a file it has already read
+## Phase 13 — the editor stops re-reading a file it has already read
 
 vim watches the files it holds. `check_timestamps()` walks every buffer and
 stats its file — from the main loop, from insert mode, from the `Press ENTER`
@@ -846,7 +957,7 @@ does the same for one buffer on entering it. If the file moved underneath it
 prompts, and with `'autoread'` it reloads.
 
 That is the editor initiating filesystem traffic on its own account, which is
-the boundary this fork narrows. **Phase 13 retired `:checktime`, which removed
+the boundary this fork narrows. **Phase 11 retired `:checktime`, which removed
 the command; this removes the polling, which is what actually reached the
 disk.** What is left is an editor that reads a file when told to and writes it
 when told to.
@@ -873,10 +984,10 @@ back, so nothing it does reaches this code — which is worth stating rather tha
 glossing, because a phase with no delta is either well-chosen or untested, and
 the only way to tell them apart is to say which you think it is.
 
-## Phase 16 — a file name means the file of that name
+## Phase 14 — a file name means the file of that name
 
 `'path'` searching is the last of the three ways this editor knew where files
-live, after globbing (Phase 9) and `'tags'` (Phase 12). `vim_findfile()` walks a
+live, after globbing (Phase 7) and `'tags'` (Phase 10). `vim_findfile()` walks a
 path list downward and upward, remembers directories it has visited so a symlink
 loop cannot trap it, and can be asked for the second match and the third — 866
 lines of filesystem-layout knowledge behind `:find`, `:sfind`, `:tabfind` and
@@ -905,17 +1016,17 @@ what initialises its global. They stay, and now decide nothing.
 ### The delta
 
 `gf` opens the name under the cursor if there is a file of that name rather than
-searching `'path'` for one. **No Ex command moves** — Phase 12's lesson again
+searching `'path'` for one. **No Ex command moves** — Phase 10's lesson again
 rather than a surprise: retiring a command only shows in the sweep if it used to
 *succeed*, and `:find`, `:sfind` and `:tabfind` already failed for want of an
 argument.
 
-## Phase 17 — the last two encoding options
+## Phase 15 — the last two encoding options
 
-**Phase 14 emptied `'fileencodings'` and said so, and it was true at startup and
+**Phase 12 emptied `'fileencodings'` and said so, and it was true at startup and
 not afterwards.** `set_option_default()` special-cases the option, so `:set
 fencs&` restored `ucs-bom,utf-8,default,latin1` from `fencs_utf8_default` — a
-third reference Phase 14 did not find, because it names the *string* rather than
+third reference Phase 12 did not find, because it names the *string* rather than
 the function the other two called. Measured on the shipped binary before this
 was written:
 
@@ -924,18 +1035,18 @@ was written:
   after :set fencs&    fileencodings=ucs-bom,utf-8,default,latin1
 ```
 
-That is worth recording as a pattern and not just a fix. Phase 14 cut two
+That is worth recording as a pattern and not just a fix. Phase 12 cut two
 callers of `set_fencs_unicode()` and asked whether anything still called it;
 nothing did. The question it did not ask was whether anything still used the
 *value*, and a search for the function name cannot answer that.
 
 Three readers go, and with them the two options can finally follow.
 `set_option_default()` stops special-casing `'fileencodings'`, which is what
-makes Phase 14's claim true at every moment rather than one. `readfile()` stops
+makes Phase 12's claim true at every moment rather than one. `readfile()` stops
 choosing between an empty list and a list to walk, and takes the buffer's own
 `'fileencoding'` — the branch the empty case already took. And
 `did_set_encoding()` stops setting up a conversion between `'termencoding'` and
-`'encoding'`, which `convert_setup()` has answered `CONV_NONE` to since Phase 14,
+`'encoding'`, which `convert_setup()` has answered `CONV_NONE` to since Phase 12,
 so the block could only ever have succeeded at doing nothing.
 
 **`'encoding'` still cannot go, and here that stops being temporary.** `p_enc`
@@ -949,13 +1060,13 @@ Of the six encoding options this fork began with, one remains, and it reports
 **None.** `:set fencs&` no longer restores a list of encodings this build cannot
 convert between, which is a correction rather than a change.
 
-## Phase 18 — six options that no longer decide anything
+## Phase 16 — six options that no longer decide anything
 
 `'path'` and `'suffixesadd'` have been inert since the file finder went,
 `'tags'` and `'tagcase'` since the tag stack, `'autoread'` since the timestamp
 poll, and `'swapfile'` since the swap file. All six were still here, because a
 row is what initialises its global and `tools/dropoptions.py` refuses to leave
-one dangling — **Phase 12's trap, which this phase clears rather than works
+one dangling — **Phase 10's trap, which this phase clears rather than works
 around.**
 
 ### The order is the phase, and it is forced rather than chosen
@@ -977,11 +1088,11 @@ its cut however it liked; this one is not.
 ### The three that are not plumbing
 
 `ex_drop()` set `'autoread'` on, checked the timestamp, and set it back —
-and Phase 15 took the check out from between, so what was left was a variable
+and Phase 13 took the check out from between, so what was left was a variable
 saved and restored across nothing at all. `do_set_option_bool()` special-cased
 `:setlocal autoread` to mean "follow the global", the `-1` sentinel, and there
 is no global to follow. `ml_open()` asked whether this buffer may have a swap
-file; since Phase 13 the answer has been no whatever `'swapfile'` said, so it
+file; since Phase 11 the answer has been no whatever `'swapfile'` said, so it
 now says no directly.
 
 Everything else is the five fixed idioms every buffer-local option has — the
@@ -996,12 +1107,12 @@ nothing left to look the field up from.
 **None.** All six report `E518: Unknown option` instead of a value that decided
 nothing.
 
-## Phase 19 — the last two per-buffer encoding options
+## Phase 17 — the last two per-buffer encoding options
 
 `'fileencoding'` names the encoding a buffer was read in and will be written
 back in, and `'bomb'` whether it had a byte-order mark. With one encoding and no
-BOM, both have had one possible value since Phase 14 — but **unlike the six
-Phase 18 took, these are not plumbing.** Eight functions read them, and each had
+BOM, both have had one possible value since Phase 12 — but **unlike the six
+Phase 16 took, these are not plumbing.** Eight functions read them, and each had
 to be looked at:
 
 | | what it wanted them for |
@@ -1030,7 +1141,7 @@ so `file_ff_differs()` keeps those and loses only the two that cannot.
 **None.** Both report `E518` instead of a value with one possible setting. What
 is left is `'encoding'`, alone, reporting `utf-8`.
 
-## Phase 20 — nothing is read at startup, and nothing on the command line decides anything
+## Phase 18 — nothing is read at startup, and nothing on the command line decides anything
 
 ### nothing is read at startup that was not named on the command line
 
@@ -1048,7 +1159,7 @@ because reading a config file out of the current directory is a way to be handed
 someone else's commands.
 
 All of it goes. **`-u <file>` stays, and so does `:source`**: a file the user
-names is not the editor going looking, and Phase 12 already settled `:source`.
+names is not the editor going looking, and Phase 10 already settled `:source`.
 `NONE`, `NORC` and `DEFAULTS` are still recognised as `-u` arguments and still
 mean "read nothing" — which they now do by agreeing with everything else.
 
@@ -1076,12 +1187,12 @@ Four outlived what they controlled, each in a different way.
 
 | | why it is inert |
 | --- | --- |
-| `-y` | evim mode. `parmp->evim_mode` is assigned and read nowhere — its one reader was the line Phase 20 removed |
-| `-Z` | restricted mode, whose purpose is to refuse shell commands. `check_restricted()` has two callers left: `do_bang()`, stubbed in Phase 10, and `ex_stop()`. No *live* command carries `EX_RESTRICT` either — the ten that do are all `ex_script_ni` |
-| `-t` | jump to a tag at startup, by running `:ta <tag>`. Phase 12 retired `:tag`, so its whole effect is to run a command that reports it is not implemented |
+| `-y` | evim mode. `parmp->evim_mode` is assigned and read nowhere — its one reader was the line Phase 18 removed |
+| `-Z` | restricted mode, whose purpose is to refuse shell commands. `check_restricted()` has two callers left: `do_bang()`, stubbed in Phase 8, and `ex_stop()`. No *live* command carries `EX_RESTRICT` either — the ten that do are all `ex_script_ni` |
+| `-t` | jump to a tag at startup, by running `:ta <tag>`. Phase 10 retired `:tag`, so its whole effect is to run a command that reports it is not implemented |
 | `-i` | the viminfo file. `'viminfo'` and `'viminfofile'` are wired to `(char_u *)NULL` in **both** editors — the tiny configuration has no viminfo at all |
 
-**`-u <file>` stays.** Phase 20 removed every path the editor searched on its
+**`-u <file>` stays.** Phase 18 removed every path the editor searched on its
 own; a file the user names is not the editor going looking.
 
 #### The harnesses change, and that is the check
@@ -1113,7 +1224,7 @@ edit_type;`, which sits immediately above it and nowhere else.
 
 **None.**
 
-## Phase 21 — the terminal is what the build says
+## Phase 19 — the terminal is what the build says
 
 Five environment variables describe the terminal and the editor believed all of
 them: `$TERM` picks a capability table, `$LINES` and `$COLUMNS` override the size
@@ -1168,12 +1279,12 @@ which stops at the first line that is only a brace — an inner block's, wheneve
 there is one. This phase made it five. It is one function in `cutil.py` now,
 brace-matched, refusing a block that has an `else`.
 
-## Phase 22 — nothing outside the process is consulted
+## Phase 20 — nothing outside the process is consulted
 
 ### there is no home directory
 
 `$HOME` is where an editor keeps the things it was told not to keep. This fork
-stopped writing them in Phase 13 and stopped looking for them in Phase 20, and
+stopped writing them in Phase 11 and stopped looking for them in Phase 18, and
 what was left is the *notion* of a home directory — `~/x` meaning a path, `~bob`
 meaning someone else's, and `/home/you/x` displayed back as `~/x`.
 
@@ -1213,14 +1324,14 @@ of its own rather than a corner of this one: `ml_recover()` alone is 559 lines,
 current directory, which no harness asks for.
 
 `--term-moved` is **cumulative**, like the command list — the comparison is
-always against the slim baseline, and Phase 21 collapsed that table for good, so
+always against the slim baseline, and Phase 19 collapsed that table for good, so
 every phase after it declares the same thing. Discovered by this phase failing
 when it did not.
 
 ### nothing is read from the environment
 
-The third and last of the standalone phases. Phase 20 stopped reading
-configuration files, Phase 22 stopped believing in a home directory, and this
+The third and last of the standalone phases. Phase 18 stopped reading
+configuration files, Phase 20 stopped believing in a home directory, and this
 one removes the environment itself — after it, no answer this editor gives
 depends on how it was invoked.
 
@@ -1239,19 +1350,19 @@ already taking:
 | `$VIMRUNTIME` (`fix_help_buffer`) | the `*local-additions*` scan, 111 lines, already a no-op |
 | `$SHELL`, `$CDPATH`, `$VIM_POSIX` | the compiled-in defaults |
 | `$TMPDIR`, `$TEMP`, `$TMP` | `/tmp`, which was always in the list |
-| `$COLORFGBG` | what Phase 21 decided the terminal is |
+| `$COLORFGBG` | what Phase 19 decided the terminal is |
 | `$TZ` | `localtime_r`, which does the zone setup itself |
 | `$VIM`, `$VIMRUNTIME`, `$MYVIMDIR`, written | nothing writes them |
 | `environ`, walked for `$VAR` completion | the row and its `$`-prefix context go, as `~user`'s did |
 
-`expand_env_esc` is the same answer Phase 22 gave `home_replace`: with the `$`
+`expand_env_esc` is the same answer Phase 20 gave `home_replace`: with the `$`
 arm gone what remains is `skipwhite`, the backslash escape and the bound on
 `dstlen`, and a name reaches its caller intact.
 
 **`vimrc_found()` was already unreachable**, and finding that out is what kept
 this phase from being an argument about whether `$VIM` should still be
 published. Every `do_source()` call in the file passes `DOSO_NONE`, so the two
-arms that called it have been dead since Phase 20. Deleting them takes
+arms that called it have been dead since Phase 18. Deleting them takes
 `vim_setenv`, `export_myvimdir` and `$MYVIMDIR` with them.
 
 #### The check is the object, not the source
@@ -1275,11 +1386,11 @@ decision, and not this one.
 `:set shell?` says `sh` whatever `$SHELL` was — verified by hand, none of it
 something a harness asks for.
 
-## Phase 23 — there is nothing to recover, and the memfile is memory
+## Phase 21 — there is nothing to recover, and the memfile is memory
 
 ### there is nothing to recover
 
-Phase 13 made the swap file memory-only: the block structure is still built,
+Phase 11 made the swap file memory-only: the block structure is still built,
 still paged, still where every line of the buffer lives, but it never reaches a
 disk. What that left behind is the other half of the feature — the code that
 reads *someone else's* swap file back, which is code for reading a file this
@@ -1294,7 +1405,7 @@ the recovery arm of `create_windows()`. `ml_recover()` (559 lines),
 `recover_names()` (216) and `swapfile_info()` (103) go with them.
 
 **This is where `getpwuid` goes** — the fifth of the five password-database
-symbols, and the one Phase 22 said would need a phase of its own.
+symbols, and the one Phase 20 said would need a phase of its own.
 `swapfile_info()` called `mch_get_uname()` to say who owned a swap file.
 
 `:recover` was pointed at `ex_ni` earlier and does not move. It already failed,
@@ -1307,10 +1418,10 @@ only shows in the Ex sweep if it used to *succeed*.
 `vim_localtime()` with exactly one user: `add_time()`, the timestamp in
 `:undolist` and in `1 change; before #3`. It is dropped too, and **not because
 it is unreachable**. `localtime_r()` asks libc what the local zone is, and
-Phase 22 took away every way this editor could be told; a wall-clock time
+Phase 20 took away every way this editor could be told; a wall-clock time
 without a zone is a wrong answer rather than a partial one. Undo history does
 not outlive the process either — `:wundo` and `:rundo` have been `ex_ni` since
-Phase 13 — so every time `add_time()` formats is within one session, and the
+Phase 11 — so every time `add_time()` formats is within one session, and the
 relative form it already used below 100 seconds is the true one. `strftime` and
 both format strings go with it, and `:undolist` now reads `1 second ago` where
 it used to read `14:23:07`.
@@ -1326,14 +1437,14 @@ it used to read `14:23:07`.
 
 ### the memfile is memory, and only memory
 
-Phase 13 stopped the editor creating a swap file and Phase 23 stopped it reading
+Phase 11 stopped the editor creating a swap file and Phase 21 stopped it reading
 one back. What was left is a **file back-end with no file**: `memfile_T` still
 carried a descriptor, still knew how to page a block out and read it in, and
 still sized an LRU cache against how much memory the machine has — all of it
 behind `if (mfp->mf_fd >= 0)`, and `mf_fd` could no longer be anything but −1.
 
 The proof is short. `mf_open()` has two callers: `ml_open()` passes `(NULL, 0)`,
-and `ml_recover()` passed a name — Phase 23 deleted it. Phase 13 stubbed
+and `ml_recover()` passed a name — Phase 21 deleted it. Phase 11 stubbed
 `ml_open_file()` to `b_may_swap = FALSE`. So nothing can hand the memfile a
 name, `mf_do_open()` is unreachable, and `mf_write()` and `mf_read()` return
 FAIL on their first lines.
@@ -1365,7 +1476,7 @@ to *evict* a block, which was already impossible — not the ability to have one
 #### A bug this phase fixes, and where it came from
 
 `check_overwrite()` is the last reader of `p_dir`, so **`'directory'` can
-finally go**. Phase 13 dropped its row while this still read it, and a row is
+finally go**. Phase 11 dropped its row while this still read it, and a row is
 what initialises its global — so `p_dir` was NULL for ever, and
 
 ```
@@ -1378,7 +1489,7 @@ checks pass; and neither the Ex sweep nor the 67 behaviour cases write over an
 existing file under a different name with `!`.
 
 `dropoptions.py --strict` refuses exactly this and had not been written when
-Phase 13 was. The repair is in three parts: Phase 13 keeps `'directory'` and
+Phase 11 was. The repair is in three parts: Phase 11 keeps `'directory'` and
 drops it here instead; `tools/orphanopts.py` checks the invariant in **every**
 whim phase, and is type-aware — a `long` orphan reads as 0 and is reported, a
 `char_u *` orphan is fatal; and `--strict` learned that `varp == (char_u *)&p_x`
@@ -1396,7 +1507,7 @@ caller is `_SC_SIGSTKSZ`, for `sigaltstack`.
 is what it should always have done, and the phase asserts that directly — no
 harness does.
 
-## Phase 24 — the working directory is where it started
+## Phase 22 — the working directory is where it started
 
 `:cd`, `:lcd` and `:tcd` are `ex_ni`, `:!` no longer forks, and nothing else in
 this editor moves the process. So **the directory it starts in is the one it
@@ -1461,7 +1572,7 @@ directory it is standing in. So it writes `sub/f.txt` from above and then
 `../sub/f.txt` from inside `sub`, and requires the file to come back correct
 both times.
 
-## Phase 25 — no floating-point library
+## Phase 23 — no floating-point library
 
 Three calls are the whole of libm in this editor, and they turn out to be two
 different questions.
@@ -1521,7 +1632,7 @@ either — what changes is that `nm -u` stops naming a floating-point function.
 
 **None.**
 
-## Phase 26 — there is no mouse
+## Phase 24 — there is no mouse
 
 A terminal mouse is a protocol, not a device: the terminal is asked to report
 clicks, it sends escape sequences, the editor decodes them into key codes, and
@@ -1578,7 +1689,7 @@ and `--strict` then refuses to drop the row because those readers exist.
    for a row that is not there and is not checked. `:behave` is about selection
    and keeps working; it just stops setting an option that has gone.
 4. `didset_string_options()` dereferences every string option's global once at
-   startup, which is the trap Phase 20 records. A row can be inert to every
+   startup, which is the trap Phase 18 records. A row can be inert to every
    other reader and still be read there.
 
 **And one real tool bug, which cost the most and was worth the most.** The first
@@ -1630,7 +1741,7 @@ for an option that exists, 1 for one that does not. It is paired with
 `:set ignorecase` as a control, so the check fails if the binary starts exiting
 1 whatever it is asked.
 
-## Phase 27 — a write is a write, and nobody owns it
+## Phase 25 — a write is a write, and nobody owns it
 
 ### a write is a write
 
@@ -1677,10 +1788,10 @@ was inside the backup block.
 row, and `'backupext'` and `'patchmode'` share
 `did_set_backupext_or_patchmode`; a row is a root, so the handlers survive the
 sweep, read `p_bkc` and `p_bex`, and `--strict` then refuses to drop the row
-that is the only thing keeping them alive. Phase 26 met this three times. The
+that is the only thing keeping them alive. Phase 24 met this three times. The
 rows are pointed at NULL first.
 
-`didset_string_options()` reads `p_bkc` at startup — the trap Phase 20 records,
+`didset_string_options()` reads `p_bkc` at startup — the trap Phase 18 records,
 met again — and `set_init_default_backupskip()` looks its row up **by name**,
 the lookup that returns −1 and is not checked.
 
@@ -1712,11 +1823,11 @@ you are is asking a question with no answer. Four places were still asking.
   * `'modeline'` is forced off when `getuid() == ROOT_UID`, a protection against
     a modeline running as root. There is no root here and no `+eval` for a
     modeline to reach.
-  * `get_user_name()` was stubbed to `return FAIL;` in Phase 22, when the
+  * `get_user_name()` was stubbed to `return FAIL;` in Phase 20, when the
     password database went, and its two callers were left writing the answer
     into the swap file's block zero. The second one's `else` — the arm that
     spliced a user name into the recorded file name — has therefore been dead
-    since Phase 22 and goes now, along with the `b0_uname` field itself. **A
+    since Phase 20 and goes now, along with the `b0_uname` field itself. **A
     struct field is not a variable**: no warning names one that nothing reads,
     and the sweep cannot see it, so it has to be named here.
 
@@ -1739,98 +1850,7 @@ a read-only file, which is why that check lives here.
 
 **None.**
 
-## Phase 28 — nothing in the file is unreachable
-
-**The first of two**, and the only pair that removes nothing in particular.
-Every phase sweeps what its own cut orphaned; this asks the whole file a
-question none of them can: **is anything left that nothing reaches?** Phase 37
-asks it again at the tip, and `tools/unreachable.sh` is the one program both
-call, so the invariant cannot drift between the two places it is asserted.
-
-The sweep every phase runs covers four of the six kinds:
-
-| | by what | islands? |
-| --- | --- | --- |
-| functions | `deadsweep.py` (gcc) and `funcreach.py` | yes — reachability |
-| prototypes | `deadprotos.py` | n/a |
-| types | `typereach.py` | yes — reachability |
-| variables | `deadsweep.py`, `-Wunused-variable` | **no — reference counting** |
-| enumerators | **nothing** | — |
-| struct fields | **nothing** | — |
-
-The last two had already been met by hand, in phase tools that should not have
-had to care: `b0_uname` in the swap file's block zero, and eight fields of
-`memfile_T`. **A struct field is not a variable** — no warning names one that
-nothing reads, and the sweep cannot see it.
-
-### What the tools do, and what they refuse to do
-
-`deadfields.py` applies the same rule one level down: a field is live if its
-name appears **outside every type definition**, because a mention inside another
-struct is a different field with the same name. It refuses three things, since
-being wrong here is silent: a bitfield or anonymous member, whose declaration
-does not say plainly what it declares; the last field of a struct, because an
-empty struct is not C and whole types are `typereach.py`'s job; and **any field
-of a type that is ever initialised positionally** —
-
-```c
-static termrequest_T crv_status = {STATUS_GET, -1};
-```
-
-— which fills two fields and names neither, so the second looks dead and
-removing it gives *"excess elements in struct initializer"*. That is a warning
-and not an error, which means a sweep keyed on errors would have shipped it.
-
-`deadenums.py` faces the trap CLAUDE.md records: an enumerator's value **is its
-position**, so removing one renumbers every implicit one after it, and several
-enums here index a parallel table. Of the 82 dead ones, 31 could go outright and
-the rest would move a survivor. Rather than evaluate C expressions — `1 << 3`,
-`0x80000000L`, one enumerator defined from another — the values are read **from
-DWARF**, where the compiler has already done the arithmetic. The first survivor
-after each deleted run is pinned to the value it had; everything after it
-follows implicitly as before.
-
-### The assertion is the point
-
-After removing what it finds, the phase requires **all six counts to be zero**,
-and requires every surviving enumerator to come back from DWARF with the value
-it went in with. A phase runs on every pass, so the invariant is checked on
-every pass — which is the difference between this and a cleanup.
-
-### The bug this found first
-
-`typereach.py` had a blind spot that no amount of new tooling would have
-covered. `START` matched `struct X {` with the brace on the same line, and
-**111 of this file's type definitions put the brace on the next line**. Those
-were not definitions as far as the tool was concerned, so every field inside
-them counted as a *root* — and a whole dead island lived on because of it:
-`channel_T` is mentioned exactly twice outside its own definitions, and both are
-fields, `jv_channel` in `jobvar_S` and `ch_next` in `channel_S`. `jobvar_S` was
-invisible, so `jv_channel` was a root, so the `+channel` and `+job` types sat
-there complete, long after every function that used them had gone.
-
-Recognising the form took two goes, and both failures are the same shape as the
-`deadsweep` bug in Phase 26:
-
-1. `static struct modmasktable { … } mod_mask_table[] = { … };` is a type
-   definition **and a variable** in one construct, and the declarator sits
-   between the *struct's* closing brace and the `=` — not after the last `}`,
-   which belongs to the initialiser. So the name was never collected, the tag
-   was unreachable, and the whole construct went, leaving `mod_mask_table[i]`
-   undeclared 40,000 lines away. A construct that declares a variable is not a
-   type definition to delete; it is a variable, and `deadsweep.py` owns those.
-2. `typedef struct { … } chanpart_T;` does **not** declare a variable — there
-   the declarator names the type — so the rule above had to exclude typedefs.
-
-Fixed, it removes **378 lines** on its own, and it makes every phase's sweep
-stronger rather than only this one's.
-
-### The delta
-
-**None.** Nothing removed here was reachable, so nothing that ran before can
-stop running.
-
-## Phase 29 — five signals, not twenty-one
+## Phase 26 — five signals, not twenty-one
 
 `signal_info[]` had twenty-one entries and five handlers. Reviewed one at a
 time, four earn their keep.
@@ -1843,7 +1863,7 @@ time, four earn their keep.
 | `SIGHUP`, `SIGTERM` | reaching `deathtrap()`, so that a killed editor **puts the terminal back**. |
 
 Sixteen entries and three handlers go: `SIGPWR`, whose handler called
-`ml_sync_all()` — **an empty function** since Phase 23; `SIGUSR1`, whose flag
+`ml_sync_all()` — **an empty function** since Phase 21; `SIGUSR1`, whose flag
 **nothing reads** (assigned and never examined, so `-Wunused-variable` never
 fires and the sweep would never have found it); and `SIGQUIT`, `SIGILL`,
 `SIGTRAP`, `SIGABRT`, `SIGFPE`, `SIGBUS`, `SIGSEGV`, `SIGSYS`, `SIGALRM`,
@@ -1888,8 +1908,8 @@ lent for the length of the call. The guard exists to avoid drawing on a screen
 that is not there, and putting the terminal back is not drawing.
 
 `mch_settmode()` would have been the more direct call and is not available —
-it is defined 89,000 lines further down and Phase 10 removed the forward
-declaration nothing needed.
+it is defined 89,000 lines further down and `SLIM-GOAL.md` Phase 10 removed the
+forward declaration nothing needed.
 
 ### The check
 
@@ -1912,7 +1932,7 @@ helper, and `may_core_dump()`; only the last goes.
 **None the harness records.** The Ex sweep records `:suspend` and `:stop` as
 *skipped* — they hand over the terminal — and `SIGTSTP` stays regardless.
 
-## Phase 30 — `[[=a=]]` stops meaning "a with any accent"
+## Phase 27 — `[[=a=]]` stops meaning "a with any accent"
 
 A POSIX bracket expression has three bracketed forms inside it, and they are
 three different features that happen to share a syntax:
@@ -1938,7 +1958,7 @@ only to know how far to skip.
 phase checks both halves, because only the pair is a check: `[[=a=]]` must stop
 matching an accented `a`, and `[[:alpha:]]` must still classify.
 
-## Phase 31 — C indenting
+## Phase 28 — C indenting
 
 `get_c_indent()` was **1,534 lines** and the largest function left: a model of C
 syntax built to answer one question, how far to indent this line. It knows about
@@ -2002,7 +2022,7 @@ the label, and removing the first alone leaves a label nothing reaches.
 Measured: 142,636 → 138,687 lines, 3,949 removed against 3,007 predicted; the
 option plumbing and the `b_ind_*` fields were the difference.
 
-## Phase 32 — `:command`, user-defined commands
+## Phase 29 — `:command`, user-defined commands
 
 `:command` lets a user give a name to an Ex command line and have it dispatched
 like a built-in. The machinery is **1,451 lines**: a parser for the `-nargs`,
@@ -2031,7 +2051,7 @@ is `EX_NEEDARG`, so the sweep's bare call already failed. Declaring three and
 being told two is the check working, and it is Rule 3's other half: retiring a
 command only shows in the sweep if it used to succeed.
 
-## Phase 33 — `K` and the tag jumps, keeping `*` and `#`
+## Phase 30 — `K` and the tag jumps, keeping `*` and `#`
 
 `nv_ident()` is not one command, it is five, and they have nothing in common but
 the first step — read the identifier under the cursor:
@@ -2044,8 +2064,8 @@ the first step — read the identifier under the cursor:
 
 `*` and `#` are among the most used keys in vim and are pure search, so this
 phase **rewrites** the function rather than deleting it. `K` runs `'keywordprg'`
-through a shell and Phase 8 took the shell; the tag jumps build `ta `, `tj `,
-`ts ` or `he! ` and hand them to `do_cmdline_cmd()`, and Phase 12 made every one
+through a shell and Phase 6 took the shell; the tag jumps build `ta `, `tj `,
+`ts ` or `he! ` and hand them to `do_cmdline_cmd()`, and Phase 10 made every one
 of those `ex_ni`. Both arms have been building commands that fail.
 
 ### Rule 3 applies to normal-mode commands too
@@ -2080,7 +2100,7 @@ Measured: 136,700 → 136,451 lines; `nv_ident()` from 227 lines to the search
 half. **The delta is none** — these are normal-mode keys, so no Ex command
 moves.
 
-## Phase 34 — file-name modifiers
+## Phase 31 — file-name modifiers
 
 `eval_vars()` expands `%` and `#` into the current and alternate file names, and
 `<cword>`, `<afile>` and the rest. **That stays** — `:w %` and `:e #` are how a
@@ -2113,18 +2133,24 @@ NULL for everything.
 
 Measured: 136,451 → 135,825 lines.
 
-## Phase 35 — insert completion and the popup menu
+## Phase 32 — insert completion, the popup menu, and the keys that reached them
 
 CTRL-N, CTRL-P and the whole CTRL-X family — `CTRL-X CTRL-F` for file names,
 `CTRL-X CTRL-K` for a dictionary, `CTRL-X CTRL-L` for whole lines — plus the
 popup menu that displays the matches. This is the largest single subsystem left
 after the regexp engine, and it is the one whose sources are all gone already:
-the tag stack went in Phase 12 and the `CTRL-]` key in Phase 33, the shell in Phases 8 and 10, `'dictionary'` and `'thesaurus'`
-name files this editor has no business reading, and `'completefunc'` needs the
-eval layer.
+the tag stack went in Phase 10 and the `CTRL-]` key in Phase 30, the shell in
+Phases 6 and 8, `'dictionary'` and `'thesaurus'` name files this editor has no
+business reading, and `'completefunc'` needs the eval layer.
 
-**Nine predicates become constants**, which is the whole of the cut — everything
-else is the sweep following them:
+**Two cuts, with a sweep between them.** The first answers the questions
+completion is entered through, so it produces nothing; the second removes the
+code that kept asking. This was two phases, and the second existed only because
+the first had stopped short.
+
+### The predicates
+
+**Nine predicates become constants**, and the sweep follows them:
 
 ```
 ins_complete              FAIL        pum_visible                    FALSE
@@ -2140,10 +2166,9 @@ b_p_inf b_p_ac`.
 
 ### `didset_string_options()`, for the fourth time
 
-This is the fourth phase to be caught by it — 20, 29, 30 and now 35 — and this
-time it was a **segfault before the first keystroke**. The function dereferences
-every string option's global at startup, so dropping `'completeopt'`'s row while
-leaving
+This is the fourth phase to be caught by it, and this time it was a **segfault
+before the first keystroke**. The function dereferences every string option's
+global at startup, so dropping `'completeopt'`'s row while leaving
 
 ```c
 opt_strings_flags(p_cot, p_cot_values, &cot_flags, TRUE);
@@ -2158,7 +2183,7 @@ any mention at all.** A pointer nothing mentions is harmless — the sweep takes
 it — and one that is mentioned while having no row to initialise it is a NULL
 going somewhere, which is enough to fail on without judging the shape of the
 somewhere. Re-run over every earlier boundary: no new complaints, so the
-stricter rule costs nothing and closes the trap that has now cost four phases.
+stricter rule costs nothing and closes the trap that had cost four phases.
 
 ### Checking that a key does nothing
 
@@ -2169,41 +2194,17 @@ checks the half that must survive in the same run: **insert mode still
 inserts**. A completion check that only proves completion is gone also passes on
 a binary that cannot type.
 
-### What it did not take, measured afterwards
+### The callers
 
-Measured: 135,825 → **130,161** lines, 5,664 of them — the largest single whim
-phase, and symbols 88 → 88, the subsystem being pure computation over things
-already removed.
-
-**It is not the whole subsystem, and the count says so: 70 functions named
-`ins_compl_*`, `pum_*` or `compl_*` are still in the file.** They are
-*reachable*, so no sweep can touch them, and they are never *entered*, because
-`ins_complete()` returns FAIL before any of them runs. The reason is that
-`edit()` does not reach completion through one door: it calls
-`ins_compl_addleader()`, `ins_compl_addfrommatch()`, `ins_compl_accept_char()`
-and a dozen more directly, and `update_screen()`, `win_line()`, `showruler()`
-and `screen_puts_len()` each ask `pum_visible()` on their own account. Stubbing
-the nine predicates makes completion **produce nothing**; it does not remove the
-state machine that would have driven it.
-
-So this phase is the sources and the display, and **the key handling is a phase
-of its own** — the largest remaining candidate, and the one the coverage list
-now points at.
-
-## Phase 36 — the completion keys stop being keys
-
-Phase 35 stubbed the five predicates completion is *entered* through, and said
-plainly that it stopped there: the `docomplete:` label and its sixteen `goto`s
-stayed, because unpicking them out of a 900-line switch was a larger change than
-that phase was making. This is that change.
-
-**Seventy functions survived Phase 35** — reachable, so `funcreach.py` could not
-touch them, and never entered, because `ins_complete()` returns FAIL before any
-of them runs. That is the shape worth naming: **a stub answers a question; it
-does not remove the caller that asks it.** `edit()` does not reach completion
-through one door — it calls `ins_compl_addleader()`, `ins_compl_bs()`,
-`ins_compl_accept_char()` and twenty-five more directly. So this phase cuts the
-**callers**, and the sweep takes the callees.
+**Seventy functions named `ins_compl_*`, `pum_*` or `compl_*` survive the
+stubs.** They are *reachable*, so no sweep can touch them, and never *entered*,
+because `ins_complete()` returns FAIL before any of them runs. `edit()` does not
+reach completion through one door: it calls `ins_compl_addleader()`,
+`ins_compl_bs()`, `ins_compl_accept_char()` and twenty-five more directly, and
+`update_screen()`, `win_line()`, `showruler()` and `screen_puts_len()` each ask
+`pum_visible()` on their own account. That is the shape worth naming: **a stub
+answers a question; it does not remove the caller that asks it.** So the second
+cut removes the callers, and the second sweep takes the callees.
 
 What goes, all of it inside `edit()`:
 
@@ -2215,8 +2216,12 @@ What goes, all of it inside `edit()`:
 | the arrow keys | four `if (pum_visible()) goto docomplete;` arms on Up, Down, PageUp and PageDown |
 | `docomplete:` | the label itself |
 
-**What stays is the answer Phase 35 gave**: CTRL-N and CTRL-P are still
+**What stays is the answer the stubs gave**: CTRL-N and CTRL-P are still
 insert-mode keys, and they now do nothing, which is what an unbound key does.
+
+**The sweep between the two cuts is kept, and it is not a formality.**
+`tools/nocomplkeys.py` counts and matches text in `edit()` as the first sweep
+leaves it, and a count taken over code about to be swept is a different count.
 
 ### A cut that is not unique is a guess
 
@@ -2239,58 +2244,22 @@ line is still there, because that is the failure that got through.
 
 ### Two halves, and only the pair is a check
 
-Completion must still be absent — `tools/complcheck.py`, from Phase 35 — and the
-arrow keys, whose `pum_visible()` arms this phase cut, must still move the
-cursor. Cutting a guard and the key's real body together is exactly what no
-completion check would notice, so `tools/arrowcheck.py` asks in a pty: from
-`one/two/three`, `A` then Down then `X` must give `twoX`. **It was proved able to
-fail first** — with `ins_down()` removed it reports `oneX`.
+Completion must be absent — `tools/complcheck.py` — and the arrow keys, whose
+`pum_visible()` arms this phase cuts, must still move the cursor. Cutting a
+guard and the key's real body together is exactly what no completion check would
+notice, so `tools/arrowcheck.py` asks in a pty: from `one/two/three`, `A` then
+Down then `X` must give `twoX`. **It was proved able to fail first** — with
+`ins_down()` removed it reports `oneX`.
 
-Measured: 130,161 → 127,709 lines, 2,452 of them; 2,712 definitions → 2,626; the
-island from 69 functions to 13, and those thirteen are constant-answer stubs the
-redraw layer asks on its own account. **The delta is none** — these are
-insert-mode keys, so no Ex command moves and no option goes.
+### The delta
 
-## Phase 37 — nothing in the file is unreachable, at the tip
-
-The last phase, and the same program as Phase 28. It exists because **an
-invariant asserted once is a cleanup, not an invariant.**
-
-Phase 28 was written when it was the last phase. Nine phases were then appended
-after it, each deleting reachable code — and four of the six kinds of dead thing
-are re-checked by every phase's own sweep, while **two are checked by nothing at
-all**:
-
-| | what re-checks it after a later phase |
-| --- | --- |
-| functions, prototypes, types, variables | the sweep, every phase, every time |
-| **enumerators** | nothing — gcc has no warning for one |
-| **struct fields** | nothing — a field is not a variable |
-
-So the question was worth asking rather than assuming, and the answer was not
-zero. What tipped it off was a reading taken on the Phase 35 output — 42 dead
-struct fields and 12 dead enumerators — and what this phase actually removes,
-measured on its real input, is **40 dead struct fields and 14 dead
-enumerators**: none of them reachable, none of them reported by anything,
-quietly accumulated across phases 29 to 36. 127,671 → 127,615 lines, and not one
-surviving enumerator moved.
-
-### Why appended rather than moved
-
-The obvious repair is to move Phase 28 to the end. Appending is better, and the
-memoize model is the reason: `tools/implhash.sh` reads a phase's own program and
-the tools that program names — not `whim.mk`, not `pipeline.sh` — so **putting a
-phase on the end invalidates nothing before it**, while renumbering nine phases
-downward invalidates all of them and is the exact mistake this document records
-under *Downward renumbering must be done ascending*.
-
-Keeping Phase 28 where it is also costs nothing that matters. It clears the
-original backlog — 82 enumerators and 77 fields — at the point where that
-backlog exists, which makes every later phase's sweep cheaper and its own
-assertion meaningful there rather than only at the end.
-
-**The delta is none**, for both: nothing removed was reachable, so nothing that
-ran before can stop running.
+Measured: **135,524 → 127,353 lines** and symbols 88 → 88, the subsystem being
+pure computation over things already removed. The thirteen functions that remain
+of the island are constant-answer stubs the redraw layer asks on its own account.
+**Merged, the phase reproduces the boundary the two phases recorded byte for
+byte**, in 173 seconds against the 203 they took in sequence. **The delta is
+none** — no behaviour case types CTRL-N, these are insert-mode keys, and no Ex
+command moves.
 
 ## Unused, and unuseful
 
@@ -2321,7 +2290,8 @@ working features and call it progress.
 ### What it says today
 
 **42% of `whim-vim`'s functions are never entered** — 1,163 of 2,738, holding
-17,806 lines. Measured after Phase 35:
+17,806 lines. Measured after completion's predicates were stubbed, and before
+its callers were cut:
 
 ```
     235  do_window                  CTRL-W, which no harness presses
@@ -2337,9 +2307,9 @@ working features and call it progress.
 ```
 
 **The list is doing its job, and the way to read it is against the last
-reading.** After Phase 8 it said 1,520 of 3,255 over 27,865 lines, with
+reading.** After Phase 6 it said 1,520 of 3,255 over 27,865 lines, with
 `reg_equi_class` (775), `get_c_indent` (713), `do_mouse` (284) and
-`modify_fname` (160) at the top. Phases 26, 30, 31 and 34 removed **all four**,
+`modify_fname` (160) at the top. Phases 24, 27, 28 and 31 removed **all four**,
 and 10,059 lines of never-entered code with them. That is what a kind-3 entry
 looks like when it is acted on.
 
@@ -2348,8 +2318,9 @@ What is left at the top has changed kind. `do_window`, `op_replace`,
 simply not exercised, which is a finding about the harness rather than the code;
 nothing here should press CTRL-W on its behalf. The kind-3 entries are now
 `set_context_in_set_cmd` and `set_context_by_cmdname`, which is command-line
-completion, and `ins_compl_build_pum` at 98 lines — the tail of Phase 35, whose
-key handling survives it.
+completion, and `ins_compl_build_pum` at 98 lines — the tail of a completion
+whose key handling had survived the stubs, and which Phase 32's second cut then
+removed.
 
 **Also measured: the harness itself.** `tools/coverage.sh` was resolving the
 source path relative to the wrong directory, so `exsweep.py` exited 1 and the

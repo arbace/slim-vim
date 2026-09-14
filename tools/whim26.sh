@@ -1,30 +1,39 @@
 #!/bin/sh
-# Whim phase 23 -- there is no mouse.  See WHIM-GOAL.md.
+# Whim phase 26 -- five signals, not twenty-one.  See WHIM-GOAL.md.
 #
 # Usage: tools/whim26.sh <work-dir>      (run from the repository root)
 #
-# A terminal mouse is a protocol, not a device: the terminal is asked to report
-# clicks, it sends escape sequences, and the editor decodes them into key codes
-# that the normal, insert and command-line loops dispatch like any other key.
-# All four layers are here, and an editor driven from a keyboard needs none.
+# signal_info[] has twenty-one entries and five handlers.  Reviewed one at a
+# time, four earn their keep:
 #
-# THE ISLAND IS BOUNDED, which is what makes this a cut rather than a rewrite:
-# thirty-five functions mention the mouse and all but two are reached only from
-# each other, so funcreach.py deletes the interior once the roots are gone.
-# tools/nomouse.py removes only the roots -- the tables, the dispatch, the
-# decoder, setmouse()'s 31 bare calls, and the three conditions outside the
-# island that asked whether the mouse was enabled.
+#   SIGWINCH   sig_winch() sets do_resize, read in nine places.  Without it the
+#              editor never learns the terminal changed size.
+#   SIGINT     catch_sigint() sets got_int, READ IN 222 PLACES -- which is the
+#              argument.  got_int is how every long operation is interruptible;
+#              without the handler CTRL-C reverts to its default action, which
+#              kills the process and loses the buffer.
+#   SIGTSTP    CTRL-Z and :suspend, and the only caller of raise().
+#   SIGHUP     reaching deathtrap(), whose remaining job is not preserving
+#   SIGTERM    files -- it cannot, phase 21 emptied ml_sync_all() and phase 24
+#              removed preserve_exit()'s loop -- but prepare_to_exit(), which
+#              runs settmode(TMODE_COOK) and stoptermcap().  A killed editor
+#              PUTS THE TERMINAL BACK.  Without it the shell is left raw with no
+#              echo and the user types `reset` blind.
 #
-# THE EIGHT OPTIONS GO AFTER THE SWEEP, under --strict, which is what proves
-# nothing reads their globals any anymore.  Asking before it is the mistake this
-# pipeline keeps relearning.
+# THE COST, decided deliberately: a crash no longer restores the terminal.
+# SIGSEGV and SIGBUS take their default action.  The alternative is keeping a
+# handler for conditions this editor should not have, to tidy up after a bug
+# that should not exist.
 #
-# THE KE_* AND KS_* ENUMERATORS STAY: they are constants, they cost nothing, and
-# deleting an enumerator renumbers every one after it -- several enums here
-# index a parallel table.
+# What goes with them: SIGPWR, whose handler called ml_sync_all() -- an empty
+# function; SIGUSR1, whose flag NOTHING READS (assigned and never examined, so
+# -Wunused-variable never fires and the sweep would never find it); thirteen
+# more table entries; sigaltstack and its stack, which existed so a SEGV from
+# stack overflow could still run a handler; and may_core_dump(), which re-raises
+# to produce a core there is nobody to read.
 #
-# THE DELTA: none the harness records.  No Ex command is a mouse command, no
-# behaviour case clicks, and the pty harness types keys.
+# THE DELTA: none the harness records.  The Ex sweep records :suspend and :stop
+# as SKIPPED -- they hand over the terminal -- and SIGTSTP stays regardless.
 set -eu
 
 work=${1:?usage: whim26.sh <work-dir>}
@@ -34,62 +43,65 @@ before_lines=$(grep -c '' "$f")
 tools/symbols.sh "$f" .cache/symbols/before
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nomouse.py "$f"
+python3 tools/nosignals.py "$f"
 
 
 tools/sweep.sh "$f"
 
-python3 tools/dropoptions.py "$f" --strict mouse mousefocus mousehide \
-    mousemodel mousemoveevent mouseshape mousetime ttymouse
-tools/sweep.sh "$f"
-
-# The post-condition: no mouse function, no mouse option, no mouse key name.
-for g in 'do_mouse' 'jump_to_mouse' 'setmouse' 'mouse_has' 'nv_mouse' \
-         'check_termcode_mouse' 'p_mouse' 'ttymouse' '"LeftMouse"' \
-         'ScrollWheelUp' 'WaitForCharOrMouse'; do
+# The post-condition: exactly eight signals are named, and each is one of the
+# five kept or one of the three the suspend dance uses.
+named=$(grep -o '\bSIG[A-Z0-9]*\b' "$f" | sort -u | tr '\n' ' ')
+if [ "$named" != "SIGALRM SIGCONT SIGHUP SIGINT SIGPIPE SIGTERM SIGTSTP SIGWINCH " ]; then
+    echo "  signals      the file names: $named"
+    echo "               expected the five kept, plus SIGCONT/SIGALRM/SIGPIPE,"
+    echo "               which mch_suspend() sets around the stop"
+    exit 1
+fi
+for g in sigaltstack may_core_dump catch_sigpwr catch_sigusr1 got_sigusr1 \
+         signal_stack sigstk; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
-        echo "  mouse        $g still has $n mentions after the sweep"
-        grep -n -- "$g" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
+        echo "  signals      $g still has $n mentions after the sweep"
         exit 1
     fi
 done
-echo "  mouse        no handler, no option, no key name, no protocol"
-
+echo "  signals      $(grep -c '{SIG' "$f") in the table; resize, interrupt,"
+echo "               suspend, and a terminal put back on the way out"
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
-    exit 1
-fi
+for g in sigaltstack sysconf; do
+    if grep -qx -- "$g" .cache/symbols/last/undefined; then
+        echo "  symbols      $g is still undefined in the object"
+        exit 1
+    fi
+done
+echo "  symbols      sigaltstack and sysconf are gone from nm -u"
 
-# `:set mouse=a` must now fail.  CHECK WHAT IT DID, NOT WHAT IT SAID -- silent
-# Ex mode prints nothing, so a first version read an empty message and called it
-# a failure.  Nor does a failing `-c` abandon the ones after it: `set nosuchopt`
-# followed by `w` still writes the file, so "did the file appear" is not the
-# answer either.  The exit status is: 0 for an option that exists, 1 for one
-# that does not.  The control is what makes that a check rather than a
-# tautology -- it fails if the binary exits 1 no matter what it is asked.
-probe() {
-    (cd "$work" && ./whim-vim -e -s -c "set $1" -c 'qa!' </dev/null \
-        >/dev/null 2>&1)
-    echo $?
+tools/phasebuild.sh "$work" "$before_lines"
+
+# The one that matters and no harness makes: send SIGTERM to an editor sitting
+# on a pty, and require the terminal to come back cooked.  A wedged terminal is
+# the failure this phase is keeping a handler FOR.
+own_checks() {
+    if python3 tools/termrestore.py "$work/whim-vim"; then
+        echo "  terminal     SIGTERM still puts the terminal back"
+    else
+        echo "  terminal     SIGTERM left the terminal raw -- the deathtrap is what"
+        echo "               this phase kept SIGHUP and SIGTERM for"
+        return 1
+    fi
 }
-if [ "$(probe ignorecase)" != 0 ]; then
-    echo "  options      the control failed: :set ignorecase exits non-zero too"
-    exit 1
-fi
-if [ "$(probe mouse=a)" = 0 ]; then
-    echo "  options      :set mouse=a was accepted, so the option is still there"
-    exit 1
-fi
-echo "  options      :set mouse=a is refused, :set ignorecase still taken"
+# The phase's own check needs only the binary, and so does the delta: they run
+# side by side, and this one's verdict is read after the delta has finished.
+checks=$(mktemp)
+trap 'rm -f "$checks"' EXIT
+own_checks > "$checks" 2>&1 &
+pid_checks=$!
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
     helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
     tags preserve swapname mkvimrc mkexrc checktime
+
+if wait $pid_checks; then cat "$checks"; else cat "$checks"; exit 1; fi

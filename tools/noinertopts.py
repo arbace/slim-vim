@@ -20,7 +20,7 @@ are not plumbing, and each has to be looked at:
   * do_set_option_bool() special-cases `:setlocal autoread` to mean "follow the
     global", which is the -1 sentinel.  With no option there is nothing to
     follow.
-  * ml_open() asks whether this buffer may have a swap file.  Since Phase 15 the
+  * ml_open() asks whether this buffer may have a swap file.  Since Phase 11 the
     answer has been no whatever 'swapfile' said, so it now says no directly.
 
 The ORDER matters and is the reason this is a phase rather than a call.  The

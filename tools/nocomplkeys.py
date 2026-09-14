@@ -3,14 +3,14 @@ r"""The completion keys stop being keys.
 Usage:
     python3 tools/nocomplkeys.py <file>
 
-Phase 35 stubbed the five predicates completion is *entered* through, so
+tools/nocompl.py stubbed the five predicates completion is *entered* through, so
 completion produces nothing.  It deliberately stopped there, and said so: the
 `docomplete:` label and its sixteen `goto`s were left alone because unpicking
 them out of a 900-line switch was a larger change than that phase was making.
 
 This is that change.  Afterwards the island is not merely inert, it is gone.
 
-WHY IT COULD NOT BE SWEPT.  Seventy functions survived Phase 35 -- reachable, so
+WHY IT COULD NOT BE SWEPT.  Seventy functions survived those stubs -- reachable, so
 `funcreach.py` could not touch them, and never entered, because `ins_complete()`
 returns FAIL before any of them runs.  `edit()` does not reach completion
 through one door: it calls `ins_compl_addleader()`, `ins_compl_bs()`,
@@ -33,7 +33,7 @@ WHAT THIS CUTS, all of it inside `edit()`:
     keys, which is what made Up and Down move a menu selection.
   * the `docomplete:` label itself.
 
-WHAT STAYS, and it is the same answer Phase 35 gave: CTRL-N and CTRL-P are still
+WHAT STAYS, and it is the same answer the stubs gave: CTRL-N and CTRL-P are still
 insert-mode keys.  They now do nothing, which is what an unbound key does.
 
 Nine more predicates become constants, for the callers outside insert mode that

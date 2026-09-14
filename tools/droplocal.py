@@ -9,7 +9,7 @@ by the time it runs the option's row is already gone and there is nothing left
 to look the field up from.  That ordering is forced: see below.
 
 `tools/dropoptions.py` refuses a row whose `indir` is not `PV_NONE`, because the
-row is also what initialises the global -- Phase 14 learned that from `'tagcase'`
+row is also what initialises the global -- Phase 10 learned that from `'tagcase'`
 by segfaulting before the first keystroke.  This is the other half: it removes
 the buffer-local *field* and everything that keeps it alive, so that the row
 becomes ordinary and `dropoptions.py` will take it.

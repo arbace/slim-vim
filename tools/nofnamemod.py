@@ -14,8 +14,8 @@ to right so that `%:p:h:t` means something.
 
 It is a small programming language over path strings, and most of it answers
 questions this editor can no longer ask.  `:p` made a name absolute by asking
-where the working directory is -- Phase 24 fixed that to one answer; `:~`
-shortened a name under `$HOME`, and Phase 22 removed the notion of a home
+where the working directory is -- Phase 22 fixed that to one answer; `:~`
+shortened a name under `$HOME`, and Phase 20 removed the notion of a home
 directory; `:s//` needs a regexp over a file name, which is the only place in
 the editor a pattern is applied to something that is not buffer text.
 
@@ -60,7 +60,7 @@ def main():
     # `tilde_file` and `skip_mod` existed only to be passed to it, or to
     # suppress it.  -Wunused-but-set-variable is not a shape deadsweep.py
     # deletes -- they are assigned, so nothing calls them unused -- so they are
-    # named here, which is the same reason Phase 22 had to name `at_start`.
+    # named here, which is the same reason Phase 20 had to name `at_start`.
     for pat, what in (
             (r'^[ \t]*int         tilde_file = FALSE;\n', "tilde_file's declaration"),
             (r'^[ \t]*int         skip_mod = FALSE;\n', "skip_mod's declaration"),

@@ -17,7 +17,7 @@ src=${2:?}
 shift 2
 
 # A phase may change an editing BEHAVIOUR as well as an Ex command's exit, and
-# until Phase 12 none had, so this tool asserted "behaviour: none" outright.
+# until Phase 8 none had, so this tool asserted "behaviour: none" outright.
 # That is the right default -- most of what is removed here is a command, not a
 # keystroke -- but a default is not a check, and a phase that genuinely moves a
 # case has to be able to say which.  Declared the same way and held to the same
@@ -40,14 +40,25 @@ expected=$(printf '%s\n' "$@" | sort -u | tr '\n' ' ')
 # because the thing it catches is invisible to every check that follows -- an
 # orphaned global is *used*, so no warning names it, and it segfaults only on
 # the one command that reaches it.  See tools/orphanopts.py.
-python3 tools/orphanopts.py "$src"
-
-base=.reference/baselines
-[ -d "$base/behaviour" ] || { echo "  delta        no slim baselines to compare against"; exit 0; }
-
+#
+# It runs ALONGSIDE the harnesses rather than before them: it reads the source,
+# they run the binary, and neither waits for the other.
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 fail=0
+python3 tools/orphanopts.py "$src" > "$tmp/orphanopts" 2>&1 &
+pid_o=$!
+
+orphans() {
+    if wait $pid_o; then cat "$tmp/orphanopts"; else cat "$tmp/orphanopts"; fail=1; fi
+}
+
+base=.reference/baselines
+if [ ! -d "$base/behaviour" ]; then
+    orphans
+    echo "  delta        no slim baselines to compare against"
+    exit $fail
+fi
 
 # THE THREE HARNESSES ARE INDEPENDENT, so they run at once.  Each writes into
 # its own directory under $tmp and reads nothing the others write; verify.sh has
@@ -64,6 +75,7 @@ pid_m=$!
 python3 tools/exsweep.py "$bin" "$src" "$tmp/s" >/dev/null &
 pid_s=$!
 wait $pid_b $pid_m $pid_s
+orphans
 
 moved=$(diff -rq "$base/behaviour" "$tmp/b" 2>/dev/null | grep '^Files' | sed 's/.*behaviour\///; s/ and .*//' | sort -u | tr '\n' ' ')
 if [ "$moved" != "$cases" ]; then
@@ -74,7 +86,7 @@ if [ "$moved" != "$cases" ]; then
 fi
 
 # The terminal table is declared the same way the behaviour cases are.  Until
-# Phase 20 no phase could move it, so "expected unchanged" was the whole check;
+# Phase 19 no phase could move it, so "expected unchanged" was the whole check;
 # a phase that makes every TERM resolve to one entry has to be able to say so.
 if [ "$term_moved" = yes ]; then
     if diff -q "$base/ref-term.txt" "$tmp/m" >/dev/null; then

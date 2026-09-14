@@ -4,7 +4,7 @@
 Usage:
     python3 tools/complcheck.py <binary>
 
-Phase 35 stubs the five predicates the completion subsystem hangs from, so two
+Phase 32 stubs the five predicates the completion subsystem hangs from, so two
 things have to be true afterwards and only the pair is a check: ordinary insert
 mode must be untouched, and CTRL-N must insert nothing rather than completing.
 

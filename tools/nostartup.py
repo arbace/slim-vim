@@ -13,7 +13,7 @@ check because reading a config file out of the current directory is a way to be
 handed someone else's commands.
 
 All of it goes.  **`-u <file>` stays**, and so does `:source`: a file the user
-names is not the editor going looking, and Phase 12 already decided `:source`
+names is not the editor going looking, and Phase 10 already decided `:source`
 stays.  What is left of the function is the one branch that reads a file it was
 told to read.
 

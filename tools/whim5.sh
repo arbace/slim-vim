@@ -1,63 +1,59 @@
 #!/bin/sh
-# Whim phase 5 -- options that accept and do nothing, or only refuse.
-# See WHIM-GOAL.md.
+# Whim phase 5 -- one regexp engine, not two.  See WHIM-GOAL.md.
 #
 # Usage: tools/whim5.sh <work-dir>       (run from the repository root)
 #
-# The argument that removed 'spelllang' in phase 2, applied to the command line:
-# an option the editor accepts and ignores is a lie, and an option whose whole
-# body is an error message is a branch that exists only to say no.  Both are
-# better expressed by the option not existing -- a path this build already has,
-# mainerr(ME_UNKNOWN_OPTION), reached by anything the parser does not know.
+# vim carries two regexp engines and an option to choose between them.  That is
+# a MIGRATION PATH -- the NFA engine was new once, and 'regexpengine' existed so
+# a user could go back when it misbehaved -- and an embedded fork inherits the
+# machinery without inheriting the reason.
 #
-#   inert       -f -X -Y --nofork --literal --gui-dialog-file
-#   refusing    -A -F -H (not compiled in) and -g (no GUI here)
-#   vestigial   --help --version, cut in phase 3 but left as comparisons that
-#               matched and then called mainerr
+# This is the first removal here driven by measurement rather than by category.
+# 'regexpengine' is compiled in as 1, so nothing this editor does by default
+# enters the NFA code, and tools/coverage.sh never reached a line of it across
+# the behaviour cases, all 600 Ex commands and the pty scenarios.  It was the
+# largest single entry on that list: nfa_emit_equi_class alone is 4,122 lines.
 #
-# THE DELTA: none the harness records.  It never passes these, so the evidence
-# is the score and the error strings leaving the binary.
+# It is NOT unused -- `:set re=2` and `\%#=2` reach it -- so this is a decision,
+# and the capability goes knowingly.
+#
+# Checked before cutting: the custom delimiter atoms this tree's upstream branch
+# exists for are implemented in BOTH engines, so the backtracking one keeps them.
+#
+# THE DELTA: none the harness records.  It never sets 'regexpengine' and never
+# writes \%#=, and every pattern it does use is compiled by the same engine as
+# before -- which is the point of a default the product never changed.
 set -eu
 
-work=${1:?usage: whim3.sh <work-dir>}
+work=${1:?usage: whim5.sh <work-dir>}
 f="$work/whim-vim.c"
 
 before_lines=$(grep -c '' "$f")
 
-# --- cut them ------------------------------------------------------------
-python3 tools/dropopts.py "$f" \
-    -f -X -Y -A -F -H -g \
-    --nofork --literal --gui-dialog-file --help --version
+# --- cut the choice, and the option that offered it -----------------------
+python3 tools/nonfa.py "$f"
+python3 tools/dropoptions.py "$f" regexpengine
 
-# And the advertisement for an option that no longer exists.  mainerr() ends
-# every usage error with `More info with: "vim -h"`, which phase 3 made false
-# and this phase makes false twice over -- it names a removed option, and it
-# names a binary this one is not.  A pointer to nothing is worse than no
-# pointer.
-python3 - "$f" <<'EOF'
-import sys
-path = sys.argv[1]
-text = open(path, errors='surrogateescape').read()
-line = '     fprintf(stderr, "%s", (_("\\nMore info with: \\"vim -h\\"\\n"))) ;\n'
-if line not in text:
-    sys.exit('whim5: the "More info with" line has moved; it advertises an '
-             'option that no longer exists and must not simply be left')
-open(path, 'w', errors='surrogateescape').write(text.replace(line, '', 1))
-print('  usage        the pointer to a removed -h is gone')
-EOF
+# The sweep cannot finish this one on its own, and that is the phase's real
+# lesson.  With the entry points cut, six thousand lines of NFA engine are
+# reachable from nothing -- and every function in it is MENTIONED by another
+# function in it, so -Wall, which counts references, sees nothing wrong.  A
+# recursive-descent parser and a mutually recursive matcher are both immune to
+# reference counting by construction.
+#
+# tools/funcreach.py is typereach.py's argument applied to functions:
+# reachability from roots, not reference counts.  It found 29 functions holding
+# 4,195 lines, every one of them in the regexp_nfa.c region -- including seven
+# that do not carry the prefix and would have been missed by any rule based on
+# the name.
+python3 tools/funcreach.py "$f" --delete
 
 tools/sweep.sh "$f"
 
 
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
-    exit 1
-fi
+tools/phasebuild.sh "$work" "$before_lines"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" helpclose intro version

@@ -1409,6 +1409,22 @@ survivor's value explicitly where a deletion would move it, then check with
 DWARF: dump every enumerator and its `const_value` before and after and require
 every surviving name to keep its value.
 
+**`tools/deadenums.py` does exactly that, inside the loop.** It dumps the values
+on first need — a debug build is not free, and most rounds find nothing — pins
+the first survivor after each deleted run, keeps a run whose next survivor DWARF
+has no value for, and dumps again once the loop is done to require that nothing
+moved. A survivor gcc never emitted cannot be pinned, and renumbering it would be
+invisible to the comparison, because the name is in neither dump. Measured: 70
+enumerators go in the first round, 17 survivors are pinned, and not one moves.
+Three macros lose their last mention with them, which is why Phase 9 then finds
+912 unmentioned defines rather than 909.
+
+**Struct fields are asked in the same loop, and refused.** `tools/deadfields.py`
+will not remove one while `ml_recover()` exists: this editor can still read a
+swap file, so block zero and the memfile's pages are a disk format, and a field
+nothing in the code reads is still a field another vim wrote. Unreachable code
+goes; a file format stays.
+
 **Expect a warning or two to be a real finding rather than dead code.** Here:
 `:winpos` parsed two numbers nothing reads any more, and since the parse has a
 side effect the calls stay and only the variables go; and the swap-file age
@@ -1637,6 +1653,32 @@ runs, and the only thing that moved is a symbol table nobody looked at.
 
 So every dropped prototype hands `static` to its definition on the way out, and
 `nm` on the object is checked rather than trusted.
+
+**The table moves first.** `cmdnames[]` names six hundred Ex command handlers and
+sits near the top of the file, so every one of them needs a forward declaration
+— not because anything calls them early, but because a table mentions them
+early. `tools/movetables.py` moves the array below the last function it names,
+and the prototypes it was forcing become droppable with the rest: **640** go
+instead of 534, and 533 definitions gain `static` instead of 492. The struct
+type stays where it was, since the declaration left behind must not name an
+incomplete type, and the `static_assert` on the table's size travels with it.
+
+Two of the three candidate tables cannot move, and the reason is a language rule
+rather than a gap in the tooling: `options[]` and `nv_cmds[]` are measured with
+`sizeof()` by functions defined above them, and a tentative declaration of an
+array has no size. Trying it fails at exactly that `sizeof`.
+
+This was `WHIM-GOAL.md`'s phase 6, which was the wrong home for the same reason
+this phase once was: where a table sits is not a capability.
+
+**And that is the end of what ordering can buy.** The declarations left were
+measured rather than guessed at, on the file as it was when the table first
+moved: of 3,234 functions, **1,335 are in a single mutually recursive component**
+that no ordering can untangle — breaking it is a minimum feedback arc set, which
+is NP-hard — and the rest could in principle be topologically sorted to need no
+declaration at all. That is not worth doing: it would buy about 1% of the file
+and destroy the banner structure that is the only navigation a file this size
+has.
 
 ## Phase 11 — every definition says its own linkage
 

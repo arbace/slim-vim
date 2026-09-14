@@ -13,14 +13,12 @@ the sweep rather than listed here:
     from the redraw path when the buffer is empty and no file was named -- it
     is not a command, so pointing a row at ex_ni would leave it showing.
 
-  * `--version`, `--help` and `-h`/`-?` stop being options.  Their branches do
-    what an unrecognised option already does -- `mainerr(ME_UNKNOWN_OPTION)` --
-    so there is no special case left behind and no branch that exists only to
-    refuse.  With them go `list_version()` and `usage()`, and with
-    `list_version()` goes everything it printed: pathdef's `compiled_user` and
-    `compiled_sys` bake the BUILDING MACHINE'S HOSTNAME into the binary, which
-    is worth removing on an embedded artifact's account and worth removing
-    twice on a reproducible one.
+The third door, `--version` and `--help` and `-h`/`-?`, is the command line's,
+and tools/dropopts.py removes those with every other option Phase 3 drops.  This
+used to turn their branches into `mainerr` calls and leave the comparisons
+standing for a later phase to delete, which was two edits and one oversight.
+With them go `list_version()` and `usage()`, and with `list_version()` goes
+pathdef's `compiled_user` and `compiled_sys`: the BUILDING MACHINE'S HOSTNAME.
 """
 
 import re
@@ -53,34 +51,9 @@ def main():
         sys.exit('nointro: expected two splash call sites, removed %d -- the '
                  'redraw path has moved under this phase' % n_splash)
 
-    # The command line's three doors to the same two functions.  Each becomes
-    # the error an unknown option already produces, so nothing is left that
-    # exists only to say no.
-    UNKNOWN = 'mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);'
-    n_arg = 0
-    for old, new in (
-        ('                    usage();\n',
-         '                    %s\n' % UNKNOWN),
-        ('''                    cmdline_width = Columns = 80;
-                    info_message = TRUE;
-                    list_version();
-                    msg_putchar('\\n');
-                    msg_didout = FALSE;
-                    mch_exit(0);
-''',
-         '                    %s\n' % UNKNOWN),
-        ('                usage();\n                break;\n',
-         '                %s\n                break;\n' % UNKNOWN),
-    ):
-        if old not in text:
-            sys.exit('nointro: this command-line branch has moved under the '
-                     'phase:\n%s' % old)
-        text = text.replace(old, new, 1)
-        n_arg += 1
-
     path.write_text(text, errors='surrogateescape')
-    print('  nointro      :intro and :version to ex_ni, %d splash call sites cut, '
-          '%d command-line options now unknown' % (n_splash, n_arg))
+    print('  nointro      :intro and :version to ex_ni, %d splash call sites cut'
+          % n_splash)
 
 
 if __name__ == '__main__':

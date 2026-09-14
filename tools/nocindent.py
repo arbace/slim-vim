@@ -16,7 +16,7 @@ compiler's front end used for whitespace.
 
 FIVE OPTIONS GO: `'cindent'`, `'cinkeys'`, `'cinoptions'`, `'cinscopedecls'` and
 `'cinwords'`.  All five are `PV_BUF`, so the phase pairs `dropoptions --local`
-with `droplocal.py`, which is the ordering Phase 14 records.
+with `droplocal.py`, which is the ordering Phase 16 records.
 
 `'lisp'` and `'indentexpr'` are NOT touched.  They are different indenters that
 happen to sit beside this one, and `get_lisp_indent()` is reached from its own

@@ -73,7 +73,7 @@ def drop_row(text, name, strict=False, local=False):
     # of a call that looks like the six beside it.
     # The next two checks are SWEEP-DEPENDENT and only meaningful to a caller
     # that has already swept: before the sweep, the readers they complain about
-    # are the ones the sweep is about to remove.  Phase 2 ('spell') and Phase 6
+    # are the ones the sweep is about to remove.  Phase 2 ('spell') and Phase 5
     # ('regexpengine') both trip them and are both correct.
     #
     # AND A ROW LOOKED UP BY NAME CANNOT GO EITHER.  Options are usually
@@ -159,7 +159,7 @@ def drop_row(text, name, strict=False, local=False):
     # phase, with tools/droplocal.py.  It suspends the PV_ guard and nothing
     # else: the name test and the global-read test above still apply, and the
     # phase still has to run the binary afterwards.  Without the pairing this
-    # is the flag that reintroduces Phase 14's segfault.
+    # is the flag that reintroduces Phase 10's segfault.
     indir = re.search(r'PV_\w+', text[start:row_end])
     if local:
         indir = None

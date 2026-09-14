@@ -1,65 +1,71 @@
 #!/bin/sh
-# Whim phase 6 -- one regexp engine, not two.  See WHIM-GOAL.md.
+# Whim phase 6 -- the editor stops writing shell scripts, and stops drawing a
+# completion menu.  See WHIM-GOAL.md.
 #
-# Usage: tools/whim6.sh <work-dir>       (run from the repository root)
+# Usage: tools/whim6.sh <work-dir>      (run from the repository root)
 #
-# vim carries two regexp engines and an option to choose between them.  That is
-# a MIGRATION PATH -- the NFA engine was new once, and 'regexpengine' existed so
-# a user could go back when it misbehaved -- and an embedded fork inherits the
-# machinery without inheriting the reason.
+# Two cuts, both at the boundary between the editor and everything outside it.
 #
-# This is the first removal here driven by measurement rather than by category.
-# 'regexpengine' is compiled in as 1, so nothing this editor does by default
-# enters the NFA code, and tools/coverage.sh never reached a line of it across
-# the behaviour cases, all 600 Ex commands and the pty scenarios.  It was the
-# largest single entry on that list: nfa_emit_equi_class alone is 4,122 lines.
+# WILDCARDS.  `expand_wildcards()` has two expanders behind it and only one is
+# the editor's own.  `gen_expand_wildcards()` walks directories itself and
+# handles *, ?, [...], ~ and $VAR without leaving the process; what it cannot do
+# it hands to `mch_expand_wildcards()`, which sniffs 'shell' for csh, zsh or
+# bash, picks one of five quoting styles, writes a shell function into a
+# temporary file, runs it and parses back a NUL-separated list.  That second one
+# is the editor doing the shell's job in 250 lines.  Shell-out itself STAYS --
+# `:!`, `:%!`, `:r !` are untouched -- but the editor stops generating shell to
+# expand a pattern.  What reaches it is now passed through literally.
 #
-# It is NOT unused -- `:set re=2` and `\%#=2` reach it -- so this is a decision,
-# and the capability goes knowingly.
+# WILDMENU.  'wildmenu' draws the completion matches in the status line and
+# rebinds the arrow keys to walk them; 'wildoptions'=pum draws the same matches
+# as a popup.  Both are a display of what Tab completion already computed.
 #
-# Checked before cutting: the custom delimiter atoms this tree's upstream branch
-# exists for are implemented in BOTH engines, so the backtracking one keeps them.
+# The second cut is the one that needed doing by hand, and the reason is worth
+# keeping: p_wmnu is read at thirteen places, and the dead-code sweep counts
+# references.  A variable that is never assigned TRUE makes every one of those
+# branches unreachable and every one of them is still a reference, so the sweep
+# sees a live option.  Folding it to FALSE at the source turns thirteen
+# reachability questions into the one question the sweep can answer.
 #
-# THE DELTA: none the harness records.  It never sets 'regexpengine' and never
-# writes \%#=, and every pattern it does use is compiled by the same engine as
-# before -- which is the point of a default the product never changed.
+# The popup form goes for the mirror image of that reason: with the option gone
+# `cmdline_pum_active()` can only answer FALSE while still being CALLED ten
+# times, which keeps two hundred lines alive that can no longer run.  The popup
+# menu ITSELF stays -- pum_display() has a second caller in insert-mode
+# completion -- and only the command line's use of it is cut.
+#
+# THE DELTA: `:e {a,b}.txt` and backticks in a file argument stop expanding and
+# name a file literally; `:e *.c`, `:e ~/x`, `:e $HOME/x` and file-name
+# completion are the native path and do not move.  'wildmenu' and the `pum`
+# value of 'wildoptions' stop existing; Tab completion behaves as it does with
+# `set nowildmenu`, which is what this build now always is.  No Ex command
+# changes, and the libc surface does not move at all -- shell-out keeps fork,
+# execvp, pipe and waitpid, and opendir/readdir are held by the TEMP DIRECTORY
+# (vim_opentempdir, and delete_recursive via readdir_core) as much as by the
+# native expander, so cutting the expander would not take them either.  That
+# was expected.  This phase buys complexity, not dependencies.
 set -eu
 
-work=${1:?usage: whim3.sh <work-dir>}
+work=${1:?usage: whim6.sh <work-dir>}
 f="$work/whim-vim.c"
 
 before_lines=$(grep -c '' "$f")
 
-# --- cut the choice, and the option that offered it -----------------------
-python3 tools/nonfa.py "$f"
-python3 tools/dropoptions.py "$f" regexpengine
-
-# The sweep cannot finish this one on its own, and that is the phase's real
-# lesson.  With the entry points cut, six thousand lines of NFA engine are
-# reachable from nothing -- and every function in it is MENTIONED by another
-# function in it, so -Wall, which counts references, sees nothing wrong.  A
-# recursive-descent parser and a mutually recursive matcher are both immune to
-# reference counting by construction.
-#
-# tools/funcreach.py is typereach.py's argument applied to functions:
-# reachability from roots, not reference counts.  It found 29 functions holding
-# 4,195 lines, every one of them in the regexp_nfa.c region -- including seven
-# that do not carry the prefix and would have been missed by any rule based on
-# the name.
-python3 tools/funcreach.py "$f" --delete
+# --- cut the two entry points ---------------------------------------------
+python3 tools/nowild.py "$f"
+python3 tools/nowildmenu.py "$f"
+python3 tools/dropoptions.py "$f" wildmenu
 
 tools/sweep.sh "$f"
 
 
+# SLIM-GOAL.md phase 7's invariant, checked again because this phase moved a
+# declaration: nowild.py reuses the slot the shell expander's prototype held,
+# and a declaration that loses its `static` hands external linkage to one
+# that never said so itself.  nm the OBJECT -- a static binary defines 1,400
+# symbols of its own and would bury the answer.
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
-make -C "$work" clean >/dev/null 2>&1 || true
-if make -C "$work" >/dev/null 2>&1; then
-    echo "  build        ok, $before_lines -> $(grep -c '' "$f") lines, $(stat -c%s "$work/whim-vim") bytes"
-else
-    echo "  build        FAILED -- rerun by hand: make -C $work"
-    exit 1
-fi
+tools/phasebuild.sh "$work" "$before_lines"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" helpclose intro version
