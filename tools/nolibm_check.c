@@ -2,7 +2,7 @@
 //
 // Usage: gcc -O0 -o /tmp/nolibm_check tools/nolibm_check.c && /tmp/nolibm_check
 //
-// This is not a test of pure-vim; it is a test of the CLAIM the phase makes,
+// This is not a test of whim-vim; it is a test of the CLAIM the phase makes,
 // which is that a double-to-int conversion truncating toward zero is `ceil` for
 // a negative value and `floor` for a positive one -- so biasing by half in the
 // sign's own direction and converting is the same answer as calling both.

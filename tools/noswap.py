@@ -41,7 +41,7 @@ dereference in `check_overwrite()`, and `:w!` over an existing other file
 segfaulted for twelve phases.  `dropoptions.py --strict` refuses that and did
 not exist when this phase was written; it runs here now, `'directory'` goes in
 Phase 23 once its last reader has, and `tools/orphanopts.py` checks the
-invariant in every pure phase.
+invariant in every whim phase.
 """
 
 import re
@@ -117,7 +117,7 @@ def main():
     # Invisible to everything until then -- the build is clean, an orphaned
     # global is *used* so no warning names it, and no harness writes over an
     # existing file under a different name with `!`.  tools/orphanopts.py is the
-    # standing check now, and it runs in every pure phase.
+    # standing check now, and it runs in every whim phase.
     #
     # 'updatecount' is the third and is safe: p_uc is a long, so an orphan reads
     # as 0 -- which is exactly "never create a swap file".

@@ -71,83 +71,83 @@ it is the only one.
 A hundred and ninety-four tracked files once both pipelines have run:
 thirteen at the root, and 181 under
 `tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
-thirty-eight for `pure.mk`), the memoize
+thirty-eight for `whim.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Three of the thirteen are products
-(`slim-vim.c`, `pure-vim.c`, `LICENSE`), two are records (`upstream.sha`,
+(`slim-vim.c`, `whim-vim.c`, `LICENSE`), two are records (`upstream.sha`,
 `slim.sha`), and the other eight and `tools/` are the seed.
 
 ```
 slim-vim.c     the editor, headers and forward declarations included
-pure-vim.c     the same editor with no runtime to install
+whim-vim.c     the same editor with no runtime to install
 Makefile       the seed: builds both, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
-pure.mk        pure-vim.c = G(slim-vim.c), the same construct
+whim.mk        whim-vim.c = G(slim-vim.c), the same construct
 upstream.sha   the commit slim-vim.c was produced from
-slim.sha       the slim-vim.c pure-vim.c was produced from
+slim.sha       the slim-vim.c whim-vim.c was produced from
 tools/         the harnesses, the passes, and the phases that are programs
-README.md  CLAUDE.md  SLIM-GOAL.md  PURE-GOAL.md  LICENSE  .gitignore
+README.md  CLAUDE.md  SLIM-GOAL.md  WHIM-GOAL.md  LICENSE  .gitignore
 ```
 
 **There are two pipelines, and they are the same construct.** `slim.mk` and
-`pure.mk` differ only in what their phases do; the driver, the boundaries, the
+`whim.mk` differ only in what their phases do; the driver, the boundaries, the
 oracle and the synthesiser are shared, and `tools/pipeline.sh` is the whole of
 the parameterisation.
 
 **Their names are symmetric, and that is maintained deliberately.** Every
-variable is `SLIM*`/`PURE*` and every target is `slim-*`/`pure-*`, so a target
+variable is `SLIM*`/`WHIM*` and every target is `slim-*`/`whim-*`, so a target
 that exists on one side and not the other is a question rather than an accident:
 
-| | slim | pure |
+| | slim | whim |
 | --- | --- | --- |
-| run a pass | `slim-pass` | `pure-pass` |
-| force one | `slim-repass` | `pure-repass` |
-| one phase, replay | `slim-phase-N` `slim-replay-N` | `pure-phase-N` `pure-replay-N` |
-| add a phase at the end | `slim-tip` | `pure-tip` |
-| record, time, score | `slim-record` `slim-times` `slim-residue` | `pure-record` `pure-times` `pure-residue` |
-| throw away the work | `slim-clean` | `pure-clean` |
+| run a pass | `slim-pass` | `whim-pass` |
+| force one | `slim-repass` | `whim-repass` |
+| one phase, replay | `slim-phase-N` `slim-replay-N` | `whim-phase-N` `whim-replay-N` |
+| add a phase at the end | `slim-tip` | `whim-tip` |
+| record, time, score | `slim-record` `slim-times` `slim-residue` | `whim-record` `whim-times` `whim-residue` |
+| throw away the work | `slim-clean` | `whim-clean` |
 
 Three targets are deliberately one-sided and each says why. `slim-promote-N` has
 no twin because promotion exists to turn an *agent*-recorded boundary into a
-check, and every pure phase is a program. `slim-clone`, `slim-preflight`,
+check, and every whim phase is a program. `slim-clone`, `slim-preflight`,
 `slim-refpass`, `slim-compare` and `slim-passorref` have none because only the
 slim pipeline has a remote to clone, a network to check for, and a reference
 path run by one agent. And two targets belong to neither: `clean-cache` empties
 the tier-3 cache both share, and `score` reports the pair side by side — bytes
-to store and symbols to provide — which is why it is not `pure-score`. The distinction that matters is in the *rules*:
+to store and symbols to provide — which is why it is not `whim-score`. The distinction that matters is in the *rules*:
 `SLIM-GOAL.md` changes nothing about what the editor can do and any behavioural
-change is a bug, while `PURE-GOAL.md` removes capability on purpose — so every
+change is a bug, while `WHIM-GOAL.md` removes capability on purpose — so every
 phase there declares its delta in advance and the harness proves it caused that
 and nothing else.
 
 **Adding a phase does not cost a pass.** `tools/implhash.sh` reads a phase's own
-program and the tools that program *names* — not `pure.mk`, not `pipeline.sh` —
+program and the tools that program *names* — not `whim.mk`, not `pipeline.sh` —
 so putting a new phase on the end invalidates nothing before it. A cached phase
-replays in 0.6 s and a warm pass in one. `make pure-tip` runs the last phase and
+replays in 0.6 s and a warm pass in one. `make whim-tip` runs the last phase and
 records it, and that is the whole loop while an idea is being tried out.
 
-**Editing an existing phase's program does not re-run it, and `make pure-pass`
+**Editing an existing phase's program does not re-run it, and `make whim-pass`
 will not tell you so.** The content-keyed tier-3 check lives *inside* the
 recipe, and make never gets there: a phase's prerequisite is the previous
 boundary *file*, so an existing `q28.sha256` that is newer than `q27.sha256` is
 "up to date" and the recipe is skipped whatever the implementation digest now
-says. Measured: with `tools/pure37.sh` edited so `implhash.sh` returns a
-different key, `make -n pure-pass` plans **no phase recipes at all**. A rewrite
-of `pure28.sh` silently did not execute this way, and the pass reported success.
+says. Measured: with `tools/whim37.sh` edited so `implhash.sh` returns a
+different key, `make -n whim-pass` plans **no phase recipes at all**. A rewrite
+of `whim28.sh` silently did not execute this way, and the pass reported success.
 
 Three targets do force it, and one of them is the one to reach for: `make
-pure-phase-N` and `make pure-tip` are `.PHONY`, so their recipes always run and
-the tier-3 key then decides; `make pure-repass` removes `.build-pure` outright.
-**After editing a phase that is not the last one, use `pure-repass`.**
+whim-phase-N` and `make whim-tip` are `.PHONY`, so their recipes always run and
+the tier-3 key then decides; `make whim-repass` removes `.build-whim` outright.
+**After editing a phase that is not the last one, use `whim-repass`.**
 
 **What that loop cannot do is falsify the boundaries before it**, and the
 distinction matters more than the minutes it saves. A tier 3 replay **copies**
 the recorded digest rather than recomputing it, so a warm pass agrees with the
 oracle whatever the oracle says — which is how a wrong boundary went unnoticed
 for eleven phases. Only a run from an empty cache can catch that:
-`make clean-cache && make pure-repass`. Do it before a push, and whenever a
+`make clean-cache && make whim-repass`. Do it before a push, and whenever a
 **shared** tool changes — `sweep.sh`, `canon.sh`, `deadsweep.py`,
-`typereach.py`, `funcreach.py`, `phasecheck.sh`, `puredelta.sh`, `cutil.py` —
+`typereach.py`, `funcreach.py`, `phasecheck.sh`, `whimdelta.sh`, `cutil.py` —
 though those are in every phase's implhash, so everything re-runs then anyway.
 
 **`upstream.sha` is tracked, and that is load-bearing rather than tidy.** It is
@@ -1003,14 +1003,14 @@ would never equal itself twice).
 
 **The built binary is excluded for exactly that reason too**, and the exclusion
 has to name it in both pipelines: `/vim$` matches `./vim` and does *not* match
-`./pure-vim`, so every pure boundary counted its own binary — and `version.c`
-embeds `__DATE__` and `__TIME__`, so no pure boundary was ever equal to itself
+`./whim-vim`, so every whim boundary counted its own binary — and `version.c`
+embeds `__DATE__` and `__TIME__`, so no whim boundary was ever equal to itself
 twice. **Nothing caught it for eleven phases**, and the reason is worth keeping:
 a phase replayed from the tier 3 cache copies the recorded digest rather than
 recomputing it, so a cached pass agrees with the oracle whatever the oracle
-says. **Only a run from an empty cache can falsify a boundary.** `make pure-repass`
+says. **Only a run from an empty cache can falsify a boundary.** `make whim-repass`
 after `rm -rf .cache/q*` is that run, and it is the check to make before
-trusting a recording — every pure boundary reproduces under it, each phase a
+trusting a recording — every whim boundary reproduces under it, each phase a
 program.
 
 ```sh

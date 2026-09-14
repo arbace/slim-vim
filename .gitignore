@@ -1,6 +1,6 @@
 # The two products' binaries.
 slim-vim
-pure-vim
+whim-vim
 
 # The frozen snapshot of this tree, plus the harness baselines.  Data, and a
 # copy of what git already has -- not source.  See CLAUDE.md.
@@ -22,11 +22,11 @@ upstream-ref/
 # -- converting a phase to a program means restoring the previous boundary and
 # comparing the next -- but it is data, not source, and a new pass discards it.
 .build-slim/
-.build-pure/
+.build-whim/
 
-# The pure pipeline's work directory: one file and a makefile, rebuilt from
+# The whim pipeline's work directory: one file and a makefile, rebuilt from
 # slim-vim.c on demand and deleted with the build.
-pure/
+whim/
 
 # Tier 3 of the memoize: phase results, keyed by input digest and
 # implementation digest together.  Pure cache -- content-keyed, so it cannot go

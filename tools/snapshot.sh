@@ -34,19 +34,19 @@ mkdir -p "$(dirname "$tar_out")"
 # their content is part of the answer.
 #
 # The built binary is excluded wherever it is -- ./src/vim before Phase 2
-# flattens the tree, ./vim after it, and ./pure-vim in the other pipeline --
+# flattens the tree, ./vim after it, and ./whim-vim in the other pipeline --
 # and not merely because it is derived.  version.c embeds __DATE__ and
 # __TIME__, so two builds of identical sources are different files, and a
 # boundary counting the binary is never equal to itself twice.  (The pass
 # builds without SOURCE_DATE_EPOCH on purpose: an ordinary build should record
 # the real time.  Tier 1 pins it separately.)
 #
-# `/vim$` alone did not cover `./pure-vim`, because the `/` has to sit right
-# before `vim`.  Every pure boundary counted its own binary for as long as that
+# `/vim$` alone did not cover `./whim-vim`, because the `/` has to sit right
+# before `vim`.  Every whim boundary counted its own binary for as long as that
 # was true, which nothing caught: a phase replayed from the tier 3 cache
 # reproduces a recorded digest exactly, and only a genuine re-run of the
-# program disagrees with it.  `make pure-repass` is what finally asked the question.
-exclude='/objects/|/auto/config\.(log|status|cache)$|\.(o|d)$|/(pure-)?vim$'
+# program disagrees with it.  `make whim-repass` is what finally asked the question.
+exclude='/objects/|/auto/config\.(log|status|cache)$|\.(o|d)$|/(whim-)?vim$'
 
 # find | sort makes the order the tree's, not the filesystem's.
 ( cd "$dir" && find . -type f ! -path './.git/*' -print0 \

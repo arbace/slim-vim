@@ -5,7 +5,7 @@ Usage:
     python3 tools/nointro.py <file>
 
 An embedded editor starts in a buffer, not on a title card.  Three entry
-points, and as everywhere in PURE-GOAL.md the machinery behind them is found by
+points, and as everywhere in WHIM-GOAL.md the machinery behind them is found by
 the sweep rather than listed here:
 
   * `:intro` and `:version` point at ex_ni.

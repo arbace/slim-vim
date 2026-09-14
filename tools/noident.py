@@ -164,7 +164,7 @@ def main():
 
     # --- the rows and cases that fed it the other three --------------------
     # A ROW IS NEVER DELETED FROM nv_cmds[], IT IS POINTED AT nv_error --
-    # which is PURE-GOAL rule 3, and it turns out to apply to normal-mode
+    # which is WHIM-GOAL rule 3, and it turns out to apply to normal-mode
     # commands for exactly the reason it applies to Ex ones.  `nv_cmd_idx[]` is
     # a static const array of INDICES INTO nv_cmds[], precomputed and sorted by
     # command character, with `nv_max_linear` marking how far a direct lookup

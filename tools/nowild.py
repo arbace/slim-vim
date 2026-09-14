@@ -27,7 +27,7 @@ the `` `= `` form are untouched.
 
 The definition is not deleted here.  Cut the three calls, and the sweep finds
 `mch_expand_wildcards` unreferenced along with `have_wildcard()`, the shell
-function strings and whatever else only it named.  That is PURE-GOAL.md's first
+function strings and whatever else only it named.  That is WHIM-GOAL.md's first
 rule: remove the entry point, let the compiler find the rest.
 """
 

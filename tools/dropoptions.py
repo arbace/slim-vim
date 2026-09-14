@@ -22,7 +22,7 @@ It refuses on a name it cannot find, because a silent miss leaves the row in
 place and the report would say the work was done.
 
 What it deliberately does NOT do is decide what becomes unreachable next.  That
-is the dead-code sweep's job, and PURE-GOAL.md's first rule: cut the entry
+is the dead-code sweep's job, and WHIM-GOAL.md's first rule: cut the entry
 point, let the compiler find the rest.
 """
 

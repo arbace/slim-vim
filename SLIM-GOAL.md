@@ -1652,9 +1652,9 @@ removed for being unnecessary without anyone having to think about linkage.
 
 `main` is the exception and the only one.
 
-### Why these two are here and not in the pure pipeline
+### Why these two are here and not in the whim pipeline
 
-They were `PURE-GOAL.md`'s phases 7 and 8 for a while, and that was the wrong
+They were `WHIM-GOAL.md`'s phases 7 and 8 for a while, and that was the wrong
 home. Neither removes a capability, which is the only thing that document is
 for; both are simply true of a single translation unit whatever it contains, so
 they belong to whichever pipeline first has one — which is this one, from Phase

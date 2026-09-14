@@ -19,7 +19,7 @@
 # So every dropped prototype hands `static` to its definition on the way out,
 # and nm is checked below rather than trusted.
 #
-# This phase and the next were the pure pipeline's phases 7 and 8 for a while,
+# This phase and the next were the whim pipeline's phases 7 and 8 for a while,
 # which was the wrong home for them: neither removes a capability, and both are
 # things that are true of a single translation unit whatever it contains.  They
 # belong to whichever pipeline first has one.

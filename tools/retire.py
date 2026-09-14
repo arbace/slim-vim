@@ -4,7 +4,7 @@
 Usage:
     python3 tools/retire.py <file> <command> ...
 
-PURE-GOAL.md rule 3: **a command is never deleted from the table.**
+WHIM-GOAL.md rule 3: **a command is never deleted from the table.**
 `enum CMD_index`, `cmdnames[]` and the derived `ex_cmdidxs` block keep their
 shape, nothing renumbers, and the trap `SLIM-GOAL.md` records cannot fire --
 delete only `CMD_help` and `:help` silently starts running `:helpclose`, because

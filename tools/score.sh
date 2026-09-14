@@ -1,9 +1,9 @@
 #!/bin/sh
-# What pure-vim costs a target: bytes to store, and symbols to provide.
+# What whim-vim costs a target: bytes to store, and symbols to provide.
 #
 # Usage: tools/score.sh
 #
-# PURE-GOAL.md measures phases against these two together, and the second is
+# WHIM-GOAL.md measures phases against these two together, and the second is
 # the one that matters.  An embedded target is defined by what it must supply,
 # not by what it costs to store, so a phase that shrinks the binary while
 # adding a libc call has gone backwards -- and only a report that shows both
@@ -36,4 +36,4 @@ row() {
 }
 
 row slim-vim slim-vim.c slim-vim
-row pure-vim pure-vim.c pure-vim
+row whim-vim whim-vim.c whim-vim

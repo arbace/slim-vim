@@ -16,7 +16,7 @@
 # MEASURED AND REJECTED: running the three textual tools to their own inner
 # fixpoint before asking gcc again.  gcc costs seven seconds and the three
 # together cost one, so the shape looks obviously right -- fewer expensive
-# rounds bought with cheap ones.  It made the pure pass 47 seconds SLOWER
+# rounds bought with cheap ones.  It made the whim pass 47 seconds SLOWER
 # (1,364s against 1,317s), because proving the cheap tools have stopped costs a
 # whole extra pass of them in every round, and they cascade less often than the
 # argument assumes.  The obvious shape was worth measuring and not worth

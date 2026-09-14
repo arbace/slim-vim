@@ -5,7 +5,7 @@ Usage:
     python3 tools/noruntime.py <file>
 
 This does not delete the help machinery.  It cuts the four ways in and lets the
-dead-code sweep find what is unreachable behind them -- which is PURE-GOAL.md's
+dead-code sweep find what is unreachable behind them -- which is WHIM-GOAL.md's
 first rule, and not merely tidier: a list of 900 functions to delete is a
 restatement of what the compiler already knows, and it is wrong the first time
 upstream moves one of them.

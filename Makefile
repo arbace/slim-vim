@@ -44,7 +44,7 @@ UPSTREAM_URL    = https://github.com/arbace/vim
 UPSTREAM_BRANCH = regexp-delimiter-atoms
 
 include slim.mk
-include pure.mk
+include whim.mk
 
 # The default goal is the first target make sees, and `include` is where make
 # sees slim.mk's -- so without this line a bare `make` builds the first phase
@@ -104,9 +104,9 @@ slim-vim.c: force
 	echo "$$live" > upstream.sha
 
 # Both products, because there are two.  The per-pipeline targets that remove a
-# pass's working state are slim-clean and pure-clean.
+# pass's working state are slim-clean and whim-clean.
 clean:
-	rm -f slim-vim pure-vim
+	rm -f slim-vim whim-vim
 
 # Bytes to store and symbols to provide, for both pipelines side by side.  It
 # reports on the pair, so it is not either one's target.
