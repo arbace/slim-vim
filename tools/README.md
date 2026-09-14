@@ -38,7 +38,7 @@ actually happened was an import crash.
 - **`build.sh`** — the reproducible build tier 1 needs: no `-g`, pinned
   `SOURCE_DATE_EPOCH`, and a clean first.
 - **`refcheck.sh [reference-dir]`** — the end-of-pass comparison against
-  `.reference/`: source, binary (tier 1), documents, baselines present. Exits
+  `.reference/`: source, binary (tier 1), baselines present. Exits
   non-zero on a source or binary difference. A missing reference directory is
   reported and exits 0 — a first pass has nothing to compare against.
 - **`tier2.py`** — compare two preprocessed files as **token** streams.

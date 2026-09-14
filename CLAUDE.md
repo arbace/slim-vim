@@ -167,8 +167,8 @@ the staging tree.
 Nothing in it is part of the build; the build reads `slim-vim.c` and nothing else.
 
 Six things a pass produces appear untracked, and `.gitignore` names them:
-`vim`, which the build adds and `clean` removes; `.reference/`, a frozen
-copy of this tree with the recorded baselines beside it (see below);
+`vim`, which the build adds and `clean` removes; `.reference/`, the recorded
+baselines and phase digests beside the previous `slim-vim.c` (see below);
 `TRANSCRIPT.md`, which `/export` writes whenever this file is updated;
 `upstream/`, the pristine vim tree a pass clones in, works on and deletes —
 8,581 files that must never reach a commit, and which do not exist between
@@ -397,16 +397,25 @@ command table.
 
 ### `.reference/` is the frozen state, gitignored, and optional
 
-A copy of `slim-vim.c`, the binary built from it, the two documents, `Makefile`,
-`LICENSE`, `.gitignore` and `baselines/`. **It is not tracked and it is not a
-precondition**: a pass produces it, so a checkout that has never run one has no
-`.reference/` at all and everything here describes what exists afterwards.
+Five things, each with a reader: `baselines/`, which `verify.sh` compares
+against; `slim-phases/` and `whim-phases/`, the recorded boundary digests
+`oracle.sh` checks each phase against; and `slim-vim.c` with the `slim-vim`
+built from it, the left-hand side of `refcheck.sh`. **It is not tracked and it
+is not a precondition**: a pass produces it, so a checkout that has never run
+one has no `.reference/` at all and everything here describes what exists
+afterwards.
 
-**`baselines/` is the only part that matters, and the only part no commit can
+**It holds no copy of the documents, `Makefile`, `LICENSE` or `.gitignore`.**
+It once did. Nothing failed on them — `refcheck.sh` reported them "changed",
+which was true of every pass — and they were four days and hundreds of lines
+stale when they went. Those files are tracked, and `git diff` is the comparison.
+
+**`baselines/` is the part that matters most, and the only part no commit can
 reconstruct.** It is *data* — what the harnesses recorded from the Phase 1
 binary, the last build that changes behaviour on purpose — and every phase since
-has been required to match it. Everything else in `.reference/` is
-`git archive HEAD` and an 8-second build.
+has been required to match it. The source and binary are `git archive` of a
+commit and an 8-second build, and the phase digests are a pass from an empty
+cache.
 
 **Never regenerate it from the current binary**, which would make the comparison
 self-fulfilling. A pass records it in Phase 1 either way, but the recording only
@@ -415,18 +424,18 @@ first pass in a fresh checkout is self-certifying on behaviour, and every pass
 after it is not. That is the whole reason to keep this directory across passes,
 and the reason it is the one thing worth copying if this tree is ever moved.
 
-`vim` there is built with `SOURCE_DATE_EPOCH=0`, so it is reproducible byte for
-byte and usable as the left-hand side of a tier 1 check:
+`slim-vim` there is built with `SOURCE_DATE_EPOCH=0`, so it is reproducible
+byte for byte and usable as the left-hand side of a tier 1 check:
 
 ```sh
-SOURCE_DATE_EPOCH=0 gcc -O0 -static -s -o /tmp/t/vim slim-vim.c
-cmp /tmp/t/vim .reference/vim
+SOURCE_DATE_EPOCH=0 gcc -O0 -static -s -o /tmp/t/slim-vim slim-vim.c
+cmp /tmp/t/slim-vim .reference/slim-vim
 ```
 
-**The copies go stale the moment the tree moves and nothing warns you.** They
-are a snapshot of a commit, not a mirror; `git diff` against that commit is the
-honest comparison. Refresh them, or delete them and keep only `baselines/`,
-rather than trusting a copy whose age you cannot see.
+**The source and binary go stale the moment the tree moves and nothing warns
+you.** They are a snapshot of a commit, not a mirror, and they are meant to be
+the *previous* pass's output; refresh them when a pass is accepted, rather than
+trusting a copy whose age you cannot see.
 
 Note what that last proof was for: **`gcc` exits 0 with warnings**, so a check
 that tests the exit status of the warning sweep passes always. `verify.sh` was
@@ -1076,9 +1085,9 @@ by mistake.
 tools/refcheck.sh          # the last act of producing slim-vim.c
 ```
 
-`.reference/vim.c` *is* the previous pass's output, so a new one should differ
-only by what upstream changed — usually nothing. The tool reports the source,
-the binary (tier 1), the documents and whether baselines are present, and exits
+`.reference/slim-vim.c` *is* the previous pass's output, so a new one should
+differ only by what upstream changed — usually nothing. The tool reports the
+source, the binary (tier 1) and whether baselines are present, and exits
 non-zero on a source or binary difference.
 
 **A missing `.reference/` is the normal starting state, not a failure.** It is

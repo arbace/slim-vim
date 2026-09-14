@@ -140,7 +140,7 @@ below actually requires. Feature removal is a separate project afterwards.
 - **No `-g`.** DWARF records a line number for everything, so with debug info a
   blank line moves the binary although no token did.
 - **`SOURCE_DATE_EPOCH`, and there are two values in play.** `refcheck.sh`
-  rebuilds with `SOURCE_DATE_EPOCH=0` because that is what `.reference/vim` was
+  rebuilds with `SOURCE_DATE_EPOCH=0` because that is what `.reference/slim-vim` was
   built with, while `tools/build.sh` pins `1700000000` for comparing two of your
   own builds. Mixing them produces a difference at byte 745 that is the
   timestamp and nothing else.
@@ -1694,9 +1694,8 @@ confined to code this configuration does not compile, and otherwise a diff you
 can name the upstream patch for. **A difference is a result, not a failure**:
 report it with what caused it rather than reaching for `--force` or
 re-recording over it. The tool reports the
-source, the binary (tier 1, same file name, pinned epoch), the documents and
-whether baselines are there, and exits non-zero on any difference in the first
-two.
+source, the binary (tier 1, same file name, pinned epoch) and whether baselines
+are there, and exits non-zero on any difference in the first two.
 
 **A missing `.reference/` is the ordinary starting state.** It is gitignored and
 produced, so a checkout that has never run a pass has none; `refcheck.sh`
@@ -1706,7 +1705,9 @@ against the last pass, the other against recorded behaviour, and a pass that
 reproduced last time's mistake exactly would satisfy the first.
 
 Then fold the run's log into this file and delete it, and write `.reference/` —
-`vim.c`, the binary built with `SOURCE_DATE_EPOCH=0`, the documents and
-`baselines/` — so the next pass has this one to compare against. That last step
+`slim-vim.c`, the `slim-vim` built from it with `SOURCE_DATE_EPOCH=0`,
+`baselines/` and the recorded phase digests — so the next pass has this one to
+compare against. Not the documents: they are tracked, a copy of them is a
+comparison nothing can fail, and `git diff` already is one. That last step
 is what turns a self-certifying first pass into a checkable second one, so it is
 not optional even though nothing fails without it.

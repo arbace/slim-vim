@@ -60,15 +60,10 @@ else
     rm -rf "$tmp"
 fi
 
-# --- the documents and the makefile ---------------------------------------
-same=; diffr=
-for f in Makefile README.md CLAUDE.md SLIM-GOAL.md LICENSE; do
-    if [ ! -f "$ref/$f" ]; then diffr="$diffr $f(absent)"
-    elif cmp -s "$f" "$ref/$f"; then same="$same $f"
-    else diffr="$diffr $f"; fi
-done
-[ -n "$same" ] && report unchanged "$(echo $same)"
-[ -n "$diffr" ] && report changed "$(echo $diffr) -- expected if this pass edited them"
+# There is no comparison of the documents or the makefile.  It used to report
+# them "changed -- expected if this pass edited them", which could never fail
+# and was true of every pass, and the copies it read were a snapshot whose age
+# nothing showed.  They are tracked: `git diff` is the honest comparison.
 
 # --- the baselines --------------------------------------------------------
 if [ -d "$ref/baselines" ]; then
