@@ -103,6 +103,7 @@ that exists on one side and not the other is a question rather than an accident:
 | run a pass | `slim-pass` | `pure-pass` |
 | force one | `slim-repass` | `pure-repass` |
 | one phase, replay | `slim-phase-N` `slim-replay-N` | `pure-phase-N` `pure-replay-N` |
+| add a phase at the end | `slim-tip` | `pure-tip` |
 | record, time, score | `slim-record` `slim-times` `slim-residue` | `pure-record` `pure-times` `pure-residue` |
 | throw away the work | `slim-clean` | `pure-clean` |
 
@@ -118,6 +119,22 @@ to store and symbols to provide — which is why it is not `pure-score`. The dis
 change is a bug, while `PURE-GOAL.md` removes capability on purpose — so every
 phase there declares its delta in advance and the harness proves it caused that
 and nothing else.
+
+**Adding a phase does not cost a pass.** `tools/implhash.sh` reads a phase's own
+program and the tools that program *names* — not `pure.mk`, not `pipeline.sh` —
+so putting a new phase on the end invalidates nothing before it. A cached phase
+replays in 0.6 s and a warm pass in one. `make pure-tip` runs the last phase and
+records it, and that is the whole loop while an idea is being tried out.
+
+**What that loop cannot do is falsify the boundaries before it**, and the
+distinction matters more than the minutes it saves. A tier 3 replay **copies**
+the recorded digest rather than recomputing it, so a warm pass agrees with the
+oracle whatever the oracle says — which is how a wrong boundary went unnoticed
+for eleven phases. Only a run from an empty cache can catch that:
+`make clean-cache && make pure-repass`. Do it before a push, and whenever a
+**shared** tool changes — `sweep.sh`, `canon.sh`, `deadsweep.py`,
+`typereach.py`, `funcreach.py`, `phasecheck.sh`, `puredelta.sh`, `cutil.py` —
+though those are in every phase's implhash, so everything re-runs then anyway.
 
 **`upstream.sha` is tracked, and that is load-bearing rather than tidy.** It is
 what `make` compares the branch head against, so a checkout without one has

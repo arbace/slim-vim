@@ -133,6 +133,30 @@ pure-repass:
 # it produced is reproducible by construction -- there is no advisory stage to
 # pass through.  Recorded only after a run that built, swept to silence and
 # showed exactly the declared delta.
+# ADDING A PHASE DOES NOT COST A PASS, and this target is the proof rather than
+# a promise.  tools/implhash.sh reads a phase's own program and the tools that
+# program NAMES -- not pure.mk, not pipeline.sh -- so putting a new phase on the
+# end invalidates nothing before it.  A cached phase replays in 0.6 s and a warm
+# pass in one.
+#
+# So the loop while you are trying ideas out is: write tools/pureN.sh, add it
+# here, and `make pure-tip`.  Only the new phase runs.
+#
+# WHAT THIS DOES NOT DO, and must not be mistaken for: falsify the boundaries
+# before it.  A tier 3 replay COPIES the recorded digest rather than recomputing
+# it, so a warm pass agrees with the oracle whatever the oracle says -- which is
+# how a wrong boundary went unnoticed for eleven phases once.  Only a run from
+# an empty cache can do that, and `make pure-repass` after `make clean-cache` is
+# that run.  Do it before a push, and whenever a SHARED tool changes
+# (sweep.sh, canon.sh, deadsweep.py, typereach.py, funcreach.py, phasecheck.sh,
+# puredelta.sh, cutil.py) -- those are in every phase's implhash, so everything
+# re-runs then anyway.
+.PHONY: pure-tip
+pure-tip:
+	@last=$$(for q in $(PUREPHASES); do echo $$q; done | tail -1); \
+	 $(MAKE) --no-print-directory pure-phase-$$last && \
+	 $(MAKE) --no-print-directory pure-record | tail -1
+
 .PHONY: pure-record
 pure-record:
 	@mkdir -p $(PUREORACLE)

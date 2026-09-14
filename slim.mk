@@ -204,6 +204,14 @@ $(SLIMPHASES:%=slim-promote-%): slim-promote-%:
 
 # Record every boundary this run produced, as advisory.  What an agent pass
 # leaves behind for the programs that will replace it.
+# The twin of pure-tip; see the note there.  Adding a phase to the end of a
+# pipeline does not invalidate the ones before it, so only the new one runs.
+.PHONY: slim-tip
+slim-tip:
+	@last=$$(for p in $(SLIMPHASES); do echo $$p; done | tail -1); \
+	 $(MAKE) --no-print-directory slim-phase-$$last && \
+	 $(MAKE) --no-print-directory slim-record | tail -1
+
 .PHONY: slim-record
 slim-record:
 	@mkdir -p $(SLIMORACLE)
