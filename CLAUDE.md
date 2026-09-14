@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-A hundred and sixty-nine tracked files once both pipelines have run:
-thirteen at the root, and 156 under
+A hundred and seventy-two tracked files once both pipelines have run:
+thirteen at the root, and 159 under
 `tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
-twenty-eight for `pure.mk`), the memoize
+twenty-nine for `pure.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Three of the thirteen are products
 (`slim-vim.c`, `pure-vim.c`, `LICENSE`), two are records (`upstream.sha`,

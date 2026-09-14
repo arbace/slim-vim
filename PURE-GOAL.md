@@ -1739,6 +1739,95 @@ a read-only file, which is why that check lives here.
 
 **None.**
 
+## Phase 28 — nothing in the file is unreachable
+
+The last phase, and the only one that removes nothing in particular. Every phase
+before it sweeps what its own cut orphaned; this one asks the whole file a
+question none of them can: **is anything left that nothing reaches?**
+
+The sweep every phase runs covers four of the six kinds:
+
+| | by what | islands? |
+| --- | --- | --- |
+| functions | `deadsweep.py` (gcc) and `funcreach.py` | yes — reachability |
+| prototypes | `deadprotos.py` | n/a |
+| types | `typereach.py` | yes — reachability |
+| variables | `deadsweep.py`, `-Wunused-variable` | **no — reference counting** |
+| enumerators | **nothing** | — |
+| struct fields | **nothing** | — |
+
+The last two had already been met by hand, in phase tools that should not have
+had to care: `b0_uname` in the swap file's block zero, and eight fields of
+`memfile_T`. **A struct field is not a variable** — no warning names one that
+nothing reads, and the sweep cannot see it.
+
+### What the tools do, and what they refuse to do
+
+`deadfields.py` applies the same rule one level down: a field is live if its
+name appears **outside every type definition**, because a mention inside another
+struct is a different field with the same name. It refuses three things, since
+being wrong here is silent: a bitfield or anonymous member, whose declaration
+does not say plainly what it declares; the last field of a struct, because an
+empty struct is not C and whole types are `typereach.py`'s job; and **any field
+of a type that is ever initialised positionally** —
+
+```c
+static termrequest_T crv_status = {STATUS_GET, -1};
+```
+
+— which fills two fields and names neither, so the second looks dead and
+removing it gives *"excess elements in struct initializer"*. That is a warning
+and not an error, which means a sweep keyed on errors would have shipped it.
+
+`deadenums.py` faces the trap CLAUDE.md records: an enumerator's value **is its
+position**, so removing one renumbers every implicit one after it, and several
+enums here index a parallel table. Of the 82 dead ones, 31 could go outright and
+the rest would move a survivor. Rather than evaluate C expressions — `1 << 3`,
+`0x80000000L`, one enumerator defined from another — the values are read **from
+DWARF**, where the compiler has already done the arithmetic. The first survivor
+after each deleted run is pinned to the value it had; everything after it
+follows implicitly as before.
+
+### The assertion is the point
+
+After removing what it finds, the phase requires **all six counts to be zero**,
+and requires every surviving enumerator to come back from DWARF with the value
+it went in with. A phase runs on every pass, so the invariant is checked on
+every pass — which is the difference between this and a cleanup.
+
+### The bug this found first
+
+`typereach.py` had a blind spot that no amount of new tooling would have
+covered. `START` matched `struct X {` with the brace on the same line, and
+**111 of this file's type definitions put the brace on the next line**. Those
+were not definitions as far as the tool was concerned, so every field inside
+them counted as a *root* — and a whole dead island lived on because of it:
+`channel_T` is mentioned exactly twice outside its own definitions, and both are
+fields, `jv_channel` in `jobvar_S` and `ch_next` in `channel_S`. `jobvar_S` was
+invisible, so `jv_channel` was a root, so the `+channel` and `+job` types sat
+there complete, long after every function that used them had gone.
+
+Recognising the form took two goes, and both failures are the same shape as the
+`deadsweep` bug in Phase 26:
+
+1. `static struct modmasktable { … } mod_mask_table[] = { … };` is a type
+   definition **and a variable** in one construct, and the declarator sits
+   between the *struct's* closing brace and the `=` — not after the last `}`,
+   which belongs to the initialiser. So the name was never collected, the tag
+   was unreachable, and the whole construct went, leaving `mod_mask_table[i]`
+   undeclared 40,000 lines away. A construct that declares a variable is not a
+   type definition to delete; it is a variable, and `deadsweep.py` owns those.
+2. `typedef struct { … } chanpart_T;` does **not** declare a variable — there
+   the declarator names the type — so the rule above had to exclude typedefs.
+
+Fixed, it removes **378 lines** on its own, and it makes every phase's sweep
+stronger rather than only this one's.
+
+### The delta
+
+**None.** Nothing removed here was reachable, so nothing that ran before can
+stop running.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.

@@ -320,8 +320,6 @@ enum key_extra
     , KE_S_F36 = 41
     , KE_S_F37 = 42
 
-    , KE_MOUSE = 43
-
     , KE_LEFTMOUSE = 44
     , KE_LEFTDRAG = 45
     , KE_LEFTRELEASE = 46
@@ -335,9 +333,6 @@ enum key_extra
     , KE_IGNORE = 53
 
     , KE_TAB = 54
-    , KE_S_TAB_OLD = 55
-
-    , KE_SNIFF_UNUSED = 56
     , KE_XF1 = 57
     , KE_XF2 = 58
     , KE_XF3 = 59
@@ -390,12 +385,10 @@ enum key_extra
     , KE_FOCUSGAINED = 98
     , KE_FOCUSLOST = 99
     , KE_MOUSEMOVE = 100
-    , KE_MOUSEMOVE_XY = 101
     , KE_CANCEL = 102
     , KE_COMMAND = 103
     , KE_SCRIPT_COMMAND = 104
     , KE_S_BS = 105
-    , KE_SID = 106
     , KE_ESC = 107
     , KE_WILD = 108
     , KE_OSC = 109
@@ -520,9 +513,7 @@ static char_u *(term_strings[]);
 typedef enum {
     TMODE_COOK,
     TMODE_SLEEP,
-    TMODE_RAW,
-    TMODE_UNKNOWN
-} tmode_T;
+    TMODE_RAW} tmode_T;
 
 // ---------------- end termdefs.h ----------------
 // ---------------- begin macros.h ----------------
@@ -926,8 +917,7 @@ enum { SEA_QUIT = 2 };
 enum auto_event
 {
     EVENT_BUFADD = 0,
-    EVENT_BUFCREATE,
-    EVENT_BUFDELETE,
+    EVENT_BUFDELETE = 2,
     EVENT_BUFENTER,
     EVENT_BUFFILEPOST,
     EVENT_BUFFILEPRE,
@@ -935,16 +925,14 @@ enum auto_event
     EVENT_BUFLEAVE,
     EVENT_BUFNEW,
     EVENT_BUFNEWFILE,
-    EVENT_BUFREAD,
-    EVENT_BUFREADCMD,
+    EVENT_BUFREADCMD = 11,
     EVENT_BUFREADPOST,
     EVENT_BUFREADPRE,
     EVENT_BUFUNLOAD,
     EVENT_BUFWINENTER,
     EVENT_BUFWINLEAVE,
     EVENT_BUFWIPEOUT,
-    EVENT_BUFWRITE,
-    EVENT_BUFWRITECMD,
+    EVENT_BUFWRITECMD = 19,
     EVENT_BUFWRITEPOST,
     EVENT_BUFWRITEPRE,
     EVENT_CMDLINECHANGED,
@@ -975,8 +963,7 @@ enum auto_event
     EVENT_FILECHANGEDRO,
     EVENT_FILECHANGEDSHELL,
     EVENT_FILECHANGEDSHELLPOST,
-    EVENT_FILEENCODING,
-    EVENT_FILEREADCMD,
+    EVENT_FILEREADCMD = 51,
     EVENT_FILEREADPOST,
     EVENT_FILEREADPRE,
     EVENT_FILETYPE,
@@ -1065,8 +1052,7 @@ typedef enum
     , HLF_AT
     , HLF_D
     , HLF_E
-    , HLF_H
-    , HLF_I
+    , HLF_I = 6
     , HLF_L
     , HLF_LC
     , HLF_M
@@ -1074,33 +1060,15 @@ typedef enum
     , HLF_N
     , HLF_LNA
     , HLF_LNB
-    , HLF_CLN
-    , HLF_CLS
-    , HLF_CLF
-    , HLF_R
+    , HLF_R = 17
     , HLF_S
     , HLF_SNC
     , HLF_C
     , HLF_CNC
     , HLF_T
     , HLF_V
-    , HLF_VNC
-    , HLF_W
-    , HLF_WM
-    , HLF_FL
-    , HLF_FC
-    , HLF_ADD
-    , HLF_CHD
-    , HLF_DED
-    , HLF_TXD
-    , HLF_TXA
-    , HLF_CONCEAL
-    , HLF_SC
-    , HLF_SPB
-    , HLF_SPC
-    , HLF_SPR
-    , HLF_SPL
-    , HLF_PNI
+    , HLF_W = 25
+    , HLF_PNI = 40
     , HLF_PSI
     , HLF_PMNI
     , HLF_PMSI
@@ -1112,24 +1080,11 @@ typedef enum
     , HLF_PST
     , HLF_PMB
     , HLF_PMS
-    , HLF_POP
-    , HLF_POPB
-    , HLF_POPT
-    , HLF_TP
+    , HLF_TP = 55
     , HLF_TPS
     , HLF_TPF
-    , HLF_CUC
-    , HLF_CUL
-    , HLF_MC
-    , HLF_QFL
-    , HLF_ST
-    , HLF_STNC
-    , HLF_MSG
-    , HLF_TPL
-    , HLF_TPLS
-    , HLF_TPLF
-    , HLF_PRI
-    , HLF_WIN
+    , HLF_MSG = 64
+    , HLF_WIN = 69
     , HLF_COUNT
 } hlf_T;
 
@@ -1192,8 +1147,6 @@ enum { MAX_MCO = 6 };
 enum { MB_MAXBYTES = 21 };
 
 typedef time_t      time_T;
-
-typedef int sock_T;
 
 // ---------------- begin option.h ----------------
 
@@ -1779,11 +1732,6 @@ typedef struct typval_S         typval_T;
 typedef struct listvar_S        list_T;
 typedef struct dictvar_S        dict_T;
 typedef struct partial_S        partial_T;
-typedef struct blobvar_S        blob_T;
-typedef struct tuplevar_S       tuple_T;
-typedef struct generictype_S    generic_T;
-typedef struct gfargs_tab_S     gfargs_tab_T;
-
 typedef struct window_S         win_T;
 typedef struct wininfo_S        wininfo_T;
 typedef struct frame_S          frame_T;
@@ -1839,9 +1787,7 @@ struct nfa_state
 {
     int                 c;
     nfa_state_T         *out;
-    nfa_state_T         *out1;
     int                 id;
-    int                 lastlist[2];
     int                 val;
 };
 
@@ -1859,12 +1805,7 @@ typedef struct
     int                 regstart;
     char_u              *match_text;
 
-    int                 has_zend;
-    int                 has_backref;
     char_u              *pattern;
-    int                 nsubexp;
-    int                 nstate;
-    void                *listbuf[2];
     nfa_state_T         state[1];
 } nfa_regprog_T;
 
@@ -1923,8 +1864,6 @@ typedef struct taggy
 {
     char_u      *tagname;
     fmark_T     fmark;
-    int         cur_match;
-    int         cur_fnum;
     char_u      *user_data;
 } taggy_T;
 
@@ -1945,7 +1884,6 @@ typedef struct
     long        wo_scr;
     int         wo_sms;
     int         wo_scb;
-    int         wo_diff_saved;
     int         wo_scb_save;
     int         wo_wrap;
     int         wo_crb;
@@ -2000,19 +1938,15 @@ struct u_header
 {
     union {
         u_header_T *ptr;
-        long       seq;
     } uh_next;
     union {
         u_header_T *ptr;
-        long       seq;
     } uh_prev;
     union {
         u_header_T *ptr;
-        long       seq;
     } uh_alt_next;
     union {
         u_header_T *ptr;
-        long       seq;
     } uh_alt_prev;
     long        uh_seq;
     int         uh_walk;
@@ -2029,14 +1963,6 @@ struct u_header
 
 enum { UH_CHANGED = 0x01 };
 enum { UH_EMPTYBUF = 0x02 };
-
-typedef struct m_info minfo_T;
-
-struct m_info
-{
-    long_u      m_size;
-    minfo_T     *m_next;
-};
 
 typedef struct block_hdr    bhdr_T;
 typedef struct memfile      memfile_T;
@@ -2243,25 +2169,6 @@ enum { ML_APPEND_NEW = 1 };
 enum { ML_APPEND_MARK = 2 };
 enum { ML_APPEND_UNDO = 4 };
 
-typedef struct signgroup_S
-{
-    int         sg_next_sign_id;
-    short_u     sg_refcount;
-    char_u      sg_name[1];
-} signgroup_T;
-
-typedef struct sign_entry sign_entry_T;
-struct sign_entry
-{
-    int          se_id;
-    int          se_typenr;
-    int          se_priority;
-    linenr_T     se_lnum;
-    signgroup_T  *se_group;
-    sign_entry_T *se_next;
-    sign_entry_T *se_prev;
-};
-
 typedef struct arglist
 {
     garray_T    al_ga;
@@ -2274,60 +2181,6 @@ typedef struct argentry
     char_u      *ae_fname;
     int         ae_fnum;
 } aentry_T;
-
-typedef struct eslist_elem eslist_T;
-struct eslist_elem
-{
-    int         saved_emsg_silent;
-    eslist_T    *next;
-};
-
-typedef struct msglist msglist_T;
-struct msglist
-{
-    msglist_T   *next;
-    char        *msg;
-    char        *throw_msg;
-    char_u      *sfile;
-    long        slnum;
-    int         msg_compiling;
-};
-
-typedef enum
-{
-    ET_USER,
-    ET_ERROR,
-    ET_INTERRUPT,
-} except_type_T;
-
-typedef struct vim_exception except_T;
-struct vim_exception
-{
-    except_type_T       type;
-    char                *value;
-    struct msglist      *messages;
-    char_u              *throw_name;
-    linenr_T            throw_lnum;
-    list_T              *stacktrace;
-    except_T            *caught;
-};
-
-typedef struct cleanup_stuff cleanup_T;
-struct cleanup_stuff
-{
-    int pending;
-    except_T *exception;
-};
-
-typedef struct exception_state_S exception_state_T;
-struct exception_state_S
-{
-    except_T    *estate_current_exception;
-    int         estate_did_throw;
-    int         estate_need_rethrow;
-    int         estate_trylevel;
-    int         estate_did_emsg;
-};
 
 enum { MAX_HL_ID = 20000 };
 
@@ -2379,7 +2232,6 @@ typedef struct
 {
     int         vc_type;
     int         vc_factor;
-    iconv_t     vc_fd;
     int         vc_fail;
 } vimconv_T;
 
@@ -2414,7 +2266,6 @@ typedef struct {
     int         col_start;
     int         col_end;
     char_u      *funcname;
-    int         minwid;
     int         tabnr;
 } stl_click_region_T;
 
@@ -2455,41 +2306,13 @@ typedef struct {
 typedef struct type_S type_T;
 typedef struct ufunc_S ufunc_T;
 
-typedef struct jobvar_S job_T;
-typedef struct readq_S readq_T;
-typedef struct writeq_S writeq_T;
-typedef struct jsonq_S jsonq_T;
-typedef struct cbq_S cbq_T;
-typedef struct channel_S channel_T;
 typedef struct cctx_S cctx_T;
-typedef struct instr_S instr_T;
 typedef struct class_S class_T;
 typedef struct object_S object_T;
-typedef struct typealias_S typealias_T;
-
 typedef enum
 {
     VAR_UNKNOWN = 0,
-    VAR_ANY,
-    VAR_VOID,
-    VAR_BOOL,
-    VAR_SPECIAL,
-    VAR_NUMBER,
-    VAR_FLOAT,
-    VAR_STRING,
-    VAR_BLOB,
-    VAR_FUNC,
-    VAR_PARTIAL,
-    VAR_LIST,
-    VAR_DICT,
-    VAR_JOB,
-    VAR_CHANNEL,
-    VAR_INSTR,
-    VAR_CLASS,
-    VAR_OBJECT,
-    VAR_TYPEALIAS,
-    VAR_TUPLE
-} vartype_T;
+    VAR_NUMBER = 5} vartype_T;
 
 struct type_S {
     vartype_T       tt_type;
@@ -2508,11 +2331,7 @@ typedef enum {
 } omacc_T;
 
 typedef enum {
-    CLASS_BUILTIN_INVALID,
-    CLASS_BUILTIN_STRING,
-    CLASS_BUILTIN_EMPTY,
-    CLASS_BUILTIN_LEN,
-    CLASS_BUILTIN_MAX
+    CLASS_BUILTIN_MAX = 4
 } class_builtin_T;
 
 typedef struct {
@@ -2580,13 +2399,6 @@ struct object_S
     int         obj_copyID;
 };
 
-struct typealias_S
-{
-    int     ta_refcount;
-    type_T  *ta_type;
-    char_u  *ta_name;
-};
-
 struct typval_S
 {
     vartype_T   v_type;
@@ -2594,17 +2406,6 @@ struct typval_S
     union
     {
         varnumber_T     v_number;
-        float_T         v_float;
-        char_u          *v_string;
-        list_T          *v_list;
-        dict_T          *v_dict;
-        partial_T       *v_partial;
-        blob_T          *v_blob;
-        instr_T         *v_instr;
-        class_T         *v_class;
-        object_T        *v_object;
-        typealias_T     *v_typealias;
-        tuple_T         *v_tuple;
     }           vval;
 };
 
@@ -2658,16 +2459,13 @@ struct dictitem_S
 {
     typval_T    di_tv;
     char_u      di_flags;
-    char_u      di_key[1];
 };
 typedef struct dictitem_S dictitem_T;
 
-enum { DICTITEM16_KEY_LEN = 16 };
 struct dictitem16_S
 {
     typval_T    di_tv;
     char_u      di_flags;
-    char_u      di_key[DICTITEM16_KEY_LEN + 1];
 };
 typedef struct dictitem16_S dictitem16_T;
 
@@ -2685,38 +2483,6 @@ struct dictvar_S
     dict_T      *dv_copydict;
     dict_T      *dv_used_next;
     dict_T      *dv_used_prev;
-};
-
-struct blobvar_S
-{
-    garray_T    bv_ga;
-    int         bv_refcount;
-    char        bv_lock;
-};
-
-struct tuplevar_S
-{
-    garray_T    tv_items;
-    type_T      *tv_type;
-    tuple_T     *tv_copytuple;
-    tuple_T     *tv_used_next;
-    tuple_T     *tv_used_prev;
-    int         tv_refcount;
-    int         tv_copyID;
-    char        tv_lock;
-};
-
-struct generictype_S
-{
-    type_T      *gt_type;
-    char_u      *gt_name;
-};
-
-struct gfargs_tab_S
-{
-    garray_T    gfat_args;
-    garray_T    gfat_param_types;
-    garray_T    gfat_arg_types;
 };
 
 typedef int (*cfunc_T)(int argcount, typval_T *argvars, typval_T *rettv, void *state);
@@ -2803,14 +2569,10 @@ typedef struct AutoPatCmd_S AutoPatCmd_T;
 typedef enum {
     ETYPE_TOP,
     ETYPE_SCRIPT,
-    ETYPE_UFUNC,
-    ETYPE_AUCMD,
+    ETYPE_AUCMD = 3,
     ETYPE_MODELINE,
-    ETYPE_EXCEPT,
-    ETYPE_ARGS,
-    ETYPE_ENV,
-    ETYPE_INTERNAL,
-    ETYPE_SPELL,
+    ETYPE_ARGS = 6,
+    ETYPE_INTERNAL = 8,
 } etype_T;
 
 typedef struct {
@@ -2818,9 +2580,7 @@ typedef struct {
     char_u    *es_name;
     etype_T   es_type;
     union {
-        sctx_T  *sctx;
         AutoPatCmd_T *aucmd;
-        except_T   *except;
     } es_info;
 } estack_T;
 
@@ -2830,159 +2590,6 @@ typedef struct {
     int interrupt;
     int nl_does_cr;
 } ttyinfo_T;
-
-typedef enum
-{
-    JOB_FAILED,
-    JOB_STARTED,
-    JOB_ENDED,
-    JOB_FINISHED,
-} jobstatus_T;
-
-struct jobvar_S
-{
-    job_T       *jv_next;
-    job_T       *jv_prev;
-    pid_t       jv_pid;
-    jobstatus_T jv_status;
-    char_u      *jv_tty_in;
-    char_u      *jv_tty_out;
-    char_u      *jv_stoponexit;
-    char_u      *jv_termsig;
-    int         jv_exitval;
-    callback_T  jv_exit_cb;
-
-    buf_T       *jv_in_buf;
-
-    int         jv_refcount;
-    int         jv_copyID;
-
-    channel_T   *jv_channel;
-    char        **jv_argv;
-};
-
-struct readq_S
-{
-    char_u      *rq_buffer;
-    long_u      rq_buflen;
-    readq_T     *rq_next;
-    readq_T     *rq_prev;
-};
-
-struct writeq_S
-{
-    garray_T    wq_ga;
-    writeq_T    *wq_next;
-    writeq_T    *wq_prev;
-};
-
-struct jsonq_S
-{
-    typval_T    *jq_value;
-    jsonq_T     *jq_next;
-    jsonq_T     *jq_prev;
-    int         jq_no_callback;
-};
-
-struct cbq_S
-{
-    callback_T  cq_callback;
-    int         cq_seq_nr;
-    cbq_T       *cq_next;
-    cbq_T       *cq_prev;
-};
-
-typedef enum
-{
-    CH_MODE_NL = 0,
-    CH_MODE_RAW,
-    CH_MODE_BLOB,
-    CH_MODE_JSON,
-    CH_MODE_JS,
-    CH_MODE_LSP,
-    CH_MODE_DAP
-} ch_mode_T;
-
-typedef enum {
-    JIO_PIPE,
-    JIO_NULL,
-    JIO_FILE,
-    JIO_BUFFER,
-    JIO_OUT
-} job_io_T;
-
-typedef enum {
-    PART_SOCK = 0,
-    PART_COUNT,
-} ch_part_T;
-
-typedef struct {
-    sock_T      ch_fd;
-
-    ch_mode_T   ch_mode;
-    job_io_T    ch_io;
-    int         ch_timeout;
-
-    readq_T     ch_head;
-    jsonq_T     ch_json_head;
-    garray_T    ch_block_ids;
-    size_t      ch_wait_len;
-    struct timeval ch_deadline;
-    int         ch_block_write;
-    int         ch_nonblocking;
-    writeq_T    ch_writeque;
-
-    cbq_T       ch_cb_head;
-    callback_T  ch_callback;
-
-    bufref_T    ch_bufref;
-    int         ch_nomodifiable;
-    int         ch_nomod_error;
-    int         ch_buf_append;
-    linenr_T    ch_buf_top;
-    linenr_T    ch_buf_bot;
-} chanpart_T;
-
-struct channel_S {
-    channel_T   *ch_next;
-    channel_T   *ch_prev;
-
-    int         ch_id;
-    int         ch_last_msg_id;
-
-    chanpart_T  ch_part[PART_COUNT];
-    int         ch_write_text_mode;
-
-    char        *ch_hostname;
-    int         ch_port;
-
-    int         ch_to_be_closed;
-    int         ch_to_be_freed;
-    int         ch_error;
-    int         ch_listen;
-
-    void        (*ch_nb_close_cb)(void);
-
-    callback_T  ch_callback;
-    callback_T  ch_close_cb;
-    int         ch_drop_never;
-    int         ch_keep_open;
-    int         ch_nonblock;
-
-    job_T       *ch_job;
-    int         ch_job_killed;
-    int         ch_anonymous_pipe;
-    int         ch_killing;
-
-    int         ch_refcount;
-    int         ch_copyID;
-};
-
-typedef struct timer_S timer_T;
-struct timer_S
-{
-    long        tr_id;
-};
 
 struct file_buffer
 {
@@ -3398,7 +3005,6 @@ struct window_S
     int         w_height;
     int         w_prev_winrow;
     int         w_prev_height;
-    int         w_stl_rendered_height;
     stl_click_region_T *w_stl_click;
     int         w_stl_click_count;
     int         w_status_height;
@@ -3541,17 +3147,6 @@ typedef struct
     int         pum_user_abbr_hlattr;
     int         pum_user_kind_hlattr;
 } pumitem_T;
-
-struct js_reader
-{
-    char_u      *js_buf;
-    char_u      *js_end;
-    int         js_used;
-    int         (*js_fill)(struct js_reader *);
-    void        *js_cookie;
-    int         js_cookie_arg;
-};
-typedef struct js_reader js_read_T;
 
 enum { MAX_ARG_CMDS = 10 };
 
@@ -3786,7 +3381,6 @@ typedef struct s_xpparam {
         unsigned long flags;
 
         char **anchors;
-        size_t anchors_nr;
 } xpparam_t;
 
 typedef struct s_xdemitcb {
@@ -3797,15 +3391,8 @@ typedef struct s_xdemitcb {
 
 typedef long (*find_func_t)(const char *line, long line_len, char *buffer, long buffer_size, void *priv);
 
-typedef int (*xdl_emit_hunk_consume_func_t)(long start_a, long count_a, long start_b, long count_b, void *cb_data);
-
 typedef struct s_xdemitconf {
-        long ctxlen;
-        long interhunkctxlen;
         unsigned long flags;
-        find_func_t find_func;
-        void *find_func_priv;
-        xdl_emit_hunk_consume_func_t hunk_func;
 } xdemitconf_t;
 
 void *xdl_mmfile_first(mmfile_t *mmf, long *size);
@@ -3815,13 +3402,7 @@ int xdl_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp, xdemitconf_t co
 
 typedef struct s_xmparam {
         xpparam_t xpp;
-        int marker_size;
         int level;
-        int favor;
-        int style;
-        const char *ancestor;
-        const char *file1;
-        const char *file2;
 } xmparam_t;
 
 int xdl_merge(mmfile_t *orig, mmfile_t *mf1, mmfile_t *mf2, xmparam_t const *xmp, mmbuffer_t *result);
@@ -3846,8 +3427,7 @@ typedef enum {
 
 typedef enum {
     FLUSH_MINIMAL,
-    FLUSH_TYPEAHEAD,
-    FLUSH_INPUT
+    FLUSH_INPUT = 2
 } flush_buffers_T;
 
 typedef enum {
@@ -4580,78 +4160,6 @@ enum { EXFLAG_PRINT = 0x04 };
 
 // ---------------- end ex_cmds.h ----------------
 // ---------------- begin spell.h ----------------
-
-enum { MAXREGIONS = 8 };
-
-typedef int idx_T;
-
-typedef int salfirst_T;
-
-typedef struct slang_S slang_T;
-struct slang_S
-{
-    slang_T     *sl_next;
-    char_u      *sl_name;
-    char_u      *sl_fname;
-    int         sl_add;
-
-    char_u      *sl_fbyts;
-    long        sl_fbyts_len;
-    idx_T       *sl_fidxs;
-    char_u      *sl_kbyts;
-    idx_T       *sl_kidxs;
-    char_u      *sl_pbyts;
-    idx_T       *sl_pidxs;
-
-    char_u      *sl_info;
-
-    char_u      sl_regions[MAXREGIONS * 2 + 1];
-
-    char_u      *sl_midword;
-
-    hashtab_T   sl_wordcount;
-
-    int         sl_compmax;
-    int         sl_compminlen;
-    int         sl_compsylmax;
-    int         sl_compoptions;
-    garray_T    sl_comppat;
-    regprog_T   *sl_compprog;
-    char_u      *sl_comprules;
-    char_u      *sl_compstartflags;
-    char_u      *sl_compallflags;
-    char_u      sl_nobreak;
-    char_u      *sl_syllable;
-    garray_T    sl_syl_items;
-
-    int         sl_prefixcnt;
-    regprog_T   **sl_prefprog;
-
-    garray_T    sl_rep;
-    short       sl_rep_first[256];
-    garray_T    sl_sal;
-    salfirst_T  sl_sal_first[256];
-    int         sl_followup;
-    int         sl_collapse;
-    int         sl_rem_accents;
-    int         sl_sofo;
-    garray_T    sl_repsal;
-    short       sl_repsal_first[256];
-    int         sl_nosplitsugs;
-    int         sl_nocompoundsugs;
-
-    time_t      sl_sugtime;
-    char_u      *sl_sbyts;
-    long        sl_sbyts_len;
-    idx_T       *sl_sidxs;
-    buf_T       *sl_sugbuf;
-    int         sl_sugloaded;
-
-    int         sl_has_map;
-    hashtab_T   sl_map_hash;
-    int         sl_map_array[256];
-    hashtab_T   sl_sounddone;
-};
 
 // ---------------- end spell.h ----------------
 
@@ -14449,7 +13957,6 @@ struct bw_info
     int         bw_flags;
     char_u      bw_rest[CONV_RESTLEN];
     int         bw_restlen;
-    int         bw_first;
     char_u      *bw_conv_buf;
     size_t      bw_conv_buflen;
     int         bw_conv_error;
@@ -26697,8 +26204,6 @@ typedef struct {
     int         fromcol;
     int         tocol;
 
-    int         cul_screenline;
-
     int         char_attr;
 
     int         n_extra;
@@ -26709,7 +26214,6 @@ typedef struct {
     int         c_extra;
     int         c_final;
     int         extra_for_textprop;
-    int         start_extra_for_textprop;
 
     int         saved_n_extra;
     char_u      *saved_p_extra;
@@ -26724,7 +26228,6 @@ typedef struct {
     char_u      extra[NUMBUFLEN + MB_MAXBYTES];
 
     int         filler_lines;
-    int         filler_todo;
 } winlinevars_T;
 
 enum { WL_START = 0 };
@@ -51607,13 +51110,7 @@ typedef struct ff_stack
 
     char_u              **ffs_filearray;
     int                 ffs_filearray_size;
-    int                 ffs_filearray_cur;
 
-    int                 ffs_stage;
-
-    int                 ffs_level;
-
-    int                 ffs_star_star_empty;
 } ff_stack_T;
 
 typedef struct ff_visited
@@ -51622,10 +51119,6 @@ typedef struct ff_visited
 
     char_u              *ffv_wc_path;
 
-    int                 ffv_dev_valid;
-    dev_t               ffv_dev;
-    ino_t               ffv_ino;
-    char_u              ffv_fname[1];
 } ff_visited_T;
 
 typedef struct ff_visited_list_hdr
@@ -51641,8 +51134,6 @@ typedef struct ff_visited_list_hdr
 typedef struct ff_search_ctx_T
 {
     ff_stack_T                  *ffsc_stack_ptr;
-    ff_visited_list_hdr_T       *ffsc_visited_list;
-    ff_visited_list_hdr_T       *ffsc_dir_visited_list;
     ff_visited_list_hdr_T       *ffsc_visited_lists_list;
     ff_visited_list_hdr_T       *ffsc_dir_visited_lists_list;
     string_T                    ffsc_file_to_search;
@@ -51651,8 +51142,6 @@ typedef struct ff_search_ctx_T
     string_T                    ffsc_wc_path;
     int                         ffsc_level;
     string_T                    *ffsc_stopdirs_v;
-    int                         ffsc_find_what;
-    int                         ffsc_tagfile;
 } ff_search_ctx_T;
 
 static void vim_findfile_free_visited(void *search_ctx_arg);
@@ -60532,7 +60021,6 @@ static int        *compl_fuzzy_scores;
 
 typedef struct cpt_source_T
 {
-    int cs_refresh_always;
     int cs_startcol;
     int cs_max_matches;
     elapsed_T   compl_start_tv;
@@ -63213,7 +62701,6 @@ typedef struct
     int         found_all;
     char_u      *dict;
     int         dict_f;
-    callback_T  *func_cb;
 } ins_compl_next_state_T;
 
     static int
@@ -65862,19 +65349,6 @@ cpt_compl_refresh(void)
 }
 
 // ==================== linematch.c ====================
-
-enum { LN_DECISION_MAX = 255 };
-
-typedef struct diffcmppath_S diffcmppath_T;
-struct diffcmppath_S
-{
-    int                 df_lev_score;
-    size_t              df_path_n;
-    int                 df_choice_mem[LN_DECISION_MAX + 1];
-    int                 df_choice[LN_DECISION_MAX];
-    diffcmppath_T       *df_decision[LN_DECISION_MAX];
-    size_t              df_optimal_choice;
-};
 
 // ==================== locale.c ====================
 
@@ -74214,7 +73688,6 @@ struct data_block
 
 enum { B0_FNAME_SIZE_ORG = 900 };
 enum { B0_FNAME_SIZE_CRYPT = 890 };
-enum { B0_HNAME_SIZE = 40 };
 enum { B0_MAGIC_LONG = 0x30313233L };
 enum { B0_MAGIC_INT = 0x20212223L };
 enum { B0_MAGIC_SHORT = 0x10111213L };
@@ -74228,7 +73701,6 @@ struct block0
     char_u      b0_mtime[4];
     char_u      b0_ino[4];
     char_u      b0_pid[4];
-    char_u      b0_hname[B0_HNAME_SIZE];
     char_u      b0_fname[B0_FNAME_SIZE_ORG];
     long        b0_magic_long;
     int         b0_magic_int;
@@ -74251,9 +73723,7 @@ enum { ML_FLUSH = 0x02 };
 
 typedef enum {
       UB_FNAME = 0
-    , UB_SAME_DIR
-    , UB_CRYPT
-} upd_block0_T;
+    } upd_block0_T;
 
 static void ml_upd_block0(buf_T *buf, upd_block0_T what);
 static void set_b0_fname(ZERO_BL *, buf_T *buf);
@@ -93882,9 +93352,7 @@ enum { PV_BUF = 0x4000 };
 
 typedef enum
 {
-    PV_NONE = 0,
-    PV_MAXVAL = 0xffff
-} idopt_T;
+    PV_NONE = 0} idopt_T;
 
 static int      p_et_nobin;
 static int      p_ml_nobin;
@@ -106380,12 +105848,6 @@ typedef struct {
 
     colnr_T             reg_maxcol;
 
-    int nfa_has_zend;
-    int nfa_has_backref;
-    int nfa_nsubexpr;
-    int nfa_listid;
-    int nfa_alt_listid;
-
 } regexec_T;
 
 static regexec_T        rex;
@@ -113543,60 +113005,6 @@ enum
     NFA_CLASS_IDENT,
     NFA_CLASS_KEYWORD,
     NFA_CLASS_FNAME
-};
-
-typedef union Ptrlist Ptrlist;
-union Ptrlist
-{
-    Ptrlist     *next;
-    nfa_state_T *s;
-};
-
-struct Frag
-{
-    nfa_state_T *start;
-    Ptrlist     *out;
-};
-typedef struct Frag Frag_T;
-
-typedef struct
-{
-    int     in_use;
-
-    union
-    {
-        struct multipos
-        {
-            linenr_T    start_lnum;
-            linenr_T    end_lnum;
-            colnr_T     start_col;
-            colnr_T     end_col;
-        } multi[NSUBEXP];
-        struct linepos
-        {
-            char_u      *start;
-            char_u      *end;
-        } line[NSUBEXP];
-    } list;
-    colnr_T     orig_start_col;
-} regsub_T;
-
-typedef struct
-{
-    regsub_T    norm;
-} regsubs_T;
-
-typedef struct nfa_pim_S nfa_pim_T;
-struct nfa_pim_S
-{
-    int         result;
-    nfa_state_T *state;
-    regsubs_T   subs;
-    union
-    {
-        lpos_T  pos;
-        char_u  *ptr;
-    } end;
 };
 
     static regprog_T *
@@ -125228,10 +124636,7 @@ static void accept_modifiers_for_function_keys(void);
 
 typedef enum {
     STATUS_GET,
-    STATUS_SENT,
-    STATUS_GOT,
-    STATUS_FAIL
-} request_progress_T;
+    STATUS_GOT = 2} request_progress_T;
 
 typedef struct {
     request_progress_T      tr_progress;
