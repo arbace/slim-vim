@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""The arrow keys still move the cursor in insert mode.
+
+Usage:
+    python3 tools/arrowcheck.py <binary>
+
+Up, Down, PageUp and PageDown each began with
+
+    if (pum_visible())
+    {
+        goto docomplete;
+    }
+
+which is how they moved the selection in a completion menu instead of the
+cursor.  The phase that removes the menu removes those four arms, and the risk
+it takes is the obvious one: cutting the guard and the key's real body together
+would leave insert mode with no vertical motion at all, which no completion
+check would notice.
+
+**IT HAS TO BE A PTY.**  An arrow key arrives as an escape sequence and is
+decoded from the terminal key table; under `-e -s` the table is never built.
+
+From `one/two/three`, `A` at the end of line 1 leaves the cursor past `one`;
+Down must put it past `two`, so typing `X` gives `twoX`.  Pressing the same keys
+with the arm miscut leaves the `X` on line 1.
+"""
+
+import os
+import pty
+import shutil
+import sys
+import tempfile
+import time
+
+
+def run(binary, keys):
+    d = tempfile.mkdtemp()
+    try:
+        shutil.copy(binary, os.path.join(d, 'vim'))
+        with open(os.path.join(d, 'f.txt'), 'w') as fh:
+            fh.write('one\ntwo\nthree\n')
+        pid, fd = pty.fork()
+        if pid == 0:
+            os.environ['TERM'] = 'xterm'
+            os.chdir(d)
+            os.execv('./vim', ['vim', '-u', 'NONE', 'f.txt'])
+            os._exit(127)
+        time.sleep(0.9)
+        for k in keys:
+            os.write(fd, k)
+            time.sleep(0.35)
+        time.sleep(0.9)
+        try:
+            os.kill(pid, 9)
+        except ProcessLookupError:
+            pass
+        os.close(fd)
+        return open(os.path.join(d, 'f.txt')).read().replace('\n', ' ')
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+DOWN = b'\x1b[B'
+UP = b'\x1b[A'
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit(__doc__)
+    b = os.path.abspath(sys.argv[1])
+
+    got = run(b, (b'gg', b'A', DOWN, b'X', b'\x1b', b':wq\r'))
+    if got != 'one twoX three ':
+        print('  arrowcheck   Down in insert mode gave %r, expected %r'
+              % (got, 'one twoX three '))
+        return 1
+
+    got = run(b, (b'G', b'A', UP, b'X', b'\x1b', b':wq\r'))
+    if got != 'one twoX three ':
+        print('  arrowcheck   Up in insert mode gave %r, expected %r'
+              % (got, 'one twoX three '))
+        return 1
+
+    print('  arrowcheck   Up and Down still move the cursor in insert mode')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

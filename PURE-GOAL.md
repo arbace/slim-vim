@@ -2188,6 +2188,67 @@ So this phase is the sources and the display, and **the key handling is a phase
 of its own** — the largest remaining candidate, and the one the coverage list
 now points at.
 
+## Phase 36 — the completion keys stop being keys
+
+Phase 35 stubbed the five predicates completion is *entered* through, and said
+plainly that it stopped there: the `docomplete:` label and its sixteen `goto`s
+stayed, because unpicking them out of a 900-line switch was a larger change than
+that phase was making. This is that change.
+
+**Seventy functions survived Phase 35** — reachable, so `funcreach.py` could not
+touch them, and never entered, because `ins_complete()` returns FAIL before any
+of them runs. That is the shape worth naming: **a stub answers a question; it
+does not remove the caller that asks it.** `edit()` does not reach completion
+through one door — it calls `ins_compl_addleader()`, `ins_compl_bs()`,
+`ins_compl_accept_char()` and twenty-five more directly. So this phase cuts the
+**callers**, and the sweep takes the callees.
+
+What goes, all of it inside `edit()`:
+
+| | |
+| --- | --- |
+| the CTRL-X submode | `ins_ctrl_x()` is empty, so `ctrl_x_mode` never leaves `CTRL_X_NORMAL` and every `ctrl_x_mode_*()` test is decided |
+| the per-key completion arm | forty lines feeding each keystroke to the match list |
+| `'autocomplete'` | six arming sites, three of them one-line blobs macro expansion left behind |
+| the arrow keys | four `if (pum_visible()) goto docomplete;` arms on Up, Down, PageUp and PageDown |
+| `docomplete:` | the label itself |
+
+**What stays is the answer Phase 35 gave**: CTRL-N and CTRL-P are still
+insert-mode keys, and they now do nothing, which is what an unbound key does.
+
+### A cut that is not unique is a guess
+
+The first version dropped the autocomplete disarm by matching its condition,
+`if (c != KE_CURSORHOLD && c != KE_COMPLETE_DELAY)`. That condition occurs
+**three times inside `edit()`**, and the one the search took was
+
+```c
+        {
+            lastc = c;
+        }
+```
+
+— the last-character save, which has nothing to do with completion. It
+compiled, it swept clean, the island still shrank by 2,400 lines, and **nothing
+downstream objected.** `drop_unique()` now refuses any condition that is not
+unique in the file; anything genuinely ambiguous is spelled out in full or
+anchored to one function with `drop_if_in()`. The phase also asserts the `lastc`
+line is still there, because that is the failure that got through.
+
+### Two halves, and only the pair is a check
+
+Completion must still be absent — `tools/complcheck.py`, from Phase 35 — and the
+arrow keys, whose `pum_visible()` arms this phase cut, must still move the
+cursor. Cutting a guard and the key's real body together is exactly what no
+completion check would notice, so `tools/arrowcheck.py` asks in a pty: from
+`one/two/three`, `A` then Down then `X` must give `twoX`. **It was proved able to
+fail first** — with `ins_down()` removed it reports `oneX`.
+
+Measured: 130,161 → 127,709 lines, 2,452 of them; 2,712 definitions → 2,626; the
+island from 69 functions to 13, and those thirteen are constant-answer stubs the
+redraw layer asks on its own account. **The delta is none** — these are
+insert-mode keys, so no Ex command moves and no option goes.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.
