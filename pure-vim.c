@@ -1048,18 +1048,6 @@ typedef enum
     , HLF_T
     , HLF_V
     , HLF_W = 25
-    , HLF_PNI = 40
-    , HLF_PSI
-    , HLF_PMNI
-    , HLF_PMSI
-    , HLF_PNK
-    , HLF_PSK
-    , HLF_PNX
-    , HLF_PSX
-    , HLF_PSB
-    , HLF_PST
-    , HLF_PMB
-    , HLF_PMS
     , HLF_TP = 55
     , HLF_TPS
     , HLF_TPF
@@ -1737,7 +1725,6 @@ typedef struct nfa_state nfa_state_T;
 struct nfa_state
 {
     int                 c;
-    nfa_state_T         *out;
     int                 id;
     int                 val;
 };
@@ -2631,8 +2618,6 @@ struct file_buffer
     linenr_T    b_u_line_lnum;
     colnr_T     b_u_line_colnr;
 
-    bool        b_scanned;
-
     long        b_p_iminsert;
     long        b_p_imsearch;
 
@@ -2692,44 +2677,6 @@ struct file_buffer
     unsigned    b_tc_flags;
     long        b_p_ul;
     char_u      *b_p_lw;
-
-    int         b_ind_level;
-    int         b_ind_open_imag;
-    int         b_ind_no_brace;
-    int         b_ind_first_open;
-    int         b_ind_open_extra;
-    int         b_ind_close_extra;
-    int         b_ind_open_left_imag;
-    int         b_ind_jump_label;
-    int         b_ind_case;
-    int         b_ind_case_code;
-    int         b_ind_case_break;
-    int         b_ind_param;
-    int         b_ind_func_type;
-    int         b_ind_comment;
-    int         b_ind_in_comment;
-    int         b_ind_in_comment2;
-    int         b_ind_cpp_baseclass;
-    int         b_ind_continuation;
-    int         b_ind_unclosed;
-    int         b_ind_unclosed2;
-    int         b_ind_unclosed_noignore;
-    int         b_ind_unclosed_wrapped;
-    int         b_ind_unclosed_whiteok;
-    int         b_ind_matching_paren;
-    int         b_ind_paren_prev;
-    int         b_ind_maxparen;
-    int         b_ind_maxcomment;
-    int         b_ind_scopedecl;
-    int         b_ind_scopedecl_code;
-    int         b_ind_java;
-    int         b_ind_js;
-    int         b_ind_keep_case_label;
-    int         b_ind_hash_comment;
-    int         b_ind_cpp_namespace;
-    int         b_ind_if_for_while;
-    int         b_ind_cpp_extern_c;
-    int         b_ind_pragma;
 
     linenr_T    b_no_eol_lnum;
 
@@ -3376,8 +3323,6 @@ typedef enum {
     CPT_ABBR,
     CPT_KIND,
     CPT_MENU,
-    CPT_INFO,
-    CPT_COUNT,
 } cpitem_T;
 
 typedef char *(*opt_did_set_cb_T)(optset_T *args);
@@ -4072,7 +4017,6 @@ struct exarg
     int         force_ff;
     int         force_enc;
     int         bad_char;
-    int         useridx;
     char        *errmsg;
     char_u      *(*ea_getline)(int, void *, int, getline_opt_T);
     void        *cookie;

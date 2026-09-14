@@ -1741,9 +1741,11 @@ a read-only file, which is why that check lives here.
 
 ## Phase 28 — nothing in the file is unreachable
 
-The last phase, and the only one that removes nothing in particular. Every phase
-before it sweeps what its own cut orphaned; this one asks the whole file a
-question none of them can: **is anything left that nothing reaches?**
+**The first of two**, and the only pair that removes nothing in particular.
+Every phase sweeps what its own cut orphaned; this asks the whole file a
+question none of them can: **is anything left that nothing reaches?** Phase 37
+asks it again at the tip, and `tools/unreachable.sh` is the one program both
+call, so the invariant cannot drift between the two places it is asserted.
 
 The sweep every phase runs covers four of the six kinds:
 
@@ -2248,6 +2250,47 @@ Measured: 130,161 → 127,709 lines, 2,452 of them; 2,712 definitions → 2,626;
 island from 69 functions to 13, and those thirteen are constant-answer stubs the
 redraw layer asks on its own account. **The delta is none** — these are
 insert-mode keys, so no Ex command moves and no option goes.
+
+## Phase 37 — nothing in the file is unreachable, at the tip
+
+The last phase, and the same program as Phase 28. It exists because **an
+invariant asserted once is a cleanup, not an invariant.**
+
+Phase 28 was written when it was the last phase. Nine phases were then appended
+after it, each deleting reachable code — and four of the six kinds of dead thing
+are re-checked by every phase's own sweep, while **two are checked by nothing at
+all**:
+
+| | what re-checks it after a later phase |
+| --- | --- |
+| functions, prototypes, types, variables | the sweep, every phase, every time |
+| **enumerators** | nothing — gcc has no warning for one |
+| **struct fields** | nothing — a field is not a variable |
+
+So the question was worth asking rather than assuming, and the answer was not
+zero. What tipped it off was a reading taken on the Phase 35 output — 42 dead
+struct fields and 12 dead enumerators — and what this phase actually removes,
+measured on its real input, is **40 dead struct fields and 14 dead
+enumerators**: none of them reachable, none of them reported by anything,
+quietly accumulated across phases 29 to 36. 127,671 → 127,615 lines, and not one
+surviving enumerator moved.
+
+### Why appended rather than moved
+
+The obvious repair is to move Phase 28 to the end. Appending is better, and the
+memoize model is the reason: `tools/implhash.sh` reads a phase's own program and
+the tools that program names — not `pure.mk`, not `pipeline.sh` — so **putting a
+phase on the end invalidates nothing before it**, while renumbering nine phases
+downward invalidates all of them and is the exact mistake this document records
+under *Downward renumbering must be done ascending*.
+
+Keeping Phase 28 where it is also costs nothing that matters. It clears the
+original backlog — 82 enumerators and 77 fields — at the point where that
+backlog exists, which makes every later phase's sweep cheaper and its own
+assertion meaningful there rather than only at the end.
+
+**The delta is none**, for both: nothing removed was reachable, so nothing that
+ran before can stop running.
 
 ## Unused, and unuseful
 
