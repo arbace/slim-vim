@@ -14,8 +14,13 @@
 #                   bt_nofilename(), bt_nofileread() and bt_prompt() fold as false
 #                   at every caller
 #   'jumpoptions'   empty: the "stack" behaviour of the jump list folds away
-#   'updatetime'    NOT dead: its idle timeout drives before_blocking().  It
-#                   becomes its default, 4000 ms, written where it was read
+#   'updatetime'    dead, though it looked live: after that long idle,
+#                   inchar_loop() asked trigger_cursorhold(), which is `return
+#                   FALSE`, and called before_blocking(), whose swap sync reaches
+#                   an empty ml_sync_all() and whose terminal flush only acts
+#                   inside a screen redraw, never at idle.  So the idle wait goes:
+#                   a wait with no timeout blocks at once, and before_blocking(),
+#                   updatescript() and ml_sync_all() go with the CursorHold probe
 #   'autowrite'     off: autowrite() always failed and autowrite_all() returned,
 #   'autowriteall'  so their callers and the CCGD_AW flag fold
 #
@@ -142,8 +147,34 @@ t = in_function(t, 'setpcmark', lambda s: drop_if(s, r'^[ \t]*if \(jop_flags & J
 t = in_function(t, 'cleanup_jumplist', lambda s: literal(s, 'mustfree = !(jop_flags & JOP_STACK);', 'mustfree = TRUE;', "duplicate jumps kept for a stack"))
 t = in_function(t, 'didset_string_options', lambda s: sub(s, r'^[ \t]*\(void\)opt_strings_flags\(p_jop, p_jop_values, &jop_flags, TRUE\);\n', '', "startup parsing 'jumpoptions'"))
 
-# ---- 'updatetime': its default, where it was read
-t = in_function(t, 'inchar_loop', lambda s: literal(s, 'wait_time = p_ut - elapsed_time;', 'wait_time = 4000 - elapsed_time;', "the idle timeout fixed at 4000 ms"))
+# ---- 'updatetime': the idle wait did nothing, so it goes
+def idle(s):
+    s = literal(s, 'if (wtime < 0 && did_start_blocking)', 'if (wtime < 0)', 'a wait with no timeout blocking at once')
+    s = sub(s, r'^([ \t]*)if \(wtime >= 0\)\n[ \t]*\{\n[ \t]*wait_time = wtime - elapsed_time;\n[ \t]*\}\n[ \t]*else\n[ \t]*\{\n[ \t]*wait_time = p_ut - elapsed_time;\n[ \t]*\}\n',
+            r'\1wait_time = wtime - elapsed_time;\n', "the 'updatetime' idle timeout")
+    m = re.search(r'^([ \t]*)if \(wait_time <= 0 && did_call_wait_func\)\n', s, re.M)
+    if not m:
+        die('inchar_loop -- the expired-wait test was not found')
+    ind = m.group(1)
+    tail = '\n%s    before_blocking();\n%s    continue;\n%s}\n' % (ind, ind, ind)
+    z = s.find(tail, m.end())
+    if z < 0 or s.count(tail) != 1:
+        die('inchar_loop -- the expired-wait block does not end in before_blocking(); continue;')
+    s = s[:m.start()] + '%sif (wait_time <= 0 && did_call_wait_func)\n%s{\n%s    return 0;\n%s}\n' % (ind, ind, ind, ind) + s[z + len(tail):]
+    say('CursorHold and before_blocking() after the idle wait')
+    # Blocking now starts on the first wait with no timeout, so by the time the
+    # loop's exit test runs for one, it has blocked: did_start_blocking was TRUE
+    # there, and an interrupted indefinite wait must still return 0 rather than
+    # block again.
+    s = literal(s, ' || (wtime < 0 && !did_start_blocking))', ')', 'an interrupted indefinite wait returning instead of blocking again')
+    return s
+t = in_function(t, 'inchar_loop', idle)
+t = in_function(t, 'gotchars', lambda s: sub(s, r'^[ \t]*for \(i = 0; i < state\.buflen; \+\+i\)\n[ \t]*\{\n[ \t]*updatescript\(state\.buf\[i\]\);\n[ \t]*\}\n\n?', '', 'typed characters passed to a script file and a swap sync that are both gone'))
+def waitret(s):
+    for line in ('save_scriptout = scriptout;', 'scriptout = NULL;', 'scriptout = save_scriptout;'):
+        s = sub(s, r'^[ \t]*%s\n' % re.escape(line), '', 'wait_return saving and restoring a script file that is never open')
+    return s
+t = in_function(t, 'wait_return', waitret)
 t = in_function(t, 'check_num_option_bounds', lambda s: drop_if(s, r'^[ \t]*if \(p_ut < 0\)$', "'updatetime' kept non-negative"))
 
 # ---- 'buflisted'
@@ -197,7 +228,8 @@ tools/sweep.sh "$f"
 
 for g in b_p_bl b_p_bt b_p_ft p_bl p_bt p_ft p_jop jop_flags p_ut p_aw p_awa autowrite autowrite_all bt_dontwrite bt_dontwrite_msg \
          bt_nofilename bt_nofileread bt_prompt set_buflisted did_set_buftype did_set_buflisted did_set_filetype_or_syntax \
-         do_filetype_autocmd b_did_filetype b_au_did_filetype CCGD_AW nofile_err; do
+         do_filetype_autocmd b_did_filetype b_au_did_filetype CCGD_AW nofile_err \
+         before_blocking trigger_cursorhold updatescript ml_sync_all scriptout did_start_blocking; do
     n=$(grep -cE -- "\\b$g\\b" "$f" || true)
     if [ "$n" != 0 ]; then
         echo "  nobufopts    $g still has $n mentions after the sweep"

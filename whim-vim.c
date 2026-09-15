@@ -1245,7 +1245,6 @@ static int      p_tf;
 static long     p_ttyscroll;
 static long     p_ul;
 static long     p_ur;
-static long     p_uc;
 static int      p_vb;
 static char_u   *p_ve;
 static unsigned ve_flags;
@@ -3935,7 +3934,6 @@ static void ml_open_file(buf_T *buf);
 static void check_need_swap(int newfile);
 static void ml_close(buf_T *buf, int del_file);
 static void ml_timestamp(buf_T *buf);
-static void ml_sync_all(int check_file, int check_char);
 static void ml_preserve(buf_T *buf, int message);
 static char_u *ml_get(linenr_T lnum);
 static char_u *ml_get_pos(pos_T *pos);
@@ -4550,7 +4548,6 @@ static void ui_breakcheck_force(int force);
 static int vim_is_input_buf_empty(void);
 static char_u *get_input_buf(void);
 static void set_input_buf(char_u *p, int overwrite);
-static void add_to_input_buf(char_u *s, int len);
 static void trash_input_buf(void);
 static int read_from_input_buf(char_u *buf, long maxlen);
 static void fill_input_buf(int exit_on_error);
@@ -5011,7 +5008,6 @@ static int      need_highlight_changed  = TRUE ;
 enum { NSCRIPT = 15 };
 static FILE     *scriptin[NSCRIPT];
 static int      curscript  = 0 ;
-static FILE     *scriptout   = NULL ;
 static int      read_cmd_fd  = 0 ;
 
 static volatile sig_atomic_t got_int  = FALSE ;
@@ -6788,12 +6784,6 @@ apply_autocmds_retval(event_T     event, char_u      *fname, char_u      *fname_
         *retval = FAIL;
     }
     return did_cmd;
-}
-
-    static int
-trigger_cursorhold(void)
-{
-    return FALSE;
 }
 
     static int
@@ -32361,7 +32351,6 @@ static void     init_typebuf(void);
 static void     may_sync_undo(void);
 static void     free_typebuf(void);
 static void     closescript(void);
-static void     updatescript(int c);
 static int      vgetorpeek(int);
 static int      inchar(char_u *buf, int maxlen, long wait_time);
 
@@ -33372,7 +33361,6 @@ ret_false:
 gotchars(char_u *chars, int len)
 {
     char_u              *s = chars;
-    size_t              i;
     int                 todo = len;
     static gotchars_state_T state;
 
@@ -33381,11 +33369,6 @@ gotchars(char_u *chars, int len)
         if (!gotchars_add_byte(&state, *s++))
         {
             continue;
-        }
-
-        for (i = 0; i < state.buflen; ++i)
-        {
-            updatescript(state.buf[i]);
         }
 
         if (reg_recording != 0)
@@ -33547,30 +33530,6 @@ closescript(void)
 using_script(void)
 {
     return scriptin[curscript] != NULL;
-}
-
-    static void
-before_blocking(void)
-{
-    term_set_sync_output(TERM_SYNC_OUTPUT_FLUSH);
-
-    updatescript(0);
-}
-
-    static void
-updatescript(int c)
-{
-    static int      count = 0;
-
-    if (c && scriptout)
-    {
-        putc(c, scriptout);
-    }
-    if (c == 0 || (p_uc > 0 && ++count >= p_uc))
-    {
-        ml_sync_all(c == 0, TRUE);
-        count = 0;
-    }
 }
 
     static int
@@ -45877,11 +45836,6 @@ add_b0_fenc(ZERO_BL     *b0p, buf_T       *buf)
 }
 
     static void
-ml_sync_all(int check_file, int check_char)
-{
-}
-
-    static void
 ml_preserve(buf_T *buf, int message)
 {
 }
@@ -48038,7 +47992,6 @@ wait_return(int redraw)
     int         tmpState;
     int         had_got_int;
     int         save_reg_recording;
-    FILE        *save_scriptout;
 
     if (redraw == TRUE)
     {
@@ -48106,9 +48059,7 @@ wait_return(int redraw)
                 ++allow_keys;
 
                 save_reg_recording = reg_recording;
-                save_scriptout = scriptout;
                 reg_recording = 0;
-                scriptout = NULL;
                 c = safe_vgetc();
                 if (had_got_int && !global_busy)
                 {
@@ -48117,7 +48068,6 @@ wait_return(int redraw)
                 --no_mapping;
                 --allow_keys;
                 reg_recording = save_reg_recording;
-                scriptout = save_scriptout;
 
                 if (KeyTyped && p_more && !p_cp)
                 {
@@ -92222,7 +92172,6 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
     int         len;
     int         interrupted = FALSE;
     int         did_call_wait_func = FALSE;
-    int         did_start_blocking = FALSE;
     long        wait_time;
     long        elapsed_time = 0;
     elapsed_T   start_tv;
@@ -92236,52 +92185,18 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
             resize_func(FALSE);
         }
 
-        if (wtime < 0 && did_start_blocking)
+        if (wtime < 0)
         {
             wait_time = -1;
         }
         else
         {
             elapsed_time =  elapsed(&(start_tv)) ;
-            if (wtime >= 0)
-            {
-                wait_time = wtime - elapsed_time;
-            }
-            else
-            {
-                wait_time = 4000 - elapsed_time;
-            }
+            wait_time = wtime - elapsed_time;
 
             if (wait_time <= 0 && did_call_wait_func)
             {
-                if (wtime >= 0)
-                {
-                    return 0;
-                }
-
-                did_start_blocking = TRUE;
-                if (trigger_cursorhold() && maxlen >= 3 && !typebuf_changed(tb_change_cnt))
-                {
-                    if (buf == NULL)
-                    {
-                        char_u  ibuf[3];
-
-                        ibuf[0] = CSI;
-                        ibuf[1] = KS_EXTRA;
-                        ibuf[2] = (int)KE_CURSORHOLD;
-                        add_to_input_buf(ibuf, 3);
-                    }
-                    else
-                    {
-                        buf[0] =  (0x80) ;
-                        buf[1] = KS_EXTRA;
-                        buf[2] = (int)KE_CURSORHOLD;
-                    }
-                    return 3;
-                }
-
-                before_blocking();
-                continue;
+                return 0;
             }
         }
 
@@ -92306,7 +92221,7 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
             continue;
         }
 
-        if ((resize_func != NULL && resize_func(TRUE)) || wait_time > 0 || (wtime < 0 && !did_start_blocking))
+        if ((resize_func != NULL && resize_func(TRUE)) || wait_time > 0)
         {
             continue;
         }
@@ -92458,20 +92373,6 @@ set_input_buf(char_u *p, int overwrite)
         vim_free(gap->ga_data);
     }
     vim_free(gap);
-}
-
-    static void
-add_to_input_buf(char_u *s, int len)
-{
-    if (inbufcount + len > INBUFLEN + MAX_KEY_CODE_LEN)
-    {
-        return;
-    }
-
-    while (len--)
-    {
-        inbuf[inbufcount++] = *s++;
-    }
 }
 
     static void
