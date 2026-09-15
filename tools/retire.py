@@ -30,7 +30,10 @@ import re
 import sys
 from pathlib import Path
 
-ROW = r'(\[CMD_\w+\] = \{\(char_u \*\)"%s", sizeof\("%s"\) - 1, )(\w+)'
+# Any whitespace before the handler.  Macro expansion left some rows spelled
+# `- 1,  ex_nogui ,`, and a pattern written against one space refused :gui and
+# :gvim -- loudly, as it should, but the rule is the row, not the spacing.
+ROW = r'(\[CMD_\w+\] = \{\(char_u \*\)"%s", sizeof\("%s"\) - 1,\s*)(\w+)'
 
 
 def main():

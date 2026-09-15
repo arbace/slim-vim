@@ -1845,8 +1845,7 @@ enum
     , BV_IMI
     , BV_IMS
     , BV_INF
-    , BV_ISE
-    , BV_ISK
+    , BV_ISK = 38
     , BV_KP
     , BV_LISP
     , BV_LOP
@@ -1872,11 +1871,9 @@ enum
     , BV_TS
     , BV_TW
     , BV_TX
-    , BV_UDF
-    , BV_UL
+    , BV_UL = 65
     , BV_WM
-    , BV_COUNT
-};
+    };
 
 enum
 {
@@ -1900,8 +1897,7 @@ enum
     , WV_WFW
     , WV_WHL
     , WV_WRAP
-    , WV_COUNT
-};
+    };
 
 enum { ERR_BUFLEN = 80 };
 

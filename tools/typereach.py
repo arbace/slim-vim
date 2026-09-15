@@ -38,7 +38,13 @@ START = re.compile(r'^(typedef\b|struct\s+\w+\s*\{|union\s+\w+\s*\{|'
 #
 # The lookahead is required rather than optional: a bare `struct foo` line with
 # no brace after it is a variable declaration, not a definition.
-HEAD_ONLY = re.compile(r'^(?:static\s+)?(?:struct|union|enum)\s+\w+$')
+#
+# AN ENUM NEED NOT HAVE A TAG.  `enum` alone on a line, `{` on the next, is how
+# the option-index lists are written -- `enum { WV_LIST = 0, WV_LCS, ... }` -- and
+# without it deadenums.py never saw them: an enumerator nothing named survived
+# every sweep.  A struct or union without a tag cannot be written that way and
+# still declare anything, so only enum gets the bare form.
+HEAD_ONLY = re.compile(r'^(?:static\s+)?(?:(?:struct|union|enum)\s+\w+|enum)$')
 KEYWORDS = {
     'typedef', 'struct', 'union', 'enum', 'const', 'volatile', 'unsigned',
     'signed', 'short', 'long', 'int', 'char', 'float', 'double', 'void',

@@ -329,7 +329,7 @@ else may move — and the pty scenarios are the ones to watch, since a startup
 screen is exactly the kind of thing a terminal harness records. The command line
 is `clicheck.py`'s to check, because nothing else ever passes an option.
 
-Measured: **180,333 → 178,436 lines**, 1,368 of them taken by the sweep in three
+Measured: **180,328 → 178,431 lines**, 1,368 of them taken by the sweep in three
 rounds, and libc symbols 146 → 146 — the introduction and the command line were
 never what the editor needed from the world.
 
@@ -1647,11 +1647,28 @@ tool removes only the roots:
 
 | layer | what goes |
 | --- | --- |
-| the tables | 22 rows of `nv_cmds[]`, and the 14 `<LeftMouse>`/`<ScrollWheelUp>`/`<MouseMove>` rows of the key-name table, so `:map <LeftMouse>` no longer names anything |
+| the tables | 22 rows of `nv_cmds[]` point at `nv_error`, and the 14 `<LeftMouse>`/`<ScrollWheelUp>`/`<MouseMove>` rows of the key-name table go, so `:map <LeftMouse>` no longer names anything |
 | the dispatch | `edit()`'s insert-mode case run, `getcmdline_int()`'s six case runs, `]<LeftMouse>` in `nv_brackets()` and `g<LeftMouse>` in `nv_g_cmd()`, and the click that dismissed a `Press ENTER` prompt |
 | the decoder | `check_termcode_mouse()`'s call, and 41 lines in `set_termname()` that read the terminal's 1006 capability, set `'ttymouse'` from it and install the termcodes |
 | the switch | `setmouse()`'s **31** calls, every one a bare statement, and `mch_setmouse()`'s |
 | the questions | `mouse_has()` and `mouse_has_any()`, whose three callers outside the island each become the answer they now always get |
+
+### The rows of nv_cmds[] are pointed away, never deleted
+
+**This phase first deleted the 22 rows, and the arrow keys stopped working in
+normal mode for twelve phases.** Normal mode finds a key's handler through
+`nv_cmd_idx[]`, a sorted index into `nv_cmds[]` that upstream generates and this
+tree writes into the C as a constant. Deleting rows left the index 22 entries
+longer than the table, still compiling, and every key found past the first hole
+resolved to another key's row. Nothing noticed because every harness that typed
+an arrow typed it in insert mode, which decodes the arrows in a `switch`.
+
+So the rows stay and answer `nv_error` — rule 3, applied to the normal-mode
+table, which is what Phase 30 already did for `K` and CTRL-]. Two checks now
+guard it: `tools/nvidxcheck.py`, run by `phasecheck.sh` in every phase, requires
+the index to be a permutation of the table's rows, and `tools/arrowcheck.py`
+presses all four arrows in normal mode, in the `ESC O` form a terminal sends once
+vim has switched its keypad to application mode.
 
 ### Two names that are not about the mouse
 
@@ -2019,7 +2036,7 @@ if (can_cindent && cindent_on() && ...)  { force_cindent: ... }
 So the two have to go together or not at all — removing the second alone orphans
 the label, and removing the first alone leaves a label nothing reaches.
 
-Measured: 142,636 → 138,687 lines, 3,949 removed against 3,007 predicted; the
+Measured: 142,206 → 138,214 lines, 3,992 removed against 3,007 predicted; the
 option plumbing and the `b_ind_*` fields were the difference.
 
 ## Phase 29 — `:command`, user-defined commands
@@ -2096,7 +2113,7 @@ not the feature. In a real pty both binaries give the same correct answer, and
 `tools/starcheck.py` now asks it there: from `foo` on line 1, `*` must land on
 the `foo` on line 5 and **skip `foobar`**, which `dd` then proves.
 
-Measured: 136,700 → 136,451 lines; `nv_ident()` from 227 lines to the search
+Measured: 136,226 → 135,977 lines; `nv_ident()` from 227 lines to the search
 half. **The delta is none** — these are normal-mode keys, so no Ex command
 moves.
 
@@ -2131,7 +2148,7 @@ pair is a check: `:w %` must still write the file being edited, and `%:t` must
 stop being a tail. One without the other passes on a `eval_vars()` that returns
 NULL for everything.
 
-Measured: 136,451 → 135,825 lines.
+Measured: 135,977 → 135,351 lines.
 
 ## Phase 32 — insert completion, the popup menu, and the keys that reached them
 
@@ -2253,13 +2270,225 @@ Down then `X` must give `twoX`. **It was proved able to fail first** — with
 
 ### The delta
 
-Measured: **135,524 → 127,353 lines** and symbols 88 → 88, the subsystem being
+Measured: **135,351 → 127,167 lines** and symbols 88 → 88, the subsystem being
 pure computation over things already removed. The thirteen functions that remain
 of the island are constant-answer stubs the redraw layer asks on its own account.
 **Merged, the phase reproduces the boundary the two phases recorded byte for
 byte**, in 173 seconds against the 203 they took in sequence. **The delta is
 none** — no behaviour case types CTRL-N, these are insert-mode keys, and no Ex
 command moves.
+
+## Phase 33 — commands whose machinery has already gone
+
+Every one of these still had a handler, and every one refused or did nothing
+when run with a sensible argument. That was measured one at a time, in Ex mode,
+reading the message each left behind:
+
+| command | what it said |
+| --- | --- |
+| `:shell` | `E319`, no processes since Phase 8 |
+| `:gui`, `:gvim` | `E25`, no GUI in this build |
+| `:cdo` `:cfdo` `:ldo` `:lfdo` | `E319`, no quickfix lists |
+| `:vim9cmd` | `E319`, no eval layer |
+| `:endclass` `:endinterface` `:endenum` `:public` `:static` `:this` | Vim9 class keywords, invalid without the eval layer |
+| `:digraphs` | `E196`, no digraphs in this build |
+| `:redrawtabpanel` | `E1547`, no tab panel |
+| `:colorscheme` | `E185`, no colour scheme to find — nothing is installed |
+
+**A command that only says no is a row pointing at a handler that exists to say
+no.** So the rows go to `ex_ni` — rule 3, the table keeps its shape — and the
+sweep takes `ex_shell`, `ex_nogui`, `ex_digraphs`, `ex_redrawtabpanel`,
+`ex_colorscheme` and `load_colors()`, which nothing else called. `ex_listdo`
+stays, because `:argdo`, `:bufdo`, `:windo` and `:tabdo` use it, and its two tests
+for the quickfix commands are folded rather than left asking a question that can
+no longer be true. `ex_wrongmodifier` stays for the modifiers that still work.
+
+**`:!` is the one refusal kept, and on purpose.** `:!cmd`, `:r !cmd` and `:w !cmd`
+are how a user reaches for a process, and the answer Phase 8 gave them is the
+sentence it prints. `:filetype` and `:vim9script` are not here either: they run
+without an error, and nothing measured shows them refusing.
+
+Left alone, as every earlier phase left them: the arms of
+`set_context_by_cmdname()` that set up command-line completion for these names.
+A retired row still parses, so its completion context still fires, and it
+completes nothing.
+
+### A tool bug this found
+
+`tools/retire.py` matched a row with exactly one space before the handler, and
+the `:gui` and `:gvim` rows are spelled `- 1,  ex_nogui ,` — macro expansion's
+spacing. It refused, loudly, which is what it is for; the rule is the row, not
+the spacing, so it takes any whitespace now. The six earlier phases that retire
+rows with it were re-verified and all reproduce their boundaries.
+
+### The delta
+
+**`:colorscheme`**, which run bare reported the current scheme and succeeded in
+`slim-vim`, and now reports that it is not implemented. Every other row already
+failed, or is one the sweep skips because it hands over the terminal. Measured:
+127,167 → **127,073 lines**, libc symbols 88 → 88.
+
+## Phase 34 — no abbreviations
+
+An abbreviation is a word the editor rewrites as you type it. Nothing reads a
+vimrc here, so the only way to have one was to type `:abbreviate` in the session
+that wanted it — and the twelve rows that did that, `:abbreviate`, `:noreabbrev`,
+`:unabbreviate`, `:abclear` and their `i` and `c` forms, go to `ex_ni`.
+
+**Retiring the rows removes the answer, not the question.** Insert mode asked
+`echeck_abbr()` on ESC, CTRL-O, CTRL-L, Tab, Enter and every non-word character,
+and the command line asked `ccheck_abbr()` twice, and each would go on asking
+for ever and being told no. `tools/noabbr.py` removes the questions, each a fold
+whose answer is now known:
+
+- `if (echeck_abbr(...)) { ... }` and `if (ccheck_abbr(...)) { ... }` guard what
+  happens when an abbreviation fired, so the blocks go;
+- `!echeck_abbr(x) && c != Ctrl_RSB` is `c != Ctrl_RSB`;
+- `(ccheck_abbr(x) || c == Ctrl_RSB)` is `c == Ctrl_RSB` — CTRL-] on the command
+  line still triggers "an abbreviation", which is to say nothing, and still does
+  not insert itself.
+
+The sweep then takes `check_abbr()` — 195 lines — its two wrappers,
+`ex_abbreviate` and `ex_abclear`. **What stays** is the mapping code's `abbr`
+parameters and list, which mappings share; nothing can put an entry on that list
+any more, and nothing here pretends that makes the shared code smaller.
+
+The tool's own check failed twice before the phase ran, both times on itself:
+it counted `check_abbr()` calls inside the two wrappers the sweep removes, and
+then prototypes it matched with one space where the file has two. **A check that
+cannot tell a caller from a definition is measuring the wrong thing**, and it
+now asks only about calls outside the definitions going away.
+
+### The delta
+
+**The nine rows that succeeded run bare** — `:abbreviate`, `:noreabbrev` and
+`:abclear` with their `i` and `c` forms, which listed or cleared nothing and
+exited 0 — measured before the cut. The three `:unabbreviate` rows already failed
+with no argument. Measured: 127,073 → **126,792 lines**, libc symbols 88 → 88.
+
+## Phase 35 — no scripts, no session, no autocommands
+
+Three things that are one question: can the editor be told to do something
+later, or somewhere else, by a file? A script is commands read from a file, a
+session is a script the editor wrote about itself, and an autocommand is a
+command registered now to run when an event happens. None of them has anywhere
+to come from: nothing is installed, no vimrc is searched for, and the only file
+read at startup is the one `-u` names.
+
+| | what goes |
+| --- | --- |
+| scripts | `:source` `:scriptencoding` `:scriptversion` `:vim9script` `:legacy`, the `vim9cmd` modifier, `'loadplugins'` |
+| the session | `:redir` `:sleep` `:smile` `:sandbox`, `-S`, `-s file`, `-w`/`-W file`, `'sessionoptions'` `'viewoptions'` `'viewdir'` |
+| autocommands | `:autocmd` `:augroup` `:doautocmd` `:doautoall` `:noautocmd` `:filetype` `:setfiletype`, the engine, `'eventignore'` `'eventignorewin'` |
+
+The sixteen rows go to `ex_ni`. `tools/nosession.py` removes what a row cannot:
+
+- **The modifiers are parsed by name.** `parse_command_modifiers()` matches
+  `legacy`, `noautocmd`, `sandbox` and `vim9cmd` before the table is consulted,
+  so retiring a row changes nothing about `:noautocmd w`. The four blocks go,
+  with the save and restore of `'eventignore'` that `:noautocmd` did.
+- **The engine is answered at its doors.** `apply_autocmds_group()`,
+  `has_autocmd()` and the per-event `has_*()` say no, and the `trigger_*()`
+  helpers and `may_trigger_win_scrolled_resized()` do nothing — which is what
+  each already did with no autocommand defined. The sweep takes the engine
+  behind the doors. The calls that fire events stay: each is a call to a
+  constant now, and removing them is a phase of its own.
+- **Filetype detection after a rename** ran only when the `filetypedetect` group
+  existed, which only `:augroup` or `:autocmd` could make; both tests fold, and
+  `do_doautocmd()` goes with its last callers.
+- **`in_vim9script()` is FALSE**: it was true only after `:vim9script` or under
+  `vim9cmd`.
+- **Suspending stays.** CTRL-Z, `:stop` and `:suspend` still hand the terminal
+  back to the shell. The first version of this phase took them as part of the
+  session and they were put back on request: suspending is job control, and
+  nothing about it is read from or written to a file.
+- **The command line loses its scripts.** `-S`, `-s file` outside Ex mode, and
+  `-w file`/`-W file` are unknown options. `-s` keeps silent Ex mode after `-e`,
+  `-wN` still sets `'window'`, and `-u file` stays.
+
+### Two options that have to go before the sweep
+
+`dropoptions.py --strict` refused `'eventignore'` after the first sweep: the
+readers `event_ignored()` and `check_ei()` were still live. Two things held them.
+`did_set_eventignore()` is the callback of **both** `'eventignore'` and
+`'eventignorewin'`, and calls `check_ei()` — so while either row stands, the
+reader is reachable from the option table and no sweep can take it, and
+`--strict` cannot be satisfied in either order. And the WinScrolled/WinResized
+scan read `'eventignorewin'` from every window before learning that neither
+event had an autocommand.
+
+So both rows go **before** the sweep and without `--strict`, and the
+post-condition is the check: after the sweep nothing names `p_ei`, `wo_eiw`,
+`check_ei`, `event_ignored` or `check_window_scroll_resize`. The enumerator
+`WV_EIW` stays, named only by its own declaration: the `WV_` and `BV_` index
+enums are anonymous, `enum { WV_LIST = 0, ... }`, and the definition finder
+`deadenums.py` walks sees only tagged and typedef'd enums, so it never examines
+them. That is a gap in a shared tool, measured here and not yet closed — closing
+it changes every phase's implementation digest.
+`'eventignorewin'` is window-local and `tools/droplocal.py` knows only buffer
+fields, so `nosession.py` removes its field and the four places that maintain
+it — `get_varp()`, `copy_winopt()`, `check_winopt()`, `clear_winopt()` — itself.
+
+### The delta
+
+**The ten rows that succeeded run bare** — `:sleep`, `:smile`, `:vim9script`,
+`:autocmd`, `:augroup`, `:doautocmd`, `:doautoall`, `:noautocmd`, `:sandbox` and
+`:filetype` — measured before the cut. `:source`, `:redir`, `:scriptencoding`,
+`:scriptversion`, `:legacy` and `:setfiletype` already failed with no argument.
+No harness sources, redirects,
+suspends or defines an autocommand, and each passes `-s` only after `-e`.
+Measured: 126,792 → **123,908 lines**, libc symbols 88 → 88.
+
+## Phase 36 — one tab page, always
+
+A tab page is a set of windows the editor can switch between whole. The
+tab-page list is also the container every window lives in — `curtab` and
+`first_tabpage` are read in hundreds of places — so **it stays, with exactly one
+entry**, and every way to make or reach a second one goes.
+
+The fifteen rows go to `ex_ni`: `:tab`, `:tabnew`, `:tabedit`, `:tabclose`,
+`:tabonly`, `:tabnext`, `:tabNext`, `:tabprevious`, `:tabfirst`, `:tabrewind`,
+`:tablast`, `:tabmove`, `:tabs`, `:tabdo` and `:redrawtabline`.
+`tools/notabs.py` removes what a row cannot:
+
+- **The `:tab` modifier** is matched by name in `parse_command_modifiers()`, and
+  it was the only thing that set `cmdmod.cmod_tab`. With it gone every test of
+  `cmod_tab` is decided: the tab branches of `:all`, `:ball`, `:drop`,
+  `:argedit`, `:wincmd` and the command-line window fold.
+- **The handlers the tab commands shared** keep their other users. `:tabnew` and
+  `:tabedit` went through `ex_splitview()` with `:split` and `:new`, and `:tabdo`
+  through `ex_listdo()` with `:windo`, so only their terms and branches go.
+- **Each key keeps the answer it already gave with one tab page.**
+  `goto_tabpage(n)` with a single tab page beeps when `n > 1` and otherwise does
+  nothing, and there is never a last-used tab page. So `gt`, CTRL-PageDown and
+  CTRL-W gt beep for a count above 1; `gT`, CTRL-PageUp and CTRL-W gT do
+  nothing; `g<Tab>`, CTRL-Tab and CTRL-W g`<Tab>` beep; insert mode's
+  CTRL-PageUp and CTRL-PageDown stay no-ops. The keys are not given a new
+  meaning — they lose a function nothing could reach.
+- **CTRL-W T and CTRL-W gf/gF open a tab page and nothing else**, so they beep
+  now, as an unknown window command does. CTRL-W T with one window used to say
+  "Already only one window"; that message goes with the command.
+- **The tab line** is 0 lines and `draw_tabline()` draws nothing — what both
+  answered for one tab page under the default `'showtabline'`. `win_split()`
+  no longer asks `may_open_tabpage()` whether a `:tab`-modified split became a
+  tab page — a stub would have answered, and left the caller and the function
+  alive, which is how the first run of this phase failed. The sweep then takes `'showtabline'`, `'tabline'`
+  and `'tabpagemax'`'s readers, and `dropoptions.py --strict` their rows.
+  `'tabclose'` is the Phase 35 trap again: its own callback, `did_set_tabclose()`,
+  reads `p_tcl`, so while the row stands the reader is live and no order of sweep
+  and `--strict` works. Its row goes before the sweep, and the post-condition —
+  nothing names `p_tcl` or `tcl_flags` afterwards — is the check.
+
+Left alone, as every earlier phase left them: the completion arms of
+`set_context_by_cmdname()` for these names.
+
+### The delta
+
+**The thirteen rows that succeeded run bare** — `:tab`, `:tabedit`, `:tabfirst`,
+`:tabmove`, `:tablast`, `:tabnext`, `:tabnew`, `:tabonly`, `:tabprevious`,
+`:tabNext`, `:tabrewind`, `:tabs` and `:redrawtabline` — measured before the cut.
+`:tabclose` and `:tabdo` already failed with no argument. No harness opens a tab
+page. Measured: 123,908 → **122,814 lines**, libc symbols 88 → 88.
 
 ## Unused, and unuseful
 

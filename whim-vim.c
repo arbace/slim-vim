@@ -50,11 +50,9 @@
 enum { BH_DIRTY = 1 };
 enum { BH_LOCKED = 2 };
 enum { EXPAND_BUF_LEN = 256 };
-enum { CMOD_SANDBOX = 0x0001 };
 enum { CMOD_SILENT = 0x0002 };
 enum { CMOD_ERRSILENT = 0x0004 };
 enum { CMOD_UNSILENT = 0x0008 };
-enum { CMOD_NOAUTOCMD = 0x0010 };
 enum { CMOD_HIDE = 0x0020 };
 enum { CMOD_KEEPALT = 0x0100 };
 enum { CMOD_KEEPMARKS = 0x0200 };
@@ -63,7 +61,6 @@ enum { CMOD_LOCKMARKS = 0x0800 };
 enum { CMOD_KEEPPATTERNS = 0x1000 };
 enum { CMOD_NOSWAPFILE = 0x2000 };
 enum { CMOD_VIM9CMD = 0x4000 };
-enum { CMOD_LEGACY = 0x8000 };
 enum { ML_EMPTY = 0x01 };
 enum { ML_LINE_DIRTY = 0x02 };
 enum { ML_LOCKED_DIRTY = 0x04 };
@@ -233,8 +230,6 @@ enum { STERM = 0x9c };
 
 // ---------------- end ascii.h ----------------
 // ---------------- begin keymap.h ----------------
-
-enum { ABBR_OFF = 0x100 };
 
 enum { KS_ZERO = 255 };
 
@@ -1048,9 +1043,6 @@ typedef enum
     , HLF_T
     , HLF_V
     , HLF_W = 25
-    , HLF_TP = 55
-    , HLF_TPS
-    , HLF_TPF
     , HLF_MSG = 64
     , HLF_WIN = 69
     , HLF_COUNT
@@ -1350,7 +1342,6 @@ static int      p_eb;
 static int      p_eof;
 static int      p_eol;
 static int      p_ek;
-static char_u   *p_ei;
 static int      p_et;
 static char_u   *p_ff;
 static char_u   *p_ffs;
@@ -1393,11 +1384,9 @@ static int      p_lisp;
 static char_u   *p_lop;
 static char_u   *p_lispwords;
 static long     p_ls;
-static long     p_stal;
 static char_u   *p_lcs;
 
 static int      p_lz;
-static int      p_lpl;
 static int      p_magic;
 static char_u   *p_menc;
 static char_u   *p_mps;
@@ -1460,7 +1449,6 @@ static int      p_si;
 static int      p_sta;
 static long     p_sts;
 static int      p_sb;
-static long     p_tpm;
 static int      p_spr;
 static int      p_sol;
 static char_u   *p_su;
@@ -1474,10 +1462,6 @@ enum { SWB_VSPLIT = 0x010 };
 
 static char_u   *p_spk;
 
-static char_u   *p_tcl;
-static unsigned tcl_flags;
-enum { TCL_LEFT = 0x001 };
-enum { TCL_USELAST = 0x002 };
 static long     p_ts;
 static char_u   *p_trz;
 static int      p_tsy;
@@ -1536,34 +1520,19 @@ static int      p_xtermcodes;
 enum
 {
     BV_AI = 0
-    , BV_AC
-    , BV_AR
-    , BV_BH
-    , BV_BKC
-    , BV_BT
+    , BV_BH = 3
+    , BV_BT = 5
     , BV_BIN
     , BV_BL
-    , BV_BOMB
-    , BV_CI
-    , BV_CIN
-    , BV_CINK
-    , BV_CINO
-    , BV_CINSD
-    , BV_CINW
-    , BV_CM
-    , BV_CMS
+    , BV_CI = 9
+    , BV_CMS = 16
     , BV_COM
-    , BV_COT
-    , BV_CPT
-    , BV_DICT
-    , BV_TSR
-    , BV_EOF
+    , BV_EOF = 22
     , BV_EOL
     , BV_FIXEOL
     , BV_EP
     , BV_ET
-    , BV_FENC
-    , BV_FP
+    , BV_FP = 28
     , BV_FF
     , BV_FLP
     , BV_FO
@@ -1571,9 +1540,7 @@ enum
     , BV_FT
     , BV_IMI
     , BV_IMS
-    , BV_INF
-    , BV_ISE
-    , BV_ISK
+    , BV_ISK = 38
     , BV_KP
     , BV_LISP
     , BV_LOP
@@ -1584,26 +1551,19 @@ enum
     , BV_MOD
     , BV_MPS
     , BV_NF
-    , BV_PATH
-    , BV_PI
+    , BV_PI = 50
     , BV_QE
     , BV_RO
     , BV_SI
     , BV_SN
     , BV_STS
-    , BV_SUA
-    , BV_SW
-    , BV_SWF
-    , BV_TAGS
-    , BV_TC
-    , BV_TS
+    , BV_SW = 57
+    , BV_TS = 61
     , BV_TW
     , BV_TX
-    , BV_UDF
-    , BV_UL
+    , BV_UL = 65
     , BV_WM
-    , BV_COUNT
-};
+    };
 
 enum
 {
@@ -1612,8 +1572,7 @@ enum
     , WV_FCS
     , WV_CRBIND
     , WV_WCR
-    , WV_EIW
-    , WV_NU
+    , WV_NU = 6
     , WV_RNU
     , WV_VE
     , WV_SCBIND
@@ -1627,8 +1586,7 @@ enum
     , WV_WFW
     , WV_WHL
     , WV_WRAP
-    , WV_COUNT
-};
+    };
 
 enum { ERR_BUFLEN = 80 };
 
@@ -1676,7 +1634,6 @@ typedef struct wininfo_S        wininfo_T;
 typedef struct frame_S          frame_T;
 typedef int                     scid_T;
 typedef struct file_buffer      buf_T;
-enum { SCRIPT_VERSION_MAX = 4 };
 enum { SCRIPT_VERSION_VIM9 = 999999 };
 
 typedef struct {
@@ -1808,7 +1765,6 @@ typedef struct taggy
 typedef struct
 {
     char_u      *wo_wcr;
-    char_u      *wo_eiw;
     int         wo_list;
     char_u      *wo_lcs;
     char_u      *wo_fcs;
@@ -1966,12 +1922,6 @@ struct buffheader
     int         bh_create_newblock;
 };
 
-typedef struct
-{
-    buffheader_T sr_redobuff;
-    buffheader_T sr_old_redobuff;
-} save_redo_T;
-
 typedef enum {
     XP_PREFIX_NONE,
     XP_PREFIX_NO,
@@ -2035,13 +1985,11 @@ typedef struct
     int         cmod_flags;
 
     int         cmod_split;
-    int         cmod_tab;
     regmatch_T  cmod_filter_regmatch;
     int         cmod_filter_force;
 
     int         cmod_verbose;
 
-    char_u      *cmod_save_ei;
     long        cmod_verbose_save;
     int         cmod_save_msg_silent;
     int         cmod_save_msg_scroll;
@@ -2204,7 +2152,6 @@ typedef struct {
     int         col_start;
     int         col_end;
     char_u      *funcname;
-    int         tabnr;
 } stl_click_region_T;
 
 typedef struct hashitem_S
@@ -2507,8 +2454,7 @@ typedef struct AutoPatCmd_S AutoPatCmd_T;
 typedef enum {
     ETYPE_TOP,
     ETYPE_SCRIPT,
-    ETYPE_AUCMD = 3,
-    ETYPE_MODELINE,
+    ETYPE_MODELINE = 4,
     ETYPE_ARGS = 6,
     ETYPE_INTERNAL = 8,
 } etype_T;
@@ -2599,7 +2545,6 @@ struct file_buffer
 
     bool        b_modified_was_set;
     bool        b_did_filetype;
-    bool        b_keep_filetype;
 
     bool        b_au_did_filetype;
 
@@ -4069,11 +4014,8 @@ static void ex_next(exarg_T *eap);
 static char_u *alist_name(aentry_T *aep);
 // ---------------- end arglist.pro ----------------
 // ---------------- begin autocmd.pro ----------------
-static int check_nomodeline(char_u **argp);
 static void aucmd_prepbuf(aco_save_T *aco, buf_T *buf);
 static void aucmd_restbuf(aco_save_T *aco);
-static int has_winresized(void);
-static int has_winscrolled(void);
 static void block_autocmds(void);
 static void unblock_autocmds(void);
 static char_u *getnextac(int c, void *cookie, int indent, getline_opt_T options);
@@ -4286,21 +4228,15 @@ static void set_nextcmd(exarg_T *eap, char_u *arg);
 static char_u *get_command_name(expand_T *xp, int idx);
 static void not_exiting(int save_exiting);
 static int before_quit_all(exarg_T *eap);
-static void tabpage_close(int forceit);
-static void tabpage_close_other(tabpage_T *tp, int forceit);
 static void tabpage_new(void);
 static void do_exedit(exarg_T *eap, win_T *old_curwin);
 static void do_sleep(long msec, int hide_cursor);
 static void ex_may_print(exarg_T *eap);
 static void redraw_cmd(int clear);
-static FILE *open_exfile(char_u *fname, int forceit, char *mode);
 static void exec_normal_cmd(char_u *cmd, int remap, int silent);
 static void exec_normal(int was_typed, int use_vpeekc, int may_use_terminal_loop);
 static char_u *eval_vars(char_u *src, char_u *srcstart, size_t *usedlen, linenr_T *lnump, char **errormsg, int *escaped, int empty_is_error);
-static char_u *expand_sfile(char_u *arg);
 static void set_no_hlsearch(int flag);
-static int get_pressedreturn(void);
-static void set_pressedreturn(int val);
 
 // ---------------- end ex_docmd.pro ----------------
 // ---------------- begin ex_getln.pro ----------------
@@ -4393,8 +4329,6 @@ static char_u *find_file_name_in_path(char_u *ptr, int len, int options, long co
 static string_T get_inserted(void);
 static int stuff_empty(void);
 static void ResetRedobuff(void);
-static void saveRedobuff(save_redo_T *save_redo);
-static void restoreRedobuff(save_redo_T *save_redo);
 static void AppendToRedobuff(char_u *s);
 static void AppendToRedobuffLit(char_u *str, int len);
 static void AppendCharToRedobuff(int c);
@@ -4407,7 +4341,6 @@ static int start_redo_ins(void);
 static void stop_redo_ins(void);
 static int ins_typebuf(char_u *str, int noremap, int offset, int nottyped, int silent);
 static int typebuf_typed(void);
-static int save_typebuf(void);
 static void save_typeahead(tasave_T *tp);
 static void restore_typeahead(tasave_T *tp, int overwrite);
 static int merge_modifyOtherKeys(int c_arg, int *modifiers);
@@ -4437,7 +4370,6 @@ static void prepare_help_buffer(void);
 static void fix_help_buffer(void);
 // ---------------- end help.pro ----------------
 // ---------------- begin highlight.pro ----------------
-static int load_colors(char_u *name);
 static void do_highlight(char_u *line, int forceit, int init);
 static void restore_cterm_colors(void);
 static void clear_hl_tables(void);
@@ -4508,7 +4440,6 @@ static void map_clear_mode(buf_T *buf, int mode, int local, int abbr);
 static int map_to_exists_mode(char_u *rhs, int mode, int abbr);
 static char_u *set_context_in_map_cmd(expand_T *xp, char_u *cmd, char_u *arg, int forceit, int isabbrev, int isunmap, cmdidx_T cmdidx);
 static int ExpandMappings(char_u *pat, regmatch_T *regmatch, int *numMatches, char_u ***matches);
-static int check_abbr(int c, char_u *ptr, int col, int mincol);
 static char_u *vim_strsave_escape_csi(char_u *p);
 static size_t vim_unescape_csi(char_u *p);
 static void add_map(char_u *map, int mode, int nore);
@@ -4734,7 +4665,6 @@ static void validate_botline_win(win_T *wp);
 static void invalidate_botline(void);
 static void invalidate_botline_win(win_T *wp);
 static void approximate_botline_win(win_T *wp);
-static int cursor_valid(void);
 static void validate_cursor(void);
 static void validate_virtcol(void);
 static void validate_virtcol_win(win_T *wp);
@@ -4894,7 +4824,6 @@ static char *did_set_readonly(optset_T *args);
 static char *did_set_scrollbind(optset_T *args);
 static char *did_set_maxsearchcount(optset_T *args);
 static char *did_set_shiftwidth_tabstop(optset_T *args);
-static char *did_set_showtabline(optset_T *args);
 static char *did_set_smoothscroll(optset_T *args);
 static char *did_set_termsync(optset_T *args);
 static char *did_set_terse(optset_T *args);
@@ -4984,8 +4913,6 @@ static char *did_set_eadirection(optset_T *args);
 static int expand_set_eadirection(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_encoding(optset_T *args);
 static int expand_set_encoding(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_eventignore(optset_T *args);
-static int expand_set_eventignore(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_fileformat(optset_T *args);
 static int expand_set_fileformat(optexpand_T *args, int *numMatches, char_u ***matches);
 static char_u *get_fileformat_name(expand_T *xp, int idx);
@@ -5028,8 +4955,6 @@ static char *did_set_splitkeep(optset_T *args);
 static int expand_set_splitkeep(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_switchbuf(optset_T *args);
 static int expand_set_switchbuf(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_tabclose(optset_T *args);
-static int expand_set_tabclose(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_term(optset_T *args);
 static char *did_set_term_option(optset_T *args);
 static char *did_set_termresize(optset_T *args);
@@ -5098,9 +5023,6 @@ static estack_T *estack_push(etype_T type, char_u *name, long lnum);
 static estack_T *estack_pop(void);
 static char_u *estack_sfile(estack_arg_T which);
 static void set_context_in_runtime_cmd(expand_T *xp, char_u *arg);
-static int do_in_path(char_u *path, char *prefix, char_u *name, int flags, void (*callback)(char_u *fname, void *ck), void *cookie);
-static int source_runtime(char_u *name, int flags);
-static int source_in_path(char_u *path, char_u *name, int flags, int *ret_sid);
 static void remove_duplicates(garray_T *gap);
 static int ExpandRTDir(char_u *pat, int flags, int *num_file, char_u ***file, char *dirnames[]);
 static int expand_runtime_cmd(char_u *pat, int *numMatches, char_u ***matches);
@@ -5171,8 +5093,6 @@ static int fuzzymatches_to_strmatches(fuzmatch_str_T *fuzmatch, char_u ***matche
 static int search_regcomp(char_u *pat, size_t patlen, char_u **used_pat, int pat_save, int pat_use, int options, regmmatch_T *regmatch);
 static char_u *get_search_pat(void);
 static void save_re_pat(int idx, char_u *pat, size_t patlen, int magic);
-static void save_search_patterns(void);
-static void restore_search_patterns(void);
 static void save_last_search_pattern(void);
 static void restore_last_search_pattern(void);
 static int ignorecase(char_u *pat);
@@ -5360,7 +5280,6 @@ static int curbufIsChanged(void);
 static char_u *set_context_in_user_cmdarg(char_u *cmd, char_u *arg, long argt, int context, expand_T *xp, int forceit);
 static char_u *expand_user_command_name(int idx);
 static char *uc_fun_cmd(void);
-static char_u *may_get_cmd_block(exarg_T *eap, char_u *p, char_u **tofree, int *flags);
 
 // ---------------- end usercmd.pro ----------------
 // ---------------- begin version.pro ----------------
@@ -5372,8 +5291,6 @@ static int vim9_comment_start(char_u *p);
 
 // ---------------- end vim9script.pro ----------------
 // ---------------- begin window.pro ----------------
-static void window_layout_lock(void);
-static void window_layout_unlock(void);
 static int window_layout_locked(enum CMD_index cmd);
 static int check_can_set_curbuf_disabled(void);
 static int check_can_set_curbuf_forceit(int forceit);
@@ -5404,17 +5321,12 @@ static void use_tabpage(tabpage_T *tp);
 static win_T *win_alloc_popup_win(void);
 static void win_init_popup_win(win_T *wp, buf_T *buf);
 static void free_tabpage(tabpage_T *tp);
-static int win_new_tabpage(int after);
 static int valid_tabpage(tabpage_T *tpc);
 static int valid_tabpage_win(tabpage_T *tpc);
 static void close_tabpage(tabpage_T *tab);
-static tabpage_T *find_tabpage(int n);
 static int tabpage_index(tabpage_T *ftp);
-static void goto_tabpage(int n);
 static void goto_tabpage_tp(tabpage_T *tp, int trigger_enter_autocmds, int trigger_leave_autocmds);
-static int goto_tabpage_lastused(void);
 static void goto_tabpage_win(tabpage_T *tp, win_T *wp);
-static void tabpage_move(int nr);
 static void win_goto(win_T *wp);
 static void win_enter(win_T *wp, int undo_sync);
 static win_T *buf_jump_open_win(buf_T *buf);
@@ -5449,8 +5361,6 @@ static int min_rows(void);
 static int min_rows_for_all_tabpages(void);
 static int only_one_window(void);
 static void check_lnums(int do_curwin);
-static void check_lnums_nested(int do_curwin);
-static void reset_lnums(void);
 static int make_snapshot(int idx);
 static void restore_snapshot(int idx, int close_curwin);
 static int win_locked(win_T *wp);
@@ -5883,7 +5793,6 @@ static pos_T    last_cursormoved
                     ;
 
 static int      postponed_split_flags  = 0 ;
-static int      postponed_split_tab  = 0 ;
 
 static int      replace_offset  = 0 ;
 
@@ -5965,10 +5874,8 @@ static char e_str_is_directory[]  =  "E17: \"%s\" is a directory"  ;
 static char e_mark_has_invalid_line_number[]  =  "E19: Mark has invalid line number"  ;
 static char e_mark_not_set[]  =  "E20: Mark not set"  ;
 static char e_cannot_make_changes_modifiable_is_off[]  =  "E21: Cannot make changes, 'modifiable' is off"  ;
-static char e_scripts_nested_too_deep[]  =  "E22: Scripts nested too deep"  ;
 static char e_no_alternate_file[]  =  "E23: No alternate file"  ;
 static char e_no_such_abbreviation[]  =  "E24: No such abbreviation"  ;
-static char e_gui_cannot_be_used_not_enabled_at_compile_time[]  =  "E25: GUI cannot be used: Not enabled at compile time"  ;
 static char e_no_such_highlight_group_name_str[]  =  "E28: No such highlight group name: %s"  ;
 static char e_no_inserted_text_yet[]  =  "E29: No inserted text yet"  ;
 static char e_no_previous_command_line[]  =  "E30: No previous command line"  ;
@@ -6034,20 +5941,15 @@ static char e_there_is_only_one_file_to_edit[]  =  "E163: There is only one file
 static char e_cannot_go_before_first_file[]  =  "E164: Cannot go before first file"  ;
 static char e_cannot_go_beyond_last_file[]  =  "E165: Cannot go beyond last file"  ;
 static char e_cant_open_linked_file_for_writing[]  =  "E166: Can't open linked file for writing"  ;
-static char e_scriptencoding_used_outside_of_sourced_file[]  =  "E167: :scriptencoding used outside of a sourced file"  ;
 static char e_command_too_recursive[]  =  "E169: Command too recursive"  ;
 
  static char e_nr_more_file_to_edit[] = "E173: %d more file to edit";
  static char e_nr_more_files_to_edit[] = "E173: %d more files to edit";
 
-static char e_cannot_find_color_scheme_str[]  =  "E185: Cannot find color scheme '%s'"  ;
 static char e_obtaining_window_position_not_implemented_for_this_platform[]  =  "E188: Obtaining window position not implemented for this platform"  ;
-static char e_str_exists_add_bang_to_override[]  =  "E189: \"%s\" exists (add ! to override)"  ;
-static char e_cannot_open_str_for_writing_2[]  =  "E190: Cannot open \"%s\" for writing"  ;
 static char e_argument_must_be_letter_or_forward_backward_quote[]  =  "E191: Argument must be a letter or forward/backward quote"  ;
 static char e_recursive_use_of_normal_too_deep[]  =  "E192: Recursive use of :normal too deep"  ;
 static char e_no_alternate_file_name_to_substitute_for_hash[]  =  "E194: No alternate file name to substitute for '#'"  ;
-static char e_no_digraphs_version[]  =  "E196: No digraphs in this version"  ;
 static char e_active_window_or_buffer_changed_or_deleted[]  =  "E199: Active window or buffer changed or deleted"  ;
 static char e_readpre_autocommands_made_file_unreadable[]  =  "E200: *ReadPre autocommands made the file unreadable"  ;
 static char e_readpre_autocommands_must_not_change_current_buffer[]  =  "E201: *ReadPre autocommands must not change current buffer"  ;
@@ -6055,11 +5957,6 @@ static char e_autocommands_deleted_or_unloaded_buffer_to_be_written[]  =  "E203:
 static char e_autocommands_changed_number_of_lines_in_unexpected_way[]  =  "E204: Autocommand changed number of lines in unexpected way"  ;
 static char e_cant_open_file_for_writing[]  =  "E212: Can't open file for writing"  ;
 static char e_cannot_convert_add_bang_to_write_without_conversion[]  =  "E213: Cannot convert (add ! to write without conversion)"  ;
-static char e_illegal_character_after_star_str[]  =  "E215: Illegal character after *: %s"  ;
-static char e_no_such_event_str[]  =  "E216: No such event: %s"  ;
-static char e_no_such_group_or_event_str[]  =  "E216: No such group or event: %s"  ;
-static char e_cant_execute_autocommands_for_all_events[]  =  "E217: Can't execute autocommands for ALL events"  ;
-static char e_autocommand_nesting_too_deep[]  =  "E218: Autocommand nesting too deep"  ;
 static char e_missing_open_curly[]  =  "E219: Missing {."  ;
 static char e_missing_close_curly[]  =  "E220: Missing }."  ;
 static char e_add_to_internal_buffer_that_was_already_read_from[]  = "E222: Add to internal buffer that was already read from" ;
@@ -6101,7 +5998,6 @@ static char e_unknown_option_str_2[]  =  "E355: Unknown option: %s"  ;
 static char e_get_varp_error[]  = "E356: get_varp ERROR" ;
 static char e_screen_mode_setting_not_supported[]  =  "E359: Screen mode setting not supported"  ;
 static char e_pattern_uses_more_memory_than_maxmempattern[]  =  "E363: Pattern uses more memory than 'maxmempattern'"  ;
-static char e_no_such_group_str[]  =  "E367: No such group: \"%s\""  ;
 static char e_invalid_item_in_str_brackets[]  =  "E369: Invalid item in %s%%[]"  ;
 static char e_cannot_write_buftype_option_is_set[]  =  "E382: Cannot write, 'buftype' option is set"  ;
 static char e_invalid_search_string_str[]  =  "E383: Invalid search string: %s"  ;
@@ -6142,7 +6038,6 @@ static char e_argument_required[]  =  "E471: Argument required"  ;
 static char e_internal_error_in_regexp[]  = "E473: Internal error in regexp" ;
 static char e_invalid_argument[]  =  "E474: Invalid argument"  ;
 static char e_invalid_argument_str[]  =  "E475: Invalid argument: %s"  ;
-static char e_invalid_value_for_argument_str[]  =  "E475: Invalid value for argument %s"  ;
 static char e_invalid_command[]  =  "E476: Invalid command"  ;
 static char e_invalid_command_str[]  =  "E476: Invalid command: %s"  ;
 static char e_no_bang_allowed[]  =  "E477: No ! allowed"  ;
@@ -6206,14 +6101,12 @@ static char e_fsync_failed[]  =  "E667: Fsync failed"  ;
 static char e_unprintable_character_in_group_name[]  =  "E669: Unprintable character in group name"  ;
 static char e_no_matching_autocommands_for_buftype_str_buffer[]  =  "E676: No matching autocommands for buftype=%s buffer"  ;
 static char e_invalid_character_after_str_2[]  =  "E678: Invalid character after %s%%[dxouU]"  ;
-static char e_buffer_nr_invalid_buffer_number[]  =  "E680: <buffer=%d>: invalid buffer number"  ;
 static char e_internal_error_str[]  =  "E685: Internal error: %s"  ;
 static char e_no_previously_used_register[]  =  "E748: No previously used register"  ;
 static char e_empty_buffer[]  =  "E749: Empty buffer"  ;
 static char e_too_many_arguments_to_printf[]  =  "E767: Too many arguments for printf()"  ;
 static char e_missing_rsb_after_str_lsb[]  =  "E769: Missing ] after %s["  ;
 static char e_eval_feature_not_available[]  =  "E775: Eval feature not available"  ;
-static char e_cannot_close_last_tab_page[]  =  "E784: Cannot close last tab page"  ;
 static char e_not_allowed_to_edit_another_buffer_now[]  =  "E788: Not allowed to edit another buffer now"  ;
 static char e_undojoin_is_not_allowed_after_undo[]  =  "E790: undojoin is not allowed after undo"  ;
 static char e_invalid_id_nr_must_be_greater_than_or_equal_to_one_1[]  =  "E799: Invalid ID: %d (must be greater than or equal to 1)"  ;
@@ -6235,9 +6128,7 @@ static char e_invalid_register_name[]  =  "E850: Invalid register name"  ;
 static char e_autocommands_caused_command_to_abort[]  =  "E855: Autocommands caused command to abort"  ;
 static char e_line_count_changed_unexpectedly[]  =  "E881: Line count changed unexpectedly"  ;
 static char e_nfa_regexp_cannot_repeat_str[]  =  "E888: (NFA regexp) cannot repeat %s"  ;
-static char e_directory_not_found_in_str_str[]  =  "E919: Directory not found in '%s': \"%s\""  ;
 static char e_buffer_cannot_be_registered[]  =  "E931: Buffer cannot be registered"  ;
-static char e_cannot_delete_current_group[]  =  "E936: Cannot delete the current group"  ;
 static char e_attempt_to_delete_buffer_that_is_in_use_str[]  =  "E937: Attempt to delete a buffer that is in use: %s"  ;
 static char e_positive_count_required[]  =  "E939: Positive count required"  ;
 static char e_command_table_needs_to_be_updated_run_make_cmdidxs[]  = "E943: Command table needs to be updated, run 'make cmdidxs'" ;
@@ -6245,26 +6136,17 @@ static char e_reverse_range_in_character_class[]  =  "E944: Reverse range in cha
 static char e_range_too_large_in_character_class[]  =  "E945: Range too large in character class"  ;
 static char e_file_changed_while_writing[]  =  "E949: File changed while writing"  ;
 static char e_cannot_use_pattern_recursively[]  =  "E956: Cannot use pattern recursively"  ;
-static char e_duplicate_argument_str[]  =  "E983: Duplicate argument: %s"  ;
-static char e_scriptversion_used_outside_of_sourced_file[]  =  "E984: :scriptversion used outside of a sourced file"  ;
 static char e_not_allowed_in_modeline_when_modelineexpr_is_off[]  =  "E992: Not allowed in a modeline when 'modelineexpr' is off"  ;
-static char e_scriptversion_not_supported_nr[]  =  "E999: scriptversion not supported: %d"  ;
-static char e_missing_rcurly[]  =  "E1026: Missing }"  ;
-static char e_cannot_use_scriptversion_after_vim9script[]  =  "E1040: Cannot use :scriptversion after :vim9script"  ;
 static char e_colon_required_before_range_str[]  =  "E1050: Colon required before a range: %s"  ;
 static char e_yank_register_changed_while_using_it[]  =  "E1064: Yank register changed while using it"  ;
 static char e_command_cannot_be_shortened_str[]  =  "E1065: Command cannot be shortened: %s"  ;
-static char e_invalid_command_nested_did_you_mean_plusplus_nested[]  =  "E1078: Invalid command \"nested\", did you mean \"++nested\"?"  ;
 static char e_command_modifier_without_command[]  =  "E1082: Command modifier without command"  ;
 static char e_cmd_mapping_must_end_with_cr_before_second_cmd[]  =  "E1136: <Cmd> mapping must end with <CR> before second <Cmd>"  ;
-static char e_cannot_define_autocommands_for_all_events[]  =  "E1155: Cannot define autocommands for ALL events"  ;
 static char e_cannot_change_arglist_recursively[]  =  "E1156: Cannot change the argument list recursively"  ;
 static char e_cannot_split_window_when_closing_buffer[]  =  "E1159: Cannot split a window when closing the buffer"  ;
-static char e_vim9cmd_must_be_followed_by_command[]  =  "E1164: vim9cmd must be followed by a command"  ;
 static char e_regexp_number_after_dot_pos_search_chr[]  =  "E1204: No Number allowed after .: '\\%%%c'"  ;
 static char e_no_white_space_allowed_between_option_and[]  =  "E1205: No white space allowed between option and"  ;
 static char e_cannot_use_bar_to_separate_commands_here_str[]  =  "E1231: Cannot use a bar to separate commands here: %s"  ;
-static char e_legacy_must_be_followed_by_command[]  =  "E1234: legacy must be followed by a command"  ;
 static char e_resulting_text_too_long[]  =  "E1240: Resulting text too long"  ;
 static char e_line_number_out_of_range[]  =  "E1247: Line number out of range"  ;
 static char e_highlight_group_name_too_long[]  =  "E1249: Highlight group name too long"  ;
@@ -6289,7 +6171,6 @@ static char e_wrong_character_width_for_field_str[]  =  "E1512: Wrong character 
 static char e_winfixbuf_cannot_go_to_buffer[]  =  "E1513: Cannot switch buffer. 'winfixbuf' is enabled"  ;
 static char e_unicode_val_too_large[]  =  "E1541: Value too large, max Unicode codepoint is U+10FFFF"  ;
 static char e_cannot_switch_to_a_closing_buffer[]  =  "E1546: Cannot switch to a closing buffer"  ;
-static char e_cannot_not_support_redrawtabpanel[]  =  "E1547: This version of Vim does not support :redrawtabpanel"  ;
 static char e_osc_response_timed_out[]  =  "E1568: OSC command response timed out: %.*s"  ;
 static char e_leadtab_requires_tab[]  =  "E1572: 'listchars' field \"leadtab\" requires \"tab\" to be specified"  ;
 static char e_invalid_format_string_single_percent_s[]  =  "E1577: Invalid format string, only one \"%s\" is allowed"  ;
@@ -6323,17 +6204,15 @@ enum { BFA_WIPE = 2 };
 enum { BFA_KEEP_UNDO = 4 };
 enum { BFA_IGNORE_ABORT = 8 };
 
+enum { MSCR_DOWN = 0 };
+enum { MSCR_UP = 1 };
+
 enum { KEYLEN_REMOVED = 9999 };
 
 enum { DIP_ALL = 0x01 };
-enum { DIP_DIR = 0x02 };
-enum { DIP_ERR = 0x04 };
 enum { DIP_START = 0x08 };
 enum { DIP_OPT = 0x10 };
 enum { DIP_NORTP = 0x20 };
-enum { DIP_NOAFTER = 0x40 };
-enum { DIP_AFTER = 0x80 };
-
 enum { LOWEST_WIN_ID = 1000 };
 
 typedef struct timeval elapsed_T;
@@ -6357,8 +6236,6 @@ enum { MCH_DELAY_IGNOREINPUT = 1 };
 enum { MCH_DELAY_SETTMODE = 2 };
 
 enum { FUZZY_MATCH_MAX_LEN = 1024 };
-
-enum { UC_VIM9 = 2 };
 
 enum { VSE_NONE = 0 };
 enum { VSE_SHELL = 1 };
@@ -6553,65 +6430,6 @@ ga_grow_inner(garray_T *gap, int n)
      memset((pp + old_len), (0), (new_len - old_len)) ;
     gap->ga_maxlen = gap->ga_len + n;
     gap->ga_data = pp;
-    return OK;
-}
-
-    static char_u *
-ga_concat_strings(garray_T *gap, char *sep)
-{
-    int         i;
-    int         len = 0;
-    int         sep_len = (int) strlen((char *)(sep)) ;
-    char_u      *s;
-    char_u      *p;
-
-    for (i = 0; i < gap->ga_len; ++i)
-    {
-        len += (int) strlen((char *)(((char_u **)(gap->ga_data))[i])) ;
-    }
-
-    if (gap->ga_len > 1)
-    {
-        len += (gap->ga_len - 1) * sep_len;
-    }
-
-    s = alloc(len + 1);
-    if (s == NULL)
-    {
-        return NULL;
-    }
-
-    *s = NUL;
-    p = s;
-    for (i = 0; i < gap->ga_len; ++i)
-    {
-        if (p != s)
-        {
-             strcpy((char *)(p), (char *)(sep)) ;
-            p += sep_len;
-        }
-         strcpy((char *)(p), (char *)(((char_u **)(gap->ga_data))[i])) ;
-        p +=  strlen((char *)(p)) ;
-    }
-    return s;
-}
-
-    static int
-ga_copy_string(garray_T *gap, char_u *p)
-{
-    char_u *cp = vim_strsave(p);
-
-    if (cp == NULL)
-    {
-        return FAIL;
-    }
-
-    if (ga_grow(gap, 1) == FAIL)
-    {
-        vim_free(cp);
-        return FAIL;
-    }
-    ((char_u **)(gap->ga_data))[gap->ga_len++] = cp;
     return OK;
 }
 
@@ -7234,7 +7052,7 @@ do_argfile(exarg_T *eap, int argn)
 
     setpcmark();
 
-    if (is_split_cmd || cmdmod.cmod_tab != 0)
+    if (is_split_cmd)
     {
         if (win_split(0, 0) == FAIL)
         {
@@ -7473,7 +7291,6 @@ alist_name(aentry_T *aep)
 
 typedef struct {
     alist_T     *alist;
-    int         had_tab;
     int         keep_tabs;
     int         forceit;
 
@@ -7497,11 +7314,6 @@ arg_all_close_unused_windows(arg_all_state_T *aall)
 
     old_curwin = curwin;
     old_curtab = curtab;
-
-    if (aall->had_tab > 0)
-    {
-        goto_tabpage_tp(first_tabpage, TRUE, TRUE);
-    }
 
     tabpage_move_disallowed++;
     for (;;)
@@ -7581,7 +7393,7 @@ arg_all_close_unused_windows(arg_all_state_T *aall)
                             continue;
                         }
                     }
-                    if ( (firstwin == lastwin)  && (first_tabpage->tp_next == NULL || !aall->had_tab))
+                    if ( (firstwin == lastwin)  && TRUE)
                     {
                         aall->use_firstwin = TRUE;
                     }
@@ -7598,10 +7410,7 @@ arg_all_close_unused_windows(arg_all_state_T *aall)
             }
         }
 
-        if (aall->had_tab == 0 || tpnext == NULL)
-        {
-            break;
-        }
+        break;
 
         if (!valid_tabpage(tpnext))
         {
@@ -7703,10 +7512,6 @@ arg_all_open_windows(arg_all_state_T *aall, int count)
         }
         ui_breakcheck();
 
-        if (aall->had_tab > 0 && tabpage_index(NULL) <= p_tpm)
-        {
-            cmdmod.cmod_tab = 9999;
-        }
     }
 }
 
@@ -7730,7 +7535,6 @@ do_arg_all(int count, int forceit, int keep_tabs)
     setpcmark();
 
     aall.use_firstwin = FALSE;
-    aall.had_tab = cmdmod.cmod_tab;
     aall.new_curwin = NULL;
     aall.new_curtab = NULL;
     aall.forceit = forceit;
@@ -7895,9 +7699,6 @@ typedef struct AutoPat
     char            last;
 } AutoPat;
 
-enum { BUFNEWFILE_INDEX = 9 };
-enum { BUFREAD_INDEX = 10 };
-
 static keyvalue_T event_tab[NUM_EVENTS] = {
      {(-EVENT_BUFADD), {((char_u *)"BufAdd"),  (sizeof("BufAdd" "") - 1) }} ,
      {(-EVENT_BUFADD), {((char_u *)"BufCreate"),  (sizeof("BufCreate" "") - 1) }} ,
@@ -8050,19 +7851,14 @@ static AutoPatCmd_T *active_apc_list = NULL;
 static garray_T augroups = {0, 0, sizeof(char_u *), 10, NULL};
 static char_u *deleted_augroup = NULL;
 
-static int current_augroup =  (-1) ;
-
 static int au_need_clean = FALSE;
 
 static string_T *event_nr2name(event_T event);
 static int au_get_grouparg(char_u **argp);
-static int do_autocmd_event(event_T event, char_u *pat, int once, int nested, char_u *cmd, int forceit, int group, int flags);
 static int apply_autocmds_group(event_T event, char_u *fname, char_u *fname_io, int force, int group, buf_T *buf, exarg_T *eap);
 static void auto_next_pat(AutoPatCmd_T *apc, int stop_at_last);
 static int au_find_group(char_u *name);
 
-static event_T  last_event;
-static int      last_group;
 static int      autocmd_blocked = 0;
 
     static char_u *
@@ -8076,115 +7872,11 @@ get_deleted_augroup(void)
 }
 
     static void
-show_autocmd(AutoPat *ap, event_T event)
-{
-    AutoCmd *ac;
-
-    if (got_int)
-    {
-        return;
-    }
-    if (ap->pat == NULL)
-    {
-        return;
-    }
-
-    ++autocmd_busy;
-
-    msg_putchar('\n');
-    if (got_int)
-    {
-        goto theend;
-    }
-    if (event != last_event || ap->group != last_group)
-    {
-        string_T    *event_name;
-
-        if (ap->group !=  (-1) )
-        {
-            if ( (((char_u **)augroups.ga_data)[ap->group])  == NULL)
-            {
-                msg_puts_attr((char *)get_deleted_augroup(),  highlight_attr[(int)(HLF_E)] );
-            }
-            else
-            {
-                msg_puts_attr((char *) (((char_u **)augroups.ga_data)[ap->group]) ,  highlight_attr[(int)(HLF_T)] );
-            }
-            msg_puts("  ");
-        }
-        event_name = event_nr2name(event);
-        msg_puts_attr((char *)event_name->string,  highlight_attr[(int)(HLF_T)] );
-        last_event = event;
-        last_group = ap->group;
-        msg_putchar('\n');
-        if (got_int)
-        {
-            goto theend;
-        }
-    }
-
-    if (ap->pat == NULL)
-    {
-        goto theend;
-    }
-
-    msg_col = 4;
-    msg_outtrans(ap->pat);
-
-    for (ac = ap->cmds; ac != NULL; ac = ac->next)
-    {
-        if (ac->cmd == NULL)
-        {
-            continue;
-        }
-
-        if (msg_col >= 14)
-        {
-            msg_putchar('\n');
-        }
-        msg_col = 14;
-        if (got_int)
-        {
-            goto theend;
-        }
-        msg_outtrans(ac->cmd);
-        if (got_int)
-        {
-            goto theend;
-        }
-        if (ac->next != NULL)
-        {
-            msg_putchar('\n');
-            if (got_int)
-            {
-                goto theend;
-            }
-        }
-    }
-
-theend:
-    --autocmd_busy;
-}
-
-    static void
 au_remove_pat(AutoPat *ap)
 {
      vim_free(ap->pat);
      (ap->pat) = NULL;
     ap->buflocal_nr = -1;
-    au_need_clean = TRUE;
-}
-
-    static void
-au_remove_cmds(AutoPat *ap)
-{
-    AutoCmd *ac;
-
-    for (ac = ap->cmds; ac != NULL; ac = ac->next)
-    {
-         vim_free(ac->cmd);
-         (ac->cmd) = NULL;
-    }
     au_need_clean = TRUE;
 }
 
@@ -8302,86 +7994,6 @@ aubuflocal_remove(buf_T *buf)
 }
 
     static int
-au_new_group(char_u *name)
-{
-    int         i;
-
-    i = au_find_group(name);
-    if (i !=  (-2) )
-    {
-        return i;
-    }
-
-    for (i = 0; i < augroups.ga_len; ++i)
-    {
-        if ( (((char_u **)augroups.ga_data)[i])  == NULL)
-        {
-            break;
-        }
-    }
-    if (i == augroups.ga_len && ga_grow(&augroups, 1) == FAIL)
-    {
-        return  (-2) ;
-    }
-
-     (((char_u **)augroups.ga_data)[i])  = vim_strsave(name);
-    if ( (((char_u **)augroups.ga_data)[i])  == NULL)
-    {
-        return  (-2) ;
-    }
-    if (i == augroups.ga_len)
-    {
-        ++augroups.ga_len;
-    }
-
-    return i;
-}
-
-    static void
-au_del_group(char_u *name)
-{
-    int         i;
-    event_T     event;
-    AutoPat     *ap;
-    int         in_use = FALSE;
-
-    i = au_find_group(name);
-    if (i ==  (-2) )
-    {
-        semsg(_(e_no_such_group_str), name);
-        return;
-    }
-    if (i == current_augroup)
-    {
-        emsg(_(e_cannot_delete_current_group));
-        return;
-    }
-
-    for (event = (event_T)0; (int)event < NUM_EVENTS; event = (event_T)((int)event + 1))
-    {
-         for ((ap) = first_autopat[(int)(event)]; (ap) != NULL; (ap) = (ap)->next) 
-         {
-            if (ap->group == i && ap->pat != NULL)
-            {
-                give_warning((char_u *)_("W19: Deleting augroup that is still in use"), TRUE);
-                in_use = TRUE;
-                event = NUM_EVENTS;
-                break;
-            }
-         }
-    }
-    vim_free( (((char_u **)augroups.ga_data)[i]) );
-    if (in_use)
-    {
-         (((char_u **)augroups.ga_data)[i])  = get_deleted_augroup();
-    }
-    else
-    {
-         (((char_u **)augroups.ga_data)[i])  = NULL;
-    }
-}
-
-    static int
 au_find_group(char_u *name)
 {
     int     i;
@@ -8394,56 +8006,6 @@ au_find_group(char_u *name)
         }
     }
     return  (-2) ;
-}
-
-    static int
-au_has_group(char_u *name)
-{
-    return au_find_group(name) !=  (-2) ;
-}
-
-    static void
-do_augroup(char_u *arg, int del_group)
-{
-    int     i;
-
-    if (del_group)
-    {
-        if (*arg == NUL)
-        {
-            emsg(_(e_argument_required));
-        }
-        else
-        {
-            au_del_group(arg);
-        }
-    }
-    else if ( strcasecmp((char *)(arg), (char *)("end"))  == 0)
-    {
-        current_augroup =  (-1) ;
-    }
-    else if (*arg)
-    {
-        i = au_new_group(arg);
-        if (i !=  (-2) )
-        {
-            current_augroup = i;
-        }
-    }
-    else
-    {
-        msg_start();
-        for (i = 0; i < augroups.ga_len; ++i)
-        {
-            if ( (((char_u **)augroups.ga_data)[i])  != NULL)
-            {
-                msg_puts((char *) (((char_u **)augroups.ga_data)[i]) );
-                msg_puts("  ");
-            }
-        }
-        msg_clr_eos();
-        msg_end();
-    }
 }
 
     static void
@@ -8463,46 +8025,6 @@ is_aucmd_win(win_T *win)
         }
     }
     return FALSE;
-}
-
-    static event_T
-event_name2nr(char_u *start, char_u **end)
-{
-    char_u      *p;
-    keyvalue_T target;
-    keyvalue_T *entry;
-    static keyvalue_T *bufnewfile = &event_tab[BUFNEWFILE_INDEX];
-    static keyvalue_T *bufread = &event_tab[BUFREAD_INDEX];
-
-    for (p = start; *p && ! ((*p) == ' ' || (*p) == '\t')  && *p != ',' && *p != '|'; ++p)
-    {
-        ;
-    }
-
-    target.key = 0;
-    target.value.string = start;
-    target.value.length = (size_t)(p - start);
-
-    if (cmp_keyvalue_value_ni(&target, bufnewfile) == 0)
-    {
-        entry = bufnewfile;
-    }
-    else if (cmp_keyvalue_value_ni(&target, bufread) == 0)
-    {
-        entry = bufread;
-    }
-    else
-    {
-        entry = (keyvalue_T *)bsearch(&target, &event_tab, NUM_EVENTS, sizeof(event_tab[0]), cmp_keyvalue_value_ni);
-    }
-
-    if (*p == ',')
-    {
-        ++p;
-    }
-    *end = p;
-
-    return (entry == NULL) ? NUM_EVENTS : (event_T)abs(entry->key);
 }
 
     static string_T *
@@ -8565,322 +8087,6 @@ event_nr2name(event_T event)
     return &unknown;
 }
 
-    static char_u *
-find_end_event(char_u  *arg, int     have_group)
-{
-    char_u  *pat;
-    char_u  *p;
-
-    if (*arg == '*')
-    {
-        if (arg[1] && ! ((arg[1]) == ' ' || (arg[1]) == '\t') )
-        {
-            semsg(_(e_illegal_character_after_star_str), arg);
-            return NULL;
-        }
-        pat = arg + 1;
-    }
-    else
-    {
-        for (pat = arg; *pat && *pat != '|' && ! ((*pat) == ' ' || (*pat) == '\t') ; pat = p)
-        {
-            if ((int)event_name2nr(pat, &p) >= NUM_EVENTS)
-            {
-                if (have_group)
-                {
-                    semsg(_(e_no_such_event_str), pat);
-                }
-                else
-                {
-                    semsg(_(e_no_such_group_or_event_str), pat);
-                }
-                return NULL;
-            }
-        }
-    }
-    return pat;
-}
-
-    static char_u *
-au_find_cmd_arg(char_u *arg)
-{
-    char_u      *pat;
-    char_u      *cmd;
-    int         group;
-
-    if (*arg == '|')
-    {
-        return NULL;
-    }
-
-    ++emsg_off;
-    group = au_get_grouparg(&arg);
-    pat = group ==  (-2) 
-                          ? NULL : find_end_event(arg, group !=  (-3) );
-    --emsg_off;
-    if (pat == NULL)
-    {
-        return NULL;
-    }
-
-    pat = skipwhite(pat);
-    if (*pat == NUL || *pat == '|')
-    {
-        return NULL;
-    }
-
-    cmd = pat;
-    while (*cmd != NUL && (! ((*cmd) == ' ' || (*cmd) == '\t')  || (cmd > pat && *(cmd - 1) == '\\')))
-    {
-        ++cmd;
-    }
-    cmd = skipwhite(cmd);
-
-    for (int i = 0; i < 2; ++i)
-    {
-        if ( strncmp((char *)(cmd), (char *)("++once"), (6))  == 0 &&  ((cmd[6]) == ' ' || (cmd[6]) == '\t') )
-        {
-            cmd = skipwhite(cmd + 6);
-        }
-        if ( strncmp((char *)(cmd), (char *)("++nested"), (8))  == 0 &&  ((cmd[8]) == ' ' || (cmd[8]) == '\t') )
-        {
-            cmd = skipwhite(cmd + 8);
-        }
-        if (!in_vim9script() &&  strncmp((char *)(cmd), (char *)("nested"), (6))  == 0 &&  ((cmd[6]) == ' ' || (cmd[6]) == '\t') )
-        {
-            cmd = skipwhite(cmd + 6);
-        }
-    }
-
-    return *cmd == NUL ? NULL : cmd;
-}
-
-    static int
-event_ignored(event_T event, char_u *ei)
-{
-    int ignored = FALSE;
-    while (*ei != NUL)
-    {
-        int unignore = *ei == '-';
-        ei += unignore;
-        if ( strncasecmp((char *)(ei), (char *)("all"), (3))  == 0 && (ei[3] == NUL || ei[3] == ','))
-        {
-            ignored = ei == p_ei || (event_tab[event].key <= 0);
-            ei += 3 + (ei[3] == ',');
-        }
-        else if (event_name2nr(ei, &ei) == event)
-        {
-            if (unignore)
-            {
-                return FALSE;
-            }
-            else
-            {
-                ignored = TRUE;
-            }
-        }
-    }
-
-    return ignored;
-}
-
-    static int
-check_ei(char_u *ei)
-{
-    int win = ei != p_ei;
-
-    while (*ei)
-    {
-        if ( strncasecmp((char *)(ei), (char *)("all"), (3))  == 0 && (ei[3] == NUL || ei[3] == ','))
-        {
-            ei += 3 + (ei[3] == ',');
-        }
-        else
-        {
-            ei += (*ei == '-');
-            event_T event = event_name2nr(ei, &ei);
-            if (event == NUM_EVENTS || (win && event_tab[event].key > 0))
-            {
-                return FAIL;
-            }
-        }
-    }
-
-    return OK;
-}
-
-    static void
-do_autocmd(exarg_T *eap, char_u *arg_in, int forceit)
-{
-    char_u      *arg = arg_in;
-    char_u      *pat;
-    char_u      *envpat = NULL;
-    char_u      *cmd;
-    int         cmd_need_free = FALSE;
-    event_T     event;
-    char_u      *tofree = NULL;
-    int         nested = FALSE;
-    int         once = FALSE;
-    int         group;
-    int         i;
-    int         flags = 0;
-
-    if (*arg == '|')
-    {
-        eap->nextcmd = arg + 1;
-        arg = (char_u *)"";
-        group =  (-3) ;
-    }
-    else
-    {
-        group = au_get_grouparg(&arg);
-        if (arg == NULL)
-        {
-            return;
-        }
-    }
-
-    pat = find_end_event(arg, group !=  (-3) );
-    if (pat == NULL)
-    {
-        return;
-    }
-
-    pat = skipwhite(pat);
-    if (*pat == '|')
-    {
-        eap->nextcmd = pat + 1;
-        pat = (char_u *)"";
-        cmd = (char_u *)"";
-    }
-    else
-    {
-        cmd = pat;
-        while (*cmd && (! ((*cmd) == ' ' || (*cmd) == '\t')  || cmd[-1] == '\\'))
-        {
-            cmd++;
-        }
-        if (*cmd)
-        {
-            *cmd++ = NUL;
-        }
-
-        if (vim_strchr(pat, '$') != NULL || vim_strchr(pat, '~') != NULL)
-        {
-            envpat = expand_env_save(pat);
-            if (envpat != NULL)
-            {
-                pat = envpat;
-            }
-        }
-
-        cmd = skipwhite(cmd);
-        for (i = 0; i < 2; i++)
-        {
-            if (*cmd == NUL)
-            {
-                continue;
-            }
-
-            if ( strncmp((char *)(cmd), (char *)("++once"), (6))  == 0 &&  ((cmd[6]) == ' ' || (cmd[6]) == '\t') )
-            {
-                if (once)
-                {
-                    semsg(_(e_duplicate_argument_str), "++once");
-                    goto err_exit;
-                }
-                once = TRUE;
-                cmd = skipwhite(cmd + 6);
-            }
-
-            if (( strncmp((char *)(cmd), (char *)("++nested"), (8))  == 0 &&  ((cmd[8]) == ' ' || (cmd[8]) == '\t') ))
-            {
-                if (nested)
-                {
-                    semsg(_(e_duplicate_argument_str), "++nested");
-                    goto err_exit;
-                }
-                nested = TRUE;
-                cmd = skipwhite(cmd + 8);
-            }
-
-            if ( strncmp((char *)(cmd), (char *)("nested"), (6))  == 0 &&  ((cmd[6]) == ' ' || (cmd[6]) == '\t') )
-            {
-                if (in_vim9script())
-                {
-                    emsg(_(e_invalid_command_nested_did_you_mean_plusplus_nested));
-                    goto err_exit;
-                }
-                if (nested)
-                {
-                    semsg(_(e_duplicate_argument_str), "nested");
-                    goto err_exit;
-                }
-                nested = TRUE;
-                cmd = skipwhite(cmd + 6);
-            }
-        }
-
-        if (*cmd != NUL)
-        {
-            if (eap != NULL)
-            {
-                cmd = may_get_cmd_block(eap, cmd, &tofree, &flags);
-            }
-
-            cmd = expand_sfile(cmd);
-            if (cmd == NULL)
-            {
-                goto err_exit;
-            }
-            cmd_need_free = TRUE;
-        }
-    }
-
-    if (!forceit && *cmd == NUL)
-    {
-        msg_puts_title(_("\n--- Autocommands ---"));
-    }
-
-    last_event = (event_T)-1;
-    last_group =  (-2) ;
-    if (*arg == '*' || *arg == NUL || *arg == '|')
-    {
-        if (*cmd != NUL)
-        {
-            emsg(_(e_cannot_define_autocommands_for_all_events));
-        }
-        else
-        {
-            for (event = (event_T)0; (int)event < NUM_EVENTS; event = (event_T)((int)event + 1))
-            {
-                if (do_autocmd_event(event, pat, once, nested, cmd, forceit, group, flags) == FAIL)
-                {
-                    break;
-                }
-            }
-        }
-    }
-    else
-    {
-        while (*arg && *arg != '|' && ! ((*arg) == ' ' || (*arg) == '\t') )
-        {
-            if (do_autocmd_event(event_name2nr(arg, &arg), pat, once, nested, cmd, forceit, group, flags) == FAIL)
-            {
-                break;
-            }
-        }
-    }
-
-err_exit:
-    if (cmd_need_free)
-    {
-        vim_free(cmd);
-    }
-    vim_free(tofree);
-    vim_free(envpat);
-}
-
     static int
 au_get_grouparg(char_u **argp)
 {
@@ -8914,361 +8120,6 @@ au_get_grouparg(char_u **argp)
     }
     vim_free(group_name);
     return group;
-}
-
-    static int
-do_autocmd_event(event_T     event, char_u      *pat, int         once, int         nested, char_u      *cmd, int         forceit, int         group, int         flags)
-{
-    AutoPat     *ap;
-    AutoPat     **prev_ap;
-    AutoCmd     *ac;
-    AutoCmd     **prev_ac;
-    int         brace_level;
-    char_u      *endpat;
-    int         findgroup;
-    int         allgroups;
-    int         patlen;
-    int         is_buflocal;
-    int         buflocal_nr;
-    char_u      buflocal_pat[25];
-
-    if (group ==  (-3) )
-    {
-        findgroup = current_augroup;
-    }
-    else
-    {
-        findgroup = group;
-    }
-    allgroups = (group ==  (-3)  && !forceit && *cmd == NUL);
-
-    if (*pat == NUL)
-    {
-         for ((ap) = first_autopat[(int)(event)]; (ap) != NULL; (ap) = (ap)->next) 
-        {
-            if (forceit)
-            {
-                if (ap->group == findgroup)
-                {
-                    au_remove_pat(ap);
-                }
-            }
-            else if (group ==  (-3)  || ap->group == group)
-            {
-                show_autocmd(ap, event);
-            }
-        }
-    }
-
-    for ( ; *pat; pat = (*endpat == ',' ? endpat + 1 : endpat))
-    {
-        brace_level = 0;
-        for (endpat = pat; *endpat && (*endpat != ',' || brace_level || (endpat > pat && endpat[-1] == '\\')); ++endpat)
-        {
-            if (*endpat == '{')
-            {
-                brace_level++;
-            }
-            else if (*endpat == '}')
-            {
-                brace_level--;
-            }
-        }
-        if (pat == endpat)
-        {
-            continue;
-        }
-        patlen = (int)(endpat - pat);
-
-        is_buflocal = FALSE;
-        buflocal_nr = 0;
-
-        if (patlen >= 8 &&  strncmp((char *)(pat), (char *)("<buffer"), (7))  == 0 && pat[patlen - 1] == '>')
-        {
-            is_buflocal = TRUE;
-            if (patlen == 8)
-            {
-                buflocal_nr = curbuf->b_fnum;
-            }
-            else if (patlen > 9 && pat[7] == '=')
-            {
-                if (patlen == 13 &&  strncasecmp((char *)(pat), (char *)("<buffer=abuf>"), (13))  == 0)
-                {
-                    buflocal_nr = autocmd_bufnr;
-                }
-                else if (skipdigits(pat + 8) == pat + patlen - 1)
-                {
-                    buflocal_nr = atoi((char *)pat + 8);
-                }
-            }
-        }
-
-        if (is_buflocal)
-        {
-            sprintf((char *)buflocal_pat, "<buffer=%d>", buflocal_nr);
-            pat = buflocal_pat;
-            patlen = (int) strlen((char *)(buflocal_pat)) ;
-        }
-
-        if (!forceit && *cmd != NUL && last_autopat[(int)event] != NULL)
-        {
-            prev_ap = &last_autopat[(int)event];
-        }
-        else
-        {
-            prev_ap = &first_autopat[(int)event];
-        }
-        while ((ap = *prev_ap) != NULL)
-        {
-            if (ap->pat != NULL)
-            {
-                if ((allgroups || ap->group == findgroup) && ap->patlen == patlen &&  strncmp((char *)(pat), (char *)(ap->pat), (patlen))  == 0)
-                {
-                    if (forceit)
-                    {
-                        if (*cmd != NUL && ap->next == NULL)
-                        {
-                            au_remove_cmds(ap);
-                            break;
-                        }
-                        au_remove_pat(ap);
-                    }
-
-                    else if (*cmd == NUL)
-                    {
-                        show_autocmd(ap, event);
-                    }
-
-                    else if (ap->next == NULL)
-                    {
-                        break;
-                    }
-                }
-            }
-            prev_ap = &ap->next;
-        }
-
-        if (*cmd != NUL)
-        {
-            if (ap == NULL)
-            {
-                if (is_buflocal && (buflocal_nr == 0 || buflist_findnr(buflocal_nr) == NULL))
-                {
-                    semsg(_(e_buffer_nr_invalid_buffer_number), buflocal_nr);
-                    return FAIL;
-                }
-
-                ap =  (AutoPat *)alloc(sizeof(AutoPat)) ;
-                if (ap == NULL)
-                {
-                    return FAIL;
-                }
-                ap->pat = vim_strnsave(pat, patlen);
-                ap->patlen = patlen;
-                if (ap->pat == NULL)
-                {
-                    vim_free(ap);
-                    return FAIL;
-                }
-
-                if ((event == EVENT_WINSCROLLED || event == EVENT_WINRESIZED) && !(has_winscrolled() || has_winresized()))
-                {
-                    tabpage_T *save_curtab = curtab;
-                    tabpage_T *tp;
-                     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) 
-                    {
-                        unuse_tabpage(curtab);
-                        use_tabpage(tp);
-                        snapshot_windows_scroll_size();
-                    }
-                    unuse_tabpage(curtab);
-                    use_tabpage(save_curtab);
-                }
-
-                if (is_buflocal)
-                {
-                    ap->buflocal_nr = buflocal_nr;
-                    ap->reg_prog = NULL;
-                }
-                else
-                {
-                    char_u      *reg_pat;
-
-                    ap->buflocal_nr = 0;
-                    reg_pat = file_pat_to_reg_pat(pat, endpat, &ap->allow_dirs, TRUE);
-                    if (reg_pat != NULL)
-                    {
-                        ap->reg_prog = vim_regcomp(reg_pat, RE_MAGIC);
-                    }
-                    vim_free(reg_pat);
-                    if (reg_pat == NULL || ap->reg_prog == NULL)
-                    {
-                        vim_free(ap->pat);
-                        vim_free(ap);
-                        return FAIL;
-                    }
-                }
-                ap->cmds = NULL;
-                *prev_ap = ap;
-                last_autopat[(int)event] = ap;
-                ap->next = NULL;
-                if (group ==  (-3) )
-                {
-                    ap->group = current_augroup;
-                }
-                else
-                {
-                    ap->group = group;
-                }
-            }
-
-            prev_ac = &(ap->cmds);
-            while ((ac = *prev_ac) != NULL)
-            {
-                prev_ac = &ac->next;
-            }
-            ac =  (AutoCmd *)alloc(sizeof(AutoCmd)) ;
-            if (ac == NULL)
-            {
-                return FAIL;
-            }
-            ac->cmd = vim_strsave(cmd);
-            ac->script_ctx = current_sctx;
-            if (flags & UC_VIM9)
-            {
-                ac->script_ctx.sc_version = SCRIPT_VERSION_VIM9;
-            }
-            if (ac->cmd == NULL)
-            {
-                vim_free(ac);
-                return FAIL;
-            }
-            ac->next = NULL;
-            *prev_ac = ac;
-            ac->once = once;
-            ac->nested = nested;
-        }
-    }
-
-    au_cleanup();
-    return OK;
-}
-
-    static int
-do_doautocmd(char_u      *arg_start, int         do_msg, int         *did_something)
-{
-    char_u      *arg = arg_start;
-    char_u      *fname;
-    int         nothing_done = TRUE;
-    int         group;
-
-    if (did_something != NULL)
-    {
-        *did_something = FALSE;
-    }
-
-    group = au_get_grouparg(&arg);
-    if (arg == NULL)
-    {
-        return FAIL;
-    }
-
-    if (*arg == '*')
-    {
-        emsg(_(e_cant_execute_autocommands_for_all_events));
-        return FAIL;
-    }
-
-    fname = find_end_event(arg, group !=  (-3) );
-    if (fname == NULL)
-    {
-        return FAIL;
-    }
-
-    fname = skipwhite(fname);
-
-    while (*arg && !ends_excmd(*arg) && ! ((*arg) == ' ' || (*arg) == '\t') )
-    {
-        if (apply_autocmds_group(event_name2nr(arg, &arg), fname, NULL, TRUE, group, curbuf, NULL))
-        {
-            nothing_done = FALSE;
-        }
-    }
-
-    if (nothing_done && do_msg)
-    {
-        smsg(_("No matching autocommands: %s"), arg_start);
-    }
-    if (did_something != NULL)
-    {
-        *did_something = !nothing_done;
-    }
-
-    return OK;
-}
-
-    static void
-ex_doautoall(exarg_T *eap)
-{
-    int         retval = OK;
-    aco_save_T  aco;
-    buf_T       *buf;
-    bufref_T    bufref;
-    char_u      *arg = eap->arg;
-    int         call_do_modelines = check_nomodeline(&arg);
-    int         did_aucmd;
-
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-    {
-        if (buf->b_ml.ml_mfp == NULL || buf == curbuf)
-        {
-            continue;
-        }
-
-        aucmd_prepbuf(&aco, buf);
-        if (curbuf != buf)
-        {
-            retval = FAIL;
-            break;
-        }
-
-        set_bufref(&bufref, buf);
-
-        retval = do_doautocmd(arg, FALSE, &did_aucmd);
-
-        if (call_do_modelines && did_aucmd)
-        {
-            do_modelines(is_aucmd_win(curwin) ? OPT_NOWIN : 0);
-        }
-
-        aucmd_restbuf(&aco);
-
-        if (retval == FAIL || !bufref_valid(&bufref))
-        {
-            retval = FAIL;
-            break;
-        }
-    }
-
-    if (retval == OK)
-    {
-        do_doautocmd(arg, FALSE, &did_aucmd);
-        if (call_do_modelines && did_aucmd)
-        {
-            do_modelines(0);
-        }
-    }
-}
-
-    static int
-check_nomodeline(char_u **argp)
-{
-    if ( strncmp((char *)(*argp), (char *)("<nomodeline>"), (12))  == 0)
-    {
-        *argp = skipwhite(*argp + 12);
-        return FALSE;
-    }
-    return TRUE;
 }
 
     static void
@@ -9487,43 +8338,15 @@ apply_autocmds_retval(event_T     event, char_u      *fname, char_u      *fname_
 }
 
     static int
-has_cursorhold(void)
-{
-    return (first_autopat[(int)(get_real_state() ==  (0x1000 | MODE_NORMAL)  ? EVENT_CURSORHOLD : EVENT_CURSORHOLDI)] != NULL);
-}
-
-    static int
 trigger_cursorhold(void)
 {
-    int         state;
-
-    if (!did_cursorhold && has_cursorhold() && reg_recording == 0 && typebuf.tb_len == 0 && !ins_compl_active())
-    {
-        state = get_real_state();
-        if (state ==  (0x1000 | MODE_NORMAL)  || (state & MODE_INSERT) != 0)
-        {
-            return TRUE;
-        }
-    }
     return FALSE;
-}
-
-    static int
-has_winresized(void)
-{
-    return (first_autopat[(int)EVENT_WINRESIZED] != NULL);
-}
-
-    static int
-has_winscrolled(void)
-{
-    return (first_autopat[(int)EVENT_WINSCROLLED] != NULL);
 }
 
     static int
 has_cursormoved(void)
 {
-    return (first_autopat[(int)EVENT_CURSORMOVED] != NULL);
+    return FALSE;
 }
 
     static int
@@ -9535,7 +8358,7 @@ has_cursormovedI(void)
     static int
 has_textchanged(void)
 {
-    return (first_autopat[(int)EVENT_TEXTCHANGED] != NULL);
+    return FALSE;
 }
 
     static int
@@ -9553,343 +8376,19 @@ has_textchangedP(void)
     static int
 has_insertcharpre(void)
 {
-    return (first_autopat[(int)EVENT_INSERTCHARPRE] != NULL);
+    return FALSE;
 }
 
     static int
 has_cmdundefined(void)
 {
-    return (first_autopat[(int)EVENT_CMDUNDEFINED] != NULL);
+    return FALSE;
 }
 
     static int
 apply_autocmds_group(event_T     event, char_u      *fname, char_u      *fname_io, int         force, int         group, buf_T       *buf, exarg_T     *eap  __attribute__((unused)) )
 {
-    char_u      *sfname = NULL;
-    char_u      *tail;
-    int         save_changed;
-    buf_T       *old_curbuf;
-    int         retval = FALSE;
-    char_u      *save_autocmd_fname;
-    int         save_autocmd_fname_full;
-    int         save_autocmd_bufnr;
-    char_u      *save_autocmd_match;
-    int         save_autocmd_busy;
-    int         save_autocmd_nested;
-    static int  nesting = 0;
-    AutoPatCmd_T patcmd;
-    AutoPat     *ap;
-    sctx_T      save_current_sctx;
-    static int  filechangeshell_busy = FALSE;
-    int         did_save_redobuff = FALSE;
-    save_redo_T save_redo;
-    int         save_KeyTyped = KeyTyped;
-
-    if (event == NUM_EVENTS || first_autopat[(int)event] == NULL || autocmd_blocked > 0)
-    {
-        goto BYPASS_AU;
-    }
-
-    if (autocmd_busy && !(force || autocmd_nested))
-    {
-        goto BYPASS_AU;
-    }
-
-    if (filechangeshell_busy && (event == EVENT_FILECHANGEDSHELL || event == EVENT_FILECHANGEDSHELLPOST))
-    {
-        goto BYPASS_AU;
-    }
-
-    if (event_ignored(event, p_ei))
-    {
-        goto BYPASS_AU;
-    }
-
-    int win_ignore = FALSE;
-    if (buf == curbuf && event_tab[event].key <= 0)
-    {
-        win_ignore = event_ignored(event, curwin-> w_onebuf_opt.wo_eiw );
-    }
-    else if (buf != NULL && event_tab[event].key <= 0 && buf->b_nwindows > 0)
-    {
-        tabpage_T *tp;
-        win_T *wp;
-
-        win_ignore = TRUE;
-         for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-         {
-             for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-             {
-            if (wp->w_buffer == buf && !event_ignored(event, wp-> w_onebuf_opt.wo_eiw ))
-            {
-                win_ignore = FALSE;
-                break;
-            }
-             }
-         }
-    }
-    if (win_ignore)
-    {
-        goto BYPASS_AU;
-    }
-
-    if (nesting == 10)
-    {
-        emsg(_(e_autocommand_nesting_too_deep));
-        goto BYPASS_AU;
-    }
-
-    if (       (autocmd_no_enter && (event == EVENT_WINENTER || event == EVENT_BUFENTER)) || (autocmd_no_leave && (event == EVENT_WINLEAVE || event == EVENT_BUFLEAVE)))
-    {
-        goto BYPASS_AU;
-    }
-
-    if (event == EVENT_CMDLINECHANGED)
-    {
-        ++aucmd_cmdline_changed_count;
-    }
-
-    save_autocmd_fname = autocmd_fname;
-    save_autocmd_fname_full = autocmd_fname_full;
-    save_autocmd_bufnr = autocmd_bufnr;
-    save_autocmd_match = autocmd_match;
-    save_autocmd_busy = autocmd_busy;
-    save_autocmd_nested = autocmd_nested;
-    save_changed = curbuf->b_changed;
-    old_curbuf = curbuf;
-
-    if (fname_io == NULL)
-    {
-        if (event == EVENT_COLORSCHEME || event == EVENT_COLORSCHEMEPRE || event == EVENT_OPTIONSET || event == EVENT_MODECHANGED || event == EVENT_TERMRESPONSEALL)
-        {
-            autocmd_fname = NULL;
-        }
-        else if (fname != NULL && !ends_excmd(*fname))
-        {
-            autocmd_fname = fname;
-        }
-        else if (buf != NULL)
-        {
-            autocmd_fname = buf->b_ffname;
-        }
-        else
-        {
-            autocmd_fname = NULL;
-        }
-    }
-    else
-    {
-        autocmd_fname = fname_io;
-    }
-    if (autocmd_fname != NULL)
-    {
-        autocmd_fname = vim_strsave(autocmd_fname);
-    }
-    autocmd_fname_full = FALSE;
-
-    if (buf == NULL)
-    {
-        autocmd_bufnr = 0;
-    }
-    else
-    {
-        autocmd_bufnr = buf->b_fnum;
-    }
-
-    if (fname == NULL || *fname == NUL)
-    {
-        if (buf == NULL)
-        {
-            fname = NULL;
-        }
-        else
-        {
-                if (event == EVENT_FILETYPE)
-                {
-                    fname = buf->b_p_ft;
-                }
-                else
-                {
-                    if (buf->b_sfname != NULL)
-                    {
-                        sfname = vim_strsave(buf->b_sfname);
-                    }
-                    fname = buf->b_ffname;
-                }
-        }
-        if (fname == NULL)
-        {
-            fname = (char_u *)"";
-        }
-        fname = vim_strsave(fname);
-    }
-    else
-    {
-        sfname = vim_strsave(fname);
-        if (event == EVENT_FILETYPE || event == EVENT_SYNTAX || event == EVENT_CMDLINECHANGED || event == EVENT_CMDLINEENTER || event == EVENT_CMDLINELEAVEPRE || event == EVENT_CMDLINELEAVE || event == EVENT_CURSORMOVEDC || event == EVENT_CMDWINENTER || event == EVENT_CMDWINLEAVE || event == EVENT_CMDUNDEFINED || event == EVENT_FUNCUNDEFINED || event == EVENT_KEYINPUTPRE || event == EVENT_REMOTEREPLY || event == EVENT_SPELLFILEMISSING || event == EVENT_QUICKFIXCMDPRE || event == EVENT_COLORSCHEME || event == EVENT_COLORSCHEMEPRE || event == EVENT_OPTIONSET || event == EVENT_QUICKFIXCMDPOST || event == EVENT_DIRCHANGED || event == EVENT_DIRCHANGEDPRE || event == EVENT_MODECHANGED || event == EVENT_MENUPOPUP || event == EVENT_USER || event == EVENT_WINCLOSED || event == EVENT_WINRESIZED || event == EVENT_WINSCROLLED || event == EVENT_TERMRESPONSEALL)
-        {
-            fname = vim_strsave(fname);
-            autocmd_fname_full = TRUE;
-        }
-        else
-        {
-            fname = FullName_save(fname, FALSE);
-        }
-    }
-    if (fname == NULL)
-    {
-        vim_free(sfname);
-        retval = FALSE;
-        goto BYPASS_AU;
-    }
-
-    autocmd_match = fname;
-
-    ++RedrawingDisabled;
-
-    estack_push(ETYPE_AUCMD, NULL, 0);
-
-    save_current_sctx = current_sctx;
-
-    if (!autocmd_busy)
-    {
-        save_search_patterns();
-        if (!ins_compl_active())
-        {
-            saveRedobuff(&save_redo);
-            did_save_redobuff = TRUE;
-        }
-        curbuf->b_did_filetype = curbuf->b_keep_filetype;
-    }
-
-    autocmd_busy = TRUE;
-    filechangeshell_busy = (event == EVENT_FILECHANGEDSHELL);
-    ++nesting;
-
-    if (event == EVENT_FILETYPE)
-    {
-        curbuf->b_did_filetype = true;
-    }
-
-    tail = gettail(fname);
-
-      memset((&(patcmd)), (0), (sizeof(patcmd)))  ;
-    patcmd.curpat = first_autopat[(int)event];
-    patcmd.group = group;
-    patcmd.fname = fname;
-    patcmd.sfname = sfname;
-    patcmd.tail = tail;
-    patcmd.event = event;
-    patcmd.arg_bufnr = autocmd_bufnr;
-    auto_next_pat(&patcmd, FALSE);
-
-    if (patcmd.curpat != NULL)
-    {
-        patcmd.next = active_apc_list;
-        active_apc_list = &patcmd;
-
-        retval = TRUE;
-        for (ap = patcmd.curpat; ap->next != NULL; ap = ap->next)
-        {
-            ap->last = FALSE;
-        }
-        ap->last = TRUE;
-
-        if (nesting == 1)
-        {
-            check_lnums(TRUE);
-        }
-        else
-        {
-            check_lnums_nested(TRUE);
-        }
-
-        int save_did_emsg = did_emsg;
-        int save_ex_pressedreturn = get_pressedreturn();
-
-        do_cmdline(NULL, getnextac, (void *)&patcmd, DOCMD_NOWAIT|DOCMD_VERBOSE|DOCMD_REPEAT);
-
-        did_emsg += save_did_emsg;
-        set_pressedreturn(save_ex_pressedreturn);
-
-        if (nesting == 1)
-        {
-            reset_lnums();
-        }
-
-        if (active_apc_list == &patcmd)
-        {
-            active_apc_list = patcmd.next;
-        }
-    }
-
-    if (RedrawingDisabled > 0)
-    {
-        --RedrawingDisabled;
-    }
-    autocmd_busy = save_autocmd_busy;
-    filechangeshell_busy = FALSE;
-    autocmd_nested = save_autocmd_nested;
-    vim_free( (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_name) );
-    estack_pop();
-    vim_free(autocmd_fname);
-    autocmd_fname = save_autocmd_fname;
-    autocmd_fname_full = save_autocmd_fname_full;
-    autocmd_bufnr = save_autocmd_bufnr;
-    autocmd_match = save_autocmd_match;
-    current_sctx = save_current_sctx;
-    KeyTyped = save_KeyTyped;
-    vim_free(fname);
-    vim_free(sfname);
-    --nesting;
-
-    if (!autocmd_busy)
-    {
-        restore_search_patterns();
-        if (did_save_redobuff)
-        {
-            restoreRedobuff(&save_redo);
-        }
-        curbuf->b_did_filetype = false;
-        while (au_pending_free_buf != NULL)
-        {
-            buf_T *b = au_pending_free_buf->b_next;
-
-            vim_free(au_pending_free_buf);
-            au_pending_free_buf = b;
-        }
-        while (au_pending_free_win != NULL)
-        {
-            win_T *w = au_pending_free_win->w_next;
-
-            vim_free(au_pending_free_win);
-            au_pending_free_win = w;
-        }
-    }
-
-    if (curbuf == old_curbuf && (event == EVENT_BUFREADPOST || event == EVENT_BUFWRITEPOST || event == EVENT_FILEAPPENDPOST || event == EVENT_VIMLEAVE || event == EVENT_VIMLEAVEPRE))
-    {
-        if (curbuf->b_changed != save_changed)
-        {
-            need_maketitle = TRUE;
-        }
-        curbuf->b_changed = save_changed;
-    }
-
-    au_cleanup();
-
-BYPASS_AU:
-    if (event == EVENT_BUFWIPEOUT && buf != NULL)
-    {
-        aubuflocal_remove(buf);
-    }
-
-    if (retval == OK && event == EVENT_FILETYPE)
-    {
-        curbuf->b_au_did_filetype = true;
-    }
-
-    return retval;
+    return FALSE;
 }
 
     static void
@@ -10054,29 +8553,7 @@ getnextac(int c  __attribute__((unused)) , void *cookie, int indent  __attribute
     static int
 has_autocmd(event_T event, char_u *sfname, buf_T *buf)
 {
-    AutoPat     *ap;
-    char_u      *fname;
-    char_u      *tail = gettail(sfname);
-    int         retval = FALSE;
-
-    fname = FullName_save(sfname, FALSE);
-    if (fname == NULL)
-    {
-        return FALSE;
-    }
-
-     for ((ap) = first_autopat[(int)(event)]; (ap) != NULL; (ap) = (ap)->next) 
-     {
-        if (ap->pat != NULL && ap->cmds != NULL && (ap->buflocal_nr == 0 ? match_file_pat(NULL, &ap->reg_prog, fname, sfname, tail, ap->allow_dirs) : buf != NULL && ap->buflocal_nr == buf->b_fnum))
-        {
-            retval = TRUE;
-            break;
-        }
-     }
-
-    vim_free(fname);
-
-    return retval;
+    return FALSE;
 }
 
     static char_u *
@@ -10180,38 +8657,6 @@ get_event_name(expand_T *xp  __attribute__((unused)) , int idx)
     return event_tab[i].value.string;
 }
 
-    static char_u *
-get_event_name_no_group(expand_T *xp  __attribute__((unused)) , int idx, int win)
-{
-    if (idx < 0 || idx >= NUM_EVENTS)
-    {
-        return NULL;
-    }
-
-    if (!win)
-    {
-        return event_tab[idx].value.string;
-    }
-
-    int j = 0;
-    for (int i = 0; i < NUM_EVENTS; ++i)
-    {
-        j += event_tab[i].key <= 0;
-        if (j == idx + 1)
-        {
-            return event_tab[i].value.string;
-        }
-    }
-
-    return NULL;
-}
-
-    static int
-has_tabclosedpre(void)
-{
-    return (first_autopat[(int)EVENT_TABCLOSEDPRE] != NULL);
-}
-
 // ==================== buffer.c ====================
 
 static void     enter_buffer(buf_T *buf);
@@ -10236,13 +8681,6 @@ static garray_T buf_reuse =  {0, 0, 0, 0, NULL} ;
     static void
 trigger_undo_ftplugin(buf_T *buf, win_T *win)
 {
-    window_layout_lock();
-    ++buf->b_locked;
-    ++win->w_locked;
-    do_cmdline_cmd((char_u*)"if exists('b:undo_ftplugin') | :legacy :exe \t    b:undo_ftplugin | endif");
-    --buf->b_locked;
-    --win->w_locked;
-    window_layout_unlock();
 }
 
     static int
@@ -13202,7 +11640,6 @@ ex_buffer_all(exarg_T *eap)
     int         r;
     int         count;
     int         all;
-    int         had_tab = cmdmod.cmod_tab;
     tabpage_T   *tpnext;
 
     if (eap->addr_count == 0)
@@ -13226,17 +11663,13 @@ ex_buffer_all(exarg_T *eap)
 
     setpcmark();
 
-    if (had_tab > 0)
-    {
-        goto_tabpage_tp(first_tabpage, TRUE, TRUE);
-    }
     for (;;)
     {
         tpnext = curtab->tp_next;
         for (wp = firstwin; wp != NULL; wp = wpnext)
         {
             wpnext = wp->w_next;
-            if ((wp->w_buffer->b_nwindows > 1 || ((cmdmod.cmod_split & WSP_VERT) ? wp->w_height + wp->w_status_height < Rows - p_ch - tabline_height() : wp->w_width != Columns) || (had_tab > 0 && wp != firstwin)) && ! (firstwin == lastwin)  && !(win_locked(wp) || wp->w_buffer->b_locked > 0) && !win_unlisted(wp))
+            if ((wp->w_buffer->b_nwindows > 1 || ((cmdmod.cmod_split & WSP_VERT) ? wp->w_height + wp->w_status_height < Rows - p_ch - tabline_height() : wp->w_width != Columns)) && ! (firstwin == lastwin)  && !(win_locked(wp) || wp->w_buffer->b_locked > 0) && !win_unlisted(wp))
             {
                 if (win_close(wp, FALSE) == FAIL)
                 {
@@ -13252,10 +11685,7 @@ ex_buffer_all(exarg_T *eap)
             }
         }
 
-        if (had_tab == 0 || tpnext == NULL)
-        {
-            break;
-        }
+        break;
         goto_tabpage_tp(tpnext, TRUE, TRUE);
     }
 
@@ -13269,30 +11699,16 @@ ex_buffer_all(exarg_T *eap)
             continue;
         }
 
-        if (had_tab != 0)
+         for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
+         {
+            if (wp->w_buffer == buf)
+            {
+                break;
+            }
+         }
+        if (wp != NULL)
         {
-            if (buf->b_nwindows > 0)
-            {
-                wp = lastwin;
-            }
-            else
-            {
-                wp = NULL;
-            }
-        }
-        else
-        {
-             for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-             {
-                if (wp->w_buffer == buf)
-                {
-                    break;
-                }
-             }
-            if (wp != NULL)
-            {
-                win_move_after(wp, curwin);
-            }
+            win_move_after(wp, curwin);
         }
 
         if (wp == NULL && split_ret == OK)
@@ -13337,10 +11753,6 @@ ex_buffer_all(exarg_T *eap)
         {
             (void)vgetc();
             break;
-        }
-        if (had_tab > 0 && tabpage_index(NULL) <= p_tpm)
-        {
-            cmdmod.cmod_tab = 9999;
         }
     }
     --autocmd_no_enter;
@@ -25245,7 +23657,6 @@ static void insert_special(int, int, int);
 static void redo_literal(int c);
 static void start_arrow_common(pos_T *end_insert_pos, int change);
 static void stop_insert(pos_T *end_insert_pos, int esc, int nomove);
-static int  echeck_abbr(int);
 static void mb_replace_pop_ins(int cc);
 static void replace_flush(void);
 static void replace_do_bs(int limit_col);
@@ -25665,10 +24076,6 @@ edit(int         cmdchar, int         startln, long        count)
         switch (c)
         {
         case ESC:
-            if (echeck_abbr(ESC + ABBR_OFF))
-            {
-                break;
-            }
 
         __attribute__((fallthrough));
         case Ctrl_C:
@@ -25725,10 +24132,6 @@ doESCkey:
             continue;
 
         case Ctrl_O:
-            if (echeck_abbr(Ctrl_O + ABBR_OFF))
-            {
-                break;
-            }
             ins_ctrl_o();
 
             if (get_ve_flags() & VE_ONEMORE)
@@ -25989,10 +24392,6 @@ doESCkey:
         case Ctrl_L:
             if (p_im)
             {
-                if (echeck_abbr(Ctrl_L + ABBR_OFF))
-                {
-                    break;
-                }
                 goto doESCkey;
             }
             goto normalchar;
@@ -26028,7 +24427,7 @@ normalchar:
                 }
             }
 
-            if (vim_iswordc(c) || (!echeck_abbr((has_mbyte && c >= 0x100) ? (c + ABBR_OFF) : c) && c != Ctrl_RSB))
+            if (vim_iswordc(c) || c != Ctrl_RSB)
             {
                 insert_special(c, FALSE, FALSE);
             }
@@ -27226,17 +25625,6 @@ get_last_insert_save(void)
         s[--insert.length] = NUL;
     }
     return s;
-}
-
-    static int
-echeck_abbr(int c)
-{
-    if (p_paste || no_abbr || arrow_used)
-    {
-        return FALSE;
-    }
-
-    return check_abbr(c, ml_get_curline(), curwin->w_cursor.col, curwin->w_cursor.lnum == Insstart.lnum ? Insstart.col : 0);
 }
 
 static char_u   *replace_stack = NULL;
@@ -28509,11 +26897,6 @@ ins_pageup(void)
 
     if (mod_mask & MOD_MASK_CTRL)
     {
-        if (first_tabpage->tp_next != NULL)
-        {
-            start_arrow(&curwin->w_cursor);
-            goto_tabpage(-1);
-        }
         return;
     }
 
@@ -28565,11 +26948,6 @@ ins_pagedown(void)
 
     if (mod_mask & MOD_MASK_CTRL)
     {
-        if (first_tabpage->tp_next != NULL)
-        {
-            start_arrow(&curwin->w_cursor);
-            goto_tabpage(0);
-        }
         return;
     }
 
@@ -28595,10 +26973,6 @@ ins_tab(void)
     if (Insstart_blank_vcol == MAXCOL && curwin->w_cursor.lnum == Insstart.lnum)
     {
         Insstart_blank_vcol = get_nolist_virtcol();
-    }
-    if (echeck_abbr(TAB + ABBR_OFF))
-    {
-        return FALSE;
     }
 
     ind = inindent(0);
@@ -28793,10 +27167,6 @@ ins_eol(int c)
 {
     int     i;
 
-    if (echeck_abbr(c + ABBR_OFF))
-    {
-        return OK;
-    }
     if (stop_arrow() == FAIL)
     {
         return FAIL;
@@ -30479,10 +28849,6 @@ do_write(exarg_T *eap)
 
             if (*curbuf->b_p_ft == NUL)
             {
-                if (au_has_group((char_u *)"filetypedetect"))
-                {
-                    (void)do_doautocmd((char_u *)"filetypedetect BufRead", TRUE, NULL);
-                }
                 do_modelines(0);
             }
 
@@ -32952,46 +31318,6 @@ global_exe(char_u *cmd)
 }
 
     static void
-ex_smile(exarg_T *eap  __attribute__((unused)) )
-{
-    static char *code[] = {
-        "\34 \4o\14$\4ox\30 \2o\30$\1ox\25 \2o\36$\1o\11 \1o\1$\3 \2$\1 \1o\1$x\5 \1o\1 \1$\1 \2o\10 \1o\44$\1o\7 \2$\1 \2$\1 \2$\1o\1$x\2 \2o\1 \1$\1 \1$\1 \1\"\1$\6 \1o\11$\4 \15$\4 \11$\1o\7 \3$\1o\2$\1o\1$x\2 \1\"\6$\1o\1$\5 \1o\11$\6 \13$\6 \12$\1o\4 \10$x\4 \7$\4 \13$\6 \13$\6 \27$x\4 \27$\4 \15$\4 \16$\2 \3\"\3$x\5 \1\"\3$\4\"\61$\5 \1\"\3$x\6 \3$\3 \1o\62$\5 \1\"\3$\1ox\5 \1o\2$\1\"\3 \63$\7 \3$\1ox\5 \3$\4 \55$\1\"\1 \1\"\6$",
-        "\5o\4$\1ox\4 \1o\3$\4o\5$\2 \45$\3 \1o\21$x\4 \10$\1\"\4$\3 \42$\5 \4$\10\"x\3 \4\"\7 \4$\4 \1\"\34$\1\"\6 \1o\3$x\16 \1\"\3$\1o\5 \3\"\22$\1\"\2$\1\"\11 \3$x\20 \3$\1o\12 \1\"\2$\2\"\6$\4\"\13 \1o\3$x\21 \4$\1o\40 \1o\3$\1\"x\22 \1\"\4$\1o\6 \1o\6$\1o\1\"\4$\1o\10 \1o\4$x\24 \1\"\5$\2o\5 \2\"\4$\1o\5$\1o\3 \1o\4$\2\"x\27 \2\"\5$\4o\2 \1\"\3$\1o\11$\3\"x\32 \2\"\7$\2o\1 \12$x\42 \4\"\13$x\46 \14$x\47 \12$\1\"x\50 \1\"\3$\4\"x"
-    };
-    char *p;
-    int n;
-    int i;
-
-    msg_start();
-    msg_putchar('\n');
-    for (i = 0; i < 2; ++i)
-    {
-        for (p = code[i]; *p != NUL; ++p)
-        {
-            if (*p == 'x')
-            {
-                msg_putchar('\n');
-            }
-            else
-            {
-                for (n = *p++; n > 0; --n)
-                {
-                    if (*p == 'o' || *p == '$')
-                    {
-                        msg_putchar_attr(*p,  highlight_attr[(int)(HLF_L)] );
-                    }
-                    else
-                    {
-                        msg_putchar(*p);
-                    }
-                }
-            }
-        }
-    }
-    msg_clr_eos();
-}
-
-    static void
 ex_drop(exarg_T *eap)
 {
     int         split = FALSE;
@@ -33008,14 +31334,6 @@ ex_drop(exarg_T *eap)
 
     if ( ( (curwin)->w_alist ->al_ga.ga_len)  == 0)
     {
-        return;
-    }
-
-    if (cmdmod.cmod_tab)
-    {
-        ex_all(eap);
-        cmdmod.cmod_tab = 0;
-        ex_rewind(eap);
         return;
     }
 
@@ -33389,17 +31707,11 @@ ex_listdo(exarg_T *eap)
 {
     int         i;
     win_T       *wp;
-    tabpage_T   *tp;
     buf_T       *buf = curbuf;
     int         next_fnum = 0;
 
-    if (curwin-> w_onebuf_opt.wo_wfb  && eap->cmdidx != CMD_windo && eap->cmdidx != CMD_tabdo)
+    if (curwin-> w_onebuf_opt.wo_wfb  && eap->cmdidx != CMD_windo)
     {
-        if ((eap->cmdidx == CMD_ldo || eap->cmdidx == CMD_lfdo) && !eap->forceit)
-        {
-            emsg(_(e_winfixbuf_cannot_go_to_buffer));
-            return;
-        }
 
         if (win_valid(prevwin) && !prevwin-> w_onebuf_opt.wo_wfb )
         {
@@ -33417,27 +31729,14 @@ ex_listdo(exarg_T *eap)
         }
     }
 
-    if (eap->cmdidx == CMD_cdo || eap->cmdidx == CMD_ldo || eap->cmdidx == CMD_cfdo || eap->cmdidx == CMD_lfdo)
-    {
-        ex_ni(eap);
-        return;
-    }
-
-    if (eap->cmdidx == CMD_windo || eap->cmdidx == CMD_tabdo || buf_hide(curbuf) || !check_changed(curbuf, CCGD_AW | (eap->forceit ? CCGD_FORCEIT : 0) | CCGD_EXCMD))
+    if (eap->cmdidx == CMD_windo || buf_hide(curbuf) || !check_changed(curbuf, CCGD_AW | (eap->forceit ? CCGD_FORCEIT : 0) | CCGD_EXCMD))
     {
         i = 0;
         wp = firstwin;
-        tp = first_tabpage;
         switch (eap->cmdidx)
         {
             case CMD_windo:
                 for ( ; wp != NULL && i + 1 < eap->line1; wp = wp->w_next)
-                {
-                    i++;
-                }
-                break;
-            case CMD_tabdo:
-                for ( ; tp != NULL && i + 1 < eap->line1; tp = tp->tp_next)
                 {
                     i++;
                 }
@@ -33501,15 +31800,6 @@ ex_listdo(exarg_T *eap)
                 }
                 wp = curwin->w_next;
             }
-            else if (eap->cmdidx == CMD_tabdo)
-            {
-                if (!valid_tabpage(tp))
-                {
-                    break;
-                }
-                goto_tabpage_tp(tp, TRUE, TRUE);
-                tp = tp->tp_next;
-            }
             else if (eap->cmdidx == CMD_bufdo)
             {
                 next_fnum = -1;
@@ -33565,7 +31855,7 @@ ex_listdo(exarg_T *eap)
                 }
             }
 
-            if (eap->cmdidx == CMD_windo || eap->cmdidx == CMD_tabdo)
+            if (eap->cmdidx == CMD_windo)
             {
                 if (i+1 > eap->line2)
                 {
@@ -33604,7 +31894,6 @@ static void     correct_range(exarg_T *eap);
 static char_u   *repl_cmdline(exarg_T *eap, char_u *src, size_t srclen, char_u *repl, char_u **cmdlinep);
 static void     ex_win_close(int forceit, win_T *win, tabpage_T *tp);
 static void     ex_print(exarg_T *eap);
-static void     close_redir(void);
 // ---------------- begin ex_cmds.h ----------------
 
 typedef void (*ex_func_T) (exarg_T *eap);
@@ -34008,12 +32297,6 @@ do_cmdline(char_u      *cmdline, char_u      *(*fgetline)(int, void *, int, getl
 getline_equal(char_u      *(*fgetline)(int, void *, int, getline_opt_T), void        *cookie  __attribute__((unused)) , char_u      *(*func)(int, void *, int, getline_opt_T))
 {
     return fgetline == func;
-}
-
-    static void *
-getline_cookie(char_u      *(*fgetline)(int, void *, int, getline_opt_T)  __attribute__((unused)) , void        *cookie)
-{
-    return cookie;
 }
 
     static int
@@ -34743,71 +33026,6 @@ checkforcmd_noparen(char_u      **pp, char        *cmd, int         len)
     return checkforcmd_opt(pp, cmd, len, TRUE);
 }
 
-    static char_u *
-find_ucmd_repl(char_u *arg)
-{
-    char_u      *p = arg;
-
-    while (*p == '-')
-    {
-        p = skipwhite(skiptowhite(p));
-    }
-
-    if (! ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) ) )
-    {
-        return NULL;
-    }
-    while ( ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) )  ||  ((unsigned)(*p) - '0' < 10) ) )
-    {
-        ++p;
-    }
-
-    return *p == NUL ? NULL : skipwhite(p);
-}
-
-    static char_u *
-find_cmd_block_start(char_u *line)
-{
-    char_u      *p = skipwhite(line);
-
-    for (;;)
-    {
-        char_u  *arg = p;
-
-        if (*p == '{' && ends_excmd2(p, skipwhite(p + 1)))
-        {
-            return p;
-        }
-
-        if (checkforcmd_noparen(&arg, "autocmd", 2))
-        {
-            if (*arg == '!')
-            {
-                arg = skipwhite(arg + 1);
-            }
-            p = au_find_cmd_arg(arg);
-        }
-        else if (checkforcmd_noparen(&arg, "command", 3))
-        {
-            if (*arg == '!')
-            {
-                arg = skipwhite(arg + 1);
-            }
-            p = find_ucmd_repl(arg);
-        }
-        else
-        {
-            return NULL;
-        }
-
-        if (p == NULL)
-        {
-            return NULL;
-        }
-        p = skipwhite(p);
-    }
-}
-
     static int
 parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *cmod, int         skip_only)
 {
@@ -35028,19 +33246,6 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
                             cmod->cmod_flags |= CMOD_LOCKMARKS;
                             continue;
                         }
-                        if (checkforcmd_noparen(&eap->cmd, "legacy", 3))
-                        {
-                            if (ends_excmd2(p, eap->cmd))
-                            {
-                                *errormsg =
-                                      _(e_legacy_must_be_followed_by_command);
-                                return FAIL;
-                            }
-                            cmod->cmod_flags &= ~CMOD_VIM9CMD;
-                            cmod->cmod_flags |= CMOD_LEGACY;
-                            continue;
-                        }
-
                         if (!checkforcmd_noparen(&eap->cmd, "leftabove", 5))
                         {
                             break;
@@ -35049,11 +33254,6 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
                         continue;
 
             case 'n':
-                if (checkforcmd_noparen(&eap->cmd, "noautocmd", 3))
-                        {
-                            cmod->cmod_flags |= CMOD_NOAUTOCMD;
-                            continue;
-                        }
                         if (!checkforcmd_noparen(&eap->cmd, "noswapfile", 3))
                         {
                             break;
@@ -35070,11 +33270,6 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
                         continue;
 
             case 's':
-                if (checkforcmd_noparen(&eap->cmd, "sandbox", 3))
-                        {
-                            cmod->cmod_flags |= CMOD_SANDBOX;
-                            continue;
-                        }
                         if (!checkforcmd_noparen(&eap->cmd, "silent", 3))
                         {
                             break;
@@ -35088,28 +33283,6 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
                         continue;
 
             case 't':
-                if (checkforcmd_noparen(&p, "tab", 3))
-                        {
-                            if (!skip_only)
-                            {
-                                long tabnr = get_address(eap, &eap->cmd, ADDR_TABS, eap->skip, skip_only, FALSE, 1);
-                                if (tabnr ==  LONG_MAX )
-                                {
-                                    cmod->cmod_tab = tabpage_index(curtab) + 1;
-                                }
-                                else
-                                {
-                                    if (tabnr < 0 || tabnr >  current_tab_nr(NULL) )
-                                    {
-                                        *errormsg = _(e_invalid_range);
-                                        return FAIL;
-                                    }
-                                    cmod->cmod_tab = tabnr + 1;
-                                }
-                            }
-                            eap->cmd = p;
-                            continue;
-                        }
                         if (!checkforcmd_noparen(&eap->cmd, "topleft", 2))
                         {
                             break;
@@ -35129,18 +33302,6 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
                 if (checkforcmd_noparen(&eap->cmd, "vertical", 4))
                         {
                             cmod->cmod_split |= WSP_VERT;
-                            continue;
-                        }
-                        if (checkforcmd_noparen(&eap->cmd, "vim9cmd", 4))
-                        {
-                            if (ends_excmd2(p, eap->cmd))
-                            {
-                                *errormsg =
-                                      _(e_vim9cmd_must_be_followed_by_command);
-                                return FAIL;
-                            }
-                            cmod->cmod_flags &= ~CMOD_LEGACY;
-                            cmod->cmod_flags |= CMOD_VIM9CMD;
                             continue;
                         }
                         if (!checkforcmd_noparen(&p, "verbose", 4))
@@ -35205,7 +33366,6 @@ has_cmdmod(cmdmod_T *cmod, int ignore_silent)
     return (cmod->cmod_flags != 0 && (!ignore_silent || (cmod->cmod_flags & ~(CMOD_SILENT | CMOD_ERRSILENT | CMOD_UNSILENT)) != 0))
             || cmod->cmod_split != 0
             || cmod->cmod_verbose > 0
-            || cmod->cmod_tab != 0
             || cmod->cmod_filter_regmatch.regprog != NULL;
 }
 
@@ -35241,11 +33401,6 @@ apply_cmdmod(cmdmod_T *cmod)
         ++cmod->cmod_did_esilent;
     }
 
-    if ((cmod->cmod_flags & CMOD_NOAUTOCMD) && cmod->cmod_save_ei == NULL)
-    {
-        cmod->cmod_save_ei = vim_strsave(p_ei);
-        set_string_option_direct((char_u *)"ei", -1, (char_u *)"all", OPT_FREE,  (-6) );
-    }
 }
 
     static void
@@ -35255,13 +33410,6 @@ undo_cmdmod(cmdmod_T *cmod)
     {
         p_verbose = cmod->cmod_verbose_save - 1;
         cmod->cmod_verbose_save = 0;
-    }
-
-    if (cmod->cmod_save_ei != NULL)
-    {
-        set_string_option_direct((char_u *)"ei", -1, cmod->cmod_save_ei, OPT_FREE,  (-6) );
-        free_string_option(cmod->cmod_save_ei);
-        cmod->cmod_save_ei = NULL;
     }
 
     vim_regfree(cmod->cmod_filter_regmatch.regprog);
@@ -36878,39 +35026,6 @@ expand_argopt(char_u      *pat, expand_T    *xp, regmatch_T  *rmp, char_u      *
 }
 
     static void
-ex_autocmd(exarg_T *eap)
-{
-    if (secure)
-    {
-        secure = 2;
-        eap->errmsg =
-              _(e_command_not_allowed_from_vimrc_in_current_dir_or_tag_search);
-    }
-    else if (eap->cmdidx == CMD_autocmd)
-    {
-        do_autocmd(eap, eap->arg, eap->forceit);
-    }
-    else
-    {
-        do_augroup(eap->arg, eap->forceit);
-    }
-}
-
-    static void
-ex_doautocmd(exarg_T *eap)
-{
-    char_u      *arg = eap->arg;
-    int         call_do_modelines = check_nomodeline(&arg);
-    int         did_aucmd;
-
-    (void)do_doautocmd(arg, TRUE, &did_aucmd);
-    if (call_do_modelines && did_aucmd)
-    {
-        do_modelines(0);
-    }
-}
-
-    static void
 ex_bunload(exarg_T *eap)
 {
     if (ERROR_IF_ANY_POPUP_WINDOW)
@@ -37140,20 +35255,6 @@ get_command_name(expand_T *xp  __attribute__((unused)) , int idx)
 }
 
     static void
-ex_colorscheme(exarg_T *eap)
-{
-    if (*eap->arg == NUL)
-    {
-        msg(_("unknown"));
-    }
-    else if (load_colors(eap->arg) == FAIL)
-    {
-        semsg(_(e_cannot_find_color_scheme_str), eap->arg);
-    }
-
-}
-
-    static void
 ex_highlight(exarg_T *eap)
 {
     if (*eap->arg == NUL && eap->cmd[2] == '!')
@@ -37378,293 +35479,6 @@ ex_win_close(int         forceit, win_T       *win, tabpage_T   *tp)
     }
 }
 
-    static int
-get_tabpage_arg(exarg_T *eap)
-{
-    int tab_number;
-    int unaccept_arg0 = (eap->cmdidx == CMD_tabmove) ? 0 : 1;
-
-    if (eap->arg && *eap->arg != NUL)
-    {
-        char_u *p = eap->arg;
-        char_u *p_save;
-        int    relative = 0;
-
-        if (*p == '-')
-        {
-            relative = -1;
-            p++;
-        }
-        else if (*p == '+')
-        {
-            relative = 1;
-            p++;
-        }
-
-        p_save = p;
-        tab_number = getdigits(&p);
-
-        if (relative == 0)
-        {
-            if ( strcmp((char *)(p), (char *)("$"))  == 0)
-            {
-                tab_number =  current_tab_nr(NULL) ;
-            }
-            else if ( strcmp((char *)(p), (char *)("#"))  == 0)
-            {
-                if (valid_tabpage(lastused_tabpage))
-                {
-                    tab_number = tabpage_index(lastused_tabpage);
-                }
-                else
-                {
-                    eap->errmsg = ex_errmsg(e_invalid_value_for_argument_str, eap->arg);
-                    tab_number = 0;
-                    goto theend;
-                }
-            }
-            else if (p == p_save || *p_save == '-' || *p != NUL || tab_number >  current_tab_nr(NULL) )
-            {
-                eap->errmsg = ex_errmsg(e_invalid_argument_str, eap->arg);
-                goto theend;
-            }
-        }
-        else
-        {
-            if (*p_save == NUL)
-            {
-                tab_number = 1;
-            }
-            else if (p == p_save || *p_save == '-' || *p != NUL || tab_number == 0)
-            {
-                eap->errmsg = ex_errmsg(e_invalid_argument_str, eap->arg);
-                goto theend;
-            }
-            tab_number = tab_number * relative + tabpage_index(curtab);
-            if (!unaccept_arg0 && relative == -1)
-            {
-                --tab_number;
-            }
-        }
-        if (tab_number < unaccept_arg0 || tab_number >  current_tab_nr(NULL) )
-        {
-            eap->errmsg = ex_errmsg(e_invalid_argument_str, eap->arg);
-        }
-    }
-    else if (eap->addr_count > 0)
-    {
-        if (unaccept_arg0 && eap->line2 == 0)
-        {
-            eap->errmsg = _(e_invalid_range);
-            tab_number = 0;
-        }
-        else
-        {
-            tab_number = eap->line2;
-            if (!unaccept_arg0)
-            {
-                char_u *cmdp = eap->cmd;
-
-                while (--cmdp > *eap->cmdlinep && ( ((*cmdp) == ' ' || (*cmdp) == '\t')  ||  ((unsigned)(*cmdp) - '0' < 10) ))
-                {
-                    ;
-                }
-                if (*cmdp == '-')
-                {
-                    --tab_number;
-                    if (tab_number < unaccept_arg0)
-                    {
-                        eap->errmsg = _(e_invalid_range);
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        switch (eap->cmdidx)
-        {
-        case CMD_tabnext:
-            tab_number = tabpage_index(curtab) + 1;
-            if (tab_number >  current_tab_nr(NULL) )
-            {
-                tab_number = 1;
-            }
-            break;
-        case CMD_tabmove:
-            tab_number =  current_tab_nr(NULL) ;
-            break;
-        default:
-            tab_number = tabpage_index(curtab);
-        }
-    }
-
-theend:
-    return tab_number;
-}
-
-    static void
-ex_tabclose(exarg_T *eap)
-{
-    tabpage_T   *tp;
-    int         tab_number;
-
-    if (cmdwin_type != 0)
-    {
-        cmdwin_result =   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  ;
-        return;
-    }
-
-    if (first_tabpage->tp_next == NULL)
-    {
-        emsg(_(e_cannot_close_last_tab_page));
-        return;
-    }
-
-    if (window_layout_locked(CMD_tabclose))
-    {
-        return;
-    }
-
-    tab_number = get_tabpage_arg(eap);
-    if (eap->errmsg != NULL)
-    {
-        return;
-    }
-
-    tp = find_tabpage(tab_number);
-    if (tp == NULL)
-    {
-        beep_flush();
-        return;
-    }
-    if (tp != curtab)
-    {
-        tabpage_close_other(tp, eap->forceit);
-        return;
-    }
-    else if (!text_locked() && !curbuf_locked())
-    {
-        tabpage_close(eap->forceit);
-    }
-}
-
-    static void
-ex_tabonly(exarg_T *eap)
-{
-    tabpage_T   *tp;
-    int         done;
-    int         tab_number;
-
-    if (cmdwin_type != 0)
-    {
-        cmdwin_result =   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  ;
-        return;
-    }
-
-    if (first_tabpage->tp_next == NULL)
-    {
-        msg(_("Already only one tab page"));
-        return;
-    }
-
-    if (window_layout_locked(CMD_tabonly))
-    {
-        return;
-    }
-
-    tab_number = get_tabpage_arg(eap);
-    if (eap->errmsg != NULL)
-    {
-        return;
-    }
-
-    goto_tabpage(tab_number);
-    for (done = 0; done < 1000; ++done)
-    {
-         for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) 
-         {
-            if (tp->tp_topframe != topframe)
-            {
-                tabpage_close_other(tp, eap->forceit);
-                if (valid_tabpage(tp))
-                {
-                    done = 1000;
-                }
-                break;
-            }
-         }
-        if (first_tabpage->tp_next == NULL)
-        {
-            break;
-        }
-    }
-}
-
-    static void
-tabpage_close(int forceit)
-{
-    if (window_layout_locked(CMD_tabclose))
-    {
-        return;
-    }
-
-    trigger_tabclosedpre(curtab);
-    curtab->tp_did_tabclosedpre = TRUE;
-    tabpage_T *save_curtab = curtab;
-
-    if (! (firstwin == lastwin) )
-    {
-        close_others(TRUE, forceit);
-    }
-    if ( (firstwin == lastwin) )
-    {
-        ex_win_close(forceit, curwin, NULL);
-    }
-    if (curtab == save_curtab)
-    {
-        curtab->tp_did_tabclosedpre = FALSE;
-    }
-}
-
-    static void
-tabpage_close_other(tabpage_T *tp, int forceit)
-{
-    int         done = 0;
-    win_T       *wp;
-
-    if (window_layout_locked(CMD_SIZE))
-    {
-        return;
-    }
-
-    trigger_tabclosedpre(tp);
-    tp->tp_did_tabclosedpre = TRUE;
-
-    while (++done < 1000)
-    {
-        wp = tp->tp_firstwin;
-        ex_win_close(forceit, wp, tp);
-
-        if (!valid_tabpage(tp))
-        {
-            break;
-        }
-        if (tp->tp_firstwin == wp)
-        {
-            done = 1000;
-            break;
-        }
-    }
-    if (done >= 1000)
-    {
-        tp->tp_did_tabclosedpre = FALSE;
-        return;
-    }
-
-    apply_autocmds(EVENT_TABCLOSED, NULL, NULL, FALSE, curbuf);
-}
-
     static void
 ex_only(exarg_T *eap)
 {
@@ -37815,12 +35629,6 @@ ex_print(exarg_T *eap)
 }
 
     static void
-ex_shell(exarg_T *eap  __attribute__((unused)) )
-{
-    do_shell(NULL, 0);
-}
-
-    static void
 ex_wrongmodifier(exarg_T *eap)
 {
     eap->errmsg = ex_errmsg(e_invalid_command_str, eap->cmd);
@@ -37831,9 +35639,6 @@ ex_splitview(exarg_T *eap)
 {
     win_T       *old_curwin = curwin;
     char_u      *fname = NULL;
-    int         use_tab = eap->cmdidx == CMD_tabedit
-                       || eap->cmdidx == CMD_tabfind
-                       || eap->cmdidx == CMD_tabnew;
 
     if (ERROR_IF_ANY_POPUP_WINDOW)
     {
@@ -37861,19 +35666,7 @@ ex_splitview(exarg_T *eap)
         eap->arg = fname;
     }
 
-    if (use_tab)
-    {
-        if (win_new_tabpage(cmdmod.cmod_tab != 0 ? cmdmod.cmod_tab : eap->addr_count == 0 ? 0 : (int)eap->line2 + 1) != FAIL)
-        {
-            do_exedit(eap, old_curwin);
-
-            if (curwin != old_curwin && win_valid(old_curwin) && old_curwin->w_buffer != curbuf && (cmdmod.cmod_flags & CMOD_KEEPALT) == 0)
-            {
-                old_curwin->w_alt_fnum = curbuf->b_fnum;
-            }
-        }
-    }
-    else if (win_split(eap->addr_count > 0 ? (int)eap->line2 : 0, *eap->cmd == 'v' ? WSP_VERT : 0) != FAIL)
+    if (win_split(eap->addr_count > 0 ? (int)eap->line2 : 0, *eap->cmd == 'v' ? WSP_VERT : 0) != FAIL)
     {
         if (*eap->arg != NUL)
         {
@@ -37901,125 +35694,6 @@ tabpage_new(void)
     ea.cmd = (char_u *)"tabn";
     ea.arg = (char_u *)"";
     ex_splitview(&ea);
-}
-
-    static void
-ex_tabnext(exarg_T *eap)
-{
-    int tab_number;
-
-    if (ERROR_IF_POPUP_WINDOW)
-    {
-        return;
-    }
-    switch (eap->cmdidx)
-    {
-        case CMD_tabfirst:
-        case CMD_tabrewind:
-            goto_tabpage(1);
-            break;
-        case CMD_tablast:
-            goto_tabpage(9999);
-            break;
-        case CMD_tabprevious:
-        case CMD_tabNext:
-            if (eap->arg && *eap->arg != NUL)
-            {
-                char_u *p = eap->arg;
-                char_u *p_save = p;
-
-                tab_number = getdigits(&p);
-                if (p == p_save || *p_save == '-' || *p != NUL || tab_number == 0)
-                {
-                    eap->errmsg = ex_errmsg(e_invalid_argument_str, eap->arg);
-                    return;
-                }
-            }
-            else
-            {
-                if (eap->addr_count == 0)
-                {
-                    tab_number = 1;
-                }
-                else
-                {
-                    tab_number = eap->line2;
-                    if (tab_number < 1)
-                    {
-                        eap->errmsg = _(e_invalid_range);
-                        return;
-                    }
-                }
-            }
-            goto_tabpage(-tab_number);
-            break;
-        default:
-            tab_number = get_tabpage_arg(eap);
-            if (eap->errmsg == NULL)
-            {
-                goto_tabpage(tab_number);
-            }
-            break;
-    }
-}
-
-    static void
-ex_tabmove(exarg_T *eap)
-{
-    int tab_number;
-
-    tab_number = get_tabpage_arg(eap);
-    if (eap->errmsg == NULL)
-    {
-        tabpage_move(tab_number);
-    }
-}
-
-    static void
-ex_tabs(exarg_T *eap  __attribute__((unused)) )
-{
-    tabpage_T   *tp;
-    win_T       *wp;
-    int         tabcount = 1;
-
-    msg_start();
-    msg_scroll = TRUE;
-    for (tp = first_tabpage; tp != NULL && !got_int; tp = tp->tp_next)
-    {
-        msg_putchar('\n');
-        vim_snprintf((char *)IObuff,  (1024+1) , _("Tab page %d"), tabcount++);
-        msg_outtrans_attr(IObuff,  highlight_attr[(int)(HLF_T)] );
-        out_flush();
-        ui_breakcheck();
-
-        if (tp  == curtab)
-        {
-            wp = firstwin;
-        }
-        else
-        {
-            wp = tp->tp_firstwin;
-        }
-        for ( ; wp != NULL && !got_int; wp = wp->w_next)
-        {
-            msg_putchar('\n');
-            msg_putchar(wp == curwin ? '>' : ' ');
-            msg_putchar(' ');
-            msg_putchar(bufIsChanged(wp->w_buffer) ? '+' : ' ');
-            msg_putchar(' ');
-            if (buf_spname(wp->w_buffer) != NULL)
-            {
-                vim_strncpy(IObuff, buf_spname(wp->w_buffer),  (1024+1)  - 1);
-            }
-            else
-            {
-                home_replace(wp->w_buffer, wp->w_buffer->b_fname, IObuff,  (1024+1) , TRUE);
-            }
-            msg_outtrans(IObuff);
-            out_flush();
-            ui_breakcheck();
-        }
-    }
 }
 
     static void
@@ -38178,7 +35852,7 @@ do_exedit(exarg_T     *eap, win_T       *old_curwin)
         }
     }
 
-    if ((eap->cmdidx == CMD_new || eap->cmdidx == CMD_tabnew || eap->cmdidx == CMD_tabedit || eap->cmdidx == CMD_vnew) && *eap->arg == NUL)
+    if ((eap->cmdidx == CMD_new || eap->cmdidx == CMD_vnew) && *eap->arg == NUL)
     {
         setpcmark();
         (void)do_ecmd(0, NULL, NULL, eap,  (linenr_T)1 , ECMD_HIDE + (eap->forceit ? ECMD_FORCEIT : 0), old_curwin == NULL ? curwin : NULL);
@@ -38241,12 +35915,6 @@ do_exedit(exarg_T     *eap, win_T       *old_curwin)
     }
 
     ex_no_reprint = TRUE;
-}
-
-    static void
-ex_nogui(exarg_T *eap)
-{
-    eap->errmsg = _(e_gui_cannot_be_used_not_enabled_at_compile_time);
 }
 
     static void
@@ -38395,37 +36063,6 @@ ex_equal(exarg_T *eap)
 }
 
     static void
-ex_sleep(exarg_T *eap)
-{
-    int         n;
-    long        len;
-
-    if (cursor_valid())
-    {
-        n =  (curwin->w_winrow)  + curwin->w_wrow - msg_scrolled;
-        if (n >= 0)
-        {
-            windgoto(n, curwin->w_wincol + curwin->w_wcol);
-        }
-    }
-
-    len = eap->line2;
-    switch (*eap->arg)
-    {
-        case 'm':
-            break;
-        case NUL:
-            len *= 1000L;
-            break;
-        default:
-            semsg(_(e_invalid_argument_str), eap->arg);
-            return;
-    }
-
-    do_sleep(len, eap->forceit);
-}
-
-    static void
 do_sleep(long msec, int hide_cursor)
 {
     long        done = 0;
@@ -38522,10 +36159,8 @@ ex_wincmd(exarg_T *eap)
     else if (!eap->skip)
     {
         postponed_split_flags = cmdmod.cmod_split;
-        postponed_split_tab = cmdmod.cmod_tab;
         do_window(*eap->arg, eap->addr_count > 0 ? eap->line2 : 0L, xchar);
         postponed_split_flags = 0;
-        postponed_split_tab = 0;
     }
 }
 
@@ -38820,57 +36455,6 @@ ex_later(exarg_T *eap)
 }
 
     static void
-ex_redir(exarg_T *eap)
-{
-    char        *mode;
-    char_u      *fname;
-    char_u      *arg = eap->arg;
-
-    if ( strcasecmp((char *)(eap->arg), (char *)("END"))  == 0)
-    {
-        close_redir();
-    }
-    else
-    {
-        if (*arg == '>')
-        {
-            ++arg;
-            if (*arg == '>')
-            {
-                ++arg;
-                mode = "a";
-            }
-            else
-            {
-                mode = "w";
-            }
-            arg = skipwhite(arg);
-
-            close_redir();
-
-            fname = expand_env_save(arg);
-            if (fname == NULL)
-            {
-                return;
-            }
-
-            redir_fd = open_exfile(fname, eap->forceit, mode);
-            vim_free(fname);
-        }
-
-        else
-        {
-            semsg(_(e_invalid_argument_str), eap->arg);
-        }
-    }
-
-    if (redir_fd != NULL)
-    {
-        redir_off = FALSE;
-    }
-}
-
-    static void
 ex_redraw(exarg_T *eap)
 {
     redraw_cmd(eap->forceit);
@@ -38948,72 +36532,6 @@ ex_redrawstatus(exarg_T *eap  __attribute__((unused)) )
     RedrawingDisabled = save_RedrawingDisabled;
     p_lz = save_p_lz;
     out_flush();
-}
-
-    static void
-ex_redrawtabline(exarg_T *eap  __attribute__((unused)) )
-{
-    int save_RedrawingDisabled = RedrawingDisabled;
-    RedrawingDisabled = 0;
-
-    int save_p_lz = p_lz;
-    p_lz = FALSE;
-
-    draw_tabline();
-
-    RedrawingDisabled = save_RedrawingDisabled;
-    p_lz = save_p_lz;
-    out_flush();
-}
-
-    static void
-ex_redrawtabpanel(exarg_T *eap  __attribute__((unused)) )
-{
-    int save_RedrawingDisabled = RedrawingDisabled;
-    RedrawingDisabled = 0;
-
-    int save_p_lz = p_lz;
-    p_lz = FALSE;
-
-    emsg(_(e_cannot_not_support_redrawtabpanel));
-
-    RedrawingDisabled = save_RedrawingDisabled;
-    p_lz = save_p_lz;
-    out_flush();
-}
-
-    static void
-close_redir(void)
-{
-    if (redir_fd != NULL)
-    {
-        fclose(redir_fd);
-        redir_fd = NULL;
-    }
-}
-
-    static FILE *
-open_exfile(char_u      *fname, int         forceit, char        *mode)
-{
-    FILE        *fd;
-
-    if (mch_isdir(fname))
-    {
-        semsg(_(e_str_is_directory), fname);
-        return NULL;
-    }
-    if (!forceit && *mode != 'a' && vim_fexists(fname))
-    {
-        semsg(_(e_str_exists_add_bang_to_override), fname);
-        return NULL;
-    }
-
-    if ((fd =  fopen(((char *)fname), (mode)) ) == NULL)
-    {
-        semsg(_(e_cannot_open_str_for_writing_2), fname);
-    }
-
-    return fd;
 }
 
     static void
@@ -39574,73 +37092,6 @@ eval_vars(char_u      *src, char_u      *srcstart, size_t      *usedlen, linenr_
     return result;
 }
 
-    static char_u *
-expand_sfile(char_u *arg)
-{
-    char        *errormsg;
-    char_u      *result;
-    size_t      resultlen;
-    char_u      *newres;
-    size_t      len;
-    char_u      *repl;
-    size_t      repllen;
-    size_t      srclen;
-    char_u      *p;
-
-    resultlen =  strlen((char *)(arg)) ;
-    result = vim_strnsave(arg, resultlen);
-    if (result == NULL)
-    {
-        return NULL;
-    }
-
-    for (p = result; *p; )
-    {
-        if ( strncmp((char *)(p), (char *)("<sfile>"), (7))  != 0)
-        {
-            ++p;
-        }
-        else
-        {
-            repl = eval_vars(p, result, &srclen, NULL, &errormsg, NULL, TRUE);
-            if (errormsg != NULL)
-            {
-                if (*errormsg)
-                {
-                    emsg(errormsg);
-                }
-                vim_free(result);
-                return NULL;
-            }
-            if (repl == NULL)
-            {
-                p += srclen;
-                continue;
-            }
-            repllen =  strlen((char *)(repl)) ;
-            resultlen += repllen - srclen;
-            newres = alloc(resultlen + 1);
-            if (newres == NULL)
-            {
-                vim_free(repl);
-                vim_free(result);
-                return NULL;
-            }
-            len = p - result;
-             memmove((char *)(newres), (char *)(result), len) ;
-             strcpy((char *)(newres + len), (char *)(repl)) ;
-            len += repllen;
-             strcpy((char *)(newres + len), (char *)(p + srclen)) ;
-            vim_free(repl);
-            vim_free(result);
-            result = newres;
-            p = newres + len;
-        }
-    }
-
-    return result;
-}
-
     static void
 ex_behave(exarg_T *eap)
 {
@@ -39662,116 +37113,6 @@ ex_behave(exarg_T *eap)
     }
 }
 
-static int filetype_detect = FALSE;
-static int filetype_plugin = FALSE;
-static int filetype_indent = FALSE;
-
-    static void
-ex_filetype(exarg_T *eap)
-{
-    char_u      *arg = eap->arg;
-    int         plugin = FALSE;
-    int         indent = FALSE;
-
-    if (*eap->arg == NUL)
-    {
-        smsg("filetype detection:%s  plugin:%s  indent:%s", filetype_detect ? "ON" : "OFF", filetype_plugin ? (filetype_detect ? "ON" : "(on)") : "OFF", filetype_indent ? (filetype_detect ? "ON" : "(on)") : "OFF");
-        return;
-    }
-
-    for (;;)
-    {
-        if ( strncmp((char *)(arg), (char *)("plugin"), (6))  == 0)
-        {
-            plugin = TRUE;
-            arg = skipwhite(arg + 6);
-            continue;
-        }
-        if ( strncmp((char *)(arg), (char *)("indent"), (6))  == 0)
-        {
-            indent = TRUE;
-            arg = skipwhite(arg + 6);
-            continue;
-        }
-        break;
-    }
-    if ( strcmp((char *)(arg), (char *)("on"))  == 0 ||  strcmp((char *)(arg), (char *)("detect"))  == 0)
-    {
-        if (*arg == 'o' || !filetype_detect)
-        {
-            source_runtime((char_u *) "filetype.vim" , DIP_ALL);
-            filetype_detect = TRUE;
-            if (plugin)
-            {
-                source_runtime((char_u *) "ftplugin.vim" , DIP_ALL);
-                filetype_plugin = TRUE;
-            }
-            if (indent)
-            {
-                source_runtime((char_u *) "indent.vim" , DIP_ALL);
-                filetype_indent = TRUE;
-            }
-        }
-        if (*arg == 'd')
-        {
-            (void)do_doautocmd((char_u *)"filetypedetect BufRead", TRUE, NULL);
-            do_modelines(0);
-        }
-    }
-    else if ( strcmp((char *)(arg), (char *)("off"))  == 0)
-    {
-        if (plugin || indent)
-        {
-            if (plugin)
-            {
-                source_runtime((char_u *) "ftplugof.vim" , DIP_ALL);
-                filetype_plugin = FALSE;
-            }
-            if (indent)
-            {
-                source_runtime((char_u *) "indoff.vim" , DIP_ALL);
-                filetype_indent = FALSE;
-            }
-        }
-        else
-        {
-            source_runtime((char_u *) "ftoff.vim" , DIP_ALL);
-            filetype_detect = FALSE;
-        }
-    }
-    else
-    {
-        semsg(_(e_invalid_argument_str), arg);
-    }
-}
-
-    static void
-ex_setfiletype(exarg_T *eap)
-{
-    if (curbuf->b_did_filetype)
-    {
-        return;
-    }
-
-    char_u *arg = eap->arg;
-    if ( strncmp((char *)(arg), (char *)("FALLBACK "), (9))  == 0)
-    {
-        arg += 9;
-    }
-
-    set_option_value_give_err((char_u *)"filetype", 0L, arg, OPT_LOCAL);
-    if (arg != eap->arg)
-    {
-        curbuf->b_did_filetype = false;
-    }
-}
-
-    static void
-ex_digraphs(exarg_T *eap  __attribute__((unused)) )
-{
-    emsg(_(e_no_digraphs_version));
-}
-
     static void
 set_no_hlsearch(int flag)
 {
@@ -39783,18 +37124,6 @@ ex_nohlsearch(exarg_T *eap  __attribute__((unused)) )
 {
     set_no_hlsearch(TRUE);
     redraw_all_later(UPD_SOME_VALID);
-}
-
-    static int
-get_pressedreturn(void)
-{
-    return ex_pressedreturn;
-}
-
-    static void
-set_pressedreturn(int val)
-{
-    ex_pressedreturn = val;
 }
 
 // ==================== ex_getln.c ====================
@@ -39821,7 +37150,6 @@ static void     save_cmdline(cmdline_info_T *ccp);
 static void     restore_cmdline(cmdline_info_T *ccp);
 static int      cmdline_paste(int regname, int literally, int remcr);
 static void     redrawcmdprompt(void);
-static int      ccheck_abbr(int);
 static int      open_cmdwin(void);
 static int      empty_pattern_magic(char_u *pat, size_t len, magic_T magic_val);
 
@@ -39830,11 +37158,6 @@ static int      cedit_key = -1;
     static void
 trigger_cmd_autocmd(int typechar, int evt)
 {
-    char_u      typestr[2];
-
-    typestr[0] = typechar;
-    typestr[1] = NUL;
-    apply_autocmds(evt, typestr, typestr, FALSE, curbuf);
 }
 
     static void
@@ -41349,10 +38672,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
             else
             {
                 gotesc = FALSE;
-                if (ccheck_abbr(c + ABBR_OFF))
-                {
-                    goto cmdline_changed;
-                }
                 if (!cmd_silent)
                 {
                     windgoto(msg_row, cmdline_col_off);
@@ -41677,7 +38996,7 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
                 break;
         }
 
-        if (do_abbr && ( ((c) < 0)  || !vim_iswordc(c)) && (ccheck_abbr((has_mbyte && c >= 0x100) ? (c + ABBR_OFF) : c) || c == Ctrl_RSB))
+        if (do_abbr && ( ((c) < 0)  || !vim_iswordc(c)) && c == Ctrl_RSB)
         {
             goto cmdline_changed;
         }
@@ -42822,32 +40141,6 @@ gotocmdline(int clr)
     windgoto(cmdline_row, cmdline_col_off);
 }
 
-    static int
-ccheck_abbr(int c)
-{
-    int spos = 0;
-
-    if (p_paste || no_abbr)
-    {
-        return FALSE;
-    }
-
-    while ( ((ccline.cmdbuff[spos]) == ' ' || (ccline.cmdbuff[spos]) == '\t')  && spos < ccline.cmdlen)
-    {
-        spos++;
-    }
-    if (ccline.cmdlen - spos > 5 && ccline.cmdbuff[spos] == '\'' && ccline.cmdbuff[spos + 2] == ',' && ccline.cmdbuff[spos + 3] == '\'')
-    {
-        spos += 5;
-    }
-    else
-    {
-        spos = 0;
-    }
-
-    return check_abbr(c, ccline.cmdbuff, ccline.cmdpos, spos);
-}
-
     static char_u *
 vim_strsave_fnameescape(char_u *fname, int what)
 {
@@ -43050,7 +40343,6 @@ open_cmdwin(void)
 
     pum_undisplay();
 
-    cmdmod.cmod_tab = 0;
     cmdmod.cmod_flags |= CMOD_NOSWAPFILE;
 
     if (win_split((int)p_cwh, WSP_BOT) == FAIL)
@@ -45117,10 +42409,6 @@ set_rw_fname(char_u *fname, char_u *sfname)
 
     if (*curbuf->b_p_ft == NUL)
     {
-        if (au_has_group((char_u *)"filetypedetect"))
-        {
-            (void)do_doautocmd((char_u *)"filetypedetect BufRead", FALSE, NULL);
-        }
         do_modelines(0);
     }
 
@@ -47431,36 +44719,6 @@ CancelRedo(void)
 }
 
     static void
-saveRedobuff(save_redo_T *save_redo)
-{
-    char_u      *s;
-    size_t      slen;
-
-    save_redo->sr_redobuff = redobuff;
-    redobuff.bh_first.b_next = NULL;
-    save_redo->sr_old_redobuff = old_redobuff;
-    old_redobuff.bh_first.b_next = NULL;
-
-    s = get_buffcont(&save_redo->sr_redobuff, FALSE, &slen);
-    if (s == NULL)
-    {
-        return;
-    }
-
-    add_buff(&redobuff, s, (long)slen);
-    vim_free(s);
-}
-
-    static void
-restoreRedobuff(save_redo_T *save_redo)
-{
-    free_buff(&redobuff);
-    redobuff = save_redo->sr_redobuff;
-    free_buff(&old_redobuff);
-    old_redobuff = save_redo->sr_old_redobuff;
-}
-
-    static void
 AppendToRedobuff(char_u *s)
 {
     if (!block_redo)
@@ -47818,12 +45076,6 @@ init_typebuf(void)
     typebuf.tb_len = 0;
     typebuf.tb_off = MAXMAPLEN + 4;
     typebuf.tb_change_cnt = 1;
-}
-
-    static int
-noremap_keys(void)
-{
-    return KeyNoremap & (RM_NONE|RM_SCRIPT);
 }
 
     static int
@@ -48223,19 +45475,6 @@ free_typebuf(void)
 
 static typebuf_T saved_typebuf[NSCRIPT];
 
-    static int
-save_typebuf(void)
-{
-    init_typebuf();
-    saved_typebuf[curscript] = typebuf;
-    if (alloc_typebuf() == FAIL)
-    {
-        closescript();
-        return FAIL;
-    }
-    return OK;
-}
-
 static int old_char = -1;
 static int old_mod_mask;
 static int old_mouse_row;
@@ -48285,74 +45524,6 @@ restore_typeahead(tasave_T *tp, int overwrite  __attribute__((unused)) )
     free_buff(&readbuf2);
     readbuf2 = tp->save_readbuf2;
     set_input_buf(tp->save_inputbuf, overwrite);
-}
-
-    static void
-openscript(char_u      *name, int         directly)
-{
-    if (curscript + 1 == NSCRIPT)
-    {
-        emsg(_(e_scripts_nested_too_deep));
-        return;
-    }
-
-    if (check_secure())
-    {
-        return;
-    }
-
-    if (scriptin[curscript] != NULL)
-    {
-        ++curscript;
-    }
-    expand_env(name, NameBuff,  PATH_MAX );
-    if ((scriptin[curscript] =  fopen(((char *)NameBuff), ( "r" )) ) == NULL)
-    {
-        semsg(_(e_cant_open_file_str), name);
-        if (curscript)
-        {
-            --curscript;
-        }
-        return;
-    }
-    if (save_typebuf() == FAIL)
-    {
-        return;
-    }
-
-    if (directly)
-    {
-        oparg_T oa;
-        int     oldcurscript;
-        int     save_State = State;
-        int     save_restart_edit = restart_edit;
-        int     save_insertmode = p_im;
-        int     save_finish_op = finish_op;
-        int     save_msg_scroll = msg_scroll;
-
-        State = MODE_NORMAL;
-        msg_scroll = FALSE;
-        restart_edit = 0;
-        p_im = FALSE;
-        clear_oparg(&oa);
-        finish_op = FALSE;
-
-        oldcurscript = curscript;
-        do
-        {
-            update_topline_cursor();
-            normal_cmd(&oa, FALSE);
-            (void)vpeekc();
-        }
-        while (scriptin[oldcurscript] != NULL)
-            ;
-
-        State = save_State;
-        msg_scroll = save_msg_scroll;
-        restart_edit = save_restart_edit;
-        p_im = save_insertmode;
-        finish_op = save_finish_op;
-    }
 }
 
     static void
@@ -50502,36 +47673,6 @@ init_highlight(int         both, int         reset)
 
     resolve_fallback_fg_to_rgb();
     resolve_fallback_bg_to_rgb();
-}
-
-    static int
-load_colors(char_u *name)
-{
-    char_u      *buf;
-    int         retval = FAIL;
-    static int  recursive = FALSE;
-
-    if (recursive)
-    {
-        return OK;
-    }
-
-    recursive = TRUE;
-    buf = alloc( strlen((char *)(name))  + 12);
-    if (buf != NULL)
-    {
-        apply_autocmds(EVENT_COLORSCHEMEPRE, name, curbuf->b_fname, FALSE, curbuf);
-        sprintf((char *)buf, "colors/%s.vim", name);
-        retval = source_runtime(buf, DIP_START + DIP_OPT);
-        vim_free(buf);
-        if (retval == OK)
-        {
-            apply_autocmds(EVENT_COLORSCHEME, name, curbuf->b_fname, FALSE, curbuf);
-        }
-    }
-    recursive = FALSE;
-
-    return retval;
 }
 
 static int color_numbers_16[28] = {0, 1, 2, 3,
@@ -54679,13 +51820,6 @@ ins_compl_win_active(win_T *wp)
     return FALSE;
 }
 
-enum
-{
-    INS_COMPL_CPT_OK = 1,
-    INS_COMPL_CPT_CONT,
-    INS_COMPL_CPT_END
-};
-
     static bool
 ins_compl_autocomplete_pending(void)
 {
@@ -56110,203 +53244,6 @@ ExpandMappings(char_u      *pat, regmatch_T  *regmatch, int         *numMatches,
     return (count == 0 ? FAIL : OK);
 }
 
-    static int
-check_abbr(int         c, char_u      *ptr, int         col, int         mincol)
-{
-    int         len;
-    int         scol;
-    int         j;
-    char_u      *s;
-    char_u      tb[MB_MAXBYTES + 4];
-    mapblock_T  *mp;
-    mapblock_T  *mp2;
-    int         clen = 0;
-    int         is_id = TRUE;
-    int         vim_abbr;
-
-    if (typebuf.tb_no_abbr_cnt)
-    {
-        return FALSE;
-    }
-
-    if (noremap_keys() && c != Ctrl_RSB)
-    {
-        return FALSE;
-    }
-
-    if (col == 0)
-    {
-        return FALSE;
-    }
-
-    if (has_mbyte)
-    {
-        char_u *p;
-
-        p = mb_prevptr(ptr, ptr + col);
-        if (!vim_iswordp(p))
-        {
-            vim_abbr = TRUE;
-        }
-        else
-        {
-            vim_abbr = FALSE;
-            if (p > ptr)
-            {
-                is_id = vim_iswordp(mb_prevptr(ptr, p));
-            }
-        }
-        clen = 1;
-        while (p > ptr + mincol)
-        {
-            p = mb_prevptr(ptr, p);
-            if (vim_isspace(*p) || (!vim_abbr && is_id != vim_iswordp(p)))
-            {
-                p += (*mb_ptr2len)(p);
-                break;
-            }
-            ++clen;
-        }
-        scol = (int)(p - ptr);
-    }
-    else
-    {
-        if (!vim_iswordc(ptr[col - 1]))
-        {
-            vim_abbr = TRUE;
-        }
-        else
-        {
-            vim_abbr = FALSE;
-            if (col > 1)
-            {
-                is_id = vim_iswordc(ptr[col - 2]);
-            }
-        }
-        for (scol = col - 1; scol > 0 && !vim_isspace(ptr[scol - 1]) && (vim_abbr || is_id == vim_iswordc(ptr[scol - 1])); --scol)
-        {
-            ;
-        }
-    }
-
-    if (scol < mincol)
-    {
-        scol = mincol;
-    }
-    if (scol < col)
-    {
-        ptr += scol;
-        len = col - scol;
-        mp = curbuf->b_first_abbr;
-        mp2 = first_abbr;
-        if (mp == NULL)
-        {
-            mp = mp2;
-            mp2 = NULL;
-        }
-        for ( ; mp; mp->m_next == NULL ? (mp = mp2, mp2 = NULL) : (mp = mp->m_next))
-        {
-            int         qlen = mp->m_keylen;
-            char_u      *q = mp->m_keys;
-            int         match;
-
-            if (vim_strbyte(mp->m_keys,  (0x80) ) != NULL)
-            {
-                char_u *qe = vim_strsave(mp->m_keys);
-
-                if (qe != NULL)
-                {
-                    q = qe;
-                    qlen = (int)vim_unescape_csi(q);
-                }
-            }
-
-            match =    (mp->m_mode & State)
-                    && qlen == len
-                    &&  strncmp((char *)(q), (char *)(ptr), ((size_t)len))  == 0;
-            if (q != mp->m_keys)
-            {
-                vim_free(q);
-            }
-            if (match)
-            {
-                break;
-            }
-        }
-        if (mp != NULL)
-        {
-            int noremap;
-            int silent;
-
-            j = 0;
-            if (c != Ctrl_RSB)
-            {
-                if ( ((c) < 0)  || c ==  (0x80) )
-                {
-                    tb[j++] =  (0x80) ;
-                    tb[j++] =  ((c) ==  (0x80)  ? KS_SPECIAL : (c) == NUL ? KS_ZERO :  ((-(c)) & 0xff) ) ;
-                    tb[j++] =  (((c) ==  (0x80)  || (c) == NUL) ?  ('X')  :  (((unsigned)(-(c)) >> 8) & 0xff) ) ;
-                }
-                else
-                {
-                    if (c < ABBR_OFF && (c < ' ' || c > '~'))
-                    {
-                        tb[j++] = Ctrl_V;
-                    }
-                    if (has_mbyte)
-                    {
-                        int     newlen;
-                        char_u  *escaped;
-
-                        if (c >= ABBR_OFF)
-                        {
-                            c -= ABBR_OFF;
-                        }
-                        newlen = (*mb_char2bytes)(c, tb + j);
-                        tb[j + newlen] = NUL;
-                        escaped = vim_strsave_escape_csi(tb + j);
-                        if (escaped != NULL)
-                        {
-                            newlen = (int) strlen((char *)(escaped)) ;
-                             memmove((char *)(tb + j), (char *)(escaped), newlen) ;
-                            j += newlen;
-                            vim_free(escaped);
-                        }
-                    }
-                    else
-                    {
-                        tb[j++] = c;
-                    }
-                }
-                tb[j] = NUL;
-                (void)ins_typebuf(tb, 1, 0, TRUE, mp->m_silent);
-            }
-
-            noremap = mp->m_noremap;
-            silent = mp->m_silent;
-                s = mp->m_str;
-            if (s != NULL)
-            {
-                (void)ins_typebuf(s, noremap, 0, TRUE, silent);
-                typebuf.tb_no_abbr_cnt += (int) strlen((char *)(s))  + j + 1;
-            }
-
-            tb[0] = Ctrl_H;
-            tb[1] = NUL;
-            if (has_mbyte)
-            {
-                len = clen;
-            }
-            while (len-- > 0)
-            {
-                (void)ins_typebuf(tb, 1, 0, TRUE, silent);
-            }
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
     static char_u *
 vim_strsave_escape_csi(char_u *p)
 {
@@ -56513,12 +53450,6 @@ do_exmap(exarg_T *eap, int isabbrev)
 }
 
     static void
-ex_abbreviate(exarg_T *eap)
-{
-    do_exmap(eap, TRUE);
-}
-
-    static void
 ex_map(exarg_T *eap)
 {
     if (secure)
@@ -56540,12 +53471,6 @@ ex_unmap(exarg_T *eap)
 ex_mapclear(exarg_T *eap)
 {
     map_clear(eap->cmd, eap->arg, eap->forceit, FALSE);
-}
-
-    static void
-ex_abclear(exarg_T *eap)
-{
-    map_clear(eap->cmd, eap->arg, TRUE, TRUE);
 }
 
 // ==================== mark.c ====================
@@ -70770,13 +67695,6 @@ approximate_botline_win(win_T       *wp)
     wp->w_valid &= ~VALID_BOTLINE;
 }
 
-    static int
-cursor_valid(void)
-{
-    check_cursor_moved(curwin);
-    return ((curwin->w_valid & (VALID_WROW|VALID_WCOL)) == (VALID_WROW|VALID_WCOL));
-}
-
     static void
 validate_cursor(void)
 {
@@ -72778,6 +69696,28 @@ static const struct nv_cmd
      {'~', nv_tilde, 0, 0} ,
 
      {POUND, nv_ident, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))  , nv_error, 0, MSCR_UP} ,
+     {  (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))  , nv_error, 0, MSCR_DOWN} ,
+     {  (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))  , nv_error, 0,  (-1) } ,
+     {  (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))  , nv_error, 0,  (-2) } ,
+     {  (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE_NM) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_LEFTDRAG) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE_NM) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_MOUSEMOVE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_MIDDLEDRAG) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_MIDDLERELEASE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_RIGHTMOUSE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_RIGHTDRAG) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_X1MOUSE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_X1DRAG) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_X1RELEASE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_X2MOUSE) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_X2DRAG) << 8)))  , nv_error, 0, 0} ,
+     {  (-((KS_EXTRA) + ((int)(KE_X2RELEASE) << 8)))  , nv_error, 0, 0} ,
      {  (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  , nv_ignore, NV_KEEPREG, 0} ,
      {  (-((KS_EXTRA) + ((int)(KE_NOP) << 8)))  , nv_nop, 0, 0} ,
      {  (-(('k') + ((int)('I') << 8)))  , nv_edit, 0, 0} ,
@@ -74499,13 +71439,9 @@ nv_page(cmdarg_T *cap)
 
     if (mod_mask & MOD_MASK_CTRL)
     {
-        if (cap->arg ==  (-1) )
+        if (cap->arg !=  (-1)  && cap->count0 > 1)
         {
-            goto_tabpage(-(int)cap->count1);
-        }
-        else
-        {
-            goto_tabpage((int)cap->count0);
+            beep_flush();
         }
     }
     else
@@ -76804,10 +73740,7 @@ nv_pcmark(cmdarg_T *cap)
 
     if (cap->cmdchar == TAB && mod_mask == MOD_MASK_CTRL)
     {
-        if (goto_tabpage_lastused() == FAIL)
-        {
-            clearopbeep(cap->oap);
-        }
+        clearopbeep(cap->oap);
         return;
     }
     if (cap->cmdchar == 'g')
@@ -77581,20 +74514,17 @@ nv_g_cmd(cmdarg_T *cap)
         break;
 
     case 't':
-        if (!checkclearop(oap))
+        if (!checkclearop(oap) && cap->count0 > 1)
         {
-            goto_tabpage((int)cap->count0);
+            beep_flush();
         }
         break;
     case 'T':
-        if (!checkclearop(oap))
-        {
-            goto_tabpage(-(int)cap->count1);
-        }
+        (void)checkclearop(oap);
         break;
 
     case TAB:
-        if (!checkclearop(oap) && goto_tabpage_lastused() == FAIL)
+        if (!checkclearop(oap))
         {
             clearopbeep(oap);
         }
@@ -82714,12 +79644,6 @@ static struct vimoption options[] =
     {"esckeys",     "ek",   P_BOOL|P_VIM,
                             (char_u *)&p_ek, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)TRUE}   },
-    {"eventignore", "ei",   P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_ei, PV_NONE, did_set_eventignore, expand_set_eventignore,
-                            {(char_u *)"", (char_u *)0L}   },
-    {"eventignorewin", "eiw",   P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_EIW))  , did_set_eventignore, expand_set_eventignore,
-                            {(char_u *)"", (char_u *)0L}   },
     {"expandtab",   "et",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_et,   (idopt_T)(PV_BUF + (int)(BV_ET))  , NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
@@ -83071,9 +79995,6 @@ static struct vimoption options[] =
     {"listchars",   "lcs",  P_STRING|P_VI_DEF|P_RALL|P_ONECOMMA|P_NODUP|P_COLON,
                             (char_u *)&p_lcs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_LCS)) ))  , did_set_chars_option, expand_set_chars_option,
                             {(char_u *)"eol:$", (char_u *)0L}   },
-    {"loadplugins", "lpl",  P_BOOL|P_VI_DEF,
-                            (char_u *)&p_lpl, PV_NONE, NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
     {"luadll",      NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)"", (char_u *)0L}
@@ -83384,10 +80305,6 @@ static struct vimoption options[] =
     {"selectmode",  "slm",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
                             (char_u *)&p_slm, PV_NONE, did_set_selectmode, expand_set_selectmode,
                             {(char_u *)"", (char_u *)0L}   },
-    {"sessionoptions", "ssop", P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
     {"shell",       "sh",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
                             (char_u *)&p_sh, PV_NONE, NULL, NULL,
                             {
@@ -83456,9 +80373,6 @@ static struct vimoption options[] =
     {"showmode",    "smd",  P_BOOL|P_VIM,
                             (char_u *)&p_smd, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)TRUE}   },
-    {"showtabline", "stal", P_NUM|P_VI_DEF|P_RALL,
-                            (char_u *)&p_stal, PV_NONE, did_set_showtabline, NULL,
-                            {(char_u *)1L, (char_u *)0L}   },
     {"sidescroll",  "ss",   P_NUM|P_VI_DEF,
                             (char_u *)&p_ss, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
@@ -83524,15 +80438,6 @@ static struct vimoption options[] =
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
                               },
-    {"tabclose",    "tcl",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_tcl, PV_NONE, did_set_tabclose, expand_set_tabclose,
-                            {(char_u *)"", (char_u *)0L}   },
-    {"tabline",     "tal",  P_STRING|P_VI_DEF|P_RALL|P_MLE,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
-    {"tabpagemax",  "tpm",  P_NUM|P_VI_DEF,
-                            (char_u *)&p_tpm, PV_NONE, NULL, NULL,
-                            {(char_u *)10L, (char_u *)0L}   },
     {"tabstop",     "ts",   P_NUM|P_VI_DEF|P_RBUF,
                             (char_u *)&p_ts,   (idopt_T)(PV_BUF + (int)(BV_TS))  ,
                             did_set_shiftwidth_tabstop, NULL,
@@ -83680,14 +80585,6 @@ static struct vimoption options[] =
     {"verbosefile", "vfile", P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
                             (char_u *)&p_vfile, PV_NONE, did_set_verbosefile, NULL,
                             {(char_u *)"", (char_u *)0L}   },
-    {"viewdir",     "vdir", P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
-    {"viewoptions", "vop",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
     {"virtualedit", "ve",   P_STRING|P_ONECOMMA|P_NODUP|P_VI_DEF
                                                             |P_VIM|P_CURSWANT,
                             (char_u *)&p_ve,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_VE)) ))  , did_set_virtualedit, expand_set_virtualedit,
@@ -86288,13 +83185,6 @@ did_set_shiftwidth_tabstop(optset_T *args)
 }
 
     static char *
-did_set_showtabline(optset_T *args  __attribute__((unused)) )
-{
-    shell_new_rows();
-    return NULL;
-}
-
-    static char *
 did_set_smoothscroll(optset_T *args  __attribute__((unused)) )
 {
     if (!curwin-> w_onebuf_opt.wo_sms )
@@ -87524,8 +84414,6 @@ get_varp(struct vimoption *p)
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_VE)) ))  :
             return *curwin-> w_onebuf_opt.wo_ve  != NUL
                                     ? (char_u *)&(curwin-> w_onebuf_opt.wo_ve ) : p->var;
-        case   (idopt_T)(PV_WIN + (int)(WV_EIW))  :
-            return (char_u *)&(curwin-> w_onebuf_opt.wo_eiw );
         case   (idopt_T)(PV_WIN + (int)(WV_NU))  :
             return (char_u *)&(curwin-> w_onebuf_opt.wo_nu );
         case   (idopt_T)(PV_WIN + (int)(WV_RNU))  :
@@ -87719,7 +84607,6 @@ copy_winopt(winopt_T *from, winopt_T *to)
     to->wo_siso = from->wo_siso;
     to->wo_so = from->wo_so;
     to->wo_sop = from->wo_sop;
-    to->wo_eiw = copy_option_val(from->wo_eiw);
 
     to->wo_wrap_flags = from->wo_wrap_flags;
     to->wo_whl = copy_option_val(from->wo_whl);
@@ -87737,7 +84624,6 @@ check_win_options(win_T *win)
     static void
 check_winopt(winopt_T *wop  __attribute__((unused)) )
 {
-    check_string_option(&wop->wo_eiw);
     check_string_option(&wop->wo_wcr);
     check_string_option(&wop->wo_lcs);
     check_string_option(&wop->wo_fcs);
@@ -87748,7 +84634,6 @@ check_winopt(winopt_T *wop  __attribute__((unused)) )
     static void
 clear_winopt(winopt_T *wop  __attribute__((unused)) )
 {
-    clear_string_option(&wop->wo_eiw);
     clear_string_option(&wop->wo_wcr);
     clear_string_option(&wop->wo_lcs);
     clear_string_option(&wop->wo_fcs);
@@ -88899,7 +85784,6 @@ static char *(p_jop_values[]) = {"stack", NULL};
 static char *(p_kpc_protocol_values[]) = {"none", "mok2", "kitty", NULL};
 static char *(p_swb_values[]) = {"useopen", "usetab", "split", "newtab", "vsplit", "uselast", NULL};
 static char *(p_spk_values[]) = {"cursor", "screen", "topline", NULL};
-static char *(p_tcl_values[]) = {"left", "uselast", NULL};
 static char *(p_ve_values[]) = {"block", "insert", "all", "onemore", "none", "NONE", NULL};
 static char *(p_wim_values[]) = {"full", "longest", "list", "lastused", "noselect", "noinsert", NULL};
 static char *(p_wop_values[]) = {"fuzzy", "tagfile", "exacttext", NULL};
@@ -88928,7 +85812,6 @@ didset_string_options(void)
     (void)opt_strings_flags(p_jop, p_jop_values, &jop_flags, TRUE);
     (void)opt_strings_flags(p_ve, p_ve_values, &ve_flags, TRUE);
     (void)opt_strings_flags(p_swb, p_swb_values, &swb_flags, TRUE);
-    (void)opt_strings_flags(p_tcl, p_tcl_values, &tcl_flags, TRUE);
 }
 
     static char *
@@ -89760,74 +86643,6 @@ expand_set_encoding(optexpand_T *args, int *numMatches, char_u ***matches)
 }
 
     static char *
-did_set_eventignore(optset_T *args)
-{
-    char_u      **varp = (char_u **)args->os_varp;
-    char_u      *oldval = args->os_oldval.string;
-
-    if (check_ei(*varp) == FAIL)
-    {
-        return e_invalid_argument;
-    }
-
-    if (oldval == NULL ||  strcmp((char *)(oldval), (char *)(*varp))  == 0)
-    {
-        return NULL;
-    }
-
-    char_u      *save_ei = vim_strsave(oldval);
-    if (save_ei != NULL)
-    {
-        char_u  *newval = *varp;
-        win_T   *wp = is_window_local_option(args->os_idx) ? curwin : NULL;
-
-        *varp = save_ei;
-        if (wp != NULL)
-        {
-            ++wp->w_locked;
-        }
-        may_trigger_deferred_events();
-        if (wp != NULL)
-        {
-            --wp->w_locked;
-        }
-
-        free_string_option(*varp);
-        *varp = newval;
-    }
-
-    return NULL;
-}
-
-static int expand_eiw = FALSE;
-
-    static char_u *
-get_eventignore_name(expand_T *xp, int idx)
-{
-    int subtract = *xp->xp_pattern == '-';
-    if (!subtract && idx == 0)
-    {
-        return (char_u *)"all";
-    }
-
-    char_u *name = get_event_name_no_group(xp, idx - 1 + subtract, expand_eiw);
-    if (name == NULL)
-    {
-        return NULL;
-    }
-
-    sprintf((char *)IObuff, "%s%s", subtract ? "-" : "", name);
-    return IObuff;
-}
-
-    static int
-expand_set_eventignore(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    expand_eiw = args->oe_varp != (char_u *)&p_ei;
-    return expand_set_opt_generic(args, get_eventignore_name, numMatches, matches);
-}
-
-    static char *
 did_set_fileformat(optset_T *args)
 {
     char_u      **varp = (char_u **)args->os_varp;
@@ -90456,18 +87271,6 @@ did_set_switchbuf(optset_T *args  __attribute__((unused)) )
 expand_set_switchbuf(optexpand_T *args, int *numMatches, char_u ***matches)
 {
     return expand_set_opt_string(args, p_swb_values,  (sizeof(p_swb_values) / sizeof((p_swb_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char *
-did_set_tabclose(optset_T *args  __attribute__((unused)) )
-{
-    return did_set_opt_flags(p_tcl, p_tcl_values, &tcl_flags, TRUE);
-}
-
-    static int
-expand_set_tabclose(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_tcl_values,  (sizeof(p_tcl_values) / sizeof((p_tcl_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -98425,185 +95228,6 @@ static regengine_T bt_regengine =
 
 // ==================== regexp_nfa.c ====================
 
-enum { NFA_ADD_NL = 31 };
-
-enum
-{
-    NFA_SPLIT = -1024,
-    NFA_MATCH,
-    NFA_EMPTY,
-
-    NFA_START_COLL,
-    NFA_END_COLL,
-    NFA_START_NEG_COLL,
-    NFA_END_NEG_COLL,
-    NFA_RANGE,
-    NFA_RANGE_MIN,
-    NFA_RANGE_MAX,
-
-    NFA_CONCAT,
-    NFA_OR,
-    NFA_STAR,
-    NFA_STAR_NONGREEDY,
-    NFA_QUEST,
-    NFA_QUEST_NONGREEDY,
-
-    NFA_BOL,
-    NFA_EOL,
-    NFA_BOW,
-    NFA_EOW,
-    NFA_BOF,
-    NFA_EOF,
-    NFA_NEWL,
-    NFA_ZSTART,
-    NFA_ZEND,
-    NFA_NOPEN,
-    NFA_NCLOSE,
-    NFA_START_INVISIBLE,
-    NFA_START_INVISIBLE_FIRST,
-    NFA_START_INVISIBLE_NEG,
-    NFA_START_INVISIBLE_NEG_FIRST,
-    NFA_START_INVISIBLE_BEFORE,
-    NFA_START_INVISIBLE_BEFORE_FIRST,
-    NFA_START_INVISIBLE_BEFORE_NEG,
-    NFA_START_INVISIBLE_BEFORE_NEG_FIRST,
-    NFA_START_PATTERN,
-    NFA_END_INVISIBLE,
-    NFA_END_INVISIBLE_NEG,
-    NFA_END_PATTERN,
-    NFA_COMPOSING,
-    NFA_END_COMPOSING,
-    NFA_ANY_COMPOSING,
-    NFA_OPT_CHARS,
-
-    NFA_PREV_ATOM_NO_WIDTH,
-    NFA_PREV_ATOM_NO_WIDTH_NEG,
-    NFA_PREV_ATOM_JUST_BEFORE,
-    NFA_PREV_ATOM_JUST_BEFORE_NEG,
-    NFA_PREV_ATOM_LIKE_PATTERN,
-
-    NFA_BACKREF1,
-    NFA_BACKREF2,
-    NFA_BACKREF3,
-    NFA_BACKREF4,
-    NFA_BACKREF5,
-    NFA_BACKREF6,
-    NFA_BACKREF7,
-    NFA_BACKREF8,
-    NFA_BACKREF9,
-    NFA_SKIP,
-    NFA_SKIP_NL,
-
-    NFA_F_PCLOSE,
-    NFA_F_QCLOSE,
-    NFA_F_RCLOSE,
-    NFA_F_ACLOSE,
-    NFA_F_PCLOSE_NL,
-    NFA_F_QCLOSE_NL,
-    NFA_F_RCLOSE_NL,
-    NFA_F_ACLOSE_NL,
-    NFA_T_PCLOSE,
-    NFA_T_QCLOSE,
-    NFA_T_RCLOSE,
-    NFA_T_ACLOSE,
-    NFA_T_PCLOSE_NL,
-    NFA_T_QCLOSE_NL,
-    NFA_T_RCLOSE_NL,
-    NFA_T_ACLOSE_NL,
-
-    NFA_MOPEN,
-    NFA_MOPEN1,
-    NFA_MOPEN2,
-    NFA_MOPEN3,
-    NFA_MOPEN4,
-    NFA_MOPEN5,
-    NFA_MOPEN6,
-    NFA_MOPEN7,
-    NFA_MOPEN8,
-    NFA_MOPEN9,
-
-    NFA_MCLOSE,
-    NFA_MCLOSE1,
-    NFA_MCLOSE2,
-    NFA_MCLOSE3,
-    NFA_MCLOSE4,
-    NFA_MCLOSE5,
-    NFA_MCLOSE6,
-    NFA_MCLOSE7,
-    NFA_MCLOSE8,
-    NFA_MCLOSE9,
-
-    NFA_ANY,
-    NFA_IDENT,
-    NFA_SIDENT,
-    NFA_KWORD,
-    NFA_SKWORD,
-    NFA_FNAME,
-    NFA_SFNAME,
-    NFA_PRINT,
-    NFA_SPRINT,
-    NFA_WHITE,
-    NFA_NWHITE,
-    NFA_DIGIT,
-    NFA_NDIGIT,
-    NFA_HEX,
-    NFA_NHEX,
-    NFA_OCTAL,
-    NFA_NOCTAL,
-    NFA_WORD,
-    NFA_NWORD,
-    NFA_HEAD,
-    NFA_NHEAD,
-    NFA_ALPHA,
-    NFA_NALPHA,
-    NFA_LOWER,
-    NFA_NLOWER,
-    NFA_UPPER,
-    NFA_NUPPER,
-    NFA_LOWER_IC,
-    NFA_NLOWER_IC,
-    NFA_UPPER_IC,
-    NFA_NUPPER_IC,
-
-    NFA_FIRST_NL = NFA_ANY + NFA_ADD_NL,
-    NFA_LAST_NL = NFA_NUPPER_IC + NFA_ADD_NL,
-
-    NFA_CURSOR,
-    NFA_LNUM,
-    NFA_LNUM_GT,
-    NFA_LNUM_LT,
-    NFA_COL,
-    NFA_COL_GT,
-    NFA_COL_LT,
-    NFA_VCOL,
-    NFA_VCOL_GT,
-    NFA_VCOL_LT,
-    NFA_MARK,
-    NFA_MARK_GT,
-    NFA_MARK_LT,
-    NFA_VISUAL,
-
-    NFA_CLASS_ALNUM,
-    NFA_CLASS_ALPHA,
-    NFA_CLASS_BLANK,
-    NFA_CLASS_CNTRL,
-    NFA_CLASS_DIGIT,
-    NFA_CLASS_GRAPH,
-    NFA_CLASS_LOWER,
-    NFA_CLASS_PRINT,
-    NFA_CLASS_PUNCT,
-    NFA_CLASS_SPACE,
-    NFA_CLASS_UPPER,
-    NFA_CLASS_XDIGIT,
-    NFA_CLASS_TAB,
-    NFA_CLASS_RETURN,
-    NFA_CLASS_BACKSPACE,
-    NFA_CLASS_ESCAPE,
-    NFA_CLASS_IDENT,
-    NFA_CLASS_KEYWORD,
-    NFA_CLASS_FNAME
-};
-
     static regprog_T *
 vim_regcomp(char_u *expr_arg, int re_flags)
 {
@@ -103698,184 +100322,6 @@ recording_mode(int attr)
     static void
 draw_tabline(void)
 {
-    int         tabcount = 0;
-    tabpage_T   *tp;
-    int         tabwidth;
-    int         col = 0;
-    int         scol = 0;
-    int         attr;
-    win_T       *wp;
-    win_T       *cwp;
-    int         wincount;
-    int         modified;
-    int         c;
-    int         len;
-    int         attr_sel;
-    int         attr_nosel = 0;
-    int         attr_fill = 0;
-    char_u      *p;
-    int         room;
-    int         use_sep_chars = (t_colors < 8);
-    bool        override_success;
-
-    if (ScreenLines == NULL)
-    {
-        return;
-    }
-    redraw_tabline = FALSE;
-
-    if (tabline_height() < 1)
-    {
-        return;
-    }
-
-    {
-         for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) 
-         {
-            ++tabcount;
-         }
-
-        tabwidth = (topframe->fr_width - 1 + tabcount / 2) / tabcount;
-        if (tabwidth < 6)
-        {
-            tabwidth = 6;
-        }
-
-        tabcount = 0;
-        for (tp = first_tabpage; tp != NULL && col < Columns - 4; tp = tp->tp_next)
-        {
-            scol = col;
-
-            override_success = push_highlight_overrides(tp->tp_curwin->w_hl, tp->tp_curwin->w_hl_len);
-
-            attr_sel =  highlight_attr[(int)(HLF_TPS)] ;
-            attr_nosel =  highlight_attr[(int)(HLF_TP)] ;
-            attr_fill =  highlight_attr[(int)(HLF_TPF)] ;
-            attr = attr_nosel;
-
-            if (tp->tp_topframe == topframe)
-            {
-                attr = attr_sel;
-            }
-            if (use_sep_chars && col > 0)
-            {
-                screen_putchar('|', 0, col++, attr);
-            }
-
-            if (tp->tp_topframe != topframe)
-            {
-                attr = attr_nosel;
-            }
-
-            screen_putchar(' ', 0, col++, attr);
-
-            if (tp == curtab)
-            {
-                cwp = curwin;
-                wp = firstwin;
-            }
-            else
-            {
-                cwp = tp->tp_curwin;
-                wp = tp->tp_firstwin;
-            }
-
-            modified = FALSE;
-            for (wincount = 0; wp != NULL; wp = wp->w_next, ++wincount)
-            {
-                if (bufIsChanged(wp->w_buffer))
-                {
-                    modified = TRUE;
-                }
-            }
-            if (modified || wincount > 1)
-            {
-                if (wincount > 1)
-                {
-                    len = vim_snprintf((char *)NameBuff,  PATH_MAX , "%d", wincount);
-                    if (col + len >= Columns - 3)
-                    {
-                        break;
-                    }
-                    screen_puts_len(NameBuff, len, 0, col, attr);
-                    col += len;
-                }
-                if (modified)
-                {
-                    screen_puts_len((char_u *)"+", 1, 0, col++, attr);
-                }
-                screen_putchar(' ', 0, col++, attr);
-            }
-
-            room = scol - col + tabwidth - 1;
-            if (room > 0)
-            {
-                int n;
-
-                get_trans_bufname(cwp->w_buffer);
-                shorten_dir(NameBuff);
-                len = vim_strsize(NameBuff);
-                p = NameBuff;
-                if (has_mbyte)
-                {
-                    while (len > room)
-                    {
-                        len -= ptr2cells(p);
-                         p += (*mb_ptr2len)(p) ;
-                    }
-                }
-                else if (len > room)
-                {
-                    p += len - room;
-                    len = room;
-                }
-                n = Columns - col - 1;
-                if (len > n)
-                {
-                    len = n;
-                }
-
-                screen_puts_len(p, (int) strlen((char *)(p)) , 0, col, attr);
-                col += len;
-            }
-            screen_putchar(' ', 0, col++, attr);
-
-            ++tabcount;
-            while (scol < col)
-            {
-                TabPageIdxs[scol++] = tabcount;
-            }
-
-            if (override_success)
-            {
-                pop_highlight_overrides();
-            }
-        }
-
-        if (use_sep_chars)
-        {
-            c = '_';
-        }
-        else
-        {
-            c = ' ';
-        }
-        screen_fill(0, 1, col, (int)Columns, c, c, attr_fill);
-
-        if (p_sc && *p_sloc == 't')
-        {
-            int n = (int)Columns - col - (tabcount > 1) * 3;
-            int width = MIN(10, n);
-
-            if (width > 0)
-            {
-                screen_puts_len(showcmd_buf, width, 0, (int)Columns - width - (tabcount > 1) * 2, attr_nosel);
-            }
-            showcmd_update_clear_state();
-        }
-
-    }
-
     redraw_tabline = FALSE;
 }
 
@@ -104571,173 +101017,6 @@ set_context_in_runtime_cmd(expand_T *xp, char_u *arg)
 }
 
     static void
-source_callback(char_u *fname, void *cookie)
-{
-    (void)do_source(fname, FALSE, DOSO_NONE, cookie);
-}
-
-    static int
-do_in_path(char_u      *path, char        *prefix, char_u      *name, int         flags, void        (*callback)(char_u *fname, void *ck), void        *cookie)
-{
-    char_u      *rtp;
-    string_T    buf;
-    char_u      *rtp_copy;
-    int         num_files;
-    char_u      **files;
-    int         i;
-    int         did_one = FALSE;
-
-    rtp_copy = vim_strsave(path);
-    buf.string = alloc( PATH_MAX );
-    if (buf.string != NULL && rtp_copy != NULL)
-    {
-        size_t  prefixlen = 0;
-        size_t  namelen = 0;
-
-        if (name != NULL)
-        {
-            prefixlen =  strlen((char *)(prefix)) ;
-            namelen =  strlen((char *)(name)) ;
-
-            if (p_verbose > 10)
-            {
-                verbose_enter();
-                if (*prefix != NUL)
-                {
-                    smsg(_("Searching for \"%s\" under \"%s\" in \"%s\""), (char *)name, prefix, (char *)path);
-                }
-                else
-                {
-                    smsg(_("Searching for \"%s\" in \"%s\""), (char *)name, (char *)path);
-                }
-                verbose_leave();
-            }
-        }
-
-        rtp = rtp_copy;
-        while (*rtp != NUL && ((flags & DIP_ALL) || !did_one))
-        {
-            buf.length = (size_t)copy_option_part(&rtp, buf.string,  PATH_MAX , ",");
-
-            if (flags & (DIP_NOAFTER | DIP_AFTER))
-            {
-                int is_after = buf.length >= 5
-                    &&  strcmp((char *)(buf.string + buf.length - 5), (char *)("after"))  == 0;
-
-                if ((is_after && (flags & DIP_NOAFTER)) || (!is_after && (flags & DIP_AFTER)))
-                {
-                    continue;
-                }
-            }
-
-            if (name == NULL)
-            {
-                (*callback)(buf.string, (void *)&cookie);
-                if (!did_one)
-                {
-                    did_one = (cookie == NULL);
-                }
-            }
-            else if (buf.length + 2 + prefixlen + namelen <  PATH_MAX )
-            {
-                char_u  *np;
-                char_u  *tail;
-
-                if (*buf.string != NUL && !after_pathsep(buf.string, buf.string + buf.length))
-                {
-                     strcpy((char *)(buf.string + buf.length), (char *)( "/" )) ;
-                    buf.length += sizeof( ((char_u)'/') );
-                }
-                 strcpy((char *)(buf.string + buf.length), (char *)(prefix)) ;
-                buf.length += prefixlen;
-                tail = buf.string + buf.length;
-
-                np = name;
-                while (*np != NUL && ((flags & DIP_ALL) || !did_one))
-                {
-                    copy_option_part(&np, tail, (int)( PATH_MAX  - (tail - buf.string)), "\t ");
-
-                    if (p_verbose > 10)
-                    {
-                        verbose_enter();
-                        smsg(_("Searching for \"%s\""), buf.string);
-                        verbose_leave();
-                    }
-
-                    if (gen_expand_wildcards(1, &buf.string, &num_files, &files, (flags & DIP_DIR) ? EW_DIR : EW_FILE) == OK)
-                    {
-                        for (i = 0; i < num_files; ++i)
-                        {
-                            (*callback)(files[i], cookie);
-                            did_one = TRUE;
-                            if (!(flags & DIP_ALL))
-                            {
-                                break;
-                            }
-                        }
-                        FreeWild(num_files, files);
-                    }
-                }
-            }
-        }
-    }
-    vim_free(buf.string);
-    vim_free(rtp_copy);
-    if (!did_one && name != NULL)
-    {
-        char *basepath = path == p_rtp ? "runtimepath" : "packpath";
-
-        if (flags & DIP_ERR)
-        {
-            semsg(_(e_directory_not_found_in_str_str), basepath, name);
-        }
-        else if (p_verbose > 0)
-        {
-            verbose_enter();
-            smsg(_("not found in '%s': \"%s\""), basepath, name);
-            verbose_leave();
-        }
-    }
-
-    return did_one ? OK : FAIL;
-}
-
-    static int
-do_in_path_and_pp(char_u      *path, char_u      *name, int         flags, void        (*callback)(char_u *fname, void *ck), void        *cookie)
-{
-    int         done = FAIL;
-
-    if ((flags & DIP_NORTP) == 0)
-    {
-        done = do_in_path(path, "", name, flags, callback, cookie);
-    }
-
-    if ((done == FAIL || (flags & DIP_ALL)) && (flags & DIP_START))
-    {
-        done = do_in_path(p_pp, "pack/*/start/*/", name, flags, callback, cookie);
-    }
-
-    if ((done == FAIL || (flags & DIP_ALL)) && (flags & DIP_OPT))
-    {
-        done = do_in_path(p_pp, "pack/*/opt/*/", name, flags, callback, cookie);
-    }
-
-    return done;
-}
-
-    static int
-source_runtime(char_u *name, int flags)
-{
-    return source_in_path(p_rtp, name, flags, NULL);
-}
-
-    static int
-source_in_path(char_u *path, char_u *name, int flags, int *ret_sid)
-{
-    return do_in_path_and_pp(path, name, flags, source_callback, ret_sid);
-}
-
-    static void
 remove_duplicates(garray_T *gap)
 {
     int     i;
@@ -104951,56 +101230,6 @@ ExpandPackAddDir(char_u      *pat, int         *num_file, char_u      ***file)
     *file = ga.ga_data;
     *num_file = ga.ga_len;
     return OK;
-}
-
-    static void
-cmd_source(char_u *fname, exarg_T *eap)
-{
-    int clearvars = FALSE;
-
-    if (*fname != NUL &&  strncmp((char *)(fname), (char *)("++clear"), (7))  == 0)
-    {
-        clearvars = TRUE;
-        fname = fname + 7;
-        if (*fname != NUL)
-        {
-            semsg(_(e_invalid_argument_str), eap->arg);
-            return;
-        }
-    }
-
-    if (*fname != NUL && eap != NULL && eap->addr_count > 0)
-    {
-        emsg(_(e_no_range_allowed));
-        return;
-    }
-
-    if (eap != NULL && *fname == NUL)
-    {
-        if (eap->forceit)
-        {
-            emsg(_(e_argument_required));
-        }
-        else
-        {
-            do_source_ext(NULL, FALSE, DOSO_NONE, NULL, eap, clearvars);
-        }
-    }
-    else if (eap != NULL && eap->forceit)
-    {
-        openscript(fname, global_busy || listcmd_busy || eap->nextcmd != NULL);
-    }
-
-    else if (do_source(fname, FALSE, DOSO_NONE, NULL) == FAIL)
-    {
-        semsg(_(e_cant_open_file_str), fname);
-    }
-}
-
-    static void
-ex_source(exarg_T *eap)
-{
-        cmd_source(eap->arg, eap);
 }
 
     static FILE *
@@ -105459,77 +101688,6 @@ getsourceline(int c  __attribute__((unused)) , void *cookie, int indent  __attri
     return line;
 }
 
-    static int
-sourcing_a_script(exarg_T *eap)
-{
-    return (getline_equal(eap->ea_getline, eap->cookie, getsourceline));
-}
-
-    static void
-ex_scriptencoding(exarg_T *eap)
-{
-    source_cookie_T     *sp;
-    char_u              *name;
-
-    if (!sourcing_a_script(eap))
-    {
-        emsg(_(e_scriptencoding_used_outside_of_sourced_file));
-        return;
-    }
-
-    if (*eap->arg != NUL)
-    {
-        name = enc_canonize(eap->arg);
-        if (name == NULL)
-        {
-            return;
-        }
-    }
-    else
-    {
-        name = eap->arg;
-    }
-
-    sp = (source_cookie_T *)getline_cookie(eap->ea_getline, eap->cookie);
-    convert_setup(&sp->conv, name, p_enc);
-
-    if (name != eap->arg)
-    {
-        vim_free(name);
-    }
-}
-
-    static void
-ex_scriptversion(exarg_T *eap  __attribute__((unused)) )
-{
-    int         nr;
-
-    if (!sourcing_a_script(eap))
-    {
-        emsg(_(e_scriptversion_used_outside_of_sourced_file));
-        return;
-    }
-    if (in_vim9script())
-    {
-        emsg(_(e_cannot_use_scriptversion_after_vim9script));
-        return;
-    }
-
-    nr = getdigits(&eap->arg);
-    if (nr == 0 || *eap->arg != NUL)
-    {
-        emsg(_(e_invalid_argument));
-    }
-    else if (nr > SCRIPT_VERSION_MAX)
-    {
-        semsg(_(e_scriptversion_not_supported_nr), nr);
-    }
-    else
-    {
-        current_sctx.sc_version = nr;
-    }
-}
-
 // ==================== search.c ====================
 
 typedef struct searchstat
@@ -105560,12 +101718,6 @@ static int lastcdir = FORWARD;
 static int last_t_cmd = TRUE;
 static char_u   lastc_bytes[MB_MAXBYTES + 1];
 static int      lastc_bytelen = 1;
-
-static spat_T       saved_spats[ (sizeof(spats) / sizeof((spats)[0])) ];
-static char_u       *saved_mr_pattern = NULL;
-static size_t       saved_mr_patternlen = 0;
-static int          saved_spats_last_idx = 0;
-static int          saved_spats_no_hlsearch = 0;
 
 static char_u       *mr_pattern = NULL;
 static size_t       mr_patternlen = 0;
@@ -105683,76 +101835,6 @@ save_re_pat(int idx, char_u *pat, size_t patlen, int magic)
         redraw_all_later(UPD_SOME_VALID);
     }
     set_no_hlsearch(FALSE);
-}
-
-static int save_level = 0;
-
-    static void
-save_search_patterns(void)
-{
-    int i;
-
-    if (save_level++ != 0)
-    {
-        return;
-    }
-
-    for (i = 0; i < (int) (sizeof(spats) / sizeof((spats)[0])) ; ++i)
-    {
-        saved_spats[i] = spats[i];
-        if (spats[i].pat != NULL)
-        {
-            saved_spats[i].pat = vim_strnsave(spats[i].pat, spats[i].patlen);
-            if (saved_spats[i].pat == NULL)
-            {
-                saved_spats[i].patlen = 0;
-            }
-            else
-            {
-                saved_spats[i].patlen = spats[i].patlen;
-            }
-        }
-    }
-    if (mr_pattern == NULL)
-    {
-        saved_mr_pattern = NULL;
-    }
-    else
-    {
-        saved_mr_pattern = vim_strnsave(mr_pattern, mr_patternlen);
-    }
-    if (saved_mr_pattern == NULL)
-    {
-        saved_mr_patternlen = 0;
-    }
-    else
-    {
-        saved_mr_patternlen = mr_patternlen;
-    }
-    saved_spats_last_idx = last_idx;
-    saved_spats_no_hlsearch = no_hlsearch;
-}
-
-    static void
-restore_search_patterns(void)
-{
-    int i;
-
-    if (--save_level != 0)
-    {
-        return;
-    }
-
-    for (i = 0; i < (int) (sizeof(spats) / sizeof((spats)[0])) ; ++i)
-    {
-        vim_free(spats[i].pat);
-        spats[i] = saved_spats[i];
-    }
-    vim_free(mr_pattern);
-    mr_pattern = saved_mr_pattern;
-    mr_patternlen = saved_mr_patternlen;
-    last_idx = saved_spats_last_idx;
-    set_no_hlsearch(saved_spats_no_hlsearch);
 }
 
 static spat_T       saved_last_search_spat;
@@ -118917,58 +114999,6 @@ uc_fun_cmd(void)
     return (char *)IObuff;
 }
 
-    static char_u *
-may_get_cmd_block(exarg_T *eap, char_u *p, char_u **tofree, int *flags)
-{
-    char_u *retp = p;
-    char_u *block = find_cmd_block_start(p);
-
-    if (block != NULL && eap->ea_getline != NULL)
-    {
-        garray_T    ga;
-        char_u      *line = NULL;
-
-        ga_init2(&ga, sizeof(char_u *), 10);
-        if (ga_copy_string(&ga, p) == FAIL)
-        {
-            return retp;
-        }
-
-        if (p[ strlen((char *)(p))  - 1] != '}')
-        {
-            for (;;)
-            {
-                vim_free(line);
-                if ((line = eap->ea_getline(':', eap->cookie, 0, GETLINE_CONCAT_CONTBAR)) == NULL)
-                {
-                    emsg(_(e_missing_rcurly));
-                    break;
-                }
-                if (ga_copy_string(&ga, line) == FAIL)
-                {
-                    break;
-                }
-                if (*skipwhite(line) == '}')
-                {
-                    break;
-                }
-            }
-        }
-        vim_free(line);
-        retp = *tofree = ga_concat_strings(&ga, "\n");
-        if (retp == NULL)
-        {
-            retp = p;
-        }
-        ga_clear_strings(&ga);
-        if (block == p)
-        {
-            *flags |= UC_VIM9;
-        }
-    }
-    return retp;
-}
-
 // ==================== version.c ====================
 
 static const char      *Version = VIM_VERSION_SHORT;
@@ -119114,21 +115144,14 @@ list_in_columns(char_u **items, int size, int current)
     static int
 in_vim9script(void)
 {
-    return (current_sctx.sc_version == SCRIPT_VERSION_VIM9 || (cmdmod.cmod_flags & CMOD_VIM9CMD))
-                && !(cmdmod.cmod_flags & CMOD_LEGACY);
-}
-
-    static void
-ex_vim9script(exarg_T *eap  __attribute__((unused)) )
-{
-    current_sctx.sc_version = SCRIPT_VERSION_VIM9;
+    return FALSE;
 }
 
 static struct cmdname cmdnames[] =
 {
     [CMD_append] = {(char_u *)"append", sizeof("append") - 1, ex_append, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_abbreviate] = {(char_u *)"abbreviate", sizeof("abbreviate") - 1, ex_abbreviate, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_abclear] = {(char_u *)"abclear", sizeof("abclear") - 1, ex_abclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_abbreviate] = {(char_u *)"abbreviate", sizeof("abbreviate") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_abclear] = {(char_u *)"abclear", sizeof("abclear") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_aboveleft] = {(char_u *)"aboveleft", sizeof("aboveleft") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_abstract] = {(char_u *)"abstract", sizeof("abstract") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
     [CMD_all] = {(char_u *)"all", sizeof("all") - 1, ex_all, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
@@ -119144,8 +115167,8 @@ static struct cmdname cmdnames[] =
     [CMD_arglocal] = {(char_u *)"arglocal", sizeof("arglocal") - 1, ex_args, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
     [CMD_argument] = {(char_u *)"argument", sizeof("argument") - 1, ex_argument, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_ARGUMENTS},
     [CMD_ascii] = {(char_u *)"ascii", sizeof("ascii") - 1, do_ascii, (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_autocmd] = {(char_u *)"autocmd", sizeof("autocmd") - 1, ex_autocmd, (long_u)(EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_augroup] = {(char_u *)"augroup", sizeof("augroup") - 1, ex_autocmd, (long_u)(EX_BANG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_autocmd] = {(char_u *)"autocmd", sizeof("autocmd") - 1, ex_ni, (long_u)(EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_augroup] = {(char_u *)"augroup", sizeof("augroup") - 1, ex_ni, (long_u)(EX_BANG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_aunmenu] = {(char_u *)"aunmenu", sizeof("aunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_buffer] = {(char_u *)"buffer", sizeof("buffer") - 1, ex_buffer, (long_u)(EX_BANG|EX_RANGE|EX_BUFNAME|EX_BUFUNL|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_TRLBAR), ADDR_BUFFERS},
     [CMD_bNext] = {(char_u *)"bNext", sizeof("bNext") - 1, ex_bprevious, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
@@ -119174,8 +115197,8 @@ static struct cmdname cmdnames[] =
     [CMD_change] = {(char_u *)"change", sizeof("change") - 1, ex_change, (long_u)(EX_BANG|EX_WHOLEFOLD|EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_cNext] = {(char_u *)"cNext", sizeof("cNext") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
     [CMD_cNfile] = {(char_u *)"cNfile", sizeof("cNfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_cabbrev] = {(char_u *)"cabbrev", sizeof("cabbrev") - 1, ex_abbreviate, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cabclear] = {(char_u *)"cabclear", sizeof("cabclear") - 1, ex_abclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_cabbrev] = {(char_u *)"cabbrev", sizeof("cabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_cabclear] = {(char_u *)"cabclear", sizeof("cabclear") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_cabove] = {(char_u *)"cabove", sizeof("cabove") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
     [CMD_caddbuffer] = {(char_u *)"caddbuffer", sizeof("caddbuffer") - 1,  ex_ni , (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
     [CMD_caddexpr] = {(char_u *)"caddexpr", sizeof("caddexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG), ADDR_NONE},
@@ -119190,11 +115213,11 @@ static struct cmdname cmdnames[] =
     [CMD_cc] = {(char_u *)"cc", sizeof("cc") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_QUICKFIX},
     [CMD_cclose] = {(char_u *)"cclose", sizeof("cclose") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
     [CMD_cd] = {(char_u *)"cd", sizeof("cd") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cdo] = {(char_u *)"cdo", sizeof("cdo") - 1, ex_listdo, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
+    [CMD_cdo] = {(char_u *)"cdo", sizeof("cdo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
     [CMD_center] = {(char_u *)"center", sizeof("center") - 1, ex_align, (long_u)(EX_TRLBAR|EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_cexpr] = {(char_u *)"cexpr", sizeof("cexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG|EX_BANG), ADDR_NONE},
     [CMD_cfile] = {(char_u *)"cfile", sizeof("cfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_BANG), ADDR_NONE},
-    [CMD_cfdo] = {(char_u *)"cfdo", sizeof("cfdo") - 1, ex_listdo, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
+    [CMD_cfdo] = {(char_u *)"cfdo", sizeof("cfdo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
     [CMD_cfirst] = {(char_u *)"cfirst", sizeof("cfirst") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
     [CMD_cgetfile] = {(char_u *)"cgetfile", sizeof("cgetfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
     [CMD_cgetbuffer] = {(char_u *)"cgetbuffer", sizeof("cgetbuffer") - 1,  ex_ni , (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
@@ -119217,11 +115240,11 @@ static struct cmdname cmdnames[] =
     [CMD_cnewer] = {(char_u *)"cnewer", sizeof("cnewer") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
     [CMD_cnfile] = {(char_u *)"cnfile", sizeof("cnfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
     [CMD_cnoremap] = {(char_u *)"cnoremap", sizeof("cnoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cnoreabbrev] = {(char_u *)"cnoreabbrev", sizeof("cnoreabbrev") - 1, ex_abbreviate, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_cnoreabbrev] = {(char_u *)"cnoreabbrev", sizeof("cnoreabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_cnoremenu] = {(char_u *)"cnoremenu", sizeof("cnoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_copy] = {(char_u *)"copy", sizeof("copy") - 1, ex_copymove, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_colder] = {(char_u *)"colder", sizeof("colder") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_colorscheme] = {(char_u *)"colorscheme", sizeof("colorscheme") - 1, ex_colorscheme, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_colorscheme] = {(char_u *)"colorscheme", sizeof("colorscheme") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_command] = {(char_u *)"command", sizeof("command") - 1, ex_ni, (long_u)(EX_EXTRA|EX_BANG|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_comclear] = {(char_u *)"comclear", sizeof("comclear") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_compiler] = {(char_u *)"compiler", sizeof("compiler") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -119236,7 +115259,7 @@ static struct cmdname cmdnames[] =
     [CMD_cscope] = {(char_u *)"cscope", sizeof("cscope") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_XFILE), ADDR_NONE},
     [CMD_cstag] = {(char_u *)"cstag", sizeof("cstag") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
     [CMD_cunmap] = {(char_u *)"cunmap", sizeof("cunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cunabbrev] = {(char_u *)"cunabbrev", sizeof("cunabbrev") - 1, ex_abbreviate, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_cunabbrev] = {(char_u *)"cunabbrev", sizeof("cunabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_cunmenu] = {(char_u *)"cunmenu", sizeof("cunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_cwindow] = {(char_u *)"cwindow", sizeof("cwindow") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
     [CMD_delete] = {(char_u *)"delete", sizeof("delete") - 1, ex_operators, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_REGSTR|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
@@ -119256,12 +115279,12 @@ static struct cmdname cmdnames[] =
     [CMD_diffput] = {(char_u *)"diffput", sizeof("diffput") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR), ADDR_LINES},
     [CMD_diffsplit] = {(char_u *)"diffsplit", sizeof("diffsplit") - 1,  ex_ni , (long_u)(EX_EXTRA| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
     [CMD_diffthis] = {(char_u *)"diffthis", sizeof("diffthis") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_digraphs] = {(char_u *)"digraphs", sizeof("digraphs") - 1, ex_digraphs, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_digraphs] = {(char_u *)"digraphs", sizeof("digraphs") - 1, ex_ni, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_disassemble] = {(char_u *)"disassemble", sizeof("disassemble") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_NEEDARG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_djump] = {(char_u *)"djump", sizeof("djump") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA), ADDR_LINES},
     [CMD_dlist] = {(char_u *)"dlist", sizeof("dlist") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_doautocmd] = {(char_u *)"doautocmd", sizeof("doautocmd") - 1, ex_doautocmd, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_doautoall] = {(char_u *)"doautoall", sizeof("doautoall") - 1, ex_doautoall, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_doautocmd] = {(char_u *)"doautocmd", sizeof("doautocmd") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_doautoall] = {(char_u *)"doautoall", sizeof("doautoall") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_drop] = {(char_u *)"drop", sizeof("drop") - 1, ex_drop, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_NEEDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
     [CMD_dsearch] = {(char_u *)"dsearch", sizeof("dsearch") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_dsplit] = {(char_u *)"dsplit", sizeof("dsplit") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA), ADDR_LINES},
@@ -119278,10 +115301,10 @@ static struct cmdname cmdnames[] =
     [CMD_elseif] = {(char_u *)"elseif", sizeof("elseif") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
     [CMD_emenu] = {(char_u *)"emenu", sizeof("emenu") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_RANGE|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_endif] = {(char_u *)"endif", sizeof("endif") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_endinterface] = {(char_u *)"endinterface", sizeof("endinterface") - 1, ex_wrongmodifier, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_endclass] = {(char_u *)"endclass", sizeof("endclass") - 1, ex_wrongmodifier, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
+    [CMD_endinterface] = {(char_u *)"endinterface", sizeof("endinterface") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
+    [CMD_endclass] = {(char_u *)"endclass", sizeof("endclass") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
     [CMD_enddef] = {(char_u *)"enddef", sizeof("enddef") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_endenum] = {(char_u *)"endenum", sizeof("endenum") - 1, ex_wrongmodifier, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
+    [CMD_endenum] = {(char_u *)"endenum", sizeof("endenum") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
     [CMD_endfunction] = {(char_u *)"endfunction", sizeof("endfunction") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_endfor] = {(char_u *)"endfor", sizeof("endfor") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
     [CMD_endtry] = {(char_u *)"endtry", sizeof("endtry") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
@@ -119296,7 +115319,7 @@ static struct cmdname cmdnames[] =
     [CMD_exusage] = {(char_u *)"exusage", sizeof("exusage") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
     [CMD_file] = {(char_u *)"file", sizeof("file") - 1, ex_file, (long_u)(EX_RANGE|EX_ZEROR|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_OTHER},
     [CMD_files] = {(char_u *)"files", sizeof("files") - 1, buflist_list, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_filetype] = {(char_u *)"filetype", sizeof("filetype") - 1, ex_filetype, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_filetype] = {(char_u *)"filetype", sizeof("filetype") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_filter] = {(char_u *)"filter", sizeof("filter") - 1, ex_wrongmodifier, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_find] = {(char_u *)"find", sizeof("find") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_NEEDARG), ADDR_OTHER},
     [CMD_final] = {(char_u *)"final", sizeof("final") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
@@ -119315,8 +115338,8 @@ static struct cmdname cmdnames[] =
     [CMD_goto] = {(char_u *)"goto", sizeof("goto") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_grep] = {(char_u *)"grep", sizeof("grep") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_OTHER},
     [CMD_grepadd] = {(char_u *)"grepadd", sizeof("grepadd") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_OTHER},
-    [CMD_gui] = {(char_u *)"gui", sizeof("gui") - 1,  ex_nogui , (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_gvim] = {(char_u *)"gvim", sizeof("gvim") - 1,  ex_nogui , (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_gui] = {(char_u *)"gui", sizeof("gui") - 1,  ex_ni , (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_gvim] = {(char_u *)"gvim", sizeof("gvim") - 1,  ex_ni , (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_help] = {(char_u *)"help", sizeof("help") - 1, ex_ni, (long_u)(EX_BANG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_helpclose] = {(char_u *)"helpclose", sizeof("helpclose") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
     [CMD_helpfind] = {(char_u *)"helpfind", sizeof("helpfind") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
@@ -119328,8 +115351,8 @@ static struct cmdname cmdnames[] =
     [CMD_history] = {(char_u *)"history", sizeof("history") - 1, ex_history, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_horizontal] = {(char_u *)"horizontal", sizeof("horizontal") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_insert] = {(char_u *)"insert", sizeof("insert") - 1, ex_append, (long_u)(EX_BANG|EX_RANGE|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_iabbrev] = {(char_u *)"iabbrev", sizeof("iabbrev") - 1, ex_abbreviate, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_iabclear] = {(char_u *)"iabclear", sizeof("iabclear") - 1, ex_abclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_iabbrev] = {(char_u *)"iabbrev", sizeof("iabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_iabclear] = {(char_u *)"iabclear", sizeof("iabclear") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_if] = {(char_u *)"if", sizeof("if") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_ijump] = {(char_u *)"ijump", sizeof("ijump") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA), ADDR_LINES},
     [CMD_ilist] = {(char_u *)"ilist", sizeof("ilist") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
@@ -119338,7 +115361,7 @@ static struct cmdname cmdnames[] =
     [CMD_imenu] = {(char_u *)"imenu", sizeof("imenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_import] = {(char_u *)"import", sizeof("import") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
     [CMD_inoremap] = {(char_u *)"inoremap", sizeof("inoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_inoreabbrev] = {(char_u *)"inoreabbrev", sizeof("inoreabbrev") - 1, ex_abbreviate, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_inoreabbrev] = {(char_u *)"inoreabbrev", sizeof("inoreabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_inoremenu] = {(char_u *)"inoremenu", sizeof("inoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_intro] = {(char_u *)"intro", sizeof("intro") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_interface] = {(char_u *)"interface", sizeof("interface") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
@@ -119346,7 +115369,7 @@ static struct cmdname cmdnames[] =
     [CMD_isearch] = {(char_u *)"isearch", sizeof("isearch") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_isplit] = {(char_u *)"isplit", sizeof("isplit") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA), ADDR_LINES},
     [CMD_iunmap] = {(char_u *)"iunmap", sizeof("iunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_iunabbrev] = {(char_u *)"iunabbrev", sizeof("iunabbrev") - 1, ex_abbreviate, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_iunabbrev] = {(char_u *)"iunabbrev", sizeof("iunabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_iunmenu] = {(char_u *)"iunmenu", sizeof("iunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_join] = {(char_u *)"join", sizeof("join") - 1, ex_join, (long_u)(EX_BANG|EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_jumps] = {(char_u *)"jumps", sizeof("jumps") - 1, ex_jumps, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -119374,14 +115397,14 @@ static struct cmdname cmdnames[] =
     [CMD_lchdir] = {(char_u *)"lchdir", sizeof("lchdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_lclose] = {(char_u *)"lclose", sizeof("lclose") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
     [CMD_lcscope] = {(char_u *)"lcscope", sizeof("lcscope") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_XFILE), ADDR_NONE},
-    [CMD_ldo] = {(char_u *)"ldo", sizeof("ldo") - 1, ex_listdo, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
+    [CMD_ldo] = {(char_u *)"ldo", sizeof("ldo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
     [CMD_left] = {(char_u *)"left", sizeof("left") - 1, ex_align, (long_u)(EX_TRLBAR|EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_leftabove] = {(char_u *)"leftabove", sizeof("leftabove") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_let] = {(char_u *)"let", sizeof("let") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_lexpr] = {(char_u *)"lexpr", sizeof("lexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG|EX_BANG), ADDR_NONE},
-    [CMD_legacy] = {(char_u *)"legacy", sizeof("legacy") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_legacy] = {(char_u *)"legacy", sizeof("legacy") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_lfile] = {(char_u *)"lfile", sizeof("lfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_BANG), ADDR_NONE},
-    [CMD_lfdo] = {(char_u *)"lfdo", sizeof("lfdo") - 1, ex_listdo, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
+    [CMD_lfdo] = {(char_u *)"lfdo", sizeof("lfdo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
     [CMD_lfirst] = {(char_u *)"lfirst", sizeof("lfirst") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
     [CMD_lgetfile] = {(char_u *)"lgetfile", sizeof("lgetfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
     [CMD_lgetbuffer] = {(char_u *)"lgetbuffer", sizeof("lgetbuffer") - 1,  ex_ni , (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
@@ -119447,9 +115470,9 @@ static struct cmdname cmdnames[] =
     [CMD_nnoremap] = {(char_u *)"nnoremap", sizeof("nnoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_nnoremenu] = {(char_u *)"nnoremenu", sizeof("nnoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_noremap] = {(char_u *)"noremap", sizeof("noremap") - 1, ex_map, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_noautocmd] = {(char_u *)"noautocmd", sizeof("noautocmd") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
+    [CMD_noautocmd] = {(char_u *)"noautocmd", sizeof("noautocmd") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_nohlsearch] = {(char_u *)"nohlsearch", sizeof("nohlsearch") - 1, ex_nohlsearch, (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_noreabbrev] = {(char_u *)"noreabbrev", sizeof("noreabbrev") - 1, ex_abbreviate, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_noreabbrev] = {(char_u *)"noreabbrev", sizeof("noreabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_noremenu] = {(char_u *)"noremenu", sizeof("noremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_noswapfile] = {(char_u *)"noswapfile", sizeof("noswapfile") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_normal] = {(char_u *)"normal", sizeof("normal") - 1, ex_normal, (long_u)(EX_RANGE|EX_BANG|EX_EXTRA|EX_NEEDARG|EX_NOTRLCOM|EX_CTRLV|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
@@ -119496,7 +115519,7 @@ static struct cmdname cmdnames[] =
     [CMD_ptrewind] = {(char_u *)"ptrewind", sizeof("ptrewind") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
     [CMD_ptselect] = {(char_u *)"ptselect", sizeof("ptselect") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
     [CMD_put] = {(char_u *)"put", sizeof("put") - 1, ex_put, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_REGSTR|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_public] = {(char_u *)"public", sizeof("public") - 1, ex_wrongmodifier, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
+    [CMD_public] = {(char_u *)"public", sizeof("public") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
     [CMD_pwd] = {(char_u *)"pwd", sizeof("pwd") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_python] = {(char_u *)"python", sizeof("python") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_pydo] = {(char_u *)"pydo", sizeof("pydo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
@@ -119515,11 +115538,11 @@ static struct cmdname cmdnames[] =
     [CMD_read] = {(char_u *)"read", sizeof("read") - 1, ex_read, (long_u)(EX_BANG|EX_RANGE|EX_WHOLEFOLD| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_recover] = {(char_u *)"recover", sizeof("recover") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
     [CMD_redo] = {(char_u *)"redo", sizeof("redo") - 1, ex_redo, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_redir] = {(char_u *)"redir", sizeof("redir") - 1, ex_redir, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_redir] = {(char_u *)"redir", sizeof("redir") - 1, ex_ni, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_redraw] = {(char_u *)"redraw", sizeof("redraw") - 1, ex_redraw, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_redrawstatus] = {(char_u *)"redrawstatus", sizeof("redrawstatus") - 1, ex_redrawstatus, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_redrawtabline] = {(char_u *)"redrawtabline", sizeof("redrawtabline") - 1, ex_redrawtabline, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_redrawtabpanel] = {(char_u *)"redrawtabpanel", sizeof("redrawtabpanel") - 1, ex_redrawtabpanel, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_redrawtabline] = {(char_u *)"redrawtabline", sizeof("redrawtabline") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_redrawtabpanel] = {(char_u *)"redrawtabpanel", sizeof("redrawtabpanel") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_registers] = {(char_u *)"registers", sizeof("registers") - 1, ex_display, (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_resize] = {(char_u *)"resize", sizeof("resize") - 1, ex_resize, (long_u)(EX_RANGE|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_retab] = {(char_u *)"retab", sizeof("retab") - 1, ex_retab, (long_u)(EX_TRLBAR|EX_RANGE|EX_WHOLEFOLD|EX_DFLALL|EX_BANG| (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
@@ -119537,7 +115560,7 @@ static struct cmdname cmdnames[] =
     [CMD_sNext] = {(char_u *)"sNext", sizeof("sNext") - 1, ex_previous, (long_u)(EX_EXTRA|EX_RANGE|EX_COUNT|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
     [CMD_sargument] = {(char_u *)"sargument", sizeof("sargument") - 1, ex_argument, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_ARGUMENTS},
     [CMD_sall] = {(char_u *)"sall", sizeof("sall") - 1, ex_all, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sandbox] = {(char_u *)"sandbox", sizeof("sandbox") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
+    [CMD_sandbox] = {(char_u *)"sandbox", sizeof("sandbox") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_saveas] = {(char_u *)"saveas", sizeof("saveas") - 1, ex_write, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_CMDWIN|EX_LOCK_OK|EX_TRLBAR), ADDR_NONE},
     [CMD_sbuffer] = {(char_u *)"sbuffer", sizeof("sbuffer") - 1, ex_buffer, (long_u)(EX_BANG|EX_RANGE|EX_BUFNAME|EX_BUFUNL|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_TRLBAR), ADDR_BUFFERS},
     [CMD_sbNext] = {(char_u *)"sbNext", sizeof("sbNext") - 1, ex_bprevious, (long_u)(EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
@@ -119549,20 +115572,20 @@ static struct cmdname cmdnames[] =
     [CMD_sbprevious] = {(char_u *)"sbprevious", sizeof("sbprevious") - 1, ex_bprevious, (long_u)(EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
     [CMD_sbrewind] = {(char_u *)"sbrewind", sizeof("sbrewind") - 1, ex_brewind, (long_u)(EX_CMDARG|EX_TRLBAR), ADDR_NONE},
     [CMD_scriptnames] = {(char_u *)"scriptnames", sizeof("scriptnames") - 1,  ex_ni , (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_scriptencoding] = {(char_u *)"scriptencoding", sizeof("scriptencoding") - 1, ex_scriptencoding, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_scriptversion] = {(char_u *)"scriptversion", sizeof("scriptversion") - 1, ex_scriptversion, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_scriptencoding] = {(char_u *)"scriptencoding", sizeof("scriptencoding") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_scriptversion] = {(char_u *)"scriptversion", sizeof("scriptversion") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_scscope] = {(char_u *)"scscope", sizeof("scscope") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_set] = {(char_u *)"set", sizeof("set") - 1, ex_set, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
-    [CMD_setfiletype] = {(char_u *)"setfiletype", sizeof("setfiletype") - 1, ex_setfiletype, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_setfiletype] = {(char_u *)"setfiletype", sizeof("setfiletype") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_setglobal] = {(char_u *)"setglobal", sizeof("setglobal") - 1, ex_set, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
     [CMD_setlocal] = {(char_u *)"setlocal", sizeof("setlocal") - 1, ex_set, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
     [CMD_sfind] = {(char_u *)"sfind", sizeof("sfind") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_NEEDARG), ADDR_OTHER},
     [CMD_sfirst] = {(char_u *)"sfirst", sizeof("sfirst") - 1, ex_rewind, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_shell] = {(char_u *)"shell", sizeof("shell") - 1, ex_shell, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_shell] = {(char_u *)"shell", sizeof("shell") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_simalt] = {(char_u *)"simalt", sizeof("simalt") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_sign] = {(char_u *)"sign", sizeof("sign") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_RANGE|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_silent] = {(char_u *)"silent", sizeof("silent") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_BANG|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_sleep] = {(char_u *)"sleep", sizeof("sleep") - 1, ex_sleep, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
+    [CMD_sleep] = {(char_u *)"sleep", sizeof("sleep") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_slast] = {(char_u *)"slast", sizeof("slast") - 1, ex_last, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
     [CMD_smagic] = {(char_u *)"smagic", sizeof("smagic") - 1, ex_submagic, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
     [CMD_smap] = {(char_u *)"smap", sizeof("smap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -119572,7 +115595,7 @@ static struct cmdname cmdnames[] =
     [CMD_snomagic] = {(char_u *)"snomagic", sizeof("snomagic") - 1, ex_submagic, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
     [CMD_snoremap] = {(char_u *)"snoremap", sizeof("snoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_snoremenu] = {(char_u *)"snoremenu", sizeof("snoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_source] = {(char_u *)"source", sizeof("source") - 1, ex_source, (long_u)(EX_RANGE|EX_DFLALL|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_source] = {(char_u *)"source", sizeof("source") - 1, ex_ni, (long_u)(EX_RANGE|EX_DFLALL|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_sort] = {(char_u *)"sort", sizeof("sort") - 1, ex_sort, (long_u)(EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_MODIFY), ADDR_LINES},
     [CMD_split] = {(char_u *)"split", sizeof("split") - 1, ex_splitview, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
     [CMD_spellgood] = {(char_u *)"spellgood", sizeof("spellgood") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_NEEDARG|EX_EXTRA|EX_TRLBAR), ADDR_OTHER},
@@ -119589,7 +115612,7 @@ static struct cmdname cmdnames[] =
     [CMD_startinsert] = {(char_u *)"startinsert", sizeof("startinsert") - 1, ex_startinsert, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_startgreplace] = {(char_u *)"startgreplace", sizeof("startgreplace") - 1, ex_startinsert, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_startreplace] = {(char_u *)"startreplace", sizeof("startreplace") - 1, ex_startinsert, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_static] = {(char_u *)"static", sizeof("static") - 1, ex_wrongmodifier, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
+    [CMD_static] = {(char_u *)"static", sizeof("static") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
     [CMD_stopinsert] = {(char_u *)"stopinsert", sizeof("stopinsert") - 1, ex_stopinsert, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_stjump] = {(char_u *)"stjump", sizeof("stjump") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
     [CMD_stselect] = {(char_u *)"stselect", sizeof("stselect") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
@@ -119602,26 +115625,26 @@ static struct cmdname cmdnames[] =
     [CMD_syntax] = {(char_u *)"syntax", sizeof("syntax") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_syntime] = {(char_u *)"syntime", sizeof("syntime") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_syncbind] = {(char_u *)"syncbind", sizeof("syncbind") - 1, ex_syncbind, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_smile] = {(char_u *)"smile", sizeof("smile") - 1, ex_smile, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
+    [CMD_smile] = {(char_u *)"smile", sizeof("smile") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
     [CMD_t] = {(char_u *)"t", sizeof("t") - 1, ex_copymove, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_tNext] = {(char_u *)"tNext", sizeof("tNext") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
     [CMD_tag] = {(char_u *)"tag", sizeof("tag") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
     [CMD_tags] = {(char_u *)"tags", sizeof("tags") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tab] = {(char_u *)"tab", sizeof("tab") - 1, ex_wrongmodifier, (long_u)(EX_RANGE|EX_ZEROR|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_TABS},
-    [CMD_tabclose] = {(char_u *)"tabclose", sizeof("tabclose") - 1, ex_tabclose, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_TABS},
-    [CMD_tabdo] = {(char_u *)"tabdo", sizeof("tabdo") - 1, ex_listdo, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_TABS},
-    [CMD_tabedit] = {(char_u *)"tabedit", sizeof("tabedit") - 1, ex_splitview, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_ZEROR|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_TABS},
+    [CMD_tab] = {(char_u *)"tab", sizeof("tab") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_TABS},
+    [CMD_tabclose] = {(char_u *)"tabclose", sizeof("tabclose") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_TABS},
+    [CMD_tabdo] = {(char_u *)"tabdo", sizeof("tabdo") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_TABS},
+    [CMD_tabedit] = {(char_u *)"tabedit", sizeof("tabedit") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_ZEROR|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_TABS},
     [CMD_tabfind] = {(char_u *)"tabfind", sizeof("tabfind") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_ZEROR|EX_CMDARG|EX_ARGOPT|EX_NEEDARG|EX_TRLBAR), ADDR_TABS},
-    [CMD_tabfirst] = {(char_u *)"tabfirst", sizeof("tabfirst") - 1, ex_tabnext, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_tabmove] = {(char_u *)"tabmove", sizeof("tabmove") - 1, ex_tabmove, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS},
-    [CMD_tablast] = {(char_u *)"tablast", sizeof("tablast") - 1, ex_tabnext, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_tabnext] = {(char_u *)"tabnext", sizeof("tabnext") - 1, ex_tabnext, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS},
-    [CMD_tabnew] = {(char_u *)"tabnew", sizeof("tabnew") - 1, ex_splitview, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_ZEROR|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_TABS},
-    [CMD_tabonly] = {(char_u *)"tabonly", sizeof("tabonly") - 1, ex_tabonly, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_TABS},
-    [CMD_tabprevious] = {(char_u *)"tabprevious", sizeof("tabprevious") - 1, ex_tabnext, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS_RELATIVE},
-    [CMD_tabNext] = {(char_u *)"tabNext", sizeof("tabNext") - 1, ex_tabnext, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS_RELATIVE},
-    [CMD_tabrewind] = {(char_u *)"tabrewind", sizeof("tabrewind") - 1, ex_tabnext, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_tabs] = {(char_u *)"tabs", sizeof("tabs") - 1, ex_tabs, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_tabfirst] = {(char_u *)"tabfirst", sizeof("tabfirst") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
+    [CMD_tabmove] = {(char_u *)"tabmove", sizeof("tabmove") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS},
+    [CMD_tablast] = {(char_u *)"tablast", sizeof("tablast") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
+    [CMD_tabnext] = {(char_u *)"tabnext", sizeof("tabnext") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS},
+    [CMD_tabnew] = {(char_u *)"tabnew", sizeof("tabnew") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_ZEROR|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_TABS},
+    [CMD_tabonly] = {(char_u *)"tabonly", sizeof("tabonly") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_TABS},
+    [CMD_tabprevious] = {(char_u *)"tabprevious", sizeof("tabprevious") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS_RELATIVE},
+    [CMD_tabNext] = {(char_u *)"tabNext", sizeof("tabNext") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS_RELATIVE},
+    [CMD_tabrewind] = {(char_u *)"tabrewind", sizeof("tabrewind") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
+    [CMD_tabs] = {(char_u *)"tabs", sizeof("tabs") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_tcd] = {(char_u *)"tcd", sizeof("tcd") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_tchdir] = {(char_u *)"tchdir", sizeof("tchdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_tcl] = {(char_u *)"tcl", sizeof("tcl") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
@@ -119631,7 +115654,7 @@ static struct cmdname cmdnames[] =
     [CMD_terminal] = {(char_u *)"terminal", sizeof("terminal") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_tfirst] = {(char_u *)"tfirst", sizeof("tfirst") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
     [CMD_throw] = {(char_u *)"throw", sizeof("throw") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_this] = {(char_u *)"this", sizeof("this") - 1, ex_wrongmodifier, (long_u)(EX_EXTRA|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
+    [CMD_this] = {(char_u *)"this", sizeof("this") - 1, ex_ni, (long_u)(EX_EXTRA|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
     [CMD_tjump] = {(char_u *)"tjump", sizeof("tjump") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
     [CMD_tlast] = {(char_u *)"tlast", sizeof("tlast") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
     [CMD_tlmenu] = {(char_u *)"tlmenu", sizeof("tlmenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
@@ -119653,7 +115676,7 @@ static struct cmdname cmdnames[] =
     [CMD_undo] = {(char_u *)"undo", sizeof("undo") - 1, ex_undo, (long_u)(EX_RANGE|EX_COUNT|EX_ZEROR|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_undojoin] = {(char_u *)"undojoin", sizeof("undojoin") - 1, ex_undojoin, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_undolist] = {(char_u *)"undolist", sizeof("undolist") - 1, ex_undolist, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_unabbreviate] = {(char_u *)"unabbreviate", sizeof("unabbreviate") - 1, ex_abbreviate, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_unabbreviate] = {(char_u *)"unabbreviate", sizeof("unabbreviate") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_unhide] = {(char_u *)"unhide", sizeof("unhide") - 1, ex_buffer_all, (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
     [CMD_uniq] = {(char_u *)"uniq", sizeof("uniq") - 1, ex_uniq, (long_u)(EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_MODIFY), ADDR_LINES},
     [CMD_unlet] = {(char_u *)"unlet", sizeof("unlet") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -119671,8 +115694,8 @@ static struct cmdname cmdnames[] =
     [CMD_view] = {(char_u *)"view", sizeof("view") - 1, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
     [CMD_vimgrep] = {(char_u *)"vimgrep", sizeof("vimgrep") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE|EX_LOCK_OK), ADDR_OTHER},
     [CMD_vimgrepadd] = {(char_u *)"vimgrepadd", sizeof("vimgrepadd") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_vim9cmd] = {(char_u *)"vim9cmd", sizeof("vim9cmd") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_vim9script] = {(char_u *)"vim9script", sizeof("vim9script") - 1, ex_vim9script, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_vim9cmd] = {(char_u *)"vim9cmd", sizeof("vim9cmd") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_vim9script] = {(char_u *)"vim9script", sizeof("vim9script") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_viusage] = {(char_u *)"viusage", sizeof("viusage") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
     [CMD_vmap] = {(char_u *)"vmap", sizeof("vmap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_vmapclear] = {(char_u *)"vmapclear", sizeof("vmapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -119781,7 +115804,6 @@ static void enter_tabpage(tabpage_T *tp, buf_T *old_curbuf, int trigger_enter_au
 static void frame_fix_height(win_T *wp);
 static int frame_minheight(frame_T *topfrp, win_T *next_curwin);
 static int frame_wincount_in_height(frame_T *topfrp);
-static int may_open_tabpage(void);
 static int win_enter_ext(win_T *wp, int flags);
 static void win_free(win_T *wp, tabpage_T *tp);
 static void win_append(win_T *after, win_T *wp);
@@ -119822,33 +115844,12 @@ static int close_disallowed = 0;
 
 static int frame_locked = 0;
 
-    static void
-window_layout_lock(void)
-{
-    ++split_disallowed;
-    ++close_disallowed;
-}
-
-    static void
-window_layout_unlock(void)
-{
-    --split_disallowed;
-    --close_disallowed;
-}
-
     static int
 window_layout_locked(enum CMD_index cmd)
 {
     if (split_disallowed > 0 || close_disallowed > 0)
     {
-        if (close_disallowed == 0 && cmd == CMD_tabnew)
-        {
-            emsg(_(e_cannot_split_window_when_closing_buffer));
-        }
-        else
-        {
-            emsg(_(e_not_allowed_to_change_window_layout_in_this_autocmd));
-        }
+        emsg(_(e_not_allowed_to_change_window_layout_in_this_autocmd));
         return TRUE;
     }
     return FALSE;
@@ -120089,35 +116090,6 @@ newwindow:
                 win_goto_hor(FALSE, Prenum1);
                 break;
 
-    case 'T':
-                 if (cmdwin_type != 0)
-                     {           emsg(_(e_invalid_in_cmdline_window));           return;     }
-                if (one_window())
-                {
-                    msg(_(m_onlyone));
-                }
-                else
-                {
-                    tabpage_T   *oldtab = curtab;
-                    tabpage_T   *newtab;
-
-                    wp = curwin;
-                    if (win_new_tabpage((int)Prenum) == OK && valid_tabpage(oldtab))
-                    {
-                        newtab = curtab;
-                        goto_tabpage_tp(oldtab, TRUE, TRUE);
-                        if (curwin == wp)
-                        {
-                            win_close(curwin, FALSE);
-                        }
-                        if (valid_tabpage(newtab))
-                        {
-                            goto_tabpage_tp(newtab, TRUE, TRUE);
-                        }
-                    }
-                }
-                break;
-
     case 't':
     case Ctrl_T:
                 win_goto(firstwin);
@@ -120216,7 +116188,6 @@ newwindow:
     case 'f':
     case 'F':
     case Ctrl_F:
-wingotofile:
                  if (cmdwin_type != 0)
                      {           emsg(_(e_invalid_in_cmdline_window));           return;     }
                 if (check_text_or_curbuf_locked(NULL))
@@ -120232,7 +116203,7 @@ wingotofile:
                     setpcmark();
 
                     wp = NULL;
-                    if ((swb_flags & (SWB_USEOPEN | SWB_USETAB)) && cmdmod.cmod_tab == 0)
+                    if ((swb_flags & (SWB_USEOPEN | SWB_USETAB)))
                     {
                         wp = swbuf_goto_win_with_buf(buflist_findname_exp(ptr));
                     }
@@ -120286,23 +116257,21 @@ wingotofile:
                 {
                     case 'f':
                     case 'F':
-                        cmdmod.cmod_tab = tabpage_index(curtab) + 1;
-                        nchar = xchar;
-                        goto wingotofile;
+                        beep_flush();
+                        break;
 
                     case 't':
-                        goto_tabpage((int)Prenum);
-                        break;
-
-                    case 'T':
-                        goto_tabpage(-(int)Prenum1);
-                        break;
-
-                    case TAB:
-                        if (goto_tabpage_lastused() == FAIL)
+                        if (Prenum > 1)
                         {
                             beep_flush();
                         }
+                        break;
+
+                    case 'T':
+                        break;
+
+                    case TAB:
+                        beep_flush();
                         break;
 
                     default:
@@ -120434,11 +116403,6 @@ win_split(int size, int flags)
     if (check_split_disallowed(curwin) == FAIL)
     {
         return FAIL;
-    }
-
-    if (may_open_tabpage() == OK)
-    {
-        return OK;
     }
 
     flags |= cmdmod.cmod_split;
@@ -122196,55 +118160,16 @@ win_close(win_T *win, int free_buf)
     static void
 trigger_winnewpre(void)
 {
-    window_layout_lock();
-    apply_autocmds(EVENT_WINNEWPRE, NULL, NULL, FALSE, NULL);
-    window_layout_unlock();
 }
 
     static void
 trigger_winclosed(win_T *win)
 {
-    static int  recursive = FALSE;
-    char_u      winid[NUMBUFLEN];
-
-    if (recursive)
-    {
-        return;
-    }
-    recursive = TRUE;
-    vim_snprintf((char *)winid, sizeof(winid), "%d", win->w_id);
-    apply_autocmds(EVENT_WINCLOSED, winid, winid, FALSE, win->w_buffer);
-    recursive = FALSE;
 }
 
     static void
 trigger_tabclosedpre(tabpage_T *tp)
 {
-    static int  recursive = FALSE;
-    tabpage_T   *ptp = curtab;
-
-    if (!has_tabclosedpre() || recursive)
-    {
-        return;
-    }
-
-    if (valid_tabpage(tp))
-    {
-        goto_tabpage_tp(tp, FALSE, FALSE);
-    }
-    recursive = TRUE;
-    window_layout_lock();
-    apply_autocmds(EVENT_TABCLOSEDPRE, NULL, NULL, FALSE, NULL);
-    window_layout_unlock();
-    recursive = FALSE;
-    if (valid_tabpage(ptp))
-    {
-        goto_tabpage_tp(ptp, FALSE, FALSE);
-    }
-    else
-    {
-        goto_tabpage_tp(first_tabpage, FALSE, FALSE);
-    }
 }
 
     static void
@@ -122274,85 +118199,8 @@ may_make_initial_scroll_size_snapshot(void)
 }
 
     static void
-check_window_scroll_resize(int     *size_count, win_T   **first_scroll_win, win_T   **first_size_win, list_T  *winlist  __attribute__((unused)) , dict_T  *v_event  __attribute__((unused)) )
-{
-    win_T *wp;
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-    {
-        int ignore_scroll = event_ignored(EVENT_WINSCROLLED, wp-> w_onebuf_opt.wo_eiw );
-        int size_changed = !event_ignored(EVENT_WINRESIZED, wp-> w_onebuf_opt.wo_eiw )
-                            && (wp->w_last_width != wp->w_width || wp->w_last_height != wp->w_height);
-        if (size_changed)
-        {
-                if (size_count != NULL)
-            {
-                ++*size_count;
-                if (*first_size_win == NULL)
-                {
-                    *first_size_win = wp;
-                }
-                if (*first_scroll_win == NULL && !ignore_scroll)
-                {
-                    *first_scroll_win = wp;
-                }
-            }
-        }
-
-        int scroll_changed = !ignore_scroll
-                                && (wp->w_last_topline != wp->w_topline || wp->w_last_leftcol != wp->w_leftcol || wp->w_last_skipcol != wp->w_skipcol);
-        if (scroll_changed && first_scroll_win != NULL && *first_scroll_win == NULL)
-        {
-            *first_scroll_win = wp;
-        }
-
-    }
-
-}
-
-    static void
 may_trigger_win_scrolled_resized(void)
 {
-    static int      recursive = FALSE;
-    int             do_resize = has_winresized();
-    int             do_scroll = has_winscrolled();
-
-    if (recursive || !(do_scroll || do_resize) || !did_initial_scroll_size_snapshot)
-    {
-        return;
-    }
-
-    int size_count = 0;
-    win_T *first_scroll_win = NULL;
-    win_T *first_size_win = NULL;
-    check_window_scroll_resize(&size_count, &first_scroll_win, &first_size_win, NULL, NULL);
-    int trigger_resize = do_resize && size_count > 0;
-    int trigger_scroll = do_scroll && first_scroll_win != NULL;
-    if (!trigger_resize && !trigger_scroll)
-    {
-        return;
-    }
-
-    snapshot_windows_scroll_size();
-
-    window_layout_lock();
-    recursive = TRUE;
-
-    if (trigger_resize)
-    {
-            char_u winid[NUMBUFLEN];
-            vim_snprintf((char *)winid, sizeof(winid), "%d", first_size_win->w_id);
-            apply_autocmds(EVENT_WINRESIZED, winid, winid, FALSE, first_size_win->w_buffer);
-    }
-
-    if (trigger_scroll)
-    {
-        char_u winid[NUMBUFLEN];
-        vim_snprintf((char *)winid, sizeof(winid), "%d", first_scroll_win->w_id);
-        apply_autocmds(EVENT_WINSCROLLED, winid, winid, FALSE, first_scroll_win->w_buffer);
-    }
-
-    recursive = FALSE;
-    window_layout_unlock();
 }
 
     static void
@@ -122771,13 +118619,7 @@ alt_tabpage(void)
     tabpage_T   *tp = NULL;
     int         forward;
 
-    if ((tcl_flags & TCL_USELAST) && valid_tabpage(lastused_tabpage))
-    {
-        return lastused_tabpage;
-    }
-
-    forward = curtab->tp_next != NULL &&
-            ((tcl_flags & TCL_LEFT) == 0 || curtab == first_tabpage);
+    forward = curtab->tp_next != NULL;
 
     if (forward)
     {
@@ -123555,100 +119397,6 @@ free_tabpage(tabpage_T *tp)
 }
 
     static int
-win_new_tabpage(int after)
-{
-    tabpage_T   *tp = curtab;
-    tabpage_T   *prev_tp = curtab;
-    tabpage_T   *newtp;
-    int         n;
-
-    if (cmdwin_type != 0)
-    {
-        emsg(_(e_invalid_in_cmdline_window));
-        return FAIL;
-    }
-    if (window_layout_locked(CMD_tabnew))
-    {
-        return FAIL;
-    }
-
-    newtp = alloc_tabpage();
-    if (newtp == NULL)
-    {
-        return FAIL;
-    }
-
-    if (leave_tabpage(curbuf, TRUE) == FAIL)
-    {
-        vim_free(newtp);
-        return FAIL;
-    }
-    curtab = newtp;
-
-    newtp->tp_localdir = (tp->tp_localdir == NULL)
-                                    ? NULL : vim_strsave(tp->tp_localdir);
-
-    if (win_alloc_firstwin(tp->tp_curwin) == OK)
-    {
-        if (after == 1)
-        {
-            newtp->tp_next = first_tabpage;
-            first_tabpage = newtp;
-        }
-        else
-        {
-            if (after > 0)
-            {
-                n = 2;
-                for (tp = first_tabpage; tp->tp_next != NULL && n < after; tp = tp->tp_next)
-                {
-                    ++n;
-                }
-            }
-            newtp->tp_next = tp->tp_next;
-            tp->tp_next = newtp;
-        }
-        newtp->tp_firstwin = newtp->tp_lastwin = newtp->tp_curwin = curwin;
-
-        win_init_size();
-        firstwin->w_winrow = tabline_height();
-        firstwin->w_prev_winrow = firstwin->w_winrow;
-        win_comp_scroll(curwin);
-
-        newtp->tp_topframe = topframe;
-        last_status(FALSE);
-
-        lastused_tabpage = prev_tp;
-
-        redraw_all_later(UPD_NOT_VALID);
-        apply_autocmds(EVENT_WINNEW, NULL, NULL, FALSE, curbuf);
-        apply_autocmds(EVENT_WINENTER, NULL, NULL, FALSE, curbuf);
-        apply_autocmds(EVENT_TABNEW, NULL, NULL, FALSE, curbuf);
-        apply_autocmds(EVENT_TABENTER, NULL, NULL, FALSE, curbuf);
-        return OK;
-    }
-
-    enter_tabpage(curtab, curbuf, TRUE, TRUE);
-    return FAIL;
-}
-
-    static int
-may_open_tabpage(void)
-{
-    int         n = (cmdmod.cmod_tab == 0)
-                                       ? postponed_split_tab : cmdmod.cmod_tab;
-
-    if (n == 0)
-    {
-        return FAIL;
-    }
-
-    cmdmod.cmod_tab = 0;
-    postponed_split_tab = 0;
-    return win_new_tabpage(n);
-}
-
-    static int
 valid_tabpage(tabpage_T *tpc)
 {
     tabpage_T   *tp;
@@ -123707,24 +119455,6 @@ close_tabpage(tabpage_T *tab)
 
     goto_tabpage_tp(ptp, FALSE, FALSE);
     free_tabpage(tab);
-}
-
-    static tabpage_T *
-find_tabpage(int n)
-{
-    tabpage_T   *tp;
-    int         i = 1;
-
-    if (n == 0)
-    {
-        return curtab;
-    }
-
-    for (tp = first_tabpage; tp != NULL && i != n; tp = tp->tp_next)
-    {
-        ++i;
-    }
-    return tp;
 }
 
     static int
@@ -123843,72 +119573,6 @@ enter_tabpage(tabpage_T   *tp, buf_T       *old_curbuf, int         trigger_ente
 }
 
     static void
-goto_tabpage(int n)
-{
-    tabpage_T   *tp = NULL;
-    tabpage_T   *ttp;
-    int         i;
-
-    if (text_locked())
-    {
-        text_locked_msg();
-        return;
-    }
-
-    if (first_tabpage->tp_next == NULL)
-    {
-        if (n > 1)
-        {
-            beep_flush();
-        }
-        return;
-    }
-
-    if (n == 0)
-    {
-        if (curtab->tp_next == NULL)
-        {
-            tp = first_tabpage;
-        }
-        else
-        {
-            tp = curtab->tp_next;
-        }
-    }
-    else if (n < 0)
-    {
-        ttp = curtab;
-        for (i = n; i < 0; ++i)
-        {
-            for (tp = first_tabpage; tp->tp_next != ttp && tp->tp_next != NULL; tp = tp->tp_next)
-            {
-                ;
-            }
-            ttp = tp;
-        }
-    }
-    else if (n == 9999)
-    {
-        for (tp = first_tabpage; tp->tp_next != NULL; tp = tp->tp_next)
-        {
-            ;
-        }
-    }
-    else
-    {
-        tp = find_tabpage(n);
-        if (tp == NULL)
-        {
-            beep_flush();
-            return;
-        }
-    }
-
-    goto_tabpage_tp(tp, TRUE, TRUE);
-
-}
-
-    static void
 goto_tabpage_tp(tabpage_T   *tp, int         trigger_enter_autocmds, int         trigger_leave_autocmds)
 {
     if (trigger_enter_autocmds || trigger_leave_autocmds)
@@ -123934,18 +119598,6 @@ goto_tabpage_tp(tabpage_T   *tp, int         trigger_enter_autocmds, int        
     skip_win_fix_scroll = FALSE;
 }
 
-    static int
-goto_tabpage_lastused(void)
-{
-    if (!valid_tabpage(lastused_tabpage))
-    {
-        return FAIL;
-    }
-
-    goto_tabpage_tp(lastused_tabpage, TRUE, TRUE);
-    return OK;
-}
-
     static void
 goto_tabpage_win(tabpage_T *tp, win_T *wp)
 {
@@ -123954,69 +119606,6 @@ goto_tabpage_win(tabpage_T *tp, win_T *wp)
     {
         win_enter(wp, TRUE);
     }
-}
-
-    static void
-tabpage_move(int nr)
-{
-    int         n = 1;
-    tabpage_T *tp;
-    tabpage_T *tp_dst;
-
-    if (first_tabpage->tp_next == NULL)
-    {
-        return;
-    }
-
-    if (tabpage_move_disallowed)
-    {
-        return;
-    }
-
-    for (tp = first_tabpage; tp->tp_next != NULL && n < nr; tp = tp->tp_next)
-    {
-        ++n;
-    }
-
-    if (tp == curtab || (nr > 0 && tp->tp_next != NULL && tp->tp_next == curtab))
-    {
-        return;
-    }
-
-    tp_dst = tp;
-
-    if (curtab == first_tabpage)
-    {
-        first_tabpage = curtab->tp_next;
-    }
-    else
-    {
-         for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) 
-         {
-            if (tp->tp_next == curtab)
-            {
-                break;
-            }
-         }
-        if (tp == NULL)
-        {
-            return;
-        }
-        tp->tp_next = curtab->tp_next;
-    }
-
-    if (nr <= 0)
-    {
-        curtab->tp_next = first_tabpage;
-        first_tabpage = curtab;
-    }
-    else
-    {
-        curtab->tp_next = tp_dst->tp_next;
-        tp_dst->tp_next = curtab;
-    }
-
-    redraw_tabline = TRUE;
 }
 
     static void
@@ -125734,14 +121323,7 @@ statusline_height(win_T *wp  __attribute__((unused)) )
     static int
 tabline_height(void)
 {
-    switch (p_stal)
-    {
-        case 0:
-            return 0;
-        case 1:
-            return (first_tabpage->tp_next == NULL) ? 0 : 1;
-    }
-    return 1;
+    return 0;
 }
 
     static int
@@ -125858,41 +121440,6 @@ check_lnums_both(int do_curwin, int nested)
 check_lnums(int do_curwin)
 {
     check_lnums_both(do_curwin, FALSE);
-}
-
-    static void
-check_lnums_nested(int do_curwin)
-{
-    check_lnums_both(do_curwin, TRUE);
-}
-
-    static void
-reset_lnums(void)
-{
-    win_T       *wp;
-    tabpage_T   *tp;
-
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-     {
-         for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-         {
-        if (wp->w_buffer == curbuf)
-        {
-            if ( (((wp->w_save_cursor.w_cursor_corr).lnum == (wp->w_cursor).lnum) && ((wp->w_save_cursor.w_cursor_corr).col == (wp->w_cursor).col) && ((wp->w_save_cursor.w_cursor_corr).coladd == (wp->w_cursor).coladd))  && wp->w_save_cursor.w_cursor_save.lnum != 0)
-            {
-                wp->w_cursor = wp->w_save_cursor.w_cursor_save;
-            }
-            if (wp->w_save_cursor.w_topline_corr == wp->w_topline && wp->w_save_cursor.w_topline_save != 0)
-            {
-                wp->w_topline = wp->w_save_cursor.w_topline_save;
-            }
-            if (wp->w_save_cursor.w_topline_save > wp->w_buffer->b_ml.ml_line_count)
-            {
-                wp->w_valid &= ~VALID_TOPLINE;
-            }
-        }
-         }
-     }
 }
 
     static int
@@ -126733,7 +122280,7 @@ command_line_scan(mparm_T *parmp)
                 }
                 else
                 {
-                    want_argument = TRUE;
+                    mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
                 }
                 break;
 
@@ -126748,7 +122295,7 @@ command_line_scan(mparm_T *parmp)
                     set_option_value_give_err((char_u *)"window", n, NULL, 0);
                     break;
                 }
-                want_argument = TRUE;
+                mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
                 break;
 
             case 'c':
@@ -126764,10 +122311,8 @@ command_line_scan(mparm_T *parmp)
                     break;
                 }
             __attribute__((fallthrough));
-            case 'S':
             case 'T':
             case 'u':
-            case 'W':
                 want_argument = TRUE;
                 break;
 
@@ -126783,7 +122328,7 @@ command_line_scan(mparm_T *parmp)
                 }
 
                 --argc;
-                if (argc < 1 && c != 'S')
+                if (argc < 1)
                 {
                     mainerr_arg_missing((char_u *)argv[0]);
                 }
@@ -126793,43 +122338,12 @@ command_line_scan(mparm_T *parmp)
                 switch (c)
                 {
                 case 'c':
-                case 'S':
                     if (parmp->n_commands >= MAX_ARG_CMDS)
                     {
                         mainerr(ME_EXTRA_CMD, NULL);
                     }
-                    if (c == 'S')
-                    {
-                        char    *a;
-
-                        if (argc < 1)
-                        {
-                            a =  "Session.vim" ;
-                        }
-                        else if (argv[0][0] == '-')
-                        {
-                            a =  "Session.vim" ;
-                            ++argc;
-                            --argv;
-                        }
-                        else
-                        {
-                            a = argv[0];
-                        }
-                        p = alloc( strlen((char *)(a))  + 4);
-                        if (p == NULL)
-                        {
-                            mch_exit(2);
-                        }
-                        sprintf((char *)p, "so %s", a);
-                        parmp->cmds_tofree[parmp->n_commands] = TRUE;
-                        parmp->commands[parmp->n_commands++] = p;
-                    }
-                    else
-                    {
-                        parmp->commands[parmp->n_commands++] =
-                                                            (char_u *)argv[0];
-                    }
+                    parmp->commands[parmp->n_commands++] =
+                                                        (char_u *)argv[0];
                     break;
 
                 case '-':
@@ -126845,60 +122359,12 @@ command_line_scan(mparm_T *parmp)
 
                     break;
 
-                case 's':
-                    if (scriptin[0] != NULL)
-                    {
-scripterror:
-                         fprintf(stderr, "%s", (_("Attempt to open script file again: \""))) ;
-                         fprintf(stderr, "%s", (argv[-1])) ;
-                         fprintf(stderr, "%s", (" ")) ;
-                         fprintf(stderr, "%s", (argv[0])) ;
-                         fprintf(stderr, "%s", ("\"\n")) ;
-                        mch_exit(2);
-                    }
-                    if ((scriptin[0] =  fopen((argv[0]), ( "r" )) ) == NULL)
-                    {
-                         fprintf(stderr, "%s", (_("Cannot open for reading: \""))) ;
-                         fprintf(stderr, "%s", (argv[0])) ;
-                         fprintf(stderr, "%s", ("\"\n")) ;
-                        mch_exit(2);
-                    }
-                    if (save_typebuf() == FAIL)
-                    {
-                        mch_exit(2);
-                    }
-                    break;
-
                 case 'T':
                         parmp->term = (char_u *)argv[0];
                     break;
 
                 case 'u':
                     parmp->use_vimrc = (char_u *)argv[0];
-                    break;
-
-                case 'w':
-                    if (vim_isdigit(*((char_u *)argv[0])))
-                    {
-                        argv_idx = 0;
-                        n = get_number_arg((char_u *)argv[0], &argv_idx, 10);
-                        set_option_value_give_err((char_u *)"window", n, NULL, 0);
-                        argv_idx = -1;
-                        break;
-                    }
-                __attribute__((fallthrough));
-                case 'W':
-                    if (scriptout != NULL)
-                    {
-                        goto scripterror;
-                    }
-                    if ((scriptout =  fopen((argv[0]), (c == 'w' ?  "a"  :  "w" )) ) == NULL)
-                    {
-                         fprintf(stderr, "%s", (_("Cannot open for script output: \""))) ;
-                         fprintf(stderr, "%s", (argv[0])) ;
-                         fprintf(stderr, "%s", ("\"\n")) ;
-                        mch_exit(2);
-                    }
                     break;
 
                 }
@@ -127339,11 +122805,6 @@ main
     init_mappings();
 
     init_highlight(TRUE, FALSE);
-
-    if (params.use_vimrc != NULL && ( strcmp((char *)(params.use_vimrc), (char *)("NONE"))  == 0 ||  strcmp((char *)(params.use_vimrc), (char *)("DEFAULTS"))  == 0))
-    {
-        p_lpl = FALSE;
-    }
 
     exe_pre_commands(&params);
 

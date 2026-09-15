@@ -13,7 +13,7 @@ and deleted.
 Vim 9.2 (upstream patch level 1037) as **one translation unit**. That number
 moves: the input is cloned fresh, upstream keeps patching, and **Phase 1 is
 where this line gets updated** — from `version.c`, not from memory. `slim-vim.c` is
-180,848 lines and is the whole editor; one `gcc` invocation builds it in about
+180,844 lines and is the whole editor; one `gcc` invocation builds it in about
 8 seconds, into a standalone static binary.
 
 **`slim-vim.c` is produced, not edited into shape.** `SLIM-GOAL.md` is the process that
@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-A hundred and ninety-two tracked files once both pipelines have run:
-thirteen at the root, and 179 under
+Two hundred tracked files once both pipelines have run:
+thirteen at the root, and 187 under
 `tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
-thirty-three for `whim.mk`), the memoize
+thirty-seven for `whim.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Three of the thirteen are products
 (`slim-vim.c`, `whim-vim.c`, `LICENSE`), two are records (`upstream.sha`,
@@ -132,7 +132,7 @@ will not tell you so.** The content-keyed tier-3 check lives *inside* the
 recipe, and make never gets there: a phase's prerequisite is the previous
 boundary *file*, so an existing `q27.sha256` that is newer than `q26.sha256` is
 "up to date" and the recipe is skipped whatever the implementation digest now
-says. Measured: with `tools/whim32.sh` edited so `implhash.sh` returns a
+says. Measured: with `tools/whim33.sh` edited so `implhash.sh` returns a
 different key, `make -n whim-pass` plans **no phase recipes at all**. A rewrite
 of the unreachability phase's program silently did not execute this way, and the
 pass reported success.
@@ -941,6 +941,12 @@ mentions outside *every* type definition: a prototype, a variable, a cast, a
 the definition is dead. Leave them out of the count and you delete an enum half
 the file uses by name.
 
+**And an enum need not have a tag at all.** The option-index lists are written
+`enum` on one line and `{` on the next, with no name, and the definition finder
+`typereach.py` and `deadenums.py` share did not recognise that head — so neither
+tool ever looked inside them, and an enumerator nothing named survived every
+sweep. It recognises the bare `enum` head now.
+
 Run both sweeps alternately to a joint fixpoint: removing a function orphans
 types, and removing a type orphans functions.
 
@@ -955,7 +961,7 @@ tools/enumvals.sh slim-vim.c before.txt      # dump, make the change, dump again
 ```
 
 Dump before and after; every name present in both must have the same value.
-There are 2,862. That is a stronger check than the build, which is perfectly
+There are 2,858. That is a stronger check than the build, which is perfectly
 happy to renumber a table index.
 
 **Every sweep does this now, in both pipelines.** `tools/deadenums.py` runs in
@@ -1004,6 +1010,16 @@ lives between marker comments in `slim-vim.c`:
 ```sh
 python3 tools/create_cmdidxs.py slim-vim.c --check   # or --update to rewrite it
 ```
+
+**The normal-mode table has the same shape and no designators.** `nv_cmds[]`
+lists the keys and `nv_cmd_idx[]` is a sorted index into it, computed once and
+written into the C. Delete a row and the index still compiles, still has its old
+length, and every key found past the hole resolves to another key's row — the
+whim pipeline's mouse phase did that, and the arrow keys stopped working in
+normal mode for twelve phases, because every harness that pressed an arrow did
+it in insert mode. A row is pointed at `nv_error`, never deleted, and
+`tools/nvidxcheck.py`, run by every whim phase's `phasecheck.sh`, requires the
+index to be a permutation of the rows.
 
 Two traps if you ever remove a command:
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The arrow keys still move the cursor in insert mode.
+"""The arrow keys still move the cursor, in insert mode and in normal mode.
 
 Usage:
     python3 tools/arrowcheck.py <binary>
@@ -81,7 +81,24 @@ def main():
               % (got, 'one twoX three '))
         return 1
 
-    print('  arrowcheck   Up and Down still move the cursor in insert mode')
+    # NORMAL MODE TOO, and in the form a terminal actually sends.  vim switches
+    # the keypad to application mode at startup, so an xterm sends `ESC O B`,
+    # not `ESC [ B`.  Normal mode finds a key through nv_cmd_idx[], a sorted
+    # index into nv_cmds[] computed once and written into the C -- delete a row
+    # and every key past it resolves to the wrong one.  Phase 24 did exactly
+    # that, and for twelve phases nothing noticed, because insert mode decodes
+    # the arrows in a switch and this check only asked insert mode.
+    for name, key, keys, want in (
+            ('Down', b'\x1bOB', (b'gg0',), 'one wo three '),
+            ('Up', b'\x1bOA', (b'G0',), 'one wo three '),
+            ('Right', b'\x1bOC', (b'gg0',), 'oe two three '),
+            ('Left', b'\x1bOD', (b'gg$',), 'oe two three ')):
+        got = run(b, keys + (key, b'x', b':wq\r'))
+        if got != want:
+            print('  arrowcheck   %s in normal mode gave %r, expected %r' % (name, got, want))
+            return 1
+
+    print('  arrowcheck   the arrows move the cursor in normal and insert mode')
     return 0
 
 

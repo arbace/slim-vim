@@ -63,6 +63,9 @@ if [ -n "$ext" ]; then
 fi
 echo "  linkage      nm on the object still prints exactly main"
 
+# A table index the compiler cannot check.  See tools/nvidxcheck.py.
+python3 tools/nvidxcheck.py "$src"
+
 sha=$(sha256sum "$src" | cut -c1-32)
 mkdir -p .cache/symbols
 nm -u "$obj" | awk '{print $2}' | sort > .cache/symbols/$sha.u

@@ -15,7 +15,8 @@ each other; `tools/funcreach.py` deletes the interior once the roots are gone,
 so this tool removes only the roots:
 
   * **the tables.**  Twenty-two rows of `nv_cmds[]` pointing at `nv_mouse()` and
-    `nv_mousescroll()`, and the `<LeftMouse>`, `<ScrollWheelUp>`, `<MouseMove>`
+    `nv_mousescroll()` now point at `nv_error()` -- the rows stay, because
+    `nv_cmd_idx[]` indexes them -- and the `<LeftMouse>`, `<ScrollWheelUp>`, `<MouseMove>`
     … rows of the key-name table, so that `:map <LeftMouse>` no longer names
     anything.
   * **the dispatch.**  The mouse `case` runs in `edit()`'s insert loop and in
@@ -83,11 +84,16 @@ def main():
     text = path.read_text(errors='surrogateescape')
 
     # --- the tables ---------------------------------------------------------
-    text, n = re.subn(r'^[ \t]*\{[^\n]*, nv_mouse(?:scroll)?, [^\n]*\} ,\n', '',
+    # POINTED AT nv_error, NEVER DELETED.  nv_cmd_idx[] is a sorted index into
+    # nv_cmds[], computed once and written into the C; deleting these rows left
+    # it 22 entries longer than the table, and every key found past the first
+    # hole -- the arrows among them -- resolved to the wrong row.  Normal-mode
+    # arrows did not work from this phase until that was found.
+    text, n = re.subn(r'^([ \t]*\{[^\n]*, )nv_mouse(?:scroll)?(, [^\n]*\} ,)$', r'\1nv_error\2',
                       text, flags=re.M)
     if n != 22:
         sys.exit('nomouse: expected 22 nv_cmds mouse rows, matched %d' % n)
-    print('  nomouse      %d rows of nv_cmds' % n)
+    print('  nomouse      %d rows of nv_cmds answer nv_error' % n)
 
     # The key-name table, so that <LeftMouse> and friends stop naming a key.
     names = ('LeftDrag|LeftMouse|LeftRelease|LeftReleaseNM|MiddleMouse|'
