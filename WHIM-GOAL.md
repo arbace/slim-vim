@@ -2790,6 +2790,78 @@ The phase checks each dropped spelling — `-c qa!`, `-cqa!`, `--cmd qa!`, `-R`,
 **None the Ex sweep records.** Measured: 117,013 → **116,892 lines**, libc
 symbols 88 → 88.
 
+## Phase 44 — no filters, sorting or alignment
+
+Seven rows go to `ex_ni`: `:!` (with `:{range}!`), `:sort`, `:uniq`, `:retab`,
+`:left`, `:center` and `:right`. **`:!` was kept in Phase 8 on purpose**, as the
+sentence it printed instead of starting a process; it is dropped here on
+request. The `!` operator key built nothing but a `:{range}!` command line, so
+its row in `nv_cmds[]` points at `nv_error` — pointed, not deleted, as every row
+there is. Completion for `:retab` goes with its row.
+
+**`:r !cmd` and `:w !cmd` stay as they were.** They reach `do_bang()` through
+`:read` and `:write`, not through the `:!` row, and keep Phase 8's refusal:
+without their `!` being special, `:w !cmd` would write a file of that name.
+
+### The delta
+
+**The six rows that succeeded run bare** — `:sort`, `:uniq`, `:retab`, `:left`,
+`:center` and `:right` — and **three behaviour cases**, `retab`, `sort_u` and
+`sort_n`, which used them. `:!` already differed from Phase 8. Measured: 116,892
+→ **115,798 lines**.
+
+## Phase 45 — no `:drop`
+
+`:drop` edited a file by making it the argument list and going to its first
+entry: with one window and one buffer it was `:args` plus `:first`, both gone.
+`ex_drop()` was the last caller of `set_arglist()` and `ex_rewind()`, and the
+sweep takes all three.
+
+### The delta
+
+**None.** `:drop` already failed with no argument. Measured: 115,798 → **115,744
+lines**.
+
+## Phase 46 — no `:wall`, `:qall`, `:quitall`, `:wqall` or `:xall`
+
+With one window and one buffer these were `:w`, `:q`, `:wq` and `:x` under longer
+names. `:quitall` is `:qall`'s long spelling, the same handler, and goes with it.
+`do_wqall()` and `ex_quit_all()` go with their rows.
+
+**`tools/exsweep.py` quit every run with `:qall!`**, which is what made `:new`,
+`:split` and the other window commands deterministic in `slim-vim`. It now runs
+the binary once with `+qall!` and quits with `:q!` wherever that fails — which is
+the same thing from Phase 39 on, where there is one window. Against `slim-vim`
+it still quits with `:qall!`, and `tools/verify.sh` is all clear. The phase
+checks that `:q!` still quits and `:qa!` is not a command.
+
+### The delta
+
+**The five rows**, which succeeded run bare. Measured: 115,744 → **115,646
+lines**.
+
+## Phase 47 — no `:startinsert`, `:startreplace`, `:startgreplace` or `:stopinsert`
+
+Commands that entered or left Insert mode from a command line. `i`, `R`, `gR`
+and Esc are the keys for that, and stay.
+
+### The delta
+
+**The four rows**, which succeeded run bare. Measured: 115,646 → **115,588
+lines**.
+
+## Phase 48 — no `:noswapfile`
+
+There has been no swap file since Phase 21: the memfile is memory. The modifier
+set `CMOD_NOSWAPFILE`, whose two readers in `ml_open()` and `buf_copy_options()`
+were already empty blocks. It is matched by name in `parse_command_modifiers()`
+before the table, so its branch goes as well as its row, and so does its line in
+the completion arm for modifiers.
+
+### The delta
+
+**The row**, which succeeded run bare. Measured: 115,588 → **115,568 lines**.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.

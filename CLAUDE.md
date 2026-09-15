@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Two hundred and fifteen tracked files once both pipelines have run:
-thirteen at the root, and 202 under
+Two hundred and twenty tracked files once both pipelines have run:
+thirteen at the root, and 207 under
 `tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
-forty-four for `whim.mk`), the memoize
+forty-nine for `whim.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Three of the thirteen are products
 (`slim-vim.c`, `whim-vim.c`, `LICENSE`), two are records (`upstream.sha`,
@@ -198,7 +198,7 @@ Nothing in it is part of the build; the build reads `slim-vim.c` and nothing els
 Six things a pass produces appear untracked, and `.gitignore` names them:
 `vim`, which the build adds and `clean` removes; `.reference/`, the recorded
 baselines and phase digests beside the previous `slim-vim.c` (see below);
-`TRANSCRIPT.md`, which `/export` writes whenever this file is updated;
+`TRANSCRIPT.md`, which `/export` writes when the user asks it to;
 `upstream/`, the pristine vim tree a pass clones in, works on and deletes —
 8,581 files that must never reach a commit, and which do not exist between
 passes; `.build-slim/`, the phase boundaries a pass leaves behind — a tar and a
@@ -1229,11 +1229,6 @@ appending a new section that disagrees with it.
 
 The numbers here are measurements, not estimates. Re-measure rather than
 adjusting them by reasoning, and say what you measured.
-
-Whenever you update this file, the user wants the session transcript exported
-alongside it as `TRANSCRIPT.md`. `/export` is a Claude Code built-in, not
-something an agent can invoke and not a shell command, so say so and let them
-type it — do not quietly skip it.
 
 ## Commit style
 

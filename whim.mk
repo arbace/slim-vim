@@ -18,7 +18,7 @@
 WHIMWORK   = whim
 WHIMBUILD  = .build-whim
 WHIMORACLE = .reference/whim-phases
-WHIMPHASES = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43
+WHIMPHASES = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48
 
 # --- the chain ------------------------------------------------------------
 $(WHIMBUILD)/q0.sha256: $(WHIMBUILD)/input.sha256
@@ -65,6 +65,11 @@ $(WHIMBUILD)/q40.sha256: $(WHIMBUILD)/q39.sha256
 $(WHIMBUILD)/q41.sha256: $(WHIMBUILD)/q40.sha256
 $(WHIMBUILD)/q42.sha256: $(WHIMBUILD)/q41.sha256
 $(WHIMBUILD)/q43.sha256: $(WHIMBUILD)/q42.sha256
+$(WHIMBUILD)/q44.sha256: $(WHIMBUILD)/q43.sha256
+$(WHIMBUILD)/q45.sha256: $(WHIMBUILD)/q44.sha256
+$(WHIMBUILD)/q46.sha256: $(WHIMBUILD)/q45.sha256
+$(WHIMBUILD)/q47.sha256: $(WHIMBUILD)/q46.sha256
+$(WHIMBUILD)/q48.sha256: $(WHIMBUILD)/q47.sha256
 
 $(WHIMBUILD)/q%.sha256:
 	@tools/restore.sh $(patsubst %.sha256,%.tar,$<) $(WHIMWORK)
@@ -109,7 +114,7 @@ whim-vim.c: force
 
 # --- what a whim pass is --------------------------------------------------
 .PHONY: whim-pass
-whim-pass: $(WHIMBUILD)/q43.sha256
+whim-pass: $(WHIMBUILD)/q48.sha256
 	@cp $(WHIMWORK)/whim-vim.c whim-vim.c
 	@echo
 	@printf '  %-12s %s lines, from slim-vim.c\n' "whim-vim.c" \

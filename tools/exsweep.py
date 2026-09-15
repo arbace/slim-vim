@@ -42,6 +42,14 @@ def main():
     shutil.copy2(binary, vim)
     os.chmod(vim, 0o755)
 
+    # How a run quits.  :qall! closes every window a command opened, which is what
+    # makes :new, :split and the rest deterministic in slim-vim.  whim-vim has one
+    # window from its Phase 39 and no :qall from its Phase 46, and there :q! is the
+    # same thing.  Asked of the binary once, rather than assumed from its name.
+    probe = subprocess.run([vim, '-e', '-s', '+qall!'], stdin=subprocess.DEVNULL,
+                           capture_output=True, env=ENV, cwd=_HOME, timeout=20)
+    quit_cmd = '+qall!' if probe.returncode == 0 else '+q!'
+
     # These hand control to another program or to the job-control signal
     # machinery; their result is the environment's, not the editor's, and it
     # is not reproducible from one run to the next.
@@ -57,7 +65,7 @@ def main():
             # +{command}, not -c: see tools/behaviour.py.
             r = subprocess.run(
                 [vim, '-e', '-s',
-                 '+' + name, '+qall!', src],
+                 '+' + name, quit_cmd, src],
                 stdin=subprocess.DEVNULL, capture_output=True, env=ENV,
                 cwd=d, timeout=20,
                 # :suspend / :stop signal the whole process group with SIGTSTP.
