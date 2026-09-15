@@ -3266,13 +3266,16 @@ now hold `NULL`. And the check that `ExpandOne()` had one caller ran first befor
 the sweep, when its dead callers were all still there. The sweep then took
 6,208 lines.
 
-**`:e` does not expand a wildcard, and has not for a long time.** The first probe
-here asked that `:e onlyo*` edit `onlyone.txt`. It failed — and failed identically on
-the previous phase's binary, which wrote a file named `onlyo*`. slim-vim expands it;
-the Phase 12, 18, 30 and 44 boundaries do not. So filename globbing was lost at or
-before Phase 12, silently, because no harness case uses a wildcard. This phase does
-not change it, and the probe checks `:e` on a plain name instead. The loss is
-recorded here rather than fixed: it is a question for its own phase.
+**`:e` does not expand a wildcard, and has not since Phase 7 — deliberately.** The
+first probe here asked that `:e onlyo*` edit `onlyone.txt`. It failed, and failed
+identically on the previous phase's binary, which wrote a file named `onlyo*`. That
+is Phase 7's declared delta, not a regression: Phase 7 replaced
+`gen_expand_wildcards()` with `save_patterns()`, so `:e *.c` names a file
+literally, and said so. Bisecting the boundaries confirms it — q6 expands the
+pattern, q7 does not. An earlier draft of this section called the loss silent and
+placed it "at or before Phase 12"; that came from testing binaries before reading
+Phase 7, and was wrong. This phase does not change it, and the probe checks `:e`
+on a plain name instead.
 
 ### The delta
 
@@ -3283,7 +3286,7 @@ recorded here rather than fixed: it is a question for its own phase.
 
 Seven options whose default is the only value anything could still act on.
 `'suffixes'` ordered wildcard matches, and wildcards have not expanded since
-Phase 12 or earlier, so `match_suffix()` and its two reordering blocks go.
+Phase 7 removed globbing, so `match_suffix()` and its two reordering blocks go.
 `'fileignorecase'` is off, and its five tests fold as false. `'autocompletedelay'`
 is 0, so `inchar_loop()`'s delay was never pending. `'verbosefile'` is empty, so
 the file is never opened: `redir_write()`, `redirecting()` and the

@@ -6,7 +6,7 @@
 # Seven options whose default is the only value anything could still act on:
 #
 #   'suffixes'           ordered wildcard matches, and wildcards have not expanded
-#                        since Phase 12 or earlier; match_suffix() goes
+#                        since Phase 7 removed globbing; match_suffix() goes
 #   'fileignorecase'     off: its five tests fold as false
 #   'autocompletedelay'  0: inchar_loop()'s delay is never pending
 #   'verbosefile'        empty: the file is never opened, so redir_write(),
