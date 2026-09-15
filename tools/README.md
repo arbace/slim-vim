@@ -108,6 +108,11 @@ themselves.
   reproduce the boundary it recorded: by induction the same proof as a repass
   from an empty cache, in the wall time of the slowest phase. `make slim-verify`,
   `make whim-verify`; `JOBS=n` to run fewer at once.
+- **`specpass.sh slim|whim`** — a speculative repass: every phase at once on the
+  previous pass's boundary before it, stored in the tier 3 cache under the key
+  `memo.sh` looks up, so the sequential pass that follows is a hit wherever its
+  input did not change. Advisory by construction — a wrong guess costs CPU, not
+  correctness. `make whim-specpass`; `JOBS=n`, `KEEP=1`.
 - **`phasebuild.sh <work> <lines-before>`** — a whim phase's build. `sweep.sh`
   compiles a plain object of each round's starting text in the background, and
   the round that changes nothing started from the final text, so this links that

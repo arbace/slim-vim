@@ -68,8 +68,8 @@ it is the only one.
 
 ## Layout
 
-Two hundred and fourteen tracked files once both pipelines have run:
-thirteen at the root, and 201 under
+Two hundred and fifteen tracked files once both pipelines have run:
+thirteen at the root, and 202 under
 `tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
 forty-four for `whim.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
@@ -106,9 +106,13 @@ that exists on one side and not the other is a question rather than an accident:
 | add a phase at the end | `slim-tip` | `whim-tip` |
 | record, time, score | `slim-record` `slim-times` `slim-residue` | `whim-record` `whim-times` `whim-residue` |
 | check every boundary at once | `slim-verify` | `whim-verify` |
+| speculate every phase, then pass | — | `whim-specpass` |
 | throw away the work | `slim-clean` | `whim-clean` |
 
-Three targets are deliberately one-sided and each says why. `slim-promote-N` has
+Four targets are one-sided and each says why. `whim-specpass` has no slim
+twin yet: it was built for the pipeline where every phase is a program, and a
+slim phase can still fall through to an agent, which is not a function and
+cannot be speculated on. `slim-promote-N` has
 no twin because promotion exists to turn an *agent*-recorded boundary into a
 check, and every whim phase is a program. `slim-clone`, `slim-preflight`,
 `slim-refpass`, `slim-compare` and `slim-passorref` have none because only the
@@ -141,6 +145,22 @@ Three targets do force it, and one of them is the one to reach for: `make
 whim-phase-N` and `make whim-tip` are `.PHONY`, so their recipes always run and
 the tier-3 key then decides; `make whim-repass` removes `.build-whim` outright.
 **After editing a phase that is not the last one, use `whim-repass`.**
+
+**`make whim-specpass` is the same pass, and it waits only where it has to.**
+A pass is sequential because phase N reads boundary N-1, but a repass has the
+previous pass's boundaries lying in `.build-whim`. `tools/specpass.sh` runs every
+phase at once on those, in scratch roots of its own, and stores each result in
+the tier 3 cache under exactly the key `memo.sh` will look up — the phase, the
+input digest, the implementation digest — and then `whim-repass` runs. Wherever
+a phase's real input is the one speculated on, its lookup is a hit; from the
+first phase whose input really changed, nothing matches and it runs as before.
+The lookup *is* the "did the boundary change" check, so a wrong guess costs CPU
+and never correctness. Measured from an empty whim cache: **209 seconds**, all 44
+phases speculated in 201 s of wall time and then 44 of 44 hits, every boundary
+matching its recording — where the cold sequential repass of the same tree took
+3,026. That is the case of a change to tools that moves no output. A change to
+phase K's output still runs K onwards in sequence; only the phases before it are
+free.
 
 **What that loop cannot do is falsify the boundaries before it**, and the
 distinction matters more than the minutes it saves. A tier 3 replay **copies**

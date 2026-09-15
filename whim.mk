@@ -181,6 +181,19 @@ whim-tip:
 whim-verify:
 	@tools/verifypass.sh whim
 
+# A repass that waits only where it has to.  Every phase first runs at once on
+# the previous pass's boundary before it, and its result goes into the tier 3
+# cache under the key memo.sh will look up; then the ordinary sequential pass
+# runs, and is a cache hit wherever that guess about its input was right.  A
+# change to a tool rather than to what a phase produces costs the wall time of
+# the slowest phase; a change to phase K's output still runs K onwards in
+# sequence.  See tools/specpass.sh.  The previous .build-whim is its input, so
+# this target reads it before whim-repass removes it.
+.PHONY: whim-specpass
+whim-specpass:
+	@tools/specpass.sh whim
+	@$(MAKE) --no-print-directory whim-repass
+
 .PHONY: whim-record
 whim-record:
 	@mkdir -p $(WHIMORACLE)
