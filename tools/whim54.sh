@@ -20,10 +20,13 @@ tools/symbols.sh "$f" .cache/symbols/before
 
 # The variable field, not the row: a string default is often (char_u *)NULL too.
 # And the spacing varies -- 'termguicolors' is (char_u*)NULL.
+# And a row's flags can wrap onto a second line -- 'diffopt', 'foldmarker',
+# 'guifont', 'guifontwide', 'breakindentopt' and 'undodir' -- so the flag list
+# allows whitespace; a first version without it left those six behind.
 names=$(python3 - "$f" <<'PY'
 import re, sys
 t = open(sys.argv[1], errors='surrogateescape').read()
-rows = re.findall(r'^[ \t]*\{"(\w+)",\s*(?:"\w*"|NULL),\s*P_[\w|]+,\s*\(char_u ?\*\)NULL,\s*PV_NONE,', t, re.M)
+rows = re.findall(r'^[ \t]*\{"(\w+)",\s*(?:"\w*"|NULL),\s*P_[\w|\s]+,\s*\(char_u ?\*\)NULL,\s*PV_NONE,', t, re.M)
 print(' '.join(rows))
 PY
 )
@@ -40,7 +43,7 @@ tools/sweep.sh "$f"
 left=$(python3 - "$f" <<'PY'
 import re, sys
 t = open(sys.argv[1], errors='surrogateescape').read()
-print(len(re.findall(r'^[ \t]*\{"\w+",\s*(?:"\w*"|NULL),\s*P_[\w|]+,\s*\(char_u ?\*\)NULL,', t, re.M)))
+print(len(re.findall(r'^[ \t]*\{"\w+",\s*(?:"\w*"|NULL),\s*P_[\w|\s]+,\s*\(char_u ?\*\)NULL,', t, re.M)))
 PY
 )
 [ "$left" = 0 ] || { echo "  novar        $left rows without a variable remain"; exit 1; }

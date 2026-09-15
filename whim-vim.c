@@ -49,7 +49,6 @@
 // dependencies, so they sit together here.
 enum { BH_DIRTY = 1 };
 enum { BH_LOCKED = 2 };
-enum { EXPAND_BUF_LEN = 256 };
 enum { CMOD_SILENT = 0x0002 };
 enum { CMOD_ERRSILENT = 0x0004 };
 enum { CMOD_UNSILENT = 0x0008 };
@@ -62,9 +61,6 @@ enum { ML_LINE_DIRTY = 0x02 };
 enum { ML_LOCKED_DIRTY = 0x04 };
 enum { ML_LOCKED_POS = 0x08 };
 enum { ML_ALLOCATED = 0x10 };
-enum { B_IMODE_NONE = 0 };
-enum { B_IMODE_LMAP = 1 };
-enum { B_IMODE_LAST = 2 };
 enum { TRUNC_ON_OPEN = 0 };
 enum { RULER_BUF_LEN = 70 };
 enum { INPUT_BUFLEN = 100 };
@@ -127,8 +123,6 @@ enum { STR2NR_QUOTE = 0x10 };
 
 typedef unsigned char   char_u;
 typedef unsigned short  short_u;
-typedef unsigned int    int_u;
-
 typedef unsigned long           long_u;
 typedef          long           long_i;
 
@@ -339,7 +333,6 @@ enum key_extra
     , KE_SCRIPT_COMMAND = 104
     , KE_S_BS = 105
     , KE_ESC = 107
-    , KE_WILD = 108
     , KE_OSC = 109
     , KE_COMPLETE_DELAY = 110
 };
@@ -528,7 +521,6 @@ enum { MODE_VISUAL = 0x02 };
 enum { MODE_OP_PENDING = 0x04 };
 enum { MODE_CMDLINE = 0x08 };
 enum { MODE_INSERT = 0x10 };
-enum { MODE_LANGMAP = 0x20 };
 enum { MODE_SELECT = 0x40 };
 enum { MODE_TERMINAL = 0x80 };
 
@@ -558,71 +550,25 @@ enum { BF_READERR = 0x40 };
 enum { BF_DUMMY = 0x80 };
 enum { BF_PRESERVED = 0x100 };
 enum { EXPAND_NOTHING = 0 };
-enum { EXPAND_COMMANDS = 1 };
 enum { EXPAND_FILES = 2 };
 enum { EXPAND_DIRECTORIES = 3 };
-enum { EXPAND_SETTINGS = 4 };
-enum { EXPAND_BOOL_SETTINGS = 5 };
 enum { EXPAND_TAGS = 6 };
-enum { EXPAND_OLD_SETTING = 7 };
-enum { EXPAND_HELP = 8 };
 enum { EXPAND_BUFFERS = 9 };
-enum { EXPAND_EVENTS = 10 };
-enum { EXPAND_MENUS = 11 };
-enum { EXPAND_HIGHLIGHT = 13 };
-enum { EXPAND_AUGROUP = 14 };
-enum { EXPAND_MAPPINGS = 16 };
-enum { EXPAND_TAGS_LISTFILES = 17 };
-enum { EXPAND_FUNCTIONS = 18 };
-enum { EXPAND_USER_FUNC = 19 };
-enum { EXPAND_EXPRESSION = 20 };
-enum { EXPAND_MENUNAMES = 21 };
-enum { EXPAND_COLORS = 28 };
-enum { EXPAND_COMPILER = 29 };
-enum { EXPAND_USER_DEFINED = 30 };
-enum { EXPAND_USER_LIST = 31 };
 enum { EXPAND_SHELLCMD = 32 };
-enum { EXPAND_FILETYPE = 37 };
 enum { EXPAND_FILES_IN_PATH = 38 };
-enum { EXPAND_OWNSYNTAX = 39 };
-enum { EXPAND_HISTORY = 41 };
-enum { EXPAND_PACKADD = 45 };
-enum { EXPAND_MESSAGES = 46 };
-enum { EXPAND_MAPCLEAR = 47 };
-enum { EXPAND_DISASSEMBLE = 50 };
-enum { EXPAND_SCRIPTNAMES = 52 };
-enum { EXPAND_RUNTIME = 53 };
-enum { EXPAND_STRING_SETTING = 54 };
-enum { EXPAND_SETTING_SUBTRACT = 55 };
-enum { EXPAND_ARGOPT = 56 };
-enum { EXPAND_TERMINALOPT = 57 };
-enum { EXPAND_KEYMAP = 58 };
 enum { EXPAND_DIRS_IN_CDPATH = 59 };
-enum { EXPAND_SHELLCMDLINE = 60 };
 enum { EXPAND_FINDFUNC = 61 };
-enum { EXPAND_HIGHLIGHT_GROUP = 62 };
-enum { EXPAND_FILETYPECMD = 63 };
-enum { EXPAND_PATTERN_IN_BUF = 64 };
-enum { EXPAND_RETAB = 65 };
 enum { EXMODE_NORMAL = 1 };
 enum { EXMODE_VIM = 2 };
 
-enum { WILD_FREE = 1 };
 enum { WILD_EXPAND_FREE = 2 };
-enum { WILD_EXPAND_KEEP = 3 };
-enum { WILD_NEXT = 4 };
-enum { WILD_PREV = 5 };
 enum { WILD_ALL = 6 };
 enum { WILD_LONGEST = 7 };
 enum { WILD_ALL_KEEP = 8 };
 enum { WILD_CANCEL = 9 };
 enum { WILD_APPLY = 10 };
-enum { WILD_PAGEUP = 11 };
-enum { WILD_PAGEDOWN = 12 };
-
 enum { WILD_LIST_NOTFOUND = 0x01 };
 enum { WILD_HOME_REPLACE = 0x02 };
-enum { WILD_USE_NL = 0x04 };
 enum { WILD_NO_BEEP = 0x08 };
 enum { WILD_ADD_SLASH = 0x10 };
 enum { WILD_KEEP_ALL = 0x20 };
@@ -631,30 +577,22 @@ enum { WILD_ESCAPE = 0x80 };
 enum { WILD_ICASE = 0x100 };
 enum { WILD_ALLLINKS = 0x200 };
 enum { WILD_NOERROR = 0x800 };
-enum { WILD_BUFLASTUSED = 0x1000 };
 enum { WILD_NOSELECT = 0x4000 };
-enum { WILD_MAY_EXPAND_PATTERN = 0x8000 };
-enum { WILD_FUNC_TRIGGER = 0x10000 };
-enum { WILD_NOINSERT = 0x20000 };
-
 enum { EW_DIR = 0x01 };
 enum { EW_FILE = 0x02 };
 enum { EW_NOTFOUND = 0x04 };
 enum { EW_ADDSLASH = 0x08 };
 enum { EW_KEEPALL = 0x10 };
 enum { EW_SILENT = 0x20 };
-enum { EW_EXEC = 0x40 };
 enum { EW_PATH = 0x80 };
 enum { EW_ICASE = 0x100 };
 enum { EW_NOERROR = 0x200 };
 enum { EW_ALLLINKS = 0x1000 };
-enum { EW_SHELLCMD = 0x2000 };
 enum { EW_CDPATH = 0x20000 };
 
 enum { SEARCH_REV = 0x01 };
 enum { SEARCH_ECHO = 0x02 };
 enum { SEARCH_MSG = 0x0c };
-enum { SEARCH_NFMSG = 0x08 };
 enum { SEARCH_OPT = 0x10 };
 enum { SEARCH_HIS = 0x20 };
 enum { SEARCH_END = 0x40 };
@@ -794,8 +732,6 @@ enum { HIST_EXPR = 2 };
 enum { HIST_INPUT = 3 };
 enum { HIST_DEBUG = 4 };
 enum { HIST_COUNT = 5 };
-
-enum { TAG_MANY = 300 };
 
 enum { WSP_ROOM = 0x01 };
 enum { WSP_VERT = 0x02 };
@@ -1022,8 +958,6 @@ enum { MIN_LINES = 2 };
 enum { MIN_CMDHEIGHT = 1 };
 enum { STATUS_HEIGHT = 1 };
 
-enum { LSIZE = 512 };
-
 enum { MSG_BUF_LEN = 480 };
 
 enum { MAXMAPLEN = 50 };
@@ -1049,7 +983,6 @@ enum { P_NUM = 0x02 };
 enum { P_STRING = 0x04 };
 enum { P_ALLOCED = 0x08 };
 enum { P_EXPAND = 0x10 };
-enum { P_NO_CMD_EXPAND = 0x20 };
 enum { P_NODEFAULT = 0x40 };
 enum { P_DEF_ALLOCED = 0x80 };
 enum { P_WAS_SET = 0x100 };
@@ -1124,7 +1057,6 @@ enum { CPO_MATCHBSL = 'M' };
 enum { CPO_NUMCOL = 'n' };
 enum { CPO_LINEOFF = 'o' };
 enum { CPO_OVERNEW = 'O' };
-enum { CPO_LISP = 'p' };
 enum { CPO_FNAMEAPP = 'P' };
 enum { CPO_JOINCOL = 'q' };
 enum { CPO_REDO = 'r' };
@@ -1183,16 +1115,6 @@ enum { COM_RIGHT = 'r' };
 enum { COM_NOBACK = 'O' };
 enum { COM_MAX_LEN = 50 };
 
-enum { WIM_FULL = 0x01 };
-enum { WIM_LONGEST = 0x02 };
-enum { WIM_LIST = 0x04 };
-enum { WIM_BUFLASTUSED = 0x08 };
-enum { WIM_NOSELECT = 0x10 };
-enum { WIM_NOINSERT = 0x20 };
-
-enum { WOP_FUZZY = 'z' };
-enum { WOP_EXACTTEXT = 'x' };
-
 enum { BS_INDENT = 'i' };
 enum { BS_EOL = 'l' };
 enum { BS_START = 's' };
@@ -1223,8 +1145,6 @@ enum { BO_MATCH = 0x2000 };
 enum { BO_OPER = 0x4000 };
 enum { BO_REG = 0x8000 };
 enum { BO_SH = 0x10000 };
-enum { BO_WILD = 0x80000 };
-
 static char_u   *p_bt;
 static char_u   *p_cmp;
 static unsigned cmp_flags;
@@ -1268,8 +1188,6 @@ static long     p_hi;
 static int      p_icon;
 static char_u   *p_iconstring;
 static int      p_ic;
-static long     p_iminsert;
-static long     p_imsearch;
 static int      p_is;
 static int      p_im;
 static char_u   *p_isf;
@@ -1277,11 +1195,8 @@ static char_u   *p_isi;
 static char_u   *p_isk;
 static char_u   *p_isp;
 static int      p_js;
-static char_u   *p_kp;
 static char_u   *p_km;
 static char_u   *p_kpc;
-static int      p_lisp;
-static char_u   *p_lispwords;
 static long     p_ls;
 static char_u   *p_lcs;
 
@@ -1309,17 +1224,12 @@ static int      p_remap;
 static long     p_re;
 static long     p_report;
 static int      p_ru;
-static char_u   *p_pp;
-static char_u   *p_rtp;
 static long     p_sj;
 static long     p_so;
 static long     p_sop;
 static char_u   *p_sections;
 static char_u   *p_sel;
 static char_u   *p_slm;
-static char_u   *p_sh;
-static char_u   *p_shq;
-static char_u   *p_srr;
 static int      p_sr;
 static long     p_sw;
 static char_u   *p_shm;
@@ -1370,15 +1280,9 @@ enum { VE_NONE = 16 };
 enum { VE_NONEU = 32 };
 static long     p_verbose;
 static char_u  *p_vfile = (char_u *)"";
-static char_u   *p_wop;
 static long     p_window;
-static char_u   *p_wig;
 static int      p_wiv;
 static char_u   *p_ww;
-static long     p_wc;
-static long     p_wcm;
-static int      p_wic;
-static char_u   *p_wim;
 static long     p_wh = 1L;
 static long     p_wmh = 1L;
 static long     p_wmw = 1L;
@@ -1403,12 +1307,7 @@ enum
     , BV_FO
     , BV_FS
     , BV_FT
-    , BV_IMI
-    , BV_IMS
     , BV_ISK = 38
-    , BV_KP
-    , BV_LISP
-    , BV_LW = 42
     , BV_MA = 44
     , BV_MOD = 46
     , BV_MPS
@@ -1767,8 +1666,6 @@ struct buffheader
 
 typedef enum {
     XP_PREFIX_NONE,
-    XP_PREFIX_NO,
-    XP_PREFIX_INV,
 } xp_prefix_T;
 
 typedef enum {
@@ -1782,12 +1679,10 @@ typedef struct expand
 {
     char_u      *xp_pattern;
     int         xp_context;
-    int         xp_pattern_len;
     xp_prefix_T xp_prefix;
     int         xp_backslash;
     int         xp_shell;
     int         xp_numfiles;
-    int         xp_col;
     int         xp_selected;
     char_u      *xp_orig;
     char_u      **xp_files;
@@ -1795,10 +1690,6 @@ typedef struct expand
     char_u      **xp_files_kind;
     char_u      **xp_files_menu;
     char_u      **xp_files_info;
-    char_u      *xp_line;
-    char_u      xp_buf[EXPAND_BUF_LEN];
-    int         xp_search_dir;
-    pos_T       xp_pre_incsearch_pos;
 } expand_T;
 
 enum { XP_BS_NONE = 0 };
@@ -2310,9 +2201,6 @@ struct file_buffer
     linenr_T    b_u_line_lnum;
     colnr_T     b_u_line_colnr;
 
-    long        b_p_iminsert;
-    long        b_p_imsearch;
-
     bool        b_p_initialized;
 
     int         b_p_ai;
@@ -2331,8 +2219,6 @@ struct file_buffer
     char_u      *b_p_isk;
     char_u      *b_p_fp;
     int         b_p_fs;
-    char_u      *b_p_kp;
-    int         b_p_lisp;
     char_u      *b_p_mps;
     int         b_p_ma;
     char_u      *b_p_nf;
@@ -2352,7 +2238,6 @@ struct file_buffer
     char_u      *b_p_ep;
     unsigned    b_tc_flags;
     long        b_p_ul;
-    char_u      *b_p_lw;
 
     bool        b_may_swap;
     bool        b_did_warn;
@@ -2796,12 +2681,6 @@ typedef enum {
 } magic_T;
 
 typedef struct {
-    int         idx;
-    char_u      *str;
-    int         score;
-} fuzmatch_str_T;
-
-typedef struct {
     win_T       *cts_win;
     char_u      *cts_line;
     char_u      *cts_ptr;
@@ -2985,8 +2864,6 @@ enum { EX_NONWHITE_OK = 0x2000000 };
 enum { EX_EXPR_ARG = 0x8000000 };
 enum { EX_WHOLE = 0x10000000 };
 enum { EX_EXPORT = 0x20000000 };
-enum { EX_ARGSPACE = 0x40000000 };
-
 typedef enum {
     ADDR_LINES,
     ADDR_WINDOWS,
@@ -3610,10 +3487,7 @@ enum CMD_index
     CMD_increment,
     CMD_decrement,
 
-    CMD_SIZE,
-    CMD_USER = -1,
-    CMD_USER_BUF = -2
-};
+    CMD_SIZE};
 
 typedef enum CMD_index cmdidx_T;
 
@@ -3784,7 +3658,6 @@ static int vim_isxdigit(int c);
 static int vim_isbdigit(int c);
 static int vim_islower(int c);
 static int vim_isupper(int c);
-static char_u *skiptowhite_esc(char_u *p);
 static long getdigits(char_u **pp);
 static int hex2nr(int c);
 static int rem_backslash(char_u *str);
@@ -3794,19 +3667,11 @@ static int check_linecomment(char_u *line);
 
 // ---------------- end cindent.pro ----------------
 // ---------------- begin cmdexpand.pro ----------------
-static int cmdline_fuzzy_complete(char_u *fuzzystr);
 static char_u *ExpandOne(expand_T *xp, char_u *str, char_u *orig, int options, int mode);
 static void ExpandCleanup(expand_T *xp);
-static char_u *addstar(char_u *fname, int len, int context);
-static void set_expand_context(expand_T *xp);
-static void set_cmd_context(expand_T *xp, char_u *str, int len, int col, int use_ccline);
-static int expand_cmdline(expand_T *xp, char_u *str, int col, int *matchcount, char_u ***matches);
-static int ExpandGeneric(char_u *pat, expand_T *xp, regmatch_T *regmatch, char_u ***matches, int *numMatches, char_u *(*func)(expand_T *, int), int escaped);
-static int ExpandGenericExt(char_u *pat, expand_T *xp, regmatch_T *regmatch, char_u ***matches, int *numMatches, char_u *(*func)(expand_T *, int), int escaped, int sortStartIdx);
 
 // ---------------- end cmdexpand.pro ----------------
 // ---------------- begin cmdhist.pro ----------------
-static char_u *get_history_arg(expand_T *xp, int idx);
 static void clear_hist_entry(histentry_T *hisptr);
 // ---------------- end cmdhist.pro ----------------
 // ---------------- begin drawline.pro ----------------
@@ -3881,21 +3746,17 @@ static void apply_cmdmod(cmdmod_T *cmod);
 static void undo_cmdmod(cmdmod_T *cmod);
 static int parse_cmd_address(exarg_T *eap, char **errormsg, int silent);
 static char_u *find_ex_command(exarg_T *eap, int *full, int (*lookup)(char_u *, size_t, int cmd, cctx_T *), cctx_T *cctx);
-static cmdidx_T excmd_get_cmdidx(char_u *cmd, int len);
-static long excmd_get_argt(cmdidx_T idx);
 static char_u *skip_range(char_u *cmd_start, int skip_star, int *ctx);
 static linenr_T get_address(exarg_T *eap, char_u **ptr, cmd_addr_T addr_type, int skip, int silent, int to_other_file, int address_count);
 static void ex_ni(exarg_T *eap);
 static int expand_filename(exarg_T *eap, char_u **cmdlinep, char **errormsgp);
 static void separate_nextcmd(exarg_T *eap, int keep_backslash);
 static char_u *skip_cmd_arg(char_u *p, int rembs);
-static int expand_argopt(char_u *pat, expand_T *xp, regmatch_T *rmp, char_u ***matches, int *numMatches);
 static int ends_excmd(int c);
 static int ends_excmd2(char_u *cmd_start, char_u *cmd);
 static char_u *find_nextcmd(char_u *p);
 static char_u *check_nextcmd(char_u *p);
 static void set_nextcmd(exarg_T *eap, char_u *arg);
-static char_u *get_command_name(expand_T *xp, int idx);
 static void not_exiting(int save_exiting);
 static void do_exedit(exarg_T *eap, win_T *old_curwin);
 static void do_sleep(long msec, int hide_cursor);
@@ -3952,7 +3813,6 @@ static void shorten_fnames(int force);
 static int check_timestamps(int focus);
 static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
 static int match_file_pat(char_u *pattern, regprog_T **prog, char_u *fname, char_u *sfname, char_u *tail, int allow_dirs);
-static int match_file_list(char_u *list, char_u *sfname, char_u *ffname);
 static char_u *file_pat_to_reg_pat(char_u *pat, char_u *pat_end, char *allow_dirs, int no_bslash);
 static long read_eintr(int fd, void *buf, size_t bufsize);
 static long write_eintr(int fd, void *buf, size_t bufsize);
@@ -4019,7 +3879,6 @@ static int do_cmdkey_command(int key, int flags);
 // ---------------- end getchar.pro ----------------
 // ---------------- begin hashtab.pro ----------------
 static void hash_init(hashtab_T *ht);
-static void hash_clear(hashtab_T *ht);
 static hashitem_T *hash_find(hashtab_T *ht, char_u *key);
 static hashitem_T *hash_lookup(hashtab_T *ht, char_u *key, hash_T hash);
 static int hash_add(hashtab_T *ht, char_u *key, char *command);
@@ -4045,10 +3904,6 @@ static int syn_check_group(char_u *pp, int len);
 static int syn_id2attr(int hl_id);
 static int syn_get_final_id(int hl_id);
 static int highlight_changed(void);
-static void set_context_in_highlight_cmd(expand_T *xp, char_u *arg);
-static char_u *get_highlight_name(expand_T *xp, int idx);
-static char_u *get_highlight_name_ext(expand_T *xp, int idx, int skip_cleared);
-static int expand_highlight_group(char_u *pat, expand_T *xp, regmatch_T *rmp, char_u ***matches, int *numMatches);
 static bool push_highlight_overrides(hl_override_T *arr, int len);
 static void pop_highlight_overrides(void);
 static char *update_winhighlight(win_T *wp, char_u *opt);
@@ -4067,9 +3922,6 @@ static int may_do_si(void);
 static void ins_try_si(int c);
 static void change_indent(int type, int amount, int round, int replaced, int call_changed_bytes);
 static int copy_indent(int size, char_u *src);
-static int get_lisp_indent(void);
-static void fixthisline(int (*get_the_indent)(void));
-static int use_indentexpr_for_lisp(void);
 static void fix_indent(void);
 
 // ---------------- end indent.pro ----------------
@@ -4078,7 +3930,6 @@ static void ins_ctrl_x(void);
 static int ctrl_x_mode_scroll(void);
 static int ins_compl_col_range_attr(linenr_T lnum, int col);
 static int ins_compl_lnum_in_range(linenr_T lnum);
-static char_u *find_word_end(char_u *ptr);
 static int ins_compl_active(void);
 static int ins_compl_win_active(win_T *wp);
 // ---------------- end insexpand.pro ----------------
@@ -4100,9 +3951,6 @@ static mapblock_T *get_maphash_list(int state, int c);
 static mapblock_T *get_buf_maphash_list(int state, int c);
 static int is_maphash_valid(void);
 static void map_clear_mode(buf_T *buf, int mode, int local, int abbr);
-static int map_to_exists_mode(char_u *rhs, int mode, int abbr);
-static char_u *set_context_in_map_cmd(expand_T *xp, char_u *cmd, char_u *arg, int forceit, int isabbrev, int isunmap, cmdidx_T cmdidx);
-static int ExpandMappings(char_u *pat, regmatch_T *regmatch, int *numMatches, char_u ***matches);
 static char_u *vim_strsave_escape_csi(char_u *p);
 static size_t vim_unescape_csi(char_u *p);
 static void add_map(char_u *map, int mode, int nore);
@@ -4213,7 +4061,6 @@ static char_u *str2special(char_u **sp, int replace_spaces, int replace_others);
 static void msg_prt_line(char_u *s, int list);
 static void msg_puts(char *s);
 static void msg_puts_title(char *s);
-static void msg_outtrans_long_attr(char_u *longstr, int attr);
 static void msg_puts_attr(char *s, int attr);
 static int message_filtered(char_u *msg);
 static void sb_text_start_cmdline(void);
@@ -4260,7 +4107,6 @@ static size_t expand_env_esc(char_u *srcp, char_u *dst, int dstlen, char_u *esc_
 static void line_breakcheck(void);
 static void fast_breakcheck(void);
 static int goto_im(void);
-static char_u *get_isolated_shell_name(void);
 static int path_is_url(char_u *p);
 static int path_with_url(char_u *fname);
 static void may_trigger_modechanged(void);
@@ -4436,18 +4282,14 @@ static void set_string_default(char *name, char_u *val);
 static void set_title_defaults(void);
 static int do_set(char_u *arg_start, int opt_flags);
 static void did_set_option(int opt_idx, int opt_flags, int new_value, int value_checked);
-static int string_to_key(char_u *arg, int multi_byte);
 static void check_options(void);
 static char *did_set_buflisted(optset_T *args);
 static char *did_set_cmdheight(optset_T *args);
 static char *did_set_compatible(optset_T *args);
 static char *did_set_hlsearch(optset_T *args);
 static char *did_set_ignorecase(optset_T *args);
-static char *did_set_iminsert(optset_T *args);
-static char *did_set_imsearch(optset_T *args);
 static char *did_set_insertmode(optset_T *args);
 static char *did_set_laststatus(optset_T *args);
-static char *did_set_lisp(optset_T *args);
 static char *did_set_maxcombine(optset_T *args);
 static char *did_set_modifiable(optset_T *args);
 static char *did_set_modified(optset_T *args);
@@ -4465,7 +4307,6 @@ static char *did_set_title_icon(optset_T *args);
 static char *did_set_titlelen(optset_T *args);
 static char *did_set_undolevels(optset_T *args);
 static char *did_set_weirdinvert(optset_T *args);
-static char *did_set_wildchar(optset_T *args);
 static char *did_set_window(optset_T *args);
 static char *did_set_wrap(optset_T *args);
 static void check_redraw(long_u flags);
@@ -4475,18 +4316,10 @@ static char_u *get_term_code(char_u *tname);
 static char_u *get_highlight_default(void);
 static void free_termoptions(void);
 static char_u *get_equalprg(void);
-static char_u *get_findfunc(void);
 static void after_copy_winopt(win_T *wp);
 static void copy_winopt(winopt_T *from, winopt_T *to);
 static void clear_winopt(winopt_T *wop);
 static void buf_copy_options(buf_T *buf, int flags);
-static void set_iminsert_global(void);
-static void set_imsearch_global(void);
-static void set_context_in_set_cmd(expand_T *xp, char_u *arg, int opt_flags);
-static int ExpandSettings(expand_T *xp, regmatch_T *regmatch, char_u *fuzzystr, int *numMatches, char_u ***matches, int can_fuzzy);
-static int ExpandOldSetting(int *numMatches, char_u ***matches);
-static int ExpandStringSetting(expand_T *xp, regmatch_T *regmatch, int *numMatches, char_u ***matches);
-static int ExpandSettingSubtract(expand_T *xp, regmatch_T *regmatch, int *numMatches, char_u ***matches);
 static int shortmess(int x);
 static int option_was_set(char_u *name);
 static int reset_option_was_set(char_u *name);
@@ -4508,73 +4341,42 @@ static void set_string_option_direct(char_u *name, int opt_idx, char_u *val, int
 static void set_string_option_direct_in_win(win_T *wp, char_u *name, int opt_idx, char_u *val, int opt_flags, int set_sid);
 static char *set_string_option(int opt_idx, char_u *value, int opt_flags, char *errbuf, size_t errbuflen);
 static char *did_set_ambiwidth(optset_T *args);
-static int expand_set_ambiwidth(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_background(optset_T *args);
-static int expand_set_background(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_backspace(optset_T *args);
-static int expand_set_backspace(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_belloff(optset_T *args);
-static int expand_set_belloff(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_buftype(optset_T *args);
-static int expand_set_buftype(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_casemap(optset_T *args);
-static int expand_set_casemap(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_chars_option(optset_T *args);
-static int expand_set_chars_option(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_comments(optset_T *args);
 static char *did_set_cpoptions(optset_T *args);
-static int expand_set_cpoptions(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_debug(optset_T *args);
-static int expand_set_debug(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_display(optset_T *args);
-static int expand_set_display(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_filetype_or_syntax(optset_T *args);
 static char *did_set_formatoptions(optset_T *args);
-static int expand_set_formatoptions(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_highlight(optset_T *args);
-static int expand_set_highlight(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_iconstring(optset_T *args);
 static char *did_set_iskeyword(optset_T *args);
 static char *did_set_isopt(optset_T *args);
 static char *did_set_jumpoptions(optset_T *args);
-static int expand_set_jumpoptions(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_keymodel(optset_T *args);
-static int expand_set_keymodel(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_keyprotocol(optset_T *args);
-static int expand_set_keyprotocol(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_matchpairs(optset_T *args);
 static char *did_set_messagesopt(optset_T *args);
-static int expand_set_messagesopt(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_nrformats(optset_T *args);
-static int expand_set_nrformats(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_pastetoggle(optset_T *args);
 static char *did_set_selection(optset_T *args);
-static int expand_set_selection(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_selectmode(optset_T *args);
-static int expand_set_selectmode(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_shellpipe_redir(optset_T *args);
 static char *did_set_shortmess(optset_T *args);
-static int expand_set_shortmess(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_showcmdloc(optset_T *args);
-static int expand_set_showcmdloc(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_term(optset_T *args);
 static char *did_set_term_option(optset_T *args);
 static char *did_set_termresize(optset_T *args);
-static int expand_set_termresize(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_titlestring(optset_T *args);
 static char *did_set_verbosefile(optset_T *args);
 static char *did_set_virtualedit(optset_T *args);
-static int expand_set_virtualedit(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_whichwrap(optset_T *args);
-static int expand_set_whichwrap(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_wildmode(optset_T *args);
-static int expand_set_wildmode(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_wildoptions(optset_T *args);
-static int expand_set_wildoptions(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_wincolor(optset_T *args);
 static char *did_set_winhighlight(optset_T *args);
-static int expand_set_winhighlight(optexpand_T *args, int *numMatches, char_u ***matches);
-static int expand_set_wincolor(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_string_option(int opt_idx, char_u **varp, char_u *oldval, char_u *value, char *errbuf, size_t errbuflen, int opt_flags, set_op_T op, int *value_checked);
 
 // ---------------- end optionstr.pro ----------------
@@ -4582,7 +4384,6 @@ static char *did_set_string_option(int opt_idx, char_u **varp, char_u *oldval, c
 static int pum_visible(void);
 static int pum_redraw_in_same_position(void);
 static void pum_may_redraw(void);
-static int pum_get_height(void);
 // ---------------- end popupmenu.pro ----------------
 // ---------------- begin regexp.pro ----------------
 static int re_multiline(regprog_T *prog);
@@ -4593,7 +4394,6 @@ static int vim_regsub_multi(regmmatch_T *rmp, linenr_T lnum, char_u *source, cha
 static regprog_T *vim_regcomp(char_u *expr_arg, int re_flags);
 static void vim_regfree(regprog_T *prog);
 static int vim_regexec(regmatch_T *rmp, char_u *line, colnr_T col);
-static int vim_regexec_nl(regmatch_T *rmp, char_u *line, colnr_T col);
 static long vim_regexec_multi(regmmatch_T *rmp, win_T *win, buf_T *buf, linenr_T lnum, colnr_T col, int *timed_out);
 
 // ---------------- end regexp.pro ----------------
@@ -4619,11 +4419,6 @@ static char_u get_reg_type(int regname, long *reglen);
 static estack_T *estack_push(etype_T type, char_u *name, long lnum);
 static estack_T *estack_pop(void);
 static char_u *estack_sfile(estack_arg_T which);
-static void set_context_in_runtime_cmd(expand_T *xp, char_u *arg);
-static void remove_duplicates(garray_T *gap);
-static int ExpandRTDir(char_u *pat, int flags, int *num_file, char_u ***file, char *dirnames[]);
-static int expand_runtime_cmd(char_u *pat, int *numMatches, char_u ***matches);
-static int ExpandPackAddDir(char_u *pat, int *num_file, char_u ***file);
 // ---------------- end scriptfile.pro ----------------
 // ---------------- begin screen.pro ----------------
 static int get_win_attr(win_T *wp);
@@ -4632,7 +4427,6 @@ static void reset_screen_attr(void);
 static void screen_line(win_T *wp, int row, int coloff, int endcol, int clear_width, colnr_T last_vcol, int flags);
 static void draw_vsep_win(win_T *wp, int row);
 static int stl_connected(win_T *wp);
-static int get_keymap_str(win_T *wp, char_u *fmt, char_u *buf, int len);
 static void screen_putchar(int c, int row, int col, int attr);
 static void screen_getbytes(int row, int col, char_u *bytes, int *attrp);
 static void screen_puts(char_u *text, int row, int col, int attr);
@@ -4670,8 +4464,6 @@ static int messaging(void);
 static void comp_col(void);
 static char *set_fillchars_option(win_T *wp, char_u *val, int apply, char *errbuf, size_t errbuflen);
 static char *set_listchars_option(win_T *wp, char_u *val, int apply, char *errbuf, size_t errbuflen);
-static char_u *get_fillchars_name(expand_T *xp, int idx);
-static char_u *get_listchars_name(expand_T *xp, int idx);
 static char *check_chars_options(void);
 
 // ---------------- end screen.pro ----------------
@@ -4679,9 +4471,6 @@ static char *check_chars_options(void);
 
 // ---------------- end session.pro ----------------
 // ---------------- begin fuzzy.pro ----------------
-static int fuzzy_match_str(char_u *str, char_u *pat);
-static void fuzmatch_str_free(fuzmatch_str_T *fuzmatch, int count);
-static int fuzzymatches_to_strmatches(fuzmatch_str_T *fuzmatch, char_u ***matches, int count, int funcsort);
 
 // ---------------- end fuzzy.pro ----------------
 // ---------------- begin search.pro ----------------
@@ -4712,7 +4501,6 @@ static char_u *vim_strsave(char_u *string);
 static char_u *vim_strnsave(char_u *string, size_t len);
 static char_u *vim_strsave_escaped(char_u *string, char_u *esc_chars);
 static char_u *vim_strsave_escaped_ext(char_u *string, char_u *esc_chars, int cc, int bsl);
-static int csh_like_shell(void);
 static char_u *vim_strnsave_up(char_u *string, size_t len);
 static void vim_strup(char_u *p);
 static void del_trailing_spaces(char_u *ptr);
@@ -4782,7 +4570,6 @@ static void scroll_region_reset(void);
 static void clear_termcodes(void);
 static void add_termcode(char_u *name, char_u *string, int flags);
 static char_u *find_termcode(char_u *name);
-static char_u *get_termcode(int i);
 static void del_termcode(char_u *name);
 static int put_string_in_typebuf(int offset, int slen, char_u *string, int new_slen, char_u *buf, int bufsize, int *buflen);
 static int decode_modifiers(int n);
@@ -4872,8 +4659,6 @@ static int curbufIsChanged(void);
 
 // ---------------- end undo.pro ----------------
 // ---------------- begin usercmd.pro ----------------
-static char_u *set_context_in_user_cmdarg(char_u *cmd, char_u *arg, long argt, int context, expand_T *xp, int forceit);
-static char_u *expand_user_command_name(int idx);
 static char *uc_fun_cmd(void);
 
 // ---------------- end usercmd.pro ----------------
@@ -5069,10 +4854,6 @@ static char_u   hash_removed;
 
 static int      scroll_region  = FALSE ;
 static int      t_colors  = 0 ;
-
-static int include_none  = 0 ;
-static int include_default  = 0 ;
-static int include_link  = 0 ;
 
 static int      highlight_match  = FALSE ;
 static linenr_T search_match_lines;
@@ -5369,8 +5150,6 @@ static char typename_string[]    =  "string"  ;
 
 static long     sub_nsubs;
 static linenr_T sub_nlines;
-
-static char_u   wim_flags[4];
 
 static int      term_is_xterm  = FALSE ;
 
@@ -5673,7 +5452,6 @@ static char e_unicode_val_too_large[]  =  "E1541: Value too large, max Unicode c
 static char e_cannot_switch_to_a_closing_buffer[]  =  "E1546: Cannot switch to a closing buffer"  ;
 static char e_osc_response_timed_out[]  =  "E1568: OSC command response timed out: %.*s"  ;
 static char e_leadtab_requires_tab[]  =  "E1572: 'listchars' field \"leadtab\" requires \"tab\" to be specified"  ;
-static char e_invalid_format_string_single_percent_s[]  =  "E1577: Invalid format string, only one \"%s\" is allowed"  ;
 
 // ---------------- end errors.h ----------------
 
@@ -5691,10 +5469,6 @@ enum { MSCR_UP = 1 };
 
 enum { KEYLEN_REMOVED = 9999 };
 
-enum { DIP_ALL = 0x01 };
-enum { DIP_START = 0x08 };
-enum { DIP_OPT = 0x10 };
-enum { DIP_NORTP = 0x20 };
 enum { LOWEST_WIN_ID = 1000 };
 
 typedef struct timeval elapsed_T;
@@ -5716,8 +5490,6 @@ enum { FSK_FROM_PART = 0x10 };
 
 enum { MCH_DELAY_IGNOREINPUT = 1 };
 enum { MCH_DELAY_SETTMODE = 2 };
-
-enum { FUZZY_MATCH_MAX_LEN = 1024 };
 
 enum { VSE_NONE = 0 };
 enum { VSE_SHELL = 1 };
@@ -5912,17 +5684,6 @@ ga_grow_inner(garray_T *gap, int n)
      memset((pp + old_len), (0), (new_len - old_len)) ;
     gap->ga_maxlen = gap->ga_len + n;
     gap->ga_data = pp;
-    return OK;
-}
-
-    static int
-ga_add_string(garray_T *gap, char_u *p)
-{
-    if (ga_grow(gap, 1) == FAIL)
-    {
-        return FAIL;
-    }
-    ((char_u **)(gap->ga_data))[gap->ga_len++] = p;
     return OK;
 }
 
@@ -6688,28 +6449,13 @@ struct AutoPatCmd_S
 
 static AutoPatCmd_T *active_apc_list = NULL;
 
-static garray_T augroups = {0, 0, sizeof(char_u *), 10, NULL};
-static char_u *deleted_augroup = NULL;
-
 static int au_need_clean = FALSE;
 
 static string_T *event_nr2name(event_T event);
-static int au_get_grouparg(char_u **argp);
 static int apply_autocmds_group(event_T event, char_u *fname, char_u *fname_io, int force, int group, buf_T *buf, exarg_T *eap);
 static void auto_next_pat(AutoPatCmd_T *apc, int stop_at_last);
-static int au_find_group(char_u *name);
 
 static int      autocmd_blocked = 0;
-
-    static char_u *
-get_deleted_augroup(void)
-{
-    if (deleted_augroup == NULL)
-    {
-        deleted_augroup = (char_u *)_("--Deleted--");
-    }
-    return deleted_augroup;
-}
 
     static void
 au_remove_pat(AutoPat *ap)
@@ -6833,21 +6579,6 @@ aubuflocal_remove(buf_T *buf)
     au_cleanup();
 }
 
-    static int
-au_find_group(char_u *name)
-{
-    int     i;
-
-    for (i = 0; i < augroups.ga_len; ++i)
-    {
-        if ( (((char_u **)augroups.ga_data)[i])  != NULL &&  (((char_u **)augroups.ga_data)[i])  != get_deleted_augroup() &&  strcmp((char *)( (((char_u **)augroups.ga_data)[i]) ), (char *)(name))  == 0)
-        {
-            return i;
-        }
-    }
-    return  (-2) ;
-}
-
     static void
 autocmd_init(void)
 {
@@ -6925,41 +6656,6 @@ event_nr2name(event_T event)
     }
 
     return &unknown;
-}
-
-    static int
-au_get_grouparg(char_u **argp)
-{
-    char_u      *group_name;
-    char_u      *p;
-    char_u      *arg = *argp;
-    int         group =  (-3) ;
-
-    for (p = arg; *p && ! ((*p) == ' ' || (*p) == '\t')  && *p != '|'; ++p)
-    {
-        ;
-    }
-    if (p <= arg)
-    {
-        return  (-3) ;
-    }
-
-    group_name = vim_strnsave(arg, p - arg);
-    if (group_name == NULL)
-    {
-        return  (-2) ;
-    }
-    group = au_find_group(group_name);
-    if (group ==  (-2) )
-    {
-        group =  (-3) ;
-    }
-    else
-    {
-        *argp = skipwhite(p);
-    }
-    vim_free(group_name);
-    return group;
 }
 
     static void
@@ -7388,107 +7084,6 @@ getnextac(int c  __attribute__((unused)) , void *cookie, int indent  __attribute
         acp->nextcmd = ac->next;
     }
     return retval;
-}
-
-    static char_u *
-get_augroup_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx == augroups.ga_len)
-    {
-        return (char_u *)"END";
-    }
-    if (idx < 0 || idx >= augroups.ga_len)
-    {
-        return NULL;
-    }
-    if ( (((char_u **)augroups.ga_data)[idx])  == NULL ||  (((char_u **)augroups.ga_data)[idx])  == get_deleted_augroup())
-    {
-        return (char_u *)"";
-    }
-    return  (((char_u **)augroups.ga_data)[idx]) ;
-}
-
-static int include_groups = FALSE;
-
-    static char_u  *
-set_context_in_autocmd(expand_T    *xp, char_u      *arg, int         doautocmd)
-{
-    char_u      *p;
-    int         group;
-
-    include_groups = FALSE;
-    p = arg;
-    group = au_get_grouparg(&arg);
-    if (group ==  (-2) )
-    {
-        return NULL;
-    }
-    if (*arg == NUL && group !=  (-3)  && ! ((arg[-1]) == ' ' || (arg[-1]) == '\t') )
-    {
-        arg = p;
-        group =  (-3) ;
-    }
-
-    for (p = arg; *p != NUL && ! ((*p) == ' ' || (*p) == '\t') ; ++p)
-    {
-        if (*p == ',')
-        {
-            arg = p + 1;
-        }
-    }
-    if (*p == NUL)
-    {
-        if (group ==  (-3) )
-        {
-            include_groups = TRUE;
-        }
-        xp->xp_context = EXPAND_EVENTS;
-        xp->xp_pattern = arg;
-        return NULL;
-    }
-
-    arg = skipwhite(p);
-    while (*arg && (! ((*arg) == ' ' || (*arg) == '\t')  || arg[-1] == '\\'))
-    {
-        arg++;
-    }
-    if (*arg)
-    {
-        return arg;
-    }
-
-    if (doautocmd)
-    {
-        xp->xp_context = EXPAND_FILES;
-    }
-    else
-    {
-        xp->xp_context = EXPAND_NOTHING;
-    }
-    return NULL;
-}
-
-    static char_u *
-get_event_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    int i;
-
-    if (idx < augroups.ga_len)
-    {
-        if (!include_groups ||  (((char_u **)augroups.ga_data)[idx])  == NULL ||  (((char_u **)augroups.ga_data)[idx])  == get_deleted_augroup())
-        {
-            return (char_u *)"";
-        }
-        return  (((char_u **)augroups.ga_data)[idx]) ;
-    }
-
-    i = idx - augroups.ga_len;
-    if (i < 0 || i >= NUM_EVENTS)
-    {
-        return NULL;
-    }
-
-    return event_tab[i].value.string;
 }
 
 // ==================== buffer.c ====================
@@ -8517,7 +8112,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
         clear_string_option(&buf->b_p_bt);
     }
     clear_string_option(&buf->b_p_fp);
-    clear_string_option(&buf->b_p_kp);
     clear_string_option(&buf->b_p_mps);
     clear_string_option(&buf->b_p_fo);
     clear_string_option(&buf->b_p_flp);
@@ -8529,7 +8123,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     clear_string_option(&buf->b_p_qe);
     buf->b_p_fs = -1;
     buf->b_p_ul =  (-123456) ;
-    clear_string_option(&buf->b_p_lw);
 }
 
     static int
@@ -8745,184 +8338,6 @@ buflist_findpat(char_u      *pattern, char_u      *pattern_end, int         unli
         semsg(_(e_no_matching_buffer_for_str), pattern);
     }
     return match;
-}
-
-    static int
-ExpandBufnames(char_u      *pat, int         *num_file, char_u      ***file, int         options)
-{
-    int         count;
-    buf_T       *buf;
-    int         round;
-    char_u      *p;
-    char_u      *patc = NULL;
-    int         fuzzy;
-    fuzmatch_str_T  *fuzmatch = NULL;
-    regmatch_T  regmatch;
-    int         score = 0;
-    int         to_free = FALSE;
-
-    *num_file = 0;
-    *file = NULL;
-
-    fuzzy = cmdline_fuzzy_complete(pat);
-
-    if (!fuzzy)
-    {
-        if (*pat == '^' && pat[1] != NUL)
-        {
-            int  len = (int) strlen((char *)(pat)) ;
-            patc = alloc(len);
-            if (patc == NULL)
-            {
-                return FAIL;
-            }
-             strncpy((char *)(patc), (char *)(pat + 1), (len - 1)) ;
-            patc[len - 1] = NUL;
-            to_free = TRUE;
-        }
-        else if (*pat == '^')
-        {
-            patc = (char_u *)"";
-        }
-        else
-        {
-            patc = pat;
-        }
-        regmatch.regprog = vim_regcomp(patc, RE_MAGIC);
-    }
-
-    for (round = 1; round <= 2; ++round)
-    {
-        count = 0;
-         for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-        {
-            if (!buf->b_p_bl)
-            {
-                continue;
-            }
-
-            if (!fuzzy)
-            {
-                if (regmatch.regprog == NULL)
-                {
-                    if (to_free)
-                    {
-                        vim_free(patc);
-                    }
-                    return FAIL;
-                }
-                p = buflist_match(&regmatch, buf, p_wic);
-            }
-            else
-            {
-                p = NULL;
-                if ((score = fuzzy_match_str(buf->b_sfname, pat)) !=  INT_MIN )
-                {
-                    p = buf->b_sfname;
-                }
-                if (p == NULL)
-                {
-                    if ((score = fuzzy_match_str(buf->b_ffname, pat)) !=  INT_MIN )
-                    {
-                        p = buf->b_ffname;
-                    }
-                }
-            }
-
-            if (p == NULL)
-            {
-                continue;
-            }
-
-            if (round == 1)
-            {
-                ++count;
-                continue;
-            }
-
-            if (options & WILD_HOME_REPLACE)
-            {
-                p = home_replace_save(buf, p);
-            }
-            else
-            {
-                p = vim_strsave(p);
-            }
-            if (p == NULL)
-            {
-                if (fuzzy && round == 2)
-                {
-                    fuzmatch_str_free(fuzmatch, count);
-                }
-                return FAIL;
-            }
-
-            if (!fuzzy)
-            {
-                    (*file)[count++] = p;
-            }
-            else
-            {
-                fuzmatch[count].idx = count;
-                fuzmatch[count].str = p;
-                fuzmatch[count].score = score;
-                count++;
-            }
-        }
-        if (count == 0)
-        {
-            break;
-        }
-        if (round == 1)
-        {
-            if (!fuzzy)
-            {
-                *file =  (char_u * *)alloc(sizeof(char_u *) * (count)) ;
-                if (*file == NULL)
-                {
-                    vim_regfree(regmatch.regprog);
-                    if (to_free)
-                    {
-                        vim_free(patc);
-                    }
-                    return FAIL;
-                }
-            }
-            else
-            {
-                fuzmatch =  (fuzmatch_str_T *)alloc(sizeof(fuzmatch_str_T) * (count)) ;
-                if (fuzmatch == NULL)
-                {
-                    *num_file = 0;
-                    *file = NULL;
-                    return FAIL;
-                }
-            }
-        }
-    }
-
-    if (!fuzzy)
-    {
-        vim_regfree(regmatch.regprog);
-        if (to_free)
-        {
-            vim_free(patc);
-        }
-    }
-
-    if (!fuzzy)
-    {
-    }
-    else
-    {
-        if (fuzzymatches_to_strmatches(fuzmatch, file, count, FALSE) == FAIL)
-        {
-            return FAIL;
-        }
-    }
-
-    *num_file = count;
-    return (count == 0 ? FAIL : OK);
 }
 
     static char_u *
@@ -12157,15 +11572,6 @@ open_line(int         dir, int         flags, int         second_line_indent, in
         vreplace_mode = 0;
     }
 
-    if (!p_paste)
-    {
-        if (leader == NULL && !use_indentexpr_for_lisp() && curbuf->b_p_lisp && curbuf->b_p_ai)
-        {
-            fixthisline(get_lisp_indent);
-            ai_col = (colnr_T)getwhitecols_curline();
-        }
-    }
-
     if (vreplace_mode != 0)
     {
         State = vreplace_mode;
@@ -12335,11 +11741,6 @@ buf_init_chartab(buf_T       *buf, int         global)
     }
 
       memset((&(buf->b_chartab)), (0), (sizeof(buf->b_chartab)))  ;
-
-    if (buf->b_p_lisp)
-    {
-         (buf)->b_chartab[(unsigned)('-') >> 3] |= (1 << (('-') & 0x7)) ;
-    }
 
     for (i = global ? 0 : 3; i <= 3; ++i)
     {
@@ -12928,16 +12329,6 @@ vim_isfilec(int c)
 }
 
     static int
-vim_isfilec_or_wc(int c)
-{
-    char_u buf[2];
-
-    buf[0] = (char_u)c;
-    buf[1] = NUL;
-    return vim_isfilec(c) || c == ']' || mch_has_wildcard(buf);
-}
-
-    static int
 vim_isprintc(int c)
 {
     if (c >= 0x100)
@@ -13460,20 +12851,6 @@ skiptowhite(char_u *p)
     return p;
 }
 
-    static char_u *
-skiptowhite_esc(char_u *p)
-{
-    while (*p != ' ' && *p != '\t' && *p != NUL)
-    {
-        if ((*p == '\\' || *p == Ctrl_V) && *(p + 1) != NUL)
-        {
-            ++p;
-        }
-        ++p;
-    }
-    return p;
-}
-
     static long
 getdigits(char_u **pp)
 {
@@ -13816,20 +13193,6 @@ backslash_halve(char_u *p)
     }
 }
 
-    static char_u *
-backslash_halve_save(char_u *p)
-{
-    char_u      *res;
-
-    res = vim_strsave(p);
-    if (res == NULL)
-    {
-        return p;
-    }
-    backslash_halve(res);
-    return res;
-}
-
 // ==================== cindent.c ====================
 
     static char_u *
@@ -13911,76 +13274,26 @@ skip_string(char_u *p)
 }
 
     static int
-is_pos_in_string(char_u *line, colnr_T col)
-{
-    char_u *p;
-
-    for (p = line; *p && (colnr_T)(p - line) < col; ++p)
-    {
-        p = skip_string(p);
-    }
-    return !((colnr_T)(p - line) <= col);
-}
-
-    static int
 check_linecomment(char_u *line)
 {
     char_u  *p;
 
     p = line;
-    if (curbuf->b_p_lisp)
+    for ( ; *p != NUL; ++p)
     {
-        if (vim_strchr(p, ';') != NULL)
-        {
-            int in_str = FALSE;
-
-            p = line;
-            while ((p =  (char_u *)strpbrk((char *)(p), (char *)((char_u *)"\";")) ) != NULL)
-            {
-                if (*p == '"')
-                {
-                    if (in_str)
-                    {
-                        if (*(p - 1) != '\\')
-                        {
-                            in_str = FALSE;
-                        }
-                    }
-                    else if (p == line || ((p - line) >= 2 && *(p - 1) != '\\' && *(p - 2) != '#'))
-                    {
-                        in_str = TRUE;
-                    }
-                }
-                else if (!in_str && ((p - line) < 2 || (*(p - 1) != '\\' && *(p - 2) != '#')) && !is_pos_in_string(line, (colnr_T)(p - line)))
-                {
-                    break;
-                }
-                ++p;
-            }
-        }
-        else
-        {
-            p = NULL;
-        }
-    }
-    else
-    {
-        for ( ; *p != NUL; ++p)
-        {
-            p = skip_string(p);
-            if (*p == NUL)
-            {
-                break;
-            }
-            if (p[0] == '/' && p[1] == '/' && (p == line || p[-1] != '*' || p[2] != '*'))
-            {
-                break;
-            }
-        }
+        p = skip_string(p);
         if (*p == NUL)
         {
-            p = NULL;
+            break;
         }
+        if (p[0] == '/' && p[1] == '/' && (p == line || p[-1] != '*' || p[2] != '*'))
+        {
+            break;
+        }
+    }
+    if (*p == NUL)
+    {
+        p = NULL;
     }
 
     if (p == NULL)
@@ -13998,75 +13311,9 @@ cindent_on(void)
 
 // ==================== cmdexpand.c ====================
 
-static int      cmd_showtail;
-static int      may_expand_pattern = FALSE;
-static pos_T    pre_incsearch_pos;
-
 static int      ExpandFromContext(expand_T *xp, char_u *, char_u ***, int *, int);
-static char_u   *showmatches_gettail(char_u *s);
-static int      expand_showtail(expand_T *xp);
-static int      expand_shellcmd(char_u *filepat, char_u ***matches, int *numMatches, int flagsarg);
-static int      expand_pattern_in_buf(char_u *pat, int dir, char_u ***matches, int *numMatches);
 
 static string_T cmdline_orig = {NULL, 0};
-
-    static int
-cmdline_fuzzy_completion_supported(expand_T *xp)
-{
-    switch (xp->xp_context)
-    {
-    case EXPAND_BOOL_SETTINGS:
-    case EXPAND_COLORS:
-    case EXPAND_COMPILER:
-    case EXPAND_DIRECTORIES:
-    case EXPAND_DIRS_IN_CDPATH:
-    case EXPAND_FILES:
-    case EXPAND_FILES_IN_PATH:
-    case EXPAND_FILETYPE:
-    case EXPAND_FILETYPECMD:
-    case EXPAND_HELP:
-    case EXPAND_KEYMAP:
-    case EXPAND_OLD_SETTING:
-    case EXPAND_STRING_SETTING:
-    case EXPAND_SETTING_SUBTRACT:
-    case EXPAND_OWNSYNTAX:
-    case EXPAND_PACKADD:
-    case EXPAND_RUNTIME:
-    case EXPAND_SHELLCMD:
-    case EXPAND_SHELLCMDLINE:
-    case EXPAND_TAGS:
-    case EXPAND_TAGS_LISTFILES:
-        return FALSE;
-
-    default:
-        break;
-    }
-
-    return vim_strchr(p_wop, WOP_FUZZY) != NULL;
-}
-
-    static int
-cmdline_fuzzy_complete(char_u *fuzzystr)
-{
-    return vim_strchr(p_wop, WOP_FUZZY) != NULL && *fuzzystr != NUL;
-}
-
-    static int
-sort_func_compare(const void *s1, const void *s2)
-{
-    char_u *p1 = *(char_u **)s1;
-    char_u *p2 = *(char_u **)s2;
-
-    if (*p1 != '<' && *p2 == '<')
-    {
-        return -1;
-    }
-    if (*p1 == '<' && *p2 != '<')
-    {
-        return 1;
-    }
-    return  strcmp((char *)(p1), (char *)(p2)) ;
-}
 
     static void
 wildescape(expand_T    *xp, char_u      *str, int         numfiles, char_u      **files)
@@ -14148,250 +13395,6 @@ ExpandEscape(expand_T    *xp, char_u      *str, int         numfiles, char_u    
     }
 }
 
-    static int
-nextwild(expand_T    *xp, int         type, int         options, int         escape)
-{
-    cmdline_info_T      *ccline = get_cmdline_info();
-    int         i;
-    char_u      *p;
-    int         from_wildtrigger_func = options & WILD_FUNC_TRIGGER;
-    int         wild_navigate = (type == WILD_NEXT || type == WILD_PREV || type == WILD_PAGEUP || type == WILD_PAGEDOWN);
-
-    if (xp->xp_numfiles == -1)
-    {
-        pre_incsearch_pos = xp->xp_pre_incsearch_pos;
-        {
-            may_expand_pattern = options & WILD_MAY_EXPAND_PATTERN;
-            set_expand_context(xp);
-            may_expand_pattern = FALSE;
-        }
-        cmd_showtail = expand_showtail(xp);
-    }
-
-    if (xp->xp_context ==  (-2) )
-    {
-        beep_flush();
-        return OK;
-    }
-    if (xp->xp_context == EXPAND_NOTHING)
-    {
-        return FAIL;
-    }
-
-    i = (int)(xp->xp_pattern - ccline->cmdbuff);
-    xp->xp_pattern_len = ccline->cmdpos - i;
-
-    if (from_wildtrigger_func && xp->xp_context == EXPAND_COMMANDS && xp->xp_pattern_len == 0)
-    {
-        return FAIL;
-    }
-
-    if (!cmd_silent && !from_wildtrigger_func && !wild_navigate)
-    {
-        msg_puts("...");
-        out_flush();
-    }
-
-    if (wild_navigate)
-    {
-        p = ExpandOne(xp, NULL, NULL, 0, type);
-    }
-    else
-    {
-        char_u  *tmp;
-        char_u  *pat_src = xp->xp_pattern;
-        int     pat_len = xp->xp_pattern_len;
-
-        if (cmdline_fuzzy_completion_supported(xp) || xp->xp_context == EXPAND_PATTERN_IN_BUF)
-        {
-            tmp = vim_strnsave(pat_src, pat_len);
-        }
-        else
-        {
-            tmp = addstar(pat_src, pat_len, xp->xp_context);
-        }
-
-        if (tmp == NULL)
-        {
-            p = NULL;
-        }
-        else
-        {
-            int use_options = options |
-                    WILD_HOME_REPLACE|WILD_ADD_SLASH|WILD_SILENT;
-            if (escape)
-            {
-                use_options |= WILD_ESCAPE;
-            }
-            if (p_wic)
-            {
-                use_options += WILD_ICASE;
-            }
-
-            p = ExpandOne(xp, tmp, vim_strnsave(&ccline->cmdbuff[i], xp->xp_pattern_len), use_options, type);
-            vim_free(tmp);
-            if (p != NULL && type == WILD_LONGEST)
-            {
-                int     j;
-
-                for (j = 0; j < xp->xp_pattern_len; ++j)
-                {
-                    char_u  c = ccline->cmdbuff[i + j];
-                    if (c == '*' || c == '?')
-                    {
-                        break;
-                    }
-                }
-                if ((int) strlen((char *)(p))  < j)
-                {
-                     vim_free(p);
-                     (p) = NULL;
-                }
-            }
-        }
-    }
-
-    if (!wild_navigate && ccline->cmdbuff != NULL)
-    {
-        vim_free(cmdline_orig.string);
-        cmdline_orig.string = vim_strnsave(ccline->cmdbuff, ccline->cmdlen);
-        if (cmdline_orig.string == NULL)
-        {
-            cmdline_orig.length = 0;
-        }
-        else
-        {
-            cmdline_orig.length = ccline->cmdlen;
-        }
-    }
-
-    if (p != NULL && !got_int && !(options & (WILD_NOSELECT | WILD_NOINSERT)))
-    {
-        size_t  plen =  strlen((char *)(p)) ;
-        int     difflen;
-        int     v = OK;
-
-        difflen = (int)plen - xp->xp_pattern_len;
-        if (ccline->cmdlen + difflen + 4 > ccline->cmdbufflen)
-        {
-            v = realloc_cmdbuff(ccline->cmdlen + difflen + 4);
-            xp->xp_pattern = ccline->cmdbuff + i;
-        }
-
-        if (v == OK)
-        {
-             memmove((char *)(&ccline->cmdbuff[ccline->cmdpos + difflen]), (char *)(&ccline->cmdbuff[ccline->cmdpos]), (size_t)(ccline->cmdlen - ccline->cmdpos + 1)) ;
-             memmove((char *)(&ccline->cmdbuff[i]), (char *)(p), plen) ;
-            ccline->cmdlen += difflen;
-            ccline->cmdpos += difflen;
-        }
-    }
-
-    redrawcmd();
-    cursorcmd();
-
-    if (xp->xp_context == EXPAND_MAPPINGS && p == NULL)
-    {
-        return FAIL;
-    }
-
-    if (xp->xp_numfiles <= 0 && p == NULL)
-    {
-        beep_flush();
-    }
-    else if (xp->xp_numfiles == 1 && !(options & (WILD_NOSELECT | WILD_NOINSERT)) && !wild_navigate)
-    {
-        (void)ExpandOne(xp, NULL, NULL, 0, WILD_FREE);
-    }
-
-    vim_free(p);
-
-    return OK;
-}
-
-    static char_u *
-get_next_or_prev_match(int mode, expand_T *xp)
-{
-    int     findex = xp->xp_selected;
-    int     ht;
-
-    if (xp->xp_numfiles <= 0)
-    {
-        return NULL;
-    }
-
-    if (mode == WILD_PREV)
-    {
-        if (findex == -1)
-        {
-            findex = xp->xp_numfiles;
-        }
-        --findex;
-    }
-    else if (mode == WILD_NEXT)
-    {
-        ++findex;
-    }
-    else
-    {
-        ht = pum_get_height();
-        if (ht > 3)
-        {
-            ht -= 2;
-        }
-
-        if (mode == WILD_PAGEUP)
-        {
-            if (findex == 0)
-            {
-                findex = -1;
-            }
-            else if (findex < 0)
-            {
-                findex = xp->xp_numfiles - 1;
-            }
-            else
-            {
-                findex = MAX(findex - ht, 0);
-            }
-        }
-        else
-        {
-            if (findex >= xp->xp_numfiles - 1)
-            {
-                findex = -1;
-            }
-            else if (findex < 0)
-            {
-                findex = 0;
-            }
-            else
-            {
-                findex = MIN(findex + ht, xp->xp_numfiles - 1);
-            }
-        }
-    }
-
-    if (findex < 0 || findex >= xp->xp_numfiles)
-    {
-        if (xp->xp_orig != NULL)
-        {
-            findex = -1;
-        }
-        else
-        {
-            findex = (findex < 0) ? xp->xp_numfiles - 1 : 0;
-        }
-    }
-
-    xp->xp_selected = findex;
-    if (findex == -1)
-    {
-        return vim_strsave(xp->xp_orig);
-    }
-    return vim_strsave(xp->xp_files[findex]);
-}
-
     static char_u *
 ExpandOne_start(int mode, expand_T *xp, char_u *str, int options)
 {
@@ -14455,54 +13458,6 @@ ExpandOne_start(int mode, expand_T *xp, char_u *str, int options)
     return ss;
 }
 
-    static char_u *
-find_longest_match(expand_T *xp, int options)
-{
-    long_u      len;
-    int         mb_len = 1;
-    int c0;
-    int ci;
-    int         i;
-    char_u      *ss;
-
-    for (len = 0; xp->xp_files[0][len]; len += mb_len)
-    {
-        mb_len = utfc_ptr2len(&xp->xp_files[0][len]);
-        c0 = utf_ptr2char(&xp->xp_files[0][len]);
-        for (i = 1; i < xp->xp_numfiles; ++i)
-        {
-            ci = utf_ptr2char(&xp->xp_files[i][len]);
-            if (p_fic && (xp->xp_context == EXPAND_DIRECTORIES || xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_SHELLCMD || xp->xp_context == EXPAND_BUFFERS))
-            {
-                if ( vim_tolower(c0)  !=  vim_tolower(ci) )
-                {
-                    break;
-                }
-            }
-            else if (c0 != ci)
-            {
-                break;
-            }
-        }
-        if (i < xp->xp_numfiles)
-        {
-            if (!(options & WILD_NO_BEEP))
-            {
-                vim_beep(BO_WILD);
-            }
-            break;
-        }
-    }
-
-    ss = alloc(len + 1);
-    if (ss)
-    {
-        vim_strncpy(ss, xp->xp_files[0], (size_t)len);
-    }
-
-    return ss;
-}
-
     static void
 free_xp_files_extra(expand_T *xp, int numfiles)
 {
@@ -14534,16 +13489,7 @@ ExpandOne(expand_T    *xp, char_u      *str, char_u      *orig, int         opti
     char_u      *ss = NULL;
     int         orig_saved = FALSE;
 
-    if (mode == WILD_NEXT || mode == WILD_PREV || mode == WILD_PAGEUP || mode == WILD_PAGEDOWN)
-    {
-        return get_next_or_prev_match(mode, xp);
-    }
-
-    if (mode == WILD_CANCEL)
-    {
-        ss = vim_strsave(xp->xp_orig ? xp->xp_orig : (char_u *)"");
-    }
-    else if (mode == WILD_APPLY)
+    if (mode == WILD_APPLY)
     {
         if (xp->xp_selected == -1)
         {
@@ -14566,11 +13512,6 @@ ExpandOne(expand_T    *xp, char_u      *str, char_u      *orig, int         opti
     }
     xp->xp_selected = (options & WILD_NOSELECT) ? -1 : 0;
 
-    if (mode == WILD_FREE)
-    {
-        return NULL;
-    }
-
     if (xp->xp_numfiles == -1 && mode != WILD_APPLY && mode != WILD_CANCEL)
     {
         vim_free(xp->xp_orig);
@@ -14580,54 +13521,7 @@ ExpandOne(expand_T    *xp, char_u      *str, char_u      *orig, int         opti
         ss = ExpandOne_start(mode, xp, str, options);
     }
 
-    if (mode == WILD_LONGEST && xp->xp_numfiles > 0)
-    {
-        ss = find_longest_match(xp, options);
-        xp->xp_selected = -1;
-    }
-
-    if (mode == WILD_ALL && xp->xp_numfiles > 0 && !got_int)
-    {
-        size_t  ss_size = 0;
-        char    *prefix = "";
-        char    *suffix = (options & WILD_USE_NL) ? "\n" : " ";
-        int     n = xp->xp_numfiles - 1;
-        int     i;
-        char_u  **files = xp->xp_files;
-
-        if (xp->xp_prefix == XP_PREFIX_NO)
-        {
-            prefix = "no";
-            ss_size =  (sizeof("no" "") - 1)  * n;
-        }
-        else if (xp->xp_prefix == XP_PREFIX_INV)
-        {
-            prefix = "inv";
-            ss_size =  (sizeof("inv" "") - 1)  * n;
-        }
-
-        for (i = 0; i < xp->xp_numfiles; ++i)
-        {
-            ss_size +=  strlen((char *)(files[i]))  + 1;
-        }
-        ++ss_size;
-
-        ss = alloc(ss_size);
-        if (ss != NULL)
-        {
-            size_t  ss_len = 0;
-
-            for (i = 0; i < xp->xp_numfiles; ++i)
-            {
-                ss_len += vim_snprintf_safelen((char *)ss + ss_len, ss_size - ss_len, "%s%s%s", (i > 0) ? prefix : "", (char *)files[i], (i < n) ? suffix : "");
-            }
-        }
-    }
-
-    if (mode == WILD_EXPAND_FREE || mode == WILD_ALL)
-    {
-        ExpandCleanup(xp);
-    }
+    ExpandCleanup(xp);
 
     if (!orig_saved)
     {
@@ -14665,1278 +13559,6 @@ clear_cmdline_orig(void)
      vim_free(cmdline_orig.string);
      (cmdline_orig.string) = NULL;
      cmdline_orig.length = 0;
-}
-
-    static void
-showmatches_oneline(expand_T        *xp, char_u          **matches, int             numMatches, int             lines, int             linenr, int             maxlen, int             showtail, int             dir_attr)
-{
-    int i;
-    int j;
-    int         isdir;
-    int         lastlen;
-    char_u      *p;
-
-    lastlen = 999;
-    for (j = linenr; j < numMatches; j += lines)
-    {
-        if (xp->xp_context == EXPAND_TAGS_LISTFILES)
-        {
-            msg_outtrans_attr(matches[j],  highlight_attr[(int)(HLF_D)] );
-            p = matches[j] +  strlen((char *)(matches[j]))  + 1;
-            msg_advance(maxlen + 1);
-            msg_puts((char *)p);
-            msg_advance(maxlen + 3);
-            msg_outtrans_long_attr(p + 2,  highlight_attr[(int)(HLF_D)] );
-            break;
-        }
-        for (i = maxlen - lastlen; --i >= 0; )
-        {
-            msg_putchar(' ');
-        }
-        if (xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_SHELLCMD || xp->xp_context == EXPAND_BUFFERS)
-        {
-            if (xp->xp_numfiles != -1)
-            {
-                char_u  *halved_slash;
-                char_u  *exp_path;
-                char_u  *path;
-
-                exp_path = expand_env_save_opt(matches[j], TRUE, NULL);
-                path = exp_path != NULL ? exp_path : matches[j];
-                halved_slash = backslash_halve_save(path);
-                isdir = mch_isdir(halved_slash != NULL ? halved_slash : matches[j]);
-                vim_free(exp_path);
-                if (halved_slash != path)
-                {
-                    vim_free(halved_slash);
-                }
-            }
-            else
-            {
-                isdir = mch_isdir(matches[j]);
-            }
-            if (showtail)
-            {
-                p =  (showtail ? showmatches_gettail(matches[j]) : matches[j]) ;
-            }
-            else
-            {
-                home_replace(NULL, matches[j], NameBuff,  PATH_MAX , TRUE);
-                p = NameBuff;
-            }
-        }
-        else
-        {
-            isdir = FALSE;
-            p =  (showtail ? showmatches_gettail(matches[j]) : matches[j]) ;
-        }
-        lastlen = msg_outtrans_attr(p, isdir ? dir_attr : 0);
-    }
-    if (msg_col > 0)
-    {
-        msg_clr_eos();
-        msg_putchar('\n');
-    }
-    out_flush();
-}
-
-    static int
-showmatches(expand_T    *xp, int         display_list)
-{
-    cmdline_info_T      *ccline = get_cmdline_info();
-    int         numMatches;
-    char_u      **matches;
-    int         i;
-    int         maxlen;
-    int         lines;
-    int         columns;
-    int         attr;
-    int         showtail;
-
-    if (xp->xp_numfiles == -1)
-    {
-        int retval;
-        set_expand_context(xp);
-        retval = expand_cmdline(xp, ccline->cmdbuff, ccline->cmdpos, &numMatches, &matches);
-        if (retval !=  (-1) )
-        {
-            return retval;
-        }
-        showtail = expand_showtail(xp);
-    }
-    else
-    {
-        numMatches = xp->xp_numfiles;
-        matches = xp->xp_files;
-        showtail = cmd_showtail;
-    }
-
-    if (display_list)
-    {
-        msg_didany = FALSE;
-        msg_start();
-        msg_putchar('\n');
-        out_flush();
-        cmdline_row = msg_row;
-        msg_didany = FALSE;
-        msg_start();
-    }
-
-    if (got_int)
-    {
-        got_int = FALSE;
-    }
-    else if (display_list)
-    {
-        maxlen = 0;
-        for (i = 0; i < numMatches; ++i)
-        {
-            int len;
-            if (!showtail && (xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_SHELLCMD || xp->xp_context == EXPAND_BUFFERS))
-            {
-                home_replace(NULL, matches[i], NameBuff,  PATH_MAX , TRUE);
-                len = vim_strsize(NameBuff);
-            }
-            else
-            {
-                len = vim_strsize( (showtail ? showmatches_gettail(matches[i]) : matches[i]) );
-            }
-            if (len > maxlen)
-            {
-                maxlen = len;
-            }
-        }
-
-        if (xp->xp_context == EXPAND_TAGS_LISTFILES)
-        {
-            lines = numMatches;
-        }
-        else
-        {
-            maxlen += 2;
-            columns = (cmdline_width + 2) / maxlen;
-            if (columns < 1)
-            {
-                columns = 1;
-            }
-            lines = (numMatches + columns - 1) / columns;
-        }
-
-        attr =  highlight_attr[(int)(HLF_D)] ;
-
-        if (xp->xp_context == EXPAND_TAGS_LISTFILES)
-        {
-            msg_puts_attr(_("tagname"),  highlight_attr[(int)(HLF_T)] );
-            msg_clr_eos();
-            msg_advance(maxlen - 3);
-            msg_puts_attr(_(" kind file\n"),  highlight_attr[(int)(HLF_T)] );
-        }
-
-        for (i = 0; i < lines; ++i)
-        {
-            showmatches_oneline(xp, matches, numMatches, lines, i, maxlen, showtail, attr);
-            if (got_int)
-            {
-                got_int = FALSE;
-                break;
-            }
-        }
-
-        cmdline_row = msg_row;
-    }
-
-    if (xp->xp_numfiles == -1)
-    {
-        FreeWild(numMatches, matches);
-        free_xp_files_extra(xp, numMatches);
-    }
-
-    return  (-1) ;
-}
-
-    static char_u *
-showmatches_gettail(char_u *s)
-{
-    char_u      *p;
-    char_u      *t = s;
-    int         had_sep = FALSE;
-
-    for (p = s; *p != NUL; )
-    {
-        if (vim_ispathsep(*p))
-        {
-            had_sep = TRUE;
-        }
-        else if (had_sep)
-        {
-            t = p;
-            had_sep = FALSE;
-        }
-         p += utfc_ptr2len(p) ;
-    }
-    return t;
-}
-
-    static int
-expand_showtail(expand_T *xp)
-{
-    char_u      *s;
-    char_u      *end;
-
-    if (xp->xp_context != EXPAND_FILES && xp->xp_context != EXPAND_SHELLCMD && xp->xp_context != EXPAND_DIRECTORIES)
-    {
-        return FALSE;
-    }
-
-    end = gettail(xp->xp_pattern);
-    if (end == xp->xp_pattern)
-    {
-        return FALSE;
-    }
-
-    for (s = xp->xp_pattern; s < end; s++)
-    {
-        if (rem_backslash(s))
-        {
-            ++s;
-        }
-        else if (vim_strchr((char_u *)"*?[", *s) != NULL)
-        {
-            return FALSE;
-        }
-    }
-    return TRUE;
-}
-
-    static char_u *
-addstar(char_u      *fname, int         len, int         context)
-{
-    char_u      *retval;
-    int i;
-    int j;
-    int         new_len;
-    char_u      *tail;
-    int         ends_in_star;
-
-    if (context != EXPAND_FILES && context != EXPAND_FILES_IN_PATH && context != EXPAND_SHELLCMD && context != EXPAND_DIRECTORIES && context != EXPAND_DIRS_IN_CDPATH)
-    {
-        if (context == EXPAND_FINDFUNC || context == EXPAND_HELP || context == EXPAND_COLORS || context == EXPAND_COMPILER || context == EXPAND_OWNSYNTAX || context == EXPAND_FILETYPE || context == EXPAND_KEYMAP || context == EXPAND_PACKADD || context == EXPAND_RUNTIME || ((context == EXPAND_TAGS_LISTFILES || context == EXPAND_TAGS) && fname[0] == '/'))
-        {
-            retval = vim_strnsave(fname, len);
-        }
-        else
-        {
-            new_len = len + 2;
-            for (i = 0; i < len; i++)
-            {
-                if (fname[i] == '*' || fname[i] == '~')
-                {
-                    new_len++;
-                }
-
-                if (context == EXPAND_BUFFERS && fname[i] == '.')
-                {
-                    new_len++;
-                }
-
-                if ((context == EXPAND_USER_DEFINED || context == EXPAND_USER_LIST) && fname[i] == '\\')
-                {
-                    new_len++;
-                }
-            }
-            retval = alloc(new_len);
-            if (retval != NULL)
-            {
-                retval[0] = '^';
-                j = 1;
-                for (i = 0; i < len; i++, j++)
-                {
-                    if (context != EXPAND_USER_DEFINED && context != EXPAND_USER_LIST && fname[i] == '\\' && ++i == len)
-                    {
-                        break;
-                    }
-
-                    switch (fname[i])
-                    {
-                        case '*':
-                            retval[j++] = '.';
-                                    break;
-                        case '~':
-                            retval[j++] = '\\';
-                                    break;
-                        case '?':
-                            retval[j] = '.';
-                                    continue;
-                        case '.':
-                            if (context == EXPAND_BUFFERS)
-                            {
-                                        retval[j++] = '\\';
-                            }
-                                    break;
-                        case '\\':
-                            if (context == EXPAND_USER_DEFINED || context == EXPAND_USER_LIST)
-                            {
-                                        retval[j++] = '\\';
-                            }
-                                    break;
-                    }
-                    retval[j] = fname[i];
-                }
-                retval[j] = NUL;
-            }
-        }
-    }
-    else
-    {
-        retval = alloc(len + 4);
-        if (retval != NULL)
-        {
-            vim_strncpy(retval, fname, len);
-
-            tail = gettail(retval);
-            ends_in_star = (len > 0 && retval[len - 1] == '*');
-            for (i = len - 2; i >= 0; --i)
-            {
-                if (retval[i] != '\\')
-                {
-                    break;
-                }
-                ends_in_star = !ends_in_star;
-            }
-            if ((*retval != '~' || tail != retval) && !ends_in_star && vim_strchr(tail, '$') == NULL && vim_strchr(retval, '`') == NULL)
-            {
-                retval[len++] = '*';
-            }
-            else if (len > 0 && retval[len - 1] == '$')
-            {
-                --len;
-            }
-            retval[len] = NUL;
-        }
-    }
-    return retval;
-}
-
-    static void
-set_expand_context(expand_T *xp)
-{
-    cmdline_info_T  *ccline = get_cmdline_info();
-
-    if ((ccline->cmdfirstc == '/' || ccline->cmdfirstc == '?') && may_expand_pattern)
-    {
-        xp->xp_context = EXPAND_PATTERN_IN_BUF;
-        xp->xp_search_dir = (ccline->cmdfirstc == '/') ? FORWARD :  (-1) ;
-        xp->xp_pattern = ccline->cmdbuff;
-        xp->xp_pattern_len = ccline->cmdpos;
-        search_first_line = 0;
-        return;
-    }
-
-    if (ccline->cmdfirstc != ':')
-    {
-        xp->xp_context = EXPAND_NOTHING;
-        return;
-    }
-
-    set_cmd_context(xp, ccline->cmdbuff, ccline->cmdlen, ccline->cmdpos, TRUE);
-}
-
-    static char_u *
-set_cmd_index(char_u *cmd, exarg_T *eap, expand_T *xp, int *complp)
-{
-    char_u      *p = NULL;
-    int         len = 0;
-    int         fuzzy = cmdline_fuzzy_complete(cmd);
-
-    if (!fuzzy && !p_ic && (*cmd == 'k' && cmd[1] != 'e'))
-    {
-        eap->cmdidx = CMD_k;
-        p = cmd + 1;
-    }
-    else
-    {
-        p = cmd;
-        while ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) )  || *p == '*')
-        {
-            ++p;
-        }
-        if ( ((unsigned)(cmd[0]) - 'A' < 26)  ||  strncmp((char *)("vim9"), (char *)(cmd), (4))  == 0)
-        {
-            while ( ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) )  ||  ((unsigned)(*p) - '0' < 10) )  || *p == '*')
-            {
-                ++p;
-            }
-        }
-        if (cmd[0] == 'p' && cmd[1] == 'y' && p == cmd + 2 && *p == '3')
-        {
-            ++p;
-            while ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) )  || *p == '*')
-            {
-                ++p;
-            }
-        }
-        if (p == cmd && vim_strchr((char_u *)"@*!=><&~#", *p) != NULL)
-        {
-            ++p;
-        }
-        len = (int)(p - cmd);
-
-        if (len == 0)
-        {
-            xp->xp_context =  (-2) ;
-            return NULL;
-        }
-
-        eap->cmdidx = excmd_get_cmdidx(cmd, len);
-
-        if ((cmd[0] >= 'A' && cmd[0] <= 'Z') || (fuzzy && eap->cmdidx != CMD_bang && *p != NUL))
-        {
-            while ( ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) )  ||  ((unsigned)(*p) - '0' < 10) )  || *p == '*')
-            {
-                ++p;
-            }
-        }
-    }
-
-    if (*p == NUL &&  ( ( ((unsigned)(p[-1]) - 'A' < 26)  ||  ((unsigned)(p[-1]) - 'a' < 26) )  ||  ((unsigned)(p[-1]) - '0' < 10) ) )
-    {
-        return NULL;
-    }
-
-    if (eap->cmdidx == CMD_SIZE)
-    {
-        if (*cmd == 's' && vim_strchr((char_u *)"cgriI", cmd[1]) != NULL)
-        {
-            eap->cmdidx = CMD_substitute;
-            p = cmd + 1;
-        }
-        else if (cmd[0] >= 'A' && cmd[0] <= 'Z')
-        {
-            eap->cmd = cmd;
-            if (p == NULL)
-            {
-                eap->cmdidx = CMD_SIZE;
-            }
-        }
-    }
-    if (eap->cmdidx == CMD_SIZE)
-    {
-        xp->xp_context =  (-2) ;
-        return NULL;
-    }
-
-    return p;
-}
-
-    static void
-set_context_for_wildcard_arg(exarg_T         *eap, char_u          *arg, int             usefilter, expand_T        *xp, int             *complp)
-{
-    char_u      *p;
-    int         c;
-    int         in_quote = FALSE;
-    char_u      *bow = NULL;
-    int         len = 0;
-
-    xp->xp_pattern = skipwhite(arg);
-    p = xp->xp_pattern;
-    while (*p != NUL)
-    {
-        c = utf_ptr2char(p);
-        if (c == '\\' && p[1] != NUL)
-        {
-            ++p;
-        }
-        else if (c == '`')
-        {
-            if (!in_quote)
-            {
-                xp->xp_pattern = p;
-                bow = p + 1;
-            }
-            in_quote = !in_quote;
-        }
-        else if (c == '|' || c == '\n' || c == '"' || ( ((c) == ' ' || (c) == '\t')  && (!(eap != NULL && (eap->argt & EX_NOSPC)) || usefilter)))
-        {
-            len = 0;
-            while (*p != NUL)
-            {
-                c = utf_ptr2char(p);
-                if (c == '`' || vim_isfilec_or_wc(c))
-                {
-                    break;
-                }
-                len = utfc_ptr2len(p);
-                 p += utfc_ptr2len(p) ;
-            }
-            if (in_quote)
-            {
-                bow = p;
-            }
-            else
-            {
-                xp->xp_pattern = p;
-            }
-            p -= len;
-        }
-         p += utfc_ptr2len(p) ;
-    }
-
-    if (bow != NULL && in_quote)
-    {
-        xp->xp_pattern = bow;
-    }
-    xp->xp_context = EXPAND_FILES;
-
-    if (usefilter || (eap != NULL && (eap->cmdidx == CMD_bang || eap->cmdidx == CMD_terminal)) || *complp == EXPAND_SHELLCMDLINE)
-    {
-        xp->xp_shell = TRUE;
-        if (xp->xp_pattern == skipwhite(arg))
-        {
-            xp->xp_context = EXPAND_SHELLCMD;
-        }
-    }
-
-}
-
-    static char_u *
-set_context_in_argopt(expand_T *xp, char_u *arg)
-{
-    char_u      *p;
-
-    p = vim_strchr(arg, '=');
-    if (p == NULL)
-    {
-        xp->xp_pattern = arg;
-    }
-    else
-    {
-        xp->xp_pattern = p + 1;
-    }
-
-    xp->xp_context = EXPAND_ARGOPT;
-    return NULL;
-}
-
-    static char_u *
-set_context_in_filter_cmd(expand_T *xp, char_u *arg)
-{
-    if (*arg != NUL)
-    {
-        arg = skip_vimgrep_pat(arg, NULL, NULL);
-    }
-    if (arg == NULL || *arg == NUL)
-    {
-        xp->xp_context = EXPAND_NOTHING;
-        return NULL;
-    }
-    return skipwhite(arg);
-}
-
-    static char_u *
-set_context_in_match_cmd(expand_T *xp, char_u *arg)
-{
-    if (*arg == NUL || !ends_excmd(*arg))
-    {
-        arg = skipwhite(skiptowhite(arg));
-        if (*arg != NUL)
-        {
-            xp->xp_context = EXPAND_NOTHING;
-            arg = skip_regexp(arg + 1, *arg, magic_isset());
-        }
-    }
-    return find_nextcmd(arg);
-}
-
-    static char_u *
-find_cmd_after_global_cmd(char_u *arg)
-{
-    int         delim;
-
-    delim = *arg;
-    if (delim)
-    {
-        ++arg;
-    }
-
-    while (arg[0] != NUL && arg[0] != delim)
-    {
-        if (arg[0] == '\\' && arg[1] != NUL)
-        {
-            ++arg;
-        }
-        ++arg;
-    }
-    if (arg[0] != NUL)
-    {
-        return arg + 1;
-    }
-
-    return NULL;
-}
-
-    static char_u *
-find_cmd_after_substitute_cmd(char_u *arg)
-{
-    int         delim;
-
-    delim = *arg;
-    if (delim)
-    {
-        ++arg;
-        arg = skip_regexp(arg, delim, magic_isset());
-
-        if (arg[0] != NUL && arg[0] == delim)
-        {
-            ++arg;
-            while (arg[0] != NUL && arg[0] != delim)
-            {
-                if (arg[0] == '\\' && arg[1] != NUL)
-                {
-                    ++arg;
-                }
-                ++arg;
-            }
-            if (arg[0] != NUL)
-            {
-                ++arg;
-            }
-        }
-    }
-    while (arg[0] && vim_strchr((char_u *)"|\"#", arg[0]) == NULL)
-    {
-        ++arg;
-    }
-    if (arg[0] != NUL)
-    {
-        return arg;
-    }
-
-    return NULL;
-}
-
-    static char_u *
-find_cmd_after_isearch_cmd(expand_T *xp, char_u *arg)
-{
-    arg = skipwhite(skipdigits(arg));
-    if (*arg != '/')
-    {
-        return NULL;
-    }
-
-    for (++arg; *arg && *arg != '/'; arg++)
-    {
-        if (*arg == '\\' && arg[1] != NUL)
-        {
-            arg++;
-        }
-    }
-    if (*arg)
-    {
-        arg = skipwhite(arg + 1);
-
-        if (*arg == NUL || vim_strchr((char_u *)"|\"\n", *arg) == NULL)
-        {
-            xp->xp_context = EXPAND_NOTHING;
-        }
-        else
-        {
-            return arg;
-        }
-    }
-
-    return NULL;
-}
-
-static enum
-{
-    EXP_FILETYPECMD_ALL,
-    EXP_FILETYPECMD_PLUGIN,
-    EXP_FILETYPECMD_INDENT,
-    EXP_FILETYPECMD_ONOFF,
-} filetype_expand_what;
-
-enum { EXPAND_FILETYPECMD_PLUGIN = 0x01 };
-enum { EXPAND_FILETYPECMD_INDENT = 0x02 };
-
-    static char_u *
-set_context_in_filetype_cmd(expand_T *xp, char_u *arg)
-{
-    char_u *p;
-    int    val = 0;
-
-    xp->xp_context = EXPAND_FILETYPECMD;
-    xp->xp_pattern = arg;
-    filetype_expand_what = EXP_FILETYPECMD_ALL;
-
-    p = skipwhite(arg);
-    if (*p == NUL)
-    {
-        return NULL;
-    }
-
-    for (;;)
-    {
-        if ( strncmp((char *)(p), (char *)("plugin"), (6))  == 0 &&  ((p[6]) == ' ' || (p[6]) == '\t') )
-        {
-            val |= EXPAND_FILETYPECMD_PLUGIN;
-            p = skipwhite(p + 6);
-            continue;
-        }
-        if ( strncmp((char *)(p), (char *)("indent"), (6))  == 0 &&  ((p[6]) == ' ' || (p[6]) == '\t') )
-        {
-            val |= EXPAND_FILETYPECMD_INDENT;
-            p = skipwhite(p + 6);
-            continue;
-        }
-        break;
-    }
-
-    if ((val & EXPAND_FILETYPECMD_PLUGIN) && (val & EXPAND_FILETYPECMD_INDENT))
-    {
-        filetype_expand_what = EXP_FILETYPECMD_ONOFF;
-    }
-    else if ((val & EXPAND_FILETYPECMD_PLUGIN))
-    {
-        filetype_expand_what = EXP_FILETYPECMD_INDENT;
-    }
-    else if ((val & EXPAND_FILETYPECMD_INDENT))
-    {
-        filetype_expand_what = EXP_FILETYPECMD_PLUGIN;
-    }
-
-    xp->xp_pattern = p;
-
-    return NULL;
-}
-
-    static void
-set_context_with_pattern(expand_T *xp)
-{
-    int             skiplen = 0;
-    cmdline_info_T  *ccline = get_cmdline_info();
-    int dummy;
-    int patlen;
-    int retval;
-
-    ++emsg_off;
-    retval = parse_pattern_and_range(&pre_incsearch_pos, &dummy, &skiplen, &patlen);
-    --emsg_off;
-
-    if (!retval || ccline->cmdpos <= skiplen || ccline->cmdpos > skiplen + patlen)
-    {
-        return;
-    }
-
-    xp->xp_pattern = ccline->cmdbuff + skiplen;
-    xp->xp_pattern_len = ccline->cmdpos - skiplen;
-    xp->xp_context = EXPAND_PATTERN_IN_BUF;
-    xp->xp_search_dir = FORWARD;
-}
-
-    static char_u *
-set_context_by_cmdname(char_u          *cmd, cmdidx_T        cmdidx, expand_T        *xp, char_u          *arg, long            argt, int             compl, int             forceit)
-{
-    char_u  *nextcmd;
-
-    switch (cmdidx)
-    {
-        case CMD_find:
-        case CMD_sfind:
-        case CMD_tabfind:
-            if (xp->xp_context == EXPAND_FILES)
-            {
-                xp->xp_context = *get_findfunc() != NUL ? EXPAND_FINDFUNC
-                                                        : EXPAND_FILES_IN_PATH;
-            }
-            break;
-        case CMD_cd:
-        case CMD_chdir:
-        case CMD_tcd:
-        case CMD_tchdir:
-        case CMD_lcd:
-        case CMD_lchdir:
-            if (xp->xp_context == EXPAND_FILES)
-            {
-                xp->xp_context = EXPAND_DIRS_IN_CDPATH;
-            }
-            break;
-        case CMD_help:
-            xp->xp_context = EXPAND_HELP;
-            xp->xp_pattern = arg;
-            break;
-
-        case CMD_aboveleft:
-        case CMD_belowright:
-        case CMD_botright:
-        case CMD_cdo:
-        case CMD_cfdo:
-        case CMD_debug:
-        case CMD_folddoclosed:
-        case CMD_folddoopen:
-        case CMD_horizontal:
-        case CMD_keepjumps:
-        case CMD_keepmarks:
-        case CMD_keeppatterns:
-        case CMD_ldo:
-        case CMD_leftabove:
-        case CMD_lfdo:
-        case CMD_lockmarks:
-        case CMD_noautocmd:
-        case CMD_rightbelow:
-        case CMD_sandbox:
-        case CMD_silent:
-        case CMD_tab:
-        case CMD_tabdo:
-        case CMD_topleft:
-        case CMD_unsilent:
-        case CMD_verbose:
-        case CMD_vertical:
-        case CMD_vim9cmd:
-        case CMD_legacy:
-            return arg;
-
-        case CMD_filter:
-            return set_context_in_filter_cmd(xp, arg);
-
-        case CMD_match:
-            return set_context_in_match_cmd(xp, arg);
-
-        case CMD_global:
-        case CMD_vglobal:
-            nextcmd = find_cmd_after_global_cmd(arg);
-            if (!nextcmd && may_expand_pattern)
-            {
-                set_context_with_pattern(xp);
-            }
-            return nextcmd;
-
-        case CMD_and:
-        case CMD_substitute:
-            nextcmd = find_cmd_after_substitute_cmd(arg);
-            if (!nextcmd && may_expand_pattern)
-            {
-                set_context_with_pattern(xp);
-            }
-            return nextcmd;
-
-        case CMD_isearch:
-        case CMD_dsearch:
-        case CMD_ilist:
-        case CMD_dlist:
-        case CMD_ijump:
-        case CMD_psearch:
-        case CMD_djump:
-        case CMD_isplit:
-        case CMD_dsplit:
-            return find_cmd_after_isearch_cmd(xp, arg);
-        case CMD_autocmd:
-            return set_context_in_autocmd(xp, arg, FALSE);
-        case CMD_doautocmd:
-        case CMD_doautoall:
-            return set_context_in_autocmd(xp, arg, TRUE);
-        case CMD_set:
-            set_context_in_set_cmd(xp, arg, 0);
-            break;
-        case CMD_augroup:
-            xp->xp_context = EXPAND_AUGROUP;
-            xp->xp_pattern = arg;
-            break;
-        case CMD_highlight:
-            set_context_in_highlight_cmd(xp, arg);
-            break;
-        case CMD_sbuffer:
-        case CMD_pbuffer:
-        case CMD_checktime:
-            xp->xp_context = EXPAND_BUFFERS;
-            xp->xp_pattern = arg;
-            break;
-        case CMD_USER:
-        case CMD_USER_BUF:
-            return set_context_in_user_cmdarg(cmd, arg, argt, compl, xp, forceit);
-
-        case CMD_map:
-            case CMD_noremap:
-        case CMD_nmap:
-            case CMD_nnoremap:
-        case CMD_vmap:
-            case CMD_vnoremap:
-        case CMD_omap:
-            case CMD_onoremap:
-        case CMD_imap:
-            case CMD_inoremap:
-        case CMD_cmap:
-            case CMD_cnoremap:
-        case CMD_lmap:
-            case CMD_lnoremap:
-        case CMD_smap:
-            case CMD_snoremap:
-        case CMD_xmap:
-            case CMD_xnoremap:
-            return set_context_in_map_cmd(xp, cmd, arg, forceit, FALSE, FALSE, cmdidx);
-        case CMD_unmap:
-        case CMD_nunmap:
-        case CMD_vunmap:
-        case CMD_ounmap:
-        case CMD_iunmap:
-        case CMD_cunmap:
-        case CMD_lunmap:
-        case CMD_sunmap:
-        case CMD_xunmap:
-            return set_context_in_map_cmd(xp, cmd, arg, forceit, FALSE, TRUE, cmdidx);
-        case CMD_mapclear:
-        case CMD_nmapclear:
-        case CMD_vmapclear:
-        case CMD_omapclear:
-        case CMD_imapclear:
-        case CMD_cmapclear:
-        case CMD_lmapclear:
-        case CMD_smapclear:
-        case CMD_xmapclear:
-            xp->xp_context = EXPAND_MAPCLEAR;
-            xp->xp_pattern = arg;
-            break;
-
-        case CMD_abbreviate:
-            case CMD_noreabbrev:
-        case CMD_cabbrev:
-            case CMD_cnoreabbrev:
-        case CMD_iabbrev:
-            case CMD_inoreabbrev:
-            return set_context_in_map_cmd(xp, cmd, arg, forceit, TRUE, FALSE, cmdidx);
-        case CMD_unabbreviate:
-        case CMD_cunabbrev:
-        case CMD_iunabbrev:
-            return set_context_in_map_cmd(xp, cmd, arg, forceit, TRUE, TRUE, cmdidx);
-
-        case CMD_colorscheme:
-            xp->xp_context = EXPAND_COLORS;
-            xp->xp_pattern = arg;
-            break;
-
-        case CMD_compiler:
-            xp->xp_context = EXPAND_COMPILER;
-            xp->xp_pattern = arg;
-            break;
-
-        case CMD_ownsyntax:
-            xp->xp_context = EXPAND_OWNSYNTAX;
-            xp->xp_pattern = arg;
-            break;
-
-        case CMD_setfiletype:
-            xp->xp_context = EXPAND_FILETYPE;
-            xp->xp_pattern = arg;
-            break;
-
-        case CMD_packadd:
-            xp->xp_context = EXPAND_PACKADD;
-            xp->xp_pattern = arg;
-            break;
-
-        case CMD_runtime:
-            set_context_in_runtime_cmd(xp, arg);
-            break;
-
-        case CMD_messages:
-            xp->xp_context = EXPAND_MESSAGES;
-            xp->xp_pattern = arg;
-            break;
-
-        case CMD_history:
-            xp->xp_context = EXPAND_HISTORY;
-            xp->xp_pattern = arg;
-            break;
-
-        case CMD_filetype:
-            return set_context_in_filetype_cmd(xp, arg);
-
-        default:
-            break;
-    }
-    return NULL;
-}
-
-    static char_u *
-set_one_cmd_context(expand_T    *xp, char_u      *buff)
-{
-    char_u              *p;
-    char_u *cmd;
-    char_u *arg;
-    int                 len = 0;
-    exarg_T             ea;
-    int                 compl = EXPAND_NOTHING;
-    int                 forceit = FALSE;
-    int                 usefilter = FALSE;
-
-    ExpandInit(xp);
-    xp->xp_pattern = buff;
-    xp->xp_line = buff;
-    xp->xp_context = EXPAND_COMMANDS;
-    ea.argt = 0;
-
-    for (cmd = buff; vim_strchr((char_u *)" \t:|", *cmd) != NULL; cmd++)
-    {
-        ;
-    }
-    xp->xp_pattern = cmd;
-
-    if (*cmd == NUL)
-    {
-        return NULL;
-    }
-    if (*cmd == '"')
-    {
-        xp->xp_context = EXPAND_NOTHING;
-        return NULL;
-    }
-
-    cmd = skip_range(cmd, TRUE, &xp->xp_context);
-    xp->xp_pattern = cmd;
-    if (*cmd == NUL)
-    {
-        return NULL;
-    }
-    if (*cmd == '"')
-    {
-        xp->xp_context = EXPAND_NOTHING;
-        return NULL;
-    }
-
-    if (*cmd == '|' || *cmd == '\n')
-    {
-        return cmd + 1;
-    }
-
-    p = set_cmd_index(cmd, &ea, xp, &compl);
-    if (p == NULL)
-    {
-        return NULL;
-    }
-
-    xp->xp_context = EXPAND_NOTHING;
-
-    if (*p == '!')
-    {
-        forceit = TRUE;
-        ++p;
-    }
-
-    if (! ((int)(ea.cmdidx) < 0) )
-    {
-        ea.argt = excmd_get_argt(ea.cmdidx);
-    }
-
-    arg = skipwhite(p);
-
-    if ((ea.argt & EX_ARGOPT) || ea.cmdidx == CMD_terminal)
-    {
-        while (*arg != NUL &&  strncmp((char *)(arg), (char *)("++"), (2))  == 0)
-        {
-            p = arg + 2;
-            while (*p && !vim_isspace(*p))
-            {
-                 p += utfc_ptr2len(p) ;
-            }
-
-            if (*p == NUL)
-            {
-                if (ea.argt & EX_ARGOPT)
-                {
-                    return set_context_in_argopt(xp, arg + 2);
-                }
-            }
-
-            arg = skipwhite(p);
-        }
-    }
-
-    if (ea.cmdidx == CMD_write || ea.cmdidx == CMD_update)
-    {
-        if (*arg == '>')
-        {
-            if (*++arg == '>')
-            {
-                ++arg;
-            }
-            arg = skipwhite(arg);
-        }
-        else if (*arg == '!' && ea.cmdidx == CMD_write)
-        {
-            ++arg;
-            usefilter = TRUE;
-        }
-    }
-
-    if (ea.cmdidx == CMD_read)
-    {
-        usefilter = forceit;
-        if (*arg == '!')
-        {
-            ++arg;
-            usefilter = TRUE;
-        }
-    }
-
-    if (ea.cmdidx == CMD_lshift || ea.cmdidx == CMD_rshift)
-    {
-        while (*arg == *cmd)
-        {
-            ++arg;
-        }
-        arg = skipwhite(arg);
-    }
-
-    if ((ea.argt & EX_CMDARG) && !usefilter && *arg == '+')
-    {
-        p = arg + 1;
-        arg = skip_cmd_arg(arg, FALSE);
-
-        if (*arg == NUL)
-        {
-            return p;
-        }
-
-        arg = skipwhite(arg);
-    }
-
-    if ((ea.argt & EX_TRLBAR) && !usefilter)
-    {
-        p = arg;
-        if (ea.cmdidx == CMD_redir && p[0] == '@' && p[1] == '"')
-        {
-            p += 2;
-        }
-        while (*p)
-        {
-            if (*p == Ctrl_V)
-            {
-                if (p[1] != NUL)
-                {
-                    ++p;
-                }
-            }
-            else if ( (*p == '"' && !(ea.argt & EX_NOTRLCOM)) || *p == '|' || *p == '\n')
-            {
-                if (*(p - 1) != '\\')
-                {
-                    if (*p == '|' || *p == '\n')
-                    {
-                        return p + 1;
-                    }
-                    return NULL;
-                }
-            }
-             p += utfc_ptr2len(p) ;
-        }
-    }
-
-    if (!(ea.argt & EX_EXTRA) && *arg != NUL && vim_strchr((char_u *)"|\"", *arg) == NULL)
-    {
-        return NULL;
-    }
-
-    p = buff;
-    xp->xp_pattern = p;
-    len = (int) strlen((char *)(buff)) ;
-    while (*p && p < buff + len)
-    {
-        if (*p == ' ' || *p == TAB)
-        {
-            xp->xp_pattern = ++p;
-        }
-        else
-        {
-            if (*p == '\\' && *(p + 1) != NUL)
-            {
-                ++p;
-            }
-             p += utfc_ptr2len(p) ;
-        }
-    }
-
-    if (ea.argt & EX_XFILE)
-    {
-        set_context_for_wildcard_arg(&ea, arg, usefilter, xp, &compl);
-    }
-
-    return set_context_by_cmdname(cmd, ea.cmdidx, xp, arg, ea.argt, compl, forceit);
-}
-
-    static void
-set_cmd_context(expand_T    *xp, char_u      *str, int         len, int         col, int         use_ccline  __attribute__((unused)) )
-{
-    int         old_char = NUL;
-    char_u      *nextcomm;
-
-    if (col < len)
-    {
-        old_char = str[col];
-        str[col] = NUL;
-    }
-    nextcomm = str;
-
-        while (nextcomm != NULL)
-        {
-            nextcomm = set_one_cmd_context(xp, nextcomm);
-        }
-
-    xp->xp_line = str;
-    xp->xp_col = col;
-
-    if (col < len)
-    {
-        str[col] = old_char;
-    }
-}
-
-    static int
-expand_cmdline(expand_T    *xp, char_u      *str, int         col, int         *matchcount, char_u      ***matches)
-{
-    char_u      *file_str = NULL;
-    int         options = WILD_ADD_SLASH|WILD_SILENT;
-
-    if (xp->xp_context ==  (-2) )
-    {
-        beep_flush();
-        return  (-2) ;
-    }
-    if (xp->xp_context == EXPAND_NOTHING)
-    {
-        return EXPAND_NOTHING;
-    }
-
-    xp->xp_pattern_len = (int)(str + col - xp->xp_pattern);
-    {
-        char_u  *pat_src = xp->xp_pattern;
-        int     pat_len = xp->xp_pattern_len;
-
-        if (cmdline_fuzzy_completion_supported(xp))
-        {
-            file_str = vim_strnsave(pat_src, pat_len);
-        }
-        else
-        {
-            file_str = addstar(pat_src, pat_len, xp->xp_context);
-        }
-    }
-    if (file_str == NULL)
-    {
-        return  (-2) ;
-    }
-
-    if (p_wic)
-    {
-        options += WILD_ICASE;
-    }
-
-    if (ExpandFromContext(xp, file_str, matches, matchcount, options) == FAIL)
-    {
-        *matchcount = 0;
-        *matches = NULL;
-    }
-    vim_free(file_str);
-
-    return  (-1) ;
 }
 
     static int
@@ -16029,107 +13651,6 @@ expand_files_and_dirs(expand_T        *xp, char_u          *pat, char_u         
     return ret;
 }
 
-    static char_u *
-get_filetypecmd_arg(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx < 0)
-    {
-        return NULL;
-    }
-
-    if (filetype_expand_what == EXP_FILETYPECMD_ALL && idx < 5)
-    {
-        char    *opts_all[] = {"detect", "indent", "plugin", "on", "off"};
-        return (char_u *)opts_all[idx];
-    }
-    if (filetype_expand_what == EXP_FILETYPECMD_PLUGIN && idx < 3)
-    {
-        char    *opts_plugin[] = {"plugin", "on", "off"};
-        return (char_u *)opts_plugin[idx];
-    }
-    if (filetype_expand_what == EXP_FILETYPECMD_INDENT && idx < 3)
-    {
-        char    *opts_indent[] = {"indent", "on", "off"};
-        return (char_u *)opts_indent[idx];
-    }
-    if (filetype_expand_what == EXP_FILETYPECMD_ONOFF && idx < 2)
-    {
-        char    *opts_onoff[] = {"on", "off"};
-        return (char_u *)opts_onoff[idx];
-    }
-    return NULL;
-}
-
-    static char_u *
-get_retab_arg(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx == 0)
-    {
-        return (char_u *)"-indentonly";
-    }
-    return NULL;
-}
-
-    static char_u *
-get_messages_arg(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx == 0)
-    {
-        return (char_u *)"clear";
-    }
-    return NULL;
-}
-
-    static char_u *
-get_mapclear_arg(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx == 0)
-    {
-        return (char_u *)"<buffer>";
-    }
-    return NULL;
-}
-
-    static int
-ExpandOther(char_u          *pat, expand_T        *xp, regmatch_T      *rmp, char_u          ***matches, int             *numMatches)
-{
-    static struct expgen
-    {
-        int             context;
-        char_u  *((*func)(expand_T *, int));
-        int             ic;
-        int             escaped;
-    } tab[] =
-    {
-        {EXPAND_COMMANDS, get_command_name, FALSE, TRUE},
-        {EXPAND_FILETYPECMD, get_filetypecmd_arg, TRUE, TRUE},
-        {EXPAND_MAPCLEAR, get_mapclear_arg, TRUE, TRUE},
-        {EXPAND_MESSAGES, get_messages_arg, TRUE, TRUE},
-        {EXPAND_HISTORY, get_history_arg, TRUE, TRUE},
-        {EXPAND_HIGHLIGHT, get_highlight_name, TRUE, TRUE},
-        {EXPAND_EVENTS, get_event_name, TRUE, FALSE},
-        {EXPAND_AUGROUP, get_augroup_name, TRUE, FALSE},
-        {EXPAND_RETAB, get_retab_arg, TRUE, TRUE},
-    };
-    int i;
-    int ret = FAIL;
-
-    for (i = 0; i < (int) (sizeof(tab) / sizeof((tab)[0])) ; ++i)
-    {
-        if (xp->xp_context == tab[i].context)
-        {
-            if (tab[i].ic)
-            {
-                rmp->rm_ic = TRUE;
-            }
-            ret = ExpandGeneric(pat, xp, rmp, matches, numMatches, tab[i].func, tab[i].escaped);
-            break;
-        }
-    }
-
-    return ret;
-}
-
     static int
 map_wildopts_to_ewflags(int options)
 {
@@ -16167,841 +13688,12 @@ map_wildopts_to_ewflags(int options)
     static int
 ExpandFromContext(expand_T    *xp, char_u      *pat, char_u      ***matches, int         *numMatches, int         options)
 {
-    regmatch_T  regmatch;
-    int         ret;
     int         flags;
-    char_u      *tofree = NULL;
-    int         fuzzy = cmdline_fuzzy_complete(pat)
-                                     && cmdline_fuzzy_completion_supported(xp);
 
     flags = map_wildopts_to_ewflags(options);
 
-    if (xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_DIRECTORIES || xp->xp_context == EXPAND_FILES_IN_PATH || xp->xp_context == EXPAND_FINDFUNC || xp->xp_context == EXPAND_DIRS_IN_CDPATH)
-    {
-        return expand_files_and_dirs(xp, pat, matches, numMatches, flags, options);
-    }
+    return expand_files_and_dirs(xp, pat, matches, numMatches, flags, options);
 
-    *matches = (char_u **)"";
-    *numMatches = 0;
-    if (xp->xp_context == EXPAND_SHELLCMD)
-    {
-        return expand_shellcmd(pat, matches, numMatches, flags);
-    }
-    if (xp->xp_context == EXPAND_OLD_SETTING)
-    {
-        return ExpandOldSetting(numMatches, matches);
-    }
-    if (xp->xp_context == EXPAND_BUFFERS)
-    {
-        return ExpandBufnames(pat, numMatches, matches, options);
-    }
-    if (xp->xp_context == EXPAND_COLORS)
-    {
-        char *directories[] = {"colors", NULL};
-        return ExpandRTDir(pat, DIP_START + DIP_OPT, numMatches, matches, directories);
-    }
-    if (xp->xp_context == EXPAND_COMPILER)
-    {
-        char *directories[] = {"compiler", NULL};
-        return ExpandRTDir(pat, 0, numMatches, matches, directories);
-    }
-    if (xp->xp_context == EXPAND_OWNSYNTAX)
-    {
-        char *directories[] = {"syntax", NULL};
-        return ExpandRTDir(pat, 0, numMatches, matches, directories);
-    }
-    if (xp->xp_context == EXPAND_FILETYPE)
-    {
-        char *directories[] = {"syntax", "indent", "ftplugin", NULL};
-        return ExpandRTDir(pat, 0, numMatches, matches, directories);
-    }
-    if (xp->xp_context == EXPAND_PACKADD)
-    {
-        return ExpandPackAddDir(pat, numMatches, matches);
-    }
-    if (xp->xp_context == EXPAND_RUNTIME)
-    {
-        return expand_runtime_cmd(pat, numMatches, matches);
-    }
-    if (xp->xp_context == EXPAND_PATTERN_IN_BUF)
-    {
-        return expand_pattern_in_buf(pat, xp->xp_search_dir, matches, numMatches);
-    }
-
-    if ((xp->xp_context == EXPAND_USER_FUNC || xp->xp_context == EXPAND_DISASSEMBLE) &&  strncmp((char *)(pat), (char *)("^s:"), (3))  == 0)
-    {
-        int len = (int) strlen((char *)(pat))  + 20;
-
-        tofree = alloc(len);
-        if (tofree == NULL)
-        {
-            return FAIL;
-        }
-        vim_snprintf((char *)tofree, len, "^<SNR>\\d\\+_%s", pat + 3);
-        pat = tofree;
-    }
-
-    if (!fuzzy)
-    {
-        regmatch.regprog = vim_regcomp(pat, magic_isset() ? RE_MAGIC : 0);
-        if (regmatch.regprog == NULL)
-        {
-            vim_free(tofree);
-            return FAIL;
-        }
-        regmatch.rm_ic = ignorecase(pat);
-    }
-
-    if (xp->xp_context == EXPAND_SETTINGS || xp->xp_context == EXPAND_BOOL_SETTINGS)
-    {
-        ret = ExpandSettings(xp, &regmatch, pat, numMatches, matches, fuzzy);
-    }
-    else if (xp->xp_context == EXPAND_STRING_SETTING)
-    {
-        ret = ExpandStringSetting(xp, &regmatch, numMatches, matches);
-    }
-    else if (xp->xp_context == EXPAND_SETTING_SUBTRACT)
-    {
-        ret = ExpandSettingSubtract(xp, &regmatch, numMatches, matches);
-    }
-    else if (xp->xp_context == EXPAND_MAPPINGS)
-    {
-        ret = ExpandMappings(pat, &regmatch, numMatches, matches);
-    }
-    else if (xp->xp_context == EXPAND_ARGOPT)
-    {
-        ret = expand_argopt(pat, xp, &regmatch, matches, numMatches);
-    }
-    else if (xp->xp_context == EXPAND_HIGHLIGHT_GROUP)
-    {
-        ret = expand_highlight_group(pat, xp, &regmatch, matches, numMatches);
-    }
-    else
-    {
-        ret = ExpandOther(pat, xp, &regmatch, matches, numMatches);
-    }
-
-    if (!fuzzy)
-    {
-        vim_regfree(regmatch.regprog);
-    }
-    vim_free(tofree);
-
-    return ret;
-}
-
-    static int
-ExpandGeneric(char_u      *pat, expand_T    *xp, regmatch_T  *regmatch, char_u      ***matches, int         *numMatches, char_u      *(*func)(expand_T *, int), int         escaped)
-{
-    return ExpandGenericExt(pat, xp, regmatch, matches, numMatches, func, escaped, 0);
-}
-
-    static int
-ExpandGenericExt(char_u      *pat, expand_T    *xp, regmatch_T  *regmatch, char_u      ***matches, int         *numMatches, char_u      *(*func)(expand_T *, int), int         escaped, int         sortStartIdx)
-{
-    int         i;
-    garray_T    ga;
-    char_u      *str;
-    fuzmatch_str_T      *fuzmatch = NULL;
-    int         score = 0;
-    int         fuzzy;
-    int         match;
-    int         sort_matches = FALSE;
-    int         funcsort = FALSE;
-    int         sortStartMatchIdx = -1;
-
-    fuzzy = cmdline_fuzzy_complete(pat);
-    *matches = NULL;
-    *numMatches = 0;
-
-    if (!fuzzy)
-    {
-        ga_init2(&ga, sizeof(char *), 30);
-    }
-    else
-    {
-        ga_init2(&ga, sizeof(fuzmatch_str_T), 30);
-    }
-
-    for (i = 0; ; ++i)
-    {
-        str = (*func)(xp, i);
-        if (str == NULL)
-        {
-            break;
-        }
-        if (*str == NUL)
-        {
-            continue;
-        }
-
-        if (xp->xp_pattern[0] != NUL)
-        {
-            if (!fuzzy)
-            {
-                match = vim_regexec(regmatch, str, (colnr_T)0);
-            }
-            else
-            {
-                score = fuzzy_match_str(str, pat);
-                match = (score !=  INT_MIN );
-            }
-        }
-        else
-        {
-            match = TRUE;
-        }
-
-        if (!match)
-        {
-            continue;
-        }
-
-        if (escaped)
-        {
-            str = vim_strsave_escaped(str, (char_u *)" \t\\.");
-        }
-        else
-        {
-            str = vim_strsave(str);
-        }
-        if (str == NULL)
-        {
-            if (!fuzzy)
-            {
-                ga_clear_strings(&ga);
-                return FAIL;
-            }
-            fuzmatch_str_free(ga.ga_data, ga.ga_len);
-            return FAIL;
-        }
-
-        if (ga_grow(&ga, 1) == FAIL)
-        {
-            vim_free(str);
-            break;
-        }
-
-        if (fuzzy)
-        {
-            fuzmatch = &((fuzmatch_str_T *)ga.ga_data)[ga.ga_len];
-            fuzmatch->idx = ga.ga_len;
-            fuzmatch->str = str;
-            fuzmatch->score = score;
-        }
-        else
-        {
-            ((char_u **)ga.ga_data)[ga.ga_len] = str;
-        }
-
-        if (sortStartIdx >= 0 && i >= sortStartIdx && sortStartMatchIdx == -1)
-        {
-            sortStartMatchIdx = ga.ga_len;
-        }
-
-        ++ga.ga_len;
-    }
-
-    if (ga.ga_len == 0)
-    {
-        return OK;
-    }
-
-    if (!fuzzy && xp->xp_context != EXPAND_MENUNAMES && xp->xp_context != EXPAND_STRING_SETTING && xp->xp_context != EXPAND_MENUS && xp->xp_context != EXPAND_SCRIPTNAMES && xp->xp_context != EXPAND_ARGOPT && xp->xp_context != EXPAND_TERMINALOPT)
-    {
-        sort_matches = TRUE;
-    }
-
-    if (xp->xp_context == EXPAND_EXPRESSION || xp->xp_context == EXPAND_FUNCTIONS || xp->xp_context == EXPAND_USER_FUNC || xp->xp_context == EXPAND_DISASSEMBLE)
-    {
-        funcsort = TRUE;
-    }
-
-    if (sort_matches && sortStartMatchIdx != -1)
-    {
-        if (funcsort)
-        {
-            qsort((void *)ga.ga_data, (size_t)ga.ga_len, sizeof(char_u *), sort_func_compare);
-        }
-        else
-        {
-            sort_strings((char_u **)ga.ga_data + sortStartMatchIdx, ga.ga_len - sortStartMatchIdx);
-        }
-    }
-
-    if (!fuzzy)
-    {
-        *matches = ga.ga_data;
-        *numMatches = ga.ga_len;
-    }
-    else
-    {
-        if (fuzzymatches_to_strmatches(ga.ga_data, matches, ga.ga_len, funcsort) == FAIL)
-        {
-            return FAIL;
-        }
-        *numMatches = ga.ga_len;
-    }
-
-    return OK;
-}
-
-    static void
-expand_shellcmd_onedir(char_u          *pathed_pattern, size_t          pathlen, char_u          ***matches, int             *numMatches, int             flags, hashtab_T       *ht, garray_T        *gap)
-{
-    if (expand_wildcards(1, &pathed_pattern, numMatches, matches, flags) != OK)
-    {
-        return;
-    }
-
-    if (ga_grow(gap, *numMatches) == FAIL)
-    {
-        FreeWild(*numMatches, *matches);
-        return;
-    }
-
-    for (int i = 0; i < *numMatches; ++i)
-    {
-        char_u  *name = (*matches)[i];
-        size_t  namelen =  strlen((char *)(name)) ;
-
-        if (namelen > pathlen)
-        {
-            hash_T      hash;
-            hashitem_T  *hi;
-
-            hash = hash_hash(name + pathlen);
-            hi = hash_lookup(ht, name + pathlen, hash);
-            if ( ((hi)->hi_key == NULL || (hi)->hi_key == &hash_removed) )
-            {
-                 memmove((char *)(name), (char *)(name + pathlen), (size_t)(namelen - pathlen) + 1) ;
-                ((char_u **)gap->ga_data)[gap->ga_len++] = name;
-                hash_add_item(ht, hi, name, hash);
-                name = NULL;
-            }
-        }
-        vim_free(name);
-    }
-    vim_free(*matches);
-}
-
-    static int
-expand_shellcmd(char_u      *filepat, char_u      ***matches, int         *numMatches, int         flagsarg)
-{
-    char_u      *pat;
-    size_t      patlen;
-    char_u      *path = NULL;
-    int         mustfree = FALSE;
-    garray_T    ga;
-    char_u      *buf;
-    char_u *s;
-    char_u *e;
-    int         flags = flagsarg;
-    int         did_curdir = FALSE;
-    hashtab_T   found_ht;
-
-    buf = alloc( PATH_MAX );
-    if (buf == NULL)
-    {
-        return FAIL;
-    }
-
-    patlen =  strlen((char *)(filepat)) ;
-    pat = vim_strnsave(filepat, patlen);
-    if (pat == NULL)
-    {
-        vim_free(buf);
-        return FAIL;
-    }
-
-    e = pat + patlen;
-    for (s = pat; *s != NUL; ++s)
-    {
-        char_u  *p;
-
-        if (*s != '\\')
-        {
-            continue;
-        }
-
-        p = s + 1;
-        if (*p == ' ')
-        {
-             memmove((char *)(s), (char *)(p), (size_t)(e - p) + 1) ;
-            --e;
-        }
-    }
-    patlen = (size_t)(e - pat);
-
-    flags |= EW_FILE | EW_EXEC | EW_SHELLCMD;
-
-    if (pat[0] == '.' && (vim_ispathsep(pat[1]) || (pat[1] == '.' && vim_ispathsep(pat[2]))))
-    {
-        path = (char_u *)".";
-    }
-    else
-    {
-        if (path == NULL)
-        {
-            path = (char_u *)"";
-        }
-    }
-
-    ga_init2(&ga, sizeof(char *), 10);
-    hash_init(&found_ht);
-    for (s = path; ; s = e)
-    {
-        size_t  pathlen;
-        size_t  seplen;
-
-        if (*s == NUL)
-        {
-            if (did_curdir)
-            {
-                break;
-            }
-
-            did_curdir = TRUE;
-            flags |= EW_DIR;
-
-            e = s;
-            pathlen = 0;
-            seplen = 0;
-        }
-        else
-        {
-            e = vim_strchr(s, ':');
-            if (e == NULL)
-            {
-                e = s +  strlen((char *)(s)) ;
-            }
-
-            pathlen = (size_t)(e - s);
-            if ( strncmp((char *)(s), (char *)("."), (pathlen))  == 0)
-            {
-                did_curdir = TRUE;
-                flags |= EW_DIR;
-            }
-            else
-            {
-                flags &= ~EW_DIR;
-            }
-
-            seplen = !after_pathsep(s, e) ? sizeof( ((char_u)'/') ) : 0;
-        }
-
-        if (pathlen + seplen + patlen + 1 <=  PATH_MAX )
-        {
-            if (pathlen > 0)
-            {
-                vim_strncpy(buf, s, pathlen);
-                if (seplen > 0)
-                {
-                     strcpy((char *)(buf + pathlen), (char *)( "/" )) ;
-                    pathlen += seplen;
-                }
-            }
-             strcpy((char *)(buf + pathlen), (char *)(pat)) ;
-
-            expand_shellcmd_onedir(buf, pathlen, matches, numMatches, flags, &found_ht, &ga);
-        }
-
-        if (*e != NUL)
-        {
-            ++e;
-        }
-    }
-    *matches = ga.ga_data;
-    *numMatches = ga.ga_len;
-
-    vim_free(buf);
-    vim_free(pat);
-    if (mustfree)
-    {
-        vim_free(path);
-    }
-    hash_clear(&found_ht);
-    return OK;
-}
-
-    static void
-globpath(char_u      *path, char_u      *file, garray_T    *ga, int         expand_options, int         dirs)
-{
-    expand_T    xpc;
-    char_u      *buf;
-    size_t      pathlen;
-    size_t      seplen;
-    size_t      filelen;
-
-    buf = alloc( PATH_MAX );
-    if (buf == NULL)
-    {
-        return;
-    }
-
-    ExpandInit(&xpc);
-    xpc.xp_context = dirs ? EXPAND_DIRECTORIES : EXPAND_FILES;
-
-    filelen =  strlen((char *)(file)) ;
-
-    while (*path != NUL)
-    {
-        pathlen = (size_t)copy_option_part(&path, buf,  PATH_MAX , ",");
-        seplen = (*buf != NUL && !after_pathsep(buf, buf + pathlen))
-            ?  (sizeof(  "/"   "") - 1) 
-            : 0;
-
-        if (pathlen + seplen + filelen + 1 <=  PATH_MAX )
-        {
-            int     num_p;
-            char_u  **p;
-
-            if (seplen > 0)
-            {
-                 strcpy((char *)(buf + pathlen), (char *)(  "/"  )) ;
-                pathlen += seplen;
-            }
-             strcpy((char *)(buf + pathlen), (char *)(file)) ;
-
-            if (ExpandFromContext(&xpc, buf, &p, &num_p, WILD_SILENT|expand_options) != FAIL && num_p > 0)
-            {
-                ExpandEscape(&xpc, buf, num_p, p, WILD_SILENT|expand_options);
-
-                if (ga_grow(ga, num_p) == OK)
-                {
-                    for (int i = 0; i < num_p; ++i)
-                    {
-                        ((char_u **)ga->ga_data)[ga->ga_len] = p[i];
-                        ++ga->ga_len;
-                    }
-                }
-                else
-                {
-                    FreeWild(num_p, p);
-                    p = NULL;
-                }
-                vim_free(p);
-            }
-        }
-    }
-
-    vim_free(buf);
-}
-
-    static int
-copy_substring_from_pos(pos_T *start, pos_T *end, char_u **match, pos_T *match_end)
-{
-    char_u      *word_end;
-    char_u *line;
-    char_u *start_line;
-    char_u *end_line;
-    int         segment_len;
-    linenr_T    lnum;
-    garray_T    ga;
-    int         exacttext = vim_strchr(p_wop, WOP_EXACTTEXT) != NULL;
-
-    if (start->lnum > end->lnum || (start->lnum == end->lnum && start->col >= end->col))
-    {
-        return FAIL;
-    }
-
-    ga_init2(&ga, 1, 128);
-
-    start_line = ml_get(start->lnum);
-    char_u  *start_ptr = start_line + start->col;
-    int     is_single_line = start->lnum == end->lnum;
-
-    segment_len = is_single_line ? (end->col - start->col)
-                        : (int)(ml_get_len(start->lnum) - start->col);
-    if (ga_grow(&ga, segment_len + 2) != OK)
-    {
-        goto fail;
-    }
-
-    ga_concat_len(&ga, start_ptr, segment_len);
-    if (!is_single_line)
-    {
-        if (exacttext)
-        {
-             ga_concat_len((&ga), (char_u *)("\\n"),  (sizeof("\\n" "") - 1) ) ;
-        }
-        else
-        {
-            ga_append(&ga, '\n');
-        }
-    }
-
-    if (!is_single_line)
-    {
-        for (lnum = start->lnum + 1; lnum < end->lnum; lnum++)
-        {
-            int  linelen;
-
-            line = ml_get(lnum);
-            linelen = (int)ml_get_len(lnum);
-            if (ga_grow(&ga, linelen + 2) != OK)
-            {
-                goto fail;
-            }
-            ga_concat_len(&ga, line, linelen);
-            if (exacttext)
-            {
-                 ga_concat_len((&ga), (char_u *)("\\n"),  (sizeof("\\n" "") - 1) ) ;
-            }
-            else
-            {
-                ga_append(&ga, '\n');
-            }
-        }
-    }
-
-    end_line = ml_get(end->lnum);
-    word_end = find_word_end(end_line + end->col);
-    segment_len = (int)(word_end - end_line);
-    if (ga_grow(&ga, segment_len) != OK)
-    {
-        goto fail;
-    }
-    ga_concat_len(&ga, end_line + (is_single_line ? end->col : 0), segment_len - (is_single_line ? end->col : 0));
-
-    if (ga_grow(&ga, 1) != OK)
-    {
-        goto fail;
-    }
-    ga_append(&ga, NUL);
-
-    *match = (char_u *)ga.ga_data;
-    match_end->lnum = end->lnum;
-    match_end->col = segment_len;
-
-    return OK;
-
-fail:
-    ga_clear(&ga);
-    return FAIL;
-}
-
-    static int
-is_regex_match(char_u *pat, char_u *str)
-{
-    if ( strcmp((char *)(pat), (char *)(str))  == 0)
-    {
-        return TRUE;
-    }
-
-    regmatch_T  regmatch;
-    int         result;
-
-    ++emsg_off;
-    ++msg_silent;
-    regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
-    --emsg_off;
-    --msg_silent;
-
-    if (regmatch.regprog == NULL)
-    {
-        return FALSE;
-    }
-    regmatch.rm_ic = p_ic;
-    if (p_ic && p_scs)
-    {
-        regmatch.rm_ic = !pat_has_uppercase(pat);
-    }
-
-    ++emsg_off;
-    ++msg_silent;
-    result = vim_regexec_nl(&regmatch, str, (colnr_T)0);
-    --emsg_off;
-    --msg_silent;
-
-    vim_regfree(regmatch.regprog);
-    return result;
-}
-
-    static char_u *
-concat_pattern_with_buffer_match(char_u *pat, int pat_len, pos_T *end_match_pos, int lowercase  __attribute__((unused)) )
-{
-    char_u  *line = ml_get(end_match_pos->lnum);
-    char_u  *word_end = find_word_end(line + end_match_pos->col);
-    int     match_len = (int)(word_end - (line + end_match_pos->col));
-    char_u  *match = alloc(match_len + pat_len + 1);
-
-    if (match == NULL)
-    {
-        return NULL;
-    }
-     memmove((char *)(match), (char *)(pat), pat_len) ;
-    if (match_len > 0)
-    {
-             memmove((char *)(match + pat_len), (char *)(line + end_match_pos->col), match_len) ;
-    }
-    match[pat_len + match_len] = NUL;
-    return match;
-
-}
-
-    static int
-expand_pattern_in_buf(char_u      *pat, int         dir, char_u      ***matches, int         *numMatches)
-{
-    pos_T cur_match_pos;
-    pos_T prev_match_pos;
-    pos_T end_match_pos;
-    pos_T word_end_pos;
-    garray_T    ga;
-    int         found_new_match;
-    int         looped_around = FALSE;
-    int         pat_len;
-    int         has_range = FALSE;
-    int         compl_started = FALSE;
-    int         search_flags;
-    char_u *match;
-    char_u *full_match;
-    int         exacttext = vim_strchr(p_wop, WOP_EXACTTEXT) != NULL;
-
-    has_range = search_first_line != 0;
-
-    *matches = NULL;
-    *numMatches = 0;
-
-    if (pat == NULL || *pat == NUL)
-    {
-        return FAIL;
-    }
-
-    pat_len = (int) strlen((char *)(pat)) ;
-      memset((&(cur_match_pos)), (0), (sizeof(cur_match_pos)))  ;
-      memset((&(prev_match_pos)), (0), (sizeof(prev_match_pos)))  ;
-    if (has_range)
-    {
-        cur_match_pos.lnum = search_first_line;
-    }
-    else
-    {
-        cur_match_pos = pre_incsearch_pos;
-    }
-
-    search_flags = SEARCH_OPT | SEARCH_NOOF | SEARCH_PEEK | SEARCH_NFMSG
-        | (has_range ? SEARCH_START : 0);
-
-    ga_init2(&ga, sizeof(char_u *), 10);
-
-    for (;;)
-    {
-        ++emsg_off;
-        ++msg_silent;
-        found_new_match = searchit(NULL, curbuf, &cur_match_pos, &end_match_pos, dir, pat, pat_len, 1L, search_flags, RE_LAST, NULL);
-        --msg_silent;
-        --emsg_off;
-
-        if (found_new_match == FAIL)
-        {
-            break;
-        }
-
-        if (has_range && (cur_match_pos.lnum < search_first_line || cur_match_pos.lnum > search_last_line))
-        {
-                break;
-        }
-
-        if (compl_started)
-        {
-            if ((dir == FORWARD &&  ( (((cur_match_pos).lnum != (prev_match_pos).lnum)               ? (cur_match_pos).lnum < (prev_match_pos).lnum                   : (cur_match_pos).col != (prev_match_pos).col                        ? (cur_match_pos).col < (prev_match_pos).col                     : (cur_match_pos).coladd < (prev_match_pos).coladd)  ||  (((cur_match_pos).lnum == (prev_match_pos).lnum) && ((cur_match_pos).col == (prev_match_pos).col) && ((cur_match_pos).coladd == (prev_match_pos).coladd)) ) ) || (dir ==  (-1)  &&  ( (((prev_match_pos).lnum != (cur_match_pos).lnum)               ? (prev_match_pos).lnum < (cur_match_pos).lnum                   : (prev_match_pos).col != (cur_match_pos).col                        ? (prev_match_pos).col < (cur_match_pos).col                     : (prev_match_pos).coladd < (cur_match_pos).coladd)  ||  (((prev_match_pos).lnum == (cur_match_pos).lnum) && ((prev_match_pos).col == (cur_match_pos).col) && ((prev_match_pos).coladd == (cur_match_pos).coladd)) ) ))
-            {
-                if (looped_around)
-                {
-                    break;
-                }
-                else
-                {
-                    looped_around = TRUE;
-                }
-            }
-        }
-
-        compl_started = TRUE;
-        prev_match_pos = cur_match_pos;
-
-        if (char_avail() || got_int)
-        {
-            if (got_int)
-            {
-                (void)vpeekc();
-                got_int = FALSE;
-            }
-            goto cleanup;
-        }
-
-        if (end_match_pos.lnum > curbuf->b_ml.ml_line_count)
-        {
-            cur_match_pos.lnum = 1;
-            cur_match_pos.col = 0;
-            cur_match_pos.coladd = 0;
-            continue;
-        }
-
-        if (copy_substring_from_pos(&cur_match_pos, &end_match_pos, &full_match, &word_end_pos) == FAIL)
-        {
-            break;
-        }
-
-        if (exacttext)
-        {
-            match = full_match;
-        }
-        else
-        {
-            match = concat_pattern_with_buffer_match(pat, pat_len, &end_match_pos, FALSE);
-
-            if (match == NULL || !is_regex_match(match, full_match))
-            {
-                vim_free(match);
-                match = concat_pattern_with_buffer_match(pat, pat_len, &end_match_pos, TRUE);
-                if (match == NULL || !is_regex_match(match, full_match))
-                {
-                    vim_free(match);
-                    vim_free(full_match);
-                    continue;
-                }
-            }
-            vim_free(full_match);
-        }
-
-        for (int i = 0; i < ga.ga_len; ++i)
-        {
-            if ( strcmp((char *)(match), (char *)(((char_u **)ga.ga_data)[i]))  == 0)
-            {
-                 vim_free(match);
-                 (match) = NULL;
-                break;
-            }
-        }
-        if (match != NULL)
-        {
-            if (ga_grow(&ga, 1) == FAIL)
-            {
-                 vim_free(match);
-                 (match) = NULL;
-                goto cleanup;
-            }
-            ((char_u **)ga.ga_data)[ga.ga_len++] = match;
-            if (ga.ga_len > TAG_MANY)
-            {
-                break;
-            }
-        }
-        if (has_range)
-        {
-            cur_match_pos = word_end_pos;
-        }
-    }
-
-    *matches = (char_u **)ga.ga_data;
-    *numMatches = ga.ga_len;
-    return OK;
-
-cleanup:
-    ga_clear_strings(&ga);
-    return FAIL;
 }
 
 // ==================== cmdhist.c ====================
@@ -17060,30 +13752,6 @@ static char *(history_names[]) =
     "debug",
     NULL
 };
-
-    static char_u *
-get_history_arg(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    char    *short_names = ":=@>?/";
-    int     short_names_count = (int) strlen((char *)(short_names)) ;
-    int     history_name_count =  (sizeof(history_names) / sizeof((history_names)[0]))  - 1;
-
-    if (idx < short_names_count)
-    {
-        xp->xp_buf[0] = (char_u)short_names[idx];
-        xp->xp_buf[1] = NUL;
-        return xp->xp_buf;
-    }
-    if (idx < short_names_count + history_name_count)
-    {
-        return (char_u *)history_names[idx - short_names_count];
-    }
-    if (idx == short_names_count + history_name_count)
-    {
-        return (char_u *)"all";
-    }
-    return NULL;
-}
 
     static void
 init_history(void)
@@ -19062,7 +15730,6 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
     {
         char_u  *p;
         int     plen;
-        int     NameBufflen;
         int     this_ru_col;
         int     n;
 
@@ -19123,11 +15790,6 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
         {
             screen_fill(row + i, row + i + 1, wp->w_wincol,  ((wp)->w_wincol + (wp)->w_width) , fillchar, fillchar, attr);
         }
-        if ((NameBufflen = get_keymap_str(wp, (char_u *)"<%s>", NameBuff,  PATH_MAX )) > 0 && (this_ru_col - plen) > (NameBufflen + 1))
-        {
-            screen_puts(NameBuff, row, (int)(this_ru_col - NameBufflen - 1 + wp->w_wincol), attr);
-        }
-
         win_redr_ruler(wp, TRUE, ignore_pum);
 
         if (p_sc && *p_sloc == 's')
@@ -20590,7 +17252,6 @@ static void replace_do_bs(int limit_col);
 static int del_char_after_col(int limit_col);
 static void ins_reg(void);
 static void ins_ctrl_g(void);
-static void ins_ctrl_hat(void);
 static int  ins_esc(long *count, int cmdchar, int nomove);
 static int ins_start_select(int c);
 static void ins_insert(int replaceState);
@@ -20747,11 +17408,6 @@ edit(int         cmdchar, int         startln, long        count)
     if (gchar_cursor() == TAB)
     {
         curwin->w_valid &= ~(VALID_WROW|VALID_WCOL|VALID_VIRTCOL);
-    }
-
-    if (curbuf->b_p_iminsert == B_IMODE_LMAP)
-    {
-        State |= MODE_LANGMAP;
     }
 
     clear_showcmd();
@@ -21092,7 +17748,6 @@ doESCkey:
             break;
 
         case Ctrl_HAT:
-            ins_ctrl_hat();
             break;
 
         case Ctrl_D:
@@ -22839,26 +19494,6 @@ ins_ctrl_g(void)
     }
 }
 
-    static void
-ins_ctrl_hat(void)
-{
-    if (map_to_exists_mode((char_u *)"", MODE_LANGMAP, FALSE))
-    {
-        if (State & MODE_LANGMAP)
-        {
-            curbuf->b_p_iminsert = B_IMODE_NONE;
-            State &= ~MODE_LANGMAP;
-        }
-        else
-        {
-            curbuf->b_p_iminsert = B_IMODE_LMAP;
-            State |= MODE_LANGMAP;
-        }
-    }
-    set_iminsert_global();
-    showmode();
-}
-
     static int
 ins_esc(long        *count, int         cmdchar, int         nomove)
 {
@@ -23022,11 +19657,11 @@ ins_insert(int replaceState)
     ins_apply_autocmds(EVENT_INSERTCHANGE);
     if (State & REPLACE_FLAG)
     {
-        State = MODE_INSERT | (State & MODE_LANGMAP);
+        State = MODE_INSERT;
     }
     else
     {
-        State = replaceState | (State & MODE_LANGMAP);
+        State = replaceState;
     }
     may_trigger_modechanged();
     AppendCharToRedobuff(  (-(('k') + ((int)('I') << 8)))  );
@@ -24536,22 +21171,6 @@ do_bang(int         addr_count, exarg_T     *eap, int         forceit, int      
         AppendToRedobuff((char_u *)"\n");
         bangredo = FALSE;
     }
-    if (*p_shq != NUL)
-    {
-        if (free_newcmd)
-        {
-            vim_free(newcmd);
-        }
-        newcmd = alloc( strlen((char *)(prevcmd))  + 2 *  strlen((char *)(p_shq))  + 1);
-        if (newcmd == NULL)
-        {
-            return;
-        }
-         strcpy((char *)(newcmd), (char *)(p_shq)) ;
-         strcat((char *)(newcmd), (char *)(prevcmd)) ;
-         strcat((char *)(newcmd), (char *)(p_shq)) ;
-        free_newcmd = TRUE;
-    }
     if (addr_count == 0)
     {
         msg_start();
@@ -25446,11 +22065,6 @@ ex_append(exarg_T *eap)
     }
 
     State = MODE_INSERT;
-    if (curbuf->b_p_iminsert == B_IMODE_LMAP)
-    {
-        State |= MODE_LANGMAP;
-    }
-
     for (;;)
     {
         msg_scroll = TRUE;
@@ -29237,31 +25851,6 @@ find_ex_command(exarg_T *eap, int     *full  __attribute__((unused)) , int     (
     return p;
 }
 
-    static cmdidx_T
-excmd_get_cmdidx(char_u *cmd, int len)
-{
-    cmdidx_T idx;
-
-    if (!one_letter_cmd(cmd, &idx))
-    {
-        for (idx = (cmdidx_T)0; (int)idx < (int)CMD_SIZE; idx = (cmdidx_T)((int)idx + 1))
-        {
-            if ( strncmp((char *)(cmdnames[(int)idx].cmd_name), (char *)(cmd), ((size_t)len))  == 0)
-            {
-                break;
-            }
-        }
-    }
-
-    return idx;
-}
-
-    static long
-excmd_get_argt(cmdidx_T idx)
-{
-    return (long)cmdnames[(int)idx].cmd_argt;
-}
-
     static char_u *
 skip_range(char_u      *cmd_start, int         skip_star, int         *ctx)
 {
@@ -30070,10 +26659,6 @@ expand_filename(exarg_T     *eap, char_u      **cmdlinep, char        **errormsg
 
                     ExpandInit(&xpc);
                     xpc.xp_context = EXPAND_FILES;
-                    if (p_wic)
-                    {
-                        options += WILD_ICASE;
-                    }
                     p = ExpandOne(&xpc, eap->arg, NULL, options, WILD_EXPAND_FREE);
                     if (p == NULL)
                     {
@@ -30257,34 +26842,6 @@ getargopt(exarg_T *eap)
     return FAIL;
 }
 
-    static char_u *
-get_argopt_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    static char *(p_opt_values[]) =
-    {
-        "edit",
-    };
-
-    if (idx < 0 || idx >= (int) (sizeof(p_opt_values) / sizeof((p_opt_values)[0])) )
-    {
-        return NULL;
-    }
-
-    return (char_u*)p_opt_values[idx];
-}
-
-    static int
-expand_argopt(char_u      *pat, expand_T    *xp, regmatch_T  *rmp, char_u      ***matches, int         *numMatches)
-{
-    if (xp->xp_pattern > xp->xp_line && *(xp->xp_pattern-1) == '=')
-    {
-
-        return FAIL;
-    }
-
-    return ExpandGeneric(pat, xp, rmp, matches, numMatches, get_argopt_name, FALSE);
-}
-
     static int
 ends_excmd(int c)
 {
@@ -30384,20 +26941,6 @@ check_more(int message, int forceit)
         return FAIL;
     }
     return OK;
-}
-
-    static char_u *
-get_command_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx >= (int)CMD_SIZE)
-    {
-        return expand_user_command_name(idx);
-    }
-    if ( strncmp((char *)(cmdnames[idx].cmd_name), (char *)("{"), (1))  == 0 ||  strncmp((char *)(cmdnames[idx].cmd_name), (char *)("}"), (1))  == 0)
-    {
-        return (char_u *)"";
-    }
-    return cmdnames[idx].cmd_name;
 }
 
     static void
@@ -32431,162 +28974,6 @@ cmdline_handle_ctrl_bsl(int c, int *gotesc)
 }
 
     static int
-cmdline_wildchar_complete(int             c, int             escape, int             *did_wild_list, int             *wim_index_p, expand_T        *xp, int             *gotesc, int             redraw_if_menu_empty, pos_T           *pre_incsearch_pos)
-{
-    int         wim_index = *wim_index_p;
-    int         res;
-    int         cmdpos_before;
-    int         options = WILD_NO_BEEP;
-
-    if (wim_flags[wim_index] & WIM_BUFLASTUSED)
-    {
-        options |= WILD_BUFLASTUSED;
-    }
-    if (xp->xp_numfiles > 0)
-    {
-        if (xp->xp_numfiles > 1 && !*did_wild_list && (wim_flags[wim_index] & WIM_LIST))
-        {
-            (void)showmatches(xp, TRUE);
-            redrawcmd();
-            *did_wild_list = TRUE;
-        }
-        if (wim_flags[wim_index] & WIM_LONGEST)
-        {
-            res = nextwild(xp, WILD_LONGEST, options, escape);
-        }
-        else if (wim_flags[wim_index] & WIM_FULL)
-        {
-            res = nextwild(xp, WILD_NEXT, options, escape);
-        }
-        else
-        {
-            res = OK;
-        }
-    }
-    else
-    {
-        int wim_longest = (wim_flags[0] & WIM_LONGEST);
-        int wim_list = (wim_flags[0] & WIM_LIST);
-        int wim_full = (wim_flags[0] & WIM_FULL);
-
-        wim_index = 0;
-        if (c == p_wc || c == p_wcm || c ==   (-((KS_EXTRA) + ((int)(KE_WILD) << 8)))  )
-        {
-            options |= WILD_MAY_EXPAND_PATTERN;
-            if (c ==   (-((KS_EXTRA) + ((int)(KE_WILD) << 8)))  )
-            {
-                options |= WILD_FUNC_TRIGGER;
-            }
-            if (pre_incsearch_pos)
-            {
-                xp->xp_pre_incsearch_pos = *pre_incsearch_pos;
-            }
-            else
-            {
-                xp->xp_pre_incsearch_pos = curwin->w_cursor;
-            }
-        }
-        cmdpos_before = ccline.cmdpos;
-
-        if (wim_longest)
-        {
-            res = nextwild(xp, WILD_LONGEST, options, escape);
-        }
-        else
-        {
-            if (wim_list && !wim_full)
-            {
-                options |= WILD_NOSELECT;
-            }
-            res = nextwild(xp, WILD_EXPAND_KEEP, options, escape);
-        }
-
-        if (redraw_if_menu_empty && xp->xp_numfiles <= 0)
-        {
-            update_screen(0);
-            redrawcmd();
-        }
-
-        if (got_int)
-        {
-            (void)vpeekc();
-            got_int = FALSE;
-            (void)ExpandOne(xp, NULL, NULL, 0, WILD_FREE);
-            xp->xp_context = EXPAND_NOTHING;
-            *wim_index_p = wim_index;
-            return CMDLINE_CHANGED;
-        }
-
-        if (res == OK && xp->xp_numfiles > 1)
-        {
-            if (wim_longest)
-            {
-                int found_longest_prefix = (ccline.cmdpos != cmdpos_before);
-                if (wim_list)
-                {
-                    (void)showmatches(xp, wim_list);
-                }
-                else if (!found_longest_prefix)
-                {
-                    int wim_list_next = (wim_flags[1] & WIM_LIST);
-                    int wim_full_next = (wim_flags[1] & WIM_FULL);
-                    int wim_noselect_next = (wim_flags[1] & WIM_NOSELECT);
-                    int wim_noinsert_next = (wim_flags[1] & WIM_NOINSERT);
-                    if (wim_list_next)
-                    {
-                        if (wim_full_next && !wim_noselect_next && !wim_noinsert_next)
-                        {
-                            nextwild(xp, WILD_NEXT, options, escape);
-                        }
-                        else
-                        {
-                            (void)showmatches(xp, wim_list_next);
-                        }
-
-                        if (wim_list_next)
-                        {
-                            *did_wild_list = TRUE;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (wim_list)
-                {
-                    (void)showmatches(xp, wim_list);
-                }
-                else
-                {
-                    vim_beep(BO_WILD);
-                }
-            }
-
-            redrawcmd();
-            if (wim_list)
-            {
-                *did_wild_list = TRUE;
-            }
-        }
-        else if (xp->xp_numfiles == -1)
-        {
-            xp->xp_context = EXPAND_NOTHING;
-        }
-    }
-    if (wim_index < 3)
-    {
-        ++wim_index;
-    }
-    if (c == ESC)
-    {
-        *gotesc = TRUE;
-    }
-
-    *wim_index_p = wim_index;
-    return (res == OK) ? CMDLINE_CHANGED : CMDLINE_NOT_CHANGED;
-}
-
-    static int
 cmdline_erase_chars(int c, int indent, incsearch_state_T *isp)
 {
     int         i;
@@ -32663,37 +29050,6 @@ cmdline_erase_chars(int c, int indent, incsearch_state_T *isp)
         return GOTO_NORMAL_MODE;
     }
     return CMDLINE_CHANGED;
-}
-
-    static void
-cmdline_toggle_langmap(long *b_im_ptr)
-{
-    if (map_to_exists_mode((char_u *)"", MODE_LANGMAP, FALSE))
-    {
-        State ^= MODE_LANGMAP;
-        if (b_im_ptr != NULL)
-        {
-            if (State & MODE_LANGMAP)
-            {
-                *b_im_ptr = B_IMODE_LMAP;
-            }
-            else
-            {
-                *b_im_ptr = B_IMODE_NONE;
-            }
-        }
-    }
-    if (b_im_ptr != NULL)
-    {
-        if (b_im_ptr == &curbuf->b_p_iminsert)
-        {
-            set_iminsert_global();
-        }
-        else
-        {
-            set_imsearch_global();
-        }
-    }
 }
 
     static int
@@ -32954,22 +29310,17 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
     int         hiscnt;
     int         histype;
     incsearch_state_T   is_state;
-    int         did_wild_list = FALSE;
-    int         wim_index = 0;
     int         res;
     int         save_msg_scroll = msg_scroll;
     int         save_State = State;
     int         some_key_typed = FALSE;
     expand_T    xpc;
-    long        *b_im_ptr = NULL;
-    buf_T       *b_im_ptr_buf = NULL;
     cmdline_info_T save_ccline;
     int         did_save_ccline = FALSE;
     int         cmdline_type;
     int         wild_type = 0;
     int         event_cmdlineleavepre_triggered = FALSE;
     char_u      *prev_cmdbuff = NULL;
-    int         did_hist_navigate = FALSE;
 
     ++depth;
 
@@ -33018,23 +29369,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
 
     State = MODE_CMDLINE;
 
-    if (firstc == '/' || firstc == '?' || firstc == '@')
-    {
-        if (curbuf->b_p_imsearch ==  (-1) )
-        {
-            b_im_ptr = &curbuf->b_p_iminsert;
-        }
-        else
-        {
-            b_im_ptr = &curbuf->b_p_imsearch;
-        }
-        b_im_ptr_buf = curbuf;
-        if (*b_im_ptr == B_IMODE_LMAP)
-        {
-            State |= MODE_LANGMAP;
-        }
-    }
-
     settmode(TMODE_RAW);
 
     cmdline_type = firstc == NUL ? '-' : firstc;
@@ -33055,7 +29389,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
     for (;;)
     {
         int     trigger_cmdlinechanged = TRUE;
-        int     end_wildmenu;
         int     prev_cmdpos = ccline.cmdpos;
          vim_free(prev_cmdbuff);
          (prev_cmdbuff) = NULL;
@@ -33070,7 +29403,7 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
             some_key_typed = TRUE;
         }
 
-        may_trigger_safestate(xpc.xp_numfiles <= 0);
+        may_trigger_safestate(TRUE);
 
         if (ccline.cmdbuff != NULL)
         {
@@ -33087,20 +29420,7 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
             c = safe_vgetc();
         } while (c ==   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_NOP) << 8)))  );
 
-        if (ccline.cmdbuff_replaced && xpc.xp_numfiles > 0)
-        {
-            (void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
-            did_wild_list = FALSE;
-            xpc.xp_context = EXPAND_NOTHING;
-            wim_index = 0;
-        }
         ccline.cmdbuff_replaced = FALSE;
-
-        if (c ==   (-((KS_EXTRA) + ((int)(KE_WILD) << 8)))   && did_hist_navigate)
-        {
-            did_hist_navigate = FALSE;
-            continue;
-        }
 
         if (c ==   (-((KS_EXTRA) + ((int)(KE_COMMAND) << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_SCRIPT_COMMAND) << 8)))  )
         {
@@ -33134,45 +29454,10 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
             lookforlen = 0;
         }
 
-        if (c != p_wc && c ==   (-(('k') + ((int)('B') << 8)))   && xpc.xp_numfiles > 0)
-        {
-            c = Ctrl_P;
-        }
-
-        int key_is_wc = (c == p_wc && KeyTyped) || c == p_wcm;
-        if ((did_wild_list) && !key_is_wc && xpc.xp_numfiles > 0)
-        {
-            if (c == Ctrl_E || c == Ctrl_Y)
-            {
-                wild_type = (c == Ctrl_E) ? WILD_CANCEL : WILD_APPLY;
-                if (nextwild(&xpc, wild_type, WILD_NO_BEEP, firstc != '@') == FAIL)
-                {
-                    break;
-                }
-            }
-        }
-
         if (KeyTyped && (c == '\n' || c == '\r' || c ==   (-(('K') + ((int)('A') << 8)))   || c == ESC || c == intr_char || c == Ctrl_C))
         {
             trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINELEAVEPRE);
             event_cmdlineleavepre_triggered = TRUE;
-            if ((c == ESC || c == Ctrl_C) && (wim_flags[0] & WIM_LIST))
-            {
-                set_no_hlsearch(TRUE);
-            }
-        }
-
-        end_wildmenu = (!key_is_wc && c != Ctrl_N && c != Ctrl_P && c != Ctrl_A && c != Ctrl_L);
-
-        if (end_wildmenu)
-        {
-            if (xpc.xp_numfiles != -1)
-            {
-                (void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
-            }
-            did_wild_list = FALSE;
-            xpc.xp_context = EXPAND_NOTHING;
-            wim_index = 0;
         }
 
         if (c == Ctrl_BSL)
@@ -33214,45 +29499,7 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
             }
         }
 
-        if ((c == p_wc && !gotesc && KeyTyped) || c == p_wcm || c ==   (-((KS_EXTRA) + ((int)(KE_WILD) << 8)))  )
-        {
-            if (c ==   (-((KS_EXTRA) + ((int)(KE_WILD) << 8)))  )
-            {
-                ++emsg_silent;
-            }
-            res = cmdline_wildchar_complete(c, firstc != '@', &did_wild_list, &wim_index, &xpc, &gotesc, c ==   (-((KS_EXTRA) + ((int)(KE_WILD) << 8)))  , &is_state.search_start);
-            if (c ==   (-((KS_EXTRA) + ((int)(KE_WILD) << 8)))  )
-            {
-                --emsg_silent;
-            }
-            if (res == CMDLINE_CHANGED)
-            {
-                goto cmdline_changed;
-            }
-            if (c ==   (-((KS_EXTRA) + ((int)(KE_WILD) << 8)))  )
-            {
-                goto cmdline_not_changed;
-            }
-        }
-
         gotesc = FALSE;
-
-        if (c ==   (-(('k') + ((int)('B') << 8)))   && KeyTyped)
-        {
-            if (nextwild(&xpc, WILD_EXPAND_KEEP, 0, firstc != '@') == OK)
-            {
-                if (xpc.xp_numfiles > 1 && !did_wild_list && (wim_flags[wim_index] & WIM_LIST))
-                {
-                    int list = wim_flags[wim_index] & WIM_LIST;
-
-                    showmatches(&xpc, list);
-                }
-                if (nextwild(&xpc, WILD_PREV, 0, firstc != '@') == OK && nextwild(&xpc, WILD_PREV, 0, firstc != '@') == OK)
-                {
-                    goto cmdline_changed;
-                }
-            }
-        }
 
         if (c == NUL || c ==   (-((KS_ZERO) + ((int)( ('X') ) << 8)))  )
         {
@@ -33302,7 +29549,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
                 goto cmdline_not_changed;
 
         case Ctrl_HAT:
-                cmdline_toggle_langmap(buf_valid(b_im_ptr_buf) ? b_im_ptr : NULL);
                 goto cmdline_not_changed;
 
         case Ctrl_U:
@@ -33342,15 +29588,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
                     goto cmdline_changed;
                 }
                 goto cmdline_not_changed;
-
-        case Ctrl_D:
-                if (showmatches(&xpc, TRUE) == EXPAND_NOTHING)
-                {
-                    break;
-                }
-
-                redrawcmd();
-                continue;
 
         case   (-(('k') + ((int)('r') << 8)))  :
         case   (-(('%') + ((int)('i') << 8)))  :
@@ -33416,38 +29653,16 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
                 set_cmdspos_cursor();
                 goto cmdline_not_changed;
 
-        case Ctrl_A:
-                if (nextwild(&xpc, WILD_ALL, 0, firstc != '@') == FAIL)
-                {
-                    break;
-                }
-                xpc.xp_context = EXPAND_NOTHING;
-                did_wild_list = FALSE;
-                goto cmdline_changed;
-
         case Ctrl_L:
                 if (may_add_char_to_search(firstc, &c, &is_state) == OK)
                 {
                     goto cmdline_not_changed;
                 }
 
-                if (nextwild(&xpc, WILD_LONGEST, 0, firstc != '@') == FAIL)
-                {
-                    break;
-                }
-                goto cmdline_changed;
+                break;
 
         case Ctrl_N:
         case Ctrl_P:
-                if (xpc.xp_numfiles > 0)
-                {
-                    wild_type = (c == Ctrl_P) ? WILD_PREV : WILD_NEXT;
-                    if (nextwild(&xpc, wild_type, 0, firstc != '@') == FAIL)
-                    {
-                        break;
-                    }
-                    goto cmdline_changed;
-                }
         __attribute__((fallthrough));
         case   (-(('k') + ((int)('u') << 8)))  :
         case   (-(('k') + ((int)('d') << 8)))  :
@@ -33460,7 +29675,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
                 res = cmdline_browse_history(c, firstc, &lookfor, &lookforlen, histype, &hiscnt, &xpc);
                 if (res == CMDLINE_CHANGED)
                 {
-                    did_hist_navigate = TRUE;
                     goto cmdline_changed;
                 }
                 else if (res == GOTO_NORMAL_MODE)
@@ -33547,7 +29761,7 @@ cmdline_changed:
         {
             init_incsearch_state(&is_state);
         }
-        if (xpc.xp_context == EXPAND_NOTHING && (KeyTyped || vpeekc() == NUL))
+        if (KeyTyped || vpeekc() == NUL)
         {
             may_do_incsearch_highlighting(firstc, count, &is_state);
         }
@@ -33568,9 +29782,6 @@ returncmd:
     {
         trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINELEAVEPRE);
     }
-
-    did_wild_list = FALSE;
-    wim_index = 0;
 
     ExpandCleanup(&xpc);
     ccline.xpc = NULL;
@@ -33628,85 +29839,6 @@ theend:
         vim_free(prev_cmdbuff);
         return p;
     }
-}
-
-    static int
-check_opt_wim(void)
-{
-    char_u      new_wim_flags[4];
-    char_u      *p;
-    int         i;
-    int         idx = 0;
-
-    for (i = 0; i < 4; ++i)
-    {
-        new_wim_flags[i] = 0;
-    }
-
-    for (p = p_wim; *p; ++p)
-    {
-        for (i = 0;  ( ((unsigned)(p[i]) - 'A' < 26)  ||  ((unsigned)(p[i]) - 'a' < 26) ) ; ++i)
-        {
-            ;
-        }
-        if (p[i] != NUL && p[i] != ',' && p[i] != ':')
-        {
-            return FAIL;
-        }
-        if (i == 7 &&  strncmp((char *)(p), (char *)("longest"), (7))  == 0)
-        {
-            new_wim_flags[idx] |= WIM_LONGEST;
-        }
-        else if (i == 4 &&  strncmp((char *)(p), (char *)("full"), (4))  == 0)
-        {
-            new_wim_flags[idx] |= WIM_FULL;
-        }
-        else if (i == 4 &&  strncmp((char *)(p), (char *)("list"), (4))  == 0)
-        {
-            new_wim_flags[idx] |= WIM_LIST;
-        }
-        else if (i == 8 &&  strncmp((char *)(p), (char *)("lastused"), (8))  == 0)
-        {
-            new_wim_flags[idx] |= WIM_BUFLASTUSED;
-        }
-        else if (i == 8 &&  strncmp((char *)(p), (char *)("noselect"), (8))  == 0)
-        {
-            new_wim_flags[idx] |= WIM_NOSELECT;
-        }
-        else if (i == 8 &&  strncmp((char *)(p), (char *)("noinsert"), (8))  == 0)
-        {
-            new_wim_flags[idx] |= WIM_NOINSERT;
-        }
-        else
-        {
-            return FAIL;
-        }
-        p += i;
-        if (*p == NUL)
-        {
-            break;
-        }
-        if (*p == ',')
-        {
-            if (idx == 3)
-            {
-                return FAIL;
-            }
-            ++idx;
-        }
-    }
-
-    while (idx < 3)
-    {
-        new_wim_flags[idx + 1] = new_wim_flags[idx];
-        ++idx;
-    }
-
-    for (i = 0; i < 4; ++i)
-    {
-        wim_flags[i] = new_wim_flags[i];
-    }
-    return OK;
 }
 
     static int
@@ -34588,15 +30720,6 @@ vim_strsave_fnameescape(char_u *fname, int what)
 {
     char_u      *p;
     p = vim_strsave_escaped(fname, what == VSE_SHELL ?  ((char_u *)" \t\n*?[{`$\\%#'\"|!<>();&")  : what == VSE_BUFFER ?  ((char_u *)" \t\n*?[`$\\%#'\"|!<")  :  ((char_u *)" \t\n*?[{`$\\%#'\"|!<") );
-    if (what == VSE_SHELL && csh_like_shell() && p != NULL)
-    {
-        char_u      *s;
-
-        s = vim_strsave_escaped(p, (char_u *)"!");
-        vim_free(p);
-        p = s;
-    }
-
     if (p != NULL && (*p == '>' || *p == '+' || (*p == '-' && p[1] == NUL)))
     {
         escape_fname(&p);
@@ -35847,37 +31970,6 @@ match_file_pat(char_u      *pattern, regprog_T   **prog, char_u      *fname, cha
     return result;
 }
 
-    static int
-match_file_list(char_u *list, char_u *sfname, char_u *ffname)
-{
-    char_u      buf[ PATH_MAX ];
-    char_u      *tail;
-    char_u      *regpat;
-    char        allow_dirs;
-    int         match;
-    char_u      *p;
-
-    tail = gettail(sfname);
-
-    p = list;
-    while (*p)
-    {
-        copy_option_part(&p, buf,  PATH_MAX , ",");
-        regpat = file_pat_to_reg_pat(buf, NULL, &allow_dirs, FALSE);
-        if (regpat == NULL)
-        {
-            break;
-        }
-        match = match_file_pat(regpat, NULL, ffname, sfname, tail, (int)allow_dirs);
-        vim_free(regpat);
-        if (match)
-        {
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
     static char_u *
 file_pat_to_reg_pat(char_u      *pat, char_u      *pat_end, char        *allow_dirs, int         no_bslash  __attribute__((unused)) )
 {
@@ -36443,38 +32535,6 @@ expand_wildcards(int            num_pat, char_u       **pat, int           *num_
         return retval;
     }
 
-    if (*p_wig)
-    {
-        char_u  *ffname;
-
-        for (i = 0; i < *num_files; ++i)
-        {
-            ffname = FullName_save((*files)[i], FALSE);
-            if (ffname == NULL)
-            {
-                break;
-            }
-            if (match_file_list(p_wig, (*files)[i], ffname))
-            {
-                vim_free((*files)[i]);
-                for (j = i; j + 1 < *num_files; ++j)
-                {
-                    (*files)[j] = (*files)[j + 1];
-                }
-                --*num_files;
-                --i;
-            }
-            vim_free(ffname);
-        }
-
-        if (*num_files == 0)
-        {
-             vim_free(*files);
-             (*files) = NULL;
-            return FAIL;
-        }
-    }
-
     if (*num_files > 1 && !got_int)
     {
         non_suf_match = 0;
@@ -36964,469 +33024,6 @@ find_file_name_in_path(char_u      *ptr, int         len, int         options, l
 }
 
 // ==================== fuzzy.c ====================
-
-typedef double score_t;
-static score_t match_positions(char_u *needle, char_u *haystack, int_u *positions);
-static int has_match(char_u *needle, char_u *haystack);
-
-enum { SCORE_SCALE = 1000 };
-
-    static int
-fuzzy_match(char_u      *str, char_u      *pat_arg, int         matchseq, int         *outScore, int_u       *matches, int         maxMatches)
-{
-    char_u      *save_pat;
-    char_u      *pat;
-    char_u      *p;
-    int         complete = FALSE;
-    int         score = 0;
-    int         numMatches = 0;
-    int         pat_chars = 0;
-    score_t     fzy_score;
-
-    *outScore = 0;
-
-    save_pat = vim_strsave(pat_arg);
-    if (save_pat == NULL)
-    {
-        return FALSE;
-    }
-    pat = save_pat;
-    p = pat;
-
-    while (TRUE)
-    {
-        if (matchseq)
-        {
-            complete = TRUE;
-        }
-        else
-        {
-            p = skipwhite(p);
-            if (*p == NUL)
-            {
-                break;
-            }
-            pat = p;
-            while (*p != NUL && ! (( (utf_ptr2char(p)) ) == ' ' || ( (utf_ptr2char(p)) ) == '\t') )
-            {
-                 p += utfc_ptr2len(p) ;
-            }
-            if (*p == NUL)
-            {
-                complete = TRUE;
-            }
-            *p = NUL;
-        }
-        pat_chars =  (mb_charlen(pat) ) ;
-        if (pat_chars > maxMatches)
-        {
-            pat_chars = maxMatches;
-        }
-        if (numMatches > maxMatches - pat_chars)
-        {
-            numMatches = 0;
-            *outScore =  INT_MIN ;
-            break;
-        }
-
-        score =  INT_MIN ;
-        if (has_match(pat, str))
-        {
-            fzy_score = match_positions(pat, str, matches + numMatches);
-            if (fzy_score !=  (-INFINITY) )
-            {
-                score = (fzy_score ==  INFINITY ) ? INT_MAX
-                    : (int)(fzy_score * SCORE_SCALE + ((fzy_score < 0) ? -0.5 : 0.5));
-            }
-        }
-
-        if (score ==  INT_MIN )
-        {
-            numMatches = 0;
-            *outScore =  INT_MIN ;
-            break;
-        }
-
-        if (score > 0 && *outScore > INT_MAX - score)
-        {
-            *outScore = INT_MAX;
-        }
-        else if (score < 0 && *outScore < INT_MIN + 1 - score)
-        {
-            *outScore = INT_MIN + 1;
-        }
-        else
-        {
-            *outScore += score;
-        }
-
-        numMatches += pat_chars;
-
-        if (complete || numMatches >= maxMatches)
-        {
-            break;
-        }
-
-        ++p;
-    }
-
-    vim_free(save_pat);
-    return numMatches != 0;
-}
-
-    static int
-fuzzy_match_str_compare(const void *s1, const void *s2)
-{
-    int         v1 = ((fuzmatch_str_T *)s1)->score;
-    int         v2 = ((fuzmatch_str_T *)s2)->score;
-    int         idx1 = ((fuzmatch_str_T *)s1)->idx;
-    int         idx2 = ((fuzmatch_str_T *)s2)->idx;
-
-    if (v1 == v2)
-    {
-        return idx1 == idx2 ? 0 : idx1 > idx2 ? 1 : -1;
-    }
-    else
-    {
-        return v1 > v2 ? -1 : 1;
-    }
-}
-
-    static void
-fuzzy_match_str_sort(fuzmatch_str_T *fm, int sz)
-{
-    qsort((void *)fm, (size_t)sz, sizeof(fuzmatch_str_T), fuzzy_match_str_compare);
-}
-
-    static int
-fuzzy_match_func_compare(const void *s1, const void *s2)
-{
-    int         v1 = ((fuzmatch_str_T *)s1)->score;
-    int         v2 = ((fuzmatch_str_T *)s2)->score;
-    int         idx1 = ((fuzmatch_str_T *)s1)->idx;
-    int         idx2 = ((fuzmatch_str_T *)s2)->idx;
-    char_u      *str1 = ((fuzmatch_str_T *)s1)->str;
-    char_u      *str2 = ((fuzmatch_str_T *)s2)->str;
-
-    if (*str1 != '<' && *str2 == '<')
-    {
-        return -1;
-    }
-    if (*str1 == '<' && *str2 != '<')
-    {
-        return 1;
-    }
-    if (v1 == v2)
-    {
-        return idx1 == idx2 ? 0 : idx1 > idx2 ? 1 : -1;
-    }
-    else
-    {
-        return v1 > v2 ? -1 : 1;
-    }
-}
-
-    static void
-fuzzy_match_func_sort(fuzmatch_str_T *fm, int sz)
-{
-    qsort((void *)fm, (size_t)sz, sizeof(fuzmatch_str_T), fuzzy_match_func_compare);
-}
-
-    static int
-fuzzy_match_str(char_u *str, char_u *pat)
-{
-    int         score =  INT_MIN ;
-    int_u       matchpos[FUZZY_MATCH_MAX_LEN];
-
-    if (str == NULL || pat == NULL)
-    {
-        return score;
-    }
-
-    fuzzy_match(str, pat, TRUE, &score, matchpos, sizeof(matchpos) / sizeof(matchpos[0]));
-
-    return score;
-}
-
-    static void
-fuzmatch_str_free(fuzmatch_str_T *fuzmatch, int count)
-{
-    if (fuzmatch == NULL)
-    {
-        return;
-    }
-
-    for (int i = 0; i < count; ++i)
-    {
-        vim_free(fuzmatch[i].str);
-    }
-    vim_free(fuzmatch);
-}
-
-    static int
-fuzzymatches_to_strmatches(fuzmatch_str_T  *fuzmatch, char_u          ***matches, int             count, int             funcsort)
-{
-    if (count <= 0)
-    {
-        goto theend;
-    }
-
-    *matches =  (char_u * *)alloc(sizeof(char_u *) * (count)) ;
-    if (*matches == NULL)
-    {
-        fuzmatch_str_free(fuzmatch, count);
-        return FAIL;
-    }
-
-    if (funcsort)
-    {
-        fuzzy_match_func_sort((void *)fuzmatch, (size_t)count);
-    }
-    else
-    {
-        fuzzy_match_str_sort((void *)fuzmatch, (size_t)count);
-    }
-
-    for (int i = 0; i < count; i++)
-    {
-        (*matches)[i] = fuzmatch[i].str;
-    }
-
-theend:
-    vim_free(fuzmatch);
-    return OK;
-}
-
-    static int
-has_match(char_u *needle, char_u *haystack)
-{
-    if (!needle || !haystack || !*needle)
-    {
-        return FAIL;
-    }
-
-    char_u *n_ptr = needle;
-    char_u *h_ptr = haystack;
-
-    while (*n_ptr)
-    {
-        int n_char = utf_ptr2char(n_ptr);
-        int found = FALSE;
-
-        while (*h_ptr)
-        {
-            int h_char = utf_ptr2char(h_ptr);
-            if (h_char == n_char || h_char ==  vim_toupper(n_char) )
-            {
-                found = TRUE;
-                h_ptr += utfc_ptr2len(h_ptr);
-                break;
-            }
-            h_ptr += utfc_ptr2len(h_ptr);
-        }
-
-        if (!found)
-        {
-            return FAIL;
-        }
-
-        n_ptr += utfc_ptr2len(n_ptr);
-    }
-
-    return OK;
-}
-
-typedef struct match_struct
-{
-    int needle_len;
-    int haystack_len;
-    int lower_needle[ FUZZY_MATCH_MAX_LEN ];
-    int lower_haystack[ FUZZY_MATCH_MAX_LEN ];
-    score_t match_bonus[ FUZZY_MATCH_MAX_LEN ];
-} match_struct;
-
-    static score_t
-compute_bonus_codepoint(int last_c, int c)
-{
-    if ( ( ( ((unsigned)(c) - 'A' < 26)  ||  ((unsigned)(c) - 'a' < 26) )  ||  ((unsigned)(c) - '0' < 10) )  || vim_iswordc(c))
-    {
-        if ( ((last_c) == '/') )
-        {
-            return  0.9 ;
-        }
-        if ( ((last_c) == '-' || (last_c) == '_' || (last_c) == ' ') )
-        {
-            return  0.8 ;
-        }
-        if ( ((last_c) == '.') )
-        {
-            return  0.6 ;
-        }
-        if ( vim_isupper(c)  &&  vim_islower(last_c) )
-        {
-            return  0.7 ;
-        }
-    }
-    return 0;
-}
-
-    static void
-setup_match_struct(match_struct *match, char_u *needle, char_u *haystack)
-{
-    int i = 0;
-    char_u *p = needle;
-    while (*p != NUL && i <  FUZZY_MATCH_MAX_LEN )
-    {
-        int c = utf_ptr2char(p);
-        match->lower_needle[i++] =  vim_tolower(c) ;
-         p += utfc_ptr2len(p) ;
-    }
-    match->needle_len = i;
-
-    i = 0;
-    p = haystack;
-    int prev_c = '/';
-    while (*p != NUL && i <  FUZZY_MATCH_MAX_LEN )
-    {
-        int c = utf_ptr2char(p);
-        match->lower_haystack[i] =  vim_tolower(c) ;
-        match->match_bonus[i] = compute_bonus_codepoint(prev_c, c);
-        prev_c = c;
-         p += utfc_ptr2len(p) ;
-        i++;
-    }
-    match->haystack_len = i;
-}
-
-    static inline void
-match_row(const match_struct *match, int row, score_t *curr_D, score_t *curr_M, const score_t *last_D, const score_t *last_M)
-{
-    int n = match->needle_len;
-    int m = match->haystack_len;
-    int i = row;
-
-    const int *lower_needle = match->lower_needle;
-    const int *lower_haystack = match->lower_haystack;
-    const score_t *match_bonus = match->match_bonus;
-
-    score_t prev_score =  (-INFINITY) ;
-    score_t gap_score = i == n - 1 ?  -0.005  :  -0.01 ;
-
-    score_t prev_M =  (-INFINITY) ;
-    score_t prev_D =  (-INFINITY) ;
-
-    for (int j = 0; j < m; j++)
-    {
-        if (lower_needle[i] == lower_haystack[j])
-        {
-            score_t score =  (-INFINITY) ;
-            if (!i)
-            {
-                score = (j *  -0.005 ) + match_bonus[j];
-            }
-            else if (j)
-            {
-                score = MAX(prev_M + match_bonus[j], prev_D +  1.0 );
-            }
-            prev_D = last_D[j];
-            prev_M = last_M[j];
-            curr_D[j] = score;
-            curr_M[j] = prev_score = MAX(score, prev_score + gap_score);
-        }
-        else
-        {
-            prev_D = last_D[j];
-            prev_M = last_M[j];
-            curr_D[j] =  (-INFINITY) ;
-            curr_M[j] = prev_score = prev_score + gap_score;
-        }
-    }
-}
-
-    static score_t
-match_positions(char_u *needle, char_u *haystack, int_u *positions)
-{
-    if (!needle || !haystack || !*needle)
-    {
-        return  (-INFINITY) ;
-    }
-
-    match_struct match;
-    setup_match_struct(&match, needle, haystack);
-
-    int n = match.needle_len;
-    int m = match.haystack_len;
-
-    if (m >  FUZZY_MATCH_MAX_LEN  || n > m)
-    {
-        return  (-INFINITY) ;
-    }
-    else if (n == m)
-    {
-        bool equal = true;
-        for (int i = 0; i < n; i++)
-        {
-            if (match.lower_needle[i] != match.lower_haystack[i])
-            {
-                equal = false;
-                break;
-            }
-        }
-        if (equal)
-        {
-            if (positions)
-            {
-                for (int i = 0; i < n; i++)
-                {
-                    positions[i] = i;
-                }
-            }
-            return  INFINITY ;
-        }
-    }
-
-    if ((size_t)n > (SIZE_MAX / sizeof(score_t)) /  FUZZY_MATCH_MAX_LEN  / 2)
-    {
-        return  (-INFINITY) ;
-    }
-
-    score_t *block = (score_t*)alloc(sizeof(score_t) *  FUZZY_MATCH_MAX_LEN  * n * 2);
-    if (!block)
-    {
-        return  (-INFINITY) ;
-    }
-
-    score_t (*D)[ FUZZY_MATCH_MAX_LEN ] = (score_t(*)[ FUZZY_MATCH_MAX_LEN ])block;
-    score_t (*M)[ FUZZY_MATCH_MAX_LEN ] = (score_t(*)[ FUZZY_MATCH_MAX_LEN ])(block +  FUZZY_MATCH_MAX_LEN  * n);
-
-    match_row(&match, 0, D[0], M[0], D[0], M[0]);
-    for (int i = 1; i < n; i++)
-    {
-        match_row(&match, i, D[i], M[i], D[i - 1], M[i - 1]);
-    }
-
-    if (positions)
-    {
-        int match_required = 0;
-        for (int i = n - 1, j = m - 1; i >= 0; i--)
-        {
-            for (; j >= 0; j--)
-            {
-                if (D[i][j] !=  (-INFINITY)  && (match_required || D[i][j] == M[i][j]))
-                {
-                    match_required = i && j &&
-                        M[i][j] == D[i - 1][j - 1] +  1.0 ;
-                    positions[i] = j--;
-                    break;
-                }
-            }
-        }
-    }
-
-    score_t result = M[n - 1][m - 1];
-    vim_free(block);
-    return result;
-}
 
 // ==================== getchar.c ====================
 
@@ -39174,7 +34771,7 @@ handle_mapping(int *keylenp, int *timedout, int *mapdepth)
         mp_match_len = 0;
         for ( ; mp != NULL; mp->m_next == NULL ? (mp = mp2, mp2 = NULL) : (mp = mp->m_next))
         {
-            if (mp->m_keys[0] == tb_c1 && (mp->m_mode & local_State) && !(mp->m_simplified && key_protocol_enabled() && typebuf.tb_maplen == 0 && (typebuf.tb_noremap[typebuf.tb_off] & RM_SIMPLIFIED) == 0) && ((mp->m_mode & MODE_LANGMAP) == 0 || typebuf.tb_maplen == 0))
+            if (mp->m_keys[0] == tb_c1 && (mp->m_mode & local_State) && !(mp->m_simplified && key_protocol_enabled() && typebuf.tb_maplen == 0 && (typebuf.tb_noremap[typebuf.tb_off] & RM_SIMPLIFIED) == 0))
             {
                 for (mlen = 1; mlen < typebuf.tb_len; ++mlen)
                 {
@@ -39732,7 +35329,7 @@ vgetorpeek(int advance)
                 int showing_partial = FALSE;
                 if (typebuf.tb_len > 0 && advance && !exmode_active)
                 {
-                    if (((State & (MODE_NORMAL | MODE_INSERT)) || State == MODE_LANGMAP) && State !=  (0x2000 | MODE_NORMAL) )
+                    if ((State & (MODE_NORMAL | MODE_INSERT)) && State !=  (0x2000 | MODE_NORMAL) )
                     {
                         if (State & MODE_INSERT && ptr2cells(typebuf.tb_buf + typebuf.tb_off + typebuf.tb_len - 1) == 1)
                         {
@@ -40121,15 +35718,6 @@ check_hashtab_frozen(hashtab_T *ht, char *command)
 
     semsg(_(e_not_allowed_to_add_or_remove_entries_str), command);
     return TRUE;
-}
-
-    static void
-hash_clear(hashtab_T *ht)
-{
-    if (ht->ht_array != ht->ht_smallarray)
-    {
-        vim_free(ht->ht_array);
-    }
 }
 
     static hashitem_T *
@@ -42783,357 +38371,6 @@ highlight_changed(void)
     return OK;
 }
 
-static void highlight_list(void);
-static void highlight_list_two(int cnt, int attr);
-
-static int expand_hi_synid = 0;
-static int expand_hi_equal_col = 0;
-static int expand_hi_include_orig = 0;
-static char_u *expand_hi_curvalue = NULL;
-
-    static void
-set_context_in_highlight_cmd(expand_T *xp, char_u *arg)
-{
-    char_u      *p;
-    int         expand_group = TRUE;
-
-    xp->xp_context = EXPAND_HIGHLIGHT;
-    xp->xp_pattern = arg;
-    include_none = 0;
-    include_link = 2;
-    include_default = 1;
-
-    if (*arg == NUL)
-    {
-        return;
-    }
-
-    p = skiptowhite(arg);
-    if (*p == NUL)
-    {
-        return;
-    }
-
-    include_default = 0;
-    if ( strncmp((char *)("default"), (char *)(arg), (p - arg))  == 0)
-    {
-        arg = skipwhite(p);
-        xp->xp_pattern = arg;
-        p = skiptowhite(arg);
-    }
-    if (*p == NUL)
-    {
-        return;
-    }
-
-    include_link = 0;
-    if (arg[1] == 'i' && arg[0] == 'N')
-    {
-        highlight_list();
-        expand_group = FALSE;
-    }
-    if ( strncmp((char *)("link"), (char *)(arg), (p - arg))  == 0)
-    {
-        xp->xp_pattern = skipwhite(p);
-        p = skiptowhite(xp->xp_pattern);
-        if (*p != NUL)
-        {
-            xp->xp_pattern = skipwhite(p);
-            p = skiptowhite(xp->xp_pattern);
-            include_none = 1;
-        }
-        expand_group = FALSE;
-    }
-    else if ( strncmp((char *)("clear"), (char *)(arg), (p - arg))  == 0)
-    {
-        xp->xp_pattern = skipwhite(p);
-        p = skiptowhite(xp->xp_pattern);
-        expand_group = FALSE;
-    }
-    if (*p != NUL)
-    {
-        if (expand_group)
-        {
-            xp->xp_context = EXPAND_HIGHLIGHT_GROUP;
-
-            expand_hi_synid = syn_namen2id(arg, (int)(p - arg));
-
-            while (*p != NUL)
-            {
-                arg = skipwhite(p);
-                p = skiptowhite(arg);
-            }
-
-            p = vim_strchr(arg, '=');
-            if (p == NULL)
-            {
-                xp->xp_pattern = arg;
-                expand_hi_equal_col = -1;
-                expand_hi_include_orig = FALSE;
-            }
-            else
-            {
-                expand_hi_equal_col = (int)(p - xp->xp_line);
-
-                if (*(p + 1) == NUL)
-                {
-                    expand_hi_include_orig = TRUE;
-                }
-                else
-                {
-                    expand_hi_include_orig = FALSE;
-                }
-
-                if ( strncmp((char *)(arg), (char *)("term="), (5))  == 0 ||  strncmp((char *)(arg), (char *)("cterm="), (6))  == 0 ||  strncmp((char *)(arg), (char *)("gui="), (4))  == 0)
-                {
-                    char_u *comma = vim_strrchr(p + 1, ',');
-                    if (comma != NULL)
-                    {
-                        p = comma;
-                    }
-                }
-                xp->xp_pattern = p + 1;
-            }
-        }
-        else
-        {
-            xp->xp_context = EXPAND_NOTHING;
-        }
-    }
-}
-
-    static void
-highlight_list(void)
-{
-    int         i;
-
-    for (i = 10; --i >= 0; )
-    {
-        highlight_list_two(i,  highlight_attr[(int)(HLF_D)] );
-    }
-    for (i = 40; --i >= 0; )
-    {
-        highlight_list_two(99, 0);
-    }
-}
-
-    static void
-highlight_list_two(int cnt, int attr)
-{
-    msg_puts_attr(&("N \bI \b!  \b"[cnt / 11]), attr);
-    msg_clr_eos();
-    out_flush();
-    ui_delay(cnt == 99 ? 40L : (long)cnt * 50L, FALSE);
-}
-
-    static char_u *
-get_highlight_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    return get_highlight_name_ext(xp, idx, TRUE);
-}
-
-    static char_u *
-get_highlight_name_ext(expand_T *xp  __attribute__((unused)) , int idx, int skip_cleared)
-{
-    if (idx < 0)
-    {
-        return NULL;
-    }
-
-    if (skip_cleared && idx < highlight_ga.ga_len &&  ((hl_group_T *)((highlight_ga.ga_data))) [idx].sg_cleared)
-    {
-        return (char_u *)"";
-    }
-
-    if (idx == highlight_ga.ga_len && include_none != 0)
-    {
-        return (char_u *)"NONE";
-    }
-    if (idx == highlight_ga.ga_len + include_none && include_default != 0)
-    {
-        return (char_u *)"default";
-    }
-    if (idx == highlight_ga.ga_len + include_none + include_default && include_link != 0)
-    {
-        return (char_u *)"link";
-    }
-    if (idx == highlight_ga.ga_len + include_none + include_default + 1 && include_link != 0)
-    {
-        return (char_u *)"clear";
-    }
-    if (idx >= highlight_ga.ga_len)
-    {
-        return NULL;
-    }
-    return  ((hl_group_T *)((highlight_ga.ga_data))) [idx].sg_name;
-}
-
-    static char_u *
-get_highlight_attr_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx == 0)
-    {
-        if (expand_hi_curvalue != NULL)
-        {
-            return expand_hi_curvalue;
-        }
-        else
-        {
-            return (char_u*)"";
-        }
-    }
-    if (idx < (int) (sizeof(highlight_index_tab) / sizeof((highlight_index_tab)[0]))  + 1)
-    {
-        char_u *value = highlight_index_tab[idx-1]->value.string;
-        if (expand_hi_curvalue != NULL &&  strcmp((char *)(expand_hi_curvalue), (char *)(value))  == 0)
-        {
-            return (char_u*)"";
-        }
-        return value;
-    }
-    return NULL;
-}
-
-    static char_u *
-get_highlight_cterm_color(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx == 0)
-    {
-        if (expand_hi_curvalue != NULL)
-        {
-            return expand_hi_curvalue;
-        }
-        else
-        {
-            return (char_u*)"";
-        }
-    }
-    else if (idx == 1)
-    {
-        return (char_u*)"fg";
-    }
-    else if (idx == 2)
-    {
-        return (char_u*)"bg";
-    }
-    if (idx < (int) (sizeof(color_name_tab) / sizeof((color_name_tab)[0]))  + 3)
-    {
-        char_u *value = color_name_tab[idx-3].value.string;
-        return value;
-    }
-    return NULL;
-}
-
-    static char_u *
-get_highlight_group_key(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    static char *(p_hi_group_key_values[]) =
-    {
-        "term=",
-        "start=",
-        "stop=",
-        "cterm=",
-        "ctermfg=",
-        "ctermbg=",
-        "ctermul=",
-        "ctermfont=",
-        "NONE",
-    };
-
-    if (idx < (int) (sizeof(p_hi_group_key_values) / sizeof((p_hi_group_key_values)[0])) )
-    {
-        return (char_u*)p_hi_group_key_values[idx];
-    }
-    return NULL;
-}
-
-    static int
-expand_highlight_group(char_u      *pat, expand_T    *xp, regmatch_T  *rmp, char_u      ***matches, int         *numMatches)
-{
-    if (expand_hi_equal_col != -1)
-    {
-        char_u      *(*expandfunc)(expand_T *, int) = NULL;
-        int         type = 0;
-        hl_group_T  *sgp = NULL;
-        int         iarg = 0;
-        char_u      *sarg = NULL;
-
-        int         unsortedItems = -1;
-
-        if (expand_hi_synid != 0)
-        {
-            sgp = & ((hl_group_T *)((highlight_ga.ga_data))) [expand_hi_synid - 1];
-        }
-
-        char_u      *name_end = xp->xp_line + expand_hi_equal_col;
-        if (name_end - xp->xp_line >= 5 &&  strncmp((char *)(name_end - 5), (char *)(" term"), (5))  == 0)
-        {
-            expandfunc = get_highlight_attr_name;
-            if (sgp)
-            {
-                type = LIST_ATTR;
-                iarg = sgp->sg_term;
-            }
-        }
-        else if (name_end - xp->xp_line >= 6 &&  strncmp((char *)(name_end - 6), (char *)(" cterm"), (6))  == 0)
-        {
-            expandfunc = get_highlight_attr_name;
-            if (sgp)
-            {
-                type = LIST_ATTR;
-                iarg = sgp->sg_cterm;
-            }
-        }
-        else if (name_end - xp->xp_line >= 8 &&  strncmp((char *)(name_end - 8), (char *)(" ctermfg"), (8))  == 0)
-        {
-            expandfunc = get_highlight_cterm_color;
-            if (sgp)
-            {
-                type = LIST_INT;
-                iarg = sgp->sg_cterm_fg;
-            }
-        }
-        else if (name_end - xp->xp_line >= 8 &&  strncmp((char *)(name_end - 8), (char *)(" ctermbg"), (8))  == 0)
-        {
-            expandfunc = get_highlight_cterm_color;
-            if (sgp)
-            {
-                type = LIST_INT;
-                iarg = sgp->sg_cterm_bg;
-            }
-        }
-        else if (name_end - xp->xp_line >= 8 &&  strncmp((char *)(name_end - 8), (char *)(" ctermul"), (8))  == 0)
-        {
-            expandfunc = get_highlight_cterm_color;
-            if (sgp)
-            {
-                type = LIST_INT;
-                iarg = sgp->sg_cterm_ul;
-            }
-        }
-
-        char_u      buf[MAX_ATTR_LEN];
-
-        expand_hi_curvalue = NULL;
-        if (expand_hi_include_orig)
-        {
-            if (((type == LIST_ATTR || type == LIST_INT) && iarg != 0) || (type == LIST_STRING && sarg != NULL))
-            {
-                expand_hi_curvalue = highlight_arg_to_string(type, iarg, sarg, buf);
-            }
-        }
-
-        if (expandfunc != NULL)
-        {
-            return ExpandGenericExt(pat, xp, rmp, matches, numMatches, expandfunc, FALSE, unsortedItems);
-        }
-
-        return FAIL;
-    }
-
-    return ExpandGenericExt(pat, xp, rmp, matches, numMatches, get_highlight_group_key, FALSE, -1);
-}
-
     static void
 update_highlight_overrides(hl_override_T *old, hl_override_T *hl_new, int newlen)
 {
@@ -43915,26 +39152,23 @@ op_reindent(oparg_T *oap, int (*how)(void))
                 smsg(_("%ld lines to indent... "), i);
             }
 
-            if (i != oap->line_count - 1 || oap->line_count == 1 || how != get_lisp_indent)
+            l = skipwhite(ml_get_curline());
+            if (*l == NUL)
             {
-                l = skipwhite(ml_get_curline());
-                if (*l == NUL)
-                {
-                    amount = 0;
-                }
-                else
-                {
-                    amount = how();
-                }
+                amount = 0;
+            }
+            else
+            {
+                amount = how();
+            }
 
-                if (amount >= 0 && set_indent(amount, 0))
+            if (amount >= 0 && set_indent(amount, 0))
+            {
+                if (first_changed == 0)
                 {
-                    if (first_changed == 0)
-                    {
-                        first_changed = curwin->w_cursor.lnum;
-                    }
-                    last_changed = curwin->w_cursor.lnum;
+                    first_changed = curwin->w_cursor.lnum;
                 }
+                last_changed = curwin->w_cursor.lnum;
             }
             ++curwin->w_cursor.lnum;
             curwin->w_cursor.col = 0;
@@ -44366,268 +39600,12 @@ copy_indent(int size, char_u *src)
     return TRUE;
 }
 
-    static int
-lisp_match(char_u *p)
-{
-    char_u      buf[LSIZE];
-    int         len;
-    char_u      *word = *curbuf->b_p_lw != NUL ? curbuf->b_p_lw : p_lispwords;
-
-    while (*word != NUL)
-    {
-        len = copy_option_part(&word, buf, LSIZE, ",");
-        if ( strncmp((char *)(buf), (char *)(p), (len))  == 0 &&  ((p[len]) == ' ' || (p[len]) == '\t' || (p[len]) == NUL) )
-        {
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
-    static int
-get_lisp_indent(void)
-{
-    pos_T *pos;
-    pos_T realpos;
-    pos_T paren;
-    int         amount;
-    char_u      *that;
-    colnr_T     col;
-    colnr_T     firsttry;
-    int parencount;
-    int quotecount;
-    int         vi_lisp;
-
-    vi_lisp = (vim_strchr(p_cpo, CPO_LISP) != NULL);
-
-    realpos = curwin->w_cursor;
-    curwin->w_cursor.col = 0;
-
-    if ((pos = findmatch(NULL, '(')) == NULL)
-    {
-        pos = findmatch(NULL, '[');
-    }
-    else
-    {
-        paren = *pos;
-        pos = findmatch(NULL, '[');
-        if (pos == NULL ||  (((pos)->lnum != (&paren)->lnum)                    ? (pos)->lnum < (&paren)->lnum                 : (pos)->col != (&paren)->col                      ? (pos)->col < (&paren)->col                   : (pos)->coladd < (&paren)->coladd) )
-        {
-            pos = &paren;
-        }
-    }
-    if (pos != NULL)
-    {
-        amount = -1;
-        parencount = 0;
-
-        while (--curwin->w_cursor.lnum >= pos->lnum)
-        {
-            if (linewhite(curwin->w_cursor.lnum))
-            {
-                continue;
-            }
-            for (that = ml_get_curline(); *that != NUL; ++that)
-            {
-                if (*that == ';')
-                {
-                    while (*(that + 1) != NUL)
-                    {
-                        ++that;
-                    }
-                    continue;
-                }
-                if (*that == '\\')
-                {
-                    if (*(that + 1) != NUL)
-                    {
-                        ++that;
-                    }
-                    continue;
-                }
-                if (*that == '"' && *(that + 1) != NUL)
-                {
-                    while (*++that && *that != '"')
-                    {
-                        if (*that == '\\')
-                        {
-                            if (*++that == NUL)
-                            {
-                                break;
-                            }
-                            if (that[1] == NUL)
-                            {
-                                ++that;
-                                break;
-                            }
-                        }
-                    }
-                    if (*that == NUL)
-                    {
-                        break;
-                    }
-                }
-                if (*that == '(' || *that == '[')
-                {
-                    ++parencount;
-                }
-                else if (*that == ')' || *that == ']')
-                {
-                    --parencount;
-                }
-            }
-            if (parencount == 0)
-            {
-                amount = get_indent();
-                break;
-            }
-        }
-
-        if (amount == -1)
-        {
-            curwin->w_cursor.lnum = pos->lnum;
-            curwin->w_cursor.col = pos->col;
-            col = pos->col;
-
-            that = ml_get_curline();
-
-            if (vi_lisp && get_indent() == 0)
-            {
-                amount = 2;
-            }
-            else
-            {
-                char_u          *line = that;
-                chartabsize_T   cts;
-
-                init_chartabsize_arg(&cts, curwin, pos->lnum, 0, line, line);
-                while (*cts.cts_ptr != NUL && col > 0)
-                {
-                    cts.cts_vcol += lbr_chartabsize_adv(&cts);
-                    col--;
-                }
-                amount = cts.cts_vcol;
-                that = cts.cts_ptr;
-                clear_chartabsize_arg(&cts);
-
-                if (!vi_lisp && (*that == '(' || *that == '[') && lisp_match(that + 1))
-                {
-                    amount += 2;
-                }
-                else
-                {
-                    if (*that != NUL)
-                    {
-                        that++;
-                        amount++;
-                    }
-                    firsttry = amount;
-
-                    init_chartabsize_arg(&cts, curwin, (colnr_T)(that - line), amount, line, that);
-                    while ( ((*cts.cts_ptr) == ' ' || (*cts.cts_ptr) == '\t') )
-                    {
-                        cts.cts_vcol += lbr_chartabsize(&cts);
-                        ++cts.cts_ptr;
-                    }
-                    that = cts.cts_ptr;
-                    amount = cts.cts_vcol;
-                    clear_chartabsize_arg(&cts);
-
-                    if (*that && *that != ';')
-                    {
-                        if (!vi_lisp && *that != '(' && *that != '[')
-                        {
-                            firsttry++;
-                        }
-
-                        parencount = 0;
-                        quotecount = 0;
-
-                        init_chartabsize_arg(&cts, curwin, (colnr_T)(that - line), amount, line, that);
-                        if (vi_lisp || (*that != '"' && *that != '\'' && *that != '#' && (*that < '0' || *that > '9')))
-                        {
-                            while (*cts.cts_ptr && (! ((*cts.cts_ptr) == ' ' || (*cts.cts_ptr) == '\t')  || quotecount || parencount) && (!((*cts.cts_ptr == '(' || *cts.cts_ptr == '[') && !quotecount && !parencount && vi_lisp)))
-                            {
-                                if (*cts.cts_ptr == '"')
-                                {
-                                    quotecount = !quotecount;
-                                }
-                                if ((*cts.cts_ptr == '(' || *cts.cts_ptr == '[') && !quotecount)
-                                {
-                                    ++parencount;
-                                }
-                                if ((*cts.cts_ptr == ')' || *cts.cts_ptr == ']') && !quotecount)
-                                {
-                                    --parencount;
-                                }
-                                if (*cts.cts_ptr == '\\' && *(cts.cts_ptr+1) != NUL)
-                                {
-                                    cts.cts_vcol += lbr_chartabsize_adv(&cts);
-                                }
-                                cts.cts_vcol += lbr_chartabsize_adv(&cts);
-                            }
-                        }
-                        while ( ((*cts.cts_ptr) == ' ' || (*cts.cts_ptr) == '\t') )
-                        {
-                            cts.cts_vcol += lbr_chartabsize(&cts);
-                            ++cts.cts_ptr;
-                        }
-                        that = cts.cts_ptr;
-                        amount = cts.cts_vcol;
-                        clear_chartabsize_arg(&cts);
-
-                        if (!*that || *that == ';')
-                        {
-                            amount = firsttry;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        amount = 0;
-    }
-
-    curwin->w_cursor = realpos;
-
-    return amount;
-}
-
-    static void
-fixthisline(int (*get_the_indent)(void))
-{
-    int amount = get_the_indent();
-
-    if (amount < 0)
-    {
-        return;
-    }
-
-    change_indent(INDENT_SET, amount, FALSE, 0, TRUE);
-    if (linewhite(curwin->w_cursor.lnum))
-    {
-        did_ai = TRUE;
-    }
-}
-
-    static int
-use_indentexpr_for_lisp(void)
-{
-    return FALSE;
-}
-
     static void
 fix_indent(void)
 {
     if (p_paste)
     {
         return;
-    }
-    if (curbuf->b_p_lisp && curbuf->b_p_ai)
-    {
-        fixthisline(get_lisp_indent);
     }
 }
 
@@ -44653,24 +39631,6 @@ ins_compl_col_range_attr(linenr_T lnum, int col)
 ins_compl_lnum_in_range(linenr_T lnum)
 {
     return FALSE;
-}
-
-    static char_u *
-find_word_end(char_u *ptr)
-{
-    int start_class = mb_get_class(ptr);
-    if (start_class > 1)
-    {
-        while (*ptr != NUL)
-        {
-            ptr += utfc_ptr2len(ptr);
-            if (mb_get_class(ptr) != start_class)
-            {
-                break;
-            }
-        }
-    }
-    return ptr;
 }
 
     static int
@@ -44771,10 +39731,6 @@ map_mode_to_chars(int mode)
     else if (mode & MODE_INSERT)
     {
         ga_append(&mapmode, 'i');
-    }
-    else if (mode & MODE_LANGMAP)
-    {
-        ga_append(&mapmode, 'l');
     }
     else if (mode & MODE_CMDLINE)
     {
@@ -45540,10 +40496,6 @@ get_map_mode(char_u **cmdp, int forceit)
     {
         mode = MODE_INSERT;
     }
-    else if (modec == 'l')
-    {
-        mode = MODE_LANGMAP;
-    }
     else if (modec == 'c')
     {
         mode = MODE_CMDLINE;
@@ -45687,404 +40639,6 @@ map_clear_mode(buf_T       *buf, int         mode, int         local, int       
             mpp = &(mp->m_next);
         }
     }
-}
-
-    static int
-map_to_exists_mode(char_u *rhs, int mode, int abbr)
-{
-    mapblock_T  *mp;
-    int         hash;
-    int         exp_buffer = FALSE;
-
-    validate_maphash();
-
-    for (;;)
-    {
-        for (hash = 0; hash < 256; ++hash)
-        {
-            if (abbr)
-            {
-                if (hash > 0)
-                {
-                    break;
-                }
-                if (exp_buffer)
-                {
-                    mp = curbuf->b_first_abbr;
-                }
-                else
-                {
-                    mp = first_abbr;
-                }
-            }
-            else if (exp_buffer)
-            {
-                mp = curbuf->b_maphash[hash];
-            }
-            else
-            {
-                mp = maphash[hash];
-            }
-            for (; mp; mp = mp->m_next)
-            {
-                if ((mp->m_mode & mode) && strstr((char *)mp->m_str, (char *)rhs) != NULL)
-                {
-                    return TRUE;
-                }
-            }
-        }
-        if (exp_buffer)
-        {
-            break;
-        }
-        exp_buffer = TRUE;
-    }
-
-    return FALSE;
-}
-
-static int      expand_mapmodes = 0;
-static int      expand_isabbrev = 0;
-static int      expand_buffer = FALSE;
-
-    static char_u *
-translate_mapping(char_u *str)
-{
-    garray_T    ga;
-    int         c;
-    int         modifiers;
-    int         cpo_bslash;
-    int         cpo_special;
-
-    ga_init(&ga);
-    ga.ga_itemsize = 1;
-    ga.ga_growsize = 40;
-
-    cpo_bslash = (vim_strchr(p_cpo, CPO_BSLASH) != NULL);
-    cpo_special = (vim_strchr(p_cpo, CPO_SPECI) != NULL);
-
-    for (; *str; ++str)
-    {
-        c = *str;
-        if (c ==  (0x80)  && str[1] != NUL && str[2] != NUL)
-        {
-            modifiers = 0;
-            if (str[1] == KS_MODIFIER)
-            {
-                str++;
-                modifiers = *++str;
-                c = *++str;
-            }
-            if (c ==  (0x80)  && str[1] != NUL && str[2] != NUL)
-            {
-                if (cpo_special)
-                {
-                    ga_clear(&ga);
-                    return NULL;
-                }
-                c =  ((str[1]) == KS_SPECIAL ?  (0x80)  : (str[1]) == KS_ZERO ?   (-((KS_ZERO) + ((int)( ('X') ) << 8)))   :  (-((str[1]) + ((int)(str[2]) << 8))) ) ;
-                if (c ==   (-((KS_ZERO) + ((int)( ('X') ) << 8)))  )
-                {
-                    c = NUL;
-                }
-                str += 2;
-            }
-            if ( ((c) < 0)  || modifiers)
-            {
-                if (cpo_special)
-                {
-                    ga_clear(&ga);
-                    return NULL;
-                }
-                ga_concat(&ga, get_special_key_name(c, modifiers));
-                continue;
-            }
-        }
-        if (c == ' ' || c == '\t' || c == Ctrl_J || c == Ctrl_V || (c == '<' && !cpo_special) || (c == '\\' && !cpo_bslash))
-        {
-            ga_append(&ga, cpo_bslash ? Ctrl_V : '\\');
-        }
-        if (c)
-        {
-            ga_append(&ga, c);
-        }
-    }
-    ga_append(&ga, NUL);
-    return (char_u *)(ga.ga_data);
-}
-
-    static char_u *
-set_context_in_map_cmd(expand_T    *xp, char_u      *cmd, char_u      *arg, int         forceit, int         isabbrev, int         isunmap, cmdidx_T    cmdidx)
-{
-    if (forceit && cmdidx != CMD_map && cmdidx != CMD_unmap)
-    {
-        xp->xp_context = EXPAND_NOTHING;
-    }
-    else
-    {
-        if (isunmap)
-        {
-            expand_mapmodes = get_map_mode(&cmd, forceit || isabbrev);
-        }
-        else
-        {
-            expand_mapmodes = MODE_INSERT | MODE_CMDLINE;
-            if (!isabbrev)
-            {
-                expand_mapmodes += MODE_VISUAL | MODE_SELECT | MODE_NORMAL
-                                                             | MODE_OP_PENDING;
-            }
-        }
-        expand_isabbrev = isabbrev;
-        xp->xp_context = EXPAND_MAPPINGS;
-        expand_buffer = FALSE;
-        for (;;)
-        {
-            if ( strncmp((char *)(arg), (char *)("<buffer>"), (8))  == 0)
-            {
-                expand_buffer = TRUE;
-                arg = skipwhite(arg + 8);
-                continue;
-            }
-            if ( strncmp((char *)(arg), (char *)("<unique>"), (8))  == 0)
-            {
-                arg = skipwhite(arg + 8);
-                continue;
-            }
-            if ( strncmp((char *)(arg), (char *)("<nowait>"), (8))  == 0)
-            {
-                arg = skipwhite(arg + 8);
-                continue;
-            }
-            if ( strncmp((char *)(arg), (char *)("<silent>"), (8))  == 0)
-            {
-                arg = skipwhite(arg + 8);
-                continue;
-            }
-            if ( strncmp((char *)(arg), (char *)("<special>"), (9))  == 0)
-            {
-                arg = skipwhite(arg + 9);
-                continue;
-            }
-            break;
-        }
-        xp->xp_pattern = arg;
-    }
-
-    return NULL;
-}
-
-    static int
-ExpandMappings(char_u      *pat, regmatch_T  *regmatch, int         *numMatches, char_u      ***matches)
-{
-    mapblock_T  *mp;
-    garray_T    ga;
-    int         hash;
-    int         count;
-    char_u      *p;
-    int         i;
-    int         fuzzy;
-    int         match;
-    int         score = 0;
-    fuzmatch_str_T  *fuzmatch;
-
-    fuzzy = cmdline_fuzzy_complete(pat);
-
-    validate_maphash();
-
-    *numMatches = 0;
-    *matches = NULL;
-
-    if (!fuzzy)
-    {
-        ga_init2(&ga, sizeof(char *), 3);
-    }
-    else
-    {
-        ga_init2(&ga, sizeof(fuzmatch_str_T), 3);
-    }
-
-    for (i = 0; i < 7; ++i)
-    {
-        if (i == 0)
-        {
-            p = (char_u *)"<silent>";
-        }
-        else if (i == 1)
-        {
-            p = (char_u *)"<unique>";
-        }
-        else if (i == 4 && !expand_buffer)
-        {
-            p = (char_u *)"<buffer>";
-        }
-        else if (i == 5)
-        {
-            p = (char_u *)"<nowait>";
-        }
-        else if (i == 6)
-        {
-            p = (char_u *)"<special>";
-        }
-        else
-        {
-            continue;
-        }
-
-        if (!fuzzy)
-        {
-            match = vim_regexec(regmatch, p, (colnr_T)0);
-        }
-        else
-        {
-            score = fuzzy_match_str(p, pat);
-            match = (score !=  INT_MIN );
-        }
-
-        if (!match)
-        {
-            continue;
-        }
-
-        if (ga_grow(&ga, 1) == FAIL)
-        {
-            break;
-        }
-
-        if (fuzzy)
-        {
-            fuzmatch = &((fuzmatch_str_T *)ga.ga_data)[ga.ga_len];
-            fuzmatch->idx = ga.ga_len;
-            fuzmatch->str = vim_strsave(p);
-            fuzmatch->score = score;
-        }
-        else
-        {
-            ((char_u **)ga.ga_data)[ga.ga_len] = vim_strsave(p);
-        }
-        ++ga.ga_len;
-    }
-
-    for (hash = 0; hash < 256; ++hash)
-    {
-        if (expand_isabbrev)
-        {
-            if (hash > 0)
-            {
-                break;
-            }
-            mp = first_abbr;
-        }
-        else if (expand_buffer)
-        {
-            mp = curbuf->b_maphash[hash];
-        }
-        else
-        {
-            mp = maphash[hash];
-        }
-        for (; mp; mp = mp->m_next)
-        {
-            if (mp->m_simplified || !(mp->m_mode & expand_mapmodes))
-            {
-                continue;
-            }
-
-            p = translate_mapping(mp->m_keys);
-            if (p == NULL)
-            {
-                continue;
-            }
-
-            if (!fuzzy)
-            {
-                match = vim_regexec(regmatch, p, (colnr_T)0);
-            }
-            else
-            {
-                score = fuzzy_match_str(p, pat);
-                match = (score !=  INT_MIN );
-            }
-
-            if (!match)
-            {
-                vim_free(p);
-                continue;
-            }
-
-            if (ga_grow(&ga, 1) == FAIL)
-            {
-                vim_free(p);
-                break;
-            }
-
-            if (fuzzy)
-            {
-                fuzmatch = &((fuzmatch_str_T *)ga.ga_data)[ga.ga_len];
-                fuzmatch->idx = ga.ga_len;
-                fuzmatch->str = p;
-                fuzmatch->score = score;
-            }
-            else
-            {
-                ((char_u **)ga.ga_data)[ga.ga_len] = p;
-            }
-
-            ++ga.ga_len;
-        }
-    }
-
-    if (ga.ga_len == 0)
-    {
-        return FAIL;
-    }
-
-    if (!fuzzy)
-    {
-        *matches = ga.ga_data;
-        *numMatches = ga.ga_len;
-    }
-    else
-    {
-        if (fuzzymatches_to_strmatches(ga.ga_data, matches, ga.ga_len, FALSE) == FAIL)
-        {
-            return FAIL;
-        }
-        *numMatches = ga.ga_len;
-    }
-
-    count = *numMatches;
-    if (count > 1)
-    {
-        char_u  **ptr1;
-        char_u  **ptr2;
-        char_u  **ptr3;
-
-        if (!fuzzy)
-        {
-            sort_strings(*matches, count);
-        }
-
-        ptr1 = *matches;
-        ptr2 = ptr1 + 1;
-        ptr3 = ptr1 + count;
-
-        while (ptr2 < ptr3)
-        {
-            if ( strcmp((char *)(*ptr1), (char *)(*ptr2))  != 0)
-            {
-                *++ptr1 = *ptr2++;
-            }
-            else
-            {
-                vim_free(*ptr2++);
-                count--;
-            }
-        }
-    }
-
-    *numMatches = count;
-    return (count == 0 ? FAIL : OK);
 }
 
     static char_u *
@@ -55280,28 +49834,6 @@ msg_puts_title(char *s)
 }
 
     static void
-msg_outtrans_long_len_attr(char_u *longstr, int len, int attr)
-{
-    int         slen = len;
-    int         room;
-
-    room = cmdline_width - msg_col;
-    if (len > room && room >= 20)
-    {
-        slen = (room - 3) / 2;
-        msg_outtrans_len_attr(longstr, slen, attr);
-        msg_puts_attr("...",  highlight_attr[(int)(HLF_8)] );
-    }
-    msg_outtrans_len_attr(longstr + len - slen, slen, attr);
-}
-
-    static void
-msg_outtrans_long_attr(char_u *longstr, int attr)
-{
-    msg_outtrans_long_len_attr(longstr, (int) strlen((char *)(longstr)) , attr);
-}
-
-    static void
 msg_puts_attr(char *s, int attr)
 {
     msg_puts_attr_len(s, -1, attr);
@@ -57327,34 +51859,6 @@ goto_im(void)
     return (p_im && stuff_empty() && typebuf_typed());
 }
 
-    static char_u *
-get_isolated_shell_name(void)
-{
-    char_u *p;
-
-    p = skiptowhite(p_sh);
-    if (*p == NUL)
-    {
-        p = vim_strsave(gettail(p_sh));
-    }
-    else
-    {
-        char_u *p1;
-        char_u *p2;
-
-        p1 = p_sh;
-        for (p2 = p_sh; p2 < p;  p2 += utfc_ptr2len(p2) )
-        {
-            if (vim_ispathsep(*p2))
-            {
-                p1 = p2 + 1;
-            }
-        }
-        p = vim_strnsave(p1, p - p1);
-    }
-    return p;
-}
-
     static int
 path_is_url(char_u *p)
 {
@@ -58870,17 +53374,6 @@ get_special_key_code(char_u *name)
     }
 
     return 0;
-}
-
-    static char_u *
-get_key_name(int i)
-{
-    if (i < 0 || i >= (int) (sizeof(key_names_table) / sizeof((key_names_table)[0])) )
-    {
-        return NULL;
-    }
-
-    return key_names_table[i].name.string;
 }
 
     static int
@@ -61926,7 +56419,6 @@ normal_cmd_get_more_chars(int         idx_arg, cmdarg_T    *cap, int         *ne
     int         *cp;
     int         repl = FALSE;
     int         lit = FALSE;
-    int         langmap_active = FALSE;
     int         lang;
 
     ++no_mapping;
@@ -61970,20 +56462,6 @@ normal_cmd_get_more_chars(int         idx_arg, cmdarg_T    *cap, int         *ne
         {
             State =  (REPLACE_FLAG | MODE_INSERT) ;
         }
-        if (lang && curbuf->b_p_iminsert == B_IMODE_LMAP)
-        {
-            --no_mapping;
-            --allow_keys;
-            if (repl)
-            {
-                State =  (REPLACE_FLAG | MODE_LANGMAP) ;
-            }
-            else
-            {
-                State = MODE_LANGMAP;
-            }
-            langmap_active = TRUE;
-        }
         if ((State & MODE_INSERT) && !p_ek)
         {
               ;
@@ -62002,12 +56480,6 @@ normal_cmd_get_more_chars(int         idx_arg, cmdarg_T    *cap, int         *ne
             out_str_t_TI();
         }
 
-        if (langmap_active)
-        {
-            ++no_mapping;
-            ++allow_keys;
-            State =  (0x1000 | MODE_NORMAL) ;
-        }
         State =  (0x1000 | MODE_NORMAL) ;
         *need_flushbuf |= add_to_showcmd(*cp);
 
@@ -70534,11 +65006,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
 
             if (oap->op_type == OP_INDENT && *get_equalprg() == NUL)
             {
-                if (curbuf->b_p_lisp)
-                {
-                        op_reindent(oap, get_lisp_indent);
-                    break;
-                }
                 op_reindent(oap, get_indent);
                 break;
             }
@@ -70717,7 +65184,7 @@ enum { VIM_DEFAULT = 1 };
 static struct vimoption options[] =
 {
     {"ambiwidth",  "ambw",  P_STRING|P_VI_DEF|P_RCLR,
-                            (char_u *)&p_ambw, PV_NONE, did_set_ambiwidth, expand_set_ambiwidth,
+                            (char_u *)&p_ambw, PV_NONE, did_set_ambiwidth, NULL,
                             {(char_u *)"single", (char_u *)0L}
                               },
     {"autocompletedelay", "acl", P_NUM|P_VI_DEF,
@@ -70733,31 +65200,26 @@ static struct vimoption options[] =
                             (char_u *)&p_awa, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
     {"background",  "bg",   P_STRING|P_VI_DEF|P_RCLR|P_HLONLY,
-                            (char_u *)&p_bg, PV_NONE, did_set_background, expand_set_background,
+                            (char_u *)&p_bg, PV_NONE, did_set_background, NULL,
                             {
                             (char_u *)"light",
                                             (char_u *)0L}   },
     {"backspace",   "bs",   P_STRING|P_VIM|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_bs, PV_NONE, did_set_backspace, expand_set_backspace,
+                            (char_u *)&p_bs, PV_NONE, did_set_backspace, NULL,
                             {(char_u *)"", (char_u *)"indent,eol,start"}   },
     {"belloff",      "bo",  P_STRING|P_VI_DEF|P_COMMA|P_NODUP,
-                            (char_u *)&p_bo, PV_NONE, did_set_belloff, expand_set_belloff,
+                            (char_u *)&p_bo, PV_NONE, did_set_belloff, NULL,
                             {(char_u *)"", (char_u *)0L}   },
-    {"breakindentopt", "briopt", P_STRING|P_ALLOCED|P_VI_DEF|P_RBUF
-                                                  |P_ONECOMMA|P_NODUP,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)"", (char_u *)NULL}
-                              },
     {"buflisted",   "bl",   P_BOOL|P_VI_DEF|P_NOGLOB,
                             (char_u *)&p_bl,   (idopt_T)(PV_BUF + (int)(BV_BL))  , did_set_buflisted, NULL,
                             {(char_u *)1L, (char_u *)0L}
                               },
     {"buftype",     "bt",   P_STRING|P_ALLOCED|P_VI_DEF|P_NOGLOB,
-                            (char_u *)&p_bt,   (idopt_T)(PV_BUF + (int)(BV_BT))  , did_set_buftype, expand_set_buftype,
+                            (char_u *)&p_bt,   (idopt_T)(PV_BUF + (int)(BV_BT))  , did_set_buftype, NULL,
                             {(char_u *)"", (char_u *)0L}
                               },
     {"casemap",     "cmp",   P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_cmp, PV_NONE, did_set_casemap, expand_set_casemap,
+                            (char_u *)&p_cmp, PV_NONE, did_set_casemap, NULL,
                             {(char_u *)"internal,keepascii", (char_u *)0L}
                               },
     {"cmdheight",   "ch",   P_NUM|P_VI_DEF|P_RALL,
@@ -70778,22 +65240,17 @@ static struct vimoption options[] =
                             (char_u *)&p_ci,   (idopt_T)(PV_BUF + (int)(BV_CI))  , NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
     {"cpoptions",   "cpo",  P_STRING|P_VIM|P_RALL|P_FLAGLIST,
-                            (char_u *)&p_cpo, PV_NONE, did_set_cpoptions, expand_set_cpoptions,
+                            (char_u *)&p_cpo, PV_NONE, did_set_cpoptions, NULL,
                             {(char_u *) "aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>;" , (char_u *) "aABceFsz" }
                               },
     {"debug",       NULL,   P_STRING|P_VI_DEF,
-                            (char_u *)&p_debug, PV_NONE, did_set_debug, expand_set_debug,
+                            (char_u *)&p_debug, PV_NONE, did_set_debug, NULL,
                             {(char_u *)"", (char_u *)0L}   },
     {"delcombine", "deco",  P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_deco, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"diffopt",     "dip",  P_STRING|P_ALLOCED|P_VI_DEF|P_RWIN|P_ONECOMMA|P_COLON
-                                                                     |P_NODUP,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)"", (char_u *)NULL}
-                              },
     {"display",     "dy",   P_STRING|P_VI_DEF|P_ONECOMMA|P_RALL|P_NODUP,
-                            (char_u *)&p_dy, PV_NONE, did_set_display, expand_set_display,
+                            (char_u *)&p_dy, PV_NONE, did_set_display, NULL,
                             {(char_u *)"", (char_u *)0L}   },
     {"edcompatible","ed",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_ed, PV_NONE, NULL, NULL,
@@ -70825,21 +65282,16 @@ static struct vimoption options[] =
                             {(char_u *)"", (char_u *)0L}
                               },
     {"fillchars",   "fcs",  P_STRING|P_VI_DEF|P_RALL|P_ONECOMMA|P_NODUP|P_COLON,
-                            (char_u *)&p_fcs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_FCS)) ))  , did_set_chars_option, expand_set_chars_option,
+                            (char_u *)&p_fcs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_FCS)) ))  , did_set_chars_option, NULL,
                             {(char_u *)"vert:|,fold:-,eob:~,lastline:@",
                                                                   (char_u *)0L}
-                              },
-    {"foldmarker",  "fmr",  P_STRING|P_ALLOCED|P_VIM|P_VI_DEF|
-                                                    P_RWIN|P_ONECOMMA|P_NODUP,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)NULL, (char_u *)0L}
                               },
     {"formatlistpat","flp", P_STRING|P_ALLOCED|P_VI_DEF,
                             (char_u *)&p_flp,   (idopt_T)(PV_BUF + (int)(BV_FLP))  , NULL, NULL,
                             {(char_u *)"^\\s*\\d\\+[\\]:.)}\\t ]\\s*",
                                                  (char_u *)0L}   },
     {"formatoptions","fo",  P_STRING|P_ALLOCED|P_VIM|P_FLAGLIST,
-                            (char_u *)&p_fo,   (idopt_T)(PV_BUF + (int)(BV_FO))  , did_set_formatoptions, expand_set_formatoptions,
+                            (char_u *)&p_fo,   (idopt_T)(PV_BUF + (int)(BV_FO))  , did_set_formatoptions, NULL,
                             {(char_u *) "vt" , (char_u *) "tcq" }
                               },
     {"formatprg",   "fp",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
@@ -70852,21 +65304,9 @@ static struct vimoption options[] =
     {"gdefault",    "gd",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_gd, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"guifont",     "gfn",  P_STRING|P_VI_DEF|P_RCLR|P_ONECOMMA|P_NODUP
-                                |P_COLON
-                                ,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)NULL, (char_u *)0L}
-                              },
-    {"guifontwide", "gfw",  P_STRING|P_VI_DEF|P_RCLR|P_ONECOMMA|P_NODUP
-                                |P_COLON
-                                ,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)NULL, (char_u *)0L}
-                              },
 
     {"highlight",   "hl",   P_STRING|P_VI_DEF|P_RCLR|P_ONECOMMA|P_NODUP|P_COLON,
-                            (char_u *)&p_hl, PV_NONE, did_set_highlight, expand_set_highlight,
+                            (char_u *)&p_hl, PV_NONE, did_set_highlight, NULL,
                             {(char_u *) "8:SpecialKey,~:EndOfBuffer,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,y:CurSearch,m:MoreMsg,M:ModeMsg,n:LineNr,a:LineNrAbove,b:LineNrBelow,N:CursorLineNr,G:CursorLineSign,O:CursorLineFold,r:Question,s:StatusLine,S:StatusLineNC,c:VertSplit,|:VertSplitNC,t:Title,v:Visual,V:VisualNOS,w:WarningMsg,W:WildMenu,f:Folded,F:FoldColumn,A:DiffAdd,C:DiffChange,D:DiffDelete,T:DiffText,E:DiffTextAdd,>:SignColumn,-:Conceal,B:SpellBad,P:SpellCap,R:SpellRare,L:SpellLocal,+:Pmenu,=:PmenuSel,k:PmenuMatch,<:PmenuMatchSel,[:PmenuKind,]:PmenuKindSel,{:PmenuExtra,}:PmenuExtraSel,x:PmenuSbar,X:PmenuThumb,j:PmenuBorder,H:PmenuShadow,p:Popup,J:PopupBorder,Q:PopupTitle,*:TabLine,#:TabLineSel,_:TabLineFill,!:CursorColumn,.:CursorLine,o:ColorColumn,q:QuickFixLine,z:StatusLineTerm,Z:StatusLineTermNC,g:MsgArea,h:ComplMatchIns,%:TabPanel,^:TabPanelSel,&:TabPanelFill,I:PreInsert" , (char_u *)0L}
                               },
     {"history",     "hi",   P_NUM|P_VIM,
@@ -70885,14 +65325,6 @@ static struct vimoption options[] =
     {"ignorecase",  "ic",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_ic, PV_NONE, did_set_ignorecase, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"iminsert",    "imi",  P_NUM|P_VI_DEF,
-                            (char_u *)&p_iminsert,   (idopt_T)(PV_BUF + (int)(BV_IMI))  , did_set_iminsert, NULL,
-                            {(char_u *)B_IMODE_NONE, (char_u *)0L}
-                              },
-    {"imsearch",    "ims",  P_NUM|P_VI_DEF,
-                            (char_u *)&p_imsearch,   (idopt_T)(PV_BUF + (int)(BV_IMS))  , did_set_imsearch, NULL,
-                            {(char_u *) (-1) , (char_u *)0L}
-                              },
     {"incsearch",   "is",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_is, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -70924,20 +65356,15 @@ static struct vimoption options[] =
                             (char_u *)&p_js, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
     {"jumpoptions", "jop",  P_STRING|P_VI_DEF|P_VIM|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_jop, PV_NONE, did_set_jumpoptions, expand_set_jumpoptions,
+                            (char_u *)&p_jop, PV_NONE, did_set_jumpoptions, NULL,
                             {(char_u *)"", (char_u *)0L}   },
     {"keymodel",    "km",   P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_km, PV_NONE, did_set_keymodel, expand_set_keymodel,
+                            (char_u *)&p_km, PV_NONE, did_set_keymodel, NULL,
                             {(char_u *)"startsel", (char_u *)0L}   },
     {"keyprotocol", "kpc",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP|P_COLON,
-                            (char_u *)&p_kpc, PV_NONE, did_set_keyprotocol, expand_set_keyprotocol,
+                            (char_u *)&p_kpc, PV_NONE, did_set_keyprotocol, NULL,
                             {(char_u *)"kitty:kitty,foot:kitty,ghostty:kitty,wezterm:kitty,xterm:mok2", (char_u *)0L}
                               },
-    {"keywordprg",  "kp",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_kp,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_KP)) ))  , NULL, NULL,
-                            {
-                            (char_u *)"man",
-                                (char_u *)0L}   },
     {"laststatus",  "ls",   P_NUM|P_VI_DEF|P_RALL,
                             (char_u *)&p_ls, PV_NONE, did_set_laststatus, NULL,
                             {(char_u *)1L, (char_u *)0L}   },
@@ -70949,17 +65376,11 @@ static struct vimoption options[] =
                             {
                             (char_u *)24L,
                                             (char_u *)0L}   },
-    {"lisp",        NULL,   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_lisp,   (idopt_T)(PV_BUF + (int)(BV_LISP))  , did_set_lisp, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"lispwords",   "lw",   P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_lispwords,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_LW)) ))  , NULL, NULL,
-                            {(char_u *) "defun,define,defmacro,set!,lambda,if,case,let,flet,let*,letrec,do,do*,define-syntax,let-syntax,letrec-syntax,destructuring-bind,defpackage,defparameter,defstruct,deftype,defvar,do-all-symbols,do-external-symbols,do-symbols,dolist,dotimes,ecase,etypecase,eval-when,labels,macrolet,multiple-value-bind,multiple-value-call,multiple-value-prog1,multiple-value-setq,prog1,progv,typecase,unless,unwind-protect,when,with-input-from-string,with-open-file,with-open-stream,with-output-to-string,with-package-iterator,define-condition,handler-bind,handler-case,restart-bind,restart-case,with-simple-restart,store-value,use-value,muffle-warning,abort,continue,with-slots,with-slots*,with-accessors,with-accessors*,defclass,defmethod,print-unreadable-object" , (char_u *)0L}   },
     {"list",        NULL,   P_BOOL|P_VI_DEF|P_RWIN,
                             (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_LIST))  , NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
     {"listchars",   "lcs",  P_STRING|P_VI_DEF|P_RALL|P_ONECOMMA|P_NODUP|P_COLON,
-                            (char_u *)&p_lcs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_LCS)) ))  , did_set_chars_option, expand_set_chars_option,
+                            (char_u *)&p_lcs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_LCS)) ))  , did_set_chars_option, NULL,
                             {(char_u *)"eol:$", (char_u *)0L}   },
     {"magic",       NULL,   P_BOOL|P_VI_DEF,
                             (char_u *)&p_magic, PV_NONE, NULL, NULL,
@@ -70984,7 +65405,7 @@ static struct vimoption options[] =
                             (char_u *)&p_msc, PV_NONE, did_set_maxsearchcount, NULL,
                             {(char_u *)99L, (char_u *)0L}   },
     {"messagesopt","mopt",  P_STRING|P_ALLOCED|P_VI_DEF|P_ONECOMMA|P_COLON|P_NODUP,
-                            (char_u *)&p_mopt, PV_NONE, did_set_messagesopt, expand_set_messagesopt,
+                            (char_u *)&p_mopt, PV_NONE, did_set_messagesopt, NULL,
                             {(char_u *)"hit-enter,history:500", (char_u *)NULL}   },
     {"modifiable",  "ma",   P_BOOL|P_VI_DEF|P_NOGLOB,
                             (char_u *)&p_ma,   (idopt_T)(PV_BUF + (int)(BV_MA))  , did_set_modifiable, NULL,
@@ -70996,7 +65417,7 @@ static struct vimoption options[] =
                             (char_u *)&p_more, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)TRUE}   },
     {"nrformats",   "nf",   P_STRING|P_ALLOCED|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_nf,   (idopt_T)(PV_BUF + (int)(BV_NF))  , did_set_nrformats, expand_set_nrformats,
+                            (char_u *)&p_nf,   (idopt_T)(PV_BUF + (int)(BV_NF))  , did_set_nrformats, NULL,
                             {(char_u *)"bin,octal,hex", (char_u *)0L}
                               },
     {"number",      "nu",   P_BOOL|P_VI_DEF|P_RWIN,
@@ -71006,11 +65427,6 @@ static struct vimoption options[] =
     {"osctimeoutlen", "ost", P_NUM|P_VI_DEF,
                             (char_u *)&p_ost, PV_NONE, did_set_osctimeoutlen, NULL,
                             {(char_u *)1000, (char_u *)0L}   },
-    {"packpath",    "pp",   P_STRING|P_VI_DEF|P_EXPAND|P_ONECOMMA|P_NODUP
-                                                                    |P_SECURE,
-                            (char_u *)&p_pp, PV_NONE, NULL, NULL,
-                            {(char_u *) "" , (char_u *)0L}
-                              },
     {"paragraphs",  "para", P_STRING|P_VI_DEF,
                             (char_u *)&p_para, PV_NONE, NULL, NULL,
                             {(char_u *)"IPLPPPQPP TPHPLIPpLpItpplpipbp",
@@ -71046,11 +65462,6 @@ static struct vimoption options[] =
     {"ruler",       "ru",   P_BOOL|P_VIM|P_RSTAT,
                             (char_u *)&p_ru, PV_NONE, NULL, NULL,
                             {(char_u *)TRUE, (char_u *)TRUE}   },
-    {"runtimepath", "rtp",  P_STRING|P_VI_DEF|P_EXPAND|P_ONECOMMA|P_NODUP
-                                                                    |P_SECURE,
-                            (char_u *)&p_rtp, PV_NONE, NULL, NULL,
-                            {(char_u *) "" , (char_u *)0L}
-                              },
     {"scroll",      "scr",  P_NUM|P_NO_MKRC|P_VI_DEF,
                             (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_SCROLL))  , NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
@@ -71068,23 +65479,12 @@ static struct vimoption options[] =
                             {(char_u *)"SHNHH HUnhsh", (char_u *)0L}
                               },
     {"selection",   "sel",  P_STRING|P_VI_DEF,
-                            (char_u *)&p_sel, PV_NONE, did_set_selection, expand_set_selection,
+                            (char_u *)&p_sel, PV_NONE, did_set_selection, NULL,
                             {(char_u *)"inclusive", (char_u *)0L}
                               },
     {"selectmode",  "slm",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_slm, PV_NONE, did_set_selectmode, expand_set_selectmode,
+                            (char_u *)&p_slm, PV_NONE, did_set_selectmode, NULL,
                             {(char_u *)"", (char_u *)0L}   },
-    {"shell",       "sh",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_sh, PV_NONE, NULL, NULL,
-                            {
-                            (char_u *)"sh",
-                                (char_u *)0L}   },
-    {"shellquote",  "shq",  P_STRING|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_shq, PV_NONE, NULL, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
-    {"shellredir",  "srr",  P_STRING|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_srr, PV_NONE, did_set_shellpipe_redir, NULL,
-                            {(char_u *)">", (char_u *)0L}   },
     {"shiftround",  "sr",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_sr, PV_NONE, NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
@@ -71093,14 +65493,14 @@ static struct vimoption options[] =
                             did_set_shiftwidth_tabstop, NULL,
                             {(char_u *)4L, (char_u *)0L}   },
     {"shortmess",   "shm",  P_STRING|P_VIM|P_FLAGLIST,
-                            (char_u *)&p_shm, PV_NONE, did_set_shortmess, expand_set_shortmess,
+                            (char_u *)&p_shm, PV_NONE, did_set_shortmess, NULL,
                             {(char_u *)"S", (char_u *)"filnxtToOS"}
                               },
     {"showcmd",     "sc",   P_BOOL|P_VIM,
                             (char_u *)&p_sc, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)TRUE}   },
     {"showcmdloc",  "sloc", P_STRING|P_RSTAT,
-                            (char_u *)&p_sloc, PV_NONE, did_set_showcmdloc, expand_set_showcmdloc,
+                            (char_u *)&p_sloc, PV_NONE, did_set_showcmdloc, NULL,
                             {(char_u *)"last", (char_u *)"last"}   },
     {"showmatch",   "sm",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_sm, PV_NONE, NULL, NULL,
@@ -71151,7 +65551,7 @@ static struct vimoption options[] =
                             (char_u *)& ( term_strings[(int)(KS_NAME)] ) , PV_NONE, did_set_term, NULL,
                             {(char_u *)"", (char_u *)0L}   },
     {"termresize", "trz", P_STRING|P_VI_DEF,
-                            (char_u *)&p_trz, PV_NONE, did_set_termresize, expand_set_termresize,
+                            (char_u *)&p_trz, PV_NONE, did_set_termresize, NULL,
                             {(char_u *)"", (char_u *)0}
                               },
     {"termsync", "tsy",     P_BOOL|P_VI_DEF,
@@ -71202,11 +65602,6 @@ static struct vimoption options[] =
     {"ttytype",     "tty",  P_STRING|P_EXPAND|P_NODEFAULT|P_NO_MKRC|P_VI_DEF|P_RALL,
                             (char_u *)& ( term_strings[(int)(KS_NAME)] ) , PV_NONE, did_set_term, NULL,
                             {(char_u *)"", (char_u *)0L}   },
-    {"undodir",     "udir", P_STRING|P_EXPAND|P_ONECOMMA|P_NODUP|P_SECURE
-                                                                    |P_VI_DEF,
-                            (char_u *)NULL, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}
-                              },
     {"undolevels",  "ul",   P_NUM|P_VI_DEF,
                             (char_u *)&p_ul,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_UL)) ))  , did_set_undolevels, NULL,
                             {
@@ -71226,7 +65621,7 @@ static struct vimoption options[] =
                             {(char_u *)"", (char_u *)0L}   },
     {"virtualedit", "ve",   P_STRING|P_ONECOMMA|P_NODUP|P_VI_DEF
                                                             |P_VIM|P_CURSWANT,
-                            (char_u *)&p_ve,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_VE)) ))  , did_set_virtualedit, expand_set_virtualedit,
+                            (char_u *)&p_ve,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_VE)) ))  , did_set_virtualedit, NULL,
                             {(char_u *)"", (char_u *)""}
                               },
     {"visualbell",  "vb",   P_BOOL|P_VI_DEF,
@@ -71236,37 +65631,17 @@ static struct vimoption options[] =
                             (char_u *)&p_wiv, PV_NONE, did_set_weirdinvert, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
     {"whichwrap",   "ww",   P_STRING|P_VIM|P_ONECOMMA|P_FLAGLIST,
-                            (char_u *)&p_ww, PV_NONE, did_set_whichwrap, expand_set_whichwrap,
+                            (char_u *)&p_ww, PV_NONE, did_set_whichwrap, NULL,
                             {(char_u *)"", (char_u *)"b,s"}   },
-    {"wildchar",    "wc",   P_NUM|P_VIM,
-                            (char_u *)&p_wc, PV_NONE, did_set_wildchar, NULL,
-                            {(char_u *)(long)Ctrl_E, (char_u *)(long)TAB}
-                              },
-    {"wildcharm",   "wcm",  P_NUM|P_VI_DEF,
-                            (char_u *)&p_wcm, PV_NONE, did_set_wildchar, NULL,
-                            {(char_u *)0L, (char_u *)0L}   },
-    {"wildignore",  "wig",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_wig, PV_NONE, NULL, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
-    {"wildignorecase", "wic", P_BOOL|P_VI_DEF,
-                            (char_u *)&p_wic, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"wildmode",    "wim",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP|P_COLON,
-                            (char_u *)&p_wim, PV_NONE, did_set_wildmode, expand_set_wildmode,
-                            {(char_u *)"full", (char_u *)0L}   },
-    {"wildoptions", "wop",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_wop, PV_NONE, did_set_wildoptions, expand_set_wildoptions,
-                            {(char_u *)"", (char_u *)0L}
-                              },
     {"wincolor", "wcr",     P_STRING|P_ALLOCED|P_VI_DEF|P_RWIN,
-                            (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_WCR))  , did_set_wincolor, expand_set_wincolor,
+                            (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_WCR))  , did_set_wincolor, NULL,
                             {(char_u *)"", (char_u *)NULL}
                               },
     {"window",      "wi",   P_NUM|P_VI_DEF,
                             (char_u *)&p_window, PV_NONE, did_set_window, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
     {"winhighlight", "whl", P_STRING|P_VI_DEF|P_RALL|P_ONECOMMA|P_NODUP|P_COLON,
-                            (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_WHL))  , did_set_winhighlight, expand_set_winhighlight,
+                            (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_WHL))  , did_set_winhighlight, NULL,
                             {(char_u *)"", (char_u *)NULL}   },
     {"wrap",        NULL,   P_BOOL|P_VI_DEF|P_RWIN,
                             (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_WRAP))  , did_set_wrap, NULL,
@@ -71670,43 +66045,6 @@ set_init_2(void)
     static void
 set_init_3(void)
 {
-    char_u  *p;
-    int     idx_srr;
-    int     do_srr;
-
-    idx_srr = findoption((char_u *)"srr");
-    if (idx_srr < 0)
-    {
-        do_srr = FALSE;
-    }
-    else
-    {
-        do_srr = !(options[idx_srr].flags & P_WAS_SET);
-    }
-    p = get_isolated_shell_name();
-    if (p != NULL)
-    {
-        if (        vim_fnamecmp((char_u *)(p), (char_u *)("csh"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("tcsh"))  == 0)
-        {
-            if (do_srr)
-            {
-                p_srr = (char_u *)">&";
-                options[idx_srr].def_val[VI_DEFAULT] = p_srr;
-            }
-        }
-        else
-        {
-            if (        vim_fnamecmp((char_u *)(p), (char_u *)("sh"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("ksh"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("mksh"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("pdksh"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("zsh"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("zsh-beta"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("bash"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("fish"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("ash"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("dash"))  == 0 ||  vim_fnamecmp((char_u *)(p), (char_u *)("pwsh"))  == 0)
-            {
-                if (do_srr)
-                {
-                    p_srr = (char_u *)">%s 2>&1";
-                    options[idx_srr].def_val[VI_DEFAULT] = p_srr;
-                }
-            }
-        }
-        vim_free(p);
-    }
 
     set_title_defaults();
 }
@@ -72369,12 +66707,7 @@ stropt_get_newval(int         nextchar, int         opt_idx, char_u      **argp,
     {
         ++arg;
 
-        if (varp == (char_u *)&p_kp && (*arg == NUL || *arg == ' '))
-        {
-            save_arg = arg;
-            arg = (char_u *)":help";
-        }
-        else if (varp == (char_u *)&p_bs &&  ((unsigned)(**(char_u **)varp) - '0' < 10) )
+        if (varp == (char_u *)&p_bs &&  ((unsigned)(**(char_u **)varp) - '0' < 10) )
         {
             opt_backspace_nr2str(varp, &origval, &origval_l, &origval_g, &oldval);
         }
@@ -72577,15 +66910,6 @@ do_set_option_numeric(int         opt_idx, int         opt_flags, char_u      **
     if (nextchar == '&')
     {
         value = (long)(long_i)options[opt_idx].def_val[((flags & P_VI_DEF) || cp_val) ? VI_DEFAULT : VIM_DEFAULT];
-    }
-    else if (((long *)varp == &p_wc || (long *)varp == &p_wcm) && (*arg == '<' || *arg == '^' || (*arg != NUL && (!arg[1] ||  ((arg[1]) == ' ' || (arg[1]) == '\t') ) && ! ((unsigned)(*arg) - '0' < 10) )))
-    {
-        value = string_to_key(arg, FALSE);
-        if (value == 0)
-        {
-            errmsg = e_invalid_argument;
-            goto skip;
-        }
     }
     else if (*arg == '-' ||  ((unsigned)(*arg) - '0' < 10) )
     {
@@ -73039,29 +67363,6 @@ did_set_option(int     opt_idx, int     opt_flags, int     new_value, int     va
     }
 }
 
-    static int
-string_to_key(char_u *arg, int multi_byte)
-{
-    if (*arg == '<' && arg[1])
-    {
-        return find_key_option(arg + 1, TRUE);
-    }
-    if (*arg == '^' && arg[1])
-    {
-        int key =  ( (((arg[1]) < 'a' || (arg[1]) > 'z') ? (arg[1]) : (arg[1]) - ('a' - 'A'))  ^ 0x40) ;
-        if (key == 0)
-        {
-            key =   (-((KS_ZERO) + ((int)( ('X') ) << 8)))  ;
-        }
-        return key;
-    }
-    if (multi_byte)
-    {
-        return  (utf_ptr2char(arg)) ;
-    }
-    return *arg;
-}
-
     static void
 did_set_title(void)
 {
@@ -73114,8 +67415,6 @@ didset_options(void)
 didset_options2(void)
 {
     (void)highlight_changed();
-
-    check_opt_wim();
 
     (void)set_listchars_option(curwin, curwin-> w_onebuf_opt.wo_lcs , TRUE, NULL, 0);
 
@@ -73245,40 +67544,6 @@ did_set_ignorecase(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_iminsert(optset_T *args  __attribute__((unused)) )
-{
-    char *errmsg = NULL;
-
-    if (curbuf->b_p_iminsert < 0 || curbuf->b_p_iminsert > B_IMODE_LAST)
-    {
-        errmsg = e_invalid_argument;
-        curbuf->b_p_iminsert = B_IMODE_NONE;
-    }
-    p_iminsert = curbuf->b_p_iminsert;
-    if (termcap_active)
-    {
-        showmode();
-    }
-
-    return errmsg;
-}
-
-    static char *
-did_set_imsearch(optset_T *args  __attribute__((unused)) )
-{
-    char *errmsg = NULL;
-
-    if (curbuf->b_p_imsearch < -1 || curbuf->b_p_imsearch > B_IMODE_LAST)
-    {
-        errmsg = e_invalid_argument;
-        curbuf->b_p_imsearch = B_IMODE_NONE;
-    }
-    p_imsearch = curbuf->b_p_imsearch;
-
-    return errmsg;
-}
-
-    static char *
 did_set_insertmode(optset_T *args)
 {
     if (p_im)
@@ -73307,13 +67572,6 @@ did_set_insertmode(optset_T *args)
 did_set_laststatus(optset_T *args  __attribute__((unused)) )
 {
     last_status(FALSE);
-    return NULL;
-}
-
-    static char *
-did_set_lisp(optset_T *args  __attribute__((unused)) )
-{
-    (void)buf_init_chartab(curbuf, FALSE);
     return NULL;
 }
 
@@ -73667,19 +67925,6 @@ did_set_weirdinvert(optset_T *args)
          ( term_strings[(int)(KS_XS)] )  = empty_option;
     }
     p_wiv = (* ( term_strings[(int)(KS_XS)] )  != NUL);
-
-    return NULL;
-}
-
-    static char *
-did_set_wildchar(optset_T *args)
-{
-    long c = *(long *)args->os_varp;
-
-    if (c == Ctrl_C || c == '\n' || c == '\r' || c ==   (-(('K') + ((int)('A') << 8)))  )
-    {
-        return e_invalid_argument;
-    }
 
     return NULL;
 }
@@ -74544,8 +68789,6 @@ get_varp_scope(struct vimoption *p, int scope)
                 return (char_u *)&(curbuf->b_p_fs);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_EP)) ))  :
                 return (char_u *)&(curbuf->b_p_ep);
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_KP)) ))  :
-                return (char_u *)&(curbuf->b_p_kp);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SISO)) ))  :
                 return (char_u *)&(curwin-> w_onebuf_opt.wo_siso );
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SO)) ))  :
@@ -74554,8 +68797,6 @@ get_varp_scope(struct vimoption *p, int scope)
                 return (char_u *)&(curwin-> w_onebuf_opt.wo_sop );
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_UL)) ))  :
                 return (char_u *)&(curbuf->b_p_ul);
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_LW)) ))  :
-                return (char_u *)&(curbuf->b_p_lw);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_LCS)) ))  :
                 return (char_u *)&(curwin-> w_onebuf_opt.wo_lcs );
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_FCS)) ))  :
@@ -74591,9 +68832,6 @@ get_varp(struct vimoption *p)
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_EP)) ))  :
             return *curbuf->b_p_ep != NUL
                                     ? (char_u *)&curbuf->b_p_ep : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_KP)) ))  :
-            return *curbuf->b_p_kp != NUL
-                                    ? (char_u *)&curbuf->b_p_kp : p->var;
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SISO)) ))  :
             return curwin-> w_onebuf_opt.wo_siso  >= 0
                                     ? (char_u *)&(curwin-> w_onebuf_opt.wo_siso ) : p->var;
@@ -74612,9 +68850,6 @@ get_varp(struct vimoption *p)
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_UL)) ))  :
             return curbuf->b_p_ul !=  (-123456) 
                                     ? (char_u *)&(curbuf->b_p_ul) : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_LW)) ))  :
-            return *curbuf->b_p_lw != NUL
-                                    ? (char_u *)&(curbuf->b_p_lw) : p->var;
         case   (idopt_T)(PV_WIN + (int)(WV_LIST))  :
             return (char_u *)&(curwin-> w_onebuf_opt.wo_list );
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_LCS)) ))  :
@@ -74659,14 +68894,8 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_fo);
         case   (idopt_T)(PV_BUF + (int)(BV_FLP))  :
             return (char_u *)&(curbuf->b_p_flp);
-        case   (idopt_T)(PV_BUF + (int)(BV_IMI))  :
-            return (char_u *)&(curbuf->b_p_iminsert);
-        case   (idopt_T)(PV_BUF + (int)(BV_IMS))  :
-            return (char_u *)&(curbuf->b_p_imsearch);
         case   (idopt_T)(PV_BUF + (int)(BV_ISK))  :
             return (char_u *)&(curbuf->b_p_isk);
-        case   (idopt_T)(PV_BUF + (int)(BV_LISP))  :
-            return (char_u *)&(curbuf->b_p_lisp);
         case   (idopt_T)(PV_BUF + (int)(BV_MPS))  :
             return (char_u *)&(curbuf->b_p_mps);
         case   (idopt_T)(PV_BUF + (int)(BV_MA))  :
@@ -74719,12 +68948,6 @@ get_equalprg(void)
         return p_ep;
     }
     return curbuf->b_p_ep;
-}
-
-    static char_u *
-get_findfunc(void)
-{
-    return (char_u *)"";
 }
 
     static void
@@ -74903,25 +69126,20 @@ buf_copy_options(buf_T *buf, int flags)
             buf->b_p_pi = p_pi;
               ;
               ;
-            buf->b_p_lisp = p_lisp;
               ;
             buf->b_p_fp = empty_option;
               ;
-            buf->b_p_iminsert = p_iminsert;
               ;
-            buf->b_p_imsearch = p_imsearch;
               ;
 
             buf->b_p_fs = -1;
             buf->b_p_ul =  (-123456) ;
             buf->b_bkc_flags = 0;
             buf->b_p_ep = empty_option;
-            buf->b_p_kp = empty_option;
             buf->b_tc_flags = 0;
             buf->b_cot_flags = 0;
             buf->b_p_qe = vim_strsave(p_qe);
               ;
-            buf->b_p_lw = empty_option;
 
             if (dont_do_help)
             {
@@ -74955,761 +69173,6 @@ buf_copy_options(buf_T *buf, int flags)
     {
         (void)buf_init_chartab(buf, FALSE);
     }
-}
-
-    static void
-set_iminsert_global(void)
-{
-    p_iminsert = curbuf->b_p_iminsert;
-}
-
-    static void
-set_imsearch_global(void)
-{
-    p_imsearch = curbuf->b_p_imsearch;
-}
-
-static int expand_option_idx = -1;
-static int expand_option_start_col = 0;
-static char_u expand_option_name[5] = {'t', '_', NUL, NUL, NUL};
-static int expand_option_flags = 0;
-static int expand_option_append = FALSE;
-
-    static void
-set_context_in_set_cmd(expand_T    *xp, char_u      *arg, int         opt_flags)
-{
-    int         nextchar;
-    long_u      flags = 0;
-    int         opt_idx = 0;
-    char_u      *p;
-    char_u      *s;
-    int         is_term_option = FALSE;
-    int         key;
-    char_u      *argend;
-
-    expand_option_flags = opt_flags;
-
-    xp->xp_context = EXPAND_SETTINGS;
-    if (*arg == NUL)
-    {
-        xp->xp_pattern = arg;
-        return;
-    }
-    argend = arg +  strlen((char *)(arg)) ;
-    p = argend - 1;
-    if (*p == ' ' && *(p - 1) != '\\')
-    {
-        xp->xp_pattern = p + 1;
-        return;
-    }
-    while (p > arg)
-    {
-        s = p;
-        if (*p == ' ' || *p == ',')
-        {
-            while (s > arg && *(s - 1) == '\\')
-            {
-                --s;
-            }
-        }
-        if (*p == ' ' && ((p - s) & 1) == 0)
-        {
-            ++p;
-            break;
-        }
-        --p;
-    }
-    if ( strncmp((char *)(p), (char *)("no"), (2))  == 0 &&  strncmp((char *)(p), (char *)("novice"), (6))  != 0)
-    {
-        xp->xp_context = EXPAND_BOOL_SETTINGS;
-        xp->xp_prefix = XP_PREFIX_NO;
-        p += 2;
-    }
-    else if ( strncmp((char *)(p), (char *)("inv"), (3))  == 0)
-    {
-        xp->xp_context = EXPAND_BOOL_SETTINGS;
-        xp->xp_prefix = XP_PREFIX_INV;
-        p += 3;
-    }
-    xp->xp_pattern = arg = p;
-    if (*arg == '<')
-    {
-        while (*p != '>')
-        {
-            if (*p++ == NUL)
-            {
-                return;
-            }
-        }
-        key = get_special_key_code(arg + 1);
-        if (key == 0)
-        {
-            xp->xp_context = EXPAND_NOTHING;
-            return;
-        }
-        nextchar = *++p;
-        is_term_option = TRUE;
-        expand_option_name[2] =  ((-(key)) & 0xff) ;
-        expand_option_name[3] =  (((unsigned)(-(key)) >> 8) & 0xff) ;
-    }
-    else
-    {
-        if (p[0] == 't' && p[1] == '_')
-        {
-            p += 2;
-            if (*p != NUL)
-            {
-                ++p;
-            }
-            if (*p == NUL)
-            {
-                return;
-            }
-            nextchar = *++p;
-            is_term_option = TRUE;
-            expand_option_name[2] = p[-2];
-            expand_option_name[3] = p[-1];
-        }
-        else
-        {
-            while ( ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) )  ||  ((unsigned)(*p) - '0' < 10) )  || *p == '_' || *p == '*')
-            {
-                p++;
-            }
-            if (*p == NUL)
-            {
-                return;
-            }
-            nextchar = *p;
-            *p = NUL;
-            opt_idx = findoption(arg);
-            *p = nextchar;
-            if (opt_idx == -1 || options[opt_idx].var == NULL)
-            {
-                xp->xp_context = EXPAND_NOTHING;
-                return;
-            }
-            flags = options[opt_idx].flags;
-            if (flags & P_BOOL)
-            {
-                xp->xp_context = EXPAND_NOTHING;
-                return;
-            }
-        }
-    }
-    expand_option_append = FALSE;
-    int expand_option_subtract = FALSE;
-    if ((nextchar == '-' || nextchar == '+' || nextchar == '^') && p[1] == '=')
-    {
-        if (nextchar == '-')
-        {
-            expand_option_subtract = TRUE;
-        }
-        if (nextchar == '+' || nextchar == '^')
-        {
-            expand_option_append = TRUE;
-        }
-        ++p;
-        nextchar = '=';
-    }
-    if ((nextchar != '=' && nextchar != ':') || xp->xp_context == EXPAND_BOOL_SETTINGS)
-    {
-        xp->xp_context =  (-2) ;
-        return;
-    }
-
-    if (is_term_option)
-    {
-        expand_option_idx = -1;
-    }
-    else
-    {
-        expand_option_idx = opt_idx;
-    }
-
-    if (!is_term_option)
-    {
-        if (options[opt_idx].flags & P_NO_CMD_EXPAND)
-        {
-            xp->xp_context= (-2) ;
-            return;
-        }
-    }
-
-    xp->xp_pattern = p + 1;
-    expand_option_start_col = (int)(p + 1 - xp->xp_line);
-
-    if (options[opt_idx].var == (char_u *)&p_ft)
-    {
-        xp->xp_context = EXPAND_FILETYPE;
-        return;
-    }
-
-    if (expand_option_subtract)
-    {
-        xp->xp_context = EXPAND_SETTING_SUBTRACT;
-        return;
-    }
-    else if (expand_option_idx >= 0 && options[expand_option_idx].opt_expand_cb != NULL)
-    {
-        xp->xp_context = EXPAND_STRING_SETTING;
-    }
-    else if (*xp->xp_pattern == NUL)
-    {
-        xp->xp_context = EXPAND_OLD_SETTING;
-        return;
-    }
-    else
-    {
-        xp->xp_context = EXPAND_NOTHING;
-    }
-
-    if (is_term_option || (flags & P_NUM))
-    {
-        return;
-    }
-
-    if (flags & P_EXPAND)
-    {
-        p = options[opt_idx].var;
-        if (p == (char_u *)&p_pp || p == (char_u *)&p_rtp)
-        {
-            xp->xp_context = EXPAND_DIRECTORIES;
-            xp->xp_backslash = XP_BS_ONE;
-        }
-        else
-        {
-            xp->xp_context = EXPAND_FILES;
-            xp->xp_backslash = XP_BS_ONE;
-        }
-        if (flags & P_COMMA)
-        {
-            xp->xp_backslash |= XP_BS_COMMA;
-        }
-    }
-
-    if ((flags & P_EXPAND) || (flags & P_COMMA) || (flags & P_COLON))
-    {
-        for (p = argend - 1; p >= xp->xp_pattern; --p)
-        {
-            if (*p == ' ' || *p == ',' || (*p == ':' && (flags & P_COLON)))
-            {
-                s = p;
-                while (s > xp->xp_pattern && *(s - 1) == '\\')
-                {
-                    --s;
-                }
-                if ((*p == ' ' && ((xp->xp_backslash & XP_BS_THREE) && (p - s) < 3)) || (*p == ',' && (flags & P_COMMA) && (p - s) < 2) || (*p == ':' && (flags & P_COLON)))
-                {
-                    xp->xp_pattern = p + 1;
-                    break;
-                }
-            }
-        }
-    }
-
-    if (flags & P_FLAGLIST)
-    {
-        xp->xp_pattern = argend;
-    }
-
-}
-
-    static int
-match_str(char_u          *str, regmatch_T      *regmatch, char_u          **matches, int             idx, int             test_only, int             fuzzy, char_u          *fuzzystr, fuzmatch_str_T  *fuzmatch)
-{
-    if (!fuzzy)
-    {
-        if (vim_regexec(regmatch, str, (colnr_T)0))
-        {
-            if (!test_only)
-            {
-                matches[idx] = vim_strsave(str);
-            }
-            return TRUE;
-        }
-    }
-    else
-    {
-        int score;
-
-        score = fuzzy_match_str(str, fuzzystr);
-        if (score !=  INT_MIN )
-        {
-            if (!test_only)
-            {
-                fuzmatch[idx].idx = idx;
-                fuzmatch[idx].str = vim_strsave(str);
-                fuzmatch[idx].score = score;
-            }
-
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-    static int
-ExpandSettings(expand_T    *xp, regmatch_T  *regmatch, char_u      *fuzzystr, int         *numMatches, char_u      ***matches, int         can_fuzzy)
-{
-    int         num_normal = 0;
-    int         num_term = 0;
-    int         opt_idx;
-    int         match;
-    int         count = 0;
-    char_u      *str;
-    int         loop;
-    int         is_term_opt;
-    char_u      name_buf[MAX_KEY_NAME_LEN];
-    static char *(names[]) = {"all", "termcap"};
-    int         ic = regmatch->rm_ic;
-    int         fuzzy;
-    fuzmatch_str_T  *fuzmatch = NULL;
-
-    fuzzy = can_fuzzy && cmdline_fuzzy_complete(fuzzystr);
-
-    for (loop = 0; loop <= 1; ++loop)
-    {
-        regmatch->rm_ic = ic;
-        if (xp->xp_context != EXPAND_BOOL_SETTINGS)
-        {
-            for (match = 0; match < (int) (sizeof(names) / sizeof((names)[0])) ; ++match)
-            {
-                if (match_str((char_u *)names[match], regmatch, *matches, count, (loop == 0), fuzzy, fuzzystr, fuzmatch))
-                {
-                    if (loop == 0)
-                    {
-                        num_normal++;
-                    }
-                    else
-                    {
-                        count++;
-                    }
-                }
-            }
-        }
-        for (opt_idx = 0; (str = (char_u *)options[opt_idx].fullname) != NULL; opt_idx++)
-        {
-            if (options[opt_idx].var == NULL)
-            {
-                continue;
-            }
-            if (xp->xp_context == EXPAND_BOOL_SETTINGS && !(options[opt_idx].flags & P_BOOL))
-            {
-                continue;
-            }
-            is_term_opt = istermoption_idx(opt_idx);
-            if (is_term_opt && num_normal > 0)
-            {
-                continue;
-            }
-
-            if (match_str(str, regmatch, *matches, count, (loop == 0), fuzzy, fuzzystr, fuzmatch))
-            {
-                if (loop == 0)
-                {
-                    if (is_term_opt)
-                    {
-                        num_term++;
-                    }
-                    else
-                    {
-                        num_normal++;
-                    }
-                }
-                else
-                {
-                    count++;
-                }
-            }
-            else if (!fuzzy && options[opt_idx].shortname != NULL && vim_regexec(regmatch, (char_u *)options[opt_idx].shortname, (colnr_T)0))
-            {
-                if (loop == 0)
-                {
-                    if (is_term_opt)
-                    {
-                        num_term++;
-                    }
-                    else
-                    {
-                        num_normal++;
-                    }
-                }
-                else
-                {
-                    (*matches)[count++] = vim_strsave(str);
-                }
-            }
-            else if (is_term_opt)
-            {
-                name_buf[0] = '<';
-                name_buf[1] = 't';
-                name_buf[2] = '_';
-                name_buf[3] = str[2];
-                name_buf[4] = str[3];
-                name_buf[5] = '>';
-                name_buf[6] = NUL;
-
-                if (match_str(name_buf, regmatch, *matches, count, (loop == 0), fuzzy, fuzzystr, fuzmatch))
-                {
-                    if (loop == 0)
-                    {
-                        num_term++;
-                    }
-                    else
-                    {
-                        count++;
-                    }
-                }
-            }
-        }
-
-        if (xp->xp_context != EXPAND_BOOL_SETTINGS  && num_normal == 0)
-        {
-            for (opt_idx = 0; (str = get_termcode(opt_idx)) != NULL; opt_idx++)
-            {
-                if (! (isprint ((unsigned char)(str[0])))  || ! (isprint ((unsigned char)(str[1]))) )
-                {
-                    continue;
-                }
-
-                name_buf[0] = 't';
-                name_buf[1] = '_';
-                name_buf[2] = str[0];
-                name_buf[3] = str[1];
-                name_buf[4] = NUL;
-
-                if (match_str(name_buf, regmatch, *matches, count, (loop == 0), fuzzy, fuzzystr, fuzmatch))
-                {
-                    if (loop == 0)
-                    {
-                        num_term++;
-                    }
-                    else
-                    {
-                        count++;
-                    }
-                }
-                else
-                {
-                    name_buf[0] = '<';
-                    name_buf[1] = 't';
-                    name_buf[2] = '_';
-                    name_buf[3] = str[0];
-                    name_buf[4] = str[1];
-                    name_buf[5] = '>';
-                    name_buf[6] = NUL;
-
-                    if (match_str(name_buf, regmatch, *matches, count, (loop == 0), fuzzy, fuzzystr, fuzmatch))
-                    {
-                        if (loop == 0)
-                        {
-                            num_term++;
-                        }
-                        else
-                        {
-                            count++;
-                        }
-                    }
-                }
-            }
-
-            regmatch->rm_ic = TRUE;
-            for (opt_idx = 0; (str = get_key_name(opt_idx)) != NULL; opt_idx++)
-            {
-                name_buf[0] = '<';
-                 strcpy((char *)(name_buf + 1), (char *)(str)) ;
-                 strcat((char *)(name_buf), (char *)(">")) ;
-
-                if (match_str(name_buf, regmatch, *matches, count, (loop == 0), fuzzy, fuzzystr, fuzmatch))
-                {
-                    if (loop == 0)
-                    {
-                        num_term++;
-                    }
-                    else
-                    {
-                        count++;
-                    }
-                }
-            }
-        }
-        if (loop == 0)
-        {
-            if (num_normal > 0)
-            {
-                *numMatches = num_normal;
-            }
-            else if (num_term > 0)
-            {
-                *numMatches = num_term;
-            }
-            else
-            {
-                return OK;
-            }
-            if (!fuzzy)
-            {
-                *matches =  (char_u * *)alloc(sizeof(char_u *) * (*numMatches)) ;
-                if (*matches == NULL)
-                {
-                    *matches = (char_u **)"";
-                    return FAIL;
-                }
-            }
-            else
-            {
-                fuzmatch =  (fuzmatch_str_T *)alloc(sizeof(fuzmatch_str_T) * (*numMatches)) ;
-                if (fuzmatch == NULL)
-                {
-                    *matches = (char_u **)"";
-                    return FAIL;
-                }
-            }
-        }
-    }
-
-    if (fuzzy && fuzzymatches_to_strmatches(fuzmatch, matches, count, FALSE) == FAIL)
-    {
-        return FAIL;
-    }
-
-    return OK;
-}
-
-    static char_u*
-escape_option_str_cmdline(char_u *var)
-{
-    char_u *buf;
-
-    buf = vim_strsave_escaped(var, escape_chars);
-    if (buf == NULL)
-    {
-        return NULL;
-    }
-
-    return buf;
-}
-
-    static int
-ExpandOldSetting(int *numMatches, char_u ***matches)
-{
-    char_u  *var = NULL;
-    char_u  *buf;
-
-    *numMatches = 0;
-    *matches =  (char_u * *)alloc(sizeof(char_u *) * (1)) ;
-    if (*matches == NULL)
-    {
-        return FAIL;
-    }
-
-    if (expand_option_idx < 0)
-    {
-        var = find_termcode(expand_option_name + 2);
-        if (var == NULL)
-        {
-            expand_option_idx = findoption(expand_option_name);
-        }
-    }
-
-    if (expand_option_idx >= 0)
-    {
-        option_value2string(&options[expand_option_idx], expand_option_flags);
-        var = NameBuff;
-    }
-    else if (var == NULL)
-    {
-        var = (char_u *)"";
-    }
-
-    buf = escape_option_str_cmdline(var);
-    if (buf == NULL)
-    {
-         vim_free(*matches);
-         (*matches) = NULL;
-        return FAIL;
-    }
-
-    (*matches)[0] = buf;
-    *numMatches = 1;
-    return OK;
-}
-
-    static int
-ExpandStringSetting(expand_T    *xp, regmatch_T  *regmatch, int         *numMatches, char_u      ***matches)
-{
-    char_u  *var = NULL;
-    char_u  *buf;
-
-    if (expand_option_idx < 0 || options[expand_option_idx].opt_expand_cb == NULL)
-    {
-        return FAIL;
-    }
-
-    optexpand_T args;
-    args.oe_varp = get_varp_scope(&options[expand_option_idx], expand_option_flags);
-    args.oe_append = expand_option_append;
-    args.oe_regmatch = regmatch;
-    args.oe_xp = xp;
-    args.oe_set_arg = xp->xp_line + expand_option_start_col;
-    args.oe_include_orig_val =
-        !expand_option_append &&
-        (*args.oe_set_arg == NUL);
-
-    option_value2string(&options[expand_option_idx], expand_option_flags);
-    var = NameBuff;
-    buf = escape_option_str_cmdline(var);
-    if (buf == NULL)
-    {
-        return FAIL;
-    }
-
-    args.oe_opt_value = buf;
-
-    int num_ret = options[expand_option_idx].opt_expand_cb(&args, numMatches, matches);
-
-    vim_free(buf);
-    return num_ret;
-}
-
-    static int
-ExpandSettingSubtract(expand_T    *xp, regmatch_T  *regmatch, int         *numMatches, char_u      ***matches)
-{
-    if (expand_option_idx < 0)
-    {
-        return ExpandOldSetting(numMatches, matches);
-    }
-
-    char_u *option_val = *(char_u**)get_option_varp_scope(expand_option_idx, expand_option_flags);
-
-    long_u option_flags =  options[expand_option_idx].flags;
-
-    if (option_flags & P_NUM)
-    {
-        return ExpandOldSetting(numMatches, matches);
-    }
-    else if (option_flags & P_COMMA)
-    {
-        garray_T    ga;
-
-        char_u      *item;
-        char_u      *option_copy;
-        char_u      *next_val;
-        char_u      *comma;
-
-        if (*option_val == NUL)
-        {
-            return FAIL;
-        }
-
-        option_copy = vim_strsave(option_val);
-        if (option_copy == NULL)
-        {
-            return FAIL;
-        }
-        next_val = option_copy;
-
-        ga_init2(&ga, sizeof(char_u *), 10);
-
-        do
-        {
-            item = next_val;
-            comma = vim_strchr(next_val, ',');
-            while (comma != NULL && comma != next_val && *(comma - 1) == '\\')
-            {
-                comma = vim_strchr(comma + 1, ',');
-            }
-            if (comma != NULL)
-            {
-                *comma = NUL;
-                next_val = comma + 1;
-            }
-            else
-            {
-                next_val = NULL;
-            }
-
-            if (*item == NUL)
-            {
-                continue;
-            }
-
-            if (!vim_regexec(regmatch, item, (colnr_T)0))
-            {
-                continue;
-            }
-
-            char_u *buf = escape_option_str_cmdline(item);
-            if (buf == NULL)
-            {
-                vim_free(option_copy);
-                ga_clear_strings(&ga);
-                return FAIL;
-            }
-            if (ga_add_string(&ga, buf) != OK)
-            {
-                vim_free(buf);
-                break;
-            }
-        } while (next_val != NULL);
-
-        vim_free(option_copy);
-
-        *matches = ga.ga_data;
-        *numMatches = ga.ga_len;
-        return OK;
-    }
-    else if (option_flags & P_FLAGLIST)
-    {
-        if (*xp->xp_pattern != NUL)
-        {
-            return FAIL;
-        }
-
-        size_t num_flags =  strlen((char *)(option_val)) ;
-        if (num_flags == 0)
-        {
-            return FAIL;
-        }
-
-        *matches =  (char_u * *)alloc(sizeof(char_u *) * (num_flags + 1)) ;
-        if (*matches == NULL)
-        {
-            return FAIL;
-        }
-
-        int count = 0;
-        char_u *p;
-
-        p = vim_strnsave(option_val, num_flags);
-        if (p == NULL)
-        {
-             vim_free(*matches);
-             (*matches) = NULL;
-            return FAIL;
-        }
-        (*matches)[count++] = p;
-
-        if (num_flags > 1)
-        {
-            for (char_u *flag = option_val; *flag != NUL; flag++)
-            {
-                p = vim_strnsave(flag, 1);
-                if (p == NULL)
-                {
-                    break;
-                }
-                (*matches)[count++] = p;
-            }
-        }
-
-        *numMatches = count;
-        return OK;
-    }
-
-    return ExpandOldSetting(numMatches, matches);
 }
 
     static void
@@ -75761,14 +69224,6 @@ option_value2string(struct vimoption    *opp, int                 scope)
     static int
 wc_use_keyname(char_u *varp, long *wcp)
 {
-    if (((long *)varp == &p_wc) || ((long *)varp == &p_wcm))
-    {
-        *wcp = *(long *)varp;
-        if ( ((*wcp) < 0)  || find_special_key_in_table((int)*wcp) >= 0)
-        {
-            return TRUE;
-        }
-    }
     return FALSE;
 }
 
@@ -75896,17 +69351,13 @@ static char *(p_nf_values[]) = {"bin", "octal", "hex", "alpha", "unsigned", "bla
 static char *(p_cmp_values[]) = {"internal", "keepascii", NULL};
 static char *(p_dy_values[]) = {"lastline", "truncate", "uhex", NULL};
 static char *(p_jop_values[]) = {"stack", NULL};
-static char *(p_kpc_protocol_values[]) = {"none", "mok2", "kitty", NULL};
 static char *(p_ve_values[]) = {"block", "insert", "all", "onemore", "none", "NONE", NULL};
-static char *(p_wim_values[]) = {"full", "longest", "list", "lastused", "noselect", "noinsert", NULL};
-static char *(p_wop_values[]) = {"fuzzy", "tagfile", "exacttext", NULL};
 static char *(p_sel_values[]) = {"inclusive", "exclusive", "old", NULL};
 static char *(p_slm_values[]) = {"mouse", "key", "cmd", NULL};
 static char *(p_km_values[]) = {"startsel", "stopsel", NULL};
 static char *(p_debug_values[]) = {"msg", "throw", "beep", NULL};
 static char *(p_buftype_values[]) = {"nofile", "nowrite", "quickfix", "help", "terminal", "acwrite", "prompt", "popup", NULL};
 static char *(p_bs_values[]) = {"indent", "eol", "start", "nostop", NULL};
-static char *(p_trz_values[]) = {"inband", "sigwinch", "", NULL};
 static char *(p_sloc_values[]) = {"last", "statusline", "tabline", NULL};
 
 static int check_opt_strings(char_u *val, char **values, int list);
@@ -75938,7 +69389,6 @@ check_buf_options(buf_T *buf)
 {
     check_string_option(&buf->b_p_bt);
     check_string_option(&buf->b_p_fp);
-    check_string_option(&buf->b_p_kp);
     check_string_option(&buf->b_p_mps);
     check_string_option(&buf->b_p_fo);
     check_string_option(&buf->b_p_flp);
@@ -75948,7 +69398,6 @@ check_buf_options(buf_T *buf)
     check_string_option(&buf->b_p_qe);
     check_string_option(&buf->b_p_ft);
     check_string_option(&buf->b_p_ep);
-    check_string_option(&buf->b_p_lw);
 }
 
     static void
@@ -76142,180 +69591,6 @@ did_set_option_listflag(char_u *val, char_u *flags, char *errbuf, size_t errbufl
     return NULL;
 }
 
-    static int
-expand_set_opt_string(optexpand_T *args, char **values, size_t numValues, int *numMatches, char_u ***matches)
-{
-    char_u      *p;
-    regmatch_T  *regmatch = args->oe_regmatch;
-    int         include_orig_val = args->oe_include_orig_val;
-    char_u      *option_val = args->oe_opt_value;
-
-    *matches =  (char_u * *)alloc(sizeof(char_u *) * (numValues + 1)) ;
-    if (*matches == NULL)
-    {
-        return FAIL;
-    }
-
-    int count = 0;
-
-    if (include_orig_val && *option_val != NUL)
-    {
-        p = vim_strsave(option_val);
-        if (p == NULL)
-        {
-             vim_free(*matches);
-             (*matches) = NULL;
-            return FAIL;
-        }
-        (*matches)[count++] = p;
-    }
-
-    for (char **val = values; *val != NULL; val++)
-    {
-        if (include_orig_val && *option_val != NUL)
-        {
-            if ( strcmp((char *)((char_u*)*val), (char *)(option_val))  == 0)
-            {
-                continue;
-            }
-        }
-        if (vim_regexec(regmatch, (char_u*)(*val), (colnr_T)0))
-        {
-            p = vim_strsave((char_u*)*val);
-            if (p == NULL)
-            {
-                if (count == 0)
-                {
-                     vim_free(*matches);
-                     (*matches) = NULL;
-                    return FAIL;
-                }
-                else
-                {
-                    break;
-                }
-            }
-            (*matches)[count++] = p;
-        }
-    }
-    if (count == 0)
-    {
-         vim_free(*matches);
-         (*matches) = NULL;
-        return FAIL;
-    }
-    *numMatches = count;
-    return OK;
-}
-
-static char_u *set_opt_callback_orig_option = NULL;
-static char_u *((*set_opt_callback_func)(expand_T *, int));
-
-    static char_u *
-expand_set_opt_generic_cb(expand_T *xp, int idx)
-{
-    if (idx == 0)
-    {
-        if (set_opt_callback_orig_option != NULL)
-        {
-            return set_opt_callback_orig_option;
-        }
-        else
-        {
-            return (char_u *)"";
-        }
-    }
-    return set_opt_callback_func(xp, idx - 1);
-}
-
-    static int
-expand_set_opt_generic(optexpand_T *args, char_u *((*func)(expand_T *, int)), int *numMatches, char_u ***matches)
-{
-    int ret;
-
-    set_opt_callback_orig_option = args->oe_include_orig_val ?
-        args->oe_opt_value : NULL;
-    set_opt_callback_func = func;
-
-    ret = ExpandGeneric((char_u*)"", args->oe_xp, args->oe_regmatch, matches, numMatches, expand_set_opt_generic_cb, FALSE);
-
-    set_opt_callback_orig_option = NULL;
-    set_opt_callback_func = NULL;
-    return ret;
-}
-
-    static int
-expand_set_opt_listflag(optexpand_T *args, char_u *flags, int *numMatches, char_u ***matches)
-{
-    char_u  *p;
-    char_u  *option_val = args->oe_opt_value;
-    char_u  *cmdline_val = args->oe_set_arg;
-    int     append = args->oe_append;
-    int     include_orig_val = args->oe_include_orig_val && (*option_val != NUL);
-
-    size_t num_flags =  strlen((char *)(flags)) ;
-
-    *matches =  (char_u * *)alloc(sizeof(char_u *) * (num_flags + 1)) ;
-    if (*matches == NULL)
-    {
-        return FAIL;
-    }
-
-    int count = 0;
-
-    if (include_orig_val)
-    {
-        p = vim_strsave(option_val);
-        if (p == NULL)
-        {
-             vim_free(*matches);
-             (*matches) = NULL;
-            return FAIL;
-        }
-        (*matches)[count++] = p;
-    }
-
-    for (char_u *flag = flags; *flag != NUL; flag++)
-    {
-        if (append && vim_strchr(option_val, *flag) != NULL)
-        {
-            continue;
-        }
-
-        if (vim_strchr(cmdline_val, *flag) == NULL)
-        {
-            if (include_orig_val && option_val[1] == NUL && *flag == option_val[0])
-            {
-                continue;
-            }
-            p = vim_strnsave(flag, 1);
-            if (p == NULL)
-            {
-                if (count == 0)
-                {
-                     vim_free(*matches);
-                     (*matches) = NULL;
-                    return FAIL;
-                }
-                else
-                {
-                    break;
-                }
-            }
-            (*matches)[count++] = p;
-        }
-    }
-
-    if (count == 0)
-    {
-         vim_free(*matches);
-         (*matches) = NULL;
-        return FAIL;
-    }
-    *numMatches = count;
-    return OK;
-}
-
     static char *
 did_set_ambiwidth(optset_T *args  __attribute__((unused)) )
 {
@@ -76325,12 +69600,6 @@ did_set_ambiwidth(optset_T *args  __attribute__((unused)) )
     }
 
     return check_chars_options();
-}
-
-    static int
-expand_set_ambiwidth(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_ambw_values,  (sizeof(p_ambw_values) / sizeof((p_ambw_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -76351,12 +69620,6 @@ did_set_background(optset_T *args)
     return NULL;
 }
 
-    static int
-expand_set_background(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_bg_values,  (sizeof(p_bg_values) / sizeof((p_bg_values)[0]))  - 1, numMatches, matches);
-}
-
     static char *
 did_set_backspace(optset_T *args  __attribute__((unused)) )
 {
@@ -76375,22 +69638,10 @@ did_set_backspace(optset_T *args  __attribute__((unused)) )
     return NULL;
 }
 
-    static int
-expand_set_backspace(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_bs_values,  (sizeof(p_bs_values) / sizeof((p_bs_values)[0]))  - 1, numMatches, matches);
-}
-
     static char *
 did_set_belloff(optset_T *args  __attribute__((unused)) )
 {
     return did_set_opt_flags(p_bo, p_bo_values, &bo_flags, TRUE);
-}
-
-    static int
-expand_set_belloff(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_bo_values,  (sizeof(p_bo_values) / sizeof((p_bo_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -76412,22 +69663,10 @@ did_set_buftype(optset_T *args  __attribute__((unused)) )
     return NULL;
 }
 
-    static int
-expand_set_buftype(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_buftype_values,  (sizeof(p_buftype_values) / sizeof((p_buftype_values)[0]))  - 1, numMatches, matches);
-}
-
     static char *
 did_set_casemap(optset_T *args  __attribute__((unused)) )
 {
     return did_set_opt_flags(p_cmp, p_cmp_values, &cmp_flags, TRUE);
-}
-
-    static int
-expand_set_casemap(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_cmp_values,  (sizeof(p_cmp_values) / sizeof((p_cmp_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -76504,14 +69743,6 @@ did_set_chars_option(optset_T *args)
     return errmsg;
 }
 
-    static int
-expand_set_chars_option(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    char_u **varp = (char_u **)args->oe_varp;
-    int is_lcs = (varp == &p_lcs || varp == &curwin-> w_onebuf_opt.wo_lcs );
-    return expand_set_opt_generic(args, is_lcs ? get_listchars_name : get_fillchars_name, numMatches, matches);
-}
-
     static char *
 did_set_comments(optset_T *args)
 {
@@ -76564,22 +69795,10 @@ did_set_cpoptions(optset_T *args)
     return did_set_option_listflag(*varp, (char_u *) "aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>#{|&/\\.;~" , args->os_errbuf, args->os_errbuflen);
 }
 
-    static int
-expand_set_cpoptions(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_listflag(args, (char_u*) "aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>#{|&/\\.;~" , numMatches, matches);
-}
-
     static char *
 did_set_debug(optset_T *args  __attribute__((unused)) )
 {
     return did_set_opt_strings(p_debug, p_debug_values, TRUE);
-}
-
-    static int
-expand_set_debug(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_debug_values,  (sizeof(p_debug_values) / sizeof((p_debug_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -76592,12 +69811,6 @@ did_set_display(optset_T *args  __attribute__((unused)) )
 
     (void)init_chartab();
     return NULL;
-}
-
-    static int
-expand_set_display(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_dy_values,  (sizeof(p_dy_values) / sizeof((p_dy_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -76625,12 +69838,6 @@ did_set_formatoptions(optset_T *args)
     return did_set_option_listflag(*varp, (char_u *) "tcro/q2vlb1mMBn,aw]jp" , args->os_errbuf, args->os_errbuflen);
 }
 
-    static int
-expand_set_formatoptions(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_listflag(args, (char_u*) "tcro/q2vlb1mMBn,aw]jp" , numMatches, matches);
-}
-
     static char *
 did_set_highlight(optset_T *args  __attribute__((unused)) )
 {
@@ -76640,141 +69847,6 @@ did_set_highlight(optset_T *args  __attribute__((unused)) )
     }
 
     return NULL;
-}
-
-    static int
-expand_hl_occasions(optexpand_T *args, int *numMatches, char_u ***matches, char_u prefix)
-{
-    char_u          *p;
-    static char_u   hl_flags[HLF_COUNT] =  {'8', '~', '@', 'd', 'e', 'h', 'i', 'l', 'y', 'm', 'M',                  'n', 'a', 'b', 'N', 'G', 'O', 'r', 's', 'S', 'c', '|', 't', 'v', 'V',                   'w', 'W', 'f', 'F', 'A', 'C', 'D', 'T', 'E', '-', '>',                  'B', 'P', 'R', 'L',             '+', '=', 'k', '<','[', ']', '{', '}', 'x', 'X', 'j', 'H',              'p', 'J', 'Q',                  '*', '#', '_', '!', '.', 'o', 'q',              'z', 'Z', 'g',                  '%', '^', '&', 'I', '('} ;
-    size_t          i;
-    int             count = 0;
-
-    *matches =  (char_u * *)alloc(sizeof(char_u *) * (HLF_COUNT + 1)) ;
-    if (*matches == NULL)
-    {
-        return FAIL;
-    }
-
-    if (args->oe_include_orig_val)
-    {
-        p = vim_strsave(args->oe_opt_value);
-        if (p == NULL)
-        {
-             vim_free(*matches);
-             (*matches) = NULL;
-            return FAIL;
-        }
-        (*matches)[count++] = p;
-    }
-
-    for (i = 0; i < HLF_COUNT; i++)
-    {
-        p = alloc((prefix == NUL ? 1 : 2) + 1);
-        if (p == NULL)
-        {
-            if (count == 0)
-            {
-                 vim_free(*matches);
-                 (*matches) = NULL;
-                return FAIL;
-            }
-            else
-            {
-                break;
-            }
-        }
-        if (prefix == NUL)
-        {
-            sprintf((char *)p, "%c", hl_flags[i]);
-        }
-        else
-        {
-            sprintf((char *)p, "%c%c", prefix, hl_flags[i]);
-        }
-        (*matches)[count++] = p;
-    }
-
-    if (count == 0)
-    {
-         vim_free(*matches);
-         (*matches) = NULL;
-        return FAIL;
-    }
-    *numMatches = count;
-    return OK;
-}
-
-    static int
-expand_set_highlight(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    char_u          *p;
-    expand_T        *xp = args->oe_xp;
-    size_t          i;
-    int             count = 0;
-
-    if (xp->xp_pattern > args->oe_set_arg && *(xp->xp_pattern-1) == ':')
-    {
-        return expand_set_opt_generic(args, get_highlight_name, numMatches, matches);
-    }
-
-    if (*xp->xp_pattern == NUL)
-    {
-        return expand_hl_occasions(args, numMatches, matches, NUL);
-    }
-
-    static char_u p_hl_mode_values[] =
-        {':', 'b', 'i', '-', 'n', 'r', 's', 'u', 'c', '2', 'd', '=', 't'};
-    size_t num_hl_modes =  (sizeof(p_hl_mode_values) / sizeof((p_hl_mode_values)[0])) ;
-
-    *matches =  (char_u * *)alloc(sizeof(char_u *) * (num_hl_modes)) ;
-    if (*matches == NULL)
-    {
-        return FAIL;
-    }
-
-    int pattern_len = xp->xp_pattern_len;
-
-    for (i = 0; i < num_hl_modes; i++)
-    {
-        char_u *dup = vim_strchr(xp->xp_pattern + 1, p_hl_mode_values[i]);
-        if (dup != NULL && (int)(dup - xp->xp_pattern) < pattern_len)
-        {
-            continue;
-        }
-
-        if (pattern_len > 1 && p_hl_mode_values[i] == ':')
-        {
-            continue;
-        }
-
-        p = vim_strnsave(xp->xp_pattern, pattern_len + 1);
-        if (p == NULL)
-        {
-            if (i == 0)
-            {
-                 vim_free(*matches);
-                 (*matches) = NULL;
-                return FAIL;
-            }
-            else
-            {
-                break;
-            }
-        }
-        p[pattern_len] = p_hl_mode_values[i];
-        p[pattern_len + 1] = NUL;
-        (*matches)[count++] = p;
-    }
-    if (count == 0)
-    {
-         vim_free(*matches);
-         (*matches) = NULL;
-        return FAIL;
-    }
-    *numMatches = count;
-
-    return OK;
 }
 
     static char *
@@ -76836,12 +69908,6 @@ did_set_jumpoptions(optset_T *args  __attribute__((unused)) )
     return NULL;
 }
 
-    static int
-expand_set_jumpoptions(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_jop_values,  (sizeof(p_jop_values) / sizeof((p_jop_values)[0]))  - 1, numMatches, matches);
-}
-
     static char *
 did_set_keymodel(optset_T *args  __attribute__((unused)) )
 {
@@ -76853,12 +69919,6 @@ did_set_keymodel(optset_T *args  __attribute__((unused)) )
     km_stopsel = (vim_strchr(p_km, 'o') != NULL);
     km_startsel = (vim_strchr(p_km, 'a') != NULL);
     return NULL;
-}
-
-    static int
-expand_set_keymodel(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_km_values,  (sizeof(p_km_values) / sizeof((p_km_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -76874,18 +69934,6 @@ did_set_keyprotocol(optset_T *args  __attribute__((unused)) )
     apply_keyprotocol(term, kpc);
 
     return NULL;
-}
-
-    static int
-expand_set_keyprotocol(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    expand_T *xp = args->oe_xp;
-    if (xp->xp_pattern > args->oe_set_arg && *(xp->xp_pattern-1) == ':')
-    {
-        return expand_set_opt_string(args, p_kpc_protocol_values,  (sizeof(p_kpc_protocol_values) / sizeof((p_kpc_protocol_values)[0]))  - 1, numMatches, matches);
-    }
-    static char *(empty[]) = {NULL};
-    return expand_set_opt_string(args, empty, 0, numMatches, matches);
 }
 
     static char *
@@ -76933,25 +69981,12 @@ did_set_messagesopt(optset_T *args  __attribute__((unused)) )
     return NULL;
 }
 
-    static int
-expand_set_messagesopt(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    static char *(p_mopt_values[]) = {"hit-enter", "wait:", "history:", NULL};
-    return expand_set_opt_string(args, p_mopt_values,  (sizeof(p_mopt_values) / sizeof((p_mopt_values)[0]))  - 1, numMatches, matches);
-}
-
     static char *
 did_set_nrformats(optset_T *args)
 {
     char_u      **varp = (char_u **)args->os_varp;
 
     return did_set_opt_strings(*varp, p_nf_values, TRUE);
-}
-
-    static int
-expand_set_nrformats(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_nf_values,  (sizeof(p_nf_values) / sizeof((p_nf_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -76983,62 +70018,10 @@ did_set_selection(optset_T *args  __attribute__((unused)) )
     return NULL;
 }
 
-    static int
-expand_set_selection(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_sel_values,  (sizeof(p_sel_values) / sizeof((p_sel_values)[0]))  - 1, numMatches, matches);
-}
-
     static char *
 did_set_selectmode(optset_T *args  __attribute__((unused)) )
 {
     return did_set_opt_strings(p_slm, p_slm_values, TRUE);
-}
-
-    static int
-expand_set_selectmode(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_slm_values,  (sizeof(p_slm_values) / sizeof((p_slm_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char *
-did_set_shellpipe_redir(optset_T *args)
-{
-    char_u      *p;
-    bool        seen = false;
-
-    for (p = args->os_newval.string; *p != NUL; ++p)
-    {
-        if (*p != '%')
-        {
-            continue;
-        }
-
-        if (p[1] == NUL)
-        {
-            return e_invalid_format_string_single_percent_s;
-        }
-
-        if (p[1] == '%')
-        {
-            ++p;
-            continue;
-        }
-
-        if (p[1] == 's')
-        {
-            if (seen)
-            {
-                return e_invalid_format_string_single_percent_s;
-            }
-
-            seen = true;
-            ++p;
-            continue;
-        }
-        return e_invalid_format_string_single_percent_s;
-    }
-    return NULL;
 }
 
     static char *
@@ -77047,12 +70030,6 @@ did_set_shortmess(optset_T *args)
     char_u      **varp = (char_u **)args->os_varp;
 
     return did_set_option_listflag(*varp, (char_u *) "rmfixlnwaWtToOsAIcCqFSu" , args->os_errbuf, args->os_errbuflen);
-}
-
-    static int
-expand_set_shortmess(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_listflag(args, (char_u*) "rmfixlnwaWtToOsAIcCqFSu" , numMatches, matches);
 }
 
     static char *
@@ -77066,12 +70043,6 @@ did_set_showcmdloc(optset_T *args  __attribute__((unused)) )
     }
 
     return errmsg;
-}
-
-    static int
-expand_set_showcmdloc(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_sloc_values,  (sizeof(p_sloc_values) / sizeof((p_sloc_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -77163,12 +70134,6 @@ did_set_termresize(optset_T *args  __attribute__((unused)) )
     return NULL;
 }
 
-    static int
-expand_set_termresize(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_trz_values,  (sizeof(p_trz_values) / sizeof((p_trz_values)[0]))  - 1, numMatches, matches);
-}
-
     static char *
 did_set_titlestring(optset_T *args)
 {
@@ -77221,52 +70186,12 @@ did_set_virtualedit(optset_T *args)
     return NULL;
 }
 
-    static int
-expand_set_virtualedit(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_ve_values,  (sizeof(p_ve_values) / sizeof((p_ve_values)[0]))  - 1, numMatches, matches);
-}
-
     static char *
 did_set_whichwrap(optset_T *args)
 {
     char_u      **varp = (char_u **)args->os_varp;
 
     return did_set_option_listflag(*varp, (char_u *)( "bshl<>[]~"  ","), args->os_errbuf, args->os_errbuflen);
-}
-
-    static int
-expand_set_whichwrap(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_listflag(args, (char_u*) "bshl<>[]~" , numMatches, matches);
-}
-
-    static char *
-did_set_wildmode(optset_T *args  __attribute__((unused)) )
-{
-    if (check_opt_wim() == FAIL)
-    {
-        return e_invalid_argument;
-    }
-    return NULL;
-}
-
-    static int
-expand_set_wildmode(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_wim_values,  (sizeof(p_wim_values) / sizeof((p_wim_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char *
-did_set_wildoptions(optset_T *args  __attribute__((unused)) )
-{
-    return did_set_opt_strings(p_wop, p_wop_values, TRUE);
-}
-
-    static int
-expand_set_wildoptions(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_wop_values,  (sizeof(p_wop_values) / sizeof((p_wop_values)[0]))  - 1, numMatches, matches);
 }
 
     static char *
@@ -77280,34 +70205,6 @@ did_set_wincolor(optset_T *args  __attribute__((unused)) )
 did_set_winhighlight(optset_T *args)
 {
     return update_winhighlight(curwin, args->os_newval.string);
-}
-
-    static int
-expand_set_winhighlight(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    expand_T        *xp = args->oe_xp;
-
-    if ((xp->xp_pattern > args->oe_set_arg && *(xp->xp_pattern-1) == ':') || xp->xp_pattern == args->oe_set_arg || *(xp->xp_pattern-1) == ',')
-    {
-        if (*xp->xp_pattern == '!')
-        {
-            return expand_hl_occasions(args, numMatches, matches, '!');
-        }
-        else
-        {
-            return expand_set_opt_generic(args, get_highlight_name, numMatches, matches);
-        }
-    }
-
-     vim_free(*matches);
-     (*matches) = NULL;
-    return FAIL;
-}
-
-    static int
-expand_set_wincolor(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_generic(args, get_highlight_name, numMatches, matches);
 }
 
     static void
@@ -78601,12 +71498,6 @@ pum_redraw_in_same_position(void)
     static void
 pum_may_redraw(void)
 {
-}
-
-    static int
-pum_get_height(void)
-{
-    return 0;
 }
 
 // ==================== regexp.c ====================
@@ -84845,12 +77736,6 @@ vim_regexec(regmatch_T *rmp, char_u *line, colnr_T col)
     return vim_regexec_string(rmp, line, col, FALSE);
 }
 
-    static int
-vim_regexec_nl(regmatch_T *rmp, char_u *line, colnr_T col)
-{
-    return vim_regexec_string(rmp, line, col, TRUE);
-}
-
     static long
 vim_regexec_multi(regmmatch_T *rmp, win_T       *win, buf_T       *buf, linenr_T    lnum, colnr_T     col, int         *timed_out)
 {
@@ -87320,30 +80205,6 @@ stl_connected(win_T *wp)
         fr = fr->fr_parent;
     }
     return FALSE;
-}
-
-    static int
-get_keymap_str(win_T       *wp, char_u      *fmt, char_u      *buf, int         len)
-{
-    char_u      *p;
-    int         plen;
-
-    if (wp->w_buffer->b_p_iminsert != B_IMODE_LMAP)
-    {
-        return 0;
-    }
-
-    {
-            p = (char_u *)"lang";
-    }
-    plen = vim_snprintf((char *)buf, len, (char *)fmt, p);
-    if (plen < 0 || plen > len - 1)
-    {
-        buf[0] = NUL;
-        plen = 0;
-    }
-
-    return plen;
 }
 
     static void
@@ -90129,28 +82990,6 @@ set_listchars_option(win_T *wp, char_u *val, int apply, char *errbuf, size_t err
     return set_chars_option(wp, val, TRUE, apply, errbuf, errbuflen);
 }
 
-    static char_u *
-get_fillchars_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx < 0 || idx >= (int) (sizeof(filltab) / sizeof((filltab)[0])) )
-    {
-        return NULL;
-    }
-
-    return filltab[idx].name.string;
-}
-
-    static char_u *
-get_listchars_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx < 0 || idx >= (int) (sizeof(lcstab) / sizeof((lcstab)[0])) )
-    {
-        return NULL;
-    }
-
-    return lcstab[idx].name.string;
-}
-
     static char *
 check_chars_options(void)
 {
@@ -90242,276 +83081,6 @@ estack_sfile(estack_arg_T which  __attribute__((unused)) )
         }
         return vim_strsave(entry->es_name);
     }
-}
-
-    static int
-get_runtime_cmd_flags(char_u **argp, size_t where_len)
-{
-    char_u *arg = *argp;
-
-    if (where_len == 0)
-    {
-        return 0;
-    }
-
-    if ( strncmp((char *)(arg), (char *)("START"), (where_len))  == 0)
-    {
-        *argp = skipwhite(arg + where_len);
-        return DIP_START + DIP_NORTP;
-    }
-    if ( strncmp((char *)(arg), (char *)("OPT"), (where_len))  == 0)
-    {
-        *argp = skipwhite(arg + where_len);
-        return DIP_OPT + DIP_NORTP;
-    }
-    if ( strncmp((char *)(arg), (char *)("PACK"), (where_len))  == 0)
-    {
-        *argp = skipwhite(arg + where_len);
-        return DIP_START + DIP_OPT + DIP_NORTP;
-    }
-    if ( strncmp((char *)(arg), (char *)("ALL"), (where_len))  == 0)
-    {
-        *argp = skipwhite(arg + where_len);
-        return DIP_START + DIP_OPT;
-    }
-
-    return 0;
-}
-
-static int runtime_expand_flags;
-
-    static void
-set_context_in_runtime_cmd(expand_T *xp, char_u *arg)
-{
-    char_u  *p = skiptowhite(arg);
-    runtime_expand_flags
-        = *p != NUL ? get_runtime_cmd_flags(&arg, p - arg) : 0;
-    while (*(p = skiptowhite_esc(arg)) != NUL)
-    {
-        if (runtime_expand_flags == 0)
-        {
-            runtime_expand_flags = DIP_ALL;
-        }
-        arg = skipwhite(p);
-    }
-    xp->xp_context = EXPAND_RUNTIME;
-    xp->xp_pattern = arg;
-}
-
-    static void
-remove_duplicates(garray_T *gap)
-{
-    int     i;
-    int     j;
-    char_u  **fnames = (char_u **)gap->ga_data;
-
-    sort_strings(fnames, gap->ga_len);
-    for (i = gap->ga_len - 1; i > 0; --i)
-    {
-        if ( vim_fnamecmp((char_u *)(fnames[i - 1]), (char_u *)(fnames[i]))  == 0)
-        {
-            vim_free(fnames[i]);
-            for (j = i + 1; j < gap->ga_len; ++j)
-            {
-                fnames[j - 1] = fnames[j];
-            }
-            --gap->ga_len;
-        }
-    }
-}
-
-    static void
-ExpandRTDir_int(char_u      *pat, size_t      pat_len, int         flags, int         keep_ext, garray_T    *gap, char        *dirnames[])
-{
-    for (int i = 0; dirnames[i] != NULL; ++i)
-    {
-        const size_t    buf_len =  strlen((char *)(dirnames[i]))  + pat_len + 64;
-        char            *buf = alloc(buf_len);
-        if (buf == NULL)
-        {
-            ga_clear_strings(gap);
-            return;
-        }
-        int             glob_flags = 0;
-        int             expand_dirs = FALSE;
-
-        vim_snprintf(buf, buf_len, "%s%s%s%s", *dirnames[i] ? dirnames[i] : "", *dirnames[i] ? "/" : "", pat, "*.vim");
-
-expand:
-        if ((flags & DIP_NORTP) == 0)
-        {
-            globpath(p_rtp, (char_u *)buf, gap, glob_flags, expand_dirs);
-        }
-
-        if (flags & DIP_START)
-        {
-            vim_snprintf(buf, buf_len, "pack/*/start/*/%s%s%s%s", *dirnames[i] ? dirnames[i] : "", *dirnames[i] ? "/" : "", pat, expand_dirs ? "*" : "*.vim");
-            globpath(p_pp, (char_u *)buf, gap, glob_flags, expand_dirs);
-        }
-
-        if (flags & DIP_OPT)
-        {
-            vim_snprintf(buf, buf_len, "pack/*/opt/*/%s%s%s%s", *dirnames[i] ? dirnames[i] : "", *dirnames[i] ? "/" : "", pat, expand_dirs ? "*" : "*.vim");
-            globpath(p_pp, (char_u *)buf, gap, glob_flags, expand_dirs);
-        }
-
-        if (*dirnames[i] == NUL && !expand_dirs)
-        {
-            vim_snprintf(buf, buf_len, "%s*", pat);
-            glob_flags = WILD_ADD_SLASH;
-            expand_dirs = TRUE;
-            goto expand;
-        }
-
-        vim_free(buf);
-    }
-
-    int pat_pathsep_cnt = 0;
-    for (size_t i = 0; i < pat_len; ++i)
-    {
-        if (vim_ispathsep(pat[i]))
-        {
-            ++pat_pathsep_cnt;
-        }
-    }
-
-    for (int i = 0; i < gap->ga_len; ++i)
-    {
-        char_u *match = ((char_u **)gap->ga_data)[i];
-        char_u *s = match;
-        char_u *e = s +  strlen((char *)(s)) ;
-        if (e - 4 > s && !keep_ext &&  strncasecmp((char *)(e - 4), (char *)(".vim"), (4))  == 0)
-        {
-            e -= 4;
-            *e = NUL;
-        }
-
-        int match_pathsep_cnt = (e > s && e[-1] == '/') ? -1 : 0;
-        for (s = e; s > match;  s -= TRUE ? (utf_head_off(match, (s) - 1) + 1) : 1 )
-        {
-            if (s < match || (vim_ispathsep(*s) && ++match_pathsep_cnt > pat_pathsep_cnt))
-            {
-                break;
-            }
-        }
-        ++s;
-        if (s != match)
-        {
-             memmove((char *)(match), (char *)(s), e - s + 1) ;
-        }
-    }
-
-    if (gap->ga_len == 0)
-    {
-        return;
-    }
-
-    remove_duplicates(gap);
-}
-
-    static int
-ExpandRTDir(char_u      *pat, int         flags, int         *num_file, char_u      ***file, char        *dirnames[])
-{
-    *num_file = 0;
-    *file = NULL;
-
-    garray_T    ga;
-    ga_init2(&ga, sizeof(char *), 10);
-
-    ExpandRTDir_int(pat,  strlen((char *)(pat)) , flags, FALSE, &ga, dirnames);
-
-    if (ga.ga_len == 0)
-    {
-        return FAIL;
-    }
-
-    *file = ga.ga_data;
-    *num_file = ga.ga_len;
-    return OK;
-}
-
-    static int
-expand_runtime_cmd(char_u *pat, int *numMatches, char_u ***matches)
-{
-    *numMatches = 0;
-    *matches = NULL;
-
-    garray_T    ga;
-    ga_init2(&ga, sizeof(char *), 10);
-
-    size_t pat_len = (int) strlen((char *)(pat)) ;
-    char *dirnames[] = {"", NULL};
-    ExpandRTDir_int(pat, pat_len, runtime_expand_flags, TRUE, &ga, dirnames);
-
-    if (runtime_expand_flags == 0)
-    {
-        char *where_values[] = {"START", "OPT", "PACK", "ALL"};
-        for (size_t i = 0; i <  (sizeof(where_values) / sizeof((where_values)[0])) ; ++i)
-        {
-            if ( strncmp((char *)(pat), (char *)(where_values[i]), (pat_len))  == 0)
-            {
-                char_u *p = vim_strsave((char_u *)where_values[i]);
-                if (p != NULL && ga_add_string(&ga, p) == FAIL)
-                {
-                    vim_free(p);
-                }
-            }
-        }
-    }
-
-    if (ga.ga_len == 0)
-    {
-        return FAIL;
-    }
-
-    *matches = ga.ga_data;
-    *numMatches = ga.ga_len;
-    return OK;
-}
-
-    static int
-ExpandPackAddDir(char_u      *pat, int         *num_file, char_u      ***file)
-{
-    char_u      *s;
-    char_u      *e;
-    char_u      *match;
-    garray_T    ga;
-    int         i;
-    int         pat_len;
-
-    *num_file = 0;
-    *file = NULL;
-    pat_len = (int) strlen((char *)(pat)) ;
-    ga_init2(&ga, sizeof(char *), 10);
-
-    s = alloc(pat_len + 26);
-    if (s == NULL)
-    {
-        ga_clear_strings(&ga);
-        return FAIL;
-    }
-    sprintf((char *)s, "pack/*/opt/%s*", pat);
-    globpath(p_pp, s, &ga, 0, TRUE);
-    vim_free(s);
-
-    for (i = 0; i < ga.ga_len; ++i)
-    {
-        match = ((char_u **)ga.ga_data)[i];
-        s = gettail(match);
-        e = s +  strlen((char *)(s)) ;
-         memmove((char *)(match), (char *)(s), e - s + 1) ;
-    }
-
-    if (ga.ga_len == 0)
-    {
-        return FAIL;
-    }
-
-    remove_duplicates(&ga);
-
-    *file = ga.ga_data;
-    *num_file = ga.ga_len;
-    return OK;
 }
 
 // ==================== search.c ====================
@@ -91923,8 +84492,6 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
     int         match_escaped = 0;
     int         dir;
     int         comment_col = MAXCOL;
-    int         lispcomm = FALSE;
-    int         lisp = curbuf->b_p_lisp;
     int         skip_comments = (flags & FM_SKIPCOMM) != 0;
     int         in_block_comment = FALSE;
 
@@ -92167,13 +84734,9 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
      (&match_pos)->col = 0;
      (&match_pos)->coladd = 0;
 
-    if ((backwards && comment_dir) || lisp || skip_comments)
+    if ((backwards && comment_dir) || skip_comments)
     {
         comment_col = check_linecomment(linep);
-    }
-    if (lisp && comment_col != MAXCOL && pos.col > (colnr_T)comment_col)
-    {
-        lispcomm = TRUE;
     }
     if (skip_comments && !in_block_comment && comment_col != MAXCOL && backwards && pos.col > (colnr_T)comment_col)
     {
@@ -92184,10 +84747,6 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
     {
         if (backwards)
         {
-            if (lispcomm && pos.col < (colnr_T)comment_col)
-            {
-                break;
-            }
             if (pos.col == 0)
             {
                 if (pos.lnum == 1)
@@ -92206,15 +84765,11 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
                 do_quotes = -1;
                 line_breakcheck();
 
-                if (comment_dir || lisp || skip_comments)
+                if (comment_dir || skip_comments)
                 {
                     comment_col = check_linecomment(linep);
                 }
-                if (lisp && comment_col != MAXCOL)
-                {
-                    pos.col = comment_col;
-                }
-                else if (skip_comments && !in_block_comment && comment_col != MAXCOL && pos.col > (colnr_T)comment_col)
+                if (skip_comments && !in_block_comment && comment_col != MAXCOL && pos.col > (colnr_T)comment_col)
                 {
                     pos.col = comment_col;
                 }
@@ -92227,9 +84782,9 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
         }
         else
         {
-            if (linep[pos.col] == NUL || (lisp && comment_col != MAXCOL && pos.col == (colnr_T)comment_col))
+            if (linep[pos.col] == NUL)
             {
-                if (pos.lnum == curbuf->b_ml.ml_line_count || lispcomm)
+                if (pos.lnum == curbuf->b_ml.ml_line_count)
                 {
                     break;
                 }
@@ -92244,7 +84799,7 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
                 pos.col = 0;
                 do_quotes = -1;
                 line_breakcheck();
-                if (lisp || skip_comments)
+                if (skip_comments)
                 {
                     comment_col = check_linecomment(linep);
                 }
@@ -92488,11 +85043,6 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
 
         __attribute__((fallthrough));
         default:
-            if (curbuf->b_p_lisp && vim_strchr((char_u *)"{}()[]", c) != NULL && pos.col > 1 && check_prevcol(linep, pos.col, '\\', NULL) && check_prevcol(linep, pos.col - 1, '#', NULL))
-            {
-                break;
-            }
-
             if (skip_comments && (in_block_comment || (comment_col != MAXCOL && (int)pos.col >= comment_col)))
             {
                 break;
@@ -93082,12 +85632,6 @@ vim_strsave_escaped_ext(char_u      *string, char_u      *esc_chars, int        
     }
     *p2 = NUL;
     return escaped_string;
-}
-
-    static int
-csh_like_shell(void)
-{
-    return (strstr((char *)gettail(p_sh), "csh") != NULL);
 }
 
     static char_u *
@@ -96927,16 +89471,6 @@ find_termcode(char_u *name)
     return NULL;
 }
 
-    static char_u *
-get_termcode(int i)
-{
-    if (i >= tc_len)
-    {
-        return NULL;
-    }
-    return &termcodes[i].name[0];
-}
-
     static void
 del_termcode(char_u *name)
 {
@@ -99633,10 +92167,6 @@ format_lines(linenr_T    line_count, int         avoid_fex)
                     if (curwin->w_cursor.lnum == first_line)
                     {
                         indent = get_indent();
-                    }
-                    else if (curbuf->b_p_lisp)
-                    {
-                        indent = get_lisp_indent();
                     }
                     else
                     {
@@ -103548,57 +96078,6 @@ curbufIsChanged(void)
 
 // ==================== usercmd.c ====================
 
-    static char_u *
-set_context_in_user_cmdarg(char_u          *cmd  __attribute__((unused)) , char_u          *arg, long            argt, int             context, expand_T        *xp, int             forceit)
-{
-    char_u      *p;
-
-    if (context == EXPAND_NOTHING)
-    {
-        return NULL;
-    }
-
-    if (argt & EX_XFILE)
-    {
-        return NULL;
-    }
-
-    if (context == EXPAND_COMMANDS)
-    {
-        return arg;
-    }
-    if (context == EXPAND_MAPPINGS)
-    {
-        return set_context_in_map_cmd(xp, (char_u *)"map", arg, forceit, FALSE, FALSE, CMD_map);
-    }
-    if (!(argt & EX_ARGSPACE))
-    {
-        p = arg;
-        while (*p)
-        {
-            if (*p == ' ')
-            {
-                arg = p + 1;
-            }
-            else if (*p == '\\' && *(p + 1) != NUL)
-            {
-                ++p;
-            }
-             p += utfc_ptr2len(p) ;
-        }
-    }
-    xp->xp_pattern = arg;
-    xp->xp_context = context;
-
-    return NULL;
-}
-
-    static char_u *
-expand_user_command_name(int idx)
-{
-    return NULL;
-}
-
     static char *
 uc_fun_cmd(void)
 {
@@ -103925,10 +96404,10 @@ static struct cmdname cmdnames[] =
     [CMD_ll] = {(char_u *)"ll", sizeof("ll") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_QUICKFIX},
     [CMD_llast] = {(char_u *)"llast", sizeof("llast") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
     [CMD_llist] = {(char_u *)"llist", sizeof("llist") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lmap] = {(char_u *)"lmap", sizeof("lmap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lmapclear] = {(char_u *)"lmapclear", sizeof("lmapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_lmap] = {(char_u *)"lmap", sizeof("lmap") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_lmapclear] = {(char_u *)"lmapclear", sizeof("lmapclear") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_lmake] = {(char_u *)"lmake", sizeof("lmake") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_NONE},
-    [CMD_lnoremap] = {(char_u *)"lnoremap", sizeof("lnoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_lnoremap] = {(char_u *)"lnoremap", sizeof("lnoremap") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_lnext] = {(char_u *)"lnext", sizeof("lnext") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
     [CMD_lnewer] = {(char_u *)"lnewer", sizeof("lnewer") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
     [CMD_lnfile] = {(char_u *)"lnfile", sizeof("lnfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
@@ -103942,7 +96421,7 @@ static struct cmdname cmdnames[] =
     [CMD_lpfile] = {(char_u *)"lpfile", sizeof("lpfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_OTHER},
     [CMD_lrewind] = {(char_u *)"lrewind", sizeof("lrewind") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
     [CMD_ltag] = {(char_u *)"ltag", sizeof("ltag") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_BANG| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
-    [CMD_lunmap] = {(char_u *)"lunmap", sizeof("lunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_lunmap] = {(char_u *)"lunmap", sizeof("lunmap") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_lua] = {(char_u *)"lua", sizeof("lua") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_luado] = {(char_u *)"luado", sizeof("luado") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_luafile] = {(char_u *)"luafile", sizeof("luafile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},

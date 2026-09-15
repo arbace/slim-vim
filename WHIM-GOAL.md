@@ -3107,7 +3107,7 @@ already unreachable, behind a `c = TRUE` its own test could never pass).
 
 A row of `options[]` whose variable is `(char_u *)NULL` is an option `:set` accepts,
 reports and ignores: its feature was never compiled in — folding, syntax, the GUI,
-printing, cscope, the interpreter DLLs — or went in an earlier phase. **166 of
+printing, cscope, the interpreter DLLs — or went in an earlier phase. **172 of
 them.** `tools/whim54.sh` computes the set from the table rather than listing it,
 so a row upstream adds later without a variable goes too, and hands it to
 `dropoptions.py`. None was buffer- or window-local, and no code outside the table
@@ -3117,9 +3117,12 @@ names one by string.
 matched, not the row: a string default is often `(char_u *)NULL` too, and a first
 count by row put `'messagesopt'`, `'wincolor'` and `'winhighlight'` among them. And
 the spacing varies — `'termguicolors'` is `(char_u*)NULL` — so a pattern with the
-space found 165. The post-condition had a trap of its own: a row's flags and its
+space found 165. **And a row's flags can wrap onto a second line** — `'diffopt'`,
+`'foldmarker'`, `'guifont'`, `'guifontwide'`, `'breakindentopt'` and `'undodir'` — so
+a flag list without whitespace in it left those six behind; they were found only
+when the options that survived were read by eye. The post-condition had a trap of its own: a row's flags and its
 variable are on two lines, so a `grep` for rows left counted 0 whatever was left.
-It reads across lines now, and was checked to count 166 on the phase's input.
+It reads across lines now, and was checked to count 172 on the phase's input.
 
 The phase checks `:set sw` still works and that `'foldmethod'`, `'cursorline'`,
 `'undofile'` and `'clipboard'` are unknown.
@@ -3127,7 +3130,7 @@ The phase checks `:set sw` still works and that `'foldmethod'`, `'cursorline'`,
 ### The delta
 
 **None the harnesses record** — no case sets an option without a variable.
-Measured: 110,672 → **110,057 lines**.
+Measured: 110,672 → **110,025 lines**.
 
 ## Phase 55 — no option nothing reads
 
@@ -3166,8 +3169,115 @@ sw` still works and that `'shelltemp'`, `'commentstring'` and `t_EI` are unknown
 
 ### The delta
 
-**None the harnesses record** — no case sets one. Measured: 110,057 →
-**109,687 lines**; 161 options and 77 terminal codes remain.
+**None the harnesses record** — no case sets one. Measured: 110,025 →
+**109,655 lines**.
+
+## Phase 56 — no shell, runtime or keyword-program options
+
+Six options whose readers survived only in machinery with nothing left to serve.
+**`'shell'`, `'shellquote'` and `'shellredir'`**: no shell is ever run — `call_shell()`
+and `mch_call_shell()` went long before — so `'shell'` only chose the default of
+`'shellredir'` in `set_init_3()` and whether filename escaping doubled a `!` for csh,
+and `'shellquote'` only wrapped `do_bang()`'s command line. **`'runtimepath'` and
+`'packpath'`**: there is no runtime to find. Their readers were the completion of
+`:colorscheme`, `:compiler`, `:ownsyntax`, `:setfiletype`, `:packadd` and
+`:runtime` — every one of them `ex_ni` — and of `:set ft=`, which listed runtime
+syntax, indent and ftplugin names. **`'keywordprg'`**: `K` is gone; only `:set kp=`
+defaulting to `:help` read it. Each reader is folded before the rows go, and the
+phase greps afterwards for every variable and helper.
+
+**One plumbing site had a shape `droplocal.py` did not know.** `get_varp()`'s "local
+if set" case for `'keywordprg'` reads `&curbuf->b_p_kp`, without the parentheses
+every other such case has, so its two mentions counted as readers and the tool
+refused. The phase removes that case by hand first; the shared tool is unchanged,
+so no other phase's key moved.
+
+### The delta
+
+**None the harnesses record.** Measured: 109,655 → **109,039 lines**.
+
+## Phase 57 — no lisp
+
+`'lisp'` and `'lispwords'` go, and with them everything they switched on:
+`get_lisp_indent()` for autoindent, `=`, `gq` and new lines; `lisp_match()` over
+`'lispwords'`; `-` as a keyword character; `;` line comments in
+`check_linecomment()`; and `findmatchlimit()`'s lisp mode, which stopped `%` at a
+`;` comment and skipped `#\(` character literals. `'lispoptions'` went in Phase 55.
+
+`b_p_lisp` is folded as false at every reader rather than stubbed — nine places
+in `findmatchlimit()` alone — so each branch it guarded is gone or taken
+unconditionally. One test inverts: `op_reindent()` skipped the last line of a
+range only when re-indenting with `get_lisp_indent()`, so its `how !=
+get_lisp_indent` is always true and the branch is kept. The phase checks the two
+options are unknown and that `%` on `(a ; b)` now matches across the `;`.
+
+### The delta
+
+**None the harnesses record** — no case sets `'lisp'`. Measured: 109,039 →
+**108,651 lines**.
+
+## Phase 58 — no language mappings
+
+`'iminsert'` and `'imsearch'` are 0 from here on, so language mappings are never
+active and nothing can make them so. `:lmap`, `:lnoremap`, `:lunmap` and
+`:lmapclear` point at `ex_ni` and lose their completion. CTRL-^ in Insert mode and
+on the command line is still consumed — its `case` stays, so it does not start
+inserting itself — and toggles nothing. `MODE_LANGMAP` is never set, so every test
+of it folds: in `edit()`, `ex_append()`, `ins_insert()`,
+`normal_cmd_get_more_chars()`'s lookup for `r`, `f` and `t`, `getcmdline_int()`
+for `/`, `?` and `@`, `handle_mapping()`, `vgetorpeek()`, `get_map_mode()` and
+`map_mode_to_chars()`. The status line's `<lang>` goes with `get_keymap_str()`,
+which only ever printed it.
+
+**The declared delta was wrong once, and the harness said so.** It named all four
+commands; `:lunmap`'s row did not move, because bare `:lunmap` already failed for
+want of an argument and `ex_ni` fails too. The declaration was corrected rather
+than the check widened. The phase checks the two options are unknown, `:lmap` is
+refused, and CTRL-^ in Insert mode inserts nothing.
+
+### The delta
+
+`:lmap`, `:lnoremap` and `:lmapclear`, now `ex_ni`. Measured: 108,651 →
+**108,374 lines**.
+
+## Phase 59 — no command-line completion
+
+The command line no longer completes anything. In `getcmdline_int()` the
+`'wildchar'` and `'wildcharm'` keys, S-Tab, CTRL-D (list), CTRL-A (insert all),
+CTRL-L (longest match) and CTRL-N/CTRL-P over matches go; each of those keys is now
+an ordinary character, CTRL-N and CTRL-P browse history as they did when there were
+no matches, and CTRL-L still adds a character to an incremental search. The six
+wild* options go with them: `'wildchar'`, `'wildcharm'`, `'wildmode'`,
+`'wildoptions'`, `'wildignore'` and `'wildignorecase'`.
+
+What completion shared with filename expansion stays: `expand_filename()` →
+`ExpandOne()` with `EXPAND_FILES`, and the argument list through
+`expand_wildcards()`. So `ExpandFromContext()` keeps its file branch and loses the
+rest — options, mappings, buffers, highlight groups, `++opt`, every command's
+arguments — and `ExpandOne()` keeps the one mode its last caller asks for. The
+phase checks after the sweep that `expand_filename()` is that last caller.
+
+**Three things kept the machinery alive, and each was found by the post-condition
+greps rather than by reading.** `didset_options2()` still parsed `'wildmode'` into
+`wim_flags` at startup, which nothing read. Every `options[]` row still named the
+callback that completes its value — 29 of them — so the table kept `ExpandGeneric()`
+and the fuzzy matcher reachable; no code reads that field any more, and the rows
+now hold `NULL`. And the check that `ExpandOne()` had one caller ran first before
+the sweep, when its dead callers were all still there. The sweep then took
+6,208 lines.
+
+**`:e` does not expand a wildcard, and has not for a long time.** The first probe
+here asked that `:e onlyo*` edit `onlyone.txt`. It failed — and failed identically on
+the previous phase's binary, which wrote a file named `onlyo*`. slim-vim expands it;
+the Phase 12, 18, 30 and 44 boundaries do not. So filename globbing was lost at or
+before Phase 12, silently, because no harness case uses a wildcard. This phase does
+not change it, and the probe checks `:e` on a plain name instead. The loss is
+recorded here rather than fixed: it is a question for its own phase.
+
+### The delta
+
+**None the harnesses record** beyond Phase 58's. Measured: 108,374 →
+**102,166 lines**.
 
 ## Unused, and unuseful
 
