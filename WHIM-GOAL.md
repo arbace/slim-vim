@@ -3334,6 +3334,73 @@ a copy of the Phase 59 boundary, since this phase touches nothing Phase 60 does.
 
 **None the harnesses record.** Measured: 101,826 → **101,188 lines**.
 
+## Phase 62 — no buffer-type, file-type, listing, jump, update-time or autowrite options
+
+Seven options, each checked by what its readers still did:
+
+- **`'buflisted'`** — every reader chose which autocommand event to fire, and
+  `apply_autocmds_group()` has been `return FALSE` since autocommands went, or
+  searched a buffer list of one. The `set_buflisted()` calls go with it.
+- **`'filetype'`** — every reader fed the FileType event, which cannot fire, or
+  `fix_help_buffer()`, and `:help` is `ex_ni`.
+- **`'buftype'`** — the one that was live, but only through `:set bt=`: `nofile`,
+  `nowrite`, `acwrite` and `prompt` refused `:w` and skipped reading, and `help` set
+  `b_help`. Nothing inside the editor ever set it. `bt_dontwrite()`,
+  `bt_nofilename()`, `bt_nofileread()` and `bt_prompt()` fold as false at every
+  caller — including two inside one `snprintf` line in `fileinfo()`, the
+  `[Not edited]` and `[New]` notes, and `buf_write()`'s `nofile_err`, set in three
+  branches and read in two tests and one condition.
+- **`'jumpoptions'`** — empty, so the "stack" behaviour of the jump list folds.
+- **`'updatetime'`** — **not dead**: its idle timeout drives `before_blocking()`. It
+  becomes its default, 4000 ms, written where it was read.
+- **`'autowrite'`** and **`'autowriteall'`** — off, so `autowrite()` always failed and
+  `autowrite_all()` returned at once. Their callers fold, and so does the `CCGD_AW`
+  flag — including the two places, `:next` and `do_argfile()`, that passed it
+  unconditionally.
+
+**The phase took five runs to get right, and every failure was the post-condition
+grep or a tool refusing, never the build.** `droplocal.py` refused `b_p_bl` with
+two plumbing sites where it requires three — the folds had already taken its
+initialiser, so its field and `get_varp()` case go by hand — and then refused
+`b_p_bt` because `fileinfo()` still called `bt_dontwrite()` a second time. The
+grep then found `CCGD_AW` and `nofile_err` alive. Each was a reader the first
+reading had missed, not a reader the check invented.
+
+### The delta
+
+**None the harnesses record.** Measured: 101,188 → **100,742 lines**.
+
+## Phase 63 — no jump list
+
+The per-window jump list goes: `w_jumplist`, `w_jumplistlen` and
+`w_jumplistidx`; `setpcmark()` appending to it; CTRL-O and CTRL-I walking it
+through `movemark()`; `:jumps` and `:clearjumps`, now `ex_ni`; `cleanup_jumplist()`;
+copying it into a new window and freeing it with one; and the loops in
+`mark_adjust_internal()`, `mark_col_adjust()`, `mark_forget_file()` and
+`fmarks_check_names()` that kept its marks right when lines moved or a file was
+forgotten.
+
+**What stays, because it is not the jump list.** The previous-context mark behind
+`''` and `` ` ` `` — `w_pcmark`, still set by `setpcmark()`. The change list and
+`g;`/`g,`: `nv_pcmark()` served both, and keeps that half. `:keepjumps`, which
+guards the pcmark and the change list too. And `JUMPLISTSIZE`, which sizes the
+change list. CTRL-O in Select mode still runs one Visual command; elsewhere CTRL-O
+and CTRL-I beep, and `<Tab>` is mapped to `%` in this build, so losing CTRL-I's
+meaning costs nothing typed. The phase greps afterwards that `w_pcmark` and
+`movechangelist` survived, since either going would mean it took more than the
+jump list.
+
+It was tried first on the Phase 61 boundary, before Phase 62 was recorded. That
+trial failed only on the `'jumpoptions'` block Phase 62 removes — so it checked
+this phase's own script and nothing else.
+
+The phase checks `:jumps` is refused, CTRL-O after `3G` leaves the cursor on line
+3, and `''` after `3G` still returns to line 1.
+
+### The delta
+
+`:jumps` and `:clearjumps`, now `ex_ni`. Measured: 100,742 → **100,453 lines**.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.
