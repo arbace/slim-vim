@@ -9,9 +9,14 @@
 #
 # THE FILES.  source_startup_scripts() looked for a vimrc in five places, an
 # exrc in the current directory, and a plugin in every directory of
-# 'runtimepath'.  It now reads the file it was told to read on the command line
-# and nothing else, and 'exrc' -- the option that let a directory carry its own
-# configuration -- goes with it.
+# 'runtimepath'.  It reads nothing at all now -- not even a file named with -u,
+# which goes too -- and 'exrc', the option that let a directory carry its own
+# configuration, goes with it.
+#
+# -u GOES HERE, not later, so that no tool depends on it.  -u NONE was how a
+# harness kept a vimrc out of a recorded run; once nothing is searched for, it
+# is a no-op, and every harness now isolates the editor with an empty $HOME,
+# $VIM and $VIMRUNTIME instead, which holds for slim-vim too.
 #
 # THE FLAGS.  What is left of the command line is what the flags still decide,
 # and several of them no longer decide anything: -y and -Z chose modes whose
@@ -21,7 +26,7 @@
 # THEY ARE ONE PHASE because the second is what the first leaves behind: a flag
 # is only pointless once the thing it selected is gone.
 #
-# THE DELTA: none the harness records.  A harness passes its own -c and -u.
+# THE DELTA: none the harness records.  No harness passes -u.
 set -eu
 
 work=${1:?usage: whim18.sh <work-dir>}
@@ -33,7 +38,7 @@ tools/symbols.sh "$f" .cache/symbols/before
 # --- cut the entry points -------------------------------------------------
 python3 tools/nostartup.py "$f"
 python3 tools/dropoptions.py "$f" --strict exrc
-python3 tools/dropopts.py "$f" -y -Z
+python3 tools/dropopts.py "$f" -y -Z -u
 python3 tools/nocmdopts.py "$f"
 python3 tools/dropoptions.py "$f" --strict viminfo viminfofile
 
@@ -43,7 +48,7 @@ tools/sweep.sh "$f"
 # environment name this phase removed is mentioned anywhere.  Asking before the
 # sweep gets the wrong answer -- process_env is still there at that point and it
 # is the sweep that removes it.
-for g in p_exrc process_env set_init_xdg_rtp '"VIMINIT"' '"EXINIT"' '"XDG_CONFIG_HOME"'; do
+for g in p_exrc process_env set_init_xdg_rtp source_startup_scripts '"VIMINIT"' '"EXINIT"' '"XDG_CONFIG_HOME"'; do
     n=$(grep -c -- "$g" "$f" || true)
     if [ "$n" != 0 ]; then
         echo "  globals      $g still has $n mentions after the sweep"
@@ -76,6 +81,16 @@ tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
 
 tools/phasebuild.sh "$work" "$before_lines"
+
+# -u must now be what any unknown option is, and the control must still run.
+out=$(cd "$work" && ./whim-vim -e -s -c 'qa!' </dev/null 2>&1) && rc=0 || rc=$?
+[ "$rc" = 0 ] || { echo "  cli          the control failed: -e -s -c qa! exits $rc: $out"; exit 1; }
+out=$(cd "$work" && ./whim-vim -u NONE -e -s -c 'qa!' </dev/null 2>&1) && rc=0 || rc=$?
+case "$out" in
+    *"Unknown option argument"*) [ "$rc" = 1 ] || { echo "  cli          -u exits $rc, expected 1"; exit 1; } ;;
+    *) echo "  cli          -u is not refused as unknown (exit $rc): $out"; exit 1 ;;
+esac
+echo "  cli          -u is an unknown option"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --cases bomb_on,filter,read_cmd \

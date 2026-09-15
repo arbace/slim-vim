@@ -46,7 +46,7 @@ DROPPED = [
     ['-l'], ['-C'], ['-N'], ['-n'], ['-p'], ['-p2'], ['-V'], ['-V9'],
 ]
 
-EX = ['-u', 'NONE', '-e', '-s']
+EX = ['-e', '-s']
 
 FILES = (('f.txt', 'hello\n'), ('g.txt', 'world\n'), ('s.vim', 'set ts=2\n'),
          ('rc.vim', 'set sw=7\n'), ('keys.in', ''))
@@ -88,13 +88,13 @@ def kept():
         ('-m', EX + ['-m'] + q('set write?'), shows('nowrite')),
         ('-M', EX + ['-M'] + q('set ma?'), shows('nomodifiable')),
         ('-wN', EX + ['-w7'] + q('set window?'), shows('window=7')),
-        ('-E', ['-u', 'NONE', '-E', '-s'] + q('set ts?'), shows('tabstop=4')),
+        ('-E', ['-E', '-s'] + q('set ts?'), shows('tabstop=4')),
         # -v leaves Ex mode, so with no terminal it warns -- which is the proof.
         ('-v', EX + ['-v'] + q('set ts?'), shows('terminal')),
-        ('--ttyfail', ['-u', 'NONE', '--ttyfail'] + q('set ts?'), shows('terminal', rc=1)),
+        ('--ttyfail', ['--ttyfail'] + q('set ts?'), shows('terminal', rc=1)),
         ('-W', EX + ['-W', 'w.out'] + q('set ts?'), made('w.out')),
         ('-w file', EX + ['-w', 'a.out'] + q('set ts?'), made('a.out')),
-        ('-s file', ['-u', 'NONE', '-s', 'keys.in', '-e', '-s'] + q('set ts?'), accepted),
+        ('-s file', ['-s', 'keys.in', '-e', '-s'] + q('set ts?'), accepted),
         ('-oN', EX + ['-o2', '-c', 'qa!', 'f.txt', 'g.txt'], accepted),
         ('-ON', EX + ['-O2', '-c', 'qa!', 'f.txt', 'g.txt'], accepted),
         ('-T', EX + ['-T', 'xterm'] + q('set ts?'), accepted),
@@ -109,14 +109,20 @@ def run(vim, root, argv):
     for name, content in FILES:
         with open(os.path.join(d, name), 'w') as f:
             f.write(content)
-    p = subprocess.run([vim] + argv, cwd=d, stdin=subprocess.DEVNULL,
+    # No -u NONE: an empty $HOME, $VIM and $VIMRUNTIME are the isolation.  -u
+    # itself is still checked below, as an option, at the phase where it exists.
+    env = dict(os.environ, HOME=d, VIM=os.path.join(d, 'novim'),
+               VIMRUNTIME=os.path.join(d, 'novim'), XDG_CONFIG_HOME=os.path.join(d, 'xdg'))
+    for k in ('VIMINIT', 'EXINIT', 'MYVIMRC'):
+        env.pop(k, None)
+    p = subprocess.run([vim] + argv, cwd=d, stdin=subprocess.DEVNULL, env=env,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                        start_new_session=True, timeout=30)
     return p.returncode, p.stdout.decode('utf-8', 'replace'), d
 
 
 def dropped_case(vim, root, opt):
-    rc, out, _ = run(vim, root, ['-u', 'NONE', '-e', '-s'] + opt + ['-c', 'qa!', 'f.txt'])
+    rc, out, _ = run(vim, root, ['-e', '-s'] + opt + ['-c', 'qa!', 'f.txt'])
     if rc != 1 or UNKNOWN % opt[0] not in out:
         return 'dropped %-20s exit %d: %s' % (' '.join(opt), rc,
                                                out.strip().replace('\n', ' | ')[:90])

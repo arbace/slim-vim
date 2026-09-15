@@ -34,8 +34,7 @@ removes what a row cannot:
   read keystrokes from a file and `-w`/`-W file` recorded them to one.  `-s`
   keeps its other meaning, silent Ex mode, and `-wN` still sets 'window'.
 
-`-u file` stays: it is the only startup file there is, and every harness passes
-`-u NONE`.
+There is no startup file to read: Phase 18 removed the search and `-u` with it.
 """
 
 import re
@@ -81,8 +80,6 @@ DROPS = [
     ("noautocmd saving 'eventignore'",
      r'^[ \t]*if \(\(cmod->cmod_flags & CMOD_NOAUTOCMD\) && cmod->cmod_save_ei == NULL\)$'),
     ("noautocmd restoring 'eventignore'", r'^[ \t]*if \(cmod->cmod_save_ei != NULL\)$'),
-    ("'loadplugins' switched off by -u NONE, for plugins that are never loaded",
-     r'^[ \t]*if \(params\.use_vimrc != NULL && \( strcmp\(\(char \*\)\(params\.use_vimrc\), \(char \*\)\("NONE"\)\)  == 0'),
 ]
 
 LITERAL = [

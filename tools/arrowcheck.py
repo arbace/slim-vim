@@ -42,8 +42,13 @@ def run(binary, keys):
         pid, fd = pty.fork()
         if pid == 0:
             os.environ['TERM'] = 'xterm'
+            # No -u NONE: an empty $HOME, $VIM and $VIMRUNTIME are the isolation.
+            os.environ.update(HOME=d, VIM=os.path.join(d, 'novim'),
+                              VIMRUNTIME=os.path.join(d, 'novim'), XDG_CONFIG_HOME=os.path.join(d, 'xdg'))
+            for k in ('VIMINIT', 'EXINIT', 'MYVIMRC'):
+                os.environ.pop(k, None)
             os.chdir(d)
-            os.execv('./vim', ['vim', '-u', 'NONE', 'f.txt'])
+            os.execv('./vim', ['vim', 'f.txt'])
             os._exit(127)
         time.sleep(0.9)
         for k in keys:

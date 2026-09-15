@@ -301,7 +301,7 @@ bare `if`, and the chain came apart: `--clean`, `--noplugin` and `--not-a-term`
 each matched their own branch, failed every test after it, and reached `mainerr`
 anyway. **Three options broken for thirty phases, and nothing noticed, because no
 harness passed a single option** — `behaviour.py`, `exsweep.py` and
-`termcheck.py` all run `-u NONE -e -s` and nothing else. The removed link's own
+`termcheck.py` all ran `-u NONE -e -s` and nothing else. The removed link's own
 `else` decides now.
 
 `tools/clicheck.py` is the harness that was missing. It runs every option the
@@ -1158,10 +1158,22 @@ $VIMINIT                  $HOME/.vimrc                  $HOME/.exrc
 because reading a config file out of the current directory is a way to be handed
 someone else's commands.
 
-All of it goes. **`-u <file>` stays, and so does `:source`**: a file the user
-names is not the editor going looking, and Phase 10 already settled `:source`.
-`NONE`, `NORC` and `DEFAULTS` are still recognised as `-u` arguments and still
-mean "read nothing" — which they now do by agreeing with everything else.
+All of it goes, **and so does `-u`**. `-u <file>` was the one branch left that
+read a file, and `-u NONE` — how every harness kept a vimrc out of a recorded run
+— is a no-op once nothing is searched for. With no path to search and no name to
+be given, `source_startup_scripts()` has no body, its call goes, and the sweep
+takes it; the `-u NONE` test in `main()` that switched `'loadplugins'` off goes
+with the option it asked about. `:source` stays until Phase 35.
+
+**It goes here, not later, so that no tool depends on it.** The harnesses are
+shared with the slim pipeline, whose editor still searches, so they could not
+simply stop passing `-u NONE`. They isolate through the environment instead — an
+empty `$HOME`, `$VIM`, `$VIMRUNTIME` and `$XDG_CONFIG_HOME` — which is what `-u
+NONE` was for and holds for both editors. Measured against `slim-vim`, with a
+real `~/.vimrc` present on the machine: 0 of 67 behaviour cases, 0 of 600 Ex
+commands and 0 of 19 terminal rows differ from the baselines recorded with `-u
+NONE`, and `tools/verify.sh` is all clear. `tools/clicheck.py` still checks `-u
+rc.vim` as an option at Phase 3, where it exists.
 
 `set_init_xdg_rtp()` goes with them. It built a `'runtimepath'` out of
 `$XDG_CONFIG_HOME`, and **Phase 1 emptied that option while this was still
@@ -1172,14 +1184,11 @@ which selected between two searches that no longer happen.
 
 #### The delta
 
-**None, and that is the point rather than a surprise.** Every harness passes
-`-u NONE`, so none of these paths was taken in a recorded run. What changes is
-that the editor no longer needs to be told.
-
-That is also why this phase comes before the one that removes `-u` itself. The
-option is what suppresses the search; while the search exists, dropping the
-option would change every harness at once. Once nothing is searched for, `-u
-NONE` is a no-op and the option can go without moving a single recorded output.
+**None, and that is the point rather than a surprise.** No harness passes `-u`,
+and under an empty environment none of these paths is taken. What changes is
+that the editor no longer needs to be told — and that it can no longer be told.
+The phase checks that `-u NONE` is now an unknown option against a control that
+still runs.
 
 ### command-line options that no longer decide anything
 
@@ -1192,8 +1201,7 @@ Four outlived what they controlled, each in a different way.
 | `-t` | jump to a tag at startup, by running `:ta <tag>`. Phase 10 retired `:tag`, so its whole effect is to run a command that reports it is not implemented |
 | `-i` | the viminfo file. `'viminfo'` and `'viminfofile'` are wired to `(char_u *)NULL` in **both** editors — the tiny configuration has no viminfo at all |
 
-**`-u <file>` stays.** Phase 18 removed every path the editor searched on its
-own; a file the user names is not the editor going looking.
+**`-u` went above**, with the search it used to suppress.
 
 #### The harnesses change, and that is the check
 
@@ -2036,7 +2044,7 @@ if (can_cindent && cindent_on() && ...)  { force_cindent: ... }
 So the two have to go together or not at all — removing the second alone orphans
 the label, and removing the first alone leaves a label nothing reaches.
 
-Measured: 142,206 → 138,214 lines, 3,992 removed against 3,007 predicted; the
+Measured: 142,170 → 138,178 lines, 3,992 removed against 3,007 predicted; the
 option plumbing and the `b_ind_*` fields were the difference.
 
 ## Phase 29 — `:command`, user-defined commands
@@ -2113,7 +2121,7 @@ not the feature. In a real pty both binaries give the same correct answer, and
 `tools/starcheck.py` now asks it there: from `foo` on line 1, `*` must land on
 the `foo` on line 5 and **skip `foobar`**, which `dd` then proves.
 
-Measured: 136,226 → 135,977 lines; `nv_ident()` from 227 lines to the search
+Measured: 136,190 → 135,941 lines; `nv_ident()` from 227 lines to the search
 half. **The delta is none** — these are normal-mode keys, so no Ex command
 moves.
 
@@ -2148,7 +2156,7 @@ pair is a check: `:w %` must still write the file being edited, and `%:t` must
 stop being a tail. One without the other passes on a `eval_vars()` that returns
 NULL for everything.
 
-Measured: 135,977 → 135,351 lines.
+Measured: 135,941 → 135,315 lines.
 
 ## Phase 32 — insert completion, the popup menu, and the keys that reached them
 
@@ -2270,7 +2278,7 @@ Down then `X` must give `twoX`. **It was proved able to fail first** — with
 
 ### The delta
 
-Measured: **135,351 → 127,167 lines** and symbols 88 → 88, the subsystem being
+Measured: **135,315 → 127,131 lines** and symbols 88 → 88, the subsystem being
 pure computation over things already removed. The thirteen functions that remain
 of the island are constant-answer stubs the redraw layer asks on its own account.
 **Merged, the phase reproduces the boundary the two phases recorded byte for
@@ -2326,7 +2334,7 @@ rows with it were re-verified and all reproduce their boundaries.
 **`:colorscheme`**, which run bare reported the current scheme and succeeded in
 `slim-vim`, and now reports that it is not implemented. Every other row already
 failed, or is one the sweep skips because it hands over the terminal. Measured:
-127,167 → **127,073 lines**, libc symbols 88 → 88.
+127,131 → **127,037 lines**, libc symbols 88 → 88.
 
 ## Phase 34 — no abbreviations
 
@@ -2364,7 +2372,7 @@ now asks only about calls outside the definitions going away.
 **The nine rows that succeeded run bare** — `:abbreviate`, `:noreabbrev` and
 `:abclear` with their `i` and `c` forms, which listed or cleared nothing and
 exited 0 — measured before the cut. The three `:unabbreviate` rows already failed
-with no argument. Measured: 127,073 → **126,792 lines**, libc symbols 88 → 88.
+with no argument. Measured: 127,037 → **126,756 lines**, libc symbols 88 → 88.
 
 ## Phase 35 — no scripts, no session, no autocommands
 
@@ -2372,8 +2380,8 @@ Three things that are one question: can the editor be told to do something
 later, or somewhere else, by a file? A script is commands read from a file, a
 session is a script the editor wrote about itself, and an autocommand is a
 command registered now to run when an event happens. None of them has anywhere
-to come from: nothing is installed, no vimrc is searched for, and the only file
-read at startup is the one `-u` names.
+to come from: nothing is installed, no vimrc is searched for, and since Phase 18
+nothing at all is read at startup.
 
 | | what goes |
 | --- | --- |
@@ -2437,7 +2445,7 @@ it — `get_varp()`, `copy_winopt()`, `check_winopt()`, `clear_winopt()` — its
 `:scriptversion`, `:legacy` and `:setfiletype` already failed with no argument.
 No harness sources, redirects,
 suspends or defines an autocommand, and each passes `-s` only after `-e`.
-Measured: 126,792 → **123,908 lines**, libc symbols 88 → 88.
+Measured: 126,756 → **123,384 lines**, libc symbols 88 → 88.
 
 ## Phase 36 — one tab page, always
 
@@ -2488,7 +2496,299 @@ Left alone, as every earlier phase left them: the completion arms of
 `:tabmove`, `:tablast`, `:tabnext`, `:tabnew`, `:tabonly`, `:tabprevious`,
 `:tabNext`, `:tabrewind`, `:tabs` and `:redrawtabline` — measured before the cut.
 `:tabclose` and `:tabdo` already failed with no argument. No harness opens a tab
-page. Measured: 123,908 → **122,814 lines**, libc symbols 88 → 88.
+page. Measured: 123,384 → **122,290 lines**, libc symbols 88 → 88.
+
+## Phase 37 — no command that does nothing
+
+What was left in the table after Phase 36, read handler by handler, had ten
+rows that either did nothing or did something this editor does not want:
+
+| rows | what they did |
+| --- | --- |
+| `:browse`, `:confirm` | modifiers whose flags went with the file browser and the dialogs; each skipped its own name and ran the rest |
+| `:tmap`, `:tnoremap`, `:tunmap`, `:tmapclear` | stored mappings for terminal-job mode, which nothing enters — no assignment puts `MODE_TERMINAL` in `State` |
+| `:winpos` | "not implemented" bare; with two numbers, checked them and did nothing |
+| `:behave` | set `'selection'`, `'selectmode'` and `'keymodel'` to another editor's habits — `mswin`'s naming the mouse, which Phase 24 removed |
+| `:mode` | a screen-mode switch no terminal here has; bare, a redraw |
+| `:open` | vi's open mode, which here was a cursor move followed by `:visual` |
+
+All ten go to `ex_ni`. `tools/noinert.py` removes what a row cannot:
+
+- **`:browse` and `:confirm` are matched by name in
+  `parse_command_modifiers()`**, before the table, so their branches go; the
+  name then reaches the table and is not implemented. `:browse set ic` no longer
+  sets anything.
+- **Terminal-job mappings.** `get_map_mode()` loses its `'t'` and
+  `map_mode_to_chars()` the letter it printed. The `MODE_TERMINAL` enumerator
+  and the masks that test it stay — constants, costing nothing.
+- **Completion.** Unlike the phases before it, this one takes the
+  `set_context_by_cmdname()` arms for its names, because `:behave`'s is what
+  kept `get_behave_arg()` alive.
+
+**`:highlight` stays.** It sets the colours of highlight groups, and `Search` is
+the one `'hlsearch'` draws with; the defaults are applied through
+`do_highlight()` whether or not the command exists, but changing them needs it.
+Syntax highlighting is not in this build — the `:syntax` row already points
+at `ex_ni`.
+
+### The delta
+
+**The seven rows that succeeded run bare** — `:browse`, `:confirm`, `:mode`,
+`:open`, `:tmap`, `:tmapclear` and `:tnoremap`, read from the slim baseline.
+`:behave`, `:tunmap` and `:winpos` already failed with no argument. Measured:
+122,290 → **122,145 lines**, libc symbols 88 → 88.
+
+## Phase 38 — the argument list is walked by `:next` and `:previous` alone
+
+**The list stays.** `vim a b c` fills it, `:next` and `:previous` move through
+it, `:next x y` replaces it, `:drop` sets it, and quitting with files not yet
+edited is still refused. Every other command on it goes — twenty-five rows:
+`:args`, `:argglobal`, `:arglocal`, `:argadd`, `:argdelete`, `:argdedupe`,
+`:argedit`, `:argument`, `:sargument`, `:first`, `:sfirst`, `:rewind`,
+`:srewind`, `:last`, `:slast`, `:snext`, `:wnext`, `:Next`, `:sNext`,
+`:sprevious`, `:wNext`, `:wprevious`, `:all`, `:sall` and `:argdo`.
+
+**`:Next` is a row of its own**, spelled apart from `:previous` though it shares
+the handler, so `:N` goes with it; `:prev` still reaches `:previous`.
+
+`tools/noarglist.py` removes what a row cannot:
+
+- **The shared handlers keep their other users.** `:snext` went through
+  `ex_next()`, and `:argdo` through `ex_listdo()` with `:bufdo` and `:windo`, so
+  only their terms go; `do_argfile()` no longer spares `:argdo` the `'` mark.
+  **`ex_rewind()` stays**, because `:drop` ends in it — the `:first` row going
+  does not make its handler dead, and the phase checks that it survives.
+- **Completion** for `:argdo` and `:argdelete`, and the argument-list expansion
+  only `:argdelete` asked for, so the sweep takes `get_arglist_name()`.
+
+The sweep takes the handlers, `do_arg_all()` and its helpers, `alist_new()` —
+only `:arglocal` gave a window a list of its own — and `list_in_columns()`,
+which only `:args` printed with.
+
+### The delta
+
+**The sixteen rows that succeeded run bare** — `:all`, `:args`, `:argadd`,
+`:argdelete`, `:argdedupe`, `:argglobal`, `:arglocal`, `:argument`, `:first`,
+`:last`, `:rewind`, `:sargument`, `:sall`, `:sfirst`, `:slast` and `:srewind`,
+read from the slim baseline. The other nine already failed with no argument.
+Measured: 122,145 → **121,368 lines**, libc symbols 88 → 88.
+
+## Phase 39 — one window, always
+
+The window list is the container the editor draws into, and `aucmd_prepbuf()`
+still slots its hidden autocommand window into the frame tree beside the user's
+with `win_split_ins()`. So **the list stays, with one user window in it**, and
+every way to make, reach, resize, close or bind a second one goes.
+
+Thirty-two rows go to `ex_ni`: `:split`, `:vsplit`, `:new`, `:vnew`, `:sview`,
+`:close`, `:only`, `:resize`, `:wincmd`, `:windo`, `:syncbind`, `:hide`, `:sbuffer`,
+`:sbNext`, `:sball`, `:sbfirst`, `:sblast`, `:sbmodified`, `:sbnext`,
+`:sbprevious`, `:sbrewind`, `:ball`, `:unhide`, `:sunhide`, and the eight split
+modifiers `:aboveleft`, `:leftabove`, `:belowright`, `:rightbelow`, `:topleft`,
+`:botright`, `:vertical` and `:horizontal`. `tools/nowindows.py` removes what a row
+cannot:
+
+- **The modifiers** are matched by name in `parse_command_modifiers()` and were
+  all that set `cmdmod.cmod_split`. **`:hide {cmd}` is a modifier too, and stays**
+  — only bare `:hide`, which closed the window, is a row.
+- **CTRL-W** points at `nv_error`, and `do_window()` goes with every window command
+  behind it.
+- **The command-line window is a split**, so it goes: `q:`, `q/` and `q?` are the
+  recordings they would be without it, CTRL-F on the command line is an ordinary
+  key, and every test of `cmdwin_type`, `cmdwin_win`, `cmdwin_buf` and
+  `cmdwin_result` folds. `vgetorpeek()`'s `tc` remembered the previous key for one
+  of those tests alone, and goes with it — the warning check caught it.
+- **`-o` and `-O`** are unknown options, and startup opens no window per file:
+  `create_windows()` loses its count and `edit_buffers()` its call.
+  `tools/clicheck.py` still lists them as accepted, because it runs at Phase 3
+  where they are; the phase checks they are refused, in its terms.
+- **The paths that still split.** `:drop` split when the buffer could not be
+  abandoned, and now does what `:first` does — refuses. `do_argfile()`'s `s`
+  commands, `goto_buffer()`'s `:sb` family and `buflist_getfile()`'s
+  `'switchbuf'` block fold.
+- **`'scrollbind'`, `'cursorbind'`** bind one window to another, and
+  **`'winfixbuf'`** is answered by splitting: their tests fold, their assignments
+  and `get_varp()`/`copy_winopt()` plumbing go, and the rows go before the sweep.
+  `'switchbuf'`, `'scrollopt'`, `'cmdwinheight'` and `'cedit'` lose their last
+  reader here too — `'cedit'` via `didset_options()`, which a first run missed —
+  and `'previewheight'` and `'previewwindow'` had none.
+
+Left alone: `check_can_set_curbuf_disabled()` and `_forceit()` now always answer
+yes and keep their nine callers, and `z{height}<CR>` still resizes the one window.
+
+Checked in a terminal against `slim-vim`: after CTRL-W s, CTRL-W v or `q:`, `:q`
+leaves the editor, where slim-vim stays open with the second window.
+
+### The delta
+
+**The twenty-seven rows that succeeded run bare**, read from the slim baseline.
+`:close`, `:hide`, `:sbmodified`, `:wincmd` and `:windo` already failed.
+Measured: 121,368 → **118,516 lines**, libc symbols 88 → 88.
+
+## Phase 40 — no window sizes to set
+
+With one window, `'winheight'`, `'winminheight'`, `'winwidth'`, `'winminwidth'`,
+`'helpheight'`, `'splitbelow'`, `'splitright'`, `'splitkeep'`, `'equalalways'`,
+`'eadirection'`, `'winfixheight'` and `'winfixwidth'` have nothing to decide. The
+rows go. **The values do not**, and that is the whole difficulty of the phase.
+
+The frame arithmetic still runs — `aucmd_prepbuf()` inserts its hidden window
+with `win_split_ins()` and `win_close()` takes it out — and it reads the size
+globals as it goes. A row is what writes a default into its global (see
+`tools/orphanopts.py`), so dropping one alone would leave `p_wmh` at 0 and
+`p_spk` NULL. **`tools/nowinsizes.py` gives each global its default as an
+initialiser of its own** before the rows go: `FALSE`, `FALSE`, `"cursor"`, `TRUE`,
+`"both"`, `1`, `1`, `20`, `1`. The value is exactly what the defaults gave, and
+nothing can change it; the arithmetic keeps its own temporary writes, which a
+variable allows as well as an option. `orphanopts.py` accepts an initialised
+global by construction.
+
+The two window-local fields are never set now, so their tests fold instead:
+`win_split_ins()` keeping a fixed size, `winframe_remove()` passing over one,
+`frame_setheight()`/`frame_setwidth()` reserving room for one, `win_enter_ext()`
+sparing one, and `command_height()`'s loop over fixed-height frames, which never
+runs. `frame_fixed_height()` and `frame_fixed_width()` answer `FALSE` for a window
+and keep their recursive callers. `'helpheight'` had no reader but the callback
+it shared with `'winheight'`, and the sweep takes both.
+
+### The delta
+
+**None the Ex sweep records beyond Phase 39's** — no row is retired. Each of the
+twelve names is refused by `:set` now, which the phase probes against a
+`:set ignorecase` control. Measured: 118,516 → **118,130 lines**, libc symbols
+88 → 88.
+
+## Phase 41 — the buffer list is walked by `:bnext` and `:bprevious` alone
+
+**The list stays.** Every file edited is a buffer on it, `:bnext` and
+`:bprevious` move through it, `:e #` reaches the alternate one, and
+quitting still refuses while a hidden buffer is changed. Every other command on
+it goes — fifteen rows: `:buffer`, `:buffers`, `:files`, `:ls`, `:badd`, `:balt`,
+`:bdelete`, `:bunload`, `:bwipeout`, `:bfirst`, `:brewind`, `:blast`,
+`:bmodified`, `:bNext` and `:bufdo`.
+
+**`:bNext` is a row of its own**, spelled apart from `:bprevious` though it shares
+the handler, so `:bN` goes with it; `:bp` still reaches `:bprevious`.
+
+`tools/nobuflist.py` removes what a row cannot:
+
+- **`:badd` and `:balt`** went through `ex_edit()` and `do_exedit()` with `:edit`,
+  so only their terms go — and `do_ecmd()`'s `ECMD_ADDBUF` and `ECMD_ALTBUF`
+  paths, which nothing else passed.
+- **`:bdelete`, `:bwipeout` and `:bunload`** were `do_bufdel()` and `do_buffer()`,
+  which the sweep takes. That leaves `do_buffer_ext()` one caller, `goto_buffer()`,
+  and one action, `DOBUF_GOTO`, so its `unload` is always false and every branch
+  that unloaded, deleted or wiped folds. **That fold is true only after the
+  sweep**, so the phase asks after it: exactly one call, and that one.
+  `set_curbuf()` and `empty_curbuf()` keep their unload paths, because
+  `check_changed_any()` still passes one. `do_one_cmd()` stops asking whether a
+  buffer-name argument belongs to one of the three.
+- **Completion** for the retired names. `ex_listdo()` had `:bufdo` as its last
+  user and goes whole.
+
+A first run counted the retired names before the sweep, and found four in
+`ex_listdo()` and `ex_bunload()` — handlers with no row, which the sweep then
+took. The count is asked after the sweep now.
+
+### The delta
+
+**The ten rows that succeeded run bare** — `:buffer`, `:bNext`, `:bdelete`,
+`:bfirst`, `:blast`, `:brewind`, `:buffers`, `:bwipeout`, `:files` and `:ls`, read
+from the slim baseline. `:badd`, `:balt`, `:bmodified`, `:bufdo` and `:bunload`
+already failed with no argument. Measured: 118,130 → **117,506 lines**, libc
+symbols 88 → 88.
+
+## Phase 42 — one buffer, always
+
+The buffer list is the container the editor edits in — `firstbuf`, `curbuf` and
+the buffer hash table are read everywhere — so **it stays, with exactly one
+buffer on it between commands**. Two decisions were the user's, not the
+process's, and were asked: editing another file **reuses the one buffer**, and
+**there is no alternate file**.
+
+**The mechanism is `'bufhidden=wipe'`, made unconditional.** `do_ecmd()` still
+makes the new buffer and then closes the old one; it closes it with `DOBUF_WIPE`
+instead of `DOBUF_UNLOAD`, or not at all under `ECMD_HIDE`. So `:e`, `:enew`,
+`:next`, `:previous`, `:drop` and `gf` work as before, and a file left behind
+takes its undo history, marks and local options with it. Changes cannot be lost
+by it: `do_ecmd()` has already refused a changed buffer unless it was written or
+`!` was given, exactly as under `'nohidden'`.
+
+Three rows go to `ex_ni` — `:bnext`, `:bprevious` and `:keepalt` — and
+`tools/onebuffer.py` removes what a row cannot:
+
+- **Nothing is hidden.** `buf_hide()` answered from `'hidden'`, the `:hide`
+  modifier and `'bufhidden'`, and all three go, so each of its sixteen call sites
+  folds as if it said no and the sweep takes it. `close_buffer()` stops reading
+  `'bufhidden'`, and `tools/droplocal.py` takes the field.
+- **No alternate file**, which is itself a second buffer. Nothing writes
+  `w_alt_fnum`: `do_ecmd()`, `set_curbuf()`, `do_exedit()` and `win_init()` stop,
+  `:file`, `:read` and `:write` stop making an alternate buffer for a name, and
+  `buflist_findnr(0)` and a `#` pattern find nothing — which is what they did when
+  there was no alternate. CTRL-^ points at `nv_error`; `:e #` fails.
+- **`:saveas` renamed the buffer by swapping names with an alternate buffer**
+  made for the new name. With no alternate it would have written the file and
+  kept the old name, so it renames the one buffer with `setfname()`. It is the one
+  addition in the phase, and the reason is that the mechanism, not the behaviour,
+  needed a second buffer.
+- **The argument list stops making buffers.** `alist_add()` put every file
+  argument on the buffer list, unloaded, when it was named. An entry is a name now,
+  buffer number 0 — `alist_name()` and `editing_arg_idx()` already fall back to the
+  name — and the one buffer is named for the first file only while it is still the
+  empty buffer startup made.
+
+**Stays:** `:qall`, `:wall`, `:wqall` and `:xall`, which are `:q` and `:w` with one
+buffer, and which every harness here quits with. `'buflisted'`, whose field is
+internal state the buffer code reads. No command-line option opened more than one
+buffer, so none goes.
+
+The phase checks the behaviour it changes against what it replaces: under
+`'nohidden'` an unloaded buffer keeps its marks, so marking a line, editing
+another file and coming back finds the mark; with one buffer it is gone, and
+deleting to it changes nothing. It checks that `:e #` is refused and that
+`:saveas` renames.
+
+Two first runs failed usefully: the leftover counts included `setaltfname()` and
+`buf_hide()`, which have no caller and which the sweep takes, and
+`rename_buffer()`'s `xfname` had held the old short name for the alternate alone.
+
+### The delta
+
+**`:bnext`, `:bprevious` and `:keepalt`**, which succeeded run bare. Measured:
+117,506 → **117,013 lines**, libc symbols 88 → 88.
+
+## Phase 43 — no -c, --cmd, -R, -m, -M or -w
+
+Six command-line options become what any unknown option is: exit 1, naming
+itself. `+{command}` stays, and fills the same list `-c` did.
+
+`tools/dropopts.py` removes `-R`, `-w` and `--cmd`, and the argument switch's
+`case 'c':`. It refuses the other two, rightly, and `tools/nocmdargs.py` cuts them
+by hand: **`-c` has a body of its own that falls through** into `-T` and `-u` —
+`-c{command}` takes the rest of its argument and breaks, `-c {command}` falls
+through to ask for the next one — and **`-M` falls through into `-m`**, so the
+pair goes together. `--cmd` was the only long option that took an argument, so
+the argument switch's `case '-':` goes, the option switch's one
+`if (!want_argument)` can no longer be false, and `exe_pre_commands()` loses its
+call and goes with the fields it read.
+
+**The harnesses drove the editor with `-c`.** `tools/behaviour.py` and
+`tools/exsweep.py` pass `+{command}` now, and — since Phase 18 took `-u` — no
+`-u NONE` either. It is the same list in the same order,
+so the change moves nothing against any binary either pipeline has made —
+measured against `.reference/slim-vim`: 0 of 67 behaviour cases and 0 of 600
+Ex-sweep rows differ from the baselines recorded with `-c`. Both are in every
+phase's implementation digest, through `whimdelta.sh` and `verify.sh`, so every
+boundary in both pipelines was verified again after the change.
+`tools/clicheck.py` still passes `-c`: it runs at Phase 3, where `-c` exists.
+
+The phase checks each dropped spelling — `-c qa!`, `-cqa!`, `--cmd qa!`, `-R`,
+`-m`, `-M`, `-w7` — against a `+qa!` control.
+
+### The delta
+
+**None the Ex sweep records.** Measured: 117,013 → **116,892 lines**, libc
+symbols 88 → 88.
 
 ## Unused, and unuseful
 

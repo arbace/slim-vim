@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Two hundred tracked files once both pipelines have run:
-thirteen at the root, and 187 under
+Two hundred and fourteen tracked files once both pipelines have run:
+thirteen at the root, and 201 under
 `tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
-thirty-seven for `whim.mk`), the memoize
+forty-four for `whim.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Three of the thirteen are products
 (`slim-vim.c`, `whim-vim.c`, `LICENSE`), two are records (`upstream.sha`,
@@ -527,6 +527,14 @@ skipped.
 here — a version string overflowing a 20-byte buffer, so `:intro` crashed — was
 invisible to all 67 behaviour cases and to every pty scenario. The boring
 mechanical dispatch over every entry point found it.
+
+**No harness passes `-u NONE`; they isolate through the environment.** Every
+run gets an empty `$HOME`, `$VIM`, `$VIMRUNTIME` and `$XDG_CONFIG_HOME`, and no
+`$VIMINIT` or `$EXINIT`, so `slim-vim` finds no `~/.vimrc`, system vimrc or
+runtime defaults — and `whim-vim`, which has had no `-u` since its Phase 18,
+needs no option to be told. Measured against the slim baselines with a real
+`~/.vimrc` on the machine: nothing moved. Commands go in as `+{command}` rather
+than `-c` for the same reason — `whim-vim` has no `-c` — and fill the same list.
 
 **Check what a test did, not what it returned.** Silent Ex mode exits 0 on
 almost anything.

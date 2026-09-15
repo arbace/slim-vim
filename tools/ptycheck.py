@@ -11,17 +11,26 @@ ESC = b'\x1b'
 
 SCENARIOS = [
     # name, TERM, argv, keystrokes
-    ('edit_xterm', 'xterm', ['-u', 'NONE', 'f.txt'],
+    ('edit_xterm', 'xterm', ['f.txt'],
      [b'jjlx', b':set term?\r', b':set ts? sw? nu?\r', b':wq\r']),
-    ('arrows', 'xterm', ['-u', 'NONE', 'f.txt'],
+    ('arrows', 'xterm', ['f.txt'],
      [ESC + b'[B' + ESC + b'[B' + ESC + b'[C', b'x', b':wq\r']),
-    ('unknown_term', 'no-such-term-9x', ['-u', 'NONE', 'f.txt'],
+    ('unknown_term', 'no-such-term-9x', ['f.txt'],
      [b'jjlx', b':set term?\r', b':wq\r']),
-    ('insert_esc', 'xterm', ['-u', 'NONE', 'f.txt'],
+    ('insert_esc', 'xterm', ['f.txt'],
      [b'ohello', ESC, b'0Diworld', ESC, b':wq\r']),
-    ('screen_term', 'screen', ['-u', 'NONE', 'f.txt'],
+    ('screen_term', 'screen', ['f.txt'],
      [b'GA!', ESC, b':set term?\r', b':wq\r']),
 ]
+
+_HOME = tempfile.mkdtemp(prefix="ptycheck-home-")
+# No -u NONE.  An empty $HOME, $VIM and $VIMRUNTIME are the isolation instead:
+# slim-vim finds no ~/.vimrc, system vimrc or runtime defaults in them, and
+# whim-vim, which has no -u from its Phase 18, looks for none of them anyway.
+ENV = dict(os.environ, HOME=_HOME, VIM=os.path.join(_HOME, "novim"),
+           VIMRUNTIME=os.path.join(_HOME, "novim"), XDG_CONFIG_HOME=os.path.join(_HOME, "xdg"))
+for _k in ("VIMINIT", "EXINIT", "MYVIMRC"):
+    ENV.pop(_k, None)
 
 SEED = 'alpha one\nbeta two\ngamma three\ndelta four\n'
 
@@ -31,7 +40,7 @@ def one(scenario):
     d = tempfile.mkdtemp(prefix='ptycheck-')
     open(os.path.join(d, 'f.txt'), 'w').write(SEED)
     text, status = ptyrun.session(binary_path, argv, keys, term=term,
-                                  cwd=d, settle=0.6)
+                                  cwd=d, settle=0.6, env=ENV)
     body = open(os.path.join(d, 'f.txt'), 'rb').read()
     rows = ['=== %s (TERM=%s) status=%s\n--- file ---\n%s'
             % (name, term, status, body.decode('utf-8', 'replace'))]

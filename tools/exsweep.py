@@ -16,6 +16,15 @@ import subprocess
 import sys
 import tempfile
 
+_HOME = tempfile.mkdtemp(prefix="exsweep-home-")
+# No -u NONE.  An empty $HOME, $VIM and $VIMRUNTIME are the isolation instead:
+# slim-vim finds no ~/.vimrc, system vimrc or runtime defaults in them, and
+# whim-vim, which has no -u from its Phase 18, looks for none of them anyway.
+ENV = dict(os.environ, HOME=_HOME, VIM=os.path.join(_HOME, "novim"),
+           VIMRUNTIME=os.path.join(_HOME, "novim"), XDG_CONFIG_HOME=os.path.join(_HOME, "xdg"))
+for _k in ("VIMINIT", "EXINIT", "MYVIMRC"):
+    ENV.pop(_k, None)
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import create_cmdidxs as cmdidxs
 
@@ -45,10 +54,11 @@ def main():
         try:
             src = os.path.join(d, 'f.txt')
             open(src, 'w').write('alpha\nbeta\ngamma\n')
+            # +{command}, not -c: see tools/behaviour.py.
             r = subprocess.run(
-                [vim, '-u', 'NONE', '-e', '-s',
-                 '-c', name, '-c', 'qall!', src],
-                stdin=subprocess.DEVNULL, capture_output=True,
+                [vim, '-e', '-s',
+                 '+' + name, '+qall!', src],
+                stdin=subprocess.DEVNULL, capture_output=True, env=ENV,
                 cwd=d, timeout=20,
                 # :suspend / :stop signal the whole process group with SIGTSTP.
                 # Without a session of its own the sweep stops its own shell,

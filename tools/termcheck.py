@@ -7,6 +7,15 @@ import ptyrun
     # Every name the table carries, plus the ones dropped from it -- those
     # must now resolve to the xterm fallback, and a row saying so is what
     # would catch one creeping back in.
+_HOME = tempfile.mkdtemp(prefix="termcheck-home-")
+# No -u NONE.  An empty $HOME, $VIM and $VIMRUNTIME are the isolation instead:
+# slim-vim finds no ~/.vimrc, system vimrc or runtime defaults in them, and
+# whim-vim, which has no -u from its Phase 18, looks for none of them anyway.
+ENV = dict(os.environ, HOME=_HOME, VIM=os.path.join(_HOME, "novim"),
+           VIMRUNTIME=os.path.join(_HOME, "novim"), XDG_CONFIG_HOME=os.path.join(_HOME, "xdg"))
+for _k in ("VIMINIT", "EXINIT", "MYVIMRC"):
+    ENV.pop(_k, None)
+
 TERMS = ['xterm', 'xterm-256color', 'screen', 'screen-256color',
          'tmux', 'tmux-256color', 'alacritty-256color', 'vt100', 'ansi',
          'dumb', 'debug',
@@ -16,9 +25,9 @@ TERMS = ['xterm', 'xterm-256color', 'screen', 'screen-256color',
 def ask(t, settle):
     d = tempfile.mkdtemp(prefix='termcheck-')
     open(os.path.join(d, 'f.txt'), 'w').write('one\ntwo\nthree\n')
-    text, st = ptyrun.session(binary_path, ['-u', 'NONE', 'f.txt'],
+    text, st = ptyrun.session(binary_path, ['f.txt'],
                               [b':set term? t_Co?\r', b':q!\r'],
-                              term=t, cwd=d, settle=settle)
+                              term=t, cwd=d, settle=settle, env=ENV)
     s = text.decode('utf-8', 'replace')
         # The screen is full of '~' filler and the two answers land on
         # different screen lines; take each from its keyword onwards.

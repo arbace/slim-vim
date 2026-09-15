@@ -18,6 +18,14 @@ _ARG, OUT = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
 # name that means what it says.
 _STAGE = tempfile.mkdtemp(prefix="behaviour-bin-")
 BIN = os.path.join(_STAGE, "vim")
+_HOME = tempfile.mkdtemp(prefix="behaviour-home-")
+# No -u NONE.  An empty $HOME, $VIM and $VIMRUNTIME are the isolation instead:
+# slim-vim finds no ~/.vimrc, system vimrc or runtime defaults in them, and
+# whim-vim, which has no -u from its Phase 18, looks for none of them anyway.
+ENV = dict(os.environ, HOME=_HOME, VIM=os.path.join(_HOME, "novim"),
+           VIMRUNTIME=os.path.join(_HOME, "novim"), XDG_CONFIG_HOME=os.path.join(_HOME, "xdg"))
+for _k in ("VIMINIT", "EXINIT", "MYVIMRC"):
+    ENV.pop(_k, None)
 shutil.copy2(_ARG, BIN)
 os.chmod(BIN, 0o755)
 CA, CX, CV, ESC, CR = '\001', '\030', '\026', '\033', '\r'
@@ -113,10 +121,13 @@ def run_case(case):
     d = tempfile.mkdtemp()
     src = os.path.join(d, "in.txt"); dst = os.path.join(d, "out.txt")
     open(src, "w").write(text)
-    argv = [BIN, "-u", "NONE", "-e", "-s"]
-    for c in cmds: argv += ["-c", c]
-    argv += ["-c", "w! " + dst, "-c", "q!", src]
-    r = subprocess.run(argv, stdin=subprocess.DEVNULL,
+    # +{command}, not -c: whim-vim has no -c from its Phase 43 on, and the two
+    # fill the same list, so every binary either pipeline makes runs the same
+    # commands in the same order.
+    argv = [BIN, "-e", "-s"]
+    for c in cmds: argv += ["+" + c]
+    argv += ["+w! " + dst, "+q!", src]
+    r = subprocess.run(argv, stdin=subprocess.DEVNULL, env=ENV,
                        capture_output=True, cwd=d, timeout=30)
     body = open(dst, "rb").read() if os.path.exists(dst) else b"<NO FILE WRITTEN>"
     with open(os.path.join(OUT, name), "wb") as f:

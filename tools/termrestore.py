@@ -36,7 +36,7 @@ def main():
     if pid == 0:
         os.environ['TERM'] = 'xterm'
         os.chdir('/tmp')
-        os.execv(binary, [binary, '-u', 'NONE'])
+        os.execv(binary, [binary])
         os._exit(127)
 
     # let it reach raw mode, and check that it really did -- otherwise the test

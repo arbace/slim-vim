@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Nothing is read at startup that was not named on the command line.
+"""Nothing is read at startup, not even a file named on the command line.
 
 Usage:
     python3 tools/nostartup.py <file>
@@ -12,22 +12,24 @@ directory it happens to have been started in, each guarded by an ownership
 check because reading a config file out of the current directory is a way to be
 handed someone else's commands.
 
-All of it goes.  **`-u <file>` stays**, and so does `:source`: a file the user
-names is not the editor going looking, and Phase 10 already decided `:source`
-stays.  What is left of the function is the one branch that reads a file it was
-told to read.
+All of it goes, and so does `-u <file>`, the one branch that read a file it was
+told to read: whim18.sh drops the option with tools/dropopts.py.  With no path
+left to search and no name to be given, the function has no body, its call goes,
+and the sweep takes it.  The `-u NONE` test in main() that switched
+'loadplugins' off goes with the option it asked about.
 
-`NONE`, `NORC` and `DEFAULTS` are still recognised as `-u` arguments and still
-mean "read nothing", which they now do by agreeing with everything else.
+It went in this phase, not later, so that no tool has to pass `-u NONE`: every
+harness isolates the editor through its environment instead -- an empty $HOME,
+$VIM and $VIMRUNTIME -- which is what `-u NONE` was for, and which works as well
+against slim-vim, which still searches.
 
 Two more that read the environment for the same purpose go with it:
 `set_init_xdg_rtp()`, which builds a `'runtimepath'` out of `$XDG_CONFIG_HOME`
 -- Phase 1 emptied that option and this was still filling it back in -- and
 `process_env()`, which ran `$VIMINIT` or `$EXINIT` as Ex commands.
 
-THE DELTA: none, and that is the point rather than a surprise.  Every harness
-already passes `-u NONE`, so none of these paths was ever taken in a recorded
-run.  What changes is that the editor no longer needs to be told.
+THE DELTA: none.  No harness passes `-u`, and none of these paths is taken
+under an empty environment.
 """
 
 import re
@@ -37,24 +39,7 @@ from pathlib import Path
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
 import cutil
 
-BODY = '''    // Only a file the user named.  Everything this used to search for -- the
-    // runtime's defaults, $VIM/vimrc, $VIMINIT, ~/.vimrc, ~/.exrc, and .vimrc
-    // or .exrc in the current directory -- is a place the editor went looking,
-    // which is what an embedded editor must not do.
-    if (parmp->use_vimrc == NULL)
-    {
-        return;
-    }
-    if ( strcmp((char *)(parmp->use_vimrc), (char *)("NONE"))  == 0
-            ||  strcmp((char *)(parmp->use_vimrc), (char *)("NORC"))  == 0
-            ||  strcmp((char *)(parmp->use_vimrc), (char *)("DEFAULTS"))  == 0)
-    {
-        return;
-    }
-    if (do_source(parmp->use_vimrc, FALSE, DOSO_NONE, NULL) != OK)
-    {
-        semsg(_(e_cannot_read_from_str_2), parmp->use_vimrc);
-    }'''
+BODY = ''
 
 
 def main():
@@ -72,9 +57,19 @@ def main():
     if c < 0:
         sys.exit('nostartup: source_startup_scripts is unbalanced')
     was = text.count('\n', o, c)
-    text = text[:o] + '{\n' + BODY + '\n}' + text[c + 1:]
-    print('  nostartup    source_startup_scripts was %d lines; it now reads the '
-          'file it was told to and nothing else' % was)
+    text = text[:o] + '{\n}' + text[c + 1:]
+    print('  nostartup    source_startup_scripts was %d lines; it now has no body' % was)
+
+    text, n = re.subn(r'^[ \t]*source_startup_scripts\(&params\);\n', '', text, flags=re.M)
+    if n != 1:
+        sys.exit('nostartup: expected one source_startup_scripts call, matched %d' % n)
+    print('  nostartup    startup reads nothing, so it does not call the function that read')
+
+    pat = r'^[ \t]*if \(params\.use_vimrc != NULL && \( strcmp\(\(char \*\)\(params\.use_vimrc\), \(char \*\)\("NONE"\)\)  == 0'
+    if len(re.findall(pat, text, re.M)) != 1:
+        sys.exit('nostartup: the -u NONE test in main() is not where this expects')
+    text = cutil.drop_if(text, pat, flags=re.M)
+    print("  nostartup    -u NONE no longer switches 'loadplugins' off")
 
     text, n = re.subn(r'^[ \t]*set_init_xdg_rtp\(\);\n', '', text, flags=re.M)
     if n != 1:
