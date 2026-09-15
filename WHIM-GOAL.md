@@ -2862,6 +2862,247 @@ the completion arm for modifiers.
 
 **The row**, which succeeded run bare. Measured: 115,588 → **115,568 lines**.
 
+## Phase 49 — one set of options
+
+Every buffer and window option has two copies inside the editor, a global and a
+local one. **The storage stays**: collapsing it would touch every option's reader
+for nothing a user can see. What goes is every way to make the two copies differ,
+so that `:set` — which writes both — is the only way an option is given a value,
+and there is one set of options as far as anything outside can tell.
+`tools/oneoptset.py` removes the four things that made them differ:
+
+- **`:setlocal` and `:setglobal`** wrote one copy each. Their rows go to `ex_ni`,
+  `ex_set()` stops choosing a flag for them, and their completion arms go.
+- **`:set opt<`** copied the global copy into the local one. `<` is no longer an
+  accepted suffix, and its three branches — boolean, number, string — fold, so
+  `:set ts<` is an error like any other malformed `:set`.
+- **Modelines** set a file's local copy from a `vim: set ...:` line, and the user
+  was asked and chose to drop them. The four calls of `do_modelines()` go and the
+  sweep takes it and `chk_modeline()`; every test of `OPT_MODELINE`, a flag
+  nothing passes after that, folds; and `'modeline'`'s save and restore around
+  `'binary'` in `set_options_bin()` goes. Then the rows of `'modeline'`,
+  `'modelines'`, `'modelineexpr'` and `'modelinestrict'` go, `droplocal.py` takes
+  `b_p_ml`, and `b_p_ml_nobin` — not an option, so with no `get_varp()` case that
+  tool knows — goes by hand. A first run found that.
+
+**Left alone:** a value detected from the file being read. `'fileformat'`, and
+`'binary'` from `-b`, are the current file's state, and with one buffer only ever
+one file's.
+
+The phase checks that `:set ts<` is refused against a `:set ts=3` control, and
+that `>>` on a file whose modeline says `sw=2` indents by the compiled-in four.
+**The first version of that check proved nothing.** It used `ff=dos`, and
+`'modelinestrict'` let a modeline set only whitelisted options, which
+`'fileformat'` is not, so it passed against binaries that still read modelines.
+`'shiftwidth'` is on the whitelist: measured, the Phase 48 binary indents by two
+and this one by four.
+
+**Measuring it showed something else.** `slim-vim` indents by four too, and so do
+whim Phases 0 to 24, with `:set modeline?` answering `nomodeline`; Phases 25 to 48
+answer `modeline`. The harnesses run as root, and upstream forces `'modeline'` off
+for root — the check Phase 25 removed, as its section says. So a modeline was
+read, as root, from Phase 25 until this phase, and no harness case has a modeline
+to notice. Diffing `:set all` between Phases 24 and 25 shows that it is the only
+value that moved besides the backup options that phase removed on purpose.
+
+### The delta
+
+**`:setlocal` and `:setglobal`**, which succeeded run bare. Measured: 115,568 →
+**115,246 lines**.
+
+## Phase 50 — only LF text files
+
+Every line ends with LF when it is read and when it is written, and a CR is a
+character like any other. `-b` goes, and with it `'binary'`, `'fileformat'`,
+`'fileformats'`, `'endofline'`, `'fixendofline'`, `'endoffile'`, and the old
+spellings `'textmode'` and `'textauto'`; so do the `++bin`, `++nobin`, `++ff` and
+`++fileformat` arguments. `tools/lfonly.py` removes what a row cannot:
+
+- **`readfile()` stops choosing and detecting a format.** The choice from `++ff`,
+  `'binary'` and `'fileformats'`, the DOS and Mac detection, the loop that split
+  lines at CR, CR stripping and its retry as Unix, the CTRL-Z at the end of a DOS
+  file and the "[CR missing]" message all fold. A last line with no LF is still
+  read and still reported as "[noeol]" — that describes the file.
+- **`buf_write()` writes LF after every line, the last included, and no CTRL-Z.**
+  Its CR branch goes by a local helper that keeps an `if`'s body and drops its
+  `else`, which `cutil.fold_always` rightly refuses to guess.
+- **Everything that compared a buffer's format with the one it was read in** —
+  `file_ff_differs()`, `save_file_ff()`, `set_file_options()` — has nothing to
+  compare, so its callers fold, including `unchanged()`, `bufIsChangedNotTerm()`,
+  `set_init_1()` and `did_set_modified()`, and the sweep takes it with
+  `get_fileformat()`, `set_fileformat()`, `default_fileformat()`,
+  `msg_add_fileformat()` and `set_options_bin()`. stdin and fifos stop being read
+  as binary.
+- **`'endofline'` and `'endoffile'` had no initialiser in `buf_copy_options()`** —
+  only resets, which the cut removed — so `tools/droplocal.py` does not recognise
+  their shape, and their fields go by hand. So does `b_no_eol_lnum`, the last-line
+  marker a binary write used.
+
+**Several first runs failed, each on a count.** Two `else if (curbuf->b_p_bin)` in
+`readfile()` until the format chain folded first; the detection block's
+`fileformat == -1` test repeated inside itself, now anchored on what follows it;
+two `save_file_ff()` calls outside the functions that die, found once the final
+check reported *where* each leftover call sits rather than comparing a total.
+
+The phase checks that `-b` is unknown and `:set ff=dos` refused against a
+`:set ts=3` control; that `:%s/$/X/` on a CR LF file writes `one\rX\n`, where a
+DOS file gave `oneX\r\n`; and that a last line with no LF gains one.
+
+### The delta
+
+**No Ex command; the behaviour cases `ff_dos` and `binary_mode`**, whose
+`:set ff=dos` and `:set binary` are refused. Measured: 115,246 → **114,399
+lines**.
+
+## Phase 51 — a byte that is not UTF-8 is kept as it is
+
+**Phase 12 changed this without declaring it.** It made UTF-8 the only encoding by
+cutting the conversion layer at its entry points, and its table lists what each
+cut function now answers — but not what that does to a file that is not valid
+UTF-8. `slim-vim` reads such a file by falling back to latin1 and writes its
+bytes back unchanged. With no fallback, `readfile()` replaced every invalid byte
+with `?` (`bad_char_behavior`'s default, `BAD_REPLACE`) and made the buffer
+read-only, and a forced `:w` wrote the `?`s. Measured: `ok\n\xff bad\n` comes back
+as `ok\n? bad\n` from every whim binary since Phase 12, and unchanged from
+`slim-vim` and whim Phases 0 to 11. No harness case has an invalid byte, which is
+how it went unnoticed; it was found planning the UTF-8 phase, and the user was
+asked what an editor that only edits UTF-8 should do.
+
+**The answer was what `++bad=keep` already did.** The byte stays in the buffer as a
+byte, shows as `<ff>`, is written back as it was, and the buffer is not made
+read-only; "[ILLEGAL BYTE in line N]" is still reported, because that describes
+the file. So keeping is the only behaviour, and `tools/keepbytes.py` folds every
+test of `bad_char_behavior` — in the UTF-8 check and in the conversion loops —
+drops `++bad` from `getargopt()`, and lets the sweep take `get_bad_opt()` and the
+buffer's `b_bad_char`.
+
+The phase checks, against a UTF-8 edit as control, that a file with `\xff` is
+written back byte for byte after an edit to another line, that reading it leaves
+`noreadonly`, and that `++bad=keep` is refused. **Its first run failed on the
+probe, not the editor**: `+s/ok/OK/` runs on the last line, where Ex mode starts,
+and an `:s` that does not match there stops the `:wq` after it. The probe says
+`+1s`.
+
+### The delta
+
+**None the harnesses record.** Measured: 114,399 → **114,275 lines**.
+
+## Phase 52 — UTF-8 is not a question
+
+Since Phase 12, `mb_init()` sets the same five globals to the same values every
+time: `enc_utf8`, `has_mbyte` and `enc_latin1like` TRUE, `enc_dbcs` and
+`enc_unicode` 0. **456 places still asked them**, in every shape C allows — a bare
+`if`, a chain of `&&` and `||`, a ternary, a comparison with a DBCS code page, an
+argument — and each one was a branch for an encoding this editor cannot have.
+
+`tools/utf8only.py` folds them as constants, on the source, and **never drops a
+side effect**:
+
+1. The five lose their declarations and their assignments in `mb_init()`, and every
+   other mention becomes a marker — `__T__` for the three that are TRUE, `__Z__`
+   for the two that are 0. A marker is an identifier, so the text still parses,
+   and a `TRUE` already in the source is never mistaken for one the tool made.
+2. Every expression holding a marker is simplified, innermost first, to a
+   fixpoint: a ternary on a constant condition becomes its branch; in an `||` list
+   a false operand goes and a true one ends the list, in an `&&` list the reverse;
+   `!` flips a constant; parentheses around one collapse; `__Z__ == DBCS_x` is
+   false. **An operand is dropped only where C would not have evaluated it, or
+   where it is pure** — no call, no assignment, no `++` or `--`. Otherwise it stays.
+3. Every `if`, `else if` and `while` on a constant marker folds with its else chain,
+   by brace matching — from the last occurrence in a function, because the same
+   false condition can be nested inside its own block, and folding the outer one
+   first makes the inner vanish. A first test run met exactly that.
+4. What is left — a marker compared with something that is not a constant, or
+   assigned — becomes `TRUE`, `FALSE` or `0` again.
+
+Measured on the phase's input: 239 expression simplifications and 261 statement
+folds in 178 functions, 7 constants left as values. The sweep then takes the DBCS
+and latin1 paths nothing reaches, and with them two libc symbols, `iswupper` and
+`mblen`.
+
+**Tested before it became a phase, against the binary it replaces.** Applied to a
+copy of the Phase 49 source, compiled with every warning the sweep does not own
+silenced, built, and run through the behaviour and Ex-sweep harnesses beside the
+unfolded binary: 0 of 67 cases and 0 of 600 rows differ. That test also caught the
+tool's own mistakes twice before it counted — once by crashing, and once by
+reporting "0 differ" for a file the crash had left unchanged, which is why the
+test now refuses to compare unless the tool succeeded and the file moved.
+
+The phase checks `gUU` over *à é* for `c3 80 c3 89 0a`, byte for byte, and `x` on a
+three-byte character.
+
+### The delta
+
+**None.** Folding a constant changes no behaviour, and the harnesses — with their
+multibyte motion, case and insertion cases — are the check. Measured: 114,275 →
+**112,439 lines**, libc symbols 84 → 82.
+
+## Phase 53 — no conversion layer, no 'encoding'
+
+Phase 12 cut the conversion layer at its entry points and left its body. Two ways
+in were still open: **`++enc`** on `:e`, `:r` and `:w`, and a buffer whose
+`'buftype'` is `help`, which `readfile()` read as latin1-or-utf-8. `tools/noconv.py`
+closes both, and then everything behind them has one answer: the encoding name is
+always empty, `need_conversion("")` is false, and so `converted`, the conversion
+flags, the iconv descriptor, the `'charconvert'` temporary file and the retry with
+the next encoding never change. Every test of them folds, in `readfile()` and
+`buf_write()`; `buf_write_bytes()` loses the UCS-2, UTF-16, UCS-4 and latin1
+writers no flag reached; the byte-order-mark check goes, since `check_for_bom()`
+has answered "none" since Phase 12; the rewind that retried another encoding goes,
+with its `retry` and `failed` labels.
+
+**`'encoding'` goes**, and `mb_init()` stops asking `p_enc` — **but its NULL
+branch was taken, once.** `common_init_1()` calls `mb_init()` before any option
+exists, and that call filled the byte-length table with 1s and returned;
+`set_init_1()` made the real one. Folded as never-taken, the first call ran on into
+`init_chartab()` with no `curbuf`, and the editor crashed before its first command.
+So `common_init_1()` now does what its call did then. **`'makeencoding'` goes with it** —
+it converted `:make` output, `:make` went long ago, and it shared
+`did_set_encoding()`, which is why that function survived the first attempt.
+
+**The terminal is not converted either, and this is not tidying.** `input_conv`
+and `output_conv` were `CONV_NONE` whenever `'encoding'` was utf-8. The only
+assignment of `input_conv.vc_factor` was in the `mb_init()` branch folded above,
+and `fill_input_buf()` divides by it: a first version of this phase folded the one
+and not the other, and would have built an editor that divided by zero on its
+first read of input. The post-condition grep caught the survivor before the build
+did. Their tests fold in `ui_write()`, `fill_input_buf()` and `utf_find_illegal()`.
+
+**The ten `mb_*` function pointers are calls.** `mb_init()` pointed all ten at the
+UTF-8 implementations every time; 390 calls through them become direct calls to
+`utfc_ptr2len()`, `utf_ptr2char()` and the rest, and the latin1 implementations
+they were initialised to are swept. `mb_tail_off()` kept two dead returns after
+its last live one from Phase 52; they go, and `dbcs_head_off()` with them.
+
+Completion for `++ff`, `++enc` and `++bad`, left behind by Phases 50, 51 and this
+one, goes from `expand_argopt()` and `get_argopt_name()`.
+
+**The sweep met a declaration shape it had never deleted.** `enc_canon_table[]`
+and `enc_alias_table[]` are written `static struct`, then the whole body on one
+line, then the declarator alone — and gcc reports the declarator's line.
+`deadsweep.py` walked back over a type only when that line began with `}`, so it
+took the table and left `static struct {...}` open at file scope, where the next
+declaration became "duplicate 'static'". It now recognises the one-line body too.
+The branch is new and the old one untouched, so no earlier boundary could move —
+and `slim-verify` and `whim-specpass` were run to show it, since the tool is in
+every phase's implementation digest.
+
+Both this and the crash above were found the expensive way: the phase program
+failed, the pass fell through to an agent, and the agent's account named the two
+causes. Its boundary and its synthesised residue were discarded; the fixes are in
+the programs.
+
+The phase checks that `:set enc?`, `:set menc?` and `++enc` are refused, that `gUU`
+over *à é* still gives `c3 80 c3 89 0a`, and that an invalid byte is still written
+back unchanged.
+
+### The delta
+
+**None the harnesses record** — no case converts. Measured: 112,439 →
+**110,672 lines**, libc symbols 82 → 81 (`lseek`, whose two callers were the
+retry's rewind and the help buffer's look at a file's first line — the second
+already unreachable, behind a `c = TRUE` its own test could never pass).
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.

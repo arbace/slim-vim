@@ -171,6 +171,28 @@ def declaration_extent(lines, lineno):
             k -= 1
         i = k
 
+    # AND THE SAME TYPE WRITTEN ON ONE LINE, which gcc reports a line lower:
+    #
+    #     static struct
+    #     {   char *name;         int canon;}
+    #     enc_alias_table[] =
+    #
+    # The declarator does not start with `}`, so the case above never looked, and
+    # the sweep deleted the table and left `static struct {...}` open at file
+    # scope, where it swallowed the next declaration -- "duplicate 'static'" in
+    # the phase that removed the encodings, and a DWARF dump that would not build.
+    elif (i > 0 and not lines[i].lstrip().startswith(('static', 'const', 'struct', 'enum', 'union'))
+            and lines[i - 1].strip().startswith('{')
+            and cutil.blank(lines[i - 1]).rstrip().endswith('}')):
+        k = i - 1
+        while k > 0:
+            prev = lines[k - 1].strip()
+            if (not prev or prev.endswith((';', '}', '{', ':'))
+                    or prev.startswith(('//', '#'))):
+                break
+            k -= 1
+        i = k
+
     return (i, j)
 
 

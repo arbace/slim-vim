@@ -69,40 +69,6 @@ enum { TRUNC_ON_OPEN = 0 };
 enum { RULER_BUF_LEN = 70 };
 enum { INPUT_BUFLEN = 100 };
 enum { MAXSUFLEN = 30 };
-enum { IDX_LATIN_1 = 0 };
-enum { IDX_ISO_2 = 1 };
-enum { IDX_ISO_3 = 2 };
-enum { IDX_ISO_4 = 3 };
-enum { IDX_ISO_5 = 4 };
-enum { IDX_ISO_6 = 5 };
-enum { IDX_ISO_7 = 6 };
-enum { IDX_ISO_8 = 7 };
-enum { IDX_ISO_9 = 8 };
-enum { IDX_ISO_10 = 9 };
-enum { IDX_ISO_11 = 10 };
-enum { IDX_ISO_13 = 11 };
-enum { IDX_ISO_14 = 12 };
-enum { IDX_ISO_15 = 13 };
-enum { IDX_UTF8 = 16 };
-enum { IDX_UCS2 = 17 };
-enum { IDX_UCS2LE = 18 };
-enum { IDX_UTF16 = 19 };
-enum { IDX_UTF16BE = 20 };
-enum { IDX_UTF16LE = 21 };
-enum { IDX_UCS4 = 22 };
-enum { IDX_UCS4LE = 23 };
-enum { IDX_EUC_JP = 25 };
-enum { IDX_SJIS = 26 };
-enum { IDX_EUC_KR = 27 };
-enum { IDX_EUC_CN = 28 };
-enum { IDX_EUC_TW = 29 };
-enum { IDX_BIG5 = 30 };
-enum { IDX_CP932 = 46 };
-enum { IDX_CP936 = 47 };
-enum { IDX_CP949 = 48 };
-enum { IDX_CP950 = 49 };
-enum { IDX_MACROMAN = 58 };
-enum { IDX_COUNT = 61 };
 enum { MAX_SEARCH_COUNT = 9999 };
 enum { INC = 20 };
 enum { GAP = 3 };
@@ -852,7 +818,6 @@ enum { CCGD_EXCMD = 16 };
 enum { OPT_FREE = 0x01 };
 enum { OPT_GLOBAL = 0x02 };
 enum { OPT_LOCAL = 0x04 };
-enum { OPT_MODELINE = 0x08 };
 enum { OPT_WINONLY = 0x10 };
 enum { OPT_NOWIN = 0x20 };
 enum { OPT_ONECOLUMN = 0x40 };
@@ -1114,7 +1079,6 @@ enum { P_NOGLOB = 0x200000L };
 enum { P_NFNAME = 0x400000L };
 enum { P_INSECURE = 0x800000L };
 enum { P_PRI_MKRC = 0x1000000L };
-enum { P_NO_ML = 0x2000000L };
 enum { P_CURSWANT = 0x4000000L };
 enum { P_NDNAME = 0x8000000L };
 enum { P_HLONLY = 0x10000000L };
@@ -1122,10 +1086,6 @@ enum { P_MLE = 0x20000000L };
 enum { P_FUNC = 0x40000000L };
 enum :
     long { P_COLON = 0x80000000L };
-
-enum { EOL_UNIX = 0 };
-enum { EOL_DOS = 1 };
-enum { EOL_MAC = 2 };
 
 enum { FO_WRAP = 't' };
 enum { FO_WRAP_COMS = 'c' };
@@ -1203,7 +1163,6 @@ enum { SHM_RO = 'r' };
 enum { SHM_MOD = 'm' };
 enum { SHM_FILE = 'f' };
 enum { SHM_LAST = 'i' };
-enum { SHM_TEXT = 'x' };
 enum { SHM_LINES = 'l' };
 enum { SHM_NEW = 'n' };
 enum { SHM_WRI = 'w' };
@@ -1247,7 +1206,6 @@ enum { BS_NOSTOP = 'p' };
 
 static char_u   *p_ambw;
 static int      p_ai;
-static int      p_bin;
 static int      p_bl;
 static int      p_ci;
 static int      p_aw;
@@ -1278,7 +1236,6 @@ static char_u   *p_cmp;
 static unsigned cmp_flags;
 enum { CMP_INTERNAL = 0x001 };
 enum { CMP_KEEPASCII = 0x002 };
-static char_u   *p_enc;
 static int      p_deco;
 static int      p_cdh;
 static long     p_ch;
@@ -1305,16 +1262,11 @@ static char_u   *p_emoji;
 static int      p_ea = TRUE;
 static char_u   *p_ep;
 static int      p_eb;
-static int      p_eof;
-static int      p_eol;
 static int      p_ek;
 static int      p_et;
-static char_u   *p_ff;
-static char_u   *p_ffs;
 static int      p_fic;
 static char_u   *p_ft;
 static char_u   *p_fcs;
-static int      p_fixeol;
 static char_u   *p_flp;
 static char_u   *p_fo;
 static char_u   *p_fp;
@@ -1352,7 +1304,6 @@ static char_u   *p_lcs;
 
 static int      p_lz;
 static int      p_magic;
-static char_u   *p_menc;
 static char_u   *p_mps;
 static long     p_mat;
 static long     p_mco;
@@ -1360,10 +1311,6 @@ static long     p_mmd;
 static long     p_mmp;
 static char_u   *p_mopt;
 static long     p_msc;
-static int      p_ml;
-static int      p_mle;
-static long     p_mls;
-static int      p_mlstr;
 static int      p_ma;
 static int      p_mod;
 static int      p_more;
@@ -1421,8 +1368,6 @@ static long     p_ts;
 static char_u   *p_trz;
 static int      p_tsy;
 static int      p_terse;
-static int      p_ta;
-static int      p_tx;
 static long     p_tw;
 static int      p_to;
 static int      p_timeout;
@@ -1476,19 +1421,14 @@ enum
 {
     BV_AI = 0
     , BV_BT = 5
-    , BV_BIN
-    , BV_BL
+    , BV_BL = 7
     , BV_CI = 9
     , BV_CMS = 16
     , BV_COM
-    , BV_EOF = 22
-    , BV_EOL
-    , BV_FIXEOL
-    , BV_EP
+    , BV_EP = 25
     , BV_ET
     , BV_FP = 28
-    , BV_FF
-    , BV_FLP
+    , BV_FLP = 30
     , BV_FO
     , BV_FS
     , BV_FT
@@ -1499,10 +1439,8 @@ enum
     , BV_LISP
     , BV_LOP
     , BV_LW
-    , BV_MENC
-    , BV_MA
-    , BV_ML
-    , BV_MOD
+    , BV_MA = 44
+    , BV_MOD = 46
     , BV_MPS
     , BV_NF
     , BV_PI = 50
@@ -1514,7 +1452,6 @@ enum
     , BV_SW = 57
     , BV_TS = 61
     , BV_TW
-    , BV_TX
     , BV_UL = 65
     , BV_WM
     };
@@ -2051,13 +1988,6 @@ typedef struct
     char_u              *save_inputbuf;
 } tasave_T;
 
-typedef struct
-{
-    int         vc_type;
-    int         vc_factor;
-    int         vc_fail;
-} vimconv_T;
-
 typedef struct hist_entry
 {
     int         hisnum;
@@ -2067,7 +1997,6 @@ typedef struct hist_entry
     time_t      time_set;
 } histentry_T;
 
-enum { CONV_NONE = 0 };
 typedef struct mapblock mapblock_T;
 struct mapblock
 {
@@ -2387,7 +2316,6 @@ typedef struct AutoPatCmd_S AutoPatCmd_T;
 
 typedef enum {
     ETYPE_TOP,
-    ETYPE_MODELINE = 4,
     ETYPE_ARGS = 6,
     ETYPE_INTERNAL = 8,
 } etype_T;
@@ -2505,19 +2433,13 @@ struct file_buffer
     int         b_p_ai_nopaste;
     unsigned    b_bkc_flags;
     int         b_p_ci;
-    int         b_p_bin;
     char_u      *b_p_bt;
     int         b_p_bl;
     char_u      *b_p_com;
     char_u      *b_p_cms;
     unsigned    b_cot_flags;
-    int         b_p_eof;
-    int         b_p_eol;
-    int         b_p_fixeol;
     int         b_p_et;
-    int         b_p_et_nobin;
     int         b_p_et_nopaste;
-    char_u      *b_p_ff;
     char_u      *b_p_ft;
     char_u      *b_p_fo;
     char_u      *b_p_flp;
@@ -2527,10 +2449,7 @@ struct file_buffer
     char_u      *b_p_kp;
     int         b_p_lisp;
     char_u      *b_p_lop;
-    char_u      *b_p_menc;
     char_u      *b_p_mps;
-    int         b_p_ml;
-    int         b_p_ml_nobin;
     int         b_p_ma;
     char_u      *b_p_nf;
     int         b_p_pi;
@@ -2542,25 +2461,15 @@ struct file_buffer
     long        b_p_sts;
     long        b_p_sts_nopaste;
     long        b_p_ts;
-    int         b_p_tx;
     long        b_p_tw;
-    long        b_p_tw_nobin;
     long        b_p_tw_nopaste;
     long        b_p_wm;
-    long        b_p_wm_nobin;
     long        b_p_wm_nopaste;
 
     char_u      *b_p_ep;
     unsigned    b_tc_flags;
     long        b_p_ul;
     char_u      *b_p_lw;
-
-    linenr_T    b_no_eol_lnum;
-
-    int         b_start_eof;
-    int         b_start_eol;
-    int         b_start_ffc;
-    int         b_bad_char;
 
     bool        b_may_swap;
     bool        b_did_warn;
@@ -2988,18 +2897,7 @@ typedef struct
 
 enum { WRITEBUFSIZE = 8192 };
 
-enum { FIO_LATIN1 = 0x01 };
-enum { FIO_UTF8 = 0x02 };
-enum { FIO_UCS2 = 0x04 };
-enum { FIO_UCS4 = 0x08 };
-enum { FIO_UTF16 = 0x10 };
-enum { FIO_ENDIAN_L = 0x80 };
-enum { FIO_NOCONVERT = 0x2000 };
-enum { FIO_UCSBOM = 0x4000 };
-
 enum { CONV_RESTLEN = 30 };
-
-enum { ICONV_MULT = 8 };
 
 typedef enum {
     OPTION_MAGIC_NOT_SET,
@@ -3863,18 +3761,11 @@ struct exarg
     int         usefilter;
     int         amount;
     int         regname;
-    int         force_bin;
     int         read_edit;
-    int         force_ff;
-    int         force_enc;
-    int         bad_char;
     char        *errmsg;
     char_u      *(*ea_getline)(int, void *, int, getline_opt_T);
     void        *cookie;
 };
-
-enum { FORCE_BIN = 1 };
-enum { FORCE_NOBIN = 2 };
 
 enum { EXFLAG_LIST = 0x01 };
 enum { EXFLAG_NR = 0x02 };
@@ -3960,7 +3851,6 @@ static void maketitle(void);
 static void resettitle(void);
 static char_u *fix_fname(char_u *fname);
 static void fname_expand(buf_T *buf, char_u **ffname, char_u **sfname);
-static void do_modelines(int flags);
 static int bt_quickfix(buf_T *buf);
 static int bt_help(buf_T *buf);
 static int bt_dontwrite(buf_T *buf);
@@ -3976,8 +3866,6 @@ static void changed(void);
 static void changed_internal(void);
 static void changed_lines(linenr_T lnum, colnr_T col, linenr_T lnume, long xtra);
 static void unchanged(buf_T *buf, int ff, int always_inc_changedtick);
-static void save_file_ff(buf_T *buf);
-static int file_ff_differs(buf_T *buf, int ignore_empty);
 static void ins_bytes_len(char_u *p, int len);
 static void ins_char(int c);
 static void ins_char_bytes(char_u *buf, int charlen);
@@ -4175,18 +4063,13 @@ static char_u *script_get(exarg_T *eap, char_u *cmd);
 // ---------------- begin fileio.pro ----------------
 static void filemess(buf_T *buf, char_u *name, char_u *s, int attr);
 static int readfile(char_u *fname, char_u *sfname, linenr_T from, linenr_T lines_to_skip, linenr_T lines_to_read, exarg_T *eap, int flags);
-static void set_file_options(int set_options, exarg_T *eap);
-static void set_forced_fenc(exarg_T *eap);
 static int check_file_readonly(char_u *fname, int perm);
 static int vim_fsync(int fd);
 static int set_rw_fname(char_u *fname, char_u *sfname);
 static void msg_add_fname(buf_T *buf, char_u *fname);
-static int msg_add_fileformat(int eol_type);
 static void msg_add_lines(int insert_space, long lnum, off_T nchars);
 static void msg_add_eol(void);
 static int time_differs(stat_T *st, long mtime, long mtime_ns);
-static int need_conversion(char_u *fenc);
-static int get_fio_flags(char_u *ptr);
 static char_u *shorten_fname1(char_u *full_path);
 static char_u *shorten_fname(char_u *full_path, char_u *dir_name);
 static void shorten_fnames(int force);
@@ -4536,10 +4419,6 @@ static int find_special_key(char_u **srcp, int *modp, int flags, int *did_simpli
 static int extract_modifiers(int key, int *modp, int simplify, int *did_simplify);
 static int find_special_key_in_table(int c);
 static int get_special_key_code(char_u *name);
-static int get_fileformat(buf_T *buf);
-static int get_fileformat_force(buf_T *buf, exarg_T *eap);
-static void set_fileformat(int t, int opt_flags);
-static int default_fileformat(void);
 static int get_real_state(void);
 static int after_pathsep(char_u *b, char_u *p);
 static int cmp_keyvalue_value_n(const void *a, const void *b);
@@ -4593,30 +4472,17 @@ static int pagescroll(int dir, long count, int half);
 
 // ---------------- end move.pro ----------------
 // ---------------- begin mbyte.pro ----------------
-static int enc_canon_props(char_u *name);
 static int mb_get_class(char_u *p);
 static int mb_get_class_buf(char_u *p, buf_T *buf);
-static int dbcs_class(unsigned lead, unsigned trail);
-static int latin_char2len(int c);
-static int latin_char2bytes(int c, char_u *buf);
-static int latin_ptr2len(char_u *p);
-static int latin_ptr2len_len(char_u *p, int size);
 static int utf_char2cells(int c);
-static int latin_ptr2cells(char_u *p);
 static int utf_ptr2cells(char_u *p);
-static int latin_ptr2cells_len(char_u *p, int size);
-static int latin_char2cells(int c);
 static int mb_string2cells(char_u *p, int len);
-static int latin_off2cells(unsigned off, unsigned max_off);
-static int dbcs_off2cells(unsigned off, unsigned max_off);
 static int utf_off2cells(unsigned off, unsigned max_off);
-static int latin_ptr2char(char_u *p);
 static int utf_ptr2char(char_u *p);
 static int mb_ptr2char_adv(char_u **pp);
 static int mb_cptr2char_adv(char_u **pp);
 static int utfc_ptr2char(char_u *p, int *pcc);
 static int utf_ptr2len(char_u *p);
-static int utf_byte2len(int b);
 static int utf_ptr2len_len(char_u *p, int size);
 static int utfc_ptr2len(char_u *p);
 static int utfc_ptr2len_len(char_u *p, int size);
@@ -4630,7 +4496,6 @@ static int utf_islower(int a);
 static int utf_tolower(int a);
 static int utf_isupper(int a);
 static int mb_strnicmp(char_u *s1, char_u *s2, size_t nn);
-static int latin_head_off(char_u *base, char_u *p);
 static int utf_head_off(char_u *base, char_u *p);
 static void mb_copy_char(char_u **fp, char_u **tp);
 static int mb_off_next(char_u *base, char_u *p);
@@ -4641,10 +4506,6 @@ static char_u *mb_prevptr(char_u *line, char_u *p);
 static int mb_charlen(char_u *str);
 static char_u *mb_unescape(char_u **pp);
 static int mb_lefthalve(int row, int col);
-static char_u *enc_canonize(char_u *enc);
-static int convert_setup(vimconv_T *vcp, char_u *from, char_u *to);
-static char_u *string_convert(vimconv_T *vcp, char_u *ptr, int *lenp);
-static char_u *get_encoding_name(expand_T *xp, int idx);
 
 // ---------------- end mbyte.pro ----------------
 // ---------------- begin normal.pro ----------------
@@ -4700,13 +4561,10 @@ static void set_title_defaults(void);
 static int do_set(char_u *arg_start, int opt_flags);
 static void did_set_option(int opt_idx, int opt_flags, int new_value, int value_checked);
 static int string_to_key(char_u *arg, int multi_byte);
-static void set_options_bin(int oldval, int newval, int opt_flags);
 static void check_options(void);
-static char *did_set_binary(optset_T *args);
 static char *did_set_buflisted(optset_T *args);
 static char *did_set_cmdheight(optset_T *args);
 static char *did_set_compatible(optset_T *args);
-static char *did_set_eof_eol_fixeol_bomb(optset_T *args);
 static char *did_set_hlsearch(optset_T *args);
 static char *did_set_ignorecase(optset_T *args);
 static char *did_set_iminsert(optset_T *args);
@@ -4726,8 +4584,6 @@ static char *did_set_shiftwidth_tabstop(optset_T *args);
 static char *did_set_smoothscroll(optset_T *args);
 static char *did_set_termsync(optset_T *args);
 static char *did_set_terse(optset_T *args);
-static char *did_set_textauto(optset_T *args);
-static char *did_set_textmode(optset_T *args);
 static char *did_set_textwidth(optset_T *args);
 static char *did_set_title_icon(optset_T *args);
 static char *did_set_titlelen(optset_T *args);
@@ -4741,7 +4597,6 @@ static int findoption(char_u *arg);
 static void set_option_value_give_err(char_u *name, long number, char_u *string, int opt_flags);
 static char_u *get_term_code(char_u *tname);
 static char_u *get_highlight_default(void);
-static char_u *get_encoding_default(void);
 static void free_termoptions(void);
 static char_u *get_equalprg(void);
 static char_u *get_findfunc(void);
@@ -4802,12 +4657,6 @@ static char *did_set_debug(optset_T *args);
 static int expand_set_debug(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_display(optset_T *args);
 static int expand_set_display(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_encoding(optset_T *args);
-static int expand_set_encoding(optexpand_T *args, int *numMatches, char_u ***matches);
-static char *did_set_fileformat(optset_T *args);
-static int expand_set_fileformat(optexpand_T *args, int *numMatches, char_u ***matches);
-static char_u *get_fileformat_name(expand_T *xp, int idx);
-static char *did_set_fileformats(optset_T *args);
 static char *did_set_filetype_or_syntax(optset_T *args);
 static char *did_set_formatoptions(optset_T *args);
 static int expand_set_formatoptions(optexpand_T *args, int *numMatches, char_u ***matches);
@@ -4859,7 +4708,6 @@ static char *did_set_winhighlight(optset_T *args);
 static int expand_set_winhighlight(optexpand_T *args, int *numMatches, char_u ***matches);
 static int expand_set_wincolor(optexpand_T *args, int *numMatches, char_u ***matches);
 static char *did_set_string_option(int opt_idx, char_u **varp, char_u *oldval, char_u *value, char *errbuf, size_t errbuflen, int opt_flags, set_op_T op, int *value_checked);
-static int check_ff_value(char_u *p);
 
 // ---------------- end optionstr.pro ----------------
 // ---------------- begin popupmenu.pro ----------------
@@ -5491,40 +5339,7 @@ static pos_T    Insstart_orig;
 static int      orig_line_count  = 0 ;
 static int      vr_lines_changed  = 0 ;
 
-enum { DBCS_JPN = 932 };
-enum { DBCS_JPNU = 9932 };
-enum { DBCS_KOR = 949 };
-enum { DBCS_KORU = 9949 };
-enum { DBCS_CHS = 936 };
-enum { DBCS_CHSU = 9936 };
-enum { DBCS_CHT = 950 };
-enum { DBCS_CHTU = 9950 };
-static int      enc_dbcs  = 0 ;
-static int      enc_unicode  = 0 ;
-static int      enc_utf8  = FALSE ;
-static int      enc_latin1like  = TRUE ;
-static int      has_mbyte  = 0 ;
-
 static char     mb_bytelen_tab[256];
-
-static vimconv_T input_conv;
-static vimconv_T output_conv;
-
-static int (*mb_ptr2len)(char_u *p)  = latin_ptr2len ;
-
-static int (*mb_ptr2len_len)(char_u *p, int size)  = latin_ptr2len_len ;
-
-static int (*mb_char2len)(int c)  = latin_char2len ;
-
-static int (*mb_char2bytes)(int c, char_u *buf)  = latin_char2bytes ;
-
-static int (*mb_ptr2cells)(char_u *p)  = latin_ptr2cells ;
-static int (*mb_ptr2cells_len)(char_u *p, int size)  = latin_ptr2cells_len ;
-static int (*mb_char2cells)(int c)  = latin_char2cells ;
-static int (*mb_off2cells)(unsigned off, unsigned max_off)  = latin_off2cells ;
-static int (*mb_ptr2char)(char_u *p)  = latin_ptr2char ;
-
-static int (*mb_head_off)(char_u *base, char_u *p)  = latin_head_off ;
 
 static int      State  = MODE_NORMAL ;
 
@@ -5798,7 +5613,6 @@ static char e_readpre_autocommands_must_not_change_current_buffer[]  =  "E201: *
 static char e_autocommands_deleted_or_unloaded_buffer_to_be_written[]  =  "E203: Autocommands deleted or unloaded buffer to be written"  ;
 static char e_autocommands_changed_number_of_lines_in_unexpected_way[]  =  "E204: Autocommand changed number of lines in unexpected way"  ;
 static char e_cant_open_file_for_writing[]  =  "E212: Can't open file for writing"  ;
-static char e_cannot_convert_add_bang_to_write_without_conversion[]  =  "E213: Cannot convert (add ! to write without conversion)"  ;
 static char e_missing_open_curly[]  =  "E219: Missing {."  ;
 static char e_missing_close_curly[]  =  "E220: Missing }."  ;
 static char e_add_to_internal_buffer_that_was_already_read_from[]  = "E222: Add to internal buffer that was already read from" ;
@@ -5901,12 +5715,9 @@ static char e_is_read_only_cannot_override_W_in_cpoptions[]  =  "is read-only (c
 static char e_is_read_only_add_bang_to_override[]  =  "is read-only (add ! to override)"  ;
 static char e_str_is_read_only_add_bang_to_override[]  =  "E505: \"%s\" is read-only (add ! to override)"  ;
 static char e_close_failed[]  =  "E512: Close failed"  ;
-static char e_write_error_conversion_failed_make_fenc_empty_to_override[]  =  "E513: Write error, conversion failed (make 'fenc' empty to override)"  ;
-static char e_write_error_conversion_failed_in_line_nr_make_fenc_empty_to_override[]  =  "E513: Write error, conversion failed in line %ld (make 'fenc' empty to override)"  ;
 static char e_write_error_file_system_full[]  =  "E514: Write error (file system full?)"  ;
 static char e_unknown_option[]  =  "E518: Unknown option"  ;
 static char e_option_not_supported[]  =  "E519: Option not supported"  ;
-static char e_not_allowed_in_modeline[]  =  "E520: Not allowed in a modeline"  ;
 static char e_number_required_after_equal[]  =  "E521: Number required after ="  ;
 static char e_number_required_after_str_equal_str[]  =  "E521: Number required: &%s = '%s'"  ;
 static char e_not_found_in_termcap[]  =  "E522: Not found in termcap"  ;
@@ -5963,7 +5774,6 @@ static char e_reverse_range_in_character_class[]  =  "E944: Reverse range in cha
 static char e_range_too_large_in_character_class[]  =  "E945: Range too large in character class"  ;
 static char e_file_changed_while_writing[]  =  "E949: File changed while writing"  ;
 static char e_cannot_use_pattern_recursively[]  =  "E956: Cannot use pattern recursively"  ;
-static char e_not_allowed_in_modeline_when_modelineexpr_is_off[]  =  "E992: Not allowed in a modeline when 'modelineexpr' is off"  ;
 static char e_colon_required_before_range_str[]  =  "E1050: Colon required before a range: %s"  ;
 static char e_yank_register_changed_while_using_it[]  =  "E1064: Yank register changed while using it"  ;
 static char e_command_cannot_be_shortened_str[]  =  "E1065: Command cannot be shortened: %s"  ;
@@ -6000,26 +5810,9 @@ static char e_invalid_format_string_single_percent_s[]  =  "E1577: Invalid forma
 
 // ---------------- end errors.h ----------------
 
-enum { ENC_8BIT = 0x01 };
-enum { ENC_DBCS = 0x02 };
-enum { ENC_UNICODE = 0x04 };
-
-enum { ENC_ENDIAN_B = 0x10 };
-enum { ENC_ENDIAN_L = 0x20 };
-
-enum { ENC_2BYTE = 0x40 };
-enum { ENC_4BYTE = 0x80 };
-enum { ENC_2WORD = 0x100 };
-
-enum { ENC_LATIN1 = 0x200 };
-enum { ENC_LATIN9 = 0x400 };
-enum { ENC_MACROMAN = 0x800 };
-
 enum { VGR_GLOBAL = 1 };
 enum { VGR_NOJUMP = 2 };
 enum { VGR_FUZZY = 4 };
-
-enum { BAD_REPLACE = '?' };
 
 enum { BFA_DEL = 1 };
 enum { BFA_WIPE = 2 };
@@ -7968,16 +7761,11 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
     if (curbuf->b_ffname != NULL)
     {
         int old_msg_silent = msg_silent;
-        int     save_bin = curbuf->b_p_bin;
         int perm;
         perm = mch_getperm(curbuf->b_ffname);
         if (perm >= 0 && (S_ISFIFO(perm) || S_ISSOCK(perm)))
         {
                 read_fifo = TRUE;
-        }
-        if (read_fifo)
-        {
-            curbuf->b_p_bin = TRUE;
         }
         if (shortmess(SHM_FILEINFO))
         {
@@ -7986,7 +7774,6 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
         retval = readfile(curbuf->b_ffname, curbuf->b_fname, (linenr_T)0, (linenr_T)0, (linenr_T) LONG_MAX , eap, flags | READ_NEW | (read_fifo ? READ_FIFO : 0));
         if (read_fifo)
         {
-            curbuf->b_p_bin = save_bin;
             if (retval == OK)
             {
                 retval = read_buffer(FALSE, eap, flags);
@@ -8000,11 +7787,7 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
     }
     else if (read_stdin)
     {
-        int     save_bin = curbuf->b_p_bin;
-
-        curbuf->b_p_bin = TRUE;
         retval = readfile(NULL, NULL, (linenr_T)0, (linenr_T)0, (linenr_T) LONG_MAX , NULL, flags | (READ_NEW + READ_STDIN));
-        curbuf->b_p_bin = save_bin;
         if (retval == OK)
         {
             retval = read_buffer(TRUE, eap, flags);
@@ -8029,7 +7812,6 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
     {
         unchanged(curbuf, FALSE, TRUE);
     }
-    save_file_ff(curbuf);
 
     curbuf->b_last_changedtick =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
     curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
@@ -8058,7 +7840,6 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
         aucmd_prepbuf(&aco, old_curbuf.br_buf);
         if (curbuf == old_curbuf.br_buf)
         {
-            do_modelines(0);
             curbuf->b_flags &= ~(BF_CHECK_RO | BF_NEVERLOADED);
 
             if ((flags & READ_NOWINENTER) == 0)
@@ -8333,10 +8114,6 @@ buf_clear_file(buf_T *buf)
     buf->b_ml.ml_line_count = 1;
     unchanged(buf, TRUE, TRUE);
     buf->b_shortname = false;
-    buf->b_p_eof = FALSE;
-    buf->b_start_eof = FALSE;
-    buf->b_p_eol = TRUE;
-    buf->b_start_eol = TRUE;
     buf->b_ml.ml_mfp = NULL;
     buf->b_ml.ml_flags = ML_EMPTY;
 }
@@ -8870,7 +8647,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
 {
     if (free_p_ff)
     {
-        clear_string_option(&buf->b_p_ff);
         clear_string_option(&buf->b_p_bt);
     }
     clear_string_option(&buf->b_p_fp);
@@ -8889,7 +8665,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     buf->b_p_fs = -1;
     buf->b_p_ul =  (-123456) ;
     clear_string_option(&buf->b_p_lw);
-    clear_string_option(&buf->b_p_menc);
 }
 
     static int
@@ -9986,10 +9761,7 @@ maketitle(void)
             if (namelen > 100)
             {
                 namelen -= 100;
-                if (has_mbyte)
-                {
-                    namelen += (*mb_tail_off)(name, name + namelen) + 1;
-                }
+                namelen += (*mb_tail_off)(name, name + namelen) + 1;
                 name += namelen;
             }
              strcpy((char *)(buf), (char *)(name)) ;
@@ -10108,44 +9880,6 @@ fname_expand(buf_T       *buf  __attribute__((unused)) , char_u      **ffname, c
 
 }
 
-static int  chk_modeline(linenr_T, int);
-
-    static void
-do_modelines(int flags)
-{
-    linenr_T    lnum;
-    int         nmlines;
-    static int  entered = 0;
-
-    if (!curbuf->b_p_ml || (nmlines = (int)p_mls) == 0)
-    {
-        return;
-    }
-
-    if (entered)
-    {
-        return;
-    }
-
-    ++entered;
-    for (lnum = 1; curbuf->b_p_ml && lnum <= curbuf->b_ml.ml_line_count && lnum <= nmlines; ++lnum)
-    {
-        if (chk_modeline(lnum, flags) == FAIL)
-        {
-            nmlines = 0;
-        }
-    }
-
-    for (lnum = curbuf->b_ml.ml_line_count; curbuf->b_p_ml && lnum > 0 && lnum > nmlines && lnum > curbuf->b_ml.ml_line_count - nmlines; --lnum)
-    {
-        if (chk_modeline(lnum, flags) == FAIL)
-        {
-            nmlines = 0;
-        }
-    }
-    --entered;
-}
-
 // ---------------- begin version.h ----------------
 
 // Nothing but the preprocessor can build a string literal from a constant, so
@@ -10159,135 +9893,7 @@ static const char VIM_VERSION_DATE_ONLY[] = "2026 Feb 14";
 
 static const char VIM_VERSION_SHORT[] = {'0' + VIM_VERSION_MAJOR, '.', '0' + VIM_VERSION_MINOR, NUL};
 static const char VIM_VERSION_LONG_ONLY[] = {'V', 'I', 'M', ' ', '-', ' ', 'V', 'i', ' ', 'I', 'M', 'p', 'r', 'o', 'v', 'e', 'd', ' ', '0' + VIM_VERSION_MAJOR, '.', '0' + VIM_VERSION_MINOR, NUL};
-enum { VIM_VERSION_100 = VIM_VERSION_MAJOR * 100 + VIM_VERSION_MINOR };
-
 // ---------------- end version.h ----------------
-
-    static int
-chk_modeline(linenr_T    lnum, int         flags)
-{
-    char_u      *s;
-    char_u      *line_end;
-    char_u      *e;
-    int         prev;
-    int         retval = OK;
-
-    prev = -1;
-    s = ml_get(lnum);
-    line_end = s + ml_get_len(lnum);
-    for (; *s != NUL; ++s)
-    {
-        if (prev == -1 || vim_isspace(prev))
-        {
-            if ((prev != -1 &&  strncmp((char *)(s), (char *)("ex:"), ((size_t)3))  == 0) ||  strncmp((char *)(s), (char *)("vi:"), ((size_t)3))  == 0)
-            {
-                break;
-            }
-            if ((s[0] == 'v' || s[0] == 'V') && s[1] == 'i' && s[2] == 'm')
-            {
-                int vers;
-
-                if (s[3] == '<' || s[3] == '=' || s[3] == '>')
-                {
-                    e = s + 4;
-                }
-                else
-                {
-                    e = s + 3;
-                }
-                vers = getdigits(&e);
-                if (*e == ':' && (s[0] != 'V' ||  strncmp((char *)(skipwhite(e + 1)), (char *)("set"), (3))  == 0) && (s[3] == ':' || (VIM_VERSION_100 >= vers &&  (isdigit ((unsigned char)(s[3]))) ) || (VIM_VERSION_100 < vers && s[3] == '<') || (VIM_VERSION_100 > vers && s[3] == '>') || (VIM_VERSION_100 == vers && s[3] == '=')))
-                {
-                    break;
-                }
-            }
-        }
-        prev = *s;
-    }
-
-    if (*s)
-    {
-        size_t  len;
-        char_u  *linecopy;
-        int     end;
-
-        do
-        {
-            ++s;
-        }
-        while (s[-1] != ':')
-            ;
-
-        len = (size_t)(line_end - s);
-        s = linecopy = vim_strnsave(s, len);
-        if (linecopy == NULL)
-        {
-            return FAIL;
-        }
-
-        line_end = s + len;
-
-        estack_push(ETYPE_MODELINE, (char_u *)"modelines", lnum);
-
-        end = FALSE;
-        while (end == FALSE)
-        {
-            s = skipwhite(s);
-            if (*s == NUL)
-            {
-                break;
-            }
-
-            for (e = s; *e != ':' && *e != NUL; ++e)
-            {
-                if (e[0] == '\\' && e[1] == ':')
-                {
-                     memmove((char *)(e), (char *)(e + 1), (size_t)(line_end - (e + 1)) + 1) ;
-                    --line_end;
-                }
-            }
-            if (*e == NUL)
-            {
-                end = TRUE;
-            }
-
-            if ( strncmp((char *)(s), (char *)("set "), ((size_t)4))  == 0 ||  strncmp((char *)(s), (char *)("se "), ((size_t)3))  == 0)
-            {
-                if (*e != ':')
-                {
-                    break;
-                }
-                end = TRUE;
-                s += (*(s + 2) == ' ') ? 3 : 4;
-            }
-            *e = NUL;
-
-            if (*s != NUL)
-            {
-                int secure_save = secure;
-                sctx_T  save_current_sctx = current_sctx;
-
-                current_sctx.sc_version = 1;
-
-                secure = 1;
-
-                retval = do_set(s, OPT_MODELINE | OPT_LOCAL | flags);
-
-                secure = secure_save;
-                current_sctx = save_current_sctx;
-                if (retval == FAIL)
-                {
-                    break;
-                }
-            }
-            s = (e == line_end) ? e : e + 1;
-        }
-
-        estack_pop();
-        vim_free(linecopy);
-    }
-    return retval;
-}
 
     static int
 bt_quickfix(buf_T *buf  __attribute__((unused)) )
@@ -10400,10 +10006,7 @@ struct bw_info
     char_u      *bw_buf;
     int         bw_len;
     int         bw_flags;
-    char_u      bw_rest[CONV_RESTLEN];
     int         bw_restlen;
-    char_u      *bw_conv_buf;
-    size_t      bw_conv_buflen;
     int         bw_conv_error;
     linenr_T    bw_conv_error_lnum;
     linenr_T    bw_start_lnum;
@@ -10411,220 +10014,11 @@ struct bw_info
 };
 
     static int
-ucs2bytes(unsigned    c, char_u      **pp, int         flags)
-{
-    char_u      *p = *pp;
-    int         error = FALSE;
-    int         cc;
-
-    if (flags & FIO_UCS4)
-    {
-        if (flags & FIO_ENDIAN_L)
-        {
-            *p++ = c;
-            *p++ = (c >> 8);
-            *p++ = (c >> 16);
-            *p++ = (c >> 24);
-        }
-        else
-        {
-            *p++ = (c >> 24);
-            *p++ = (c >> 16);
-            *p++ = (c >> 8);
-            *p++ = c;
-        }
-    }
-    else if (flags & (FIO_UCS2 | FIO_UTF16))
-    {
-        if (c >= 0x10000)
-        {
-            if (flags & FIO_UTF16)
-            {
-                c -= 0x10000;
-                if (c >= 0x100000)
-                {
-                    error = TRUE;
-                }
-                cc = ((c >> 10) & 0x3ff) + 0xd800;
-                if (flags & FIO_ENDIAN_L)
-                {
-                    *p++ = cc;
-                    *p++ = ((unsigned)cc >> 8);
-                }
-                else
-                {
-                    *p++ = ((unsigned)cc >> 8);
-                    *p++ = cc;
-                }
-                c = (c & 0x3ff) + 0xdc00;
-            }
-            else
-            {
-                error = TRUE;
-            }
-        }
-        if (flags & FIO_ENDIAN_L)
-        {
-            *p++ = c;
-            *p++ = (c >> 8);
-        }
-        else
-        {
-            *p++ = (c >> 8);
-            *p++ = c;
-        }
-    }
-    else
-    {
-        if (c >= 0x100)
-        {
-            error = TRUE;
-            *p++ = 0xBF;
-        }
-        else
-        {
-            *p++ = c;
-        }
-    }
-
-    *pp = p;
-    return error;
-}
-
-    static int
 buf_write_bytes(struct bw_info *ip)
 {
     int         wlen;
     char_u      *buf = ip->bw_buf;
     int         len = ip->bw_len;
-    int         flags = ip->bw_flags;
-
-    if (!(flags & FIO_NOCONVERT))
-    {
-        char_u          *p;
-        unsigned        c;
-        int             n;
-
-        if (flags & FIO_UTF8)
-        {
-            p = ip->bw_conv_buf;
-            for (wlen = 0; wlen < len; ++wlen)
-            {
-                p += utf_char2bytes(buf[wlen], p);
-            }
-            buf = ip->bw_conv_buf;
-            len = (int)(p - ip->bw_conv_buf);
-        }
-        else if (flags & (FIO_UCS4 | FIO_UTF16 | FIO_UCS2 | FIO_LATIN1))
-        {
-            if (flags & FIO_LATIN1)
-            {
-                p = buf;
-            }
-            else
-            {
-                p = ip->bw_conv_buf;
-            }
-            for (wlen = 0; wlen < len; wlen += n)
-            {
-                if (wlen == 0 && ip->bw_restlen != 0)
-                {
-                    int         l;
-
-                    l = CONV_RESTLEN - ip->bw_restlen;
-                    if (l > len)
-                    {
-                        l = len;
-                    }
-                     memmove((char *)(ip->bw_rest + ip->bw_restlen), (char *)(buf), (size_t)l) ;
-                    n = utf_ptr2len_len(ip->bw_rest, ip->bw_restlen + l);
-                    if (n > ip->bw_restlen + len)
-                    {
-                        if (ip->bw_restlen + len > CONV_RESTLEN)
-                        {
-                            return FAIL;
-                        }
-                        ip->bw_restlen += len;
-                        break;
-                    }
-                    if (n > 1)
-                    {
-                        c = utf_ptr2char(ip->bw_rest);
-                    }
-                    else
-                    {
-                        c = ip->bw_rest[0];
-                    }
-                    if (n >= ip->bw_restlen)
-                    {
-                        n -= ip->bw_restlen;
-                        ip->bw_restlen = 0;
-                    }
-                    else
-                    {
-                        ip->bw_restlen -= n;
-                         memmove((char *)(ip->bw_rest), (char *)(ip->bw_rest + n), (size_t)ip->bw_restlen) ;
-                        n = 0;
-                    }
-                }
-                else
-                {
-                    n = utf_ptr2len_len(buf + wlen, len - wlen);
-                    if (n > len - wlen)
-                    {
-                        if (len - wlen > CONV_RESTLEN)
-                        {
-                            return FAIL;
-                        }
-                        ip->bw_restlen = len - wlen;
-                         memmove((char *)(ip->bw_rest), (char *)(buf + wlen), (size_t)ip->bw_restlen) ;
-                        break;
-                    }
-                    if (n > 1)
-                    {
-                        c = utf_ptr2char(buf + wlen);
-                    }
-                    else
-                    {
-                        c = buf[wlen];
-                    }
-                }
-                if (!(flags & FIO_LATIN1))
-                {
-                    size_t need = (flags & FIO_UCS4) ? 4 : 2;
-                    if ((flags & FIO_UTF16) && c >= 0x10000)
-                    {
-                        need = 4;
-                    }
-
-                    if ((size_t)(p - ip->bw_conv_buf) + need > ip->bw_conv_buflen)
-                    {
-                        return FAIL;
-                    }
-                }
-
-                if (ucs2bytes(c, &p, flags) && !ip->bw_conv_error)
-                {
-                    ip->bw_conv_error = TRUE;
-                    ip->bw_conv_error_lnum = ip->bw_start_lnum;
-                }
-                if (c == NL)
-                {
-                    ++ip->bw_start_lnum;
-                }
-            }
-            if (flags & FIO_LATIN1)
-            {
-                len = (int)(p - buf);
-            }
-            else
-            {
-                buf = ip->bw_conv_buf;
-                len = (int)(p - ip->bw_conv_buf);
-            }
-        }
-
-    }
 
     if (ip->bw_fd < 0)
     {
@@ -10691,13 +10085,7 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
     int             whole = (start == 1 && end == buf->b_ml.ml_line_count);
     linenr_T        old_line_count = buf->b_ml.ml_line_count;
     int             attr;
-    int             fileformat;
-    int             write_bin;
     struct bw_info  write_info;
-    int             converted = FALSE;
-    int             notconverted = FALSE;
-    char_u          *fenc;
-    char_u          *fenc_tofree = NULL;
     int             wb_flags = 0;
     pos_T           orig_start = buf->b_op_start;
     pos_T           orig_end = buf->b_op_end;
@@ -10723,7 +10111,6 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
         return FAIL;
     }
 
-    write_info.bw_conv_buf = NULL;
     write_info.bw_conv_error = FALSE;
     write_info.bw_conv_error_lnum = 0;
     write_info.bw_restlen = 0;
@@ -11090,149 +10477,83 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
 
     wfname = fname;
 
-    if (eap != NULL && eap->force_enc != 0)
-    {
-        fenc = eap->cmd + eap->force_enc;
-        fenc = enc_canonize(fenc);
-        fenc_tofree = fenc;
-    }
-    else
-    {
-        fenc = (char_u *)"";
-    }
-
-    converted = need_conversion(fenc);
-
-    if (converted && (enc_utf8 ||  strcmp((char *)(p_enc), (char *)("latin1"))  == 0))
-    {
-        wb_flags = get_fio_flags(fenc);
-        if (wb_flags & (FIO_UCS2 | FIO_UCS4 | FIO_UTF16 | FIO_UTF8))
-        {
-            int size = bufsize + CONV_RESTLEN;
-            if (wb_flags & (FIO_UCS2 | FIO_UTF16 | FIO_UTF8))
-            {
-                write_info.bw_conv_buflen = size * 2;
-            }
-            else
-            {
-                write_info.bw_conv_buflen = size * 4;
-            }
-            write_info.bw_conv_buf = alloc(write_info.bw_conv_buflen);
-            if (write_info.bw_conv_buf == NULL)
-            {
-                end = 0;
-            }
-        }
-    }
-
-    if (converted && wb_flags == 0 && write_info.bw_iconv_fd == (iconv_t)-1)
-    {
-        if (!forceit)
-        {
-            errmsg = (char_u *)_(e_cannot_convert_add_bang_to_write_without_conversion);
-            goto restore_backup;
-        }
-        notconverted = TRUE;
-    }
-
     for (checking_conversion = TRUE; ; checking_conversion = FALSE)
     {
-        if (!converted)
-        {
-            checking_conversion = FALSE;
-        }
+        checking_conversion = FALSE;
 
-        if (checking_conversion)
+        while ((fd =  open(((char *)wfname), (O_WRONLY | O_EXTRA | (append ? (forceit ? (O_APPEND | O_CREAT) : O_APPEND) : (O_CREAT | TRUNC_ON_OPEN))), (perm < 0 ? 0666 : (perm & 0777))) ) < 0)
         {
-            fd = -1;
-            write_info.bw_fd = fd;
-        }
-        else
-        {
-            while ((fd =  open(((char *)wfname), (O_WRONLY | O_EXTRA | (append ? (forceit ? (O_APPEND | O_CREAT) : O_APPEND) : (O_CREAT | TRUNC_ON_OPEN))), (perm < 0 ? 0666 : (perm & 0777))) ) < 0)
+            if (errmsg == NULL)
             {
-                if (errmsg == NULL)
-                {
-                    stat_T      st;
+                stat_T      st;
 
-                    if ((!newfile && st_old.st_nlink > 1) || ( lstat(((char *)fname), (&st))  == 0 && (st.st_dev != st_old.st_dev || st.st_ino != st_old.st_ino)))
+                if ((!newfile && st_old.st_nlink > 1) || ( lstat(((char *)fname), (&st))  == 0 && (st.st_dev != st_old.st_dev || st.st_ino != st_old.st_ino)))
+                {
+                    errmsg =
+                          (char_u *)_(e_cant_open_linked_file_for_writing);
+                }
+                else
+                {
+                    errmsg = (char_u *)_(e_cant_open_file_for_writing);
+                    if (forceit && vim_strchr(p_cpo, CPO_FWRITE) == NULL && perm >= 0)
                     {
-                        errmsg =
-                              (char_u *)_(e_cant_open_linked_file_for_writing);
-                    }
-                    else
-                    {
-                        errmsg = (char_u *)_(e_cant_open_file_for_writing);
-                        if (forceit && vim_strchr(p_cpo, CPO_FWRITE) == NULL && perm >= 0)
+                        if (!(perm & 0200))
                         {
-                            if (!(perm & 0200))
-                            {
-                                made_writable = TRUE;
-                            }
-                            perm |= 0200;
-                            perm &= 0777;
-                            if (!append)
-                            {
-                                 unlink((char *)(wfname)) ;
-                            }
-                            continue;
+                            made_writable = TRUE;
                         }
+                        perm |= 0200;
+                        perm &= 0777;
+                        if (!append)
+                        {
+                             unlink((char *)(wfname)) ;
+                        }
+                        continue;
                     }
                 }
+            }
 
 restore_backup:
-                {
-                    stat_T      st;
+            {
+                stat_T      st;
 
-                    if (!newfile &&  stat(((char *)fname), (&st))  < 0)
-                    {
-                        end = 0;
-                    }
-                }
-
-                if (wfname != fname)
+                if (!newfile &&  stat(((char *)fname), (&st))  < 0)
                 {
-                    vim_free(wfname);
+                    end = 0;
                 }
+            }
+
+            if (wfname != fname)
+            {
+                vim_free(wfname);
+            }
+            goto fail;
+        }
+        write_info.bw_fd = fd;
+
+        {
+            stat_T  st;
+
+            if (overwriting && fname == wfname && perm >= 0 &&  fstat((fd), (&st))  == 0 && st.st_ino != st_old.st_ino)
+            {
+                close(fd);
+                errmsg = (char_u *)_(e_file_changed_while_writing);
                 goto fail;
             }
-            write_info.bw_fd = fd;
-
-            {
-                stat_T  st;
-
-                if (overwriting && fname == wfname && perm >= 0 &&  fstat((fd), (&st))  == 0 && st.st_ino != st_old.st_ino)
-                {
-                    close(fd);
-                    errmsg = (char_u *)_(e_file_changed_while_writing);
-                    goto fail;
-                }
-            }
-            if (!append)
-            {
-                vim_ignored = ftruncate(fd, (off_t)0);
-            }
-
         }
+        if (!append)
+        {
+            vim_ignored = ftruncate(fd, (off_t)0);
+        }
+
         errmsg = NULL;
 
         write_info.bw_buf = buffer;
         nchars = 0;
 
-        if (eap != NULL && eap->force_bin != 0)
-        {
-            write_bin = (eap->force_bin == FORCE_BIN);
-        }
-        else
-        {
-            write_bin = buf->b_p_bin;
-        }
-
         write_info.bw_start_lnum = start;
 
         write_info.bw_len = bufsize;
         write_info.bw_flags = wb_flags;
-        fileformat = get_fileformat_force(buf, eap);
         s = buffer;
         len = 0;
         for (lnum = start; lnum <= end; ++lnum)
@@ -11243,10 +10564,6 @@ restore_backup:
                 if (c == NL)
                 {
                     *s = NUL;
-                }
-                else if (c == CAR && fileformat == EOL_MAC)
-                {
-                    *s = NL;
                 }
                 else
                 {
@@ -11267,35 +10584,13 @@ restore_backup:
                 len = 0;
                 write_info.bw_start_lnum = lnum;
             }
-            if (end == 0 || (lnum == end && (write_bin || !buf->b_p_fixeol) && ((write_bin && lnum == buf->b_no_eol_lnum) || (lnum == buf->b_ml.ml_line_count && !buf->b_p_eol))))
+            if (end == 0)
             {
                 ++lnum;
                 no_eol = TRUE;
                 break;
             }
-            if (fileformat == EOL_UNIX)
-            {
-                *s++ = NL;
-            }
-            else
-            {
-                *s++ = CAR;
-                if (fileformat == EOL_DOS)
-                {
-                    if (++len == bufsize)
-                    {
-                        if (buf_write_bytes(&write_info) == FAIL)
-                        {
-                            end = 0;
-                            break;
-                        }
-                        nchars += bufsize;
-                        s = buffer;
-                        len = 0;
-                    }
-                    *s++ = NL;
-                }
-            }
+            *s++ = NL;
             if (++len == bufsize && end)
             {
                 if (buf_write_bytes(&write_info) == FAIL)
@@ -11325,12 +10620,6 @@ restore_backup:
             nchars += len;
         }
 
-        if (!buf->b_p_fixeol && buf->b_p_eof)
-        {
-            (void)write_eintr(write_info.bw_fd, "\x1a", 1);
-            nchars++;
-        }
-
         if (!checking_conversion || end == 0)
         {
             break;
@@ -11338,56 +10627,35 @@ restore_backup:
 
     }
 
-    if (!checking_conversion)
+    if ((buf->b_p_fs >= 0 ? buf->b_p_fs : p_fs) && vim_fsync(fd) != 0 && !device)
     {
-        if ((buf->b_p_fs >= 0 ? buf->b_p_fs : p_fs) && vim_fsync(fd) != 0 && !device)
-        {
-            errmsg = (char_u *)_(e_fsync_failed);
-            end = 0;
-        }
+        errmsg = (char_u *)_(e_fsync_failed);
+        end = 0;
+    }
 
-        {
-            buf_setino(buf);
-        }
+    {
+        buf_setino(buf);
+    }
 
-        if (made_writable)
-        {
-            perm &= ~0200;
-        }
-        if (perm >= 0)
-        {
-            (void)mch_fsetperm(fd, perm);
-        }
-        if (close(fd) != 0)
-        {
-            errmsg = (char_u *)_(e_close_failed);
-            end = 0;
-        }
-
+    if (made_writable)
+    {
+        perm &= ~0200;
+    }
+    if (perm >= 0)
+    {
+        (void)mch_fsetperm(fd, perm);
+    }
+    if (close(fd) != 0)
+    {
+        errmsg = (char_u *)_(e_close_failed);
+        end = 0;
     }
 
     if (end == 0)
     {
         if (errmsg == NULL)
         {
-            if (write_info.bw_conv_error)
-            {
-                if (write_info.bw_conv_error_lnum == 0)
-                {
-                    errmsg = (char_u *)_(e_write_error_conversion_failed_make_fenc_empty_to_override);
-                }
-                else
-                {
-                    errmsg_allocated = TRUE;
-                    errmsg = alloc(300);
-                    if (errmsg == NULL)
-                    {
-                        goto fail;
-                    }
-                    vim_snprintf((char *)errmsg, 300, _(e_write_error_conversion_failed_in_line_nr_make_fenc_empty_to_override), (long)write_info.bw_conv_error_lnum);
-                }
-            }
-            else if (got_int)
+            if (got_int)
             {
                 errmsg = (char_u *)_(e_interrupted);
             }
@@ -11407,25 +10675,6 @@ restore_backup:
     {
         msg_add_fname(buf, fname);
         c = FALSE;
-        if (write_info.bw_conv_error)
-        {
-             strcat((char *)(IObuff), (char *)(_(" CONVERSION ERROR"))) ;
-            c = TRUE;
-            if (write_info.bw_conv_error_lnum != 0)
-            {
-                vim_snprintf_add((char *)IObuff,  (1024+1) , _(" in line %ld;"), (long)write_info.bw_conv_error_lnum);
-            }
-        }
-        else if (notconverted)
-        {
-             strcat((char *)(IObuff), (char *)(_("[NOT converted]"))) ;
-            c = TRUE;
-        }
-        else if (converted)
-        {
-             strcat((char *)(IObuff), (char *)(_("[converted]"))) ;
-            c = TRUE;
-        }
         if (device)
         {
              strcat((char *)(IObuff), (char *)(_("[Device]"))) ;
@@ -11439,10 +10688,6 @@ restore_backup:
         if (no_eol)
         {
             msg_add_eol();
-            c = TRUE;
-        }
-        if (msg_add_fileformat(fileformat))
-        {
             c = TRUE;
         }
         msg_add_lines(c, (long)lnum, nchars);
@@ -11461,7 +10706,7 @@ restore_backup:
         set_keep_msg((char_u *)msg_trunc_attr((char *)IObuff, FALSE, 0), 0);
     }
 
-    if (reset_changed && whole && !append && !write_info.bw_conv_error && (overwriting || vim_strchr(p_cpo, CPO_PLUS) != NULL))
+    if (reset_changed && whole && !append && (overwriting || vim_strchr(p_cpo, CPO_PLUS) != NULL))
     {
         unchanged(buf, TRUE, FALSE);
         if (buf->b_last_changedtick + 1 ==  ((buf)->b_ct_di.di_tv.vval.v_number) )
@@ -11497,8 +10742,6 @@ nofail:
     {
         vim_free(buffer);
     }
-    vim_free(fenc_tofree);
-    vim_free(write_info.bw_conv_buf);
 
     if (errmsg != NULL)
     {
@@ -11541,8 +10784,6 @@ nofail:
     if (!got_int)
     {
         aco_save_T      aco;
-
-        curbuf->b_no_eol_lnum = 0;
 
         aucmd_prepbuf(&aco, buf);
         if (curbuf == buf)
@@ -11931,14 +11172,10 @@ changed_lines(linenr_T    lnum, colnr_T     col, linenr_T    lnume, long        
     static void
 unchanged(buf_T *buf, int ff, int always_inc_changedtick)
 {
-    if (buf->b_changed || (ff && file_ff_differs(buf, FALSE)))
+    if (buf->b_changed)
     {
         buf->b_changed = 0;
         ml_setflags(buf);
-        if (ff)
-        {
-            save_file_ff(buf);
-        }
         check_status(buf);
         redraw_tabline = TRUE;
         need_maketitle = TRUE;
@@ -11948,36 +11185,6 @@ unchanged(buf_T *buf, int ff, int always_inc_changedtick)
     {
         ++ ((buf)->b_ct_di.di_tv.vval.v_number) ;
     }
-}
-
-    static void
-save_file_ff(buf_T *buf)
-{
-    buf->b_start_ffc = *buf->b_p_ff;
-    buf->b_start_eof = buf->b_p_eof;
-    buf->b_start_eol = buf->b_p_eol;
-}
-
-    static int
-file_ff_differs(buf_T *buf, int ignore_empty)
-{
-    if (buf->b_flags & BF_NEVERLOADED)
-    {
-        return FALSE;
-    }
-    if (ignore_empty && (buf->b_flags & BF_NEW) && buf->b_ml.ml_line_count == 1 && *ml_get_buf(buf, (linenr_T)1, FALSE) == NUL)
-    {
-        return FALSE;
-    }
-    if (buf->b_start_ffc != *buf->b_p_ff)
-    {
-        return TRUE;
-    }
-    if ((buf->b_p_bin || !buf->b_p_fixeol) && (buf->b_start_eof != buf->b_p_eof || buf->b_start_eol != buf->b_p_eol))
-    {
-        return TRUE;
-    }
-    return FALSE;
 }
 
     static void
@@ -11992,27 +11199,10 @@ ins_bytes_len(char_u *p, int len)
     int         i;
     int         n;
 
-    if (has_mbyte)
+    for (i = 0; i < len; i += n)
     {
-        for (i = 0; i < len; i += n)
-        {
-            if (enc_utf8)
-            {
-                n = utfc_ptr2len_len(p + i, len - i);
-            }
-            else
-            {
-                n = (*mb_ptr2len)(p + i);
-            }
-            ins_char_bytes(p + i, n);
-        }
-    }
-    else
-    {
-        for (i = 0; i < len; ++i)
-        {
-            ins_char(p[i]);
-        }
+        n = utfc_ptr2len_len(p + i, len - i);
+        ins_char_bytes(p + i, n);
     }
 }
 
@@ -12020,7 +11210,7 @@ ins_bytes_len(char_u *p, int len)
 ins_char(int c)
 {
     char_u      buf[MB_MAXBYTES + 1];
-    int         n = (*mb_char2bytes)(c, buf);
+    int         n = utf_char2bytes(c, buf);
 
     if (buf[0] == 0)
     {
@@ -12033,7 +11223,6 @@ ins_char(int c)
     static void
 ins_char_bytes(char_u *buf, int charlen)
 {
-    int         c = buf[0];
     int         newlen;
     int         oldlen;
     char_u      *p;
@@ -12079,7 +11268,7 @@ ins_char_bytes(char_u *buf, int charlen)
                 {
                     break;
                 }
-                oldlen += (*mb_ptr2len)(oldp + col + oldlen);
+                oldlen += utfc_ptr2len(oldp + col + oldlen);
                 if (vcol > new_vcol)
                 {
                     newlen += vcol - new_vcol;
@@ -12089,20 +11278,13 @@ ins_char_bytes(char_u *buf, int charlen)
         }
         else if (oldp[col] != NUL)
         {
-            oldlen = (*mb_ptr2len)(oldp + col);
+            oldlen = utfc_ptr2len(oldp + col);
         }
 
         replace_push(NUL);
         for (i = 0; i < oldlen; ++i)
         {
-            if (has_mbyte)
-            {
-                i += replace_push_mb(oldp + col + i) - 1;
-            }
-            else
-            {
-                replace_push(oldp[col + i]);
-            }
+            i += replace_push_mb(oldp + col + i) - 1;
         }
     }
 
@@ -12137,14 +11319,7 @@ ins_char_bytes(char_u *buf, int charlen)
 
     if (p_sm && (State & MODE_INSERT) && msg_silent == 0 && !ins_compl_active())
     {
-        if (has_mbyte)
-        {
-            showmatch(mb_ptr2char(buf));
-        }
-        else
-        {
-            showmatch(c);
-        }
+        showmatch(utf_ptr2char(buf));
     }
 
     {
@@ -12190,15 +11365,12 @@ ins_str(char_u *s, size_t slen)
     static int
 del_char(int fixpos)
 {
-    if (has_mbyte)
+    mb_adjust_cursor();
+    if (*ml_get_cursor() == NUL)
     {
-        mb_adjust_cursor();
-        if (*ml_get_cursor() == NUL)
-        {
-            return FAIL;
-        }
-        return del_chars(1L, fixpos);
+        return FAIL;
     }
+    return del_chars(1L, fixpos);
     return del_bytes(1L, fixpos, TRUE);
 }
 
@@ -12213,7 +11385,7 @@ del_chars(long count, int fixpos)
     p = ml_get_cursor();
     for (i = 0; i < count && *p != NUL; ++i)
     {
-        l = (*mb_ptr2len)(p);
+        l = utfc_ptr2len(p);
         bytes += l;
         p += l;
     }
@@ -12252,7 +11424,7 @@ del_bytes(long        count, int         fixpos_arg, int         use_delcombine 
         return FAIL;
     }
 
-    if (p_deco && use_delcombine && enc_utf8 && utfc_ptr2len(oldp + col) >= count)
+    if (p_deco && use_delcombine && utfc_ptr2len(oldp + col) >= count)
     {
         int     cc[MAX_MCO];
         int     n;
@@ -12278,11 +11450,8 @@ del_bytes(long        count, int         fixpos_arg, int         use_delcombine 
         {
             --curwin->w_cursor.col;
             curwin->w_cursor.coladd = 0;
-            if (has_mbyte)
-            {
-                curwin->w_cursor.col -=
-                            (*mb_head_off)(oldp, oldp + curwin->w_cursor.col);
-            }
+            curwin->w_cursor.col -=
+                        utf_head_off(oldp, oldp + curwin->w_cursor.col);
         }
         count = oldlen - col;
         movelen = 1;
@@ -12375,14 +11544,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
         p = saved_line + curwin->w_cursor.col;
         while (*p != NUL)
         {
-            if (has_mbyte)
-            {
-                p += replace_push_mb(p);
-            }
-            else
-            {
-                replace_push(*p++);
-            }
+            p += replace_push_mb(p);
         }
         saved_line[curwin->w_cursor.col] = NUL;
     }
@@ -12788,7 +11950,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
 
                             while (old_size < repl_size && p > leader)
                             {
-                                 p -= has_mbyte ? ((*mb_head_off)(leader, (p) - 1) + 1) : 1 ;
+                                 p -= (utf_head_off(leader, (p) - 1) + 1) ;
                                 old_size += ptr2cells(p);
                             }
                             l = lead_repl_len - (int)(endp - p);
@@ -12806,7 +11968,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
 
                         while (--p >= leader)
                         {
-                            int l = mb_head_off(leader, p);
+                            int l = utf_head_off(leader, p);
 
                             if (l > 1)
                             {
@@ -12837,7 +11999,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
 
                             for (i = 0; i < lead_len && p[i] != NUL; i += l)
                             {
-                                l = (*mb_ptr2len)(p + i);
+                                l = utfc_ptr2len(p + i);
                                 if (vim_strnsize(p, i + l) > repl_size)
                                 {
                                     break;
@@ -12862,7 +12024,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
                                 }
                                 else
                                 {
-                                    int     l = (*mb_ptr2len)(p);
+                                    int     l = utfc_ptr2len(p);
 
                                     if (l > 1)
                                     {
@@ -12960,7 +12122,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
         }
         if (curbuf->b_p_ai || (flags & OPENLINE_DELSPACES))
         {
-            while ((*p_extra == ' ' || *p_extra == '\t') && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(p_extra + 1))))
+            while ((*p_extra == ' ' || *p_extra == '\t') && (!utf_iscomposing(utf_ptr2char(p_extra + 1))))
             {
                 if ( (((State) & REPLACE_FLAG) && !((State) & VREPLACE_FLAG)) )
                 {
@@ -13288,17 +12450,9 @@ buf_init_chartab(buf_T       *buf, int         global)
         }
         while (c < 256)
         {
-            if (enc_utf8 && c >= 0xa0)
+            if (c >= 0xa0)
             {
                 g_chartab[c++] = CT_PRINT_CHAR + 1;
-            }
-            else if (enc_dbcs == DBCS_JPNU && c == 0x8e)
-            {
-                g_chartab[c++] = CT_PRINT_CHAR + 1;
-            }
-            else if (enc_dbcs != 0 &&  mb_bytelen_tab[c]  == 2)
-            {
-                g_chartab[c++] = CT_PRINT_CHAR + 2;
             }
             else
             {
@@ -13308,7 +12462,7 @@ buf_init_chartab(buf_T       *buf, int         global)
 
         for (c = 1; c < 256; ++c)
         {
-            if ((enc_dbcs != 0 &&  mb_bytelen_tab[c]  > 1) || (enc_dbcs == DBCS_JPNU && c == 0x8e) || (enc_utf8 && c >= 0xa0))
+            if ((c >= 0xa0))
             {
                 g_chartab[c] |= CT_FNAME_CHAR;
             }
@@ -13316,16 +12470,6 @@ buf_init_chartab(buf_T       *buf, int         global)
     }
 
       memset((&(buf->b_chartab)), (0), (sizeof(buf->b_chartab)))  ;
-    if (enc_dbcs != 0)
-    {
-        for (c = 0; c < 256; ++c)
-        {
-            if ( mb_bytelen_tab[c]  == 2)
-            {
-                 (buf)->b_chartab[(unsigned)(c) >> 3] |= (1 << ((c) & 0x7)) ;
-            }
-        }
-    }
 
     if (buf->b_p_lisp)
     {
@@ -13390,13 +12534,9 @@ parse_isopt(char_u  *var, buf_T   *buf, int     only_check)
         {
             c = getdigits(&p);
         }
-        else if (has_mbyte)
-        {
-            c = mb_ptr2char_adv(&p);
-        }
         else
         {
-            c = *p++;
+            c = mb_ptr2char_adv(&p);
         }
         c2 = -1;
         if (*p == '-' && p[1] != NUL)
@@ -13406,13 +12546,9 @@ parse_isopt(char_u  *var, buf_T   *buf, int     only_check)
             {
                 c2 = getdigits(&p);
             }
-            else if (has_mbyte)
-            {
-                c2 = mb_ptr2char_adv(&p);
-            }
             else
             {
-                c2 = *p++;
+                c2 = mb_ptr2char_adv(&p);
             }
         }
         if (c <= 0 || c >= 256 || (c2 < c && c2 != -1) || c2 >= 256 || !(*p == NUL || *p == ','))
@@ -13463,7 +12599,7 @@ parse_isopt(char_u  *var, buf_T   *buf, int     only_check)
                 }
                 else if (var == p_isp)
                 {
-                    if ((c < ' ' || c > '~') && !(enc_dbcs &&  mb_bytelen_tab[c]  == 2))
+                    if ((c < ' ' || c > '~'))
                     {
                         if (tilde)
                         {
@@ -13520,7 +12656,7 @@ trans_characters(char_u      *buf, int         bufsize)
     room = bufsize - len;
     while (*buf != 0)
     {
-        if (has_mbyte && (trs_len = (*mb_ptr2len)(buf)) > 1)
+        if ((trs_len = utfc_ptr2len(buf)) > 1)
         {
             len -= trs_len;
         }
@@ -13554,45 +12690,38 @@ transstr(char_u *s)
     int c;
     char_u      hexbuf[11];
 
-    if (has_mbyte)
+    len = 0;
+    p = s;
+    while (*p != NUL)
     {
-        len = 0;
-        p = s;
-        while (*p != NUL)
+        if ((l = utfc_ptr2len(p)) > 1)
         {
-            if ((l = (*mb_ptr2len)(p)) > 1)
+            c = utf_ptr2char(p);
+            p += l;
+            if (vim_isprintc(c))
             {
-                c = (*mb_ptr2char)(p);
-                p += l;
-                if (vim_isprintc(c))
-                {
-                    len += l;
-                }
-                else
-                {
-                    transchar_hex(hexbuf, c);
-                    len += (int) strlen((char *)(hexbuf)) ;
-                }
+                len += l;
             }
             else
             {
-                l = byte2cells(*p++);
-                if (l > 0)
-                {
-                    len += l;
-                }
-                else
-                {
-                    len += 4;
-                }
+                transchar_hex(hexbuf, c);
+                len += (int) strlen((char *)(hexbuf)) ;
             }
         }
-        res = alloc(len + 1);
+        else
+        {
+            l = byte2cells(*p++);
+            if (l > 0)
+            {
+                len += l;
+            }
+            else
+            {
+                len += 4;
+            }
+        }
     }
-    else
-    {
-        res = alloc(vim_strsize(s) + 1);
-    }
+    res = alloc(len + 1);
 
     if (res == NULL)
     {
@@ -13604,9 +12733,9 @@ transstr(char_u *s)
     p = s;
     while (*p != NUL)
     {
-        if (has_mbyte && (l = (*mb_ptr2len)(p)) > 1)
+        if ((l = utfc_ptr2len(p)) > 1)
         {
-            c = (*mb_ptr2char)(p);
+            c = utf_ptr2char(p);
             if (vim_isprintc(c))
             {
                  memmove((char *)(d), (char *)(p), (size_t)l) ;
@@ -13675,7 +12804,7 @@ transchar_byte(int c)
     static char_u *
 transchar_byte_buf(buf_T *buf, int c)
 {
-    if (enc_utf8 && c >= 0x80)
+    if (c >= 0x80)
     {
         transchar_nonprint(buf, transchar_charbuf, c);
         return transchar_charbuf;
@@ -13689,10 +12818,6 @@ transchar_nonprint(buf_T *buf, char_u *charbuf, int c)
     {
         c = NUL;
     }
-    else if (buf != NULL && c == CAR && get_fileformat(buf) == EOL_MAC)
-    {
-        c = NL;
-    }
 
     if (dy_flags & DY_UHEX)
     {
@@ -13705,21 +12830,9 @@ transchar_nonprint(buf_T *buf, char_u *charbuf, int c)
         charbuf[1] = c ^ 0x40;
         charbuf[2] = NUL;
     }
-    else if (enc_utf8)
-    {
-        transchar_hex(charbuf, c);
-    }
-    else if (c >= ' ' + 0x80 && c <= '~' + 0x80)
-    {
-        charbuf[0] = '|';
-        charbuf[1] = c - 0x80;
-        charbuf[2] = NUL;
-    }
     else
     {
-        charbuf[0] = '~';
-        charbuf[1] = (c - 0x80) ^ 0x40;
-        charbuf[2] = NUL;
+        transchar_hex(charbuf, c);
     }
 }
 
@@ -13753,7 +12866,7 @@ nr2hex(unsigned c)
     static int
 byte2cells(int b)
 {
-    if (enc_utf8 && b >= 0x80)
+    if (b >= 0x80)
     {
         return 0;
     }
@@ -13769,18 +12882,7 @@ char2cells(int c)
     }
     if (c >= 0x80)
     {
-        if (enc_utf8)
-        {
-            return utf_char2cells(c);
-        }
-        if (enc_dbcs != 0 && c >= 0x100)
-        {
-            if (enc_dbcs == DBCS_JPNU && ((unsigned)c >> 8) == 0x8e)
-            {
-                return 1;
-            }
-            return 2;
-        }
+        return utf_char2cells(c);
     }
     return (g_chartab[c & 0xff] & CT_CELL_MASK);
 }
@@ -13788,12 +12890,8 @@ char2cells(int c)
     static int
 ptr2cells(char_u *p)
 {
-    if (!has_mbyte)
-    {
-        return byte2cells(*p);
-    }
 
-    if (enc_utf8 && *p >= 0x80)
+    if (*p >= 0x80)
     {
         return utf_ptr2cells(p);
     }
@@ -13813,7 +12911,7 @@ vim_strnsize(char_u *s, int len)
 
     while (*s != NUL && --len >= 0)
     {
-        int         l = (*mb_ptr2len)(s);
+        int         l = utfc_ptr2len(s);
 
         size += ptr2cells(s);
         s += l;
@@ -13896,7 +12994,7 @@ linetabsize_no_outer(win_T *wp, linenr_T lnum)
 win_linetabsize_cts(chartabsize_T *cts, colnr_T len)
 {
     vimlong_T vcol = cts->cts_vcol;
-    for ( ; *cts->cts_ptr != NUL && (len == MAXCOL || cts->cts_ptr < cts->cts_line + len);  cts->cts_ptr += (*mb_ptr2len)(cts->cts_ptr) )
+    for ( ; *cts->cts_ptr != NUL && (len == MAXCOL || cts->cts_ptr < cts->cts_line + len);  cts->cts_ptr += utfc_ptr2len(cts->cts_ptr) )
     {
         vcol += win_lbr_chartabsize(cts, NULL, NULL);
         if (vcol > MAXCOL)
@@ -13934,14 +13032,7 @@ vim_iswordc_buf(int c, buf_T *buf)
 {
     if (c >= 0x100)
     {
-        if (enc_dbcs != 0)
-        {
-            return dbcs_class((unsigned)c >> 8, (unsigned)(c & 0xff)) >= 2;
-        }
-        if (enc_utf8)
-        {
-            return utf_class_buf(c, buf) >= 2;
-        }
+        return utf_class_buf(c, buf) >= 2;
         return FALSE;
     }
     return (c > 0 &&  ((buf)->b_chartab[(unsigned)(c) >> 3] & (1 << ((c) & 0x7)))  != 0);
@@ -13958,9 +13049,9 @@ vim_iswordp_buf(char_u *p, buf_T *buf)
 {
     int c = *p;
 
-    if (has_mbyte &&  mb_bytelen_tab[c]  > 1)
+    if (mb_bytelen_tab[c]  > 1)
     {
-        c = (*mb_ptr2char)(p);
+        c = utf_ptr2char(p);
     }
     return vim_iswordc_buf(c, buf);
 }
@@ -13984,7 +13075,7 @@ vim_isfilec_or_wc(int c)
     static int
 vim_isprintc(int c)
 {
-    if (enc_utf8 && c >= 0x100)
+    if (c >= 0x100)
     {
         return utf_printable(c);
     }
@@ -13994,11 +13085,7 @@ vim_isprintc(int c)
     static int
 vim_isprintc_strict(int c)
 {
-    if (enc_dbcs != 0 && c < 0x100 &&  mb_bytelen_tab[c]  > 1)
-    {
-        return FALSE;
-    }
-    if (enc_utf8 && c >= 0x100)
+    if (c >= 0x100)
     {
         return utf_printable(c);
     }
@@ -14037,7 +13124,7 @@ lbr_chartabsize_adv(chartabsize_T *cts)
     int         retval;
 
     retval = lbr_chartabsize(cts);
-     cts->cts_ptr += (*mb_ptr2len)(cts->cts_ptr) ;
+     cts->cts_ptr += utfc_ptr2len(cts->cts_ptr) ;
     return retval;
 }
 
@@ -14147,30 +13234,23 @@ getvcol(win_T       *wp, pos_T       *pos, colnr_T     *start, colnr_T     *curs
             }
             else
             {
-                if (has_mbyte)
+                if (c >= 0x80)
                 {
-                    if (enc_utf8 && c >= 0x80)
-                    {
-                        incr = utf_ptr2cells(ptr);
-                    }
-                    else
-                    {
-                        incr = g_chartab[c] & CT_CELL_MASK;
-                    }
-
-                    if (incr == 2 && wp-> w_onebuf_opt.wo_wrap  &&  mb_bytelen_tab[*ptr]  > 1 && in_win_border(wp, vcol))
-                    {
-                        ++incr;
-                        head = 1;
-                    }
+                    incr = utf_ptr2cells(ptr);
                 }
                 else
                 {
                     incr = g_chartab[c] & CT_CELL_MASK;
                 }
+
+                if (incr == 2 && wp-> w_onebuf_opt.wo_wrap  &&  mb_bytelen_tab[*ptr]  > 1 && in_win_border(wp, vcol))
+                {
+                    ++incr;
+                    head = 1;
+                }
             }
 
-            char_u *next_ptr = ptr + (*mb_ptr2len)(ptr);
+            char_u *next_ptr = ptr + utfc_ptr2len(ptr);
             if (next_ptr - line > pos->col)
             {
                 break;
@@ -14195,7 +13275,7 @@ getvcol(win_T       *wp, pos_T       *pos, colnr_T     *start, colnr_T     *curs
                 break;
             }
 
-            char_u *next_ptr = cts.cts_ptr + (*mb_ptr2len)(cts.cts_ptr);
+            char_u *next_ptr = cts.cts_ptr + utfc_ptr2len(cts.cts_ptr);
             if (next_ptr - line > pos->col)
             {
                 break;
@@ -14271,7 +13351,7 @@ getvvcol(win_T       *wp, pos_T       *pos, colnr_T     *start, colnr_T     *cur
         ptr = ml_get_buf(wp->w_buffer, pos->lnum, FALSE);
         if (pos->col < ml_get_buf_len(wp->w_buffer, pos->lnum))
         {
-            int c = (*mb_ptr2char)(ptr + pos->col);
+            int c = utf_ptr2char(ptr + pos->col);
 
             if (c != TAB && vim_isprintc(c))
             {
@@ -14427,18 +13507,12 @@ vim_islower(int c)
     }
     if (c >= 0x80)
     {
-        if (enc_utf8)
-        {
-            return utf_islower(c);
-        }
+        return utf_islower(c);
         if (c >= 0x100)
         {
             return FALSE;
         }
-        if (enc_latin1like)
-        {
-            return (latin1flags[c] & LATIN1LOWER) == LATIN1LOWER;
-        }
+        return (latin1flags[c] & LATIN1LOWER) == LATIN1LOWER;
     }
     return  (islower ((unsigned char)(c))) ;
 }
@@ -14452,22 +13526,13 @@ vim_isupper(int c)
     }
     if (c >= 0x80)
     {
-        if (enc_utf8)
-        {
-            return utf_isupper(c);
-        }
+        return utf_isupper(c);
         if (c >= 0x100)
         {
-            if (has_mbyte)
-            {
-                return iswupper(c);
-            }
+            return iswupper(c);
             return FALSE;
         }
-        if (enc_latin1like)
-        {
-            return (latin1flags[c] & LATIN1UPPER) == LATIN1UPPER;
-        }
+        return (latin1flags[c] & LATIN1UPPER) == LATIN1UPPER;
     }
     return  (isupper ((unsigned char)(c))) ;
 }
@@ -14481,22 +13546,13 @@ vim_toupper(int c)
     }
     if (c >= 0x80 || !(cmp_flags & CMP_KEEPASCII))
     {
-        if (enc_utf8)
-        {
-            return utf_toupper(c);
-        }
+        return utf_toupper(c);
         if (c >= 0x100)
         {
-            if (has_mbyte)
-            {
-                return towupper(c);
-            }
+            return towupper(c);
             return c;
         }
-        if (enc_latin1like)
-        {
-            return latin1upper[c];
-        }
+        return latin1upper[c];
     }
     if (c < 0x80 && (cmp_flags & CMP_KEEPASCII))
     {
@@ -14514,22 +13570,13 @@ vim_tolower(int c)
     }
     if (c >= 0x80 || !(cmp_flags & CMP_KEEPASCII))
     {
-        if (enc_utf8)
-        {
-            return utf_tolower(c);
-        }
+        return utf_tolower(c);
         if (c >= 0x100)
         {
-            if (has_mbyte)
-            {
-                return towlower(c);
-            }
+            return towlower(c);
             return c;
         }
-        if (enc_latin1like)
-        {
-            return latin1lower[c];
-        }
+        return latin1lower[c];
     }
     if (c < 0x80 && (cmp_flags & CMP_KEEPASCII))
     {
@@ -15555,25 +14602,11 @@ find_longest_match(expand_T *xp, int options)
 
     for (len = 0; xp->xp_files[0][len]; len += mb_len)
     {
-        if (has_mbyte)
-        {
-            mb_len = (*mb_ptr2len)(&xp->xp_files[0][len]);
-            c0 = (*mb_ptr2char)(&xp->xp_files[0][len]);
-        }
-        else
-        {
-            c0 = xp->xp_files[0][len];
-        }
+        mb_len = utfc_ptr2len(&xp->xp_files[0][len]);
+        c0 = utf_ptr2char(&xp->xp_files[0][len]);
         for (i = 1; i < xp->xp_numfiles; ++i)
         {
-            if (has_mbyte)
-            {
-                ci = (*mb_ptr2char)(&xp->xp_files[i][len]);
-            }
-            else
-            {
-                ci = xp->xp_files[i][len];
-            }
+            ci = utf_ptr2char(&xp->xp_files[i][len]);
             if (p_fic && (xp->xp_context == EXPAND_DIRECTORIES || xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_SHELLCMD || xp->xp_context == EXPAND_BUFFERS))
             {
                 if ( vim_tolower(c0)  !=  vim_tolower(ci) )
@@ -15974,7 +15007,7 @@ showmatches_gettail(char_u *s)
             t = p;
             had_sep = FALSE;
         }
-         p += (*mb_ptr2len)(p) ;
+         p += utfc_ptr2len(p) ;
     }
     return t;
 }
@@ -16243,14 +15276,7 @@ set_context_for_wildcard_arg(exarg_T         *eap, char_u          *arg, int    
     p = xp->xp_pattern;
     while (*p != NUL)
     {
-        if (has_mbyte)
-        {
-            c = mb_ptr2char(p);
-        }
-        else
-        {
-            c = *p;
-        }
+        c = utf_ptr2char(p);
         if (c == '\\' && p[1] != NUL)
         {
             ++p;
@@ -16269,27 +15295,13 @@ set_context_for_wildcard_arg(exarg_T         *eap, char_u          *arg, int    
             len = 0;
             while (*p != NUL)
             {
-                if (has_mbyte)
-                {
-                    c = mb_ptr2char(p);
-                }
-                else
-                {
-                    c = *p;
-                }
+                c = utf_ptr2char(p);
                 if (c == '`' || vim_isfilec_or_wc(c))
                 {
                     break;
                 }
-                if (has_mbyte)
-                {
-                    len = (*mb_ptr2len)(p);
-                }
-                else
-                {
-                    len = 1;
-                }
-                 p += (*mb_ptr2len)(p) ;
+                len = utfc_ptr2len(p);
+                 p += utfc_ptr2len(p) ;
             }
             if (in_quote)
             {
@@ -16301,7 +15313,7 @@ set_context_for_wildcard_arg(exarg_T         *eap, char_u          *arg, int    
             }
             p -= len;
         }
-         p += (*mb_ptr2len)(p) ;
+         p += utfc_ptr2len(p) ;
     }
 
     if (bow != NULL && in_quote)
@@ -16660,12 +15672,6 @@ set_context_by_cmdname(char_u          *cmd, cmdidx_T        cmdidx, expand_T   
         case CMD_set:
             set_context_in_set_cmd(xp, arg, 0);
             break;
-        case CMD_setglobal:
-            set_context_in_set_cmd(xp, arg, OPT_GLOBAL);
-            break;
-        case CMD_setlocal:
-            set_context_in_set_cmd(xp, arg, OPT_LOCAL);
-            break;
         case CMD_augroup:
             xp->xp_context = EXPAND_AUGROUP;
             xp->xp_pattern = arg;
@@ -16864,7 +15870,7 @@ set_one_cmd_context(expand_T    *xp, char_u      *buff)
             p = arg + 2;
             while (*p && !vim_isspace(*p))
             {
-                 p += (*mb_ptr2len)(p) ;
+                 p += utfc_ptr2len(p) ;
             }
 
             if (*p == NUL)
@@ -16955,7 +15961,7 @@ set_one_cmd_context(expand_T    *xp, char_u      *buff)
                     return NULL;
                 }
             }
-             p += (*mb_ptr2len)(p) ;
+             p += utfc_ptr2len(p) ;
         }
     }
 
@@ -16979,7 +15985,7 @@ set_one_cmd_context(expand_T    *xp, char_u      *buff)
             {
                 ++p;
             }
-             p += (*mb_ptr2len)(p) ;
+             p += utfc_ptr2len(p) ;
         }
     }
 
@@ -18739,15 +17745,12 @@ wlv_screen_line(win_T *wp, winlinevars_T *wlv, int clear_end)
 
         for (int i = 0; i < 3 && i + skip < wp->w_width; ++i)
         {
-            if ((*mb_off2cells)(off, max_off) > 1)
+            if (utf_off2cells(off, max_off) > 1)
             {
                 ScreenLines[off + 1] = ' ';
             }
             ScreenLines[off] = '<';
-            if (enc_utf8)
-            {
-                ScreenLinesUC[off] = 0;
-            }
+            ScreenLinesUC[off] = 0;
             ScreenAttrs[off] =  highlight_attr[(int)(HLF_AT)] ;
             ++off;
         }
@@ -19071,7 +18074,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
             {
                 break;
             }
-             cts.cts_ptr += (*mb_ptr2len)(cts.cts_ptr) ;
+             cts.cts_ptr += utfc_ptr2len(cts.cts_ptr) ;
             if (wp-> w_onebuf_opt.wo_list )
             {
                 in_multispace = *prev_ptr == ' ' && (*cts.cts_ptr == ' ' || (prev_ptr > line && prev_ptr[-1] == ' '));
@@ -19216,7 +18219,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
             int *area_attr_p =
                                                             &area_attr;
 
-            if (wlv.vcol == wlv.fromcol || (has_mbyte && wlv.vcol + 1 == wlv.fromcol && ((wlv.n_extra == 0 && (*mb_ptr2cells)(ptr) > 1) || (wlv.n_extra > 0 && wlv.p_extra != NULL && (*mb_ptr2cells)(wlv.p_extra) > 1))) || ((int)vcol_prev == fromcol_prev && vcol_prev < wlv.vcol && wlv.vcol < wlv.tocol))
+            if (wlv.vcol == wlv.fromcol || (wlv.vcol + 1 == wlv.fromcol && ((wlv.n_extra == 0 && utf_ptr2cells(ptr) > 1) || (wlv.n_extra > 0 && wlv.p_extra != NULL && utf_ptr2cells(wlv.p_extra) > 1))) || ((int)vcol_prev == fromcol_prev && vcol_prev < wlv.vcol && wlv.vcol < wlv.tocol))
             {
                 *area_attr_p = vi_attr;
             }
@@ -19292,7 +18295,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                 c = (wlv.n_extra == 1 && wlv.c_final != NUL)
                                                    ? wlv.c_final : wlv.c_extra;
                 mb_c = c;
-                if (enc_utf8 && utf_char2len(c) > 1)
+                if (utf_char2len(c) > 1)
                 {
                     mb_utf8 = TRUE;
                     u8cc[0] = 0;
@@ -19306,58 +18309,40 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
             else
             {
                 c = *wlv.p_extra;
-                if (has_mbyte)
+                mb_c = c;
+                mb_l = utfc_ptr2len(wlv.p_extra);
+                mb_utf8 = FALSE;
+                if (mb_l > wlv.n_extra)
                 {
+                    mb_l = 1;
+                }
+                else if (mb_l > 1)
+                {
+                    mb_c = utfc_ptr2char(wlv.p_extra, u8cc);
+                    mb_utf8 = TRUE;
+                    c = 0xc0;
+                }
+                if (mb_l == 0)
+                {
+                    mb_l = 1;
+                }
+
+                if (((wlv.col >= wp->w_width - 1)) && utf_char2cells(mb_c) == 2)
+                {
+                    c = '>';
                     mb_c = c;
-                    if (enc_utf8)
-                    {
-                        mb_l = utfc_ptr2len(wlv.p_extra);
-                        mb_utf8 = FALSE;
-                        if (mb_l > wlv.n_extra)
-                        {
-                            mb_l = 1;
-                        }
-                        else if (mb_l > 1)
-                        {
-                            mb_c = utfc_ptr2char(wlv.p_extra, u8cc);
-                            mb_utf8 = TRUE;
-                            c = 0xc0;
-                        }
-                    }
-                    else
-                    {
-                        mb_l =  mb_bytelen_tab[c] ;
-                        if (mb_l >= wlv.n_extra)
-                        {
-                            mb_l = 1;
-                        }
-                        else if (mb_l > 1)
-                        {
-                            mb_c = (c << 8) + wlv.p_extra[1];
-                        }
-                    }
-                    if (mb_l == 0)
-                    {
-                        mb_l = 1;
-                    }
+                    mb_l = 1;
+                    mb_utf8 = FALSE;
+                    multi_attr =  highlight_attr[(int)(HLF_AT)] ;
+                    multi_attr = hl_combine_attr(wlv.win_attr, multi_attr);
 
-                    if (((wlv.col >= wp->w_width - 1)) && (*mb_char2cells)(mb_c) == 2)
-                    {
-                        c = '>';
-                        mb_c = c;
-                        mb_l = 1;
-                        mb_utf8 = FALSE;
-                        multi_attr =  highlight_attr[(int)(HLF_AT)] ;
-                        multi_attr = hl_combine_attr(wlv.win_attr, multi_attr);
-
-                        ++wlv.n_extra;
-                        --wlv.p_extra;
-                    }
-                    else
-                    {
-                        wlv.n_extra -= mb_l - 1;
-                        wlv.p_extra += mb_l - 1;
-                    }
+                    ++wlv.n_extra;
+                    --wlv.p_extra;
+                }
+                else
+                {
+                    wlv.n_extra -= mb_l - 1;
+                    wlv.p_extra += mb_l - 1;
                 }
                 ++wlv.p_extra;
             }
@@ -19373,130 +18358,83 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                 skip_cells = 0;
             }
 
-            if (has_mbyte)
+            mb_c = c;
+            mb_l = utfc_ptr2len(ptr);
+            mb_utf8 = FALSE;
+            if (mb_l > 1)
             {
-                mb_c = c;
-                if (enc_utf8)
+                mb_c = utfc_ptr2char(ptr, u8cc);
+                if (mb_c < 0x80)
                 {
-                    mb_l = utfc_ptr2len(ptr);
-                    mb_utf8 = FALSE;
-                    if (mb_l > 1)
-                    {
-                        mb_c = utfc_ptr2char(ptr, u8cc);
-                        if (mb_c < 0x80)
-                        {
-                            c = mb_c;
-                        }
-                        mb_utf8 = TRUE;
-
-                        if (utf_iscomposing(mb_c))
-                        {
-                            int i;
-
-                            for (i = Screen_mco - 1; i > 0; --i)
-                            {
-                                u8cc[i] = u8cc[i - 1];
-                            }
-                            u8cc[0] = mb_c;
-                            mb_c = ' ';
-                        }
-                    }
-
-                    if ((mb_l == 1 && c >= 0x80) || (mb_l >= 1 && mb_c == 0) || (mb_l > 1 && (!vim_isprintc(mb_c))))
-                    {
-                        transchar_hex(wlv.extra, mb_c);
-                        wlv.p_extra = wlv.extra;
-                        c = *wlv.p_extra;
-                        mb_c = mb_ptr2char_adv(&wlv.p_extra);
-                        mb_utf8 = (c >= 0x80);
-                        wlv.n_extra = (int) strlen((char *)(wlv.p_extra)) ;
-                        wlv.c_extra = NUL;
-                        wlv.c_final = NUL;
-                        if (area_attr == 0 && search_attr == 0)
-                        {
-                            n_attr = wlv.n_extra + 1;
-                            wlv.extra_attr = hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_8)] );
-                            saved_attr2 = wlv.char_attr;
-                        }
-                    }
-                    else if (mb_l == 0)
-                    {
-                        mb_l = 1;
-                    }
+                    c = mb_c;
                 }
-                else
+                mb_utf8 = TRUE;
+
+                if (utf_iscomposing(mb_c))
                 {
-                    mb_l =  mb_bytelen_tab[c] ;
-                    if (mb_l == 0)
-                    {
-                        mb_l = 1;
-                    }
-                    else if (mb_l > 1)
-                    {
-                        if (ptr[1] >= 32)
-                        {
-                            mb_c = (c << 8) + ptr[1];
-                        }
-                        else
-                        {
-                            if (ptr[1] == NUL)
-                            {
-                                mb_l = 1;
-                                transchar_nonprint(wp->w_buffer, wlv.extra, c);
-                                wlv.n_extra = (int) strlen((char *)(wlv.extra))  - 1;
-                            }
-                            else
-                            {
-                                mb_l = 2;
-                                 strcpy((char *)(wlv.extra), (char *)("XX")) ;
-                                wlv.n_extra = 1;
-                            }
-                            wlv.p_extra = wlv.extra;
-                            wlv.c_extra = NUL;
-                            wlv.c_final = NUL;
-                            c = *wlv.p_extra++;
-                            if (area_attr == 0 && search_attr == 0)
-                            {
-                                n_attr = wlv.n_extra + 1;
-                                wlv.extra_attr = hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_8)] );
-                                saved_attr2 = wlv.char_attr;
-                            }
-                            mb_c = c;
-                        }
-                    }
-                }
-                if (((wlv.col >= wp->w_width - 1)) && (*mb_char2cells)(mb_c) == 2)
-                {
-                    c = '>';
-                    mb_c = c;
-                    mb_utf8 = FALSE;
-                    mb_l = 1;
-                    multi_attr = hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_AT)] );
-                    --ptr;
-                }
-                else if (*ptr != NUL)
-                {
-                    ptr += mb_l - 1;
-                }
+                    int i;
 
-                if (skip_cells > 0 && mb_l > 1 && wlv.n_extra == 0)
-                {
-                    wlv.n_extra = 1;
-                    wlv.c_extra = MB_FILLER_CHAR;
-                    wlv.c_final = NUL;
-                    c = ' ';
-                    if (area_attr == 0 && search_attr == 0)
+                    for (i = Screen_mco - 1; i > 0; --i)
                     {
-                        n_attr = wlv.n_extra + 1;
-                        wlv.extra_attr = hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_AT)] );
-                        saved_attr2 = wlv.char_attr;
+                        u8cc[i] = u8cc[i - 1];
                     }
-                    mb_c = c;
-                    mb_utf8 = FALSE;
-                    mb_l = 1;
+                    u8cc[0] = mb_c;
+                    mb_c = ' ';
                 }
-
             }
+
+            if ((mb_l == 1 && c >= 0x80) || (mb_l >= 1 && mb_c == 0) || (mb_l > 1 && (!vim_isprintc(mb_c))))
+            {
+                transchar_hex(wlv.extra, mb_c);
+                wlv.p_extra = wlv.extra;
+                c = *wlv.p_extra;
+                mb_c = mb_ptr2char_adv(&wlv.p_extra);
+                mb_utf8 = (c >= 0x80);
+                wlv.n_extra = (int) strlen((char *)(wlv.p_extra)) ;
+                wlv.c_extra = NUL;
+                wlv.c_final = NUL;
+                if (area_attr == 0 && search_attr == 0)
+                {
+                    n_attr = wlv.n_extra + 1;
+                    wlv.extra_attr = hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_8)] );
+                    saved_attr2 = wlv.char_attr;
+                }
+            }
+            else if (mb_l == 0)
+            {
+                mb_l = 1;
+            }
+            if (((wlv.col >= wp->w_width - 1)) && utf_char2cells(mb_c) == 2)
+            {
+                c = '>';
+                mb_c = c;
+                mb_utf8 = FALSE;
+                mb_l = 1;
+                multi_attr = hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_AT)] );
+                --ptr;
+            }
+            else if (*ptr != NUL)
+            {
+                ptr += mb_l - 1;
+            }
+
+            if (skip_cells > 0 && mb_l > 1 && wlv.n_extra == 0)
+            {
+                wlv.n_extra = 1;
+                wlv.c_extra = MB_FILLER_CHAR;
+                wlv.c_final = NUL;
+                c = ' ';
+                if (area_attr == 0 && search_attr == 0)
+                {
+                    n_attr = wlv.n_extra + 1;
+                    wlv.extra_attr = hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_AT)] );
+                    saved_attr2 = wlv.char_attr;
+                }
+                mb_c = c;
+                mb_utf8 = FALSE;
+                mb_l = 1;
+            }
+
             ++ptr;
 
             if (extra_check)
@@ -19532,7 +18470,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                         saved_attr2 = wlv.char_attr;
                     }
                     mb_c = c;
-                    if (enc_utf8 && utf_char2len(c) > 1)
+                    if (utf_char2len(c) > 1)
                     {
                         mb_utf8 = TRUE;
                         u8cc[0] = 0;
@@ -19577,7 +18515,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                         saved_attr2 = wlv.char_attr;
                     }
                     mb_c = c;
-                    if (enc_utf8 && utf_char2len(c) > 1)
+                    if (utf_char2len(c) > 1)
                     {
                         mb_utf8 = TRUE;
                         u8cc[0] = 0;
@@ -19590,7 +18528,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                 }
             }
 
-            if (!vim_isprintc(c) && !(enc_utf8 && c >= 0x80))
+            if (!vim_isprintc(c) && !(c >= 0x80))
             {
                 if (c == TAB && (!wp-> w_onebuf_opt.wo_list  || wp->w_lcs_chars.tab1))
                 {
@@ -19623,7 +18561,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                         wlv.extra_attr = hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_8)] );
                         saved_attr2 = wlv.char_attr;
                         mb_c = c;
-                        if (enc_utf8 && utf_char2len(c) > 1)
+                        if (utf_char2len(c) > 1)
                         {
                             mb_utf8 = TRUE;
                             u8cc[0] = 0;
@@ -19663,7 +18601,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                         n_attr = 1;
                     }
                     mb_c = c;
-                    if (enc_utf8 && utf_char2len(c) > 1)
+                    if (utf_char2len(c) > 1)
                     {
                         mb_utf8 = TRUE;
                         u8cc[0] = 0;
@@ -19733,7 +18671,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
         {
             c = wp->w_lcs_chars.prec;
             lcs_prec_todo = NUL;
-            if (has_mbyte && (*mb_char2cells)(mb_c) > 1)
+            if (utf_char2cells(mb_c) > 1)
             {
                 wlv.c_extra = MB_FILLER_CHAR;
                 wlv.c_final = NUL;
@@ -19743,7 +18681,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                                 hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_AT)] );
             }
             mb_c = c;
-            if (enc_utf8 && utf_char2len(c) > 1)
+            if (utf_char2len(c) > 1)
             {
                 mb_utf8 = TRUE;
                 u8cc[0] = 0;
@@ -19782,10 +18720,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                 else
                 {
                     ScreenLines[wlv.off] = ' ';
-                    if (enc_utf8)
-                    {
-                        ScreenLinesUC[wlv.off] = 0;
-                    }
+                    ScreenLinesUC[wlv.off] = 0;
                 }
                 if (area_attr == 0)
                 {
@@ -19823,7 +18758,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
             c = lcs_ext;
             wlv.char_attr = hl_combine_attr(wlv.win_attr,  highlight_attr[(int)(HLF_AT)] );
             mb_c = c;
-            if (enc_utf8 && utf_char2len(c) > 1)
+            if (utf_char2len(c) > 1)
             {
                 mb_utf8 = TRUE;
                 u8cc[0] = 0;
@@ -19843,38 +18778,27 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
         if (wlv.draw_state <  (   (   (WL_START + 1)    + 1)    + 1)  || skip_cells <= 0)
         {
             ScreenLines[wlv.off] = c;
-            if (enc_dbcs == DBCS_JPNU)
+            if (mb_utf8)
             {
-                if ((mb_c & 0xff00) == 0x8e00)
-                {
-                    ScreenLines[wlv.off] = 0x8e;
-                }
-                ScreenLines2[wlv.off] = mb_c & 0xff;
-            }
-            else if (enc_utf8)
-            {
-                if (mb_utf8)
-                {
-                    int i;
+                int i;
 
-                    ScreenLinesUC[wlv.off] = mb_c;
-                    if ((c & 0xff) == 0)
-                    {
-                        ScreenLines[wlv.off] = 0x80;
-                    }
-                    for (i = 0; i < Screen_mco; ++i)
-                    {
-                        ScreenLinesC[i][wlv.off] = u8cc[i];
-                        if (u8cc[i] == 0)
-                        {
-                            break;
-                        }
-                    }
-                }
-                else
+                ScreenLinesUC[wlv.off] = mb_c;
+                if ((c & 0xff) == 0)
                 {
-                    ScreenLinesUC[wlv.off] = 0;
+                    ScreenLines[wlv.off] = 0x80;
                 }
+                for (i = 0; i < Screen_mco; ++i)
+                {
+                    ScreenLinesC[i][wlv.off] = u8cc[i];
+                    if (u8cc[i] == 0)
+                    {
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                ScreenLinesUC[wlv.off] = 0;
             }
             if (multi_attr)
             {
@@ -19895,18 +18819,11 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                 ScreenCols[wlv.off] = -1;
             }
 
-            if (has_mbyte && (*mb_char2cells)(mb_c) > 1)
+            if (utf_char2cells(mb_c) > 1)
             {
                 ++wlv.off;
                 ++wlv.col;
-                if (enc_utf8)
-                {
-                    ScreenLines[wlv.off] = 0;
-                }
-                else
-                {
-                    ScreenLines[wlv.off] = mb_c & 0xff;
-                }
+                ScreenLines[wlv.off] = 0;
 
                 if (wlv.draw_state >  (   (WL_START + 1)    + 1) )
                 {
@@ -19986,14 +18903,14 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
             {
                 LineWraps[wlv.screen_row - 1] = TRUE;
 
-                if (p_tf && !(has_mbyte && ((*mb_off2cells)(LineOffset[wlv.screen_row], LineOffset[wlv.screen_row] + screen_Columns) == 2 || (*mb_off2cells)(LineOffset[wlv.screen_row - 1] + (int)topframe->fr_width - 2, LineOffset[wlv.screen_row] + screen_Columns) == 2)))
+                if (p_tf && !((utf_off2cells(LineOffset[wlv.screen_row], LineOffset[wlv.screen_row] + screen_Columns) == 2 || utf_off2cells(LineOffset[wlv.screen_row - 1] + (int)topframe->fr_width - 2, LineOffset[wlv.screen_row] + screen_Columns) == 2)))
                 {
                     if (screen_cur_col != wp->w_width)
                     {
                         screen_char(LineOffset[wlv.screen_row - 1] + (unsigned)topframe->fr_width - 1, wlv.screen_row - 1, (int)(topframe->fr_width - 1));
                     }
 
-                    if (has_mbyte &&  mb_bytelen_tab[ScreenLines[LineOffset[wlv.screen_row - 1] + (topframe->fr_width - 1)]]  > 1)
+                    if (mb_bytelen_tab[ScreenLines[LineOffset[wlv.screen_row - 1] + (topframe->fr_width - 1)]]  > 1)
                     {
                         out_char(' ');
                     }
@@ -20319,13 +19236,13 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
             p = (char_u *)"<";
             plen = 1;
         }
-        else if (has_mbyte)
+        else
         {
             plen = mb_string2cells(p, -1);
 
-            for (i = 0; p[i] != NUL && plen >= this_ru_col - 1; i += (*mb_ptr2len)(p + i))
+            for (i = 0; p[i] != NUL && plen >= this_ru_col - 1; i += utfc_ptr2len(p + i))
             {
-                plen -= (*mb_ptr2cells)(p + i);
+                plen -= utf_ptr2cells(p + i);
             }
             if (i > 0)
             {
@@ -20333,12 +19250,6 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
                 *p = '<';
                 ++plen;
             }
-        }
-        else if (plen > this_ru_col - 1)
-        {
-            p += plen - (this_ru_col - 1);
-            *p = '<';
-            plen = this_ru_col - 1;
         }
 
         screen_puts(p, row, wp->w_wincol, attr);
@@ -20588,36 +19499,21 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
         {
             while (this_ru_col + n1 < width && RULER_BUF_LEN > bufferlen + rel_poslen + 1)
             {
-                if (has_mbyte)
-                {
-                    bufferlen += (*mb_char2bytes)(fillchar, buffer + bufferlen);
-                }
-                else
-                {
-                    buffer[bufferlen++] = fillchar;
-                }
+                bufferlen += utf_char2bytes(fillchar, buffer + bufferlen);
                 ++n1;
             }
             bufferlen += vim_snprintf((char *)buffer + bufferlen, RULER_BUF_LEN - bufferlen, "%s", rel_pos);
         }
-        if (has_mbyte)
+        n1 = 0;
+        for (n2 = 0; buffer[n1] != NUL; n1 += utfc_ptr2len(buffer + n1))
         {
-            n1 = 0;
-            for (n2 = 0; buffer[n1] != NUL; n1 += (*mb_ptr2len)(buffer + n1))
+            n2 += utf_ptr2cells(buffer + n1);
+            if (this_ru_col + n2 > width)
             {
-                n2 += (*mb_ptr2cells)(buffer + n1);
-                if (this_ru_col + n2 > width)
-                {
-                    bufferlen = n1;
-                    buffer[bufferlen] = NUL;
-                    break;
-                }
+                bufferlen = n1;
+                buffer[bufferlen] = NUL;
+                break;
             }
-        }
-        else if (this_ru_col + bufferlen > width)
-        {
-            bufferlen = width - this_ru_col;
-            buffer[bufferlen] = NUL;
         }
 
         screen_puts(buffer, row, this_ru_col + off, attr);
@@ -21422,8 +20318,8 @@ win_update(win_T *wp)
             int         charlen;
             char_u      fillbuf[12];
 
-            charlen = mb_char2bytes(symbol, &fillbuf[0]);
-            mb_char2bytes(symbol, &fillbuf[charlen]);
+            charlen = utf_char2bytes(symbol, &fillbuf[0]);
+            utf_char2bytes(symbol, &fillbuf[charlen]);
 
             screen_puts_len(fillbuf, (wp->w_width > 2 ? 2 : wp->w_width) * charlen, scr_row, wp->w_wincol,  highlight_attr[(int)(HLF_AT)] );
             screen_fill(scr_row, scr_row + 1, (int)wp->w_wincol + 2, (int) ((wp)->w_wincol + (wp)->w_width) , symbol, ' ',  highlight_attr[(int)(HLF_AT)] );
@@ -21525,7 +20421,6 @@ redraw_asap(int type)
     int         i;
     u8char_T    *screenlineUC = NULL;
     u8char_T    *screenlineC[MAX_MCO];
-    schar_T     *screenline2 = NULL;
 
     redraw_later(type);
     if (msg_scrolled || (State != MODE_NORMAL && State !=  (0x1000 | MODE_NORMAL) ) || exiting)
@@ -21540,26 +20435,15 @@ redraw_asap(int type)
     {
         ret = 2;
     }
-    if (enc_utf8)
+    screenlineUC =  (u8char_T *)lalloc(sizeof(u8char_T) * (rows * cols), FALSE) ;
+    if (screenlineUC == NULL)
     {
-        screenlineUC =  (u8char_T *)lalloc(sizeof(u8char_T) * (rows * cols), FALSE) ;
-        if (screenlineUC == NULL)
-        {
-            ret = 2;
-        }
-        for (i = 0; i < p_mco; ++i)
-        {
-            screenlineC[i] =  (u8char_T *)lalloc(sizeof(u8char_T) * (rows * cols), FALSE) ;
-            if (screenlineC[i] == NULL)
-            {
-                ret = 2;
-            }
-        }
+        ret = 2;
     }
-    if (enc_dbcs == DBCS_JPNU)
+    for (i = 0; i < p_mco; ++i)
     {
-        screenline2 =  (schar_T *)lalloc(sizeof(schar_T) * (rows * cols), FALSE) ;
-        if (screenline2 == NULL)
+        screenlineC[i] =  (u8char_T *)lalloc(sizeof(u8char_T) * (rows * cols), FALSE) ;
+        if (screenlineC[i] == NULL)
         {
             ret = 2;
         }
@@ -21571,17 +20455,10 @@ redraw_asap(int type)
         {
              memmove((char *)(screenline + r * cols), (char *)(ScreenLines + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(schar_T)) ;
              memmove((char *)(screenattr + r * cols), (char *)(ScreenAttrs + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(sattr_T)) ;
-            if (enc_utf8)
+             memmove((char *)(screenlineUC + r * cols), (char *)(ScreenLinesUC + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(u8char_T)) ;
+            for (i = 0; i < p_mco; ++i)
             {
-                 memmove((char *)(screenlineUC + r * cols), (char *)(ScreenLinesUC + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(u8char_T)) ;
-                for (i = 0; i < p_mco; ++i)
-                {
-                     memmove((char *)(screenlineC[i] + r * cols), (char *)(ScreenLinesC[i] + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(u8char_T)) ;
-                }
-            }
-            if (enc_dbcs == DBCS_JPNU)
-            {
-                 memmove((char *)(screenline2 + r * cols), (char *)(ScreenLines2 + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(schar_T)) ;
+                 memmove((char *)(screenlineC[i] + r * cols), (char *)(ScreenLinesC[i] + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(u8char_T)) ;
             }
         }
 
@@ -21596,17 +20473,10 @@ redraw_asap(int type)
             {
                  memmove((char *)(current_ScreenLine), (char *)(screenline + r * cols), (size_t)cols * sizeof(schar_T)) ;
                  memmove((char *)(ScreenAttrs + off), (char *)(screenattr + r * cols), (size_t)cols * sizeof(sattr_T)) ;
-                if (enc_utf8)
+                 memmove((char *)(ScreenLinesUC + off), (char *)(screenlineUC + r * cols), (size_t)cols * sizeof(u8char_T)) ;
+                for (i = 0; i < p_mco; ++i)
                 {
-                     memmove((char *)(ScreenLinesUC + off), (char *)(screenlineUC + r * cols), (size_t)cols * sizeof(u8char_T)) ;
-                    for (i = 0; i < p_mco; ++i)
-                    {
-                         memmove((char *)(ScreenLinesC[i] + off), (char *)(screenlineC[i] + r * cols), (size_t)cols * sizeof(u8char_T)) ;
-                    }
-                }
-                if (enc_dbcs == DBCS_JPNU)
-                {
-                     memmove((char *)(ScreenLines2 + off), (char *)(screenline2 + r * cols), (size_t)cols * sizeof(schar_T)) ;
+                     memmove((char *)(ScreenLinesC[i] + off), (char *)(screenlineC[i] + r * cols), (size_t)cols * sizeof(u8char_T)) ;
                 }
                 screen_line(curwin, cmdline_row + r, 0, cols, cols, -1, 0);
             }
@@ -21616,17 +20486,10 @@ redraw_asap(int type)
 
     vim_free(screenline);
     vim_free(screenattr);
-    if (enc_utf8)
+    vim_free(screenlineUC);
+    for (i = 0; i < p_mco; ++i)
     {
-        vim_free(screenlineUC);
-        for (i = 0; i < p_mco; ++i)
-        {
-            vim_free(screenlineC[i]);
-        }
-    }
-    if (enc_dbcs == DBCS_JPNU)
-    {
-        vim_free(screenline2);
+        vim_free(screenlineC[i]);
     }
 
     setcursor();
@@ -22056,9 +20919,9 @@ edit(int         cmdchar, int         startln, long        count)
             {
                 ++curwin->w_cursor.col;
             }
-            else if (has_mbyte)
+            else
             {
-                i = (*mb_ptr2len)(ptr);
+                i = utfc_ptr2len(ptr);
                 if (ptr[i] == NUL)
                 {
                     curwin->w_cursor.col += i;
@@ -22853,13 +21716,10 @@ display_dollar(colnr_T col_arg)
     cursor_off();
     save_col = curwin->w_cursor.col;
     curwin->w_cursor.col = col;
-    if (has_mbyte)
-    {
-        char_u *p;
+    char_u *p;
 
-        p = ml_get_curline();
-        curwin->w_cursor.col -= (*mb_head_off)(p, p + col);
-    }
+    p = ml_get_curline();
+    curwin->w_cursor.col -= utf_head_off(p, p + col);
     curs_columns(FALSE);
     if (curwin->w_wcol < curwin->w_width)
     {
@@ -22916,7 +21776,7 @@ backspace_until_column(int col)
     static int
 del_char_after_col(int limit_col  __attribute__((unused)) )
 {
-    if (enc_utf8 && limit_col >= 0)
+    if (limit_col >= 0)
     {
         colnr_T ecol = curwin->w_cursor.col + 1;
 
@@ -23064,10 +21924,6 @@ get_literal(int noReduceKeys)
     {
         cc = '\n';
     }
-    if (enc_dbcs && (cc & 0xff) == 0)
-    {
-        cc = '?';
-    }
 
     --no_mapping;
     if (nc)
@@ -23180,7 +22036,7 @@ insertchar(int         c, int         flags, int         second_indent)
     can_si = FALSE;
     can_si_back = FALSE;
 
-    if (       ! ((c) < ' ' || (c) >= DEL || (c) == '0' || (c) == '^')  && (!has_mbyte || (*mb_char2len)(c) == 1) && !has_insertcharpre() && vpeekc() != NUL && !(State & REPLACE_FLAG) && !cindent_on())
+    if (       ! ((c) < ' ' || (c) >= DEL || (c) == '0' || (c) == '^')  && (utf_char2len(c) == 1) && !has_insertcharpre() && vpeekc() != NUL && !(State & REPLACE_FLAG) && !cindent_on())
     {
         char_u          buf[INPUT_BUFLEN + 1];
         int             i;
@@ -23192,7 +22048,7 @@ insertchar(int         c, int         flags, int         second_indent)
         {
             virtcol = get_nolist_virtcol();
         }
-        while (    (c = vpeekc()) != NUL && ! ((c) < ' ' || (c) >= DEL || (c) == '0' || (c) == '^')  && (!has_mbyte ||  (((c) < 0 || (c) > 255) ? 1 : mb_bytelen_tab[c])  == 1) && i < INPUT_BUFLEN && (textwidth == 0 || (virtcol += byte2cells(buf[i - 1])) < (colnr_T)textwidth) && !(!no_abbr && !vim_iswordc(c) && vim_iswordc(buf[i - 1])))
+        while (    (c = vpeekc()) != NUL && ! ((c) < ' ' || (c) >= DEL || (c) == '0' || (c) == '^')  && ((((c) < 0 || (c) > 255) ? 1 : mb_bytelen_tab[c])  == 1) && i < INPUT_BUFLEN && (textwidth == 0 || (virtcol += byte2cells(buf[i - 1])) < (colnr_T)textwidth) && !(!no_abbr && !vim_iswordc(c) && vim_iswordc(buf[i - 1])))
         {
             buf[i++] = vgetc();
         }
@@ -23217,11 +22073,11 @@ insertchar(int         c, int         flags, int         second_indent)
     {
         int             cc;
 
-        if (has_mbyte && (cc = (*mb_char2len)(c)) > 1)
+        if ((cc = utf_char2len(c)) > 1)
         {
             char_u      buf[MB_MAXBYTES + 1];
 
-            (*mb_char2bytes)(c, buf);
+            utf_char2bytes(c, buf);
             buf[cc] = NUL;
             ins_char_bytes(buf, cc);
             AppendCharToRedobuff(c);
@@ -23489,7 +22345,7 @@ add_char2buf(int c, char_u *s)
     int         i;
     int         len;
 
-    len = (*mb_char2bytes)(c, temp);
+    len = utf_char2bytes(c, temp);
     for (i = 0; i < len; ++i)
     {
         c = temp[i];
@@ -23544,7 +22400,7 @@ oneright(void)
         pos_T   prevpos = curwin->w_cursor;
 
         ptr = ml_get_cursor();
-        coladvance(getviscol() + ((*ptr != TAB && vim_isprintc((*mb_ptr2char)(ptr))) ? ptr2cells(ptr) : 1));
+        coladvance(getviscol() + ((*ptr != TAB && vim_isprintc(utf_ptr2char(ptr))) ? ptr2cells(ptr) : 1));
         curwin->w_set_curswant = true;
         return (prevpos.col != curwin->w_cursor.col || prevpos.coladd != curwin->w_cursor.coladd) ? OK : FAIL;
     }
@@ -23555,14 +22411,7 @@ oneright(void)
         return FAIL;
     }
 
-    if (has_mbyte)
-    {
-        l = (*mb_ptr2len)(ptr);
-    }
-    else
-    {
-        l = 1;
-    }
+    l = utfc_ptr2len(ptr);
 
     if (ptr[l] == NUL && (get_ve_flags() & VE_ONEMORE) == 0)
     {
@@ -23594,7 +22443,7 @@ oneleft(void)
             char_u *ptr;
 
             ptr = ml_get_cursor();
-            if (*ptr != TAB && vim_isprintc((*mb_ptr2char)(ptr)) && ptr2cells(ptr) > 1)
+            if (*ptr != TAB && vim_isprintc(utf_ptr2char(ptr)) && ptr2cells(ptr) > 1)
             {
                 curwin->w_cursor.coladd = 0;
             }
@@ -23613,10 +22462,7 @@ oneleft(void)
     curwin->w_set_curswant = true;
     --curwin->w_cursor.col;
 
-    if (has_mbyte)
-    {
-        mb_adjust_cursor();
-    }
+    mb_adjust_cursor();
     adjust_skipcol();
     return OK;
 }
@@ -23846,7 +22692,7 @@ replace_push(int     c)
     static int
 replace_push_mb(char_u *p)
 {
-    int l = (*mb_ptr2len)(p);
+    int l = utfc_ptr2len(p);
     int j;
 
     for (j = l - 1; j >= 0; --j)
@@ -23905,7 +22751,7 @@ mb_replace_pop_ins(int cc)
     int         i;
     int         c;
 
-    if (has_mbyte && (n =  mb_bytelen_tab[cc] ) > 1)
+    if ((n =  mb_bytelen_tab[cc] ) > 1)
     {
         buf[0] = cc;
         for (i = 1; i < n; ++i)
@@ -23919,40 +22765,37 @@ mb_replace_pop_ins(int cc)
         ins_char(cc);
     }
 
-    if (enc_utf8)
+    for (;;)
     {
-        for (;;)
+        c = replace_pop();
+        if (c == -1)
         {
-            c = replace_pop();
-            if (c == -1)
-            {
-                break;
-            }
-            if ((n =  mb_bytelen_tab[c] ) == 1)
-            {
-                replace_push(c);
-                break;
-            }
-
-            buf[0] = c;
-            for (i = 1; i < n; ++i)
-            {
-                buf[i] = replace_pop();
-            }
-            if (utf_iscomposing(utf_ptr2char(buf)))
-            {
-                ins_bytes_len(buf, n);
-            }
-            else
-            {
-                for (i = n - 1; i >= 0; --i)
-                {
-                    replace_push(buf[i]);
-                }
-                break;
-            }
-
+            break;
         }
+        if ((n =  mb_bytelen_tab[c] ) == 1)
+        {
+            replace_push(c);
+            break;
+        }
+
+        buf[0] = c;
+        for (i = 1; i < n; ++i)
+        {
+            buf[i] = replace_pop();
+        }
+        if (utf_iscomposing(utf_ptr2char(buf)))
+        {
+            ins_bytes_len(buf, n);
+        }
+        else
+        {
+            for (i = n - 1; i >= 0; --i)
+            {
+                replace_push(buf[i]);
+            }
+            break;
+        }
+
     }
 }
 
@@ -23985,23 +22828,12 @@ replace_do_bs(int limit_col)
             getvcol(curwin, &curwin->w_cursor, NULL, &start_vcol, NULL, 0);
             orig_vcols = chartabsize(ml_get_cursor(), start_vcol);
         }
-        if (has_mbyte)
+        (void)del_char_after_col(limit_col);
+        if (State & VREPLACE_FLAG)
         {
-            (void)del_char_after_col(limit_col);
-            if (State & VREPLACE_FLAG)
-            {
-                orig_len = ml_get_cursor_len();
-            }
-            replace_push(cc);
+            orig_len = ml_get_cursor_len();
         }
-        else
-        {
-            pchar_cursor(cc);
-            if (State & VREPLACE_FLAG)
-            {
-                orig_len = ml_get_cursor_len() - 1;
-            }
-        }
+        replace_push(cc);
         replace_pop_ins();
 
         if (State & VREPLACE_FLAG)
@@ -24012,7 +22844,7 @@ replace_do_bs(int limit_col)
             for (i = 0; i < ins_len; ++i)
             {
                 vcol += chartabsize(p + i, vcol);
-                i += (*mb_ptr2len)(p) - 1;
+                i += utfc_ptr2len(p) - 1;
             }
             vcol -= start_vcol;
 
@@ -24242,10 +23074,7 @@ ins_esc(long        *count, int         cmdchar, int         nomove)
         {
             --curwin->w_cursor.col;
             curwin->w_valid &= ~(VALID_WCOL|VALID_VIRTCOL);
-            if (has_mbyte)
-            {
-                mb_adjust_cursor();
-            }
+            mb_adjust_cursor();
         }
     }
 
@@ -24630,7 +23459,7 @@ ins_bs(int         c, int         mode, int         *inserted_space_p)
                     space_vcol = vcol;
                 }
                 vcol += chartabsize(ptr, vcol);
-                 ptr += (*mb_ptr2len)(ptr) ;
+                 ptr += utfc_ptr2len(ptr) ;
                 prev_space = cur_space;
             }
 
@@ -24653,7 +23482,7 @@ ins_bs(int         c, int         mode, int         *inserted_space_p)
                     break;
                 }
                 space_vcol += size;
-                 space_ptr += (*mb_ptr2len)(space_ptr) ;
+                 space_ptr += utfc_ptr2len(space_ptr) ;
             }
             want_col = space_ptr - line;
 
@@ -24689,20 +23518,14 @@ ins_bs(int         c, int         mode, int         *inserted_space_p)
             int cclass = 0;
             int prev_cclass = 0;
 
-            if (has_mbyte)
-            {
-                cclass = mb_get_class(ml_get_cursor());
-            }
+            cclass = mb_get_class(ml_get_cursor());
             do
             {
                     dec_cursor();
 
                 cc = gchar_cursor();
-                if (has_mbyte)
-                {
-                    prev_cclass = cclass;
-                    cclass = mb_get_class(ml_get_cursor());
-                }
+                prev_cclass = cclass;
+                cclass = mb_get_class(ml_get_cursor());
 
                 if (mode == BACKSPACE_WORD && !vim_isspace(cc))
                 {
@@ -24720,12 +23543,12 @@ ins_bs(int         c, int         mode, int         *inserted_space_p)
                 }
                 else
                 {
-                    if (enc_utf8 && p_deco)
+                    if (p_deco)
                     {
                         (void)utfc_ptr2char(ml_get_cursor(), cpc);
                     }
                     (void)del_char(FALSE);
-                    if (enc_utf8 && p_deco && cpc[0] != NUL)
+                    if (p_deco && cpc[0] != NUL)
                     {
                         inc_cursor();
                     }
@@ -24806,14 +23629,7 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
             break;
         }
 
-        if (has_mbyte)
-        {
-            idx += (*mb_char2bytes)(c, buf + idx);
-        }
-        else
-        {
-            buf[idx++] = c;
-        }
+        idx += utf_char2bytes(c, buf + idx);
         buf[idx] = NUL;
         if (end != NULL &&  strncmp((char *)(buf), (char *)(end), (idx))  == 0)
         {
@@ -24858,14 +23674,7 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
                 case PASTE_ONE_CHAR:
                     if (ret_char == -1)
                     {
-                        if (has_mbyte)
-                        {
-                            ret_char = (*mb_ptr2char)(buf);
-                        }
-                        else
-                        {
-                            ret_char = buf[0];
-                        }
+                        ret_char = utf_ptr2char(buf);
                     }
                     break;
             }
@@ -24992,14 +23801,7 @@ ins_right(void)
         }
         else
         {
-            if (has_mbyte)
-            {
-                curwin->w_cursor.col += (*mb_ptr2len)(ml_get_cursor());
-            }
-            else
-            {
-                ++curwin->w_cursor.col;
-            }
+            curwin->w_cursor.col += utfc_ptr2len(ml_get_cursor());
         }
 
     }
@@ -25403,7 +24205,7 @@ ins_copychar(linenr_T lnum)
     }
     clear_chartabsize_arg(&cts);
 
-    c = (*mb_ptr2char)(ptr);
+    c = utf_ptr2char(ptr);
     if (c == NUL)
     {
         vim_beep(BO_COPY);
@@ -25508,14 +24310,7 @@ do_ascii(exarg_T *eap  __attribute__((unused)) )
     int         ci = 0;
     int         len;
 
-    if (enc_utf8)
-    {
-        c = utfc_ptr2char(ml_get_cursor(), cc);
-    }
-    else
-    {
-        c = gchar_cursor();
-    }
+    c = utfc_ptr2char(ml_get_cursor(), cc);
     if (c == NUL)
     {
         msg("NUL");
@@ -25523,20 +24318,13 @@ do_ascii(exarg_T *eap  __attribute__((unused)) )
     }
 
     IObuff[0] = NUL;
-    if (!has_mbyte || (enc_dbcs != 0 && c < 0x100) || c < 0x80)
+    if (c < 0x80)
     {
         if (c == NL)
         {
             c = NUL;
         }
-        if (c == CAR && get_fileformat(curbuf) == EOL_MAC)
-        {
-            cval = NL;
-        }
-        else
-        {
-            cval = c;
-        }
+        cval = c;
         if (vim_isprintc_strict(c) && (c < ' ' || c > '~'))
         {
             transchar_nonprint(curbuf, buf3, c);
@@ -25555,17 +24343,10 @@ do_ascii(exarg_T *eap  __attribute__((unused)) )
             buf2[0] = NUL;
         }
             vim_snprintf((char *)IObuff,  (1024+1) , _("<%s>%s%s  %d,  Hex %02x,  Octal %03o"), transchar(c), buf1, buf2, cval, cval, cval);
-        if (enc_utf8)
-        {
-            c = cc[ci++];
-        }
-        else
-        {
-            c = 0;
-        }
+        c = cc[ci++];
     }
 
-    while (has_mbyte && (c >= 0x100 || (enc_utf8 && c >= 0x80)))
+    while ((c >= 0x100 || (c >= 0x80)))
     {
         len = (int) strlen((char *)(IObuff)) ;
         if (len > 0)
@@ -25573,24 +24354,17 @@ do_ascii(exarg_T *eap  __attribute__((unused)) )
             IObuff[len++] = ' ';
         }
         IObuff[len++] = '<';
-        if (enc_utf8 && utf_iscomposing(c))
+        if (utf_iscomposing(c))
         {
             IObuff[len++] = ' ';
         }
-        len += (*mb_char2bytes)(c, IObuff + len);
+        len += utf_char2bytes(c, IObuff + len);
             vim_snprintf((char *)IObuff + len,  (1024+1)  - len, c < 0x10000 ? _("> %d, Hex %04x, Octal %o") : _("> %d, Hex %08x, Octal %o"), c, c, c);
         if (ci == MAX_MCO)
         {
             break;
         }
-        if (enc_utf8)
-        {
-            c = cc[ci++];
-        }
-        else
-        {
-            c = 0;
-        }
+        c = cc[ci++];
     }
 
     msg((char *)IObuff);
@@ -26151,10 +24925,6 @@ do_write(exarg_T *eap)
             {
                 goto theend;
             }
-            if (*curbuf->b_p_ft == NUL)
-            {
-                do_modelines(0);
-            }
             fname = curbuf->b_sfname;
         }
 
@@ -26512,11 +25282,6 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
                     curbuf = buf;
                     ++curbuf->b_nwindows;
 
-                    if (!oldbuf && eap != NULL)
-                    {
-                        set_file_options(TRUE, eap);
-                        set_forced_fenc(eap);
-                    }
                 }
 
                 get_winopts(curbuf);
@@ -26648,8 +25413,6 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
         }
         else
         {
-            do_modelines(OPT_WINONLY);
-
             apply_autocmds_retval(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf, &retval);
             if ((flags & ECMD_NOWINENTER) == 0)
             {
@@ -27201,7 +25964,7 @@ skip_substitute(char_u *start, int delimiter)
         {
             ++p;
         }
-         p += (*mb_ptr2len)(p) ;
+         p += utfc_ptr2len(p) ;
     }
     return p;
 }
@@ -27661,14 +26424,7 @@ ex_substitute(exarg_T *eap)
                     }
                     else
                     {
-                        if (has_mbyte)
-                        {
-                            matchcol += mb_ptr2len(sub_firstline.string + matchcol);
-                        }
-                        else
-                        {
-                            ++matchcol;
-                        }
+                        matchcol += utfc_ptr2len(sub_firstline.string + matchcol);
                     }
                     goto skip;
                 }
@@ -28044,9 +26800,9 @@ ex_substitute(exarg_T *eap)
                             p1 = new_start.string - 1;
                         }
                     }
-                    else if (has_mbyte)
+                    else
                     {
-                        p1 += (*mb_ptr2len)(p1) - 1;
+                        p1 += utfc_ptr2len(p1) - 1;
                     }
                 }
 
@@ -29921,12 +28677,6 @@ checkforcmd_opt(char_u      **pp, char        *cmd, int         len, int        
 }
 
     static int
-checkforcmd(char_u      **pp, char        *cmd, int         len)
-{
-    return checkforcmd_opt(pp, cmd, len, FALSE);
-}
-
-    static int
 checkforcmd_noparen(char_u      **pp, char        *cmd, int         len)
 {
     return checkforcmd_opt(pp, cmd, len, TRUE);
@@ -30432,33 +29182,26 @@ append_command(char_u *cmd)
     if (len >  (1024+1)  - 100)
     {
         d = IObuff +  (1024+1)  - 100;
-        d -= mb_head_off(IObuff, d);
+        d -= utf_head_off(IObuff, d);
          strcpy((char *)(d), (char *)("...")) ;
     }
      strcat((char *)(IObuff), (char *)(": ")) ;
     d = IObuff +  strlen((char *)(IObuff)) ;
     while (*s != NUL && d - IObuff + 5 <  (1024+1) )
     {
-        if (enc_utf8 ? (s[0] == 0xc2 && s[1] == 0xa0) : *s == 0xa0)
+        if ((s[0] == 0xc2 && s[1] == 0xa0))
         {
-            s += enc_utf8 ? 2 : 1;
+            s += 2;
              strcpy((char *)(d), (char *)("<a0>")) ;
             d += 4;
         }
-        else if (d - IObuff + (*mb_ptr2len)(s) + 1 >=  (1024+1) )
+        else if (d - IObuff + utfc_ptr2len(s) + 1 >=  (1024+1) )
         {
             break;
         }
         else
         {
-             if (has_mbyte)
-             {
-                 mb_copy_char(&(s), &(d));
-             }
-             else
-             {
-                 *(d)++ = *(s)++;
-             }
+             mb_copy_char(&(s), &(d));
         }
     }
     *d = NUL;
@@ -31541,7 +30284,7 @@ separate_nextcmd(exarg_T *eap, int keep_backslash)
 
     p = eap->arg;
 
-    for ( ; *p;  p += (*mb_ptr2len)(p) )
+    for ( ; *p;  p += utfc_ptr2len(p) )
     {
         if (*p == Ctrl_V)
         {
@@ -31629,77 +30372,15 @@ skip_cmd_arg(char_u *p, int    rembs)
                 ++p;
             }
         }
-         p += (*mb_ptr2len)(p) ;
+         p += utfc_ptr2len(p) ;
     }
     return p;
-}
-
-    static int
-get_bad_opt(char_u *p, exarg_T *eap)
-{
-    if ( strcasecmp((char *)(p), (char *)("keep"))  == 0)
-    {
-        eap->bad_char =  (-1) ;
-    }
-    else if ( strcasecmp((char *)(p), (char *)("drop"))  == 0)
-    {
-        eap->bad_char =  (-2) ;
-    }
-    else if ( mb_bytelen_tab[*p]  == 1 && p[1] == NUL)
-    {
-        eap->bad_char = *p;
-    }
-    else
-    {
-        return FAIL;
-    }
-    return OK;
-}
-
-    static char_u *
-get_bad_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    static char *(p_bad_values[]) =
-    {
-        "?",
-        "keep",
-        "drop",
-    };
-
-    if (idx < 0 || idx >= (int) (sizeof(p_bad_values) / sizeof((p_bad_values)[0])) )
-    {
-        return NULL;
-    }
-
-    return (char_u*)p_bad_values[idx];
 }
 
     static int
 getargopt(exarg_T *eap)
 {
     char_u      *arg = eap->arg + 2;
-    int         *pp = NULL;
-    int         bad_char_idx;
-    char_u      *p;
-
-    if ( strncmp((char *)(arg), (char *)("bin"), (3))  == 0 ||  strncmp((char *)(arg), (char *)("nobin"), (5))  == 0)
-    {
-        if (*arg == 'n')
-        {
-            arg += 2;
-            eap->force_bin = FORCE_NOBIN;
-        }
-        else
-        {
-            eap->force_bin = FORCE_BIN;
-        }
-        if (!checkforcmd(&arg, "binary", 3))
-        {
-            return FAIL;
-        }
-        eap->arg = skipwhite(arg);
-        return OK;
-    }
 
     if ( strncmp((char *)(arg), (char *)("edit"), (4))  == 0)
     {
@@ -31708,69 +30389,7 @@ getargopt(exarg_T *eap)
         return OK;
     }
 
-    if ( strncmp((char *)(arg), (char *)("ff"), (2))  == 0)
-    {
-        arg += 2;
-        pp = &eap->force_ff;
-    }
-    else if ( strncmp((char *)(arg), (char *)("fileformat"), (10))  == 0)
-    {
-        arg += 10;
-        pp = &eap->force_ff;
-    }
-    else if ( strncmp((char *)(arg), (char *)("enc"), (3))  == 0)
-    {
-        if ( strncmp((char *)(arg), (char *)("encoding"), (8))  == 0)
-        {
-            arg += 8;
-        }
-        else
-        {
-            arg += 3;
-        }
-        pp = &eap->force_enc;
-    }
-    else if ( strncmp((char *)(arg), (char *)("bad"), (3))  == 0)
-    {
-        arg += 3;
-        pp = &bad_char_idx;
-    }
-
-    if (pp == NULL || *arg != '=')
-    {
-        return FAIL;
-    }
-
-    ++arg;
-    *pp = (int)(arg - eap->cmd);
-    arg = skip_cmd_arg(arg, FALSE);
-    eap->arg = skipwhite(arg);
-    *arg = NUL;
-
-    if (pp == &eap->force_ff)
-    {
-        if (check_ff_value(eap->cmd + eap->force_ff) == FAIL)
-        {
-            return FAIL;
-        }
-        eap->force_ff = eap->cmd[eap->force_ff];
-    }
-    else if (pp == &eap->force_enc)
-    {
-        for (p = eap->cmd + eap->force_enc; *p != NUL; ++p)
-        {
-            *p =  (((*p) < 'A' || (*p) > 'Z') ? (*p) : (*p) + ('a' - 'A')) ;
-        }
-    }
-    else
-    {
-        if (get_bad_opt(eap->cmd + bad_char_idx, eap) == FAIL)
-        {
-            return FAIL;
-        }
-    }
-
-    return OK;
+    return FAIL;
 }
 
     static char_u *
@@ -31778,11 +30397,6 @@ get_argopt_name(expand_T *xp  __attribute__((unused)) , int idx)
 {
     static char *(p_opt_values[]) =
     {
-        "fileformat=",
-        "encoding=",
-        "binary",
-        "nobinary",
-        "bad=",
         "edit",
     };
 
@@ -31799,47 +30413,8 @@ expand_argopt(char_u      *pat, expand_T    *xp, regmatch_T  *rmp, char_u      *
 {
     if (xp->xp_pattern > xp->xp_line && *(xp->xp_pattern-1) == '=')
     {
-        char_u *(*cb)(expand_T *, int) = NULL;
 
-        char_u *name_end = xp->xp_pattern - 1;
-        if (name_end - xp->xp_line >= 2 &&  strncmp((char *)(name_end - 2), (char *)("ff"), (2))  == 0)
-        {
-            cb = get_fileformat_name;
-        }
-        else if (name_end - xp->xp_line >= 10 &&  strncmp((char *)(name_end - 10), (char *)("fileformat"), (10))  == 0)
-        {
-            cb = get_fileformat_name;
-        }
-        else if (name_end - xp->xp_line >= 3 &&  strncmp((char *)(name_end - 3), (char *)("enc"), (3))  == 0)
-        {
-            cb = get_encoding_name;
-        }
-        else if (name_end - xp->xp_line >= 8 &&  strncmp((char *)(name_end - 8), (char *)("encoding"), (8))  == 0)
-        {
-            cb = get_encoding_name;
-        }
-        else if (name_end - xp->xp_line >= 3 &&  strncmp((char *)(name_end - 3), (char *)("bad"), (3))  == 0)
-        {
-            cb = get_bad_name;
-        }
-
-        if (cb != NULL)
-        {
-            return ExpandGeneric(pat, xp, rmp, matches, numMatches, cb, FALSE);
-        }
         return FAIL;
-    }
-
-    if (xp->xp_pattern_len == 2 &&  strncmp((char *)(xp->xp_pattern), (char *)("ff"), (xp->xp_pattern_len))  == 0)
-    {
-        *matches =  (char_u * *)alloc(sizeof(char_u *) * (1)) ;
-        if (*matches == NULL)
-        {
-            return FAIL;
-        }
-        *numMatches = 1;
-        (*matches)[0] = vim_strsave((char_u*)"fileformat=");
-        return OK;
     }
 
     return ExpandGeneric(pat, xp, rmp, matches, numMatches, get_argopt_name, FALSE);
@@ -32843,40 +31418,37 @@ ex_normal(exarg_T *eap)
         return;
     }
 
-    if (has_mbyte)
-    {
-        int     len = 0;
+    int     len = 0;
 
-        for (p = eap->arg; *p != NUL; ++p)
+    for (p = eap->arg; *p != NUL; ++p)
+    {
+        for (l = utfc_ptr2len(p) - 1; l > 0; --l)
         {
-            for (l = (*mb_ptr2len)(p) - 1; l > 0; --l)
+            if (*++p ==  (0x80) )
             {
-                if (*++p ==  (0x80) )
-                {
-                    len += 2;
-                }
+                len += 2;
             }
         }
-        if (len > 0)
+    }
+    if (len > 0)
+    {
+        arg = alloc( strlen((char *)(eap->arg))  + len + 1);
+        if (arg != NULL)
         {
-            arg = alloc( strlen((char *)(eap->arg))  + len + 1);
-            if (arg != NULL)
+            len = 0;
+            for (p = eap->arg; *p != NUL; ++p)
             {
-                len = 0;
-                for (p = eap->arg; *p != NUL; ++p)
+                arg[len++] = *p;
+                for (l = utfc_ptr2len(p) - 1; l > 0; --l)
                 {
-                    arg[len++] = *p;
-                    for (l = (*mb_ptr2len)(p) - 1; l > 0; --l)
+                    arg[len++] = *++p;
+                    if (*p ==  (0x80) )
                     {
-                        arg[len++] = *++p;
-                        if (*p ==  (0x80) )
-                        {
-                            arg[len++] = KS_SPECIAL;
-                            arg[len++] =  ('X') ;
-                        }
+                        arg[len++] = KS_SPECIAL;
+                        arg[len++] =  ('X') ;
                     }
-                    arg[len] = NUL;
                 }
+                arg[len] = NUL;
             }
         }
     }
@@ -33946,13 +32518,13 @@ may_add_char_to_search(int firstc, int *c, incsearch_state_T *is_state)
                 stuffcharReadbuff(*c);
                 *c = '\\';
             }
-            if (mb_char2len(*c) != mb_ptr2len(ml_get_cursor()))
+            if (utf_char2len(*c) != utfc_ptr2len(ml_get_cursor()))
             {
                 int save_c = *c;
 
-                while (mb_char2len(*c) != mb_ptr2len(ml_get_cursor()))
+                while (utf_char2len(*c) != utfc_ptr2len(ml_get_cursor()))
                 {
-                    curwin->w_cursor.col += mb_char2len(*c);
+                    curwin->w_cursor.col += utf_char2len(*c);
                     *c = gchar_cursor();
                     stuffcharReadbuff(*c);
                 }
@@ -34164,7 +32736,7 @@ cmdline_erase_chars(int c, int indent, incsearch_state_T *isp)
     {
         ++ccline.cmdpos;
     }
-    if (has_mbyte && c ==   (-(('k') + ((int)('D') << 8)))  )
+    if (c ==   (-(('k') + ((int)('D') << 8)))  )
     {
         ccline.cmdpos += mb_off_next(ccline.cmdbuff, ccline.cmdbuff + ccline.cmdpos);
     }
@@ -34174,44 +32746,22 @@ cmdline_erase_chars(int c, int indent, incsearch_state_T *isp)
 
         j = ccline.cmdpos;
         p = ccline.cmdbuff + j;
-        if (has_mbyte)
+        p = mb_prevptr(ccline.cmdbuff, p);
+        if (c == Ctrl_W)
         {
-            p = mb_prevptr(ccline.cmdbuff, p);
-            if (c == Ctrl_W)
+            while (p > ccline.cmdbuff && vim_isspace(*p))
             {
-                while (p > ccline.cmdbuff && vim_isspace(*p))
-                {
-                    p = mb_prevptr(ccline.cmdbuff, p);
-                }
-                i = mb_get_class(p);
-                while (p > ccline.cmdbuff && mb_get_class(p) == i)
-                {
-                    p = mb_prevptr(ccline.cmdbuff, p);
-                }
-                if (mb_get_class(p) != i)
-                {
-                    p += (*mb_ptr2len)(p);
-                }
+                p = mb_prevptr(ccline.cmdbuff, p);
             }
-        }
-        else if (c == Ctrl_W)
-        {
-            while (p > ccline.cmdbuff && vim_isspace(p[-1]))
+            i = mb_get_class(p);
+            while (p > ccline.cmdbuff && mb_get_class(p) == i)
             {
-                --p;
+                p = mb_prevptr(ccline.cmdbuff, p);
             }
-            if (p > ccline.cmdbuff)
+            if (mb_get_class(p) != i)
             {
-                i = vim_iswordc(p[-1]);
-                while (p > ccline.cmdbuff && !vim_isspace(p[-1]) && vim_iswordc(p[-1]) == i)
-                {
-                    --p;
-                }
+                p += utfc_ptr2len(p);
             }
-        }
-        else
-        {
-            --p;
         }
         ccline.cmdpos = (int)(p - ccline.cmdbuff);
         ccline.cmdlen -= j - ccline.cmdpos;
@@ -34952,21 +33502,11 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
                         break;
                     }
                     ccline.cmdspos += i;
-                    if (has_mbyte)
-                    {
-                        ccline.cmdpos += (*mb_ptr2len)(ccline.cmdbuff + ccline.cmdpos);
-                    }
-                    else
-                    {
-                        ++ccline.cmdpos;
-                    }
+                    ccline.cmdpos += utfc_ptr2len(ccline.cmdbuff + ccline.cmdpos);
                 }
                 while ((c ==   (-(('%') + ((int)('i') << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_C_RIGHT) << 8)))   || (mod_mask & (MOD_MASK_SHIFT|MOD_MASK_CTRL))) && ccline.cmdbuff[ccline.cmdpos] != ' ')
                     ;
-                if (has_mbyte)
-                {
-                    set_cmdspos_cursor();
-                }
+                set_cmdspos_cursor();
                 goto cmdline_not_changed;
 
         case   (-(('k') + ((int)('l') << 8)))  :
@@ -34979,18 +33519,12 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
                 do
                 {
                     --ccline.cmdpos;
-                    if (has_mbyte)
-                    {
-                        ccline.cmdpos -= (*mb_head_off)(ccline.cmdbuff, ccline.cmdbuff + ccline.cmdpos);
-                    }
+                    ccline.cmdpos -= utf_head_off(ccline.cmdbuff, ccline.cmdbuff + ccline.cmdpos);
                     ccline.cmdspos -= cmdline_charsize(ccline.cmdpos);
                 }
                 while (ccline.cmdpos > 0 && (c ==   (-(('#') + ((int)('4') << 8)))   || c ==   (-((KS_EXTRA) + ((int)(KE_C_LEFT) << 8)))   || (mod_mask & (MOD_MASK_SHIFT|MOD_MASK_CTRL))) && ccline.cmdbuff[ccline.cmdpos - 1] != ' ')
                     ;
-                if (has_mbyte)
-                {
-                    set_cmdspos_cursor();
-                }
+                set_cmdspos_cursor();
                 goto cmdline_not_changed;
 
         case   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  :
@@ -35087,7 +33621,7 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
 
                     do_abbr = FALSE;
                     extra_char = NUL;
-                    if (enc_utf8 && utf_iscomposing(c) && !cmd_silent)
+                    if (utf_iscomposing(c) && !cmd_silent)
                     {
                         draw_cmdline(ccline.cmdpos, ccline.cmdlen - ccline.cmdpos);
                         msg_putchar(' ');
@@ -35125,17 +33659,9 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
         }
         else
         {
-            if (has_mbyte)
-            {
-                j = (*mb_char2bytes)(c, IObuff);
-                IObuff[j] = NUL;
-                put_on_cmdline(IObuff, j, TRUE);
-            }
-            else
-            {
-                IObuff[0] = c;
-                put_on_cmdline(IObuff, 1, TRUE);
-            }
+            j = utf_char2bytes(c, IObuff);
+            IObuff[j] = NUL;
+            put_on_cmdline(IObuff, j, TRUE);
         }
         goto cmdline_changed;
 
@@ -35411,26 +33937,20 @@ set_cmdspos_cursor(void)
     for (i = 0; i < ccline.cmdlen && i < ccline.cmdpos; ++i)
     {
         c = cmdline_charsize(i);
-        if (has_mbyte)
-        {
-            correct_cmdspos(i, c);
-        }
+        correct_cmdspos(i, c);
         if ((ccline.cmdspos += c) >= m)
         {
             ccline.cmdspos -= c;
             break;
         }
-        if (has_mbyte)
-        {
-            i += (*mb_ptr2len)(ccline.cmdbuff + i) - 1;
-        }
+        i += utfc_ptr2len(ccline.cmdbuff + i) - 1;
     }
 }
 
     static void
 correct_cmdspos(int idx, int cells)
 {
-    if ((*mb_ptr2len)(ccline.cmdbuff + idx) > 1 && (*mb_ptr2cells)(ccline.cmdbuff + idx) > 1 && ccline.cmdspos % cmdline_width + cells > cmdline_width)
+    if (utfc_ptr2len(ccline.cmdbuff + idx) > 1 && utf_ptr2cells(ccline.cmdbuff + idx) > 1 && ccline.cmdspos % cmdline_width + cells > cmdline_width)
     {
         ccline.cmdspos++;
     }
@@ -35546,17 +34066,10 @@ getexmodeline(int         promptc, void        *cookie  __attribute__((unused)) 
             {
                 if (line_ga.ga_len > 0)
                 {
-                    if (has_mbyte)
-                    {
-                        p = (char_u *)line_ga.ga_data;
-                        p[line_ga.ga_len] = NUL;
-                        len = (*mb_head_off)(p, p + line_ga.ga_len - 1) + 1;
-                        line_ga.ga_len -= len;
-                    }
-                    else
-                    {
-                        --line_ga.ga_len;
-                    }
+                    p = (char_u *)line_ga.ga_data;
+                    p[line_ga.ga_len] = NUL;
+                    len = utf_head_off(p, p + line_ga.ga_len - 1) + 1;
+                    line_ga.ga_len -= len;
                     goto redraw;
                 }
                 continue;
@@ -35606,7 +34119,7 @@ redraw:
                     }
                     else
                     {
-                        len = mb_ptr2len(p);
+                        len = utfc_ptr2len(p);
                         msg_outtrans_len(p, len);
                         vcol += ptr2cells(p);
                         p += len;
@@ -35664,15 +34177,7 @@ redraw:
         {
             c1 = '?';
         }
-        if (has_mbyte)
-        {
-            len = (*mb_char2bytes)(c1, (char_u *)line_ga.ga_data + line_ga.ga_len);
-        }
-        else
-        {
-            len = 1;
-            ((char_u *)line_ga.ga_data)[line_ga.ga_len] = c1;
-        }
+        len = utf_char2bytes(c1, (char_u *)line_ga.ga_data + line_ga.ga_len);
         if (c1 == '\n')
         {
             msg_putchar('\n');
@@ -35825,13 +34330,9 @@ unputcmdline(void)
     {
         msg_putchar(' ');
     }
-    else if (has_mbyte)
-    {
-        draw_cmdline(ccline.cmdpos, (*mb_ptr2len)(ccline.cmdbuff + ccline.cmdpos));
-    }
     else
     {
-        draw_cmdline(ccline.cmdpos, 1);
+        draw_cmdline(ccline.cmdpos, utfc_ptr2len(ccline.cmdbuff + ccline.cmdpos));
     }
     msg_no_more = FALSE;
     cursorcmd();
@@ -35868,28 +34369,21 @@ put_on_cmdline(char_u *str, int len, int redraw)
         }
         else
         {
-            if (has_mbyte)
+            m = 0;
+            for (i = 0; i < len; i += utfc_ptr2len(str + i))
             {
-                m = 0;
-                for (i = 0; i < len; i += (*mb_ptr2len)(str + i))
-                {
-                    ++m;
-                }
-                for (i = ccline.cmdpos; i < ccline.cmdlen && m > 0; i += (*mb_ptr2len)(ccline.cmdbuff + i))
-                {
-                    --m;
-                }
-                if (i < ccline.cmdlen)
-                {
-                     memmove((char *)(ccline.cmdbuff + ccline.cmdpos + len), (char *)(ccline.cmdbuff + i), (size_t)(ccline.cmdlen - i)) ;
-                    ccline.cmdlen += ccline.cmdpos + len - i;
-                }
-                else
-                {
-                    ccline.cmdlen = ccline.cmdpos + len;
-                }
+                ++m;
             }
-            else if (ccline.cmdpos + len > ccline.cmdlen)
+            for (i = ccline.cmdpos; i < ccline.cmdlen && m > 0; i += utfc_ptr2len(ccline.cmdbuff + i))
+            {
+                --m;
+            }
+            if (i < ccline.cmdlen)
+            {
+                 memmove((char *)(ccline.cmdbuff + ccline.cmdpos + len), (char *)(ccline.cmdbuff + i), (size_t)(ccline.cmdlen - i)) ;
+                ccline.cmdlen += ccline.cmdpos + len - i;
+            }
+            else
             {
                 ccline.cmdlen = ccline.cmdpos + len;
             }
@@ -35897,27 +34391,24 @@ put_on_cmdline(char_u *str, int len, int redraw)
          memmove((char *)(ccline.cmdbuff + ccline.cmdpos), (char *)(str), (size_t)len) ;
         ccline.cmdbuff[ccline.cmdlen] = NUL;
 
-        if (enc_utf8)
+        i = 0;
+        c = utf_ptr2char(ccline.cmdbuff + ccline.cmdpos);
+        while (ccline.cmdpos > 0 && utf_iscomposing(c))
         {
-            i = 0;
+            i = utf_head_off(ccline.cmdbuff, ccline.cmdbuff + ccline.cmdpos - 1) + 1;
+            ccline.cmdpos -= i;
+            len += i;
             c = utf_ptr2char(ccline.cmdbuff + ccline.cmdpos);
-            while (ccline.cmdpos > 0 && utf_iscomposing(c))
+        }
+        if (i != 0)
+        {
+            i = ptr2cells(ccline.cmdbuff + ccline.cmdpos);
+            ccline.cmdspos -= i;
+            msg_col -= i;
+            if (msg_col < 0)
             {
-                i = (*mb_head_off)(ccline.cmdbuff, ccline.cmdbuff + ccline.cmdpos - 1) + 1;
-                ccline.cmdpos -= i;
-                len += i;
-                c = utf_ptr2char(ccline.cmdbuff + ccline.cmdpos);
-            }
-            if (i != 0)
-            {
-                i = ptr2cells(ccline.cmdbuff + ccline.cmdpos);
-                ccline.cmdspos -= i;
-                msg_col -= i;
-                if (msg_col < 0)
-                {
-                    msg_col += cmdline_width;
-                    --msg_row;
-                }
+                msg_col += cmdline_width;
+                --msg_row;
             }
         }
 
@@ -35948,25 +34439,19 @@ put_on_cmdline(char_u *str, int len, int redraw)
         for (i = 0; i < len; ++i)
         {
             c = cmdline_charsize(ccline.cmdpos);
-            if (has_mbyte)
-            {
-                correct_cmdspos(ccline.cmdpos, c);
-            }
+            correct_cmdspos(ccline.cmdpos, c);
             if (ccline.cmdspos + c < m)
             {
                 ccline.cmdspos += c;
             }
 
-            if (has_mbyte)
+            c = utfc_ptr2len(ccline.cmdbuff + ccline.cmdpos) - 1;
+            if (c > len - i - 1)
             {
-                c = (*mb_ptr2len)(ccline.cmdbuff + ccline.cmdpos) - 1;
-                if (c > len - i - 1)
-                {
-                    c = len - i - 1;
-                }
-                ccline.cmdpos += c;
-                i += c;
+                c = len - i - 1;
             }
+            ccline.cmdpos += c;
+            i += c;
             ++ccline.cmdpos;
         }
     }
@@ -36038,23 +34523,12 @@ cmdline_paste(int regname, int literally, int remcr)
 
             for (w = ccline.cmdbuff + ccline.cmdpos; w > ccline.cmdbuff; )
             {
-                if (has_mbyte)
+                len = utf_head_off(ccline.cmdbuff, w - 1) + 1;
+                if (!vim_iswordc(utf_ptr2char(w - len)))
                 {
-                    len = (*mb_head_off)(ccline.cmdbuff, w - 1) + 1;
-                    if (!vim_iswordc(mb_ptr2char(w - len)))
-                    {
-                        break;
-                    }
-                    w -= len;
+                    break;
                 }
-                else
-                {
-                    if (!vim_iswordc(w[-1]))
-                    {
-                        break;
-                    }
-                    --w;
-                }
+                w -= len;
             }
             len = (int)((ccline.cmdbuff + ccline.cmdpos) - w);
             if (p_ic ?  strncasecmp((char *)(w), (char *)(arg), (len))  == 0 :  strncmp((char *)(w), (char *)(arg), (len))  == 0)
@@ -36093,14 +34567,7 @@ cmdline_paste_str(char_u *s, int literally)
             {
                 ++s;
             }
-            if (has_mbyte)
-            {
-                c = mb_cptr2char_adv(&s);
-            }
-            else
-            {
-                c = *s++;
-            }
+            c = mb_cptr2char_adv(&s);
             if (cv == Ctrl_V || c == ESC || c == Ctrl_C || c == CAR || c == NL || c == Ctrl_L || c == intr_char || (c == Ctrl_BSL && *s == Ctrl_N))
             {
                 stuffcharReadbuff(Ctrl_V);
@@ -36377,9 +34844,7 @@ script_get(exarg_T *eap  __attribute__((unused)) , char_u *cmd  __attribute__((u
 
 // ==================== fileio.c ====================
 
-static char_u *next_fenc(char_u **pp, int *alloced);
 static linenr_T readfile_linenr(linenr_T linecnt, char_u *p, char_u *endp);
-static char_u *check_for_bom(char_u *p, long size, int *lenp, int flags);
 
     static void
 filemess(buf_T       *buf, char_u      *name, char_u      *s, int         attr)
@@ -36439,8 +34904,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
     int         read_stdin = (flags & READ_STDIN);
     int         read_buffer = (flags & READ_BUFFER);
     int         read_fifo = (flags & READ_FIFO);
-    int         set_options = newfile || read_buffer
-                                           || (eap != NULL && eap->read_edit);
     linenr_T    read_buf_lnum = 1;
     colnr_T     read_buf_col = 0;
     char_u      c;
@@ -36458,36 +34921,15 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
     int         split = 0;
     linenr_T    linecnt;
     int         error = FALSE;
-    int         ff_error =  (-1) ;
     long        linerest = 0;
     int         perm = 0;
-    int         fileformat = 0;
-    int         keep_fileformat = FALSE;
     stat_T      st;
     int         file_readonly;
     linenr_T    skip_count = 0;
     linenr_T    read_count = 0;
     int         msg_save = msg_scroll;
     linenr_T    read_no_eol_lnum = 0;
-    int         try_mac;
-    int         try_dos;
-    int         try_unix;
-    int         file_rewind = FALSE;
-    int         can_retry;
-    linenr_T    conv_error = 0;
     linenr_T    illegal_byte = 0;
-    int         keep_dest_enc = FALSE;
-    int         bad_char_behavior = BAD_REPLACE;
-    char_u      *tmpname = NULL;
-    int         fio_flags = 0;
-    char_u      *fenc;
-    int         fenc_alloced;
-    char_u      *fenc_next = NULL;
-    int         advance_fenc = FALSE;
-    long        real_size = 0;
-    iconv_t     iconv_fd = (iconv_t)-1;
-    int         converted = FALSE;
-    int         notconverted = FALSE;
     char_u      conv_rest[CONV_RESTLEN];
     int         conv_restlen = 0;
     pos_T       orig_start;
@@ -36500,8 +34942,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
     size_t      fnamelen = 0;
 
     curbuf->b_au_did_filetype = false;
-
-    curbuf->b_no_eol_lnum = 0;
 
     if (curbuf->b_ffname == NULL && !filtering && fname != NULL && vim_strchr(p_cpo, CPO_FNAMER) != NULL && !(flags & READ_DUMMY))
     {
@@ -36616,8 +35056,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
         }
     }
 
-    set_file_options(set_options, eap);
-
     check_readonly = (newfile && (curbuf->b_flags & BF_CHECK_RO));
     if (check_readonly && !readonlymode)
     {
@@ -36684,12 +35122,7 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
                     {
                         filemess(curbuf, sfname, (char_u *)_("[New DIRECTORY]"), 0);
                     }
-                    if (eap != NULL)
-                    {
-                        set_forced_fenc(eap);
-                    }
                     apply_autocmds_exarg(EVENT_BUFNEWFILE, sfname, sfname, FALSE, curbuf, eap);
-                    save_file_ff(curbuf);
 
                         retval = OK;
                     goto theend;
@@ -36707,17 +35140,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
     if ((check_readonly && file_readonly) || curbuf->b_help)
     {
         curbuf->b_p_ro = TRUE;
-    }
-
-    if (set_options)
-    {
-        if (!read_buffer)
-        {
-            curbuf->b_p_eof = FALSE;
-            curbuf->b_start_eof = FALSE;
-            curbuf->b_p_eol = TRUE;
-            curbuf->b_start_eol = TRUE;
-        }
     }
 
     if (!bt_dontwrite(curbuf))
@@ -36749,10 +35171,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
     curbuf->b_op_start.lnum = ((from == 0) ? 1 : from);
     curbuf->b_op_start.col = 0;
 
-    try_mac = (vim_strchr(p_ffs, 'm') != NULL);
-    try_dos = (vim_strchr(p_ffs, 'd') != NULL);
-    try_unix = (vim_strchr(p_ffs, 'x') != NULL);
-
     if (!read_buffer)
     {
         int     m = msg_scroll;
@@ -36780,9 +35198,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
         {
             apply_autocmds_exarg(EVENT_FILEREADPRE, sfname, sfname, FALSE, NULL, eap);
         }
-        try_mac = (vim_strchr(p_ffs, 'm') != NULL);
-        try_dos = (vim_strchr(p_ffs, 'd') != NULL);
-        try_unix = (vim_strchr(p_ffs, 'x') != NULL);
         curbuf->b_op_start = orig_start;
 
         if (msg_scrolled == n)
@@ -36824,187 +35239,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
     msg_scroll = FALSE;
 
     linecnt = curbuf->b_ml.ml_line_count;
-
-    if (eap != NULL && eap->bad_char != 0)
-    {
-        bad_char_behavior = eap->bad_char;
-        if (set_options)
-        {
-            curbuf->b_bad_char = eap->bad_char;
-        }
-    }
-    else
-    {
-        curbuf->b_bad_char = 0;
-    }
-
-    if (eap != NULL && eap->force_enc != 0)
-    {
-        fenc = enc_canonize(eap->cmd + eap->force_enc);
-        fenc_alloced = TRUE;
-        keep_dest_enc = TRUE;
-    }
-    else if (curbuf->b_p_bin)
-    {
-        fenc = (char_u *)"";
-        fenc_alloced = FALSE;
-    }
-    else if (curbuf->b_help)
-    {
-        char_u      firstline[80];
-        int         fc;
-
-        fenc = (char_u *)"latin1";
-        c = enc_utf8;
-        if (!c && !read_stdin)
-        {
-            fc = fname[fnamelen - 1];
-            if ( (((fc) < 'A' || (fc) > 'Z') ? (fc) : (fc) + ('a' - 'A'))  == 'x')
-            {
-                len = read_eintr(fd, firstline, 80);
-                 lseek (fd, (off_T)0L, SEEK_SET);
-                for (p = firstline; p < firstline + len; ++p)
-                {
-                    if (*p >= 0x80)
-                    {
-                        c = TRUE;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (c)
-        {
-            fenc_next = fenc;
-            fenc = (char_u *)"utf-8";
-
-            if (!enc_utf8)
-            {
-                keep_dest_enc = TRUE;
-            }
-        }
-        fenc_alloced = FALSE;
-    }
-    else
-    {
-        fenc = (char_u *)"";
-        fenc_alloced = FALSE;
-    }
-
-retry:
-
-    if (file_rewind)
-    {
-        if (read_buffer)
-        {
-            read_buf_lnum = 1;
-            read_buf_col = 0;
-        }
-        else if (read_stdin ||  lseek (fd, (off_T)0L, SEEK_SET) != 0)
-        {
-            error = TRUE;
-            goto failed;
-        }
-        while (lnum > from)
-        {
-            ml_delete(lnum--);
-        }
-        file_rewind = FALSE;
-        if (set_options)
-        {
-        }
-        conv_error = 0;
-    }
-
-    if (keep_fileformat)
-    {
-        keep_fileformat = FALSE;
-    }
-    else
-    {
-        if (eap != NULL && eap->force_ff != 0)
-        {
-            fileformat = get_fileformat_force(curbuf, eap);
-            try_unix = try_dos = try_mac = FALSE;
-        }
-        else if (curbuf->b_p_bin)
-        {
-            fileformat = EOL_UNIX;
-        }
-        else if (*p_ffs == NUL)
-        {
-            fileformat = get_fileformat(curbuf);
-        }
-        else
-        {
-            fileformat =  (-1) ;
-        }
-    }
-
-    if (advance_fenc)
-    {
-        advance_fenc = FALSE;
-
-        if (eap != NULL && eap->force_enc != 0)
-        {
-            notconverted = TRUE;
-            conv_error = 0;
-            if (fenc_alloced)
-            {
-                vim_free(fenc);
-            }
-            fenc = (char_u *)"";
-            fenc_alloced = FALSE;
-        }
-        else
-        {
-            if (fenc_alloced)
-            {
-                vim_free(fenc);
-            }
-            if (fenc_next != NULL)
-            {
-                fenc = next_fenc(&fenc_next, &fenc_alloced);
-            }
-            else
-            {
-                fenc = (char_u *)"";
-                fenc_alloced = FALSE;
-            }
-        }
-        if (tmpname != NULL)
-        {
-             unlink((char *)(tmpname)) ;
-             vim_free(tmpname);
-             (tmpname) = NULL;
-        }
-    }
-
-    fio_flags = 0;
-    converted = need_conversion(fenc);
-    if (converted)
-    {
-        if ( strcmp((char *)(fenc), (char *)( "ucs-bom" ))  == 0)
-        {
-            fio_flags = FIO_UCSBOM;
-        }
-
-        else if (enc_utf8 ||  strcmp((char *)(p_enc), (char *)("latin1"))  == 0)
-        {
-            fio_flags = get_fio_flags(fenc);
-        }
-
-        {
-            if (fio_flags == 0 && iconv_fd == (iconv_t)-1)
-            {
-                advance_fenc = TRUE;
-                goto retry;
-            }
-        }
-    }
-
-    can_retry = (*fenc != NUL && !read_stdin && !read_fifo && !keep_dest_enc);
 
     if (!skip_read)
     {
@@ -37057,31 +35291,6 @@ retry:
                 buffer = new_buffer;
                 ptr = buffer + linerest;
                 line_start = buffer;
-
-                real_size = (int)size;
-                if (iconv_fd != (iconv_t)-1)
-                {
-                    size = size / ICONV_MULT;
-                }
-                else
-                {
-                    if (fio_flags & FIO_LATIN1)
-                    {
-                    size = size / 2;
-                    }
-                else if (fio_flags & (FIO_UCS2 | FIO_UTF16))
-                {
-                    size = (size * 2 / 3) & ~1;
-                }
-                else if (fio_flags & FIO_UCS4)
-                {
-                    size = (size * 2 / 3) & ~3;
-                }
-                else if (fio_flags == FIO_UCSBOM)
-                {
-                    size = size / ICONV_MULT;
-                }
-                }
 
                 if (conv_restlen > 0)
                 {
@@ -37140,10 +35349,6 @@ retry:
                             read_buf_col = 0;
                             if (++read_buf_lnum > from)
                             {
-                                if (!curbuf->b_p_eol)
-                                {
-                                    --tlen;
-                                }
                                 size = tlen;
                                 break;
                             }
@@ -37164,84 +35369,15 @@ retry:
                     }
                     else if (conv_restlen > 0)
                     {
-                        if (fio_flags != 0 || iconv_fd != (iconv_t)-1)
-                        {
-                            if (can_retry)
-                            {
-                                goto rewind_retry;
-                            }
-                            if (conv_error == 0)
-                            {
-                                conv_error = curbuf->b_ml.ml_line_count
-                                                                - linecnt + 1;
-                            }
-                        }
-                        else if (illegal_byte == 0)
+                        if (illegal_byte == 0)
                         {
                             illegal_byte = curbuf->b_ml.ml_line_count
                                                                 - linecnt + 1;
-                        }
-                        if (bad_char_behavior ==  (-2) )
-                        {
-                            *(ptr - conv_restlen) = NUL;
-                            conv_restlen = 0;
-                        }
-                        else
-                        {
-                            if (bad_char_behavior !=  (-1)  && (fio_flags != 0 || iconv_fd != (iconv_t)-1))
-                            {
-                                while (conv_restlen > 0)
-                                {
-                                    *(--ptr) = bad_char_behavior;
-                                    --conv_restlen;
-                                }
-                            }
-                            fio_flags = 0;
                         }
                     }
                 }
             }
             skip_read = FALSE;
-
-            if ((filesize == 0) && (fio_flags == FIO_UCSBOM || (tmpname == NULL && (*fenc == 'u' || (*fenc == NUL && enc_utf8)))))
-            {
-                char_u  *ccname;
-                int     blen;
-
-                if (size < 2 || curbuf->b_p_bin)
-                {
-                    ccname = NULL;
-                }
-                else
-                {
-                    ccname = check_for_bom(ptr, size, &blen, fio_flags == FIO_UCSBOM ?  (-1)  : get_fio_flags(fenc));
-                }
-                if (ccname != NULL)
-                {
-                    filesize += blen;
-                    size -= blen;
-                     memmove((char *)(ptr), (char *)(ptr + blen), (size_t)size) ;
-                }
-
-                if (fio_flags == FIO_UCSBOM)
-                {
-                    if (ccname == NULL)
-                    {
-                        advance_fenc = TRUE;
-                    }
-                    else
-                    {
-                        if (fenc_alloced)
-                        {
-                            vim_free(fenc);
-                        }
-                        fenc = ccname;
-                        fenc_alloced = FALSE;
-                    }
-                    skip_read = TRUE;
-                    goto retry;
-                }
-            }
 
             ptr -= conv_restlen;
             size += conv_restlen;
@@ -37251,573 +35387,136 @@ retry:
                 break;
             }
 
-            if (fio_flags != 0)
+            int  incomplete_tail = FALSE;
+
+            for (p = ptr; ; )
             {
-                int     u8c;
-                char_u  *dest;
-                char_u  *tail = NULL;
+                int  todo;
+                int  l;
 
-                dest = ptr + real_size;
-                if (fio_flags == FIO_LATIN1 || fio_flags == FIO_UTF8)
                 {
-                    p = ptr + size;
-                    if (fio_flags == FIO_UTF8)
+                    char_u *ascii_end = ptr + size;
+                    while (ascii_end - p >= (long)sizeof(long_u))
                     {
-                        tail = ptr + size - 1;
-                        while (tail > ptr && (*tail & 0xc0) == 0x80)
+                        long_u word;
+                        memcpy(&word, p, sizeof(long_u));
+                        if (word &  (((long_u)-1 / 0xFF) * 0x80) )
                         {
-                            --tail;
-                        }
-                        if (tail + utf_byte2len(*tail) <= ptr + size)
-                        {
-                            tail = NULL;
-                        }
-                        else
-                        {
-                            p = tail;
-                        }
-                    }
-                }
-                else if (fio_flags & (FIO_UCS2 | FIO_UTF16))
-                {
-                    p = ptr + (size & ~1);
-                    if (size & 1)
-                    {
-                        tail = p;
-                    }
-                    if ((fio_flags & FIO_UTF16) && p > ptr)
-                    {
-                        if (fio_flags & FIO_ENDIAN_L)
-                        {
-                            u8c = (*--p << 8);
-                            u8c += *--p;
-                        }
-                        else
-                        {
-                            u8c = *--p;
-                            u8c += (*--p << 8);
-                        }
-                        if (u8c >= 0xd800 && u8c <= 0xdbff)
-                        {
-                            tail = p;
-                        }
-                        else
-                        {
-                            p += 2;
-                        }
-                    }
-                }
-                else
-                {
-                    p = ptr + (size & ~3);
-                    if (size & 3)
-                    {
-                        tail = p;
-                    }
-                }
-
-                if (tail != NULL)
-                {
-                    conv_restlen = (int)((ptr + size) - tail);
-                     memmove((char *)(conv_rest), (char *)((char_u *)tail), conv_restlen) ;
-                    size -= conv_restlen;
-                }
-
-                while (p > ptr)
-                {
-                    if (fio_flags & FIO_LATIN1)
-                    {
-                        u8c = *--p;
-                    }
-                    else if (fio_flags & (FIO_UCS2 | FIO_UTF16))
-                    {
-                        if (fio_flags & FIO_ENDIAN_L)
-                        {
-                            u8c = (*--p << 8);
-                            u8c += *--p;
-                        }
-                        else
-                        {
-                            u8c = *--p;
-                            u8c += (*--p << 8);
-                        }
-                        if ((fio_flags & FIO_UTF16) && u8c >= 0xdc00 && u8c <= 0xdfff)
-                        {
-                            int u16c;
-
-                            if (p == ptr)
-                            {
-                                if (can_retry)
-                                {
-                                    goto rewind_retry;
-                                }
-                                if (conv_error == 0)
-                                {
-                                    conv_error = readfile_linenr(linecnt, ptr, p);
-                                }
-                                if (bad_char_behavior ==  (-2) )
-                                {
-                                    continue;
-                                }
-                                if (bad_char_behavior !=  (-1) )
-                                {
-                                    u8c = bad_char_behavior;
-                                }
-                            }
-
-                            if (fio_flags & FIO_ENDIAN_L)
-                            {
-                                u16c = (*--p << 8);
-                                u16c += *--p;
-                            }
-                            else
-                            {
-                                u16c = *--p;
-                                u16c += (*--p << 8);
-                            }
-                            u8c = 0x10000 + ((u16c & 0x3ff) << 10)
-                                                              + (u8c & 0x3ff);
-
-                            if (u16c < 0xd800 || u16c > 0xdbff)
-                            {
-                                if (can_retry)
-                                {
-                                    goto rewind_retry;
-                                }
-                                if (conv_error == 0)
-                                {
-                                    conv_error = readfile_linenr(linecnt, ptr, p);
-                                }
-                                if (bad_char_behavior ==  (-2) )
-                                {
-                                    continue;
-                                }
-                                if (bad_char_behavior !=  (-1) )
-                                {
-                                    u8c = bad_char_behavior;
-                                }
-                            }
-                        }
-                    }
-                    else if (fio_flags & FIO_UCS4)
-                    {
-                        if (fio_flags & FIO_ENDIAN_L)
-                        {
-                            u8c = (unsigned)*--p << 24;
-                            u8c += (unsigned)*--p << 16;
-                            u8c += (unsigned)*--p << 8;
-                            u8c += *--p;
-                        }
-                        else
-                        {
-                            u8c = *--p;
-                            u8c += (unsigned)*--p << 8;
-                            u8c += (unsigned)*--p << 16;
-                            u8c += (unsigned)*--p << 24;
-                        }
-                    }
-                    else
-                    {
-                        if (*--p < 0x80)
-                        {
-                            u8c = *p;
-                        }
-                        else
-                        {
-                            len = utf_head_off(ptr, p);
-                            p -= len;
-                            u8c = utf_ptr2char(p);
-                            if (len == 0)
-                            {
-                                if (can_retry)
-                                {
-                                    goto rewind_retry;
-                                }
-                                if (conv_error == 0)
-                                {
-                                    conv_error = readfile_linenr(linecnt, ptr, p);
-                                }
-                                if (bad_char_behavior ==  (-2) )
-                                {
-                                    continue;
-                                }
-                                if (bad_char_behavior !=  (-1) )
-                                {
-                                    u8c = bad_char_behavior;
-                                }
-                            }
-                        }
-                    }
-                    if (enc_utf8)
-                    {
-                        dest -= utf_char2len(u8c);
-                        (void)utf_char2bytes(u8c, dest);
-                    }
-                    else
-                    {
-                        --dest;
-                        if (u8c >= 0x100)
-                        {
-                            if (can_retry)
-                            {
-                                goto rewind_retry;
-                            }
-                            if (conv_error == 0)
-                            {
-                                conv_error = readfile_linenr(linecnt, ptr, p);
-                            }
-                            if (bad_char_behavior ==  (-2) )
-                            {
-                                ++dest;
-                            }
-                            else if (bad_char_behavior ==  (-1) )
-                            {
-                                *dest = u8c;
-                            }
-                            else if (eap != NULL && eap->bad_char != 0)
-                            {
-                                *dest = bad_char_behavior;
-                            }
-                            else
-                            {
-                                *dest = 0xBF;
-                            }
-                        }
-                        else
-                        {
-                            *dest = u8c;
-                        }
-                    }
-                }
-
-                line_start = dest - linerest;
-                 memmove((char *)(line_start), (char *)(buffer), (size_t)linerest) ;
-                size = (long)((ptr + real_size) - dest);
-                ptr = dest;
-            }
-            else if (enc_utf8 && !curbuf->b_p_bin)
-            {
-                int  incomplete_tail = FALSE;
-
-                for (p = ptr; ; )
-                {
-                    int  todo;
-                    int  l;
-
-                    {
-                        char_u *ascii_end = ptr + size;
-                        while (ascii_end - p >= (long)sizeof(long_u))
-                        {
-                            long_u word;
-                            memcpy(&word, p, sizeof(long_u));
-                            if (word &  (((long_u)-1 / 0xFF) * 0x80) )
-                            {
-                                break;
-                            }
-                            p += sizeof(long_u);
-                        }
-                        while (p < ascii_end && *p < 0x80)
-                        {
-                            ++p;
-                        }
-                    }
-
-                    todo = (int)((ptr + size) - p);
-                    if (todo <= 0)
-                    {
-                        break;
-                    }
-                    if (*p >= 0x80)
-                    {
-                        l = utf_ptr2len_len(p, todo);
-                        if (l > todo && !incomplete_tail)
-                        {
-                            if (p > ptr || filesize > 0)
-                            {
-                                incomplete_tail = TRUE;
-                            }
-                            if (p > ptr)
-                            {
-                                conv_restlen = todo;
-                                 memmove((char *)(conv_rest), (char *)(p), conv_restlen) ;
-                                size -= conv_restlen;
-                                break;
-                            }
-                        }
-                        if (l == 1 || l > todo)
-                        {
-                            if (can_retry && !incomplete_tail)
-                            {
-                                break;
-                            }
-                            if (iconv_fd != (iconv_t)-1 && conv_error == 0)
-                            {
-                                conv_error = readfile_linenr(linecnt, ptr, p);
-                            }
-                            if (conv_error == 0 && illegal_byte == 0)
-                            {
-                                illegal_byte = readfile_linenr(linecnt, ptr, p);
-                            }
-
-                            if (bad_char_behavior ==  (-2) )
-                            {
-                                 memmove((char *)(p), (char *)(p + 1), todo - 1) ;
-                                --size;
-                            }
-                            else
-                            {
-                                if (bad_char_behavior !=  (-1) )
-                                {
-                                    *p = bad_char_behavior;
-                                }
-                                ++p;
-                            }
-                        }
-                        else
-                        {
-                            p += l;
-                        }
-                    }
-                }
-                if (p < ptr + size && !incomplete_tail)
-                {
-rewind_retry:
-                        advance_fenc = TRUE;
-                    file_rewind = TRUE;
-                    goto retry;
-                }
-            }
-
-            filesize += size;
-
-            if (fileformat ==  (-1) )
-            {
-                if (try_dos || try_unix)
-                {
-                    if (try_mac)
-                    {
-                        try_mac = 1;
-                    }
-
-                    for (p = ptr; p < ptr + size; ++p)
-                    {
-                        if (*p == NL)
-                        {
-                            if (!try_unix || (try_dos && p > ptr && p[-1] == CAR))
-                            {
-                                fileformat = EOL_DOS;
-                            }
-                            else
-                            {
-                                fileformat = EOL_UNIX;
-                            }
                             break;
                         }
-                        else if (*p == CAR && try_mac)
-                        {
-                            try_mac++;
-                        }
+                        p += sizeof(long_u);
                     }
-
-                    if (fileformat == EOL_UNIX && try_mac)
+                    while (p < ascii_end && *p < 0x80)
                     {
-                        try_mac = 1;
-                        try_unix = 1;
-                        for (; p >= ptr && *p != CAR; p--)
-                        {
-                            ;
-                        }
-                        if (p >= ptr)
-                        {
-                            for (p = ptr; p < ptr + size; ++p)
-                            {
-                                if (*p == NL)
-                                {
-                                    try_unix++;
-                                }
-                                else if (*p == CAR)
-                                {
-                                    try_mac++;
-                                }
-                            }
-                            if (try_mac > try_unix)
-                            {
-                                fileformat = EOL_MAC;
-                            }
-                        }
-                    }
-                    else if (fileformat ==  (-1)  && try_mac == 1)
-                    {
-                        fileformat = default_fileformat();
+                        ++p;
                     }
                 }
 
-                if (fileformat ==  (-1)  && try_mac)
+                todo = (int)((ptr + size) - p);
+                if (todo <= 0)
                 {
-                    fileformat = EOL_MAC;
-                }
-
-                if (fileformat ==  (-1) )
-                {
-                    fileformat = default_fileformat();
-                }
-
-                if (set_options)
-                {
-                    set_fileformat(fileformat, OPT_LOCAL);
-                }
-            }
-        }
-
-        if (fileformat == EOL_MAC)
-        {
-            --ptr;
-            while (++ptr, --size >= 0)
-            {
-                if ((c = *ptr) != NUL && c != CAR && c != NL)
-                {
-                    continue;
-                }
-                if (c == NUL)
-                {
-                    *ptr = NL;
-                }
-                else if (c == NL)
-                {
-                    *ptr = CAR;
-                }
-                else
-                {
-                    if (skip_count == 0)
-                    {
-                        *ptr = NUL;
-                        len = (colnr_T) (ptr - line_start + 1);
-                        if (ml_append(lnum, line_start, len, newfile) == FAIL)
-                        {
-                            error = TRUE;
-                            break;
-                        }
-                        ++lnum;
-                        if (--read_count == 0)
-                        {
-                            error = TRUE;
-                            line_start = ptr;
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        --skip_count;
-                    }
-                    line_start = ptr + 1;
-                }
-            }
-        }
-        else
-        {
-            char_u *end = ptr + size;
-
-            while (ptr < end)
-            {
-                char_u *nl = (char_u *)memchr(ptr, NL, end - ptr);
-                char_u *nul_scan;
-
-                if (nl == NULL)
-                {
-                    while ((nul_scan = (char_u *)memchr(ptr, NUL, end - ptr)) != NULL)
-                    {
-                        *nul_scan = NL;
-                        ptr = nul_scan + 1;
-                    }
-                    ptr = end;
                     break;
                 }
-
+                if (*p >= 0x80)
                 {
-                    char_u *scan = ptr;
-                    while ((nul_scan = (char_u *)memchr(scan, NUL, nl - scan)) != NULL)
+                    l = utf_ptr2len_len(p, todo);
+                    if (l > todo && !incomplete_tail)
                     {
-                        *nul_scan = NL;
-                        scan = nul_scan + 1;
-                    }
-                }
-
-                ptr = nl;
-                if (skip_count == 0)
-                {
-                    *ptr = NUL;
-                    len = (colnr_T)(ptr - line_start + 1);
-                    if (fileformat == EOL_DOS)
-                    {
-                        if (ptr > line_start && ptr[-1] == CAR)
+                        if (p > ptr || filesize > 0)
                         {
-                            ptr[-1] = NUL;
-                            --len;
+                            incomplete_tail = TRUE;
                         }
-                        else if (ff_error != EOL_DOS)
+                        if (p > ptr)
                         {
-                            if (   try_unix && !read_stdin && (read_buffer ||  lseek (fd, (off_T)0L, SEEK_SET) == 0))
-                            {
-                                fileformat = EOL_UNIX;
-                                if (set_options)
-                                {
-                                    set_fileformat(EOL_UNIX, OPT_LOCAL);
-                                }
-                                file_rewind = TRUE;
-                                keep_fileformat = TRUE;
-                                goto retry;
-                            }
-                            ff_error = EOL_DOS;
+                            conv_restlen = todo;
+                             memmove((char *)(conv_rest), (char *)(p), conv_restlen) ;
+                            size -= conv_restlen;
+                            break;
                         }
                     }
-                    if (ml_append(lnum, line_start, len, newfile) == FAIL)
+                    if (l == 1 || l > todo)
                     {
-                        error = TRUE;
-                        break;
+                        if (illegal_byte == 0)
+                        {
+                            illegal_byte = readfile_linenr(linecnt, ptr, p);
+                        }
+
+                        ++p;
                     }
-                    ++lnum;
-                    if (--read_count == 0)
+                    else
                     {
-                        error = TRUE;
-                        line_start = ptr;
-                        break;
+                        p += l;
                     }
                 }
-                else
-                {
-                    --skip_count;
-                }
-                line_start = ptr + 1;
-                ++ptr;
             }
-            size = -1;
+            filesize += size;
+
         }
+
+        char_u *end = ptr + size;
+
+        while (ptr < end)
+        {
+            char_u *nl = (char_u *)memchr(ptr, NL, end - ptr);
+            char_u *nul_scan;
+
+            if (nl == NULL)
+            {
+                while ((nul_scan = (char_u *)memchr(ptr, NUL, end - ptr)) != NULL)
+                {
+                    *nul_scan = NL;
+                    ptr = nul_scan + 1;
+                }
+                ptr = end;
+                break;
+            }
+
+            {
+                char_u *scan = ptr;
+                while ((nul_scan = (char_u *)memchr(scan, NUL, nl - scan)) != NULL)
+                {
+                    *nul_scan = NL;
+                    scan = nul_scan + 1;
+                }
+            }
+
+            ptr = nl;
+            if (skip_count == 0)
+            {
+                *ptr = NUL;
+                len = (colnr_T)(ptr - line_start + 1);
+                if (ml_append(lnum, line_start, len, newfile) == FAIL)
+                {
+                    error = TRUE;
+                    break;
+                }
+                ++lnum;
+                if (--read_count == 0)
+                {
+                    error = TRUE;
+                    line_start = ptr;
+                    break;
+                }
+            }
+            else
+            {
+                --skip_count;
+            }
+            line_start = ptr + 1;
+            ++ptr;
+        }
+        size = -1;
         linerest = (long)(ptr - line_start);
         ui_breakcheck();
     }
 
-failed:
     if (error && read_count == 0)
     {
         error = FALSE;
     }
 
-    if (linerest != 0 && !curbuf->b_p_bin && fileformat == EOL_DOS && ptr[-1] == Ctrl_Z)
-    {
-        ptr--;
-        linerest--;
-        if (set_options)
-        {
-            curbuf->b_p_eof = TRUE;
-        }
-    }
-
     if (!error && !got_int && linerest != 0)
     {
-        if (set_options)
-        {
-            curbuf->b_p_eol = FALSE;
-        }
         *ptr = NUL;
         len = (colnr_T)(ptr - line_start + 1);
         if (ml_append(lnum, line_start, len, newfile) == FAIL)
@@ -37830,15 +35529,6 @@ failed:
         }
     }
 
-    if (set_options)
-    {
-        save_file_ff(curbuf);
-    }
-
-    if (fenc_alloced)
-    {
-        vim_free(fenc);
-    }
     if (!read_buffer && !read_stdin)
     {
         close(fd);
@@ -37860,11 +35550,6 @@ failed:
         vim_ignored = dup(2);
     }
 
-    if (tmpname != NULL)
-    {
-         unlink((char *)(tmpname)) ;
-        vim_free(tmpname);
-    }
     --no_wait_return;
 
     if (newfile && wasempty && !(curbuf->b_ml.ml_flags & ML_EMPTY))
@@ -37936,32 +35621,12 @@ failed:
             msg_add_eol();
             c = TRUE;
         }
-        if (ff_error == EOL_DOS)
-        {
-            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[CR missing]"));
-            c = TRUE;
-        }
         if (split)
         {
             buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[long lines split]"));
             c = TRUE;
         }
-        if (notconverted)
-        {
-            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[NOT converted]"));
-            c = TRUE;
-        }
-        else if (converted)
-        {
-            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[converted]"));
-            c = TRUE;
-        }
-        if (conv_error != 0)
-        {
-            vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[CONVERSION ERROR in line %ld]"), (long)conv_error);
-            c = TRUE;
-        }
-        else if (illegal_byte > 0)
+        if (illegal_byte > 0)
         {
             vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[ILLEGAL BYTE in line %ld]"), (long)illegal_byte);
             c = TRUE;
@@ -37969,10 +35634,6 @@ failed:
         else if (error)
         {
             vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[READ ERRORS]"));
-            c = TRUE;
-        }
-        if (msg_add_fileformat(fileformat))
-        {
             c = TRUE;
         }
             msg_add_lines(c, (long)linecnt, filesize);
@@ -37994,7 +35655,7 @@ failed:
         msg_scrolled_ign = FALSE;
     }
 
-    if (newfile && (error || conv_error != 0 || (illegal_byte > 0 && bad_char_behavior !=  (-1) )))
+    if (newfile && error)
     {
         curbuf->b_p_ro = TRUE;
     }
@@ -38022,8 +35683,6 @@ failed:
 
     msg_scroll = msg_save;
 
-    curbuf->b_no_eol_lnum = read_no_eol_lnum;
-
     if (flags & READ_KEEP_UNDO)
     {
         u_find_first_changed();
@@ -38033,11 +35692,6 @@ failed:
     {
         int m = msg_scroll;
         int n = msg_scrolled;
-
-        if (set_options)
-        {
-            save_file_ff(curbuf);
-        }
 
         msg_scroll = TRUE;
         if (filtering)
@@ -38090,81 +35744,6 @@ readfile_linenr(linenr_T    linecnt, char_u      *p, char_u      *endp)
     return lnum;
 }
 
-    static void
-set_file_options(int set_options, exarg_T *eap)
-{
-    if (set_options)
-    {
-        if (eap != NULL && eap->force_ff != 0)
-        {
-            set_fileformat(get_fileformat_force(curbuf, eap), OPT_LOCAL);
-        }
-        else if (*p_ffs != NUL)
-        {
-            set_fileformat(default_fileformat(), OPT_LOCAL);
-        }
-    }
-
-    if (eap != NULL && eap->force_bin != 0)
-    {
-        int     oldval = curbuf->b_p_bin;
-
-        curbuf->b_p_bin = (eap->force_bin == FORCE_BIN);
-        set_options_bin(oldval, curbuf->b_p_bin, OPT_LOCAL);
-    }
-}
-
-    static void
-set_forced_fenc(exarg_T *eap)
-{
-    if (eap->force_enc == 0)
-    {
-        return;
-    }
-
-}
-
-    static char_u *
-next_fenc(char_u **pp, int *alloced)
-{
-    char_u      *p;
-    char_u      *r;
-
-    *alloced = FALSE;
-    if (**pp == NUL)
-    {
-        *pp = NULL;
-        return (char_u *)"";
-    }
-    p = vim_strchr(*pp, ',');
-    if (p == NULL)
-    {
-        r = enc_canonize(*pp);
-        *pp +=  strlen((char *)(*pp)) ;
-    }
-    else
-    {
-        r = vim_strnsave(*pp, p - *pp);
-        *pp = p + 1;
-        if (r != NULL)
-        {
-            p = enc_canonize(r);
-            vim_free(r);
-            r = p;
-        }
-    }
-    if (r != NULL)
-    {
-        *alloced = TRUE;
-    }
-    else
-    {
-        r = (char_u *)"";
-        *pp = NULL;
-    }
-    return r;
-}
-
     static int
 check_file_readonly(char_u      *fname, int         perm  __attribute__((unused)) )
 {
@@ -38207,11 +35786,6 @@ set_rw_fname(char_u *fname, char_u *sfname)
         apply_autocmds(EVENT_BUFADD, NULL, NULL, FALSE, curbuf);
     }
 
-    if (*curbuf->b_p_ft == NUL)
-    {
-        do_modelines(0);
-    }
-
     return OK;
 }
 
@@ -38227,22 +35801,6 @@ msg_add_fname(buf_T *buf, char_u *fname)
     IObuff[IObufflen++] = '"';
     IObufflen += home_replace(buf, fname, IObuff + IObufflen,  (1024+1)  - 4, TRUE);
      strcpy((char *)(IObuff + IObufflen), (char *)("\" ")) ;
-}
-
-    static int
-msg_add_fileformat(int eol_type)
-{
-    if (eol_type == EOL_DOS)
-    {
-         strcat((char *)(IObuff), (char *)(shortmess(SHM_TEXT) ? _("[dos]") : _("[dos format]"))) ;
-        return TRUE;
-    }
-    if (eol_type == EOL_MAC)
-    {
-         strcat((char *)(IObuff), (char *)(shortmess(SHM_TEXT) ? _("[mac]") : _("[mac format]"))) ;
-        return TRUE;
-    }
-    return FALSE;
 }
 
     static void
@@ -38274,85 +35832,6 @@ time_differs(stat_T *st, long mtime, long mtime_ns  __attribute__((unused)) )
         (long)st-> st_mtim.tv_nsec  != mtime_ns ||
         (long)st->st_mtime - mtime > 1 || mtime - (long)st->st_mtime > 1
         ;
-}
-
-    static int
-need_conversion(char_u *fenc)
-{
-    int         same_encoding;
-    int         enc_flags;
-    int         fenc_flags;
-
-    if (*fenc == NUL ||  strcmp((char *)(p_enc), (char *)(fenc))  == 0)
-    {
-        same_encoding = TRUE;
-        fenc_flags = 0;
-    }
-    else
-    {
-        enc_flags = get_fio_flags(p_enc);
-        fenc_flags = get_fio_flags(fenc);
-        same_encoding = (enc_flags != 0 && fenc_flags == enc_flags);
-    }
-    if (same_encoding)
-    {
-        return enc_unicode != 0;
-    }
-
-    return !(enc_utf8 && fenc_flags == FIO_UTF8);
-}
-
-    static int
-get_fio_flags(char_u *ptr)
-{
-    int         prop;
-
-    if (*ptr == NUL)
-    {
-        ptr = p_enc;
-    }
-
-    prop = enc_canon_props(ptr);
-    if (prop & ENC_UNICODE)
-    {
-        if (prop & ENC_2BYTE)
-        {
-            if (prop & ENC_ENDIAN_L)
-            {
-                return FIO_UCS2 | FIO_ENDIAN_L;
-            }
-            return FIO_UCS2;
-        }
-        if (prop & ENC_4BYTE)
-        {
-            if (prop & ENC_ENDIAN_L)
-            {
-                return FIO_UCS4 | FIO_ENDIAN_L;
-            }
-            return FIO_UCS4;
-        }
-        if (prop & ENC_2WORD)
-        {
-            if (prop & ENC_ENDIAN_L)
-            {
-                return FIO_UTF16 | FIO_ENDIAN_L;
-            }
-            return FIO_UTF16;
-        }
-        return FIO_UTF8;
-    }
-    if (prop & ENC_LATIN1)
-    {
-        return FIO_LATIN1;
-    }
-    return 0;
-}
-
-    static char_u *
-check_for_bom(char_u      *p, long        size, int         *lenp, int         flags)
-{
-    *lenp = 0;
-    return NULL;
 }
 
     static char_u *
@@ -38568,11 +36047,6 @@ file_pat_to_reg_pat(char_u      *pat, char_u      *pat_end, char        *allow_d
                 break;
             default:
                 size++;
-                if (enc_dbcs != 0 && (*mb_ptr2len)(p) > 1)
-                {
-                    ++p;
-                    ++size;
-                }
                 break;
         }
     }
@@ -38652,10 +36126,6 @@ file_pat_to_reg_pat(char_u      *pat, char_u      *pat_end, char        *allow_d
                             *allow_dirs = TRUE;
                         }
                         reg_pat[i++] = '\\';
-                        if (enc_dbcs != 0 && (*mb_ptr2len)(p) > 1)
-                        {
-                            reg_pat[i++] = *p++;
-                        }
                         reg_pat[i++] = *p;
                     }
                 }
@@ -38682,11 +36152,7 @@ file_pat_to_reg_pat(char_u      *pat, char_u      *pat_end, char        *allow_d
                 }
                 break;
             default:
-                if (enc_dbcs != 0 && (*mb_ptr2len)(p) > 1)
-                {
-                    reg_pat[i++] = *p++;
-                }
-                else if (allow_dirs != NULL && vim_ispathsep(*p))
+                if (allow_dirs != NULL && vim_ispathsep(*p))
                 {
                     *allow_dirs = TRUE;
                 }
@@ -38797,14 +36263,11 @@ shorten_dir_len(char_u *str, int trim_len)
                 }
             }
 
-            if (has_mbyte)
-            {
-                int l = mb_ptr2len(s);
+            int l = utfc_ptr2len(s);
 
-                while (--l > 0)
-                {
-                    *d++ = *++s;
-                }
+            while (--l > 0)
+            {
+                *d++ = *++s;
             }
         }
     }
@@ -38923,7 +36386,7 @@ gettail(char_u *fname)
         {
             p1 = p2 + 1;
         }
-         p2 += (*mb_ptr2len)(p2) ;
+         p2 += utfc_ptr2len(p2) ;
     }
     return p1;
 }
@@ -39496,7 +36959,7 @@ file_name_in_line(char_u      *line, int         col, int         options, long 
     ptr = line + col;
     while (*ptr != NUL && !vim_isfilec(*ptr))
     {
-         ptr += (*mb_ptr2len)(ptr) ;
+         ptr += utfc_ptr2len(ptr) ;
     }
     if (*ptr == NUL)
     {
@@ -39509,7 +36972,7 @@ file_name_in_line(char_u      *line, int         col, int         options, long 
 
     while (ptr > line)
     {
-        if (has_mbyte && (len = (*mb_head_off)(line, ptr - 1)) > 0)
+        if ((len = utf_head_off(line, ptr - 1)) > 0)
         {
             ptr -= len + 1;
         }
@@ -39542,14 +37005,7 @@ file_name_in_line(char_u      *line, int         col, int         options, long 
         {
             ++len;
         }
-        if (has_mbyte)
-        {
-            len += (*mb_ptr2len)(ptr + len);
-        }
-        else
-        {
-            ++len;
-        }
+        len += utfc_ptr2len(ptr + len);
     }
 
     if (len > 2 && vim_strchr((char_u *)".,:;!", ptr[len - 1]) != NULL && ptr[len - 2] != '.')
@@ -39686,16 +37142,9 @@ fuzzy_match(char_u      *str, char_u      *pat_arg, int         matchseq, int   
                 break;
             }
             pat = p;
-            while (*p != NUL && ! (( (has_mbyte ? mb_ptr2char(p) : (int)*(p)) ) == ' ' || ( (has_mbyte ? mb_ptr2char(p) : (int)*(p)) ) == '\t') )
+            while (*p != NUL && ! (( (utf_ptr2char(p)) ) == ' ' || ( (utf_ptr2char(p)) ) == '\t') )
             {
-                if (has_mbyte)
-                {
-                     p += (*mb_ptr2len)(p) ;
-                }
-                else
-                {
-                    ++p;
-                }
+                 p += utfc_ptr2len(p) ;
             }
             if (*p == NUL)
             {
@@ -39703,7 +37152,7 @@ fuzzy_match(char_u      *str, char_u      *pat_arg, int         matchseq, int   
             }
             *p = NUL;
         }
-        pat_chars =  (has_mbyte ? mb_charlen(pat) : (int) strlen((char *)(pat)) ) ;
+        pat_chars =  (mb_charlen(pat) ) ;
         if (pat_chars > maxMatches)
         {
             pat_chars = maxMatches;
@@ -39896,19 +37345,19 @@ has_match(char_u *needle, char_u *haystack)
 
     while (*n_ptr)
     {
-        int n_char = mb_ptr2char(n_ptr);
+        int n_char = utf_ptr2char(n_ptr);
         int found = FALSE;
 
         while (*h_ptr)
         {
-            int h_char = mb_ptr2char(h_ptr);
+            int h_char = utf_ptr2char(h_ptr);
             if (h_char == n_char || h_char ==  vim_toupper(n_char) )
             {
                 found = TRUE;
-                h_ptr += mb_ptr2len(h_ptr);
+                h_ptr += utfc_ptr2len(h_ptr);
                 break;
             }
-            h_ptr += mb_ptr2len(h_ptr);
+            h_ptr += utfc_ptr2len(h_ptr);
         }
 
         if (!found)
@@ -39916,7 +37365,7 @@ has_match(char_u *needle, char_u *haystack)
             return FAIL;
         }
 
-        n_ptr += mb_ptr2len(n_ptr);
+        n_ptr += utfc_ptr2len(n_ptr);
     }
 
     return OK;
@@ -39963,9 +37412,9 @@ setup_match_struct(match_struct *match, char_u *needle, char_u *haystack)
     char_u *p = needle;
     while (*p != NUL && i <  FUZZY_MATCH_MAX_LEN )
     {
-        int c = mb_ptr2char(p);
+        int c = utf_ptr2char(p);
         match->lower_needle[i++] =  vim_tolower(c) ;
-         p += (*mb_ptr2len)(p) ;
+         p += utfc_ptr2len(p) ;
     }
     match->needle_len = i;
 
@@ -39974,11 +37423,11 @@ setup_match_struct(match_struct *match, char_u *needle, char_u *haystack)
     int prev_c = '/';
     while (*p != NUL && i <  FUZZY_MATCH_MAX_LEN )
     {
-        int c = mb_ptr2char(p);
+        int c = utf_ptr2char(p);
         match->lower_haystack[i] =  vim_tolower(c) ;
         match->match_bonus[i] = compute_bonus_codepoint(prev_c, c);
         prev_c = c;
-         p += (*mb_ptr2len)(p) ;
+         p += utfc_ptr2len(p) ;
         i++;
     }
     match->haystack_len = i;
@@ -40344,7 +37793,7 @@ add_char_buff(buffheader_T *buf, int c)
     }
     else
     {
-        len = (*mb_char2bytes)(c, bytes);
+        len = utf_char2bytes(c, bytes);
     }
     for (i = 0; i < len; ++i)
     {
@@ -40561,14 +38010,7 @@ AppendToRedobuffLit(char_u      *str, int         len)
             break;
         }
 
-        if (has_mbyte)
-        {
-            c = mb_cptr2char_adv(&s);
-        }
-        else
-        {
-            c = *s++;
-        }
+        c = mb_cptr2char_adv(&s);
         if (c < ' ' || c == DEL || (*s == NUL && (c == '0' || c == '^')))
         {
             add_char_buff(&redobuff, Ctrl_V);
@@ -40675,14 +38117,7 @@ stuffescaped(char_u *arg, int literally)
 
         if (*arg != NUL)
         {
-            if (has_mbyte)
-            {
-                c = mb_cptr2char_adv(&arg);
-            }
-            else
-            {
-                c = *arg++;
-            }
+            c = mb_cptr2char_adv(&arg);
             if (literally && ((c < ' ' && c != TAB) || c == DEL))
             {
                 stuffcharReadbuff(Ctrl_V);
@@ -40721,7 +38156,7 @@ read_redo(int init, int old_redo)
     }
     if ((c = *p) != NUL)
     {
-        if (has_mbyte && (c !=  (0x80)  || p[1] == KS_SPECIAL))
+        if ((c !=  (0x80)  || p[1] == KS_SPECIAL))
         {
             n =  (((c) < 0 || (c) > 255) ? 1 : mb_bytelen_tab[c]) ;
         }
@@ -40746,7 +38181,7 @@ read_redo(int init, int old_redo)
             {
                 if (n != 1)
                 {
-                    c = (*mb_ptr2char)(buf);
+                    c = utf_ptr2char(buf);
                 }
                 break;
             }
@@ -41441,7 +38876,7 @@ add_byte_to_showcmd(char_u byte)
     {
         char_u          *mb_ptr = mb_unescape(&ptr);
 
-        c = mb_ptr != NULL ? (*mb_ptr2char)(mb_ptr) : *ptr++;
+        c = mb_ptr != NULL ? utf_ptr2char(mb_ptr) : *ptr++;
         if (c <= 0x7f)
         {
             int         modifiers_after = modifiers;
@@ -41544,7 +38979,7 @@ vgetc(void)
 
             }
 
-            if (has_mbyte && (n =  (((c) < 0 || (c) > 255) ? 1 : mb_bytelen_tab[c]) ) > 1)
+            if ((n =  (((c) < 0 || (c) > 255) ? 1 : mb_bytelen_tab[c]) ) > 1)
             {
                 ++no_mapping;
                 buf[0] = c;
@@ -41561,7 +38996,7 @@ vgetc(void)
                     }
                 }
                 --no_mapping;
-                c = (*mb_ptr2char)(buf);
+                c = utf_ptr2char(buf);
             }
 
             if (vgetc_char == 0)
@@ -41797,7 +39232,7 @@ check_simplify_modifier(int max_offset)
                 }
                 else
                 {
-                    len = mb_char2bytes(new_c, new_string);
+                    len = utf_char2bytes(new_c, new_string);
                 }
                 if (modifier == 0)
                 {
@@ -41889,7 +39324,7 @@ handle_mapping(int *keylenp, int *timedout, int *mapdepth)
                     char_u *p1 = mp->m_keys;
                     char_u *p2 = mb_unescape(&p1);
 
-                    if (has_mbyte && p2 != NULL &&  mb_bytelen_tab[tb_c1]  > mb_ptr2len(p2))
+                    if (p2 != NULL && mb_bytelen_tab[tb_c1]  > utfc_ptr2len(p2))
                     {
                         mlen = 0;
                     }
@@ -42329,15 +39764,8 @@ vgetorpeek(int advance)
                                         curwin->w_wcol = cts.cts_vcol;
                                     }
                                     cts.cts_vcol += lbr_chartabsize(&cts);
-                                    if (has_mbyte)
-                                    {
-                                        cts.cts_ptr +=
-                                                   (*mb_ptr2len)(cts.cts_ptr);
-                                    }
-                                    else
-                                    {
-                                        ++cts.cts_ptr;
-                                    }
+                                    cts.cts_ptr +=
+                                               utfc_ptr2len(cts.cts_ptr);
                                 }
                                 clear_chartabsize_arg(&cts);
 
@@ -42359,11 +39787,11 @@ vgetorpeek(int advance)
                             curwin->w_wcol = curwin->w_width - 1;
                             col = curwin->w_cursor.col - 1;
                         }
-                        if (has_mbyte && col > 0 && curwin->w_wcol > 0)
+                        if (col > 0 && curwin->w_wcol > 0)
                         {
                             ptr = ml_get_curline();
-                            col -= (*mb_head_off)(ptr, ptr + col);
-                            if ((*mb_ptr2cells)(ptr + col) > 1)
+                            col -= utf_head_off(ptr, ptr + col);
+                            if (utf_ptr2cells(ptr + col) > 1)
                             {
                                 --curwin->w_wcol;
                             }
@@ -43121,7 +40549,6 @@ prepare_help_buffer(void)
     curwin-> w_onebuf_opt.wo_list  = FALSE;
 
     curbuf->b_p_ma = FALSE;
-    curbuf->b_p_bin = FALSE;
     curwin-> w_onebuf_opt.wo_nu  = 0;
     curwin-> w_onebuf_opt.wo_rnu  = 0;
 
@@ -46857,7 +44284,7 @@ change_indent(int         type, int         amount, int         round, int      
             last_vcol = cts.cts_vcol;
             if (cts.cts_vcol > 0)
             {
-                 cts.cts_ptr += (*mb_ptr2len)(cts.cts_ptr) ;
+                 cts.cts_ptr += utfc_ptr2len(cts.cts_ptr) ;
             }
             if (*cts.cts_ptr == NUL)
             {
@@ -47366,26 +44793,16 @@ ins_compl_lnum_in_range(linenr_T lnum)
     static char_u *
 find_word_end(char_u *ptr)
 {
-    if (has_mbyte)
+    int start_class = mb_get_class(ptr);
+    if (start_class > 1)
     {
-        int start_class = mb_get_class(ptr);
-        if (start_class > 1)
+        while (*ptr != NUL)
         {
-            while (*ptr != NUL)
+            ptr += utfc_ptr2len(ptr);
+            if (mb_get_class(ptr) != start_class)
             {
-                ptr += (*mb_ptr2len)(ptr);
-                if (mb_get_class(ptr) != start_class)
-                {
-                    break;
-                }
+                break;
             }
-        }
-    }
-    else
-    {
-        while (vim_iswordc(*ptr))
-        {
-            ++ptr;
         }
     }
     return ptr;
@@ -47953,48 +45370,34 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
 
             if (abbrev && maptype != MAPTYPE_UNMAP)
             {
-                if (has_mbyte)
+                int first;
+                int last;
+                int         same = -1;
+                char_u      keys_unescaped[MAXMAPLEN + 1];
+                size_t      keys_unescaped_len;
+
+                 memmove((char *)(keys_unescaped), (char *)(keys), (size_t)(len + 1)) ;
+                keys_unescaped_len = vim_unescape_csi(keys_unescaped);
+                p = keys_unescaped;
+
+                first = vim_iswordp(p);
+                last = first;
+                 p += utfc_ptr2len(p) ;
+                n = 1;
+                while (p < keys_unescaped + keys_unescaped_len)
                 {
-                    int first;
-                    int last;
-                    int         same = -1;
-                    char_u      keys_unescaped[MAXMAPLEN + 1];
-                    size_t      keys_unescaped_len;
-
-                     memmove((char *)(keys_unescaped), (char *)(keys), (size_t)(len + 1)) ;
-                    keys_unescaped_len = vim_unescape_csi(keys_unescaped);
-                    p = keys_unescaped;
-
-                    first = vim_iswordp(p);
-                    last = first;
-                     p += (*mb_ptr2len)(p) ;
-                    n = 1;
-                    while (p < keys_unescaped + keys_unescaped_len)
+                    ++n;
+                    last = vim_iswordp(p);
+                    if (same == -1 && last != first)
                     {
-                        ++n;
-                        last = vim_iswordp(p);
-                        if (same == -1 && last != first)
-                        {
-                            same = n - 1;
-                        }
-                         p += (*mb_ptr2len)(p) ;
+                        same = n - 1;
                     }
-                    if (last && n > 2 && same >= 0 && same < n - 1)
-                    {
-                        retval = 1;
-                        goto theend;
-                    }
+                     p += utfc_ptr2len(p) ;
                 }
-                else if (vim_iswordc(keys[len - 1]))
+                if (last && n > 2 && same >= 0 && same < n - 1)
                 {
-                    for (n = 0; n < len - 2; ++n)
-                    {
-                        if (vim_iswordc(keys[n]) != vim_iswordc(keys[len - 2]))
-                        {
-                            retval = 1;
-                            goto theend;
-                        }
-                    }
+                    retval = 1;
+                    goto theend;
                 }
                 for (n = 0; n < len; ++n)
                 {
@@ -48843,8 +46246,8 @@ vim_strsave_escape_csi(char_u *p)
         }
         else
         {
-            d = add_char2buf( (has_mbyte ? mb_ptr2char(s) : (int)*(s)) , d);
-            s +=  (enc_utf8 ? utf_ptr2len(s) : (*mb_ptr2len)(s)) ;
+            d = add_char2buf( (utf_ptr2char(s)) , d);
+            s +=  (utf_ptr2len(s)) ;
         }
     }
     *d = NUL;
@@ -49688,7 +47091,7 @@ mark_line(pos_T *mp, int lead_len)
         return NULL;
     }
     len = 0;
-    for (p = s; *p != NUL;  p += (*mb_ptr2len)(p) )
+    for (p = s; *p != NUL;  p += utfc_ptr2len(p) )
     {
         len += ptr2cells(p);
         if (len >= Columns - lead_len)
@@ -50633,14 +48036,7 @@ next_search_hl(win_T           *win, match_T         *search_hl, match_T        
                 shl->lnum = 0;
                 break;
             }
-            if (has_mbyte)
-            {
-                matchcol += mb_ptr2len(ml);
-            }
-            else
-            {
-                ++matchcol;
-            }
+            matchcol += utfc_ptr2len(ml);
         }
         else
         {
@@ -50827,9 +48223,9 @@ prepare_search_hl_line(win_T       *wp, linenr_T    lnum, colnr_T     mincol, ch
 
             if (shl->startcol == shl->endcol)
             {
-                if (has_mbyte && (*line)[shl->endcol] != NUL)
+                if ((*line)[shl->endcol] != NUL)
                 {
-                    shl->endcol += (*mb_ptr2len)((*line) + shl->endcol);
+                    shl->endcol += utfc_ptr2len((*line) + shl->endcol);
                 }
                 else
                 {
@@ -50882,7 +48278,7 @@ update_search_hl(win_T       *wp, linenr_T    lnum, colnr_T     col, char_u     
         {
             if (shl->startcol != MAXCOL && col >= shl->startcol && col < shl->endcol)
             {
-                int next_col = col + mb_ptr2len(*line + col);
+                int next_col = col + utfc_ptr2len(*line + col);
 
                 if (shl->endcol < next_col)
                 {
@@ -50926,22 +48322,15 @@ update_search_hl(win_T       *wp, linenr_T    lnum, colnr_T     col, char_u     
 
                     if (shl->startcol == shl->endcol)
                     {
-                        if (has_mbyte)
-                        {
-                            char_u *p = *line + shl->endcol;
+                        char_u *p = *line + shl->endcol;
 
-                            if (*p == NUL)
-                            {
-                                ++shl->endcol;
-                            }
-                            else
-                            {
-                                shl->endcol += (*mb_ptr2len)(p);
-                            }
+                        if (*p == NUL)
+                        {
+                            ++shl->endcol;
                         }
                         else
                         {
-                            ++shl->endcol;
+                            shl->endcol += utfc_ptr2len(p);
                         }
                     }
 
@@ -51123,9 +48512,6 @@ ex_match(exarg_T *eap)
 
 // ==================== mbyte.c ====================
 
-static int dbcs_ptr2len(char_u *p);
-static int utf_ptr2cells_len(char_u *p, int size);
-static int dbcs_head_off(char_u *base, char_u *p);
 static inline int utf_ptr2char_and_len(char_u *p, int *lenp);
 static inline int utf_ptr2char_and_len_len(char_u *p, int size, int *lenp);
 static char utf8len_tab[256] =
@@ -51152,277 +48538,18 @@ static char utf8len_tab_zero[256] =
     3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,0,0,
 };
 
-static struct
-{   char *name;         int prop;               int codepage;}
-enc_canon_table[] =
-{
-    {"latin1",          ENC_8BIT + ENC_LATIN1,  1252},
-    {"iso-8859-2",      ENC_8BIT,               0},
-    {"iso-8859-3",      ENC_8BIT,               0},
-    {"iso-8859-4",      ENC_8BIT,               0},
-    {"iso-8859-5",      ENC_8BIT,               0},
-    {"iso-8859-6",      ENC_8BIT,               0},
-    {"iso-8859-7",      ENC_8BIT,               0},
-    {"iso-8859-8",      ENC_8BIT,               0},
-    {"iso-8859-9",      ENC_8BIT,               0},
-    {"iso-8859-10",     ENC_8BIT,               0},
-    {"iso-8859-11",     ENC_8BIT,               0},
-    {"iso-8859-13",     ENC_8BIT,               0},
-    {"iso-8859-14",     ENC_8BIT,               0},
-    {"iso-8859-15",     ENC_8BIT + ENC_LATIN9,  0},
-    {"koi8-r",          ENC_8BIT,               0},
-    {"koi8-u",          ENC_8BIT,               0},
-    {"utf-8",           ENC_UNICODE,            0},
-    {"ucs-2",           ENC_UNICODE + ENC_ENDIAN_B + ENC_2BYTE, 0},
-    {"ucs-2le",         ENC_UNICODE + ENC_ENDIAN_L + ENC_2BYTE, 0},
-    {"utf-16",          ENC_UNICODE + ENC_ENDIAN_B + ENC_2WORD, 0},
-    {"utf-16be",                ENC_UNICODE + ENC_ENDIAN_B + ENC_2WORD, 0},
-    {"utf-16le",        ENC_UNICODE + ENC_ENDIAN_L + ENC_2WORD, 0},
-    {"ucs-4",           ENC_UNICODE + ENC_ENDIAN_B + ENC_4BYTE, 0},
-    {"ucs-4le",         ENC_UNICODE + ENC_ENDIAN_L + ENC_4BYTE, 0},
-
-    {"debug",           ENC_DBCS,                (-1) },
-    {"euc-jp",          ENC_DBCS,               DBCS_JPNU},
-    {"sjis",            ENC_DBCS,               DBCS_JPN},
-    {"euc-kr",          ENC_DBCS,               DBCS_KORU},
-    {"euc-cn",          ENC_DBCS,               DBCS_CHSU},
-    {"euc-tw",          ENC_DBCS,               DBCS_CHTU},
-    {"big5",            ENC_DBCS,               DBCS_CHT},
-
-    {"cp437",           ENC_8BIT,               437},
-    {"cp737",           ENC_8BIT,               737},
-    {"cp775",           ENC_8BIT,               775},
-    {"cp850",           ENC_8BIT,               850},
-    {"cp852",           ENC_8BIT,               852},
-    {"cp855",           ENC_8BIT,               855},
-    {"cp857",           ENC_8BIT,               857},
-    {"cp860",           ENC_8BIT,               860},
-    {"cp861",           ENC_8BIT,               861},
-    {"cp862",           ENC_8BIT,               862},
-    {"cp863",           ENC_8BIT,               863},
-    {"cp865",           ENC_8BIT,               865},
-    {"cp866",           ENC_8BIT,               866},
-    {"cp869",           ENC_8BIT,               869},
-    {"cp874",           ENC_8BIT,               874},
-    {"cp932",           ENC_DBCS,               DBCS_JPN},
-    {"cp936",           ENC_DBCS,               DBCS_CHS},
-    {"cp949",           ENC_DBCS,               DBCS_KOR},
-    {"cp950",           ENC_DBCS,               DBCS_CHT},
-    {"cp1250",          ENC_8BIT,               1250},
-    {"cp1251",          ENC_8BIT,               1251},
-    {"cp1253",          ENC_8BIT,               1253},
-    {"cp1254",          ENC_8BIT,               1254},
-    {"cp1255",          ENC_8BIT,               1255},
-    {"cp1256",          ENC_8BIT,               1256},
-    {"cp1257",          ENC_8BIT,               1257},
-    {"cp1258",          ENC_8BIT,               1258},
-
-    {"macroman",        ENC_8BIT + ENC_MACROMAN, 0},
-    {"dec-mcs",         ENC_8BIT,               0},
-    {"hp-roman8",       ENC_8BIT,               0},
-};
-
-static struct
-{   char *name;         int canon;}
-enc_alias_table[] =
-{
-    {"ansi",            IDX_LATIN_1},
-    {"iso-8859-1",      IDX_LATIN_1},
-    {"iso-8859",        IDX_LATIN_1},
-    {"latin2",          IDX_ISO_2},
-    {"latin3",          IDX_ISO_3},
-    {"latin4",          IDX_ISO_4},
-    {"cyrillic",        IDX_ISO_5},
-    {"arabic",          IDX_ISO_6},
-    {"greek",           IDX_ISO_7},
-    {"hebrew",          IDX_ISO_8},
-    {"latin5",          IDX_ISO_9},
-    {"turkish",         IDX_ISO_9},
-    {"latin6",          IDX_ISO_10},
-    {"nordic",          IDX_ISO_10},
-    {"thai",            IDX_ISO_11},
-    {"latin7",          IDX_ISO_13},
-    {"latin8",          IDX_ISO_14},
-    {"latin9",          IDX_ISO_15},
-    {"utf8",            IDX_UTF8},
-    {"unicode",         IDX_UCS2},
-    {"ucs2",            IDX_UCS2},
-    {"ucs2be",          IDX_UCS2},
-    {"ucs-2be",         IDX_UCS2},
-    {"ucs2le",          IDX_UCS2LE},
-    {"utf16",           IDX_UTF16},
-    {"utf16be",         IDX_UTF16BE},
-    {"utf-16be",        IDX_UTF16BE},
-    {"utf16le",         IDX_UTF16LE},
-    {"ucs4",            IDX_UCS4},
-    {"ucs4be",          IDX_UCS4},
-    {"ucs-4be",         IDX_UCS4},
-    {"ucs4le",          IDX_UCS4LE},
-    {"utf32",           IDX_UCS4},
-    {"utf-32",          IDX_UCS4},
-    {"utf32be",         IDX_UCS4},
-    {"utf-32be",        IDX_UCS4},
-    {"utf32le",         IDX_UCS4LE},
-    {"utf-32le",        IDX_UCS4LE},
-    {"932",             IDX_CP932},
-    {"949",             IDX_CP949},
-    {"936",             IDX_CP936},
-    {"gbk",             IDX_CP936},
-    {"950",             IDX_CP950},
-    {"eucjp",           IDX_EUC_JP},
-    {"unix-jis",        IDX_EUC_JP},
-    {"ujis",            IDX_EUC_JP},
-    {"shift-jis",       IDX_SJIS},
-    {"pck",             IDX_SJIS},
-    {"euckr",           IDX_EUC_KR},
-    {"5601",            IDX_EUC_KR},
-    {"euccn",           IDX_EUC_CN},
-    {"gb2312",          IDX_EUC_CN},
-    {"euctw",           IDX_EUC_TW},
-    {"japan",           IDX_EUC_JP},
-    {"korea",           IDX_EUC_KR},
-    {"prc",             IDX_EUC_CN},
-    {"chinese",         IDX_EUC_CN},
-    {"taiwan",          IDX_EUC_TW},
-    {"cp950",           IDX_BIG5},
-    {"950",             IDX_BIG5},
-    {"mac",             IDX_MACROMAN},
-    {"mac-roman",       IDX_MACROMAN},
-    {NULL,              0}
-};
-
-    static int
-enc_canon_search(char_u *name)
-{
-    int         i;
-
-    for (i = 0; i < IDX_COUNT; ++i)
-    {
-        if ( strcmp((char *)(name), (char *)(enc_canon_table[i].name))  == 0)
-        {
-            return i;
-        }
-    }
-    return -1;
-}
-
-    static int
-enc_canon_props(char_u *name)
-{
-    int         i;
-
-    i = enc_canon_search(name);
-    if (i >= 0)
-    {
-        return enc_canon_table[i].prop;
-    }
-    if ( strncmp((char *)(name), (char *)("2byte-"), (6))  == 0)
-    {
-        return ENC_DBCS;
-    }
-    if ( strncmp((char *)(name), (char *)("8bit-"), (5))  == 0 ||  strncmp((char *)(name), (char *)("iso-8859-"), (9))  == 0)
-    {
-        return ENC_8BIT;
-    }
-    return 0;
-}
-
     static char *
 mb_init(void)
 {
     int         i;
     int         n;
-    vimconv_T   vimconv;
-    char_u      *p;
 
-    if (p_enc == NULL)
+    for (i = 0; i < 256; ++i)
     {
-        for (i = 0; i < 256; ++i)
-        {
-            mb_bytelen_tab[i] = 1;
-        }
-        input_conv.vc_type = CONV_NONE;
-        input_conv.vc_factor = 1;
-        output_conv.vc_type = CONV_NONE;
-        return NULL;
-    }
-
-    if ( strcmp((char *)(p_enc), (char *)("utf-8"))  != 0)
-    {
-        return e_invalid_argument;
-    }
-
-    enc_unicode = 0;
-    enc_utf8 = TRUE;
-    enc_dbcs = 0;
-    has_mbyte = TRUE;
-    enc_latin1like = TRUE;
-
-    mb_ptr2len = utfc_ptr2len;
-    mb_ptr2len_len = utfc_ptr2len_len;
-    mb_char2len = utf_char2len;
-    mb_char2bytes = utf_char2bytes;
-    mb_ptr2cells = utf_ptr2cells;
-    mb_ptr2cells_len = utf_ptr2cells_len;
-    mb_char2cells = utf_char2cells;
-    mb_off2cells = utf_off2cells;
-    mb_ptr2char = utf_ptr2char;
-    mb_head_off = utf_head_off;
-    vimconv.vc_type = CONV_NONE;
-for (i = 0; i < 256; ++i)
-    {
-        if (enc_utf8)
-        {
-            n = utf8len_tab[i];
-        }
-        else if (enc_dbcs == 0)
-        {
-            n = 1;
-        }
-        else
-        {
-            char buf[MB_MAXBYTES + 1];
-
-            if (i == NUL)
-            {
-                n = 1;
-            }
-            else
-            {
-                buf[0] = i;
-                buf[1] = 0;
-                if (vimconv.vc_type != CONV_NONE)
-                {
-                    p = string_convert(&vimconv, (char_u *)buf, NULL);
-                    if (p != NULL)
-                    {
-                        vim_free(p);
-                        n = 1;
-                    }
-                    else
-                    {
-                        n = 2;
-                    }
-                }
-                else
-                {
-                    vim_ignored = mblen(NULL, 0);
-                    if (mblen(buf, (size_t)1) <= 0)
-                    {
-                        n = 2;
-                    }
-                    else
-                    {
-                        n = 1;
-                    }
-                }
-            }
-        }
+        n = utf8len_tab[i];
 
         mb_bytelen_tab[i] = n;
     }
-
-    convert_setup(&vimconv, NULL, NULL);
 
     (void)init_chartab();
 
@@ -51460,169 +48587,8 @@ mb_get_class_buf(char_u *p, buf_T *buf)
         }
         return 1;
     }
-    if (enc_dbcs != 0 && p[0] != NUL && p[1] != NUL)
-    {
-        return dbcs_class(p[0], p[1]);
-    }
-    if (enc_utf8)
-    {
-        return utf_class_buf(utf_ptr2char(p), buf);
-    }
+    return utf_class_buf(utf_ptr2char(p), buf);
     return 0;
-}
-
-    static int
-dbcs_class(unsigned lead, unsigned trail)
-{
-    switch (enc_dbcs)
-    {
-        case DBCS_JPNU:
-        case DBCS_JPN:
-            {
-                unsigned char lb = lead;
-                unsigned char tb = trail;
-
-                lb &= 0x7f;
-                tb &= 0x7f;
-                switch (lb << 8 | tb)
-                {
-                    case 0x2121:
-                        return 0;
-                    case 0x2122:
-                    case 0x2123:
-                    case 0x2124:
-                    case 0x2125:
-                        return 1;
-                    case 0x213c:
-                        return 13;
-                }
-                switch (lb)
-                {
-                    case 0x21:
-                    case 0x22:
-                        return 10;
-                    case 0x23:
-                        return 11;
-                    case 0x24:
-                        return 12;
-                    case 0x25:
-                        return 13;
-                    case 0x26:
-                        return 14;
-                    case 0x27:
-                        return 15;
-                    case 0x28:
-                        return 16;
-                    default:
-                        return 17;
-                }
-            }
-
-        case DBCS_KORU:
-        case DBCS_KOR:
-            {
-                unsigned char c1 = lead;
-                unsigned char c2 = trail;
-
-                if (c1 >= 0xB0 && c1 <= 0xC8)
-                {
-                    return 20;
-                }
-
-                else if (c1 >= 0xCA && c1 <= 0xFD)
-                {
-                    return 21;
-                }
-                else
-                {
-                    switch (c1)
-                {
-                    case 0xA1:
-                    case 0xA2:
-                        return 22;
-                    case 0xA3:
-                        return 23;
-                    case 0xA4:
-                        return 24;
-                    case 0xA5:
-                        return 25;
-                    case 0xA6:
-                        return 26;
-                    case 0xA7:
-                        return 27;
-                    case 0xA8:
-                    case 0xA9:
-                        if (c2 <= 0xAF)
-                        {
-                            return 25;
-                        }
-                        else if (c2 >= 0xF6)
-                        {
-                            return 22;
-                        }
-                        else
-                        {
-                            return 28;
-                        }
-                    case 0xAA:
-                    case 0xAB:
-                        return 29;
-                    case 0xAC:
-                        return 30;
-                }
-                }
-            }
-        default:
-            break;
-    }
-    return 3;
-}
-
-    static int
-latin_char2len(int c  __attribute__((unused)) )
-{
-    return 1;
-}
-
-    static int
-latin_char2bytes(int c, char_u *buf)
-{
-    buf[0] = c;
-    return 1;
-}
-
-    static int
-latin_ptr2len(char_u *p)
-{
-    return *p == NUL ? 0 : 1;
-}
-
-    static int
-dbcs_ptr2len(char_u *p)
-{
-    int         len;
-
-    if (*p == NUL)
-    {
-        return 0;
-    }
-
-    len =  mb_bytelen_tab[*p] ;
-    if (len == 2 && p[1] == NUL)
-    {
-        len = 1;
-    }
-    return len;
-}
-
-    static int
-latin_ptr2len_len(char_u *p, int size)
-{
-    if (size < 1 || *p == NUL)
-    {
-        return 0;
-    }
-    return 1;
 }
 
 struct interval
@@ -52065,12 +49031,6 @@ utf_char2cells(int c)
 }
 
     static int
-latin_ptr2cells(char_u *p  __attribute__((unused)) )
-{
-    return 1;
-}
-
-    static int
 utf_ptr2cells(char_u      *p)
 {
     int         c;
@@ -52093,87 +49053,22 @@ utf_ptr2cells(char_u      *p)
 }
 
     static int
-latin_ptr2cells_len(char_u *p  __attribute__((unused)) , int size  __attribute__((unused)) )
-{
-    return 1;
-}
-
-    static int
-utf_ptr2cells_len(char_u *p, int size)
-{
-    int         c;
-    int         len;
-
-    if (size > 0 && *p >= 0x80)
-    {
-        c = utf_ptr2char_and_len_len(p, size, &len);
-        if (len > size)
-        {
-            return 1;
-        }
-        if (len == 1 || c == NUL)
-        {
-            return 4;
-        }
-        if (c < 0x80)
-        {
-            return vim_isprintc(c) ? char2cells(c) : 4;
-        }
-        return utf_char2cells(c);
-    }
-    return 1;
-}
-
-    static int
-latin_char2cells(int c  __attribute__((unused)) )
-{
-    return 1;
-}
-
-    static int
 mb_string2cells(char_u *p, int len)
 {
     int i;
     int clen = 0;
 
-    for (i = 0; (len < 0 || i < len) && p[i] != NUL; i += (*mb_ptr2len)(p + i))
+    for (i = 0; (len < 0 || i < len) && p[i] != NUL; i += utfc_ptr2len(p + i))
     {
-        clen += (*mb_ptr2cells)(p + i);
+        clen += utf_ptr2cells(p + i);
     }
     return clen;
-}
-
-    static int
-latin_off2cells(unsigned off  __attribute__((unused)) , unsigned max_off  __attribute__((unused)) )
-{
-    return 1;
-}
-
-    static int
-dbcs_off2cells(unsigned off, unsigned max_off)
-{
-    if (off >= max_off)
-    {
-        return 1;
-    }
-
-    if (enc_dbcs == DBCS_JPNU && ScreenLines[off] == 0x8e)
-    {
-        return 1;
-    }
-    return  mb_bytelen_tab[ScreenLines[off]] ;
 }
 
     static int
 utf_off2cells(unsigned off, unsigned max_off)
 {
     return (off + 1 < max_off && ScreenLines[off + 1] == 0) ? 2 : 1;
-}
-
-    static int
-latin_ptr2char(char_u *p)
-{
-    return *p;
 }
 
     static inline int
@@ -52413,8 +49308,8 @@ mb_ptr2char_adv(char_u **pp)
 {
     int         c;
 
-    c = (*mb_ptr2char)(*pp);
-    *pp += (*mb_ptr2len)(*pp);
+    c = utf_ptr2char(*pp);
+    *pp += utfc_ptr2len(*pp);
     return c;
 }
 
@@ -52423,15 +49318,8 @@ mb_cptr2char_adv(char_u **pp)
 {
     int         c;
 
-    c = (*mb_ptr2char)(*pp);
-    if (enc_utf8)
-    {
-        *pp += utf_ptr2len(*pp);
-    }
-    else
-    {
-        *pp += (*mb_ptr2len)(*pp);
-    }
+    c = utf_ptr2char(*pp);
+    *pp += utf_ptr2len(*pp);
     return c;
 }
 
@@ -52549,12 +49437,6 @@ utf_ptr2len(char_u *p)
 
     utf_ptr2char_and_len(p, &len);
     return len;
-}
-
-    static int
-utf_byte2len(int b)
-{
-    return utf8len_tab[b];
 }
 
     static int
@@ -54195,7 +51077,7 @@ utf_strnicmp(char_u      *s1, char_u      *s2, size_t      n1, size_t      n2)
     static int
 mb_strnicmp2(char_u *s1, char_u *s2, size_t n1, size_t n2)
 {
-    if (n1 == n2 || !enc_utf8)
+    if (n1 == n2)
     {
         return mb_strnicmp(s1, s2, n1);
     }
@@ -54208,50 +51090,8 @@ mb_strnicmp2(char_u *s1, char_u *s2, size_t n1, size_t n2)
     static int
 mb_strnicmp(char_u *s1, char_u *s2, size_t nn)
 {
-    int i;
-    int l;
-    int         cdiff;
-    int         n = (int)nn;
 
-    if (enc_utf8)
-    {
-        return utf_strnicmp(s1, s2, nn, nn);
-    }
-    else
-    {
-        for (i = 0; i < n; i += l)
-        {
-            if (s1[i] == NUL && s2[i] == NUL)
-            {
-                return 0;
-            }
-
-            l = (*mb_ptr2len)(s1 + i);
-            if (l <= 1)
-            {
-                if (s1[i] != s2[i])
-                {
-                    cdiff =  vim_tolower(s1[i])  -  vim_tolower(s2[i]) ;
-                    if (cdiff != 0)
-                    {
-                        return cdiff;
-                    }
-                }
-            }
-            else
-            {
-                if (l > n - i)
-                {
-                    l = n - i;
-                }
-                cdiff =  strncmp((char *)(s1 + i), (char *)(s2 + i), (l)) ;
-                if (cdiff != 0)
-                {
-                    return cdiff;
-                }
-            }
-        }
-    }
+    return utf_strnicmp(s1, s2, nn, nn);
     return 0;
 }
 
@@ -54294,55 +51134,6 @@ show_utf8(void)
     }
 
     msg((char *)IObuff);
-}
-
-    static int
-latin_head_off(char_u *base  __attribute__((unused)) , char_u *p  __attribute__((unused)) )
-{
-    return 0;
-}
-
-    static int
-dbcs_head_off(char_u *base, char_u *p)
-{
-    char_u      *q;
-
-    if (p <= base ||  mb_bytelen_tab[p[-1]]  == 1 || *p == NUL)
-    {
-        return 0;
-    }
-
-    q = base;
-    while (q < p)
-    {
-        q += dbcs_ptr2len(q);
-    }
-    return (q == p) ? 0 : 1;
-}
-
-    static int
-dbcs_screen_head_off(char_u *base, char_u *p)
-{
-    char_u      *q;
-
-    if (p <= base || (enc_dbcs == DBCS_JPNU && p[-1] == 0x8e) ||  mb_bytelen_tab[p[-1]]  == 1 || *p == NUL)
-    {
-        return 0;
-    }
-
-    q = base;
-    while (q < p)
-    {
-        if (enc_dbcs == DBCS_JPNU && *q == 0x8e)
-        {
-            ++q;
-        }
-        else
-        {
-            q += dbcs_ptr2len(q);
-        }
-    }
-    return (q == p) ? 0 : 1;
 }
 
     static int
@@ -54537,7 +51328,7 @@ utf_allow_break(int cc, int ncc)
     static void
 mb_copy_char(char_u **fp, char_u **tp)
 {
-    int     l = (*mb_ptr2len)(*fp);
+    int     l = utfc_ptr2len(*fp);
 
      memmove((char *)(*tp), (char *)(*fp), (size_t)l) ;
     *tp += l;
@@ -54547,14 +51338,14 @@ mb_copy_char(char_u **fp, char_u **tp)
     static int
 mb_off_next(char_u *base, char_u *p)
 {
-    int         head_off = (*mb_head_off)(base, p);
+    int         head_off = utf_head_off(base, p);
 
     if (head_off == 0)
     {
         return 0;
     }
 
-    return (*mb_ptr2len)(p - head_off) - head_off;
+    return utfc_ptr2len(p - head_off) - head_off;
 }
 
     static int
@@ -54568,32 +51359,22 @@ mb_tail_off(char_u *base, char_u *p)
         return 0;
     }
 
-    if (enc_utf8)
+    for (i = 0; (p[i + 1] & 0xc0) == 0x80; ++i)
     {
-        for (i = 0; (p[i + 1] & 0xc0) == 0x80; ++i)
-        {
-            ;
-        }
-        for (j = 0; p - j > base; ++j)
-        {
-            if ((p[-j] & 0xc0) != 0x80)
-            {
-                break;
-            }
-        }
-        if (utf8len_tab[p[-j]] != i + j + 1)
-        {
-            return 0;
-        }
-        return i;
+        ;
     }
-
-    if (enc_dbcs == 0 || p[1] == NUL ||  mb_bytelen_tab[*p]  == 1)
+    for (j = 0; p - j > base; ++j)
+    {
+        if ((p[-j] & 0xc0) != 0x80)
+        {
+            break;
+        }
+    }
+    if (utf8len_tab[p[-j]] != i + j + 1)
     {
         return 0;
     }
-
-    return 1 - dbcs_head_off(base, p);
+    return i;
 }
 
     static void
@@ -54602,46 +51383,18 @@ utf_find_illegal(void)
     pos_T       pos = curwin->w_cursor;
     char_u      *p;
     int         len;
-    vimconv_T   vimconv;
-    char_u      *tofree = NULL;
-
-    vimconv.vc_type = CONV_NONE;
 
     curwin->w_cursor.coladd = 0;
     for (;;)
     {
         p = ml_get_cursor();
-        if (vimconv.vc_type != CONV_NONE)
-        {
-            vim_free(tofree);
-            tofree = string_convert(&vimconv, p, NULL);
-            if (tofree == NULL)
-            {
-                break;
-            }
-            p = tofree;
-        }
 
         while (*p != NUL)
         {
             len = utf_ptr2len(p);
             if (*p >= 0x80 && (len == 1 || utf_char2len(utf_ptr2char(p)) != len))
             {
-                if (vimconv.vc_type == CONV_NONE)
-                {
-                    curwin->w_cursor.col += (colnr_T)(p - ml_get_cursor());
-                }
-                else
-                {
-                    int     l;
-
-                    len = (int)(p - tofree);
-                    for (p = ml_get_cursor(); *p != NUL && len-- > 0; p += l)
-                    {
-                        l = utf_ptr2len(p);
-                        curwin->w_cursor.col += l;
-                    }
-                }
+                curwin->w_cursor.col += (colnr_T)(p - ml_get_cursor());
                 curwin->w_set_curswant = TRUE;
                 goto theend;
             }
@@ -54659,8 +51412,6 @@ utf_find_illegal(void)
     beep_flush();
 
 theend:
-    vim_free(tofree);
-    convert_setup(&vimconv, NULL, NULL);
 }
 
     static void
@@ -54683,9 +51434,9 @@ mb_adjustpos(buf_T *buf, pos_T *lp)
         }
         else
         {
-            lp->col -= (*mb_head_off)(p, p + lp->col);
+            lp->col -= utf_head_off(p, p + lp->col);
         }
-        if (lp->coladd == 1 && p[lp->col] != TAB && vim_isprintc((*mb_ptr2char)(p + lp->col)) && ptr2cells(p + lp->col) > 1)
+        if (lp->coladd == 1 && p[lp->col] != TAB && vim_isprintc(utf_ptr2char(p + lp->col)) && ptr2cells(p + lp->col) > 1)
         {
             lp->coladd = 0;
         }
@@ -54697,7 +51448,7 @@ mb_prevptr(char_u *line, char_u *p)
 {
     if (p > line)
     {
-         p -= has_mbyte ? ((*mb_head_off)(line, (p) - 1) + 1) : 1 ;
+         p -= (utf_head_off(line, (p) - 1) + 1) ;
     }
     return p;
 }
@@ -54715,7 +51466,7 @@ mb_charlen(char_u *str)
 
     for (count = 0; *p != NUL; count++)
     {
-        p += (*mb_ptr2len)(p);
+        p += utfc_ptr2len(p);
     }
 
     return count;
@@ -54751,7 +51502,7 @@ mb_unescape(char_u **pp)
         }
         buf[m] = NUL;
 
-        if ((*mb_ptr2len)(buf) > 1)
+        if (utfc_ptr2len(buf) > 1)
         {
             *pp = str + n + 1;
             return buf;
@@ -54768,7 +51519,7 @@ mb_unescape(char_u **pp)
     static int
 mb_lefthalve(int row, int col)
 {
-    return (*mb_off2cells)(LineOffset[row] + col, LineOffset[row] + screen_Columns) > 1;
+    return utf_off2cells(LineOffset[row] + col, LineOffset[row] + screen_Columns) > 1;
 }
 
     static int
@@ -54779,161 +51530,17 @@ mb_fix_col(int col, int row)
     col = check_col(col);
     row = check_row(row);
     off = LineOffset[row] + col;
-    if (has_mbyte && ScreenLines != NULL && col > 0 && ((enc_dbcs && ScreenLines[off] != NUL && dbcs_screen_head_off(ScreenLines + LineOffset[row], ScreenLines + off)) || (enc_utf8 && ScreenLines[off] == 0 && ScreenLinesUC[off] == 0)))
+    if (ScreenLines != NULL && col > 0 && ((ScreenLines[off] == 0 && ScreenLinesUC[off] == 0)))
     {
         return col - 1;
     }
     return col;
 }
 
-static int enc_alias_search(char_u *name);
-
-    static char_u *
-enc_skip(char_u *p)
-{
-    if ( strncmp((char *)(p), (char *)("2byte-"), (6))  == 0)
-    {
-        return p + 6;
-    }
-    if ( strncmp((char *)(p), (char *)("8bit-"), (5))  == 0)
-    {
-        return p + 5;
-    }
-    return p;
-}
-
-    static char_u *
-enc_canonize(char_u *enc)
-{
-    char_u      *r;
-    char_u *p;
-    char_u *s;
-    int         i;
-
-    if ( strcmp((char *)(enc), (char *)("default"))  == 0)
-    {
-        r = get_encoding_default();
-        if (r == NULL)
-        {
-            r = (char_u *) "latin1" ;
-        }
-        return vim_strsave(r);
-    }
-
-    r = alloc( strlen((char *)(enc))  + 3);
-    if (r == NULL)
-    {
-        return NULL;
-    }
-
-    p = r;
-    for (s = enc; *s != NUL; ++s)
-    {
-        if (*s == '_')
-        {
-            *p++ = '-';
-        }
-        else
-        {
-            *p++ =  (((*s) < 'A' || (*s) > 'Z') ? (*s) : (*s) + ('a' - 'A')) ;
-        }
-    }
-    *p = NUL;
-
-    p = enc_skip(r);
-
-    if ( strncmp((char *)(p), (char *)("microsoft-cp"), (12))  == 0)
-    {
-          memmove((char *)((p)), (char *)((p + 10)),  strlen((char *)(p + 10))  + 1)  ;
-    }
-
-    if ( strncmp((char *)(p), (char *)("iso8859"), (7))  == 0)
-    {
-          memmove((char *)((p + 4)), (char *)((p + 3)),  strlen((char *)(p + 3))  + 1)  ;
-        p[3] = '-';
-    }
-
-    if ( strncmp((char *)(p), (char *)("iso-8859"), (8))  == 0 &&  (isdigit ((unsigned char)(p[8]))) )
-    {
-          memmove((char *)((p + 9)), (char *)((p + 8)),  strlen((char *)(p + 8))  + 1)  ;
-        p[8] = '-';
-    }
-
-    if ( strncmp((char *)(p), (char *)("latin-"), (6))  == 0)
-    {
-          memmove((char *)((p + 5)), (char *)((p + 6)),  strlen((char *)(p + 6))  + 1)  ;
-    }
-
-    if (enc_canon_search(p) >= 0)
-    {
-        if (p != r)
-        {
-              memmove((char *)((r)), (char *)((p)),  strlen((char *)(p))  + 1)  ;
-        }
-    }
-    else if ((i = enc_alias_search(p)) >= 0)
-    {
-        vim_free(r);
-        r = vim_strsave((char_u *)enc_canon_table[i].name);
-    }
-    return r;
-}
-
-    static int
-enc_alias_search(char_u *name)
-{
-    int         i;
-
-    for (i = 0; enc_alias_table[i].name != NULL; ++i)
-    {
-        if ( strcmp((char *)(name), (char *)(enc_alias_table[i].name))  == 0)
-        {
-            return enc_alias_table[i].canon;
-        }
-    }
-    return -1;
-}
-
-    static int
-convert_setup(vimconv_T *vcp, char_u *from, char_u *to)
-{
-    vcp->vc_type = CONV_NONE;
-    vcp->vc_factor = 1;
-    vcp->vc_fail = FALSE;
-    return OK;
-}
-
-    static int
-convert_input_safe(char_u      *ptr, int         len, int         maxlen, char_u      **restp, int         *restlenp)
-{
-    if (restp != NULL)
-    {
-        *restp = NULL;
-    }
-    return len;
-}
-
-    static char_u *
-string_convert(vimconv_T   *vcp, char_u      *ptr, int         *lenp)
-{
-    return NULL;
-}
-
     static int
 get_cellwidth(int c  __attribute__((unused)) )
 {
     return 0;
-}
-
-    static char_u *
-get_encoding_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx >= (int)(sizeof(enc_canon_table) / sizeof(enc_canon_table[0])))
-    {
-        return NULL;
-    }
-
-    return (char_u*)enc_canon_table[idx].name;
 }
 
 // ==================== memfile.c ====================
@@ -55560,8 +52167,6 @@ struct block0
 
 enum { B0_DIRTY = 0x55 };
 
-enum { B0_FF_MASK = 3 };
-
 enum { STACK_INCR = 5 };
 
 static linenr_T lowest_marked = 0;
@@ -55637,7 +52242,6 @@ ml_open(buf_T *buf)
 
     {
         b0p-> b0_fname[B0_FNAME_SIZE_ORG - 1]  = buf->b_changed ? B0_DIRTY : 0;
-        b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  = get_fileformat(buf) + 1;
         set_b0_fname(b0p, buf);
         long_to_char(mch_get_pid(), b0p->b0_pid);
     }
@@ -57202,8 +53806,6 @@ ml_setflags(buf_T *buf)
         {
             b0p = (ZERO_BL *)(hp->bh_data);
             b0p-> b0_fname[B0_FNAME_SIZE_ORG - 1]  = buf->b_changed ? B0_DIRTY : 0;
-            b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  = (b0p-> b0_fname[B0_FNAME_SIZE_ORG - 2]  & ~B0_FF_MASK)
-                                                  | (get_fileformat(buf) + 1);
             add_b0_fenc(b0p, buf);
             hp->bh_flags |= BH_DIRTY;
             mf_sync(buf->b_ml.ml_mfp, MFS_ZERO);
@@ -57330,18 +53932,7 @@ msg_strtrunc(char_u      *s, int         force)
         }
         if (len > room && room > 0)
         {
-            if (enc_utf8)
-            {
-                len = (room + 2) * 18;
-            }
-            else if (enc_dbcs == DBCS_JPNU)
-            {
-                len = (room + 2) * 2;
-            }
-            else
-            {
-                len = room + 2;
-            }
+            len = (room + 2) * 18;
             buf = alloc(len);
             if (buf != NULL)
             {
@@ -57391,55 +53982,33 @@ trunc_string(char_u      *s, char_u      *buf, int         room_in, int         
         }
         len += n;
         buf[e] = s[e];
-        if (has_mbyte)
+        for (n = utfc_ptr2len(s + e); --n > 0; )
         {
-            for (n = (*mb_ptr2len)(s + e); --n > 0; )
+            if (++e == buflen)
             {
-                if (++e == buflen)
-                {
-                    break;
-                }
-                buf[e] = s[e];
+                break;
             }
+            buf[e] = s[e];
         }
     }
 
     i = e;
-    if (enc_dbcs != 0)
+    half = i = (int) strlen((char *)(s)) ;
+    for (;;)
     {
-        n = vim_strsize(s + i);
-        while (len + n > room)
+        do
         {
-            n -= ptr2cells(s + i);
-            i += (*mb_ptr2len)(s + i);
+            half = half - utf_head_off(s, s + half - 1) - 1;
         }
-    }
-    else if (enc_utf8)
-    {
-        half = i = (int) strlen((char *)(s)) ;
-        for (;;)
+        while (half > 0 && utf_iscomposing(utf_ptr2char(s + half)))
+            ;
+        n = ptr2cells(s + half);
+        if (len + n > room || half == 0)
         {
-            do
-            {
-                half = half - utf_head_off(s, s + half - 1) - 1;
-            }
-            while (half > 0 && utf_iscomposing(utf_ptr2char(s + half)))
-                ;
-            n = ptr2cells(s + half);
-            if (len + n > room || half == 0)
-            {
-                break;
-            }
-            len += n;
-            i = (int)half;
+            break;
         }
-    }
-    else
-    {
-        for (i = (int) strlen((char *)(s)) ; i - 1 >= 0 && len + (n = ptr2cells(s + i - 1)) <= room; --i)
-        {
-            len += n;
-        }
+        len += n;
+        i = (int)half;
     }
 
     if (i <= e + 3)
@@ -57840,22 +54409,19 @@ msg_may_trunc(int force, char_u *s)
     room = (int)(Rows - cmdline_row - 1) * cmdline_width + sc_col - 1;
     if (room > 0 && (force || (shortmess(SHM_TRUNC) && !exmode_active)) && (n = (int) strlen((char *)(s))  - room) > 0)
     {
-        if (has_mbyte)
+        int size = vim_strsize(s);
+
+        if (size <= room)
         {
-            int size = vim_strsize(s);
-
-            if (size <= room)
-            {
-                return s;
-            }
-
-            for (n = 0; size >= room; )
-            {
-                size -= (*mb_ptr2cells)(s + n);
-                n += (*mb_ptr2len)(s + n);
-            }
-            --n;
+            return s;
         }
+
+        for (n = 0; size >= room; )
+        {
+            size -= utf_ptr2cells(s + n);
+            n += utfc_ptr2len(s + n);
+        }
+        --n;
         s += n;
         *s = '<';
     }
@@ -58368,7 +54934,7 @@ msg_putchar_attr(int c, int attr)
     }
     else
     {
-        buf[(*mb_char2bytes)(c, buf)] = NUL;
+        buf[utf_char2bytes(c, buf)] = NUL;
     }
     msg_puts_attr((char *)buf, attr);
 }
@@ -58421,31 +54987,20 @@ msg_outtrans_len_attr(char_u *msgstr, int len, int attr)
         mode_displayed = FALSE;
     }
 
-    if (enc_utf8 && utf_iscomposing(utf_ptr2char(msgstr)))
+    if (utf_iscomposing(utf_ptr2char(msgstr)))
     {
         msg_puts_attr(" ", attr);
     }
 
     while (--len >= 0 && !got_int)
     {
-        if (enc_utf8)
+        mb_l = utfc_ptr2len_len(str, len + 1);
+        if (mb_l > 1)
         {
-            mb_l = utfc_ptr2len_len(str, len + 1);
-        }
-        else if (has_mbyte)
-        {
-            mb_l = (*mb_ptr2len)(str);
-        }
-        else
-        {
-            mb_l = 1;
-        }
-        if (has_mbyte && mb_l > 1)
-        {
-            c = (*mb_ptr2char)(str);
+            c = utf_ptr2char(str);
             if (vim_isprintc(c))
             {
-                retval += (*mb_ptr2cells)(str);
+                retval += utf_ptr2cells(str);
             }
             else
             {
@@ -58521,7 +55076,7 @@ msg_outtrans_special(char_u      *strstart, int         from, int         maxlen
         {
             break;
         }
-        msg_puts_attr(text, len > 1 && (*mb_ptr2len)((char_u *)text) <= 1 ? attr : 0);
+        msg_puts_attr(text, len > 1 && utfc_ptr2len((char_u *)text) <= 1 ? attr : 0);
         retval += len;
     }
     return retval;
@@ -58536,15 +55091,12 @@ str2special(char_u      **sp, int         replace_spaces, int         replace_ot
     int                 modifiers = 0;
     int                 special = FALSE;
 
-    if (has_mbyte)
-    {
-        char_u  *p;
+    char_u  *p;
 
-        p = mb_unescape(sp);
-        if (p != NULL)
-        {
-            return p;
-        }
+    p = mb_unescape(sp);
+    if (p != NULL)
+    {
+        return p;
     }
 
     c = *str;
@@ -58567,7 +55119,7 @@ str2special(char_u      **sp, int         replace_spaces, int         replace_ot
         }
     }
 
-    if (has_mbyte && ! ((c) < 0)  &&  mb_bytelen_tab[c]  > 1)
+    if (! ((c) < 0) && mb_bytelen_tab[c]  > 1)
     {
         char_u  *p;
 
@@ -58575,7 +55127,7 @@ str2special(char_u      **sp, int         replace_spaces, int         replace_ot
         p = mb_unescape(sp);
         if (p != NULL)
         {
-            c = (*mb_ptr2char)(p);
+            c = utf_ptr2char(p);
         }
         else
         {
@@ -58690,16 +55242,16 @@ msg_prt_line(char_u *s, int list)
                 c = *p_extra++;
             }
         }
-        else if (has_mbyte && (l = (*mb_ptr2len)(s)) > 1)
+        else if ((l = utfc_ptr2len(s)) > 1)
         {
-            col += (*mb_ptr2cells)(s);
+            col += utf_ptr2cells(s);
             if (l >= MB_MAXBYTES)
             {
                  strcpy((char *)(buf), (char *)("?")) ;
             }
-            else if (curwin->w_lcs_chars.nbsp != NUL && list && (mb_ptr2char(s) == 160 || mb_ptr2char(s) == 0x202f))
+            else if (curwin->w_lcs_chars.nbsp != NUL && list && (utf_ptr2char(s) == 160 || utf_ptr2char(s) == 0x202f))
             {
-                int len = mb_char2bytes(curwin->w_lcs_chars.nbsp, buf);
+                int len = utf_char2bytes(curwin->w_lcs_chars.nbsp, buf);
 
                 buf[len] = NUL;
             }
@@ -58831,7 +55383,7 @@ screen_puts_mbyte(char_u *s, int l, int attr)
     int         cw;
 
     msg_didout = TRUE;
-    cw = (*mb_ptr2cells)(s);
+    cw = utf_ptr2cells(s);
     if (cw > 1 && (msg_col == cmdline_width - 1))
     {
         msg_screen_putchar('>',  highlight_attr[(int)(HLF_AT)] );
@@ -58947,7 +55499,7 @@ msg_puts_display(char_u      *str, int         maxlen, int         attr, int    
     {
         int wrap_col = cmdline_width - 1;
 
-        if (!recurse && msg_row >= Rows - 1 && (*s == '\n' || (((*s != '\r' && msg_col + t_col >= wrap_col) || (*s == TAB && msg_col + t_col >= (wrap_col & ~7)) || (has_mbyte && (*mb_ptr2cells)(s) > 1 && msg_col + t_col >= wrap_col - 1)))))
+        if (!recurse && msg_row >= Rows - 1 && (*s == '\n' || (((*s != '\r' && msg_col + t_col >= wrap_col) || (*s == TAB && msg_col + t_col >= (wrap_col & ~7)) || (utf_ptr2cells(s) > 1 && msg_col + t_col >= wrap_col - 1)))))
         {
             if (t_col > 0)
             {
@@ -58969,22 +55521,15 @@ msg_puts_display(char_u      *str, int         maxlen, int         attr, int    
 
             if (*s >= ' ')
             {
-                if (has_mbyte)
+                if (maxlen >= 0)
                 {
-                    if (enc_utf8 && maxlen >= 0)
-                    {
-                        l = utfc_ptr2len_len(s, (int)((str + maxlen) - s));
-                    }
-                    else
-                    {
-                        l = (*mb_ptr2len)(s);
-                    }
-                    s = screen_puts_mbyte(s, l, attr);
+                    l = utfc_ptr2len_len(s, (int)((str + maxlen) - s));
                 }
                 else
                 {
-                    msg_screen_putchar(*s++, attr);
+                    l = utfc_ptr2len(s);
                 }
+                s = screen_puts_mbyte(s, l, attr);
                 did_last_char = TRUE;
             }
             else
@@ -59026,7 +55571,7 @@ msg_puts_display(char_u      *str, int         maxlen, int         attr, int    
 
         wrap = *s == '\n'
                     || msg_col + t_col >= wrap_col
-                    || (has_mbyte && (*mb_ptr2cells)(s) > 1 && msg_col + t_col >= wrap_col - 1);
+                    || (utf_ptr2cells(s) > 1 && msg_col + t_col >= wrap_col - 1);
         if (t_col > 0 && (wrap || *s == '\r' || *s == '\b' || *s == '\t' || *s == BELL))
         {
                 t_puts(&t_col, t_s, s, attr);
@@ -59072,22 +55617,14 @@ msg_puts_display(char_u      *str, int         maxlen, int         attr, int    
         }
         else
         {
-            if (has_mbyte)
+            cw = utf_ptr2cells(s);
+            if (maxlen >= 0)
             {
-                cw = (*mb_ptr2cells)(s);
-                if (enc_utf8 && maxlen >= 0)
-                {
-                    l = utfc_ptr2len_len(s, (int)((str + maxlen) - s));
-                }
-                else
-                {
-                    l = (*mb_ptr2len)(s);
-                }
+                l = utfc_ptr2len_len(s, (int)((str + maxlen) - s));
             }
             else
             {
-                cw = 1;
-                l = 1;
+                l = utfc_ptr2len(s);
             }
 
             if ((cw > 1 && msg_col + t_col >= wrap_col))
@@ -59390,7 +55927,7 @@ t_puts(int         *t_col, char_u      *t_s, char_u      *s, int         attr)
     screen_puts_len(t_s, (int)(s - t_s), msg_row, cmdline_col_off + msg_col, attr);
     msg_col += *t_col;
     *t_col = 0;
-    if (enc_utf8 && utf_iscomposing(utf_ptr2char(t_s)))
+    if (utf_iscomposing(utf_ptr2char(t_s)))
     {
         --msg_col;
     }
@@ -60442,7 +56979,7 @@ plines_win_col(win_T *wp, linenr_T lnum, long column)
     while (*cts.cts_ptr != NUL && cts.cts_ptr < line + column)
     {
         cts.cts_vcol += win_lbr_chartabsize(&cts, NULL, NULL);
-         cts.cts_ptr += (*mb_ptr2len)(cts.cts_ptr) ;
+         cts.cts_ptr += utfc_ptr2len(cts.cts_ptr) ;
     }
 
     col = cts.cts_vcol;
@@ -60497,20 +57034,14 @@ gchar_pos(pos_T *pos)
     {
         return NUL;
     }
-    if (has_mbyte)
-    {
-        return (*mb_ptr2char)(ptr);
-    }
+    return utf_ptr2char(ptr);
     return (int)*ptr;
 }
 
     static int
 gchar_cursor(void)
 {
-    if (has_mbyte)
-    {
-        return (*mb_ptr2char)(ml_get_cursor());
-    }
+    return utf_ptr2char(ml_get_cursor());
     return (int)*ml_get_cursor();
 }
 
@@ -60685,15 +57216,12 @@ get_keystroke(void)
             }
             break;
         }
-        if (has_mbyte)
+        if ( mb_bytelen_tab[n]  > len)
         {
-            if ( mb_bytelen_tab[n]  > len)
-            {
-                continue;
-            }
-            buf[len >= buflen ? buflen - 1 : len] = NUL;
-            n = (*mb_ptr2char)(buf);
+            continue;
         }
+        buf[len >= buflen ? buflen - 1 : len] = NUL;
+        n = utf_ptr2char(buf);
         if (n == intr_char)
         {
             n = ESC;
@@ -60950,7 +57478,7 @@ get_isolated_shell_name(void)
         char_u *p2;
 
         p1 = p_sh;
-        for (p2 = p_sh; p2 < p;  p2 += (*mb_ptr2len)(p2) )
+        for (p2 = p_sh; p2 < p;  p2 += utfc_ptr2len(p2) )
         {
             if (vim_ispathsep(*p2))
             {
@@ -61281,10 +57809,7 @@ coladvance2(pos_T       *pos, int         addspaces, int         finetune, colnr
         }
     }
 
-    if (has_mbyte)
-    {
-        mb_adjustpos(curbuf, pos);
-    }
+    mb_adjustpos(curbuf, pos);
 
     if (wcol < 0 || col < wcol)
     {
@@ -61309,13 +57834,10 @@ inc(pos_T *lp)
         p = ml_get_pos(lp);
         if (*p != NUL)
         {
-            if (has_mbyte)
-            {
-                int l = (*mb_ptr2len)(p);
+            int l = utfc_ptr2len(p);
 
-                lp->col += l;
-                return ((p[l] != NUL) ? 0 : 2);
-            }
+            lp->col += l;
+            return ((p[l] != NUL) ? 0 : 2);
             lp->col++;
             lp->coladd = 0;
             return ((p[1] != NUL) ? 0 : 2);
@@ -61359,21 +57881,15 @@ dec(pos_T *lp)
     {
         p = ml_get(lp->lnum);
         lp->col = ml_get_len(lp->lnum);
-        if (has_mbyte)
-        {
-            lp->col -= (*mb_head_off)(p, p + lp->col);
-        }
+        lp->col -= utf_head_off(p, p + lp->col);
         return 0;
     }
 
     if (lp->col > 0)
     {
         lp->col--;
-        if (has_mbyte)
-        {
-            p = ml_get(lp->lnum);
-            lp->col -= (*mb_head_off)(p, p + lp->col);
-        }
+        p = ml_get(lp->lnum);
+        lp->col -= utf_head_off(p, p + lp->col);
         return 0;
     }
 
@@ -61382,10 +57898,7 @@ dec(pos_T *lp)
         lp->lnum--;
         p = ml_get(lp->lnum);
         lp->col = ml_get_len(lp->lnum);
-        if (has_mbyte)
-        {
-            lp->col -= (*mb_head_off)(p, p + lp->col);
-        }
+        lp->col -= utf_head_off(p, p + lp->col);
         return 1;
     }
 
@@ -61476,10 +57989,7 @@ check_cursor_col_win(win_T *win)
         else
         {
             win->w_cursor.col = len - 1;
-            if (has_mbyte)
-            {
-                mb_adjustpos(win->w_buffer, &win->w_cursor);
-            }
+            mb_adjustpos(win->w_buffer, &win->w_cursor);
         }
     }
     else if (win->w_cursor.col < 0)
@@ -62035,7 +58545,7 @@ get_special_key_name(int c, int modifiers)
 
     table_idx = find_special_key_in_table(c);
 
-    if (c > 0 && (*mb_char2len)(c) == 1)
+    if (c > 0 && utf_char2len(c) == 1)
     {
         if (table_idx < 0 && (!vim_isprintc(c) || (c & 0x7f) == ' ') && (c & 0x80))
         {
@@ -62070,14 +58580,14 @@ get_special_key_name(int c, int modifiers)
         }
         else
         {
-            len = (*mb_char2len)(c);
+            len = utf_char2len(c);
             if (len == 1 && vim_isprintc(c))
             {
                 string[idx++] = c;
             }
-            else if (has_mbyte && len > 1)
+            else if (len > 1)
             {
-                idx += (*mb_char2bytes)(c, string + idx);
+                idx += utf_char2bytes(c, string + idx);
             }
             else
             {
@@ -62144,13 +58654,9 @@ special_to_buf(int key, int modifiers, int escape_ks, char_u *dst)
     {
         dlen = (int)(add_char2buf(key, dst + dlen) - dst);
     }
-    else if (has_mbyte)
-    {
-        dlen += (*mb_char2bytes)(key, dst + dlen);
-    }
     else
     {
-        dst[dlen++] = key;
+        dlen += utf_char2bytes(key, dst + dlen);
     }
 
     return dlen;
@@ -62188,14 +58694,7 @@ find_special_key(char_u      **srcp, int         *modp, int         flags, int  
             last_dash = bp;
             if (bp[1] != NUL)
             {
-                if (has_mbyte)
-                {
-                    l = mb_ptr2len(bp + 1);
-                }
-                else
-                {
-                    l = 1;
-                }
+                l = utfc_ptr2len(bp + 1);
                 if (!(in_string && bp[1] == '"') && bp[l + 1] == '>')
                 {
                     bp += l;
@@ -62261,17 +58760,10 @@ find_special_key(char_u      **srcp, int         *modp, int         flags, int  
                 {
                     off = 2;
                 }
-                if (has_mbyte)
-                {
-                    l = mb_ptr2len(last_dash + off);
-                }
-                else
-                {
-                    l = 1;
-                }
+                l = utfc_ptr2len(last_dash + off);
                 if (modifiers != 0 && last_dash[l + off] == '>')
                 {
-                    key =  (has_mbyte ? mb_ptr2char(last_dash + off) : (int)*(last_dash + off)) ;
+                    key =  (utf_ptr2char(last_dash + off)) ;
                 }
                 else
                 {
@@ -62409,7 +58901,7 @@ extract_modifiers(int key, int *modp, int simplify, int *did_simplify)
         }
     }
 
-    if (simplify && (modifiers & MOD_MASK_ALT) && key < 0x80 && !enc_dbcs)
+    if (simplify && (modifiers & MOD_MASK_ALT) && key < 0x80)
     {
         key |= 0x80;
         modifiers &= ~MOD_MASK_ALT;
@@ -62527,93 +59019,6 @@ get_key_name(int i)
 }
 
     static int
-get_fileformat(buf_T *buf)
-{
-    int         c = *buf->b_p_ff;
-
-    if (buf->b_p_bin || c == 'u')
-    {
-        return EOL_UNIX;
-    }
-    if (c == 'm')
-    {
-        return EOL_MAC;
-    }
-    return EOL_DOS;
-}
-
-    static int
-get_fileformat_force(buf_T       *buf, exarg_T     *eap)
-{
-    int         c;
-
-    if (eap != NULL && eap->force_ff != 0)
-    {
-        c = eap->force_ff;
-    }
-    else
-    {
-        if ((eap != NULL && eap->force_bin != 0) ? (eap->force_bin == FORCE_BIN) : buf->b_p_bin)
-        {
-            return EOL_UNIX;
-        }
-        c = *buf->b_p_ff;
-    }
-    if (c == 'u')
-    {
-        return EOL_UNIX;
-    }
-    if (c == 'm')
-    {
-        return EOL_MAC;
-    }
-    return EOL_DOS;
-}
-
-    static void
-set_fileformat(int         t, int         opt_flags)
-{
-    char        *p = NULL;
-
-    switch (t)
-    {
-    case EOL_DOS:
-        p =  "dos" ;
-        curbuf->b_p_tx = TRUE;
-        break;
-    case EOL_UNIX:
-        p =  "unix" ;
-        curbuf->b_p_tx = FALSE;
-        break;
-    case EOL_MAC:
-        p =  "mac" ;
-        curbuf->b_p_tx = FALSE;
-        break;
-    }
-    if (p != NULL)
-    {
-        set_string_option_direct((char_u *)"ff", -1, (char_u *)p, OPT_FREE | opt_flags, 0);
-    }
-
-    check_status(curbuf);
-    redraw_tabline = TRUE;
-    need_maketitle = TRUE;
-}
-
-    static int
-default_fileformat(void)
-{
-    switch (*p_ffs)
-    {
-        case 'm':
-            return EOL_MAC;
-        case 'd':
-            return EOL_DOS;
-    }
-    return EOL_UNIX;
-}
-
-    static int
 get_real_state(void)
 {
     if (State & MODE_NORMAL)
@@ -62638,7 +59043,7 @@ get_real_state(void)
 after_pathsep(char_u *b, char_u *p)
 {
     return p > b && vim_ispathsep(p[-1])
-                             && (!has_mbyte || (*mb_head_off)(b, p - 1) == 0);
+                             && (utf_head_off(b, p - 1) == 0);
 }
 
     static long
@@ -65781,7 +62186,7 @@ normal_cmd_get_more_chars(int         idx_arg, cmdarg_T    *cap, int         *ne
             }
         }
 
-        if (enc_utf8 && lang)
+        if (lang)
         {
             --no_mapping;
             while ((c = vpeekc()) > 0 && (c >= 0x100 ||  mb_bytelen_tab[vpeekc()]  > 1))
@@ -66095,10 +62500,7 @@ normal_end:
     checkpcmark();
     vim_free(ca.searchbuf);
 
-    if (has_mbyte)
-    {
-        mb_adjust_cursor();
-    }
+    mb_adjust_cursor();
 
     if (       oap->op_type == OP_NOP && ((restart_edit != 0 && !VIsual_active && old_mapped_len == 0) || restart_VIsual_select == 1) && !(ca.retval & CA_COMMAND_BUSY) && stuff_empty() && oap->regname == 0)
     {
@@ -66249,77 +62651,52 @@ find_ident_at_pos(win_T       *wp, linenr_T    lnum, colnr_T     startcol, char_
     for (i = (find_type & FIND_IDENT) ? 0 : 1;  i < 2; ++i)
     {
         col = startcol;
-        if (has_mbyte)
+        while (ptr[col] != NUL)
         {
-            while (ptr[col] != NUL)
+            if ((find_type & FIND_EVAL) && ptr[col] == ']')
             {
-                if ((find_type & FIND_EVAL) && ptr[col] == ']')
-                {
-                    break;
-                }
-                this_class = mb_get_class(ptr + col);
-                if (this_class != 0 && (i == 1 || this_class != 1))
-                {
-                    break;
-                }
-                col += (*mb_ptr2len)(ptr + col);
+                break;
             }
-        }
-        else
-        {
-            while (ptr[col] != NUL && (i == 0 ? !vim_iswordc(ptr[col]) :  ((ptr[col]) == ' ' || (ptr[col]) == '\t') ) && (!(find_type & FIND_EVAL) || ptr[col] != ']'))
+            this_class = mb_get_class(ptr + col);
+            if (this_class != 0 && (i == 1 || this_class != 1))
             {
-                ++col;
+                break;
             }
+            col += utfc_ptr2len(ptr + col);
         }
 
         bn = ptr[col] == ']';
 
-        if (has_mbyte)
+        if ((find_type & FIND_EVAL) && ptr[col] == ']')
         {
-            if ((find_type & FIND_EVAL) && ptr[col] == ']')
-            {
-                this_class = mb_get_class((char_u *)"a");
-            }
-            else
-            {
-                this_class = mb_get_class(ptr + col);
-            }
-            while (col > 0 && this_class != 0)
-            {
-                prevcol = col - 1 - (*mb_head_off)(ptr, ptr + col - 1);
-                prev_class = mb_get_class(ptr + prevcol);
-                if (this_class != prev_class && (i == 0 || prev_class == 0 || (find_type & FIND_IDENT)) && (!(find_type & FIND_EVAL) || prevcol == 0 || !find_is_eval_item(ptr + prevcol, &prevcol, &bn,  (-1) )))
-                {
-                    break;
-                }
-                col = prevcol;
-            }
-
-            if (this_class > 2)
-            {
-                this_class = 2;
-            }
-            if (!(find_type & FIND_STRING) || this_class == 2)
-            {
-                break;
-            }
+            this_class = mb_get_class((char_u *)"a");
         }
         else
         {
-            while (col > 0 && ((i == 0 ? vim_iswordc(ptr[col - 1]) : (! ((ptr[col - 1]) == ' ' || (ptr[col - 1]) == '\t')  && (!(find_type & FIND_IDENT) || !vim_iswordc(ptr[col - 1])))) || ((find_type & FIND_EVAL) && col > 1 && find_is_eval_item(ptr + col - 1, &col, &bn,  (-1) ))))
-            {
-                --col;
-            }
-
-            if (!(find_type & FIND_STRING) || vim_iswordc(ptr[col]))
+            this_class = mb_get_class(ptr + col);
+        }
+        while (col > 0 && this_class != 0)
+        {
+            prevcol = col - 1 - utf_head_off(ptr, ptr + col - 1);
+            prev_class = mb_get_class(ptr + prevcol);
+            if (this_class != prev_class && (i == 0 || prev_class == 0 || (find_type & FIND_IDENT)) && (!(find_type & FIND_EVAL) || prevcol == 0 || !find_is_eval_item(ptr + prevcol, &prevcol, &bn,  (-1) )))
             {
                 break;
             }
+            col = prevcol;
+        }
+
+        if (this_class > 2)
+        {
+            this_class = 2;
+        }
+        if (!(find_type & FIND_STRING) || this_class == 2)
+        {
+            break;
         }
     }
 
-    if (ptr[col] == NUL || (i == 0 && (has_mbyte ? this_class != 2 : !vim_iswordc(ptr[col]))))
+    if (ptr[col] == NUL || (i == 0 && (this_class != 2)))
     {
         if ((find_type & FIND_NOERROR) == 0)
         {
@@ -66344,20 +62721,10 @@ find_ident_at_pos(win_T       *wp, linenr_T    lnum, colnr_T     startcol, char_
     bn = 0;
     startcol -= col;
     col = 0;
-    if (has_mbyte)
+    this_class = mb_get_class(ptr);
+    while (ptr[col] != NUL && ((i == 0 ? mb_get_class(ptr + col) == this_class : mb_get_class(ptr + col) != 0) || ((find_type & FIND_EVAL) && col <= (int)startcol && find_is_eval_item(ptr + col, &col, &bn, FORWARD))))
     {
-        this_class = mb_get_class(ptr);
-        while (ptr[col] != NUL && ((i == 0 ? mb_get_class(ptr + col) == this_class : mb_get_class(ptr + col) != 0) || ((find_type & FIND_EVAL) && col <= (int)startcol && find_is_eval_item(ptr + col, &col, &bn, FORWARD))))
-        {
-            col += (*mb_ptr2len)(ptr + col);
-        }
-    }
-    else
-    {
-        while ((i == 0 ? vim_iswordc(ptr[col]) : (ptr[col] != NUL && ! ((ptr[col]) == ' ' || (ptr[col]) == '\t') )) || ((find_type & FIND_EVAL) && col <= (int)startcol && find_is_eval_item(ptr + col, &col, &bn, FORWARD)))
-        {
-            ++col;
-        }
+        col += utfc_ptr2len(ptr + col);
     }
 
     return col;
@@ -66558,7 +62925,7 @@ clear_showcmd(void)
             }
             while ((*p_sel != 'e') ? s <= e : s < e)
             {
-                l = (*mb_ptr2len)(s);
+                l = utfc_ptr2len(s);
                 if (l == 0)
                 {
                     ++bytes;
@@ -66648,7 +63015,7 @@ add_to_showcmd(int c)
     }
     else
     {
-        mbyte_buf[(*mb_char2bytes)(c, mbyte_buf)] = NUL;
+        mbyte_buf[utf_char2bytes(c, mbyte_buf)] = NUL;
         p = mbyte_buf;
     }
     old_len = (int) strlen((char *)(showcmd_buf)) ;
@@ -67170,7 +63537,7 @@ nv_screengo(oparg_T *oap, int dir, long dist)
         validate_virtcol();
         virtcol = curwin->w_virtcol;
 
-        c = (*mb_ptr2char)(ml_get_cursor());
+        c = utf_ptr2char(ml_get_cursor());
         if (dir == FORWARD && virtcol < curwin->w_curswant && (curwin->w_curswant <= (colnr_T)width1) && !vim_isprintc(c) && c > 255)
         {
             oneright();
@@ -67666,22 +64033,19 @@ nv_ident(cmdarg_T *cap)
             *p++ = '\\';
         }
 
-        if (has_mbyte)
-        {
-            int i;
-            int len = (*mb_ptr2len)(ptr) - 1;
+        int i;
+        int len = utfc_ptr2len(ptr) - 1;
 
-            for (i = 0; i < len && n >= 1; ++i, --n)
-            {
-                *p++ = *ptr++;
-            }
+        for (i = 0; i < len && n >= 1; ++i, --n)
+        {
+            *p++ = *ptr++;
         }
         *p++ = *ptr++;
     }
     *p = NUL;
     buflen = p - buf;
 
-    if (!g_cmd && (has_mbyte ? vim_iswordp(mb_prevptr(ml_get_curline(), ptr)) : vim_iswordc(ptr[-1])))
+    if (!g_cmd && (vim_iswordp(mb_prevptr(ml_get_curline(), ptr))))
     {
          strcpy((char *)(buf + buflen), (char *)("\\>")) ;
         buflen +=  (sizeof("\\>" "") - 1) ;
@@ -67733,14 +64097,7 @@ get_visual_text(cmdarg_T    *cap, char_u      **pp, int         *lenp)
         }
         if (*lenp > 0)
         {
-            if (has_mbyte)
-            {
-                *lenp += (*mb_ptr2len)(*pp + (*lenp - 1)) - 1;
-            }
-            else if ((*pp)[*lenp - 1] == NUL)
-            {
-                *lenp -= 1;
-            }
+            *lenp += utfc_ptr2len(*pp + (*lenp - 1)) - 1;
         }
     }
     reset_VIsual_and_resel();
@@ -67883,14 +64240,7 @@ nv_right(cmdarg_T *cap)
             }
             else
             {
-                if (has_mbyte)
-                {
-                    curwin->w_cursor.col += (*mb_ptr2len)(ml_get_cursor());
-                }
-                else
-                {
-                    ++curwin->w_cursor.col;
-                }
+                curwin->w_cursor.col += utfc_ptr2len(ml_get_cursor());
             }
         }
     }
@@ -67929,14 +64279,7 @@ nv_left(cmdarg_T *cap)
 
                     if (*cp != NUL)
                     {
-                        if (has_mbyte)
-                        {
-                            curwin->w_cursor.col += (*mb_ptr2len)(cp);
-                        }
-                        else
-                        {
-                            ++curwin->w_cursor.col;
-                        }
+                        curwin->w_cursor.col += utfc_ptr2len(cp);
                     }
                     cap->retval |= CA_NO_ADJ_OP_END;
                 }
@@ -68636,7 +64979,7 @@ nv_replace(cmdarg_T *cap)
         }
     }
 
-    if ((size_t)ml_get_cursor_len() < (unsigned)cap->count1 || (has_mbyte && mb_charlen(ml_get_cursor()) < cap->count1))
+    if ((size_t)ml_get_cursor_len() < (unsigned)cap->count1 || (mb_charlen(ml_get_cursor()) < cap->count1))
     {
         clearopbeep(cap->oap);
         return;
@@ -68669,84 +65012,48 @@ nv_replace(cmdarg_T *cap)
         prep_redo(cap->oap->regname, cap->count1, NUL, 'r', NUL, had_ctrl_v, cap->nchar);
 
         curbuf->b_op_start = curwin->w_cursor;
-        if (has_mbyte)
-        {
-            int         old_State = State;
+        int         old_State = State;
 
+        if (cap->ncharC1 != 0)
+        {
+            AppendCharToRedobuff(cap->ncharC1);
+        }
+        if (cap->ncharC2 != 0)
+        {
+            AppendCharToRedobuff(cap->ncharC2);
+        }
+
+        for (n = cap->count1; n > 0; --n)
+        {
+            State =  (REPLACE_FLAG | MODE_INSERT) ;
+            if (cap->nchar == Ctrl_E || cap->nchar == Ctrl_Y)
+            {
+                int c = ins_copychar(curwin->w_cursor.lnum + (cap->nchar == Ctrl_Y ? -1 : 1));
+                if (c != NUL)
+                {
+                    ins_char(c);
+                }
+                else
+                {
+                    ++curwin->w_cursor.col;
+                }
+            }
+            else
+            {
+                ins_char(cap->nchar);
+            }
+            State = old_State;
             if (cap->ncharC1 != 0)
             {
-                AppendCharToRedobuff(cap->ncharC1);
+                ins_char(cap->ncharC1);
             }
             if (cap->ncharC2 != 0)
             {
-                AppendCharToRedobuff(cap->ncharC2);
+                ins_char(cap->ncharC2);
             }
-
-            for (n = cap->count1; n > 0; --n)
-            {
-                State =  (REPLACE_FLAG | MODE_INSERT) ;
-                if (cap->nchar == Ctrl_E || cap->nchar == Ctrl_Y)
-                {
-                    int c = ins_copychar(curwin->w_cursor.lnum + (cap->nchar == Ctrl_Y ? -1 : 1));
-                    if (c != NUL)
-                    {
-                        ins_char(c);
-                    }
-                    else
-                    {
-                        ++curwin->w_cursor.col;
-                    }
-                }
-                else
-                {
-                    ins_char(cap->nchar);
-                }
-                State = old_State;
-                if (cap->ncharC1 != 0)
-                {
-                    ins_char(cap->ncharC1);
-                }
-                if (cap->ncharC2 != 0)
-                {
-                    ins_char(cap->ncharC2);
-                }
-            }
-        }
-        else
-        {
-            char_u *ptr;
-
-            for (n = cap->count1; n > 0; --n)
-            {
-                if (cap->nchar == Ctrl_E || cap->nchar == Ctrl_Y)
-                {
-                  int c = ins_copychar(curwin->w_cursor.lnum + (cap->nchar == Ctrl_Y ? -1 : 1));
-
-                  ptr = ml_get_buf(curbuf, curwin->w_cursor.lnum, TRUE);
-                  if (c != NUL)
-                  {
-                    ptr[curwin->w_cursor.col] = c;
-                  }
-                }
-                else
-                {
-                    ptr = ml_get_buf(curbuf, curwin->w_cursor.lnum, TRUE);
-                    ptr[curwin->w_cursor.col] = cap->nchar;
-                }
-                if (p_sm && msg_silent == 0)
-                {
-                    showmatch(cap->nchar);
-                }
-                ++curwin->w_cursor.col;
-            }
-
-            changed_bytes(curwin->w_cursor.lnum, (colnr_T)(curwin->w_cursor.col - cap->count1));
         }
         --curwin->w_cursor.col;
-        if (has_mbyte)
-        {
-            mb_adjust_cursor();
-        }
+        mb_adjust_cursor();
         curbuf->b_op_end = curwin->w_cursor;
         curwin->w_set_curswant = true;
         set_last_insert(cap->nchar);
@@ -69552,7 +65859,7 @@ nv_g_dollar_cmd(cmdarg_T *cap)
         i = curwin->w_leftcol + curwin->w_width - col_off - 1;
         coladvance((colnr_T)i);
 
-        if (curwin->w_cursor.col > 0 && (*mb_ptr2cells)(ml_get_cursor()) > 1)
+        if (curwin->w_cursor.col > 0 && utf_ptr2cells(ml_get_cursor()) > 1)
         {
             colnr_T vcol;
 
@@ -70156,10 +66463,7 @@ adjust_cursor(oparg_T *oap)
     if (curwin->w_cursor.col > 0 && gchar_cursor() == NUL && (!VIsual_active || *p_sel == 'o') && !virtual_active() && (get_ve_flags() & VE_ONEMORE) == 0)
     {
         --curwin->w_cursor.col;
-        if (has_mbyte)
-        {
-            mb_adjust_cursor();
-        }
+        mb_adjust_cursor();
         oap->inclusive = TRUE;
     }
 }
@@ -70178,14 +66482,7 @@ adjust_for_sel(cmdarg_T *cap)
 {
     if (VIsual_active && cap->oap->inclusive && *p_sel == 'e' && gchar_cursor() != NUL &&  (((VIsual).lnum != (curwin->w_cursor).lnum)               ? (VIsual).lnum < (curwin->w_cursor).lnum                   : (VIsual).col != (curwin->w_cursor).col                        ? (VIsual).col < (curwin->w_cursor).col                     : (VIsual).coladd < (curwin->w_cursor).coladd) )
     {
-        if (has_mbyte)
-        {
-            inc_cursor();
-        }
-        else
-        {
-            ++curwin->w_cursor.col;
-        }
+        inc_cursor();
         cap->oap->inclusive = FALSE;
         VIsual_select_exclu_adj = TRUE;
     }
@@ -71151,21 +67448,14 @@ shift_block(oparg_T *oap, int amount)
         ws_vcol = bd.start_vcol - bd.pre_whitesp;
         if (bd.startspaces)
         {
-            if (has_mbyte)
+            if (utfc_ptr2len(bd.textstart) == 1)
             {
-                if ((*mb_ptr2len)(bd.textstart) == 1)
-                {
-                    ++bd.textstart;
-                }
-                else
-                {
-                    ws_vcol = 0;
-                    bd.startspaces = 0;
-                }
+                ++bd.textstart;
             }
             else
             {
-                ++bd.textstart;
+                ws_vcol = 0;
+                bd.startspaces = 0;
             }
         }
 
@@ -71222,7 +67512,7 @@ shift_block(oparg_T *oap, int amount)
 
         if (bd.startspaces)
         {
-             non_white += (*mb_ptr2len)(non_white) ;
+             non_white += utfc_ptr2len(non_white) ;
         }
 
         non_white_col = bd.start_vcol;
@@ -71258,7 +67548,7 @@ shift_block(oparg_T *oap, int amount)
                 break;
             }
             cts.cts_vcol += incr;
-             cts.cts_ptr += (*mb_ptr2len)(cts.cts_ptr) ;
+             cts.cts_ptr += utfc_ptr2len(cts.cts_ptr) ;
         }
         verbatim_copy_width = cts.cts_vcol;
         verbatim_copy_end = cts.cts_ptr;
@@ -71352,9 +67642,9 @@ block_insert(oparg_T             *oap, char_u              *s, size_t           
             }
         }
 
-        if (has_mbyte && spaces > 0)
+        if (spaces > 0)
         {
-            offset -= (*mb_head_off)(oldp, oldp + offset);
+            offset -= utf_head_off(oldp, oldp + offset);
         }
 
         if (spaces < 0)
@@ -71454,10 +67744,7 @@ op_delete(oparg_T *oap)
         oap->regname = VIsual_select_reg;
     }
 
-    if (has_mbyte)
-    {
-        mb_adjust_opend(oap);
-    }
+    mb_adjust_opend(oap);
 
     if (       oap->motion_type == MCHAR && !oap->is_VIsual && !oap->block_mode && oap->line_count > 1 && oap->motion_force == NUL && (vim_strchr(p_cpo, CPO_WORD) != NULL) && oap->op_type == OP_DELETE)
     {
@@ -71657,10 +67944,7 @@ op_delete(oparg_T *oap)
                 oap->end = curwin->w_cursor;
                 curwin->w_cursor = oap->start;
             }
-            if (has_mbyte)
-            {
-                mb_adjust_opend(oap);
-            }
+            mb_adjust_opend(oap);
         }
 
         if (oap->line_count == 1)
@@ -71759,8 +68043,8 @@ mb_adjust_opend(oparg_T *oap)
     ptr = line + oap->end.col;
     if (*ptr != NUL)
     {
-        ptr -= (*mb_head_off)(line, ptr);
-        ptr += (*mb_ptr2len)(ptr) - 1;
+        ptr -= utf_head_off(line, ptr);
+        ptr += utfc_ptr2len(ptr) - 1;
         oap->end.col = ptr - line;
     }
 }
@@ -71806,10 +68090,7 @@ op_replace(oparg_T *oap, int c)
         c = NL;
     }
 
-    if (has_mbyte)
-    {
-        mb_adjust_opend(oap);
-    }
+    mb_adjust_opend(oap);
 
     if (u_save((linenr_T)(oap->start.lnum - 1), (linenr_T)(oap->end.lnum + 1)) == FAIL)
     {
@@ -71849,7 +68130,7 @@ op_replace(oparg_T *oap, int c)
                 numc -= (oap->end_vcol - bd.end_vcol) + 1;
             }
 
-            if ((*mb_char2cells)(c) > 1)
+            if (utf_char2cells(c) > 1)
             {
                 if ((numc & 1) && !bd.is_short)
                 {
@@ -71860,7 +68141,7 @@ op_replace(oparg_T *oap, int c)
             }
 
             num_chars = numc;
-            numc *= (*mb_char2len)(c);
+            numc *= utf_char2len(c);
             n += numc - bd.textlen;
 
             oldp = ml_get_curline();
@@ -71877,17 +68158,9 @@ op_replace(oparg_T *oap, int c)
             newlen += bd.startspaces;
             if (had_ctrl_v_cr || (c != '\r' && c != '\n'))
             {
-                if (has_mbyte)
+                while (--num_chars >= 0)
                 {
-                    while (--num_chars >= 0)
-                    {
-                        newlen += (*mb_char2bytes)(c, newp + newlen);
-                    }
-                }
-                else
-                {
-                     memset((newp + newlen), (c), ((size_t)numc)) ;
-                    newlen += numc;
+                    newlen += utf_char2bytes(c, newp + newlen);
                 }
                 if (!bd.is_short)
                 {
@@ -71938,8 +68211,8 @@ op_replace(oparg_T *oap, int c)
             n = gchar_cursor();
             if (n != NUL)
             {
-                int new_byte_len = (*mb_char2len)(c);
-                int old_byte_len = mb_ptr2len(ml_get_cursor());
+                int new_byte_len = utf_char2len(c);
+                int old_byte_len = utfc_ptr2len(ml_get_cursor());
 
                 if (new_byte_len > 1 || old_byte_len > 1)
                 {
@@ -71986,7 +68259,7 @@ op_replace(oparg_T *oap, int c)
                 curwin->w_cursor.col -= (virtcols + 1);
                 for (; virtcols >= 0; virtcols--)
                 {
-                    if ((*mb_char2len)(c) > 1)
+                    if (utf_char2len(c) > 1)
                     {
                        replace_character(c);
                     }
@@ -72116,14 +68389,11 @@ swapchars(int op_type, pos_T *pos, int length)
 
     for (todo = length; todo > 0; --todo)
     {
-        if (has_mbyte)
-        {
-            int len = (*mb_ptr2len)(ml_get_pos(pos));
+        int len = utfc_ptr2len(ml_get_pos(pos));
 
-            if (len > 0)
-            {
-                todo -= len - 1;
-            }
+        if (len > 0)
+        {
+            todo -= len - 1;
         }
         did_change |= swapchar(op_type, pos);
         if (inc(pos) == -1)
@@ -72147,7 +68417,7 @@ swapchar(int op_type, pos_T *pos)
         return FALSE;
     }
 
-    if ((op_type == OP_UPPER || op_type == OP_NOP || op_type == OP_TILDE) && c == 0xdf && (enc_latin1like ||  strcmp((char *)(p_enc), (char *)("iso-8859-2"))  == 0))
+    if ((op_type == OP_UPPER || op_type == OP_NOP || op_type == OP_TILDE) && c == 0xdf)
     {
         pos_T   sp = curwin->w_cursor;
 
@@ -72158,10 +68428,6 @@ swapchar(int op_type, pos_T *pos)
         return TRUE;
     }
 
-    if (enc_dbcs != 0 && c >= 0x100)
-    {
-        return FALSE;
-    }
     nc = c;
     if ( vim_islower(c) )
     {
@@ -72187,7 +68453,7 @@ swapchar(int op_type, pos_T *pos)
     }
     if (nc != c)
     {
-        if (enc_utf8 && (c >= 0x80 || nc >= 0x80))
+        if ((c >= 0x80 || nc >= 0x80))
         {
             pos_T   sp = curwin->w_cursor;
 
@@ -72680,7 +68946,7 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
         if (insert_space && t > 0)
         {
             curr = skipwhite(curr);
-            if (*curr != NUL && *curr != ')' && sumsize != 0 && endcurr1 != TAB && (!has_format_option(FO_MBYTE_JOIN) || (mb_ptr2char(curr) < 0x100 && endcurr1 < 0x100)) && (!has_format_option(FO_MBYTE_JOIN2) || (mb_ptr2char(curr) < 0x100 && !(enc_utf8 && utf_eat_space(endcurr1))) || (endcurr1 < 0x100 && !(enc_utf8 && utf_eat_space(mb_ptr2char(curr))))))
+            if (*curr != NUL && *curr != ')' && sumsize != 0 && endcurr1 != TAB && (!has_format_option(FO_MBYTE_JOIN) || (utf_ptr2char(curr) < 0x100 && endcurr1 < 0x100)) && (!has_format_option(FO_MBYTE_JOIN2) || (utf_ptr2char(curr) < 0x100 && !(utf_eat_space(endcurr1))) || (endcurr1 < 0x100 && !(utf_eat_space(utf_ptr2char(curr))))))
             {
                 if (endcurr1 == ' ')
                 {
@@ -72701,24 +68967,13 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
         endcurr1 = endcurr2 = NUL;
         if (insert_space && currsize > 0)
         {
-            if (has_mbyte)
+            cend = curr + currsize;
+             cend -= (utf_head_off(curr, (cend) - 1) + 1) ;
+            endcurr1 = utf_ptr2char(cend);
+            if (cend > curr)
             {
-                cend = curr + currsize;
-                 cend -= has_mbyte ? ((*mb_head_off)(curr, (cend) - 1) + 1) : 1 ;
-                endcurr1 = (*mb_ptr2char)(cend);
-                if (cend > curr)
-                {
-                     cend -= has_mbyte ? ((*mb_head_off)(curr, (cend) - 1) + 1) : 1 ;
-                    endcurr2 = (*mb_ptr2char)(cend);
-                }
-            }
-            else
-            {
-                endcurr1 = *(curr + currsize - 1);
-                if (currsize > 1)
-                {
-                    endcurr2 = *(curr + currsize - 2);
-                }
+                 cend -= (utf_head_off(curr, (cend) - 1) + 1) ;
+                endcurr2 = utf_ptr2char(cend);
             }
         }
         line_breakcheck();
@@ -72844,7 +69099,7 @@ block_prep(oparg_T             *oap, struct block_def    *bdp, linenr_T         
             bdp->pre_whitesp_c = 0;
         }
         prev_pstart = cts.cts_ptr;
-         cts.cts_ptr += (*mb_ptr2len)(cts.cts_ptr) ;
+         cts.cts_ptr += utfc_ptr2len(cts.cts_ptr) ;
     }
     bdp->start_vcol = cts.cts_vcol;
     pstart = cts.cts_ptr;
@@ -72984,7 +69239,7 @@ charwise_block_prep(pos_T               start, pos_T               end, struct b
         if (virtual_op)
         {
             getvcol(curwin, &end, &cs, NULL, &ce, 0);
-            if (p[endcol] == NUL || (cs + end.coladd < ce && (*mb_head_off)(p, p + endcol) == 0))
+            if (p[endcol] == NUL || (cs + end.coladd < ce && utf_head_off(p, p + endcol) == 0))
             {
                 if (start.lnum == end.lnum && start.col == end.col)
                 {
@@ -73185,10 +69440,7 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
             while (col > 0 && vim_isbdigit(ptr[col]))
             {
                 --col;
-                if (has_mbyte)
-                {
-                    col -= (*mb_head_off)(ptr, ptr + col);
-                }
+                col -= utf_head_off(ptr, ptr + col);
             }
         }
 
@@ -73197,34 +69449,25 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
             while (col > 0 && vim_isxdigit(ptr[col]))
             {
                 --col;
-                if (has_mbyte)
-                {
-                    col -= (*mb_head_off)(ptr, ptr + col);
-                }
+                col -= utf_head_off(ptr, ptr + col);
             }
         }
 
-        if (       do_bin && do_hex && ! ((col > 0 && (ptr[col] == 'X' || ptr[col] == 'x') && ptr[col - 1] == '0' && (!has_mbyte || !(*mb_head_off)(ptr, ptr + col - 1)) && vim_isxdigit(ptr[col + 1]))))
+        if (       do_bin && do_hex && ! ((col > 0 && (ptr[col] == 'X' || ptr[col] == 'x') && ptr[col - 1] == '0' && (!utf_head_off(ptr, ptr + col - 1)) && vim_isxdigit(ptr[col + 1]))))
         {
             col = pos->col;
 
             while (col > 0 && vim_isdigit(ptr[col]))
             {
                 col--;
-                if (has_mbyte)
-                {
-                    col -= (*mb_head_off)(ptr, ptr + col);
-                }
+                col -= utf_head_off(ptr, ptr + col);
             }
         }
 
-        if ((       do_hex && col > 0 && (ptr[col] == 'X' || ptr[col] == 'x') && ptr[col - 1] == '0' && (!has_mbyte || !(*mb_head_off)(ptr, ptr + col - 1)) && vim_isxdigit(ptr[col + 1])) || (       do_bin && col > 0 && (ptr[col] == 'B' || ptr[col] == 'b') && ptr[col - 1] == '0' && (!has_mbyte || !(*mb_head_off)(ptr, ptr + col - 1)) && vim_isbdigit(ptr[col + 1])))
+        if ((       do_hex && col > 0 && (ptr[col] == 'X' || ptr[col] == 'x') && ptr[col - 1] == '0' && (!utf_head_off(ptr, ptr + col - 1)) && vim_isxdigit(ptr[col + 1])) || (       do_bin && col > 0 && (ptr[col] == 'B' || ptr[col] == 'b') && ptr[col - 1] == '0' && (!utf_head_off(ptr, ptr + col - 1)) && vim_isbdigit(ptr[col + 1])))
         {
             --col;
-            if (has_mbyte)
-            {
-                col -= (*mb_head_off)(ptr, ptr + col);
-            }
+            col -= utf_head_off(ptr, ptr + col);
         }
         else
         {
@@ -73232,16 +69475,13 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
 
             while (ptr[col] != NUL && !vim_isdigit(ptr[col]) && !(do_alpha &&  ( ((unsigned)(ptr[col]) - 'A' < 26)  ||  ((unsigned)(ptr[col]) - 'a' < 26) ) ))
             {
-                col += mb_ptr2len(ptr + col);
+                col += utfc_ptr2len(ptr + col);
             }
 
             while (col > 0 && vim_isdigit(ptr[col - 1]) && !(do_alpha &&  ( ((unsigned)(ptr[col]) - 'A' < 26)  ||  ((unsigned)(ptr[col]) - 'a' < 26) ) ))
             {
                 --col;
-                if (has_mbyte)
-                {
-                    col -= (*mb_head_off)(ptr, ptr + col);
-                }
+                col -= utf_head_off(ptr, ptr + col);
             }
         }
     }
@@ -73250,7 +69490,7 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
     {
         while (ptr[col] != NUL && length > 0 && !vim_isdigit(ptr[col]) && !(do_alpha &&  ( ((unsigned)(ptr[col]) - 'A' < 26)  ||  ((unsigned)(ptr[col]) - 'a' < 26) ) ))
         {
-            int mb_len = mb_ptr2len(ptr + col);
+            int mb_len = utfc_ptr2len(ptr + col);
 
             col += mb_len;
             length -= mb_len;
@@ -73261,7 +69501,7 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
             goto theend;
         }
 
-        if (col > pos->col && ptr[col - 1] == '-' && (!has_mbyte || !(*mb_head_off)(ptr, ptr + col - 1)) && !do_unsigned)
+        if (col > pos->col && ptr[col - 1] == '-' && (!utf_head_off(ptr, ptr + col - 1)) && !do_unsigned)
         {
             if (do_blank && col >= 2 && ! ((ptr[col - 2]) == ' ' || (ptr[col - 2]) == '\t') )
             {
@@ -73340,7 +69580,7 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
         pos_T   save_pos;
         int     i;
 
-        if (col > 0 && ptr[col - 1] == '-' && (!has_mbyte || !(*mb_head_off)(ptr, ptr + col - 1)) && !visual && !do_unsigned)
+        if (col > 0 && ptr[col - 1] == '-' && (!utf_head_off(ptr, ptr + col - 1)) && !visual && !do_unsigned)
         {
             if (do_blank && col >= 2 && ! ((ptr[col - 2]) == ' ' || (ptr[col - 2]) == '\t') )
             {
@@ -73622,7 +69862,7 @@ line_count_info(char_u      *line, varnumber_T *wc, varnumber_T *cc, varnumber_T
             is_word = 1;
         }
         ++chars;
-        i += (*mb_ptr2len)(line + i);
+        i += utfc_ptr2len(line + i);
     }
 
     if (is_word)
@@ -73672,14 +69912,7 @@ cursor_pos_info(dict_T *dict)
     }
     else
     {
-        if (get_fileformat(curbuf) == EOL_DOS)
-        {
-            eol_size = 2;
-        }
-        else
-        {
-            eol_size = 1;
-        }
+        eol_size = 1;
 
         if (VIsual_active)
         {
@@ -73763,10 +69996,6 @@ cursor_pos_info(dict_T *dict)
                 if (s != NULL)
                 {
                     byte_count_cursor += line_count_info(s, &word_count_cursor, &char_count_cursor, len, eol_size);
-                    if (lnum == curbuf->b_ml.ml_line_count && !curbuf->b_p_eol && (curbuf->b_p_bin || !curbuf->b_p_fixeol) && (long) strlen((char *)(s))  < len)
-                    {
-                        byte_count_cursor -= eol_size;
-                    }
                 }
             }
             else
@@ -73780,11 +70009,6 @@ cursor_pos_info(dict_T *dict)
                 }
             }
             byte_count += line_count_info(ml_get(lnum), &word_count, &char_count, (varnumber_T)MAXCOL, eol_size);
-        }
-
-        if (!curbuf->b_p_eol && (curbuf->b_p_bin || !curbuf->b_p_fixeol))
-        {
-            byte_count -= eol_size;
         }
 
         if (dict == NULL)
@@ -73953,10 +70177,7 @@ get_op_vcol(oparg_T     *oap, colnr_T     redo_VIsual_vcol, int         initial)
 
     oap->block_mode = TRUE;
 
-    if (has_mbyte)
-    {
-        mb_adjustpos(curwin->w_buffer, &oap->end);
-    }
+    mb_adjustpos(curwin->w_buffer, &oap->end);
 
     getvvcol(curwin, &(oap->start), &oap->start_vcol, NULL, &oap->end_vcol, 0);
 
@@ -74311,11 +70532,11 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
             }
         }
 
-        if (has_mbyte && oap->inclusive)
+        if (oap->inclusive)
         {
             int         l;
 
-            l = (*mb_ptr2len)(ml_get_pos(&oap->end));
+            l = utfc_ptr2len(ml_get_pos(&oap->end));
             if (l > 1)
             {
                 oap->end.col += l - 1;
@@ -74618,11 +70839,6 @@ typedef enum
 {
     PV_NONE = 0} idopt_T;
 
-static int      p_et_nobin;
-static int      p_ml_nobin;
-static long     p_tw_nobin;
-static long     p_wm_nobin;
-
 static int      p_ai_nopaste;
 static int      p_et_nopaste;
 static long     p_sts_nopaste;
@@ -74732,9 +70948,6 @@ static struct vimoption options[] =
     {"belloff",      "bo",  P_STRING|P_VI_DEF|P_COMMA|P_NODUP,
                             (char_u *)&p_bo, PV_NONE, did_set_belloff, expand_set_belloff,
                             {(char_u *)"", (char_u *)0L}   },
-    {"binary",      "bin",  P_BOOL|P_VI_DEF|P_RSTAT,
-                            (char_u *)&p_bin,   (idopt_T)(PV_BUF + (int)(BV_BIN))  , did_set_binary, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
     {"bioskey",     "biosk",P_BOOL|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
@@ -74922,18 +71135,6 @@ static struct vimoption options[] =
                             (char_u *)&p_emoji, PV_NONE, did_set_ambiwidth, NULL,
                             {(char_u *)TRUE, (char_u *)0L}
                               },
-    {"encoding",    "enc",  P_STRING|P_VI_DEF|P_RCLR|P_NO_ML,
-                            (char_u *)&p_enc, PV_NONE, did_set_encoding, expand_set_encoding,
-                            {(char_u *) "utf-8" , (char_u *)0L}
-                              },
-    {"endoffile",   "eof",  P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
-                            (char_u *)&p_eof,   (idopt_T)(PV_BUF + (int)(BV_EOF))  ,
-                            did_set_eof_eol_fixeol_bomb, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"endofline",   "eol",  P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
-                            (char_u *)&p_eol,   (idopt_T)(PV_BUF + (int)(BV_EOL))  ,
-                            did_set_eof_eol_fixeol_bomb, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
     {"equalprg",    "ep",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
                             (char_u *)&p_ep,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_EP)) ))  , NULL, NULL,
                             {(char_u *)"", (char_u *)0L}   },
@@ -74954,14 +71155,6 @@ static struct vimoption options[] =
     {"expandtab",   "et",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_et,   (idopt_T)(PV_BUF + (int)(BV_ET))  , NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
-    {"fileformat",  "ff",   P_STRING|P_ALLOCED|P_VI_DEF|P_RSTAT|P_NO_MKRC
-                                                                  |P_CURSWANT,
-                            (char_u *)&p_ff,   (idopt_T)(PV_BUF + (int)(BV_FF))  , did_set_fileformat, expand_set_fileformat,
-                            {(char_u *) "unix" , (char_u *)0L}   },
-    {"fileformats", "ffs",  P_STRING|P_VIM|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_ffs, PV_NONE, did_set_fileformats, expand_set_fileformat,
-                            {(char_u *) "" , (char_u *) "unix,dos" }
-                              },
     {"fileignorecase", "fic", P_BOOL|P_VI_DEF,
                             (char_u *)&p_fic, PV_NONE, NULL, NULL,
                             {
@@ -74981,10 +71174,6 @@ static struct vimoption options[] =
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
                               },
-    {"fixendofline",  "fixeol", P_BOOL|P_VI_DEF|P_RSTAT,
-                            (char_u *)&p_fixeol,   (idopt_T)(PV_BUF + (int)(BV_FIXEOL))  ,
-                            did_set_eof_eol_fixeol_bomb, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
     {"fkmap",       "fk",   P_BOOL|P_VI_DEF,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -75310,10 +71499,6 @@ static struct vimoption options[] =
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)NULL, (char_u *)0L}
                               },
-    {"makeencoding","menc", P_STRING|P_VI_DEF,
-                            (char_u *)&p_menc,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_MENC)) ))  , did_set_encoding, expand_set_encoding,
-                            {(char_u *)"", (char_u *)0L}
-                              },
     {"makeprg",     "mp",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)NULL, (char_u *)0L}
@@ -75350,18 +71535,6 @@ static struct vimoption options[] =
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}
                               },
-    {"modeline",    "ml",   P_BOOL|P_VIM,
-                            (char_u *)&p_ml,   (idopt_T)(PV_BUF + (int)(BV_ML))  , NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)TRUE}   },
-    {"modelineexpr", "mle",  P_BOOL|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_mle, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"modelines",   "mls",  P_NUM|P_VI_DEF,
-                            (char_u *)&p_mls, PV_NONE, NULL, NULL,
-                            {(char_u *)5L, (char_u *)0L}   },
-    {"modelinestrict", "mlst", P_BOOL|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_mlstr, PV_NONE, NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
     {"modifiable",  "ma",   P_BOOL|P_VI_DEF|P_NOGLOB,
                             (char_u *)&p_ma,   (idopt_T)(PV_BUF + (int)(BV_MA))  , did_set_modifiable, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
@@ -75761,15 +71934,6 @@ static struct vimoption options[] =
     {"terse",       NULL,   P_BOOL|P_VI_DEF,
                             (char_u *)&p_terse, PV_NONE, did_set_terse, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"textauto",    "ta",   P_BOOL|P_VIM,
-                            (char_u *)&p_ta, PV_NONE, did_set_textauto, NULL,
-                            {(char_u *) FALSE , (char_u *)TRUE}
-                              },
-    {"textmode",    "tx",   P_BOOL|P_VI_DEF|P_NO_MKRC,
-                            (char_u *)&p_tx,   (idopt_T)(PV_BUF + (int)(BV_TX))  , did_set_textmode, NULL,
-                            {
-                            (char_u *)FALSE,
-                                (char_u *)0L}   },
     {"textwidth",   "tw",   P_NUM|P_VI_DEF|P_VIM|P_RBUF|P_HLONLY,
                             (char_u *)&p_tw,   (idopt_T)(PV_BUF + (int)(BV_TW))  , did_set_textwidth, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
@@ -76140,8 +72304,6 @@ set_init_1(void)
 
     set_init_expand_env();
 
-    save_file_ff(curbuf);
-
     didset_options2();
 
     set_init_lang_env();
@@ -76233,7 +72395,7 @@ set_options_default(int         opt_flags)
 
     for (i = 0; !istermoption_idx(i); i++)
     {
-        if (!(options[i].flags & P_NODEFAULT) && (opt_flags == 0 || (options[i].var != (char_u *)&p_enc)))
+        if (!(options[i].flags & P_NODEFAULT))
         {
             set_option_default(i, opt_flags, p_cp);
         }
@@ -76397,16 +72559,6 @@ set_init_3(void)
         vim_free(p);
     }
 
-    if ( (curbuf->b_ml.ml_line_count == 1 && *ml_get((linenr_T)1) == NUL) )
-    {
-        int idx_ffs = findoption((char_u *)"ffs");
-
-        if (idx_ffs >= 0 && (options[idx_ffs].flags & P_WAS_SET))
-        {
-            set_fileformat(default_fileformat(), OPT_LOCAL);
-        }
-    }
-
     set_title_defaults();
 }
 
@@ -76439,14 +72591,6 @@ ex_set(exarg_T *eap)
 {
     int         flags = 0;
 
-    if (eap->cmdidx == CMD_setlocal)
-    {
-        flags = OPT_LOCAL;
-    }
-    else if (eap->cmdidx == CMD_setglobal)
-    {
-        flags = OPT_GLOBAL;
-    }
     {
         if (eap->forceit)
         {
@@ -76578,42 +72722,6 @@ get_opt_op(char_u *arg)
     return op;
 }
 
-static char *modeline_whitelist[] =
-{
-    "autoindent",
-    "commentstring",
-    "expandtab",
-    "filetype",
-    "foldcolumn",
-    "foldenable",
-    "foldmarker",
-    "foldmethod",
-    "modifiable",
-    "readonly",
-    "rightleft",
-    "shiftwidth",
-    "smartindent",
-    "softtabstop",
-    "tabstop",
-    "textwidth",
-    "varsofttabstop",
-    "vartabstop",
-    NULL
-};
-
-    static bool
-is_modeline_whitelisted(char *name)
-{
-    for (int i = 0; modeline_whitelist[i] != NULL; i++)
-    {
-        if ( strcmp((char *)(name), (char *)(modeline_whitelist[i]))  == 0)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
     static int
 validate_opt_idx(int opt_idx, int opt_flags, long_u flags, char **errmsg, set_prefix_T prefix)
 {
@@ -76625,31 +72733,6 @@ validate_opt_idx(int opt_idx, int opt_flags, long_u flags, char **errmsg, set_pr
     if ((opt_flags & OPT_NOWIN) && opt_idx >= 0 && options[opt_idx].var ==  ((char_u *)-1) )
     {
         return FAIL;
-    }
-
-    if (opt_flags & OPT_MODELINE)
-    {
-        if (flags & (P_SECURE | P_NO_ML))
-        {
-            *errmsg = e_not_allowed_in_modeline;
-            return FAIL;
-        }
-        if ((flags & P_MLE) && !p_mle)
-        {
-            *errmsg = e_not_allowed_in_modeline_when_modelineexpr_is_off;
-            return FAIL;
-        }
-        if (p_mlstr && opt_idx >= 0)
-        {
-            if (options[opt_idx].indir ==   (idopt_T)(PV_BUF + (int)(BV_ML))   && prefix == PREFIX_NO)
-            {
-                return OK;
-            }
-            else if (!is_modeline_whitelisted(options[opt_idx].fullname))
-            {
-                return FAIL;
-            }
-        }
     }
 
     return OK;
@@ -76787,7 +72870,7 @@ stropt_copy_value(char_u      *origval, char_u      **argp, set_op_T    op, int 
         {
             ++arg;
         }
-        if (has_mbyte && (i = (*mb_ptr2len)(arg)) > 1)
+        if ((i = utfc_ptr2len(arg)) > 1)
         {
              memmove((char *)(s), (char *)(arg), (size_t)i) ;
             arg += i;
@@ -77133,10 +73216,6 @@ stropt_get_newval(int         nextchar, int         opt_idx, char_u      **argp,
     {
         newval = stropt_get_default_val(opt_idx, varp, flags, cp_val);
     }
-    else if (nextchar == '<')
-    {
-        newval = vim_strsave(*(char_u **)get_varp_scope(&(options[opt_idx]), OPT_GLOBAL));
-    }
     else
     {
         ++arg;
@@ -77277,7 +73356,7 @@ do_set_option_string(int         opt_idx, int         opt_flags, char_u      **a
         long_u  *p =  (&options[opt_idx].flags) ;
         int     secure_saved = secure;
 
-        if ((opt_flags & OPT_MODELINE) || (op != OP_NONE && (*p & P_INSECURE)))
+        if ((op != OP_NONE && (*p & P_INSECURE)))
         {
             secure = 1;
         }
@@ -77314,17 +73393,6 @@ do_set_option_bool(int         opt_idx, int         opt_flags, set_prefix_T pref
     {
         value = (int)(long)(long_i)options[opt_idx].def_val[((flags & P_VI_DEF) || cp_val) ? VI_DEFAULT : VIM_DEFAULT];
     }
-    else if (nextchar == '<')
-    {
-        if ((int *)varp == &curbuf->b_p_fs && opt_flags == OPT_LOCAL)
-        {
-            value = -1;
-        }
-        else
-        {
-            value = *(int *)get_varp_scope(&(options[opt_idx]), OPT_GLOBAL);
-        }
-    }
     else
     {
         if (nextchar != NUL && ! ((afterchar) == ' ' || (afterchar) == '\t') )
@@ -77360,21 +73428,6 @@ do_set_option_numeric(int         opt_idx, int         opt_flags, char_u      **
     if (nextchar == '&')
     {
         value = (long)(long_i)options[opt_idx].def_val[((flags & P_VI_DEF) || cp_val) ? VI_DEFAULT : VIM_DEFAULT];
-    }
-    else if (nextchar == '<')
-    {
-        if ((long *)varp == &curbuf->b_p_ul && opt_flags == OPT_LOCAL)
-        {
-            value =  (-123456) ;
-        }
-        else if (opt_flags == OPT_LOCAL && ((long *)varp == &curwin-> w_onebuf_opt.wo_siso  || (long *)varp == &curwin-> w_onebuf_opt.wo_so  || (long *)varp == &curwin-> w_onebuf_opt.wo_sop ))
-        {
-            value = -1;
-        }
-        else
-        {
-            value = *(long *)get_varp_scope(&(options[opt_idx]), OPT_GLOBAL);
-        }
     }
     else if (((long *)varp == &p_wc || (long *)varp == &p_wcm) && (*arg == '<' || *arg == '^' || (*arg != NUL && (!arg[1] ||  ((arg[1]) == ' ' || (arg[1]) == '\t') ) && ! ((unsigned)(*arg) - '0' < 10) )))
     {
@@ -77631,7 +73684,7 @@ do_set_option(int         opt_flags, char_u      **argp, char_u      *arg_start,
     }
 
     int cp_val = p_cp;
-    if (vim_strchr((char_u *)"?=:!&<", nextchar) != NULL)
+    if (vim_strchr((char_u *)"?=:!&", nextchar) != NULL)
     {
         arg += len;
         if (nextchar == '&' && arg[1] == 'v' && arg[2] == 'i')
@@ -77715,7 +73768,7 @@ do_set(char_u      *arg_start, int         opt_flags)
 
     while (*arg != NUL)
     {
-        if ( strncmp((char *)(arg), (char *)("all"), (3))  == 0 && ! ( ((unsigned)(arg[3]) - 'A' < 26)  ||  ((unsigned)(arg[3]) - 'a' < 26) )  && !(opt_flags & OPT_MODELINE))
+        if ( strncmp((char *)(arg), (char *)("all"), (3))  == 0 && ! ( ((unsigned)(arg[3]) - 'A' < 26)  ||  ((unsigned)(arg[3]) - 'a' < 26) ) )
         {
             arg += 3;
             if (*arg == '&')
@@ -77732,7 +73785,7 @@ do_set(char_u      *arg_start, int         opt_flags)
                 did_show = TRUE;
             }
         }
-        else if ( strncmp((char *)(arg), (char *)("termcap"), (7))  == 0 && !(opt_flags & OPT_MODELINE))
+        else if ( strncmp((char *)(arg), (char *)("termcap"), (7))  == 0)
         {
             showoptions(2, opt_flags);
             show_termcodes(opt_flags);
@@ -77819,7 +73872,7 @@ did_set_option(int     opt_idx, int     opt_flags, int     new_value, int     va
     {
         flagsp_local =  (&options[opt_idx].flags) ;
     }
-    if (!value_checked && (secure || (opt_flags & OPT_MODELINE)))
+    if (!value_checked && secure)
     {
         *flagsp = *flagsp | P_INSECURE;
         if (flagsp_local != NULL)
@@ -77855,7 +73908,7 @@ string_to_key(char_u *arg, int multi_byte)
     }
     if (multi_byte)
     {
-        return  (has_mbyte ? mb_ptr2char(arg) : (int)*(arg)) ;
+        return  (utf_ptr2char(arg)) ;
     }
     return *arg;
 }
@@ -77866,64 +73919,6 @@ did_set_title(void)
     if (starting != NO_SCREEN)
     {
         maketitle();
-    }
-}
-
-    static void
-set_options_bin(int         oldval, int         newval, int         opt_flags)
-{
-    if (newval)
-    {
-        if (!oldval)
-        {
-            if (!(opt_flags & OPT_GLOBAL))
-            {
-                curbuf->b_p_tw_nobin = curbuf->b_p_tw;
-                curbuf->b_p_wm_nobin = curbuf->b_p_wm;
-                curbuf->b_p_ml_nobin = curbuf->b_p_ml;
-                curbuf->b_p_et_nobin = curbuf->b_p_et;
-            }
-            if (!(opt_flags & OPT_LOCAL))
-            {
-                p_tw_nobin = p_tw;
-                p_wm_nobin = p_wm;
-                p_ml_nobin = p_ml;
-                p_et_nobin = p_et;
-            }
-        }
-
-        if (!(opt_flags & OPT_GLOBAL))
-        {
-            curbuf->b_p_tw = 0;
-            curbuf->b_p_wm = 0;
-            curbuf->b_p_ml = 0;
-            curbuf->b_p_et = 0;
-        }
-        if (!(opt_flags & OPT_LOCAL))
-        {
-            p_tw = 0;
-            p_wm = 0;
-            p_ml = FALSE;
-            p_et = FALSE;
-            p_bin = TRUE;
-        }
-    }
-    else if (oldval)
-    {
-        if (!(opt_flags & OPT_GLOBAL))
-        {
-            curbuf->b_p_tw = curbuf->b_p_tw_nobin;
-            curbuf->b_p_wm = curbuf->b_p_wm_nobin;
-            curbuf->b_p_ml = curbuf->b_p_ml_nobin;
-            curbuf->b_p_et = curbuf->b_p_et_nobin;
-        }
-        if (!(opt_flags & OPT_LOCAL))
-        {
-            p_tw = p_tw_nobin;
-            p_wm = p_wm_nobin;
-            p_ml = p_ml_nobin;
-            p_et = p_et_nobin;
-        }
     }
 }
 
@@ -78043,15 +74038,6 @@ valid_name(char_u *val, char *allowed)
 }
 
     static char *
-did_set_binary(optset_T *args)
-{
-    set_options_bin(args->os_oldval.boolean, curbuf->b_p_bin, args->os_flags);
-    redraw_titles();
-
-    return NULL;
-}
-
-    static char *
 did_set_buflisted(optset_T *args)
 {
     if (args->os_oldval.boolean != curbuf->b_p_bl)
@@ -78089,13 +74075,6 @@ did_set_cmdheight(optset_T *args)
 did_set_compatible(optset_T *args  __attribute__((unused)) )
 {
     compatible_set();
-    return NULL;
-}
-
-    static char *
-did_set_eof_eol_fixeol_bomb(optset_T *args  __attribute__((unused)) )
-{
-    redraw_titles();
     return NULL;
 }
 
@@ -78215,10 +74194,6 @@ did_set_modifiable(optset_T *args  __attribute__((unused)) )
     static char *
 did_set_modified(optset_T *args)
 {
-    if (!args->os_newval.boolean)
-    {
-        save_file_ff(curbuf);
-    }
     redraw_titles();
     curbuf->b_modified_was_set = !!args->os_newval.boolean;
     return NULL;
@@ -78450,22 +74425,6 @@ did_set_terse(optset_T *args  __attribute__((unused)) )
     {
           memmove((char *)((p)), (char *)((p + 1)),  strlen((char *)(p + 1))  + 1)  ;
     }
-    return NULL;
-}
-
-    static char *
-did_set_textauto(optset_T *args)
-{
-    set_string_option_direct((char_u *)"ffs", -1, p_ta ? (char_u *) "unix,dos"  : (char_u *)"", OPT_FREE | args->os_flags, 0);
-
-    return NULL;
-}
-
-    static char *
-did_set_textmode(optset_T *args)
-{
-    set_fileformat(curbuf->b_p_tx ? EOL_DOS : EOL_UNIX, args->os_flags);
-
     return NULL;
 }
 
@@ -79124,19 +75083,6 @@ get_highlight_default(void)
     return (char_u *)NULL;
 }
 
-    static char_u *
-get_encoding_default(void)
-{
-    int i;
-
-    i = findoption((char_u *)"enc");
-    if (i >= 0)
-    {
-        return options[i].def_val[VI_DEFAULT];
-    }
-    return (char_u *)NULL;
-}
-
     static int
 find_key_option(char_u *arg_arg, int has_lt)
 {
@@ -79461,8 +75407,6 @@ get_varp_scope(struct vimoption *p, int scope)
                 return (char_u *)&(curbuf->b_p_ul);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_LW)) ))  :
                 return (char_u *)&(curbuf->b_p_lw);
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_MENC)) ))  :
-                return (char_u *)&(curbuf->b_p_menc);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_LCS)) ))  :
                 return (char_u *)&(curwin-> w_onebuf_opt.wo_lcs );
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_FCS)) ))  :
@@ -79522,9 +75466,6 @@ get_varp(struct vimoption *p)
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_LW)) ))  :
             return *curbuf->b_p_lw != NUL
                                     ? (char_u *)&(curbuf->b_p_lw) : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_MENC)) ))  :
-            return *curbuf->b_p_menc != NUL
-                                    ? (char_u *)&(curbuf->b_p_menc) : p->var;
         case   (idopt_T)(PV_WIN + (int)(WV_LIST))  :
             return (char_u *)&(curwin-> w_onebuf_opt.wo_list );
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_LCS)) ))  :
@@ -79553,8 +75494,6 @@ get_varp(struct vimoption *p)
 
         case   (idopt_T)(PV_BUF + (int)(BV_AI))  :
             return (char_u *)&(curbuf->b_p_ai);
-        case   (idopt_T)(PV_BUF + (int)(BV_BIN))  :
-            return (char_u *)&(curbuf->b_p_bin);
         case   (idopt_T)(PV_BUF + (int)(BV_BT))  :
             return (char_u *)&(curbuf->b_p_bt);
         case   (idopt_T)(PV_BUF + (int)(BV_BL))  :
@@ -79565,16 +75504,8 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_com);
         case   (idopt_T)(PV_BUF + (int)(BV_CMS))  :
             return (char_u *)&(curbuf->b_p_cms);
-        case   (idopt_T)(PV_BUF + (int)(BV_EOF))  :
-            return (char_u *)&(curbuf->b_p_eof);
-        case   (idopt_T)(PV_BUF + (int)(BV_EOL))  :
-            return (char_u *)&(curbuf->b_p_eol);
-        case   (idopt_T)(PV_BUF + (int)(BV_FIXEOL))  :
-            return (char_u *)&(curbuf->b_p_fixeol);
         case   (idopt_T)(PV_BUF + (int)(BV_ET))  :
             return (char_u *)&(curbuf->b_p_et);
-        case   (idopt_T)(PV_BUF + (int)(BV_FF))  :
-            return (char_u *)&(curbuf->b_p_ff);
         case   (idopt_T)(PV_BUF + (int)(BV_FT))  :
             return (char_u *)&(curbuf->b_p_ft);
         case   (idopt_T)(PV_BUF + (int)(BV_FO))  :
@@ -79591,8 +75522,6 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_lisp);
         case   (idopt_T)(PV_BUF + (int)(BV_LOP))  :
             return (char_u *)&(curbuf->b_p_lop);
-        case   (idopt_T)(PV_BUF + (int)(BV_ML))  :
-            return (char_u *)&(curbuf->b_p_ml);
         case   (idopt_T)(PV_BUF + (int)(BV_MPS))  :
             return (char_u *)&(curbuf->b_p_mps);
         case   (idopt_T)(PV_BUF + (int)(BV_MA))  :
@@ -79619,8 +75548,6 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_ts);
         case   (idopt_T)(PV_BUF + (int)(BV_TW))  :
             return (char_u *)&(curbuf->b_p_tw);
-        case   (idopt_T)(PV_BUF + (int)(BV_TX))  :
-            return (char_u *)&(curbuf->b_p_tx);
         case   (idopt_T)(PV_BUF + (int)(BV_WM))  :
             return (char_u *)&(curbuf->b_p_wm);
         default:
@@ -79775,25 +75702,6 @@ buf_copy_options(buf_T *buf, int flags)
             {
                 free_buf_options(buf, TRUE);
                 buf->b_p_ro = FALSE;
-                buf->b_p_tx = p_tx;
-                switch (*p_ffs)
-                {
-                    case 'm':
-                        buf->b_p_ff = vim_strsave((char_u *) "mac" );
-                        break;
-                    case 'd':
-                        buf->b_p_ff = vim_strsave((char_u *) "dos" );
-                        break;
-                    case 'u':
-                        buf->b_p_ff = vim_strsave((char_u *) "unix" );
-                        break;
-                    default:
-                        buf->b_p_ff = vim_strsave(p_ff);
-                }
-                if (buf->b_p_ff != NULL)
-                {
-                    buf->b_start_ffc = *buf->b_p_ff;
-                }
                 buf->b_p_bt = empty_option;
             }
             else
@@ -79809,23 +75717,16 @@ buf_copy_options(buf_T *buf, int flags)
             buf->b_p_tw = p_tw;
               ;
             buf->b_p_tw_nopaste = p_tw_nopaste;
-            buf->b_p_tw_nobin = p_tw_nobin;
             buf->b_p_wm = p_wm;
               ;
             buf->b_p_wm_nopaste = p_wm_nopaste;
-            buf->b_p_wm_nobin = p_wm_nobin;
-            buf->b_p_bin = p_bin;
               ;
               ;
-            buf->b_p_fixeol = p_fixeol;
               ;
             buf->b_p_et = p_et;
               ;
-            buf->b_p_et_nobin = p_et_nobin;
             buf->b_p_et_nopaste = p_et_nopaste;
-            buf->b_p_ml = p_ml;
               ;
-            buf->b_p_ml_nobin = p_ml_nobin;
               ;
               ;
               ;
@@ -79881,7 +75782,6 @@ buf_copy_options(buf_T *buf, int flags)
             buf->b_p_qe = vim_strsave(p_qe);
               ;
             buf->b_p_lw = empty_option;
-            buf->b_p_menc = empty_option;
 
             if (dont_do_help)
             {
@@ -80859,7 +76759,6 @@ static char *(p_bo_values[]) = {"all", "backspace", "cursor", "complete",
                                  "showmatch", "operator", "register", "shell",
                                  "spell", "term", "wildmode", NULL};
 static char *(p_nf_values[]) = {"bin", "octal", "hex", "alpha", "unsigned", "blank", NULL};
-static char *(p_ff_values[]) = { "unix" ,  "dos" ,  "mac" , NULL};
 static char *(p_cmp_values[]) = {"internal", "keepascii", NULL};
 static char *(p_dy_values[]) = {"lastline", "truncate", "uhex", NULL};
 static char *(p_jop_values[]) = {"stack", NULL};
@@ -80905,7 +76804,6 @@ illegal_char(char *errbuf, size_t errbuflen, int c)
 check_buf_options(buf_T *buf)
 {
     check_string_option(&buf->b_p_bt);
-    check_string_option(&buf->b_p_ff);
     check_string_option(&buf->b_p_fp);
     check_string_option(&buf->b_p_kp);
     check_string_option(&buf->b_p_mps);
@@ -80920,7 +76818,6 @@ check_buf_options(buf_T *buf)
     check_string_option(&buf->b_p_ft);
     check_string_option(&buf->b_p_ep);
     check_string_option(&buf->b_p_lw);
-    check_string_option(&buf->b_p_menc);
 }
 
     static void
@@ -81663,106 +77560,6 @@ expand_set_display(optexpand_T *args, int *numMatches, char_u ***matches)
 }
 
     static char *
-did_set_encoding(optset_T *args)
-{
-    char_u      **varp = (char_u **)args->os_varp;
-    char        *errmsg = NULL;
-    char_u      *p;
-
-    if (errmsg == NULL)
-    {
-        p = enc_canonize(*varp);
-        if (p != NULL)
-        {
-            vim_free(*varp);
-            *varp = p;
-        }
-        if (varp == &p_enc)
-        {
-            errmsg = mb_init();
-            redraw_titles();
-        }
-    }
-
-    return errmsg;
-}
-
-    static int
-expand_set_encoding(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_generic(args, get_encoding_name, numMatches, matches);
-}
-
-    static char *
-did_set_fileformat(optset_T *args)
-{
-    char_u      **varp = (char_u **)args->os_varp;
-
-    if (!curbuf->b_p_ma && !(args->os_flags & OPT_GLOBAL))
-    {
-        return e_cannot_make_changes_modifiable_is_off;
-    }
-    else if (check_opt_strings(*varp, p_ff_values, FALSE) != OK)
-    {
-        return e_invalid_argument;
-    }
-
-    if (get_fileformat(curbuf) == EOL_DOS)
-    {
-        curbuf->b_p_tx = TRUE;
-    }
-    else
-    {
-        curbuf->b_p_tx = FALSE;
-    }
-    redraw_titles();
-    ml_setflags(curbuf);
-    if (get_fileformat(curbuf) == EOL_MAC || *args->os_oldval.string == 'm')
-    {
-        redraw_curbuf_later(UPD_NOT_VALID);
-    }
-
-    return NULL;
-}
-
-    static int
-expand_set_fileformat(optexpand_T *args, int *numMatches, char_u ***matches)
-{
-    return expand_set_opt_string(args, p_ff_values,  (sizeof(p_ff_values) / sizeof((p_ff_values)[0]))  - 1, numMatches, matches);
-}
-
-    static char_u *
-get_fileformat_name(expand_T *xp  __attribute__((unused)) , int idx)
-{
-    if (idx >= (int) (sizeof(p_ff_values) / sizeof((p_ff_values)[0])) )
-    {
-        return NULL;
-    }
-
-    return (char_u*)p_ff_values[idx];
-}
-
-    static char *
-did_set_fileformats(optset_T *args  __attribute__((unused)) )
-{
-    if (check_opt_strings(p_ffs, p_ff_values, TRUE) != OK)
-    {
-        return e_invalid_argument;
-    }
-
-    if (*p_ffs == NUL)
-    {
-        p_ta = FALSE;
-    }
-    else
-    {
-        p_ta = TRUE;
-    }
-
-    return NULL;
-}
-
-    static char *
 did_set_filetype_or_syntax(optset_T *args)
 {
     char_u      **varp = (char_u **)args->os_varp;
@@ -82082,45 +77879,28 @@ did_set_matchpairs(optset_T *args)
     char_u      **varp = (char_u **)args->os_varp;
     char_u      *p;
 
-    if (has_mbyte)
+    for (p = *varp; *p != NUL; ++p)
     {
-        for (p = *varp; *p != NUL; ++p)
-        {
-            int x2 = -1;
-            int x3 = -1;
+        int x2 = -1;
+        int x3 = -1;
 
-            p += mb_ptr2len(p);
-            if (*p != NUL)
-            {
-                x2 = *p++;
-            }
-            if (*p != NUL)
-            {
-                x3 = mb_ptr2char(p);
-                p += mb_ptr2len(p);
-            }
-            if (x2 != ':' || x3 == -1 || (*p != NUL && *p != ','))
-            {
-                return e_invalid_argument;
-            }
-            if (*p == NUL)
-            {
-                break;
-            }
-        }
-    }
-    else
-    {
-        for (p = *varp; *p != NUL; p += 4)
+        p += utfc_ptr2len(p);
+        if (*p != NUL)
         {
-            if (p[1] != ':' || p[2] == NUL || (p[3] != NUL && p[3] != ','))
-            {
-                return e_invalid_argument;
-            }
-            if (p[3] == NUL)
-            {
-                break;
-            }
+            x2 = *p++;
+        }
+        if (*p != NUL)
+        {
+            x3 = utf_ptr2char(p);
+            p += utfc_ptr2len(p);
+        }
+        if (x2 != ':' || x3 == -1 || (*p != NUL && *p != ','))
+        {
+            return e_invalid_argument;
+        }
+        if (*p == NUL)
+        {
+            break;
         }
     }
 
@@ -82518,10 +78298,6 @@ expand_set_wincolor(optexpand_T *args, int *numMatches, char_u ***matches)
     static void
 do_filetype_autocmd(char_u **varp, int opt_flags, int value_changed)
 {
-    if ((opt_flags & OPT_MODELINE) && !value_changed)
-    {
-        return;
-    }
 
     static int  ft_recursive = 0;
     int     secure_save = secure;
@@ -82672,12 +78448,6 @@ opt_strings_flags(char_u      *val, char        **values, unsigned    *flagp, in
     }
 
     return OK;
-}
-
-    static int
-check_ff_value(char_u *p)
-{
-    return check_opt_strings(p, p_ff_values, FALSE);
 }
 
 // ==================== os_unix.c ====================
@@ -83771,7 +79541,7 @@ save_patterns(int         num_pat, char_u      **pat, int         *num_file, cha
     static int
 mch_has_wildcard(char_u *p)
 {
-    for ( ; *p;  p += (*mb_ptr2len)(p) )
+    for ( ; *p;  p += utfc_ptr2len(p) )
     {
         if (*p == '\\' && p[1] != NUL)
         {
@@ -84092,20 +79862,10 @@ get_coll_element(char_u **pp)
 
     if (p[0] != NUL && p[1] == '.' && p[2] != NUL)
     {
-        if (has_mbyte)
-        {
-            l = (*mb_ptr2len)(p + 2);
-        }
+        l = utfc_ptr2len(p + 2);
         if (p[l + 2] == '.' && p[l + 3] == ']')
         {
-            if (has_mbyte)
-            {
-                c = mb_ptr2char(p + 2);
-            }
-            else
-            {
-                c = p[2];
-            }
+            c = utf_ptr2char(p + 2);
             *pp += l + 4;
             return c;
         }
@@ -84138,7 +79898,7 @@ skip_anyof(char_u *p)
     }
     while (*p != NUL && *p != ']')
     {
-        if (has_mbyte && (l = (*mb_ptr2len)(p)) > 1)
+        if ((l = utfc_ptr2len(p)) > 1)
         {
             p += l;
         }
@@ -84149,7 +79909,7 @@ skip_anyof(char_u *p)
                 ++p;
                 if (*p != ']' && *p != NUL)
                 {
-                     p += (*mb_ptr2len)(p) ;
+                     p += utfc_ptr2len(p) ;
                 }
             }
         else if (*p == '\\' && !reg_cpo_bsl && (vim_strchr(REGEXP_INRANGE, p[1]) != NULL || (!reg_cpo_lit && vim_strchr(REGEXP_ABBR, p[1]) != NULL)))
@@ -84196,7 +79956,7 @@ skip_regexp_ex(char_u      *startp, int         dirc, int         magic, char_u 
     }
     get_cpo_flags();
 
-    for (; p[0] != NUL;  p += (*mb_ptr2len)(p) )
+    for (; p[0] != NUL;  p += utfc_ptr2len(p) )
     {
         if (p[0] == dirc)
         {
@@ -84390,23 +80150,13 @@ peekchr(void)
                 }
                 else
                 {
-                    if (has_mbyte)
-                    {
-                        curchr = (*mb_ptr2char)(regparse + 1);
-                    }
-                    else
-                    {
-                        curchr = c;
-                    }
+                    curchr = utf_ptr2char(regparse + 1);
                 }
                 break;
             }
 
         default:
-            if (has_mbyte)
-            {
-                curchr = (*mb_ptr2char)(regparse);
-            }
+            curchr = utf_ptr2char(regparse);
     }
 
     return curchr;
@@ -84425,18 +80175,7 @@ skipchr(void)
     }
     if (regparse[prevchr_len] != NUL)
     {
-        if (enc_utf8)
-        {
-            prevchr_len += utf_ptr2len(regparse + prevchr_len);
-        }
-        else if (has_mbyte)
-        {
-            prevchr_len += (*mb_ptr2len)(regparse + prevchr_len);
-        }
-        else
-        {
-            ++prevchr_len;
-        }
+        prevchr_len += utf_ptr2len(regparse + prevchr_len);
     }
     regparse += prevchr_len;
     prev_at_start = at_start;
@@ -84735,7 +80474,7 @@ reg_prev_class(void)
 {
     if (rex.input > rex.line)
     {
-        return mb_get_class_buf(rex.input - 1 - (*mb_head_off)(rex.line, rex.input - 1), rex.reg_buf);
+        return mb_get_class_buf(rex.input - 1 - utf_head_off(rex.line, rex.input - 1), rex.reg_buf);
     }
     return -1;
 }
@@ -85057,21 +80796,21 @@ cstrncmp(char_u *s1, char_u *s2, int *n)
     {
         result =  strncmp((char *)(s1), (char *)(s2), (*n)) ;
     }
-    else if (enc_utf8)
+    else
     {
         char_u *p = s1;
         int n2 = 0;
         int n1 = *n;
         while (n1 > 0 && *p != NUL)
         {
-            n1 -= mb_ptr2len(s1);
-             p += (*mb_ptr2len)(p) ;
+            n1 -= utfc_ptr2len(s1);
+             p += utfc_ptr2len(p) ;
             n2++;
         }
         p = s2;
         while (n2-- > 0 && *p != NUL)
         {
-             p += (*mb_ptr2len)(p) ;
+             p += utfc_ptr2len(p) ;
         }
 
         n2 = p - s2;
@@ -85082,12 +80821,8 @@ cstrncmp(char_u *s1, char_u *s2, int *n)
             *n = n2;
         }
     }
-    else
-    {
-        result =  mb_strnicmp((char_u *)(s1), (char_u *)(s2), (int)(*n)) ;
-    }
 
-    if (result != 0 && enc_utf8 && rex.reg_icombine)
+    if (result != 0 && rex.reg_icombine)
     {
         char_u *str1;
         char_u *str2;
@@ -85134,12 +80869,12 @@ cstrchr(char_u *s, int c)
     int cc;
     int lc;
 
-    if (!rex.reg_ic || (!enc_utf8 && mb_char2len(c) > 1))
+    if (!rex.reg_ic)
     {
         return vim_strchr(s, c);
     }
 
-    if (enc_utf8 && c > 0x80)
+    if (c > 0x80)
     {
         cc = utf_fold(c);
         lc = cc;
@@ -85162,32 +80897,19 @@ cstrchr(char_u *s, int c)
         }
     }
 
-    if (has_mbyte)
+    for (p = s; *p != NUL; p += utfc_ptr2len(p))
     {
-        for (p = s; *p != NUL; p += (*mb_ptr2len)(p))
+        int uc = utf_ptr2char(p);
+        if ((c > 0x80 || uc > 0x80))
         {
-            int uc = utf_ptr2char(p);
-            if (enc_utf8 && (c > 0x80 || uc > 0x80))
-            {
-                if ((uc < 0x80 || uc != *p) && utf_fold(uc) == lc)
-                {
-                    return p;
-                }
-            }
-            else if (*p == c || *p == cc)
+            if ((uc < 0x80 || uc != *p) && utf_fold(uc) == lc)
             {
                 return p;
             }
         }
-    }
-    else
-    {
-        for (p = s; *p != NUL; ++p)
+        else if (*p == c || *p == cc)
         {
-            if (*p == c || *p == cc)
-            {
-                return p;
-            }
+            return p;
         }
     }
 
@@ -85289,10 +81011,7 @@ regtilde(char_u *source, int magic)
             {
                 ++p;
             }
-            if (has_mbyte)
-            {
-                p += (*mb_ptr2len)(p) - 1;
-            }
+            p += utfc_ptr2len(p) - 1;
         }
     }
 
@@ -85492,9 +81211,9 @@ vim_regsub_both(char_u      *source, typval_T    *expr, char_u      *dest, int  
                                 c = *src++;
                 }
             }
-            else if (has_mbyte)
+            else
             {
-                c = mb_ptr2char(src - 1);
+                c = utf_ptr2char(src - 1);
             }
 
             if (func_one != (fptr_T)NULL)
@@ -85511,50 +81230,35 @@ vim_regsub_both(char_u      *source, typval_T    *expr, char_u      *dest, int  
                 cc = c;
             }
 
-            if (has_mbyte)
-            {
-                int totlen = mb_ptr2len(src - 1);
-                int charlen = mb_char2len(cc);
+            int totlen = utfc_ptr2len(src - 1);
+            int charlen = utf_char2len(cc);
 
-                if (copy)
-                {
-                    if (dst + charlen > dest + destlen)
-                    {
-                        iemsg("vim_regsub_both(): not enough space");
-                        return 0;
-                    }
-                    mb_char2bytes(cc, dst);
-                }
-                dst += charlen - 1;
-                if (enc_utf8)
-                {
-                    int clen = utf_ptr2len(src - 1);
-
-                    if (clen < totlen)
-                    {
-                        if (copy)
-                        {
-                            if (dst + totlen - clen > dest + destlen)
-                            {
-                                iemsg("vim_regsub_both(): not enough space");
-                                return 0;
-                            }
-                             memmove((char *)(dst + 1), (char *)(src - 1 + clen), (size_t)(totlen - clen)) ;
-                        }
-                        dst += totlen - clen;
-                    }
-                }
-                src += totlen - 1;
-            }
-            else if (copy)
+            if (copy)
             {
-                if (dst + 1 > dest + destlen)
+                if (dst + charlen > dest + destlen)
                 {
                     iemsg("vim_regsub_both(): not enough space");
                     return 0;
                 }
-                *dst = cc;
+                utf_char2bytes(cc, dst);
             }
+            dst += charlen - 1;
+            int clen = utf_ptr2len(src - 1);
+
+            if (clen < totlen)
+            {
+                if (copy)
+                {
+                    if (dst + totlen - clen > dest + destlen)
+                    {
+                        iemsg("vim_regsub_both(): not enough space");
+                        return 0;
+                    }
+                     memmove((char *)(dst + 1), (char *)(src - 1 + clen), (size_t)(totlen - clen)) ;
+                }
+                dst += totlen - clen;
+            }
+            src += totlen - 1;
             dst++;
         }
         else
@@ -85655,14 +81359,7 @@ vim_regsub_both(char_u      *source, typval_T    *expr, char_u      *dest, int  
                         }
                         else
                         {
-                            if (has_mbyte)
-                            {
-                                c = mb_ptr2char(s);
-                            }
-                            else
-                            {
-                                c = *s;
-                            }
+                            c = utf_ptr2char(s);
 
                             if (func_one != (fptr_T)NULL)
                             {
@@ -85678,43 +81375,24 @@ vim_regsub_both(char_u      *source, typval_T    *expr, char_u      *dest, int  
                                 cc = c;
                             }
 
-                            if (has_mbyte)
-                            {
-                                int l;
-                                int charlen;
+                            int l;
+                            int charlen;
 
-                                if (enc_utf8)
-                                {
-                                    l = utf_ptr2len(s) - 1;
-                                }
-                                else
-                                {
-                                    l = mb_ptr2len(s) - 1;
-                                }
+                            l = utf_ptr2len(s) - 1;
 
-                                s += l;
-                                len -= l;
-                                charlen = mb_char2len(cc);
-                                if (copy)
-                                {
-                                    if (dst + charlen > dest + destlen)
-                                    {
-                                        iemsg("vim_regsub_both(): not enough space");
-                                        return 0;
-                                    }
-                                    mb_char2bytes(cc, dst);
-                                }
-                                dst += charlen - 1;
-                            }
-                            else if (copy)
+                            s += l;
+                            len -= l;
+                            charlen = utf_char2len(cc);
+                            if (copy)
                             {
-                                if (dst + 1 > dest + destlen)
+                                if (dst + charlen > dest + destlen)
                                 {
                                     iemsg("vim_regsub_both(): not enough space");
                                     return 0;
                                 }
-                                *dst = cc;
+                                utf_char2bytes(cc, dst);
                             }
+                            dst += charlen - 1;
                             dst++;
                         }
 
@@ -85985,8 +81663,7 @@ regcomp_start(char_u      *expr, int         re_flags)
     static int
 use_multibytecode(int c)
 {
-    return has_mbyte && (*mb_char2len)(c) > 1
-                     && (re_multi_type(peekchr()) != NOT_MULTI || (enc_utf8 && utf_iscomposing(c)));
+    return utf_char2len(c) > 1 && (re_multi_type(peekchr()) != NOT_MULTI || (utf_iscomposing(c)));
 }
 
     static void
@@ -86005,17 +81682,13 @@ regc(int b)
     static void
 regmbc(int c)
 {
-    if (!has_mbyte && c > 0xff)
-    {
-        return;
-    }
     if (regcode ==  ((char_u *) -1) )
     {
-        regsize += (*mb_char2len)(c);
+        regsize += utf_char2len(c);
     }
     else
     {
-        regcode += (*mb_char2bytes)(c, regcode);
+        regcode += utf_char2bytes(c, regcode);
     }
 }
 
@@ -86329,7 +82002,7 @@ regatom(int *flagp)
              return (emsg((_(e_invalid_use_of_underscore))), rc_did_emsg = TRUE, (void *)NULL) ;
         }
 
-        if (enc_utf8 && c ==  ((int)('.') - 256)  && utf_iscomposing(peekchr()))
+        if (c ==  ((int)('.') - 256) && utf_iscomposing(peekchr()))
         {
             c = getchr();
             goto do_multibyte;
@@ -86828,14 +82501,7 @@ collection:
                             }
                             if (endc == 0)
                             {
-                                if (has_mbyte)
-                                {
-                                    endc = mb_ptr2char_adv(&regparse);
-                                }
-                                else
-                                {
-                                    endc = *regparse++;
-                                }
+                                endc = mb_ptr2char_adv(&regparse);
                             }
 
                             if (endc == '\\' && !reg_cpo_lit && !reg_cpo_bsl)
@@ -86847,7 +82513,7 @@ collection:
                             {
                                  return (emsg((_(e_reverse_range_in_character_class))), rc_did_emsg = TRUE, (void *)NULL) ;
                             }
-                            if (has_mbyte && ((*mb_char2len)(startc) > 1 || (*mb_char2len)(endc) > 1))
+                            if ((utf_char2len(startc) > 1 || utf_char2len(endc) > 1))
                             {
                                 if (endc > startc + 256)
                                 {
@@ -87070,25 +82736,17 @@ collection:
                     }
                     else
                     {
-                        if (has_mbyte)
-                        {
-                            int len;
+                        int len;
 
-                            startc = mb_ptr2char(regparse);
-                            len = (*mb_ptr2len)(regparse);
-                            if (enc_utf8 && utf_char2len(startc) != len)
-                            {
-                                startc = -1;
-                            }
-                            while (--len >= 0)
-                            {
-                                regc(*regparse++);
-                            }
-                        }
-                        else
+                        startc = utf_ptr2char(regparse);
+                        len = utfc_ptr2len(regparse);
+                        if (utf_char2len(startc) != len)
                         {
-                            startc = *regparse++;
-                            regc(startc);
+                            startc = -1;
+                        }
+                        while (--len >= 0)
+                        {
+                            regc(*regparse++);
                         }
                     }
                 }
@@ -87127,28 +82785,18 @@ do_multibyte:
             for (len = 0; c != NUL && (len == 0 || (re_multi_type(peekchr()) == NOT_MULTI && !one_exactly && ! ((c) < 0) )); ++len)
             {
                 c = no_Magic(c);
-                if (has_mbyte)
-                {
-                    regmbc(c);
-                    if (enc_utf8)
-                    {
-                        int     l;
+                regmbc(c);
+                int     l;
 
-                        for (;;)
-                        {
-                            l = utf_ptr2len(regparse);
-                            if (! utf_iscomposing(utf_ptr2char(regparse + l)) )
-                            {
-                                break;
-                            }
-                            regmbc(utf_ptr2char(regparse));
-                            skipchr();
-                        }
-                    }
-                }
-                else
+                for (;;)
                 {
-                    regc(c);
+                    l = utf_ptr2len(regparse);
+                    if (! utf_iscomposing(utf_ptr2char(regparse + l)) )
+                    {
+                        break;
+                    }
+                    regmbc(utf_ptr2char(regparse));
+                    skipchr();
                 }
                 c = getchr();
             }
@@ -87645,25 +83293,11 @@ bt_regcomp(char_u *expr, int re_flags)
 
         if ( ((int)*(scan))  == EXACTLY)
         {
-            if (has_mbyte)
-            {
-                r->regstart = (*mb_ptr2char)( ((scan) + 3) );
-            }
-            else
-            {
-                r->regstart = * ((scan) + 3) ;
-            }
+            r->regstart = utf_ptr2char( ((scan) + 3) );
         }
         else if (( ((int)*(scan))  == BOW ||  ((int)*(scan))  == EOW ||  ((int)*(scan))  == NOTHING ||  ((int)*(scan))  == MOPEN + 0 ||  ((int)*(scan))  == NOPEN ||  ((int)*(scan))  == MCLOSE + 0 ||  ((int)*(scan))  == NCLOSE) &&  ((int)*(regnext(scan)))  == EXACTLY)
         {
-            if (has_mbyte)
-            {
-                r->regstart = (*mb_ptr2char)( ((regnext(scan)) + 3) );
-            }
-            else
-            {
-                r->regstart = * ((regnext(scan)) + 3) ;
-            }
+            r->regstart = utf_ptr2char( ((regnext(scan)) + 3) );
         }
 
         if ((flags & SPSTART ||  ((int)*(scan))  == BOW ||  ((int)*(scan))  == EOW) && !(flags & HASNL))
@@ -87816,7 +83450,7 @@ regrepeat(char_u      *p, long        maxcount)
             while (*scan != NUL && count < maxcount)
             {
                 ++count;
-                 scan += (*mb_ptr2len)(scan) ;
+                 scan += utfc_ptr2len(scan) ;
             }
             if (! (rex.reg_match == NULL)  || ! (( ((int)*(p)) ) >=  ANY + ADD_NL  && ( ((int)*(p)) ) <=  NUPPER + ADD_NL )  || rex.lnum > rex.reg_maxline || rex.reg_line_lbr || count == maxcount)
             {
@@ -87839,9 +83473,9 @@ regrepeat(char_u      *p, long        maxcount)
       case SIDENT + ADD_NL:
         while (count < maxcount)
         {
-            if (vim_isIDc( (has_mbyte ? mb_ptr2char(scan) : (int)*(scan)) ) && (testval || ! ((unsigned)(*scan) - '0' < 10) ))
+            if (vim_isIDc( (utf_ptr2char(scan)) ) && (testval || ! ((unsigned)(*scan) - '0' < 10) ))
             {
-                 scan += (*mb_ptr2len)(scan) ;
+                 scan += utfc_ptr2len(scan) ;
             }
             else if (*scan == NUL)
             {
@@ -87877,7 +83511,7 @@ regrepeat(char_u      *p, long        maxcount)
         {
             if (vim_iswordp_buf(scan, rex.reg_buf) && (testval || ! ((unsigned)(*scan) - '0' < 10) ))
             {
-                 scan += (*mb_ptr2len)(scan) ;
+                 scan += utfc_ptr2len(scan) ;
             }
             else if (*scan == NUL)
             {
@@ -87911,9 +83545,9 @@ regrepeat(char_u      *p, long        maxcount)
       case SFNAME + ADD_NL:
         while (count < maxcount)
         {
-            if (vim_isfilec( (has_mbyte ? mb_ptr2char(scan) : (int)*(scan)) ) && (testval || ! ((unsigned)(*scan) - '0' < 10) ))
+            if (vim_isfilec( (utf_ptr2char(scan)) ) && (testval || ! ((unsigned)(*scan) - '0' < 10) ))
             {
-                 scan += (*mb_ptr2len)(scan) ;
+                 scan += utfc_ptr2len(scan) ;
             }
             else if (*scan == NUL)
             {
@@ -87960,9 +83594,9 @@ regrepeat(char_u      *p, long        maxcount)
                     break;
                 }
             }
-            else if (vim_isprintc( (has_mbyte ? mb_ptr2char(scan) : (int)*(scan)) ) == 1 && (testval || ! ((unsigned)(*scan) - '0' < 10) ))
+            else if (vim_isprintc( (utf_ptr2char(scan)) ) == 1 && (testval || ! ((unsigned)(*scan) - '0' < 10) ))
             {
-                 scan += (*mb_ptr2len)(scan) ;
+                 scan += utfc_ptr2len(scan) ;
             }
             else if (rex.reg_line_lbr && *scan == '\n' &&  (( ((int)*(p)) ) >=  ANY + ADD_NL  && ( ((int)*(p)) ) <=  NUPPER + ADD_NL ) )
             {
@@ -87997,7 +83631,7 @@ do_class:
                     break;
                 }
             }
-            else if (has_mbyte && (l = (*mb_ptr2len)(scan)) > 1)
+            else if ((l = utfc_ptr2len(scan)) > 1)
             {
                 if (testval != 0)
                 {
@@ -88123,13 +83757,13 @@ do_class:
             int len;
             int cf = 0;
 
-            if ((len = (*mb_ptr2len)(opnd)) > 1)
+            if ((len = utfc_ptr2len(opnd)) > 1)
             {
-                if (rex.reg_ic && enc_utf8)
+                if (rex.reg_ic)
                 {
                     cf = utf_fold(utf_ptr2char(opnd));
                 }
-                while (count < maxcount && (*mb_ptr2len)(scan) >= len)
+                while (count < maxcount && utfc_ptr2len(scan) >= len)
                 {
                     for (i = 0; i < len; ++i)
                     {
@@ -88138,7 +83772,7 @@ do_class:
                             break;
                         }
                     }
-                    if (i < len && (!rex.reg_ic || !enc_utf8 || utf_fold(utf_ptr2char(scan)) != cf))
+                    if (i < len && (!rex.reg_ic || utf_fold(utf_ptr2char(scan)) != cf))
                     {
                         break;
                     }
@@ -88176,9 +83810,9 @@ do_class:
             {
                 ++scan;
             }
-            else if (has_mbyte && (len = (*mb_ptr2len)(scan)) > 1)
+            else if ((len = utfc_ptr2len(scan)) > 1)
             {
-                if ((cstrchr(opnd, (*mb_ptr2char)(scan)) == NULL) == testval)
+                if ((cstrchr(opnd, utf_ptr2char(scan)) == NULL) == testval)
                 {
                     break;
                 }
@@ -88202,7 +83836,7 @@ do_class:
             count++;
             if (rex.reg_line_lbr)
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             else
             {
@@ -88347,7 +83981,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
         }
         else if (rex.reg_line_lbr &&  ((op) >=  ANY + ADD_NL  && (op) <=  NUPPER + ADD_NL )  && *rex.input == '\n')
         {
-              rex.input += (*mb_ptr2len)(rex.input)  ;
+              rex.input += utfc_ptr2len(rex.input)  ;
         }
         else
         {
@@ -88355,14 +83989,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
           {
               op -= ADD_NL;
           }
-          if (has_mbyte)
-          {
-              c = (*mb_ptr2char)(rex.input);
-          }
-          else
-          {
-              c = *rex.input;
-          }
+          c = utf_ptr2char(rex.input);
           switch (op)
           {
           case BOL:
@@ -88478,7 +84105,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             {
                 status = RA_NOMATCH;
             }
-            else if (has_mbyte)
+            else
             {
                 int this_class;
 
@@ -88492,13 +84119,6 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                     status = RA_NOMATCH;
                 }
             }
-            else
-            {
-                if (!vim_iswordc_buf(c, rex.reg_buf) || (rex.input > rex.line && vim_iswordc_buf(rex.input[-1], rex.reg_buf)))
-                {
-                    status = RA_NOMATCH;
-                }
-            }
             break;
 
           case EOW:
@@ -88506,7 +84126,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             {
                 status = RA_NOMATCH;
             }
-            else if (has_mbyte)
+            else
             {
                 int this_class;
                 int prev_class;
@@ -88514,13 +84134,6 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                 this_class = mb_get_class_buf(rex.input, rex.reg_buf);
                 prev_class = reg_prev_class();
                 if (this_class == prev_class || prev_class == 0 || prev_class == 1)
-                {
-                    status = RA_NOMATCH;
-                }
-            }
-            else
-            {
-                if (!vim_iswordc_buf(rex.input[-1], rex.reg_buf) || (rex.input[0] != NUL && vim_iswordc_buf(c, rex.reg_buf)))
                 {
                     status = RA_NOMATCH;
                 }
@@ -88534,7 +84147,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88545,7 +84158,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88556,7 +84169,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88567,7 +84180,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88578,7 +84191,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88589,7 +84202,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88600,29 +84213,29 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
           case PRINT:
-            if (!vim_isprintc( (has_mbyte ? mb_ptr2char(rex.input) : (int)*(rex.input)) ))
+            if (!vim_isprintc( (utf_ptr2char(rex.input)) ))
             {
                 status = RA_NOMATCH;
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
           case SPRINT:
-            if ( ((unsigned)(*rex.input) - '0' < 10)  || !vim_isprintc( (has_mbyte ? mb_ptr2char(rex.input) : (int)*(rex.input)) ))
+            if ( ((unsigned)(*rex.input) - '0' < 10)  || !vim_isprintc( (utf_ptr2char(rex.input)) ))
             {
                 status = RA_NOMATCH;
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88633,7 +84246,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88644,7 +84257,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88655,7 +84268,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88666,7 +84279,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88677,7 +84290,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88688,7 +84301,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88699,7 +84312,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88710,7 +84323,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88721,7 +84334,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88732,7 +84345,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88743,7 +84356,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88754,7 +84367,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88765,7 +84378,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88776,7 +84389,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88787,7 +84400,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88798,7 +84411,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88809,7 +84422,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88820,7 +84433,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             break;
 
@@ -88830,7 +84443,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                 char_u  *opnd;
 
                 opnd =  ((scan) + 3) ;
-                if (*opnd != *rex.input && (!rex.reg_ic || (!enc_utf8 &&  vim_tolower(*opnd)  !=  vim_tolower(*rex.input) )))
+                if (*opnd != *rex.input && (!rex.reg_ic))
                 {
                     status = RA_NOMATCH;
                 }
@@ -88839,7 +84452,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                 }
                 else
                 {
-                    if (opnd[1] == NUL && !(enc_utf8 && rex.reg_ic))
+                    if (opnd[1] == NUL && !(rex.reg_ic))
                     {
                         len = 1;
                     }
@@ -88851,7 +84464,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                             status = RA_NOMATCH;
                         }
                     }
-                    if (status != RA_NOMATCH && enc_utf8 &&  utf_iscomposing(utf_ptr2char(rex.input + len))  && !rex.reg_icombine &&  ((int)*(next))  != RE_COMPOSING)
+                    if (status != RA_NOMATCH && utf_iscomposing(utf_ptr2char(rex.input + len)) && !rex.reg_icombine && ((int)*(next))  != RE_COMPOSING)
                     {
                         status = RA_NOMATCH;
                     }
@@ -88881,15 +84494,12 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                     int len = 0;
                     int i;
 
-                    if (enc_utf8)
-                    {
-                        len = utfc_ptr2len(q) - utf_ptr2len(q);
-                    }
+                    len = utfc_ptr2len(q) - utf_ptr2len(q);
 
-                     rex.input += enc_utf8 ? utf_ptr2len(rex.input) : (*mb_ptr2len)(rex.input) ;
-                     q += enc_utf8 ? utf_ptr2len(q) : (*mb_ptr2len)(q) ;
+                     rex.input += utf_ptr2len(rex.input) ;
+                     q += utf_ptr2len(q) ;
 
-                    if (!enc_utf8 || len == 0)
+                    if (len == 0)
                     {
                         break;
                     }
@@ -88908,78 +84518,54 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
 
           case MULTIBYTECODE:
-            if (has_mbyte)
-            {
-                int i;
-                int len;
-                char_u  *opnd;
-                int opndc = 0;
-                int inpc;
+            int i;
+            int len;
+            char_u  *opnd;
+            int opndc = 0;
+            int inpc;
 
-                opnd =  ((scan) + 3) ;
-                if ((len = (*mb_ptr2len)(opnd)) < 2)
+            opnd =  ((scan) + 3) ;
+            if ((len = utfc_ptr2len(opnd)) < 2)
+            {
+                status = RA_NOMATCH;
+                break;
+            }
+            opndc = utf_ptr2char(opnd);
+            if (utf_iscomposing(opndc))
+            {
+                status = RA_NOMATCH;
+                for (i = 0; rex.input[i] != NUL; i += utf_ptr2len(rex.input + i))
+                {
+                    inpc = utf_ptr2char(rex.input + i);
+                    if (!utf_iscomposing(inpc))
+                    {
+                        if (i > 0)
+                        {
+                            break;
+                        }
+                    }
+                    else if (opndc == inpc)
+                    {
+                        len = i + utfc_ptr2len(rex.input + i);
+                        status = RA_MATCH;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                if (cstrncmp(opnd, rex.input, &len) != 0)
                 {
                     status = RA_NOMATCH;
                     break;
                 }
-                if (enc_utf8)
-                {
-                    opndc = utf_ptr2char(opnd);
-                }
-                if (enc_utf8 && utf_iscomposing(opndc))
-                {
-                    status = RA_NOMATCH;
-                    for (i = 0; rex.input[i] != NUL; i += utf_ptr2len(rex.input + i))
-                    {
-                        inpc = utf_ptr2char(rex.input + i);
-                        if (!utf_iscomposing(inpc))
-                        {
-                            if (i > 0)
-                            {
-                                break;
-                            }
-                        }
-                        else if (opndc == inpc)
-                        {
-                            len = i + utfc_ptr2len(rex.input + i);
-                            status = RA_MATCH;
-                            break;
-                        }
-                    }
-                }
-                else if (enc_utf8)
-                {
-                    if (cstrncmp(opnd, rex.input, &len) != 0)
-                    {
-                        status = RA_NOMATCH;
-                        break;
-                    }
-                }
-                else
-                {
-                    for (i = 0; i < len; ++i)
-                    {
-                        if (opnd[i] != rex.input[i])
-                        {
-                            status = RA_NOMATCH;
-                            break;
-                        }
-                    }
-                }
-                rex.input += len;
             }
-            else
-            {
-                status = RA_NOMATCH;
-            }
+            rex.input += len;
             break;
           case RE_COMPOSING:
-            if (enc_utf8)
+            while (utf_iscomposing(utf_ptr2char(rex.input)))
             {
-                while (utf_iscomposing(utf_ptr2char(rex.input)))
-                {
-                     rex.input += enc_utf8 ? utf_ptr2len(rex.input) : (*mb_ptr2len)(rex.input) ;
-                }
+                 rex.input += utf_ptr2len(rex.input) ;
             }
             break;
 
@@ -89401,7 +84987,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
             }
             else if (rex.reg_line_lbr)
             {
-                  rex.input += (*mb_ptr2len)(rex.input)  ;
+                  rex.input += utfc_ptr2len(rex.input)  ;
             }
             else
             {
@@ -89477,7 +85063,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                     }
                     else
                     {
-                        s += (*mb_ptr2len)(s);
+                        s += utfc_ptr2len(s);
                     }
                     if (level < 1)
                     {
@@ -89687,18 +85273,11 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                     }
                     else
                     {
-                        if (has_mbyte)
-                        {
-                            char_u *line =
-                                  reg_getline(rp->rs_un.regsave.rs_u.pos.lnum);
+                        char_u *line =
+                              reg_getline(rp->rs_un.regsave.rs_u.pos.lnum);
 
-                            rp->rs_un.regsave.rs_u.pos.col -=
-                                (*mb_head_off)(line, line + rp->rs_un.regsave.rs_u.pos.col - 1) + 1;
-                        }
-                        else
-                        {
-                            --rp->rs_un.regsave.rs_u.pos.col;
-                        }
+                        rp->rs_un.regsave.rs_u.pos.col -=
+                            utf_head_off(line, line + rp->rs_un.regsave.rs_u.pos.col - 1) + 1;
                     }
                 }
                 else
@@ -89709,7 +85288,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                     }
                     else
                     {
-                         rp->rs_un.regsave.rs_u.ptr -= has_mbyte ? ((*mb_head_off)(rex.line, (rp->rs_un.regsave.rs_u.ptr) - 1) + 1) : 1 ;
+                         rp->rs_un.regsave.rs_u.ptr -= (utf_head_off(rex.line, (rp->rs_un.regsave.rs_u.ptr) - 1) + 1) ;
                         if (limit > 0 && (long)(behind_pos.rs_u.ptr - rp->rs_un.regsave.rs_u.ptr) > limit)
                         {
                             no = FAIL;
@@ -89793,7 +85372,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                             }
                             else
                             {
-                                 rex.input -= has_mbyte ? ((*mb_head_off)(rex.line, (rex.input) - 1) + 1) : 1 ;
+                                 rex.input -= (utf_head_off(rex.line, (rex.input) - 1) + 1) ;
                             }
                         }
                         else
@@ -89970,28 +85549,10 @@ bt_regexec_both(char_u      *line, colnr_T     startcol, int         *timed_out)
     {
         int c;
 
-        if (has_mbyte)
-        {
-            c = (*mb_ptr2char)(prog->regmust);
-        }
-        else
-        {
-            c = *prog->regmust;
-        }
+        c = utf_ptr2char(prog->regmust);
         s = line + col;
 
-        if (!rex.reg_ic && !has_mbyte)
-        {
-            while ((s = vim_strbyte(s, c)) != NULL)
-            {
-                if (cstrncmp(s, prog->regmust, &prog->regmlen) == 0)
-                {
-                    break;
-                }
-                ++s;
-            }
-        }
-        else if (!rex.reg_ic || (!enc_utf8 && mb_char2len(c) > 1))
+        if (!rex.reg_ic)
         {
             while ((s = vim_strchr(s, c)) != NULL)
             {
@@ -89999,7 +85560,7 @@ bt_regexec_both(char_u      *line, colnr_T     startcol, int         *timed_out)
                 {
                     break;
                 }
-                 s += (*mb_ptr2len)(s) ;
+                 s += utfc_ptr2len(s) ;
             }
         }
         else
@@ -90010,7 +85571,7 @@ bt_regexec_both(char_u      *line, colnr_T     startcol, int         *timed_out)
                 {
                     break;
                 }
-                 s += (*mb_ptr2len)(s) ;
+                 s += utfc_ptr2len(s) ;
             }
         }
         if (s == NULL)
@@ -90027,15 +85588,8 @@ bt_regexec_both(char_u      *line, colnr_T     startcol, int         *timed_out)
     {
         int     c;
 
-        if (has_mbyte)
-        {
-            c = (*mb_ptr2char)(rex.line + col);
-        }
-        else
-        {
-            c = rex.line[col];
-        }
-        if (prog->regstart == NUL || prog->regstart == c || (rex.reg_ic && (((enc_utf8 && utf_fold(prog->regstart) == utf_fold(c))) || (c < 255 && prog->regstart < 255 &&  vim_tolower(prog->regstart)  ==  vim_tolower(c) ))))
+        c = utf_ptr2char(rex.line + col);
+        if (prog->regstart == NUL || prog->regstart == c || (rex.reg_ic && (((utf_fold(prog->regstart) == utf_fold(c))) || (c < 255 && prog->regstart < 255 &&  vim_tolower(prog->regstart)  ==  vim_tolower(c) ))))
         {
             retval = regtry(prog, col, timed_out);
         }
@@ -90050,14 +85604,7 @@ bt_regexec_both(char_u      *line, colnr_T     startcol, int         *timed_out)
         {
             if (prog->regstart != NUL)
             {
-                if (!rex.reg_ic && !has_mbyte)
-                {
-                    s = vim_strbyte(rex.line + col, prog->regstart);
-                }
-                else
-                {
-                    s = cstrchr(rex.line + col, prog->regstart);
-                }
+                s = cstrchr(rex.line + col, prog->regstart);
                 if (s == NULL)
                 {
                     retval = 0;
@@ -90087,14 +85634,7 @@ bt_regexec_both(char_u      *line, colnr_T     startcol, int         *timed_out)
             {
                 break;
             }
-            if (has_mbyte)
-            {
-                col += (*mb_ptr2len)(rex.line + col);
-            }
-            else
-            {
-                ++col;
-            }
+            col += utfc_ptr2len(rex.line + col);
         }
     }
 
@@ -91364,7 +86904,7 @@ yank_copy_line(struct block_def *bd, long y_idx, int exclude_trailing_space)
 
         while (s > 0 &&  ((*(bd->textstart + s - 1)) == ' ' || (*(bd->textstart + s - 1)) == '\t') )
         {
-            s = s - (*mb_head_off)(bd->textstart, bd->textstart + s - 1) - 1;
+            s = s - utf_head_off(bd->textstart, bd->textstart + s - 1) - 1;
             pnew--;
         }
     }
@@ -91471,7 +87011,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
             plen = ml_get_cursor_len();
             if (dir == FORWARD && *p != NUL)
             {
-                 p += (*mb_ptr2len)(p) ;
+                 p += utfc_ptr2len(p) ;
             }
             ptr = vim_strnsave(p, plen - (size_t)(p - p_orig));
             if (ptr == NULL)
@@ -91485,7 +87025,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
             p = oldp + curwin->w_cursor.col;
             if (dir == FORWARD && *p != NUL)
             {
-                 p += (*mb_ptr2len)(p) ;
+                 p += utfc_ptr2len(p) ;
             }
             ptr = vim_strnsave(oldp, (size_t)(p - oldp));
             if (ptr == NULL)
@@ -91590,17 +87130,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                 getvcol(curwin, &curwin->w_cursor, NULL, NULL, &col, 0);
             }
 
-            if (has_mbyte)
-            {
-                curwin->w_cursor.col += (*mb_ptr2len)(ml_get_cursor());
-            }
-            else
-            {
-                if (c != TAB || cur_ve_flags != VE_ALL)
-                {
-                    ++curwin->w_cursor.col;
-                }
-            }
+            curwin->w_cursor.col += utfc_ptr2len(ml_get_cursor());
             ++col;
         }
         else
@@ -91678,10 +87208,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                 bd.startspaces = incr - bd.endspaces;
                 --bd.textcol;
                 delcount = 1;
-                if (has_mbyte)
-                {
-                    bd.textcol -= (*mb_head_off)(oldp, oldp + bd.textcol);
-                }
+                bd.textcol -= utf_head_off(oldp, oldp + bd.textcol);
                 if (oldp[bd.textcol] != TAB)
                 {
                     delcount = 0;
@@ -91797,25 +87324,13 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
         {
             if (dir == FORWARD && gchar_cursor() != NUL)
             {
-                if (has_mbyte)
-                {
-                    int bytelen = (*mb_ptr2len)(ml_get_cursor());
+                int bytelen = utfc_ptr2len(ml_get_cursor());
 
-                    col += bytelen;
-                    if (yanklen)
-                    {
-                        curwin->w_cursor.col += bytelen;
-                        curbuf->b_op_end.col += bytelen;
-                    }
-                }
-                else
+                col += bytelen;
+                if (yanklen)
                 {
-                    ++col;
-                    if (yanklen)
-                    {
-                        ++curwin->w_cursor.col;
-                        ++curbuf->b_op_end.col;
-                    }
+                    curwin->w_cursor.col += bytelen;
+                    curbuf->b_op_end.col += bytelen;
                 }
             }
             curbuf->b_op_start = curwin->w_cursor;
@@ -91901,7 +87416,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                     }
                      memmove((char *)(ptr), (char *)(oldp + col), (size_t)(oldlen - col) + 1) ;
 
-                    first_byte_off = mb_head_off(newp, ptr - 1);
+                    first_byte_off = utf_head_off(newp, ptr - 1);
 
                     ml_replace(lnum, newp, FALSE);
 
@@ -92071,7 +87586,7 @@ error:
                 curbuf->b_op_end.col = col - 1;
                 if (y_array[y_size - 1].length > 0)
                 {
-                    curbuf->b_op_end.col -= mb_head_off(y_array[y_size - 1].string, y_array[y_size - 1].string + y_array[y_size - 1].length - 1);
+                    curbuf->b_op_end.col -= utf_head_off(y_array[y_size - 1].string, y_array[y_size - 1].string + y_array[y_size - 1].length - 1);
                 }
             }
             else
@@ -92268,7 +87783,7 @@ ex_display(exarg_T *eap)
                     }
                     for (p = yb->y_array[j].string; *p != NUL && (n -= ptr2cells(p)) >= 0; ++p)
                     {
-                        clen = (*mb_ptr2len)(p);
+                        clen = utfc_ptr2len(p);
                         msg_outtrans_len(p, clen);
                         p += clen - 1;
                     }
@@ -92332,7 +87847,7 @@ dis_msg(char_u      *p, int         skip_esc)
     n = (int)Columns - 6;
     while (*p != NUL && !(*p == ESC && skip_esc && *(p + 1) == NUL) && (n -= ptr2cells(p)) >= 0)
     {
-        if (has_mbyte && (l = (*mb_ptr2len)(p)) > 1)
+        if ((l = utfc_ptr2len(p)) > 1)
         {
             msg_outtrans_len(p, l);
             p += l;
@@ -92386,7 +87901,6 @@ get_reg_type(int regname, long *reglen)
 
 static int      screen_attr = 0;
 
-static void screen_char_2(unsigned off, int row, int col);
 static int screenclear2(int doclear);
 static void lineclear(unsigned off, int width, int attr);
 static void lineinvalid(unsigned off, int width);
@@ -92489,7 +88003,7 @@ comp_char_differs(int off_from, int off_to)
     static int
 char_needs_redraw(int off_from, int off_to, int cols)
 {
-    if (cols > 0 && ((ScreenLines[off_from] != ScreenLines[off_to] || ScreenAttrs[off_from] != ScreenAttrs[off_to]) || (enc_dbcs != 0 &&  mb_bytelen_tab[ScreenLines[off_from]]  > 1 && (enc_dbcs == DBCS_JPNU && ScreenLines[off_from] == 0x8e ? ScreenLines2[off_from] != ScreenLines2[off_to] : (cols > 1 && ScreenLines[off_from + 1] != ScreenLines[off_to + 1]))) || (enc_utf8 && (ScreenLinesUC[off_from] != ScreenLinesUC[off_to] || (ScreenLinesUC[off_from] != 0 && comp_char_differs(off_from, off_to)) || ((*mb_off2cells)(off_from, off_from + cols) > 1 && ScreenLines[off_from + 1] != ScreenLines[off_to + 1])))))
+    if (cols > 0 && ((ScreenLines[off_from] != ScreenLines[off_to] || ScreenAttrs[off_from] != ScreenAttrs[off_to]) || ((ScreenLinesUC[off_from] != ScreenLinesUC[off_to] || (ScreenLinesUC[off_from] != 0 && comp_char_differs(off_from, off_to)) || (utf_off2cells(off_from, off_from + cols) > 1 && ScreenLines[off_from + 1] != ScreenLines[off_to + 1])))))
     {
         return TRUE;
     }
@@ -92552,9 +88066,9 @@ screen_line(win_T   *wp, int     row, int     coloff, int     endcol, int     cl
 
     while (col < endcol)
     {
-        if (has_mbyte && (col + 1 < endcol))
+        if ((col + 1 < endcol))
         {
-            char_cells = (*mb_off2cells)(off_from, max_off_from);
+            char_cells = utf_off2cells(off_from, max_off_from);
         }
         else
         {
@@ -92594,50 +88108,26 @@ screen_line(win_T   *wp, int     row, int     coloff, int     endcol, int     cl
                     screen_attr = 0;
                 }
             }
-            if (enc_dbcs != 0)
-            {
-                if (char_cells == 1 && col + 1 < endcol && (*mb_off2cells)(off_to, max_off_to) > 1)
-                {
-                    ScreenLines[off_to + 1] = 0;
-                    redraw_next = TRUE;
-                }
-                else if (char_cells == 2 && col + 2 < endcol && (*mb_off2cells)(off_to, max_off_to) == 1 && (*mb_off2cells)(off_to + 1, max_off_to) > 1)
-                {
-                    ScreenLines[off_to + 2] = 0;
-                    redraw_next = TRUE;
-                }
-
-                if (enc_dbcs == DBCS_JPNU)
-                {
-                    ScreenLines2[off_to] = ScreenLines2[off_from];
-                }
-            }
-            if (has_mbyte && col + char_cells == endcol && ((char_cells == 1 && (*mb_off2cells)(off_to, max_off_to) > 1) || (char_cells == 2 && (*mb_off2cells)(off_to, max_off_to) == 1 && (*mb_off2cells)(off_to + 1, max_off_to) > 1)))
+            if (col + char_cells == endcol && ((char_cells == 1 && utf_off2cells(off_to, max_off_to) > 1) || (char_cells == 2 && utf_off2cells(off_to, max_off_to) == 1 && utf_off2cells(off_to + 1, max_off_to) > 1)))
             {
                 clear_next = TRUE;
             }
 
             ScreenLines[off_to] = ScreenLines[off_from];
-            if (enc_utf8)
+            ScreenLinesUC[off_to] = ScreenLinesUC[off_from];
+            if (ScreenLinesUC[off_from] != 0)
             {
-                ScreenLinesUC[off_to] = ScreenLinesUC[off_from];
-                if (ScreenLinesUC[off_from] != 0)
-                {
-                    int     i;
+                int     i;
 
-                    for (i = 0; i < Screen_mco; ++i)
-                    {
-                        ScreenLinesC[i][off_to] = ScreenLinesC[i][off_from];
-                    }
+                for (i = 0; i < Screen_mco; ++i)
+                {
+                    ScreenLinesC[i][off_to] = ScreenLinesC[i][off_from];
                 }
             }
             if (char_cells == 2)
             {
                 ScreenLines[off_to + 1] = ScreenLines[off_from + 1];
-                if (enc_utf8)
-                {
-                    ScreenLinesUC[off_to + 1] = 0;
-                }
+                ScreenLinesUC[off_to + 1] = 0;
             }
 
             if (term_is_xterm)
@@ -92659,14 +88149,7 @@ screen_line(win_T   *wp, int     row, int     coloff, int     endcol, int     cl
                 ScreenAttrs[off_to + 1] = ScreenAttrs[off_to];
             }
 
-            if (enc_dbcs != 0 && char_cells == 2)
-            {
-                screen_char_2(off_to, row, col + coloff);
-            }
-            else
-            {
-                screen_char(off_to, row, col + coloff);
-            }
+            screen_char(off_to, row, col + coloff);
         }
         else if (  p_wiv && col + coloff > 0 && off_to > 0)
         {
@@ -92696,16 +88179,13 @@ screen_line(win_T   *wp, int     row, int     coloff, int     endcol, int     cl
     if (clear_next && !skip_for_popup(row, col + coloff))
     {
         ScreenLines[off_to] = ' ';
-        if (enc_utf8)
-        {
-            ScreenLinesUC[off_to] = 0;
-        }
+        ScreenLinesUC[off_to] = 0;
             screen_char(off_to, row, col + coloff);
     }
 
     if (clear_width > 0)
     {
-        while (col < clear_width && ScreenLines[off_to] == ' ' && ScreenAttrs[off_to] == 0 && (!enc_utf8 || ScreenLinesUC[off_to] == 0))
+        while (col < clear_width && ScreenLines[off_to] == ' ' && ScreenAttrs[off_to] == 0 && (ScreenLinesUC[off_to] == 0))
         {
             ScreenCols[off_to] =
                               (flags & SLF_INC_VCOL) ? ++last_vcol : last_vcol;
@@ -92733,22 +88213,19 @@ screen_line(win_T   *wp, int     row, int     coloff, int     endcol, int     cl
                 int c;
 
                 c = fillchar_vsep(&hl, wp, row);
-                if (ScreenLines[off_to] != (schar_T)c || (enc_utf8 && (int)ScreenLinesUC[off_to] != (c >= 0x80 ? c : 0)) || ScreenAttrs[off_to] != hl)
+                if (ScreenLines[off_to] != (schar_T)c || ((int)ScreenLinesUC[off_to] != (c >= 0x80 ? c : 0)) || ScreenAttrs[off_to] != hl)
                 {
                     ScreenLines[off_to] = c;
                     ScreenAttrs[off_to] = hl;
-                    if (enc_utf8)
+                    if (c >= 0x80)
                     {
-                        if (c >= 0x80)
-                        {
-                            ScreenLinesUC[off_to] = c;
-                            ScreenLinesC[0][off_to] = 0;
-                            ScreenLines[off_to] = 0x80;
-                        }
-                        else
-                        {
-                            ScreenLinesUC[off_to] = 0;
-                        }
+                        ScreenLinesUC[off_to] = c;
+                        ScreenLinesC[0][off_to] = 0;
+                        ScreenLines[off_to] = 0x80;
+                    }
+                    else
+                    {
+                        ScreenLinesUC[off_to] = 0;
                     }
                     screen_char(off_to, row, col + coloff);
                 }
@@ -92859,15 +88336,7 @@ screen_putchar(int c, int row, int col, int attr)
 {
     char_u      buf[MB_MAXBYTES + 1];
 
-    if (has_mbyte)
-    {
-        buf[(*mb_char2bytes)(c, buf)] = NUL;
-    }
-    else
-    {
-        buf[0] = c;
-        buf[1] = NUL;
-    }
+    buf[utf_char2bytes(c, buf)] = NUL;
     screen_puts(buf, row, col, attr);
 }
 
@@ -92889,20 +88358,9 @@ screen_getbytes(int row, int col, char_u *bytes, int *attrp)
     bytes[0] = ScreenLines[off];
     bytes[1] = NUL;
 
-    if (enc_utf8 && ScreenLinesUC[off] != 0)
+    if (ScreenLinesUC[off] != 0)
     {
         bytes[utfc_char2bytes(off, bytes)] = NUL;
-    }
-    else if (enc_dbcs == DBCS_JPNU && ScreenLines[off] == 0x8e)
-    {
-        bytes[0] = ScreenLines[off];
-        bytes[1] = ScreenLines2[off];
-        bytes[2] = NUL;
-    }
-    else if (enc_dbcs &&  mb_bytelen_tab[bytes[0]]  > 1)
-    {
-        bytes[1] = ScreenLines[off + 1];
-        bytes[2] = NUL;
     }
 }
 
@@ -92955,20 +88413,13 @@ screen_puts_len(char_u      *text, int         textlen, int         row, int    
     }
     off = LineOffset[row] + col;
 
-    if (has_mbyte && col > 0 && col < screen_Columns && mb_fix_col(col, row) != col)
+    if (col > 0 && col < screen_Columns && mb_fix_col(col, row) != col)
     {
         if (!skip_for_popup(row, col - 1))
         {
             ScreenLines[off - 1] = ' ';
-            if (enc_dbcs == DBCS_JPNU)
-            {
-                ScreenAttrs[off - 1] = 0;
-            }
-            else if (enc_utf8)
-            {
-                ScreenLinesUC[off - 1] = 0;
-                ScreenLinesC[0][off - 1] = 0;
-            }
+            ScreenLinesUC[off - 1] = 0;
+            ScreenLinesC[0][off - 1] = 0;
             screen_char(off - 1, row, col - 1);
         }
         force_redraw_next = TRUE;
@@ -92978,31 +88429,15 @@ screen_puts_len(char_u      *text, int         textlen, int         row, int    
     while (col < screen_Columns && (len < 0 || (int)(ptr - text) < len) && *ptr != NUL)
     {
         c = *ptr;
-        if (has_mbyte)
+        mbyte_blen = len > 0 ? utfc_ptr2len_len(ptr, (int)((text + len) - ptr)) : utfc_ptr2len(ptr);
+        u8c = len >= 0
+              ? utfc_ptr2char_len(ptr, u8cc, (int)((text + len) - ptr))
+              : utfc_ptr2char(ptr, u8cc);
+        mbyte_cells = utf_char2cells(u8c);
+        if (col + mbyte_cells > screen_Columns)
         {
-            mbyte_blen = enc_utf8 && len > 0
-                             ? utfc_ptr2len_len(ptr, (int)((text + len) - ptr))
-                             : (*mb_ptr2len)(ptr);
-            if (enc_dbcs == DBCS_JPNU && c == 0x8e)
-            {
-                mbyte_cells = 1;
-            }
-            else if (enc_dbcs != 0)
-            {
-                mbyte_cells = mbyte_blen;
-            }
-            else
-            {
-                u8c = len >= 0
-                      ? utfc_ptr2char_len(ptr, u8cc, (int)((text + len) - ptr))
-                      : utfc_ptr2char(ptr, u8cc);
-                mbyte_cells = utf_char2cells(u8c);
-                if (col + mbyte_cells > screen_Columns)
-                {
-                    c = '>';
-                    mbyte_cells = 1;
-                }
-            }
+            c = '>';
+            mbyte_cells = 1;
         }
 
         force_redraw_this = force_redraw_next;
@@ -93016,9 +88451,9 @@ screen_puts_len(char_u      *text, int         textlen, int         row, int    
         }
 
         need_redraw = ScreenLines[off] != c
-                || (mbyte_cells == 2 && ScreenLines[off + 1] != (enc_dbcs ? ptr[1] : 0))
-                || (enc_dbcs == DBCS_JPNU && c == 0x8e && ScreenLines2[off] != ptr[1])
-                || (enc_utf8 && (ScreenLinesUC[off] != (u8char_T)(c < 0x80 && u8cc[0] == 0 ? 0 : u8c) || (ScreenLinesUC[off] != 0 && screen_comp_differs(off, u8cc))))
+                || (mbyte_cells == 2 && ScreenLines[off + 1] != (0))
+                || FALSE
+                || ((ScreenLinesUC[off] != (u8char_T)(c < 0x80 && u8cc[0] == 0 ? 0 : u8c) || (ScreenLinesUC[off] != 0 && screen_comp_differs(off, u8cc))))
                 || ScreenAttrs[off] != cell_attr
                 || exmode_active
                 ;
@@ -93042,98 +88477,59 @@ screen_puts_len(char_u      *text, int         textlen, int         row, int    
             {
                 clear_next_cell = FALSE;
             }
-            else if (has_mbyte && (len < 0 ? ptr[mbyte_blen] == NUL : ptr + mbyte_blen >= text + len) && ((mbyte_cells == 1 && (*mb_off2cells)(off, max_off) > 1) || (mbyte_cells == 2 && (*mb_off2cells)(off, max_off) == 1 && (*mb_off2cells)(off + 1, max_off) > 1)))
+            else if ((len < 0 ? ptr[mbyte_blen] == NUL : ptr + mbyte_blen >= text + len) && ((mbyte_cells == 1 && utf_off2cells(off, max_off) > 1) || (mbyte_cells == 2 && utf_off2cells(off, max_off) == 1 && utf_off2cells(off + 1, max_off) > 1)))
             {
                 clear_next_cell = TRUE;
             }
 
-            if (enc_dbcs && ((mbyte_cells == 1 && (*mb_off2cells)(off, max_off) > 1) || (mbyte_cells == 2 && (*mb_off2cells)(off, max_off) == 1 && (*mb_off2cells)(off + 1, max_off) > 1)))
-            {
-                ScreenLines[off + mbyte_blen] = 0;
-            }
             ScreenLines[off] = c;
             ScreenAttrs[off] = cell_attr;
             ScreenCols[off] = -1;
-            if (enc_utf8)
+            if (c < 0x80 && u8cc[0] == 0)
             {
-                if (c < 0x80 && u8cc[0] == 0)
-                {
-                    ScreenLinesUC[off] = 0;
-                }
-                else
-                {
-                    int     i;
-
-                    ScreenLinesUC[off] = u8c;
-                    for (i = 0; i < Screen_mco; ++i)
-                    {
-                        ScreenLinesC[i][off] = u8cc[i];
-                        if (u8cc[i] == 0)
-                        {
-                            break;
-                        }
-                    }
-                }
-                if (mbyte_cells == 2)
-                {
-                    ScreenLines[off + 1] = 0;
-                    ScreenLinesUC[off + 1] = 0;
-                    for (int ci = 0; ci < Screen_mco; ++ci)
-                    {
-                        ScreenLinesC[ci][off + 1] = 0;
-                    }
-                    ScreenAttrs[off + 1] = cell_attr;
-                    ScreenCols[off + 1] = -1;
-                }
-                screen_char(off, row, col);
-            }
-            else if (mbyte_cells == 2)
-            {
-                ScreenLines[off + 1] = ptr[1];
-                ScreenAttrs[off + 1] = cell_attr;
-                ScreenCols[off + 1] = -1;
-                screen_char_2(off, row, col);
-            }
-            else if (enc_dbcs == DBCS_JPNU && c == 0x8e)
-            {
-                ScreenLines2[off] = ptr[1];
-                screen_char(off, row, col);
+                ScreenLinesUC[off] = 0;
             }
             else
             {
-                screen_char(off, row, col);
+                int     i;
+
+                ScreenLinesUC[off] = u8c;
+                for (i = 0; i < Screen_mco; ++i)
+                {
+                    ScreenLinesC[i][off] = u8cc[i];
+                    if (u8cc[i] == 0)
+                    {
+                        break;
+                    }
+                }
             }
-        }
-        if (has_mbyte)
-        {
-            off += mbyte_cells;
-            col += mbyte_cells;
-            ptr += mbyte_blen;
-            if (clear_next_cell)
+            if (mbyte_cells == 2)
             {
-                ptr = (char_u *)" ";
-                len = -1;
-                attr = ScreenAttrs[off];
+                ScreenLines[off + 1] = 0;
+                ScreenLinesUC[off + 1] = 0;
+                for (int ci = 0; ci < Screen_mco; ++ci)
+                {
+                    ScreenLinesC[ci][off + 1] = 0;
+                }
+                ScreenAttrs[off + 1] = cell_attr;
+                ScreenCols[off + 1] = -1;
             }
+            screen_char(off, row, col);
         }
-        else
+        off += mbyte_cells;
+        col += mbyte_cells;
+        ptr += mbyte_blen;
+        if (clear_next_cell)
         {
-            ++off;
-            ++col;
-            ++ptr;
+            ptr = (char_u *)" ";
+            len = -1;
+            attr = ScreenAttrs[off];
         }
     }
 
     if (force_redraw_next && col < screen_Columns && !skip_for_popup(row, col))
     {
-        if (enc_dbcs != 0 && dbcs_off2cells(off, max_off) > 1)
-        {
-            screen_char_2(off, row, col);
-        }
-        else
-        {
-            screen_char(off, row, col);
-        }
+        screen_char(off, row, col);
     }
 }
 
@@ -93465,7 +88861,7 @@ screen_char(unsigned off, int row, int col)
         screen_start_highlight(attr);
     }
 
-    if (enc_utf8 && ScreenLinesUC[off] != 0)
+    if (ScreenLinesUC[off] != 0)
     {
         char_u      buf[MB_MAXBYTES + 1];
 
@@ -93496,33 +88892,9 @@ screen_char(unsigned off, int row, int col)
     {
         out_flush_check();
         out_char(ScreenLines[off]);
-        if (enc_dbcs == DBCS_JPNU && ScreenLines[off] == 0x8e)
-        {
-            out_char(ScreenLines2[off]);
-        }
     }
 
     screen_cur_col++;
-}
-
-    static void
-screen_char_2(unsigned off, int row, int col)
-{
-    if (off + 1 >= (unsigned)(screen_Rows * screen_Columns))
-    {
-        return;
-    }
-
-    if (row == screen_Rows - 1 && col >= screen_Columns - 2)
-    {
-        ScreenAttrs[off] = (sattr_T)-1;
-        ScreenCols[off] = -1;
-        return;
-    }
-
-    screen_char(off, row, col);
-    out_char(ScreenLines[off + 1]);
-    ++screen_cur_col;
 }
 
     static void
@@ -93548,24 +88920,13 @@ screen_draw_rectangle(int         row, int         col, int         height, int 
         max_off = off + screen_Columns;
         for (c = col; c < col + width; ++c)
         {
-            if (enc_dbcs != 0 && dbcs_off2cells(off + c, max_off) > 1)
+            if (!skip_for_popup(r, c))
             {
-                if (!skip_for_popup(r, c))
-                {
-                    screen_char_2(off + c, r, c);
-                }
-                ++c;
+                screen_char(off + c, r, c);
             }
-            else
+            if (utf_off2cells(off + c, max_off) > 1)
             {
-                if (!skip_for_popup(r, c))
-                {
-                    screen_char(off + c, r, c);
-                }
-                if (utf_off2cells(off + c, max_off) > 1)
-                {
-                    ++c;
-                }
+                ++c;
             }
         }
     }
@@ -93597,10 +88958,7 @@ space_to_screenline(int off, int attr)
     ScreenLines[off] = ' ';
     ScreenAttrs[off] = attr;
     ScreenCols[off] = -1;
-    if (enc_utf8)
-    {
-        ScreenLinesUC[off] = 0;
-    }
+    ScreenLinesUC[off] = 0;
 }
 
     static void
@@ -93631,18 +88989,15 @@ screen_fill(int     start_row, int     end_row, int     start_col, int     end_c
     norm_term = (! (t_colors > 1) );
     for (row = start_row; row < end_row; ++row)
     {
-        if (has_mbyte)
+        if (start_col > 0 && mb_fix_col(start_col, row) != start_col)
         {
-            if (start_col > 0 && mb_fix_col(start_col, row) != start_col)
-            {
-                int left_attr = ScreenAttrs[LineOffset[row] + start_col - 1];
-                screen_puts_len((char_u *)" ", 1, row, start_col - 1, left_attr);
-            }
-            if (end_col < screen_Columns && mb_fix_col(end_col, row) != end_col)
-            {
-                int right_attr = ScreenAttrs[LineOffset[row] + end_col];
-                screen_puts_len((char_u *)" ", 1, row, end_col, right_attr);
-            }
+            int left_attr = ScreenAttrs[LineOffset[row] + start_col - 1];
+            screen_puts_len((char_u *)" ", 1, row, start_col - 1, left_attr);
+        }
+        if (end_col < screen_Columns && mb_fix_col(end_col, row) != end_col)
+        {
+            int right_attr = ScreenAttrs[LineOffset[row] + end_col];
+            screen_puts_len((char_u *)" ", 1, row, end_col, right_attr);
         }
         did_delete = FALSE;
         if (c2 == ' ' && end_col == Columns && can_clear( ( term_strings[(int)(KS_CE)] ) ) && (attr == 0 || (norm_term && attr <= HL_ALL && ((attr & ~(HL_BOLD | HL_ITALIC)) == 0))))
@@ -93656,19 +89011,9 @@ screen_fill(int     start_row, int     end_row, int     start_col, int     end_c
             off = LineOffset[row] + col;
             end_off = LineOffset[row] + end_col;
 
-            if (enc_utf8)
+            while (off < end_off && ScreenLines[off] == ' ' && ScreenAttrs[off] == 0 && ScreenLinesUC[off] == 0)
             {
-                while (off < end_off && ScreenLines[off] == ' ' && ScreenAttrs[off] == 0 && ScreenLinesUC[off] == 0)
-                {
-                    ++off;
-                }
-            }
-            else
-            {
-                while (off < end_off && ScreenLines[off] == ' ' && ScreenAttrs[off] == 0)
-                {
-                    ++off;
-                }
+                ++off;
             }
             if (off < end_off)
             {
@@ -93691,13 +89036,13 @@ screen_fill(int     start_row, int     end_row, int     start_col, int     end_c
         c = c1;
         for (col = start_col; col < end_col; ++col)
         {
-            if ((ScreenLines[off] != c || (enc_utf8 && (int)ScreenLinesUC[off] != (c >= 0x80 ? c : 0)) || ScreenAttrs[off] != attr || must_redraw == UPD_CLEAR || force_next) && !skip_for_popup(row, col))
+            if ((ScreenLines[off] != c || ((int)ScreenLinesUC[off] != (c >= 0x80 ? c : 0)) || ScreenAttrs[off] != attr || must_redraw == UPD_CLEAR || force_next) && !skip_for_popup(row, col))
             {
                 if (screen_pum_blend > 0 && c == ' ' && pum_bg_attrs != NULL && row >= pum_bg_top && row < pum_bg_bot && col < pum_bg_cols)
                 {
                     int soff = (row - pum_bg_top) * pum_bg_cols + col;
 
-                    if (enc_utf8 && pum_bg_linesUC != NULL && col > start_col && pum_bg_linesUC[soff] == 0 && pum_bg_linesUC[soff - 1] != 0 && utf_char2cells(pum_bg_linesUC[soff - 1]) == 2)
+                    if (pum_bg_linesUC != NULL && col > start_col && pum_bg_linesUC[soff] == 0 && pum_bg_linesUC[soff - 1] != 0 && utf_char2cells(pum_bg_linesUC[soff - 1]) == 2)
                     {
                         ScreenLines[off] = 0;
                         if (ScreenLinesUC != NULL)
@@ -93710,7 +89055,7 @@ screen_fill(int     start_row, int     end_row, int     start_col, int     end_c
 
                     int underlying_attr = pum_bg_attrs[soff];
 
-                    if (enc_utf8 && pum_bg_linesUC != NULL && ((pum_bg_linesUC[soff] != 0 && utf_char2cells(pum_bg_linesUC[soff]) == 2 && col + 1 >= end_col) || (col == start_col && pum_bg_linesUC[soff] == 0 && col > 0 && pum_bg_linesUC[soff - 1] != 0 && utf_char2cells(pum_bg_linesUC[soff - 1]) == 2)))
+                    if (pum_bg_linesUC != NULL && ((pum_bg_linesUC[soff] != 0 && utf_char2cells(pum_bg_linesUC[soff]) == 2 && col + 1 >= end_col) || (col == start_col && pum_bg_linesUC[soff] == 0 && col > 0 && pum_bg_linesUC[soff - 1] != 0 && utf_char2cells(pum_bg_linesUC[soff - 1]) == 2)))
                     {
                         ScreenLines[off] = ' ';
                         if (ScreenLinesUC != NULL)
@@ -93723,7 +89068,7 @@ screen_fill(int     start_row, int     end_row, int     start_col, int     end_c
                     }
 
                     ScreenLines[off] = pum_bg_lines[soff];
-                    if (enc_utf8 && pum_bg_linesUC != NULL && ScreenLinesUC != NULL)
+                    if (pum_bg_linesUC != NULL && ScreenLinesUC != NULL)
                     {
                         int k;
                         ScreenLinesUC[off] = pum_bg_linesUC[soff];
@@ -93751,18 +89096,15 @@ screen_fill(int     start_row, int     end_row, int     start_col, int     end_c
                     }
                 }
                 ScreenLines[off] = c;
-                if (enc_utf8)
+                if (c >= 0x80)
                 {
-                    if (c >= 0x80)
-                    {
-                        ScreenLinesUC[off] = c;
-                        ScreenLinesC[0][off] = 0;
-                        ScreenLines[off] = 0x80;
-                    }
-                    else
-                    {
-                        ScreenLinesUC[off] = 0;
-                    }
+                    ScreenLinesUC[off] = c;
+                    ScreenLinesC[0][off] = 0;
+                    ScreenLines[off] = 0x80;
+                }
+                else
+                {
+                    ScreenLinesUC[off] = 0;
                 }
                 ScreenAttrs[off] = attr;
                 if (!did_delete || c != ' ')
@@ -93858,7 +89200,7 @@ screenalloc(int doclear)
     int             found_null;
 
 retry:
-    if ((ScreenLines != NULL && Rows == screen_Rows && Columns == screen_Columns && enc_utf8 == (ScreenLinesUC != NULL) && (enc_dbcs == DBCS_JPNU) == (ScreenLines2 != NULL) && p_mco == Screen_mco) || Rows == 0 || Columns == 0 || (!full_screen && ScreenLines == NULL))
+    if ((ScreenLines != NULL && Rows == screen_Rows && Columns == screen_Columns && TRUE == (ScreenLinesUC != NULL) && FALSE == (ScreenLines2 != NULL) && p_mco == Screen_mco) || Rows == 0 || Columns == 0 || (!full_screen && ScreenLines == NULL))
     {
         return;
     }
@@ -93892,17 +89234,10 @@ retry:
 
     new_ScreenLines =  (schar_T *)lalloc(sizeof(schar_T) * ((Rows + 1) * Columns), FALSE) ;
      memset((new_ScreenLinesC), (0), (sizeof(u8char_T *) * MAX_MCO)) ;
-    if (enc_utf8)
+    new_ScreenLinesUC =  (u8char_T *)lalloc(sizeof(u8char_T) * ((Rows + 1) * Columns), FALSE) ;
+    for (int i = 0; i < p_mco; ++i)
     {
-        new_ScreenLinesUC =  (u8char_T *)lalloc(sizeof(u8char_T) * ((Rows + 1) * Columns), FALSE) ;
-        for (int i = 0; i < p_mco; ++i)
-        {
-            new_ScreenLinesC[i] =  (u8char_T *)lalloc_clear(sizeof(u8char_T) * ((Rows + 1) * Columns), FALSE) ;
-        }
-    }
-    if (enc_dbcs == DBCS_JPNU)
-    {
-        new_ScreenLines2 =  (schar_T *)lalloc(sizeof(schar_T) * ((Rows + 1) * Columns), FALSE) ;
+        new_ScreenLinesC[i] =  (u8char_T *)lalloc_clear(sizeof(u8char_T) * ((Rows + 1) * Columns), FALSE) ;
     }
     new_ScreenAttrs =  (sattr_T *)lalloc(sizeof(sattr_T) * ((Rows + 1) * Columns), FALSE) ;
     new_ScreenCols =  (colnr_T *)lalloc_clear(sizeof(colnr_T) * ((Rows + 1) * Columns), FALSE) ;
@@ -93940,7 +89275,7 @@ give_up:
             break;
         }
     }
-    if (new_ScreenLines == NULL || (enc_utf8 && (new_ScreenLinesUC == NULL || found_null)) || (enc_dbcs == DBCS_JPNU && new_ScreenLines2 == NULL) || new_ScreenAttrs == NULL || new_ScreenCols == NULL || new_LineOffset == NULL || new_LineWraps == NULL || new_TabPageIdxs == NULL || outofmem)
+    if (new_ScreenLines == NULL || ((new_ScreenLinesUC == NULL || found_null)) || new_ScreenAttrs == NULL || new_ScreenCols == NULL || new_LineOffset == NULL || new_LineWraps == NULL || new_TabPageIdxs == NULL || outofmem)
     {
         if (ScreenLines != NULL || !done_outofmem_msg)
         {
@@ -93980,17 +89315,10 @@ give_up:
             new_LineWraps[new_row] = FALSE;
 
             (void) memset((new_ScreenLines + new_row * Columns), (' '), ((size_t)Columns * sizeof(schar_T))) ;
-            if (enc_utf8)
+            (void) memset((new_ScreenLinesUC + new_row * Columns), (0), ((size_t)Columns * sizeof(u8char_T))) ;
+            for (int i = 0; i < p_mco; ++i)
             {
-                (void) memset((new_ScreenLinesUC + new_row * Columns), (0), ((size_t)Columns * sizeof(u8char_T))) ;
-                for (int i = 0; i < p_mco; ++i)
-                {
-                    (void) memset((new_ScreenLinesC[i] + new_row * Columns), (0), ((size_t)Columns * sizeof(u8char_T))) ;
-                }
-            }
-            if (enc_dbcs == DBCS_JPNU)
-            {
-                (void) memset((new_ScreenLines2 + new_row * Columns), (0), ((size_t)Columns * sizeof(schar_T))) ;
+                (void) memset((new_ScreenLinesC[i] + new_row * Columns), (0), ((size_t)Columns * sizeof(u8char_T))) ;
             }
             (void) memset((new_ScreenAttrs + new_row * Columns), (0), ((size_t)Columns * sizeof(sattr_T))) ;
             (void) memset((new_ScreenCols + new_row * Columns), (0), ((size_t)Columns * sizeof(colnr_T))) ;
@@ -94008,21 +89336,17 @@ give_up:
                     {
                         len = Columns;
                     }
-                    if (!(enc_utf8 && ScreenLinesUC == NULL) && p_mco == Screen_mco)
+                    if (!(ScreenLinesUC == NULL) && p_mco == Screen_mco)
                     {
                          memmove((char *)(new_ScreenLines + new_LineOffset[new_row]), (char *)(ScreenLines + LineOffset[old_row]), (size_t)len * sizeof(schar_T)) ;
                     }
-                    if (enc_utf8 && ScreenLinesUC != NULL && p_mco == Screen_mco)
+                    if (ScreenLinesUC != NULL && p_mco == Screen_mco)
                     {
                          memmove((char *)(new_ScreenLinesUC + new_LineOffset[new_row]), (char *)(ScreenLinesUC + LineOffset[old_row]), (size_t)len * sizeof(u8char_T)) ;
                         for (int i = 0; i < p_mco; ++i)
                         {
                              memmove((char *)(new_ScreenLinesC[i] + new_LineOffset[new_row]), (char *)(ScreenLinesC[i] + LineOffset[old_row]), (size_t)len * sizeof(u8char_T)) ;
                         }
-                    }
-                    if (enc_dbcs == DBCS_JPNU && ScreenLines2 != NULL)
-                    {
-                         memmove((char *)(new_ScreenLines2 + new_LineOffset[new_row]), (char *)(ScreenLines2 + LineOffset[old_row]), (size_t)len * sizeof(schar_T)) ;
                     }
                      memmove((char *)(new_ScreenAttrs + new_LineOffset[new_row]), (char *)(ScreenAttrs + LineOffset[old_row]), (size_t)len * sizeof(sattr_T)) ;
                      memmove((char *)(new_ScreenCols + new_LineOffset[new_row]), (char *)(ScreenCols + LineOffset[old_row]), (size_t)len * sizeof(colnr_T)) ;
@@ -94175,10 +89499,7 @@ screenclear2(int doclear)
 lineclear(unsigned off, int width, int attr)
 {
     (void) memset((ScreenLines + off), (' '), ((size_t)width * sizeof(schar_T))) ;
-    if (enc_utf8)
-    {
-        (void) memset((ScreenLinesUC + off), (0), ((size_t)width * sizeof(u8char_T))) ;
-    }
+    (void) memset((ScreenLinesUC + off), (0), ((size_t)width * sizeof(u8char_T))) ;
     (void) memset((ScreenAttrs + off), (attr), ((size_t)width * sizeof(sattr_T))) ;
     (void) memset((ScreenCols + off), (-1), ((size_t)width * sizeof(colnr_T))) ;
 }
@@ -94197,19 +89518,12 @@ linecopy(int to, int from, win_T *wp)
     unsigned    off_from = LineOffset[from] + wp->w_wincol;
 
      memmove((char *)(ScreenLines + off_to), (char *)(ScreenLines + off_from), wp->w_width * sizeof(schar_T)) ;
-    if (enc_utf8)
-    {
-        int     i;
+    int     i;
 
-         memmove((char *)(ScreenLinesUC + off_to), (char *)(ScreenLinesUC + off_from), wp->w_width * sizeof(u8char_T)) ;
-        for (i = 0; i < p_mco; ++i)
-        {
-             memmove((char *)(ScreenLinesC[i] + off_to), (char *)(ScreenLinesC[i] + off_from), wp->w_width * sizeof(u8char_T)) ;
-        }
-    }
-    if (enc_dbcs == DBCS_JPNU)
+     memmove((char *)(ScreenLinesUC + off_to), (char *)(ScreenLinesUC + off_from), wp->w_width * sizeof(u8char_T)) ;
+    for (i = 0; i < p_mco; ++i)
     {
-         memmove((char *)(ScreenLines2 + off_to), (char *)(ScreenLines2 + off_from), wp->w_width * sizeof(schar_T)) ;
+         memmove((char *)(ScreenLinesC[i] + off_to), (char *)(ScreenLinesC[i] + off_from), wp->w_width * sizeof(u8char_T)) ;
     }
      memmove((char *)(ScreenAttrs + off_to), (char *)(ScreenAttrs + off_from), wp->w_width * sizeof(sattr_T)) ;
      memmove((char *)(ScreenCols + off_to), (char *)(ScreenCols + off_from), wp->w_width * sizeof(colnr_T)) ;
@@ -94358,15 +89672,12 @@ windgoto(int row, int col)
                     cost = 999;
                 }
             }
-            if (enc_utf8)
+            for (i = wouldbe_col; i < col; ++i)
             {
-                for (i = wouldbe_col; i < col; ++i)
+                if (ScreenLinesUC[LineOffset[row] + i] != 0)
                 {
-                    if (ScreenLinesUC[LineOffset[row] + i] != 0)
-                    {
-                        cost = 999;
-                        break;
-                    }
+                    cost = 999;
+                    break;
                 }
             }
         }
@@ -94431,10 +89742,6 @@ windgoto(int row, int col)
                         }
                         out_flush_check();
                         out_char(ScreenLines[off]);
-                        if (enc_dbcs == DBCS_JPNU && ScreenLines[off] == 0x8e)
-                        {
-                            out_char(ScreenLines2[off]);
-                        }
                         ++off;
                     }
                 }
@@ -96065,7 +91372,7 @@ expand:
         }
 
         int match_pathsep_cnt = (e > s && e[-1] == '/') ? -1 : 0;
-        for (s = e; s > match;  s -= has_mbyte ? ((*mb_head_off)(match, (s) - 1) + 1) : 1 )
+        for (s = e; s > match;  s -= TRUE ? (utf_head_off(match, (s) - 1) + 1) : 1 )
         {
             if (s < match || (vim_ispathsep(*s) && ++match_pathsep_cnt > pat_pathsep_cnt))
             {
@@ -96424,9 +91731,9 @@ pat_has_uppercase(char_u *pat)
     {
         int             l;
 
-        if (has_mbyte && (l = (*mb_ptr2len)(p)) > 1)
+        if ((l = utfc_ptr2len(p)) > 1)
         {
-            if (enc_utf8 && utf_isupper(utf_ptr2char(p)))
+            if (utf_isupper(utf_ptr2char(p)))
             {
                 return TRUE;
             }
@@ -96560,7 +91867,7 @@ searchit(win_T       *win, buf_T       *buf, pos_T       *pos, pos_T       *end_
         {
             start_char_len = 0;
         }
-        else if (has_mbyte && pos->lnum >= 1 && pos->lnum <= buf->b_ml.ml_line_count && pos->col < MAXCOL - 2)
+        else if (pos->lnum >= 1 && pos->lnum <= buf->b_ml.ml_line_count && pos->col < MAXCOL - 2)
         {
             ptr = ml_get_buf(buf, pos->lnum, FALSE);
             if (ml_get_buf_len(buf, pos->lnum) <= pos->col)
@@ -96569,7 +91876,7 @@ searchit(win_T       *win, buf_T       *buf, pos_T       *pos, pos_T       *end_
             }
             else
             {
-                start_char_len = (*mb_ptr2len)(ptr + pos->col);
+                start_char_len = utfc_ptr2len(ptr + pos->col);
             }
         }
         else
@@ -96672,15 +91979,8 @@ searchit(win_T       *win, buf_T       *buf, pos_T       *pos, pos_T       *end_
                                 matchcol = endpos.col;
                                 if (matchcol == matchpos.col && ptr[matchcol] != NUL)
                                 {
-                                    if (has_mbyte)
-                                    {
-                                        matchcol +=
-                                          (*mb_ptr2len)(ptr + matchcol);
-                                    }
-                                    else
-                                    {
-                                        ++matchcol;
-                                    }
+                                    matchcol +=
+                                      utfc_ptr2len(ptr + matchcol);
                                 }
                             }
                             else
@@ -96688,14 +91988,7 @@ searchit(win_T       *win, buf_T       *buf, pos_T       *pos, pos_T       *end_
                                 matchcol = regmatch.rmm_matchcol;
                                 if (ptr[matchcol] != NUL)
                                 {
-                                    if (has_mbyte)
-                                    {
-                                        matchcol += (*mb_ptr2len)(ptr + matchcol);
-                                    }
-                                    else
-                                    {
-                                        ++matchcol;
-                                    }
+                                    matchcol += utfc_ptr2len(ptr + matchcol);
                                 }
                             }
                             if (matchcol == 0 && (options & SEARCH_START))
@@ -96746,15 +92039,8 @@ searchit(win_T       *win, buf_T       *buf, pos_T       *pos, pos_T       *end_
                                 matchcol = endpos.col;
                                 if (matchcol == matchpos.col && ptr[matchcol] != NUL)
                                 {
-                                    if (has_mbyte)
-                                    {
-                                        matchcol +=
-                                          (*mb_ptr2len)(ptr + matchcol);
-                                    }
-                                    else
-                                    {
-                                        ++matchcol;
-                                    }
+                                    matchcol +=
+                                      utfc_ptr2len(ptr + matchcol);
                                 }
                             }
                             else
@@ -96766,15 +92052,8 @@ searchit(win_T       *win, buf_T       *buf, pos_T       *pos, pos_T       *end_
                                 matchcol = matchpos.col;
                                 if (ptr[matchcol] != NUL)
                                 {
-                                    if (has_mbyte)
-                                    {
-                                        matchcol +=
-                                          (*mb_ptr2len)(ptr + matchcol);
-                                    }
-                                    else
-                                    {
-                                        ++matchcol;
-                                    }
+                                    matchcol +=
+                                      utfc_ptr2len(ptr + matchcol);
                                 }
                             }
                             if (ptr[matchcol] == NUL || (nmatched = vim_regexec_multi(&regmatch, win, buf, lnum + matchpos.lnum, matchcol, timed_out)) == 0)
@@ -96814,10 +92093,10 @@ searchit(win_T       *win, buf_T       *buf, pos_T       *pos, pos_T       *end_
                         else
                         {
                             --pos->col;
-                            if (has_mbyte && pos->lnum <= buf->b_ml.ml_line_count)
+                            if (pos->lnum <= buf->b_ml.ml_line_count)
                             {
                                 ptr = ml_get_buf(buf, pos->lnum, FALSE);
-                                pos->col -= (*mb_head_off)(ptr, ptr + pos->col);
+                                pos->col -= utf_head_off(ptr, ptr + pos->col);
                             }
                         }
                         if (end_pos != NULL)
@@ -97183,7 +92462,7 @@ do_search(oparg_T         *oap, int             dirc, int             search_del
 
                     msgbuf[0] = dirc;
 
-                    if (enc_utf8 && utf_iscomposing(utf_ptr2char(p)))
+                    if (utf_iscomposing(utf_ptr2char(p)))
                     {
                         msgbuf[1] = ' ';
                          memmove((char *)(msgbuf + 2), (char *)(p), plen) ;
@@ -97390,13 +92669,13 @@ searchc(cmdarg_T *cap, int t_cmd)
             *lastc = c;
             set_csearch_direction(dir);
             set_csearch_until(t_cmd);
-            lastc_bytelen = (*mb_char2bytes)(c, lastc_bytes);
+            lastc_bytelen = utf_char2bytes(c, lastc_bytes);
             if (cap->ncharC1 != 0)
             {
-                lastc_bytelen += (*mb_char2bytes)(cap->ncharC1, lastc_bytes + lastc_bytelen);
+                lastc_bytelen += utf_char2bytes(cap->ncharC1, lastc_bytes + lastc_bytelen);
                 if (cap->ncharC2 != 0)
                 {
-                    lastc_bytelen += (*mb_char2bytes)(cap->ncharC2, lastc_bytes + lastc_bytelen);
+                    lastc_bytelen += utf_char2bytes(cap->ncharC2, lastc_bytes + lastc_bytelen);
                 }
             }
         }
@@ -97439,70 +92718,49 @@ searchc(cmdarg_T *cap, int t_cmd)
 
     while (count--)
     {
-        if (has_mbyte)
+        for (;;)
         {
-            for (;;)
+            if (dir > 0)
             {
-                if (dir > 0)
-                {
-                    col += (*mb_ptr2len)(p + col);
-                    if (col >= len)
-                    {
-                        return FAIL;
-                    }
-                }
-                else
-                {
-                    if (col == 0)
-                    {
-                        return FAIL;
-                    }
-                    col -= (*mb_head_off)(p, p + col - 1) + 1;
-                }
-                if (lastc_bytelen <= 1)
-                {
-                    if (p[col] == c && stop)
-                    {
-                        break;
-                    }
-                }
-                else if ( strncmp((char *)(p + col), (char *)(lastc_bytes), (lastc_bytelen))  == 0 && stop)
-                {
-                    break;
-                }
-                stop = TRUE;
-            }
-        }
-        else
-        {
-            for (;;)
-            {
-                if ((col += dir) < 0 || col >= len)
+                col += utfc_ptr2len(p + col);
+                if (col >= len)
                 {
                     return FAIL;
                 }
+            }
+            else
+            {
+                if (col == 0)
+                {
+                    return FAIL;
+                }
+                col -= utf_head_off(p, p + col - 1) + 1;
+            }
+            if (lastc_bytelen <= 1)
+            {
                 if (p[col] == c && stop)
                 {
                     break;
                 }
-                stop = TRUE;
             }
+            else if ( strncmp((char *)(p + col), (char *)(lastc_bytes), (lastc_bytelen))  == 0 && stop)
+            {
+                break;
+            }
+            stop = TRUE;
         }
     }
 
     if (t_cmd)
     {
         col -= dir;
-        if (has_mbyte)
+        if (dir < 0)
         {
-            if (dir < 0)
-            {
-                col += lastc_bytelen - 1;
-            }
-            else
-            {
-                col -= (*mb_head_off)(p, p + col);
-            }
+            col += lastc_bytelen - 1;
+        }
+        else
+        {
+            col -= utf_head_off(p, p + col);
         }
     }
     curwin->w_cursor.col = col;
@@ -97520,9 +92778,9 @@ findmatch(oparg_T *oap, int initc)
 check_prevcol(char_u      *linep, int         col, int         ch, int         *prevcol)
 {
     --col;
-    if (col > 0 && has_mbyte)
+    if (col > 0)
     {
-        col -= (*mb_head_off)(linep, linep + col);
+        col -= utf_head_off(linep, linep + col);
     }
     if (prevcol)
     {
@@ -97583,79 +92841,41 @@ find_mps_values(int     *initc, int     *findc, int     *backwards, int     swit
     ptr = curbuf->b_p_mps;
     while (*ptr != NUL)
     {
-        if (has_mbyte)
-        {
-            char_u *prev;
+        char_u *prev;
 
-            if (mb_ptr2char(ptr) == *initc)
-            {
-                if (switchit)
-                {
-                    *findc = *initc;
-                    *initc = mb_ptr2char(ptr + mb_ptr2len(ptr) + 1);
-                    *backwards = TRUE;
-                }
-                else
-                {
-                    *findc = mb_ptr2char(ptr + mb_ptr2len(ptr) + 1);
-                    *backwards = FALSE;
-                }
-                return;
-            }
-            prev = ptr;
-            ptr += mb_ptr2len(ptr) + 1;
-            if (mb_ptr2char(ptr) == *initc)
-            {
-                if (switchit)
-                {
-                    *findc = *initc;
-                    *initc = mb_ptr2char(prev);
-                    *backwards = FALSE;
-                }
-                else
-                {
-                    *findc = mb_ptr2char(prev);
-                    *backwards = TRUE;
-                }
-                return;
-            }
-            ptr += mb_ptr2len(ptr);
-        }
-        else
+        if (utf_ptr2char(ptr) == *initc)
         {
-            if (*ptr == *initc)
+            if (switchit)
             {
-                if (switchit)
-                {
-                    *backwards = TRUE;
-                    *findc = *initc;
-                    *initc = ptr[2];
-                }
-                else
-                {
-                    *backwards = FALSE;
-                    *findc = ptr[2];
-                }
-                return;
+                *findc = *initc;
+                *initc = utf_ptr2char(ptr + utfc_ptr2len(ptr) + 1);
+                *backwards = TRUE;
             }
-            ptr += 2;
-            if (*ptr == *initc)
+            else
             {
-                if (switchit)
-                {
-                    *backwards = FALSE;
-                    *findc = *initc;
-                    *initc = ptr[-2];
-                }
-                else
-                {
-                    *backwards = TRUE;
-                    *findc =  ptr[-2];
-                }
-                return;
+                *findc = utf_ptr2char(ptr + utfc_ptr2len(ptr) + 1);
+                *backwards = FALSE;
             }
-            ++ptr;
+            return;
         }
+        prev = ptr;
+        ptr += utfc_ptr2len(ptr) + 1;
+        if (utf_ptr2char(ptr) == *initc)
+        {
+            if (switchit)
+            {
+                *findc = *initc;
+                *initc = utf_ptr2char(prev);
+                *backwards = FALSE;
+            }
+            else
+            {
+                *findc = utf_ptr2char(prev);
+                *backwards = TRUE;
+            }
+            return;
+        }
+        ptr += utfc_ptr2len(ptr);
         if (*ptr == ',')
         {
             ++ptr;
@@ -97794,7 +93014,7 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
                 }
                 for (;;)
                 {
-                    initc =  (has_mbyte ? mb_ptr2char(linep + pos.col) : (int)*(linep + pos.col)) ;
+                    initc =  (utf_ptr2char(linep + pos.col)) ;
                     if (initc == NUL)
                     {
                         break;
@@ -97805,7 +93025,7 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
                     {
                         break;
                     }
-                    pos.col += mb_ptr2len(linep + pos.col);
+                    pos.col += utfc_ptr2len(linep + pos.col);
                 }
                 if (!findc)
                 {
@@ -97987,10 +93207,7 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
             else
             {
                 --pos.col;
-                if (has_mbyte)
-                {
-                    pos.col -= (*mb_head_off)(linep, linep + pos.col);
-                }
+                pos.col -= utf_head_off(linep, linep + pos.col);
             }
         }
         else
@@ -98019,14 +93236,7 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
             }
             else
             {
-                if (has_mbyte)
-                {
-                    pos.col += (*mb_ptr2len)(linep + pos.col);
-                }
-                else
-                {
-                    ++pos.col;
-                }
+                pos.col += utfc_ptr2len(linep + pos.col);
             }
         }
 
@@ -98196,7 +93406,7 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
             start_in_quotes = FALSE;
         }
 
-        c =  (has_mbyte ? mb_ptr2char(linep + pos.col) : (int)*(linep + pos.col)) ;
+        c =  (utf_ptr2char(linep + pos.col)) ;
         switch (c)
         {
         case NUL:
@@ -98328,12 +93538,12 @@ showmatch(int         c)
 
     for (p = curbuf->b_p_mps; *p != NUL; ++p)
     {
-        p += mb_ptr2len(p) + 1;
-        if ( (has_mbyte ? mb_ptr2char(p) : (int)*(p))  == c)
+        p += utfc_ptr2len(p) + 1;
+        if ( (utf_ptr2char(p))  == c)
         {
             break;
         }
-        p += mb_ptr2len(p);
+        p += utfc_ptr2len(p);
         if (*p == NUL)
         {
             return;
@@ -98822,7 +94032,7 @@ vim_strsave_escaped_ext(char_u      *string, char_u      *esc_chars, int        
     length = 1;
     for (p = string; *p; p++)
     {
-        if (has_mbyte && (l = (*mb_ptr2len)(p)) > 1)
+        if ((l = utfc_ptr2len(p)) > 1)
         {
             length += l;
             p += l - 1;
@@ -98842,7 +94052,7 @@ vim_strsave_escaped_ext(char_u      *string, char_u      *esc_chars, int        
     p2 = escaped_string;
     for (p = string; *p; p++)
     {
-        if (has_mbyte && (l = (*mb_ptr2len)(p)) > 1)
+        if ((l = utfc_ptr2len(p)) > 1)
         {
              memmove((char *)(p2), (char *)(p), (size_t)l) ;
             p2 += l;
@@ -98973,11 +94183,11 @@ vim_strchr(char_u *string, int c)
     int         b;
 
     p = string;
-    if (enc_utf8 && c > 0 && c < 0x80)
+    if (c > 0 && c < 0x80)
     {
         return vim_strbyte(string, c);
     }
-    if (enc_utf8 && c >= 0x80)
+    if (c >= 0x80)
     {
         while (*p != NUL)
         {
@@ -98991,33 +94201,15 @@ vim_strchr(char_u *string, int c)
         }
         return NULL;
     }
-    if (enc_dbcs != 0 && c > 255)
+    while ((b = *p) != NUL)
     {
-        int     n2 = c & 0xff;
-
-        c = ((unsigned)c >> 8) & 0xff;
-        while ((b = *p) != NUL)
+        if (b == c)
         {
-            if (b == c && p[1] == n2)
-            {
-                return p;
-            }
-            p += (*mb_ptr2len)(p);
+            return p;
         }
-        return NULL;
+        p += utfc_ptr2len(p);
     }
-    if (has_mbyte)
-    {
-        while ((b = *p) != NUL)
-        {
-            if (b == c)
-            {
-                return p;
-            }
-            p += (*mb_ptr2len)(p);
-        }
-        return NULL;
-    }
+    return NULL;
     while ((b = *p) != NUL)
     {
         if (b == c)
@@ -99057,7 +94249,7 @@ vim_strrchr(char_u *string, int c)
         {
             retval = p;
         }
-         p += (*mb_ptr2len)(p) ;
+         p += utfc_ptr2len(p) ;
     }
     return retval;
 }
@@ -100171,9 +95363,9 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                         size_t  i;
                         int     cell;
 
-                        for (i = 0, p1 = (char_u *)str_arg; *p1; p1 += mb_ptr2len(p1))
+                        for (i = 0, p1 = (char_u *)str_arg; *p1; p1 += utfc_ptr2len(p1))
                         {
-                            cell = mb_ptr2cells(p1);
+                            cell = utf_ptr2cells(p1);
                             if (precision_specified && i + cell > precision)
                             {
                                 break;
@@ -101745,10 +96937,6 @@ out_flush_cursor(int     force  __attribute__((unused)) , int     clear_selectio
     static void
 out_flush_check(void)
 {
-    if (enc_dbcs != 0 && out_pos >= OUT_SIZE - MB_MAXBYTES)
-    {
-        out_flush();
-    }
 }
 
     static void
@@ -103057,13 +98245,9 @@ add_key_to_buf(int key, char_u *buf)
         buf[idx++] =  ((-(key)) & 0xff) ;
         buf[idx++] =  (((unsigned)(-(key)) >> 8) & 0xff) ;
     }
-    else if (has_mbyte)
-    {
-        idx += (*mb_char2bytes)(key, buf + idx);
-    }
     else
     {
-        buf[idx++] = key;
+        idx += utf_char2bytes(key, buf + idx);
     }
     return idx;
 }
@@ -103986,14 +99170,7 @@ handle_osc:
         key_name[1] =  (((unsigned)(-(key)) >> 8) & 0xff) ;
         if (key_name[0] == KS_KEY)
         {
-            if (has_mbyte)
-            {
-                new_slen += (*mb_char2bytes)(key_name[1], string + new_slen);
-            }
-            else
-            {
-                string[new_slen++] = key_name[1];
-            }
+            new_slen += utf_char2bytes(key_name[1], string + new_slen);
         }
         else if (osc_state.processing || (new_slen == 0 && key_name[0] == KS_EXTRA && key_name[1] == KE_IGNORE))
         {
@@ -104101,7 +99278,7 @@ replace_termcodes(char_u      *from, char_u      **bufp, scid_T      sid_arg  __
             }
         }
 
-        for (i = (*mb_ptr2len)(src); i > 0; --i)
+        for (i = utfc_ptr2len(src); i > 0; --i)
         {
             if (*src ==  (0x80) )
             {
@@ -104593,12 +99770,12 @@ internal_format(int         textwidth, int         second_indent, int         fl
             {
                 cc = gchar_cursor();
             }
-            if ( ( ((cc) == ' ' || (cc) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
+            if ( ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
             {
                 end_col = curwin->w_cursor.col;
 
                 wcc = 0;
-                while (curwin->w_cursor.col > 0 &&  ( ((cc) == ' ' || (cc) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
+                while (curwin->w_cursor.col > 0 &&  ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
                 {
                     dec_cursor();
                     cc = gchar_cursor();
@@ -104608,7 +99785,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
                         wcc++;
                     }
                 }
-                if (curwin->w_cursor.col == 0 &&  ( ((cc) == ' ' || (cc) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
+                if (curwin->w_cursor.col == 0 &&  ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
                 {
                     break;
                 }
@@ -104636,7 +99813,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
                     dec_cursor();
                     cc = gchar_cursor();
 
-                    if ( ( ((cc) == ' ' || (cc) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
+                    if ( ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
                     {
                         continue;
                     }
@@ -104668,8 +99845,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
                     ncc = gchar_cursor();
 
                     allow_break =
-                        (enc_utf8 && utf_allow_break(cc, ncc))
-                        || enc_dbcs;
+                        (utf_allow_break(cc, ncc));
 
                     if (curwin->w_cursor.col != skip_pos && allow_break)
                     {
@@ -104694,7 +99870,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
                 dec_cursor();
                 cc = gchar_cursor();
 
-                if ( ( ((cc) == ' ' || (cc) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
+                if ( ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
                 {
                     continue;
                 }
@@ -104707,8 +99883,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
                 skip_pos = curwin->w_cursor.col;
 
                 allow_break =
-                    (enc_utf8 && utf_allow_break(cc, ncc))
-                    || enc_dbcs;
+                    (utf_allow_break(cc, ncc));
 
                 if (allow_break)
                 {
@@ -104718,7 +99893,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
                 if (curwin->w_cursor.col <= (colnr_T)wantcol)
                 {
                     int ncc_allow_break =
-                         (enc_utf8 && utf_allow_break_before(ncc)) || enc_dbcs;
+                         (utf_allow_break_before(ncc));
 
                     if (allow_break)
                     {
@@ -104740,8 +99915,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
                         ncc = (ncc != NUL) ? ncc : c;
 
                         allow_break =
-                                (enc_utf8 && utf_allow_break(cc, ncc))
-                                || enc_dbcs;
+                                (utf_allow_break(cc, ncc));
 
                         if (allow_break)
                         {
@@ -104778,7 +99952,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
         }
 
         curwin->w_cursor.col = foundcol;
-        while ((cc = gchar_cursor(),  ( ((cc) == ' ' || (cc) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) ) && (!fo_white_par || curwin->w_cursor.col < startcol))
+        while ((cc = gchar_cursor(),  ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) ) && (!fo_white_par || curwin->w_cursor.col < startcol))
         {
             inc_cursor();
         }
@@ -105093,12 +100267,12 @@ auto_format(int         trailblank, int         prev_line)
 
         dec_cursor();
         cc = gchar_cursor();
-        if (! ( ((cc) == ' ' || (cc) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1))))  && curwin->w_cursor.col > 0 && has_format_option(FO_ONE_LETTER))
+        if (! ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1))))  && curwin->w_cursor.col > 0 && has_format_option(FO_ONE_LETTER))
         {
             dec_cursor();
         }
         cc = gchar_cursor();
-        if ( ( ((cc) == ' ' || (cc) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
+        if ( ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
         {
             curwin->w_cursor = pos;
             return;
@@ -105109,7 +100283,7 @@ auto_format(int         trailblank, int         prev_line)
     if (*old != NUL && !trailblank && !wasatend && pos.col > 0 && (State & MODE_INSERT))
     {
         char_u *line = ml_get_curline();
-        if ( ( ((line[pos.col - 1]) == ' ' || (line[pos.col - 1]) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
+        if ( ( ((line[pos.col - 1]) == ' ' || (line[pos.col - 1]) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
         {
             curwin->w_cursor = pos;
             return;
@@ -105182,7 +100356,7 @@ check_auto_format(int         end_insert)
     }
 
     cc = gchar_cursor();
-    if (! ( ((cc) == ' ' || (cc) == '\t')  && (!enc_utf8 || !utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
+    if (! ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
     {
         did_add_space = FALSE;
     }
@@ -105741,7 +100915,7 @@ findpar(int         *pincl, int         dir, long        count, int         what
         {
             --curwin->w_cursor.col;
             curwin->w_cursor.col -=
-                             (*mb_head_off)(line, line + curwin->w_cursor.col);
+                             utf_head_off(line, line + curwin->w_cursor.col);
             *pincl = TRUE;
         }
     }
@@ -105801,24 +100975,12 @@ cls(void)
     {
         return 0;
     }
-    if (enc_dbcs != 0 && c > 0xFF)
+    c = utf_class(c);
+    if (c != 0 && cls_bigword)
     {
-        if (enc_dbcs == DBCS_KOR && cls_bigword)
-        {
-            return 1;
-        }
-
-        return dbcs_class(((unsigned)c >> 8), (c & 0xFF));
+        return 1;
     }
-    if (enc_utf8)
-    {
-        c = utf_class(c);
-        if (c != 0 && cls_bigword)
-        {
-            return 1;
-        }
-        return c;
-    }
+    return c;
 
     if (cls_bigword)
     {
@@ -106802,14 +101964,7 @@ find_next_quote(char_u      *line, int         col, int         quotechar, char_
         {
             break;
         }
-        if (has_mbyte)
-        {
-            col += (*mb_ptr2len)(line + col);
-        }
-        else
-        {
-            ++col;
-        }
+        col += utfc_ptr2len(line + col);
     }
     return col;
 }
@@ -106822,7 +101977,7 @@ find_prev_quote(char_u      *line, int         col_start, int         quotechar,
     while (col_start > 0)
     {
         --col_start;
-        col_start -= (*mb_head_off)(line, line + col_start);
+        col_start -= utf_head_off(line, line + col_start);
         n = 0;
         if (escape != NULL)
         {
@@ -107134,16 +102289,6 @@ ui_write(char_u *s, int len, int console  __attribute__((unused)) )
 {
     if (!(silent_mode && p_verbose == 0))
     {
-        char_u  *tofree = NULL;
-
-        if (output_conv.vc_type != CONV_NONE)
-        {
-            tofree = string_convert(&output_conv, s, &len);
-            if (tofree != NULL)
-            {
-                s = tofree;
-            }
-        }
 
         mch_write(s, len);
         if (console && s[len - 1] == '\n')
@@ -107151,10 +102296,6 @@ ui_write(char_u *s, int len, int console  __attribute__((unused)) )
             vim_fsync(1);
         }
 
-        if (output_conv.vc_type != CONV_NONE)
-        {
-            vim_free(tofree);
-        }
     }
 }
 
@@ -107515,46 +102656,16 @@ fill_input_buf(int exit_on_error  __attribute__((unused)) )
     int         len;
     int         try;
     static int  did_read_something = FALSE;
-    static char_u *rest = NULL;
-    static int  restlen = 0;
-    int         unconverted;
 
     if (vim_is_input_buf_full())
     {
         return;
     }
-    if (rest != NULL)
-    {
-        if (restlen > INBUFLEN - inbufcount)
-        {
-            unconverted = INBUFLEN - inbufcount;
-        }
-        else
-        {
-            unconverted = restlen;
-        }
-         memmove((char *)(inbuf + inbufcount), (char *)(rest), unconverted) ;
-        if (unconverted == restlen)
-        {
-             vim_free(rest);
-             (rest) = NULL;
-        }
-        else
-        {
-            restlen -= unconverted;
-             memmove((char *)(rest), (char *)(rest + unconverted), restlen) ;
-        }
-        inbufcount += unconverted;
-    }
-    else
-    {
-        unconverted = 0;
-    }
 
     len = 0;
     for (try = 0; try < 100; ++try)
     {
-        size_t readlen = (size_t)((INBUFLEN - inbufcount) / input_conv.vc_factor);
+        size_t readlen = (size_t)(INBUFLEN - inbufcount);
         len = read(read_cmd_fd, (char *)inbuf + inbufcount, readlen);
 
         if (len > 0 || got_int)
@@ -107590,11 +102701,6 @@ fill_input_buf(int exit_on_error  __attribute__((unused)) )
     }
     else
     {
-        if (input_conv.vc_type != CONV_NONE)
-        {
-            inbufcount -= unconverted;
-            len = convert_input_safe(inbuf + inbufcount, len + unconverted, INBUFLEN - inbufcount, rest == NULL ? &rest : NULL, &restlen);
-        }
         while (len > 0)
         {
             if (ctrl_c_interrupts && ((inbuf[inbufcount] == Ctrl_C && !key_protocol_enabled()) || (len >= 10 &&  strncmp((char *)(inbuf + inbufcount), (char *)("\033[27;5;99~"), (10))  == 0) || (len >= 10 &&  strncmp((char *)(inbuf + inbufcount), (char *)("\033[27;5;67~"), (10))  == 0) || (len >= 7 &&  strncmp((char *)(inbuf + inbufcount), (char *)("\033[99;5u"), (7))  == 0) || (len >= 7 &&  strncmp((char *)(inbuf + inbufcount), (char *)("\033[67;5u"), (7))  == 0)))
@@ -109416,7 +104522,7 @@ anyBufIsChanged(void)
 bufIsChangedNotTerm(buf_T *buf)
 {
     return (!bt_dontwrite(buf) || bt_prompt(buf))
-        && (buf->b_changed || file_ff_differs(buf, TRUE));
+        && (buf->b_changed);
 }
 
     static int
@@ -109463,7 +104569,7 @@ set_context_in_user_cmdarg(char_u          *cmd  __attribute__((unused)) , char_
             {
                 ++p;
             }
-             p += (*mb_ptr2len)(p) ;
+             p += utfc_ptr2len(p) ;
         }
     }
     xp->xp_pattern = arg;
@@ -109965,8 +105071,8 @@ static struct cmdname cmdnames[] =
     [CMD_scscope] = {(char_u *)"scscope", sizeof("scscope") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_set] = {(char_u *)"set", sizeof("set") - 1, ex_set, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
     [CMD_setfiletype] = {(char_u *)"setfiletype", sizeof("setfiletype") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_setglobal] = {(char_u *)"setglobal", sizeof("setglobal") - 1, ex_set, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
-    [CMD_setlocal] = {(char_u *)"setlocal", sizeof("setlocal") - 1, ex_set, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
+    [CMD_setglobal] = {(char_u *)"setglobal", sizeof("setglobal") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
+    [CMD_setlocal] = {(char_u *)"setlocal", sizeof("setlocal") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
     [CMD_sfind] = {(char_u *)"sfind", sizeof("sfind") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_NEEDARG), ADDR_OTHER},
     [CMD_sfirst] = {(char_u *)"sfirst", sizeof("sfirst") - 1, ex_ni, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
     [CMD_shell] = {(char_u *)"shell", sizeof("shell") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -114785,7 +109891,10 @@ common_init_1(void)
     estack_init();
     cmdline_init();
 
-    (void)mb_init();
+    for (int i = 0; i < 256; ++i)
+    {
+        mb_bytelen_tab[i] = 1;
+    }
 
     if ((IObuff = alloc( (1024+1) )) == NULL || (NameBuff = alloc( PATH_MAX )) == NULL)
     {
@@ -115216,11 +110325,6 @@ command_line_scan(mparm_T *parmp)
                     had_minmin = TRUE;
                 }
                 argv_idx = -1;
-                break;
-
-            case 'b':
-                set_options_bin(curbuf->b_p_bin, 1, 0);
-                curbuf->b_p_bin = 1;
                 break;
 
             case 'e':
