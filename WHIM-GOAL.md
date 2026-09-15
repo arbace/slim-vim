@@ -3279,6 +3279,58 @@ recorded here rather than fixed: it is a question for its own phase.
 **None the harnesses record** beyond Phase 58's. Measured: 108,374 →
 **102,166 lines**.
 
+## Phase 60 — no suffix, case, delay, verbose-file, debug or filter-program options
+
+Seven options whose default is the only value anything could still act on.
+`'suffixes'` ordered wildcard matches, and wildcards have not expanded since
+Phase 12 or earlier, so `match_suffix()` and its two reordering blocks go.
+`'fileignorecase'` is off, and its five tests fold as false. `'autocompletedelay'`
+is 0, so `inchar_loop()`'s delay was never pending. `'verbosefile'` is empty, so
+the file is never opened: `redir_write()`, `redirecting()` and the
+`verbose_enter`/`verbose_leave` family fold, and `fopen` leaves the libc symbols.
+`'debug'` is empty, and its tests in `emsg_not_now()`, `emsg_core()` and
+`vim_beep()` fold.
+
+**`'formatprg'` and `'equalprg'` were suspicious, and dead.** Their only effect was
+to make `gq` and `=` build a `:{range}!prg` line, and `:!` has been `ex_ni` since
+Phase 44 — so a non-empty value turned a working operator into an error. `gq` and
+`=` take the internal path unconditionally now, and `op_colon()` loses its
+indent and format branches. `get_varp()`'s `'equalprg'` case has the same
+missing parentheses as `'keywordprg'`'s in Phase 56 and is removed by hand.
+`'formatoptions'` and `'formatlistpat'`, suspected with them, are live —
+auto-wrap, comment leaders, `gq`, `J` and numbered-list indent read them — and stay.
+
+The phase checks the seven are unknown and that `gqq` with `tw=4` still breaks
+`aaa bbb` into two lines.
+
+### The delta
+
+**None the harnesses record.** Measured: 102,166 → **101,826 lines**; libc symbols
+81 → 80.
+
+## Phase 61 — no window title
+
+`'title'`, `'titlelen'`, `'titleold'`, `'titlestring'`, `'icon'` and `'iconstring'`
+go, and with them everything that set or restored the terminal's title:
+`maketitle()` and its thirteen callers, `need_maketitle` and the six places that
+asked for an update, `resettitle()`, `mch_settitle()`, `mch_restore_title()` in
+`:stop`, exit, a terminal change and `value_changed()`, `set_title_defaults()`,
+`term_settitle()`, the X11 title and icon probes, and the title-stack push at
+startup and pop at exit. The editor no longer writes to the terminal's title at
+all. The `t_ts`, `t_fs`, `t_ST` and `t_RT` codes stay, with the other terminal codes.
+
+**Two of the phase's own checks were wrong first, and both failed loudly.** One
+guarded `do_exedit()`, where `n` held the argument index only to decide whether to
+update the title, by requiring no other mention of `n` — but `n` also saves and
+restores `readonlymode` around `:view`. It now requires exactly those three
+mentions. The other counted five `need_maketitle = TRUE` assignments where there
+are six: `maketitle()` sets it itself before an early return. Each was tried first on
+a copy of the Phase 59 boundary, since this phase touches nothing Phase 60 does.
+
+### The delta
+
+**None the harnesses record.** Measured: 101,826 → **101,188 lines**.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.

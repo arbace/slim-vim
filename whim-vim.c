@@ -64,7 +64,6 @@ enum { ML_ALLOCATED = 0x10 };
 enum { TRUNC_ON_OPEN = 0 };
 enum { RULER_BUF_LEN = 70 };
 enum { INPUT_BUFLEN = 100 };
-enum { MAXSUFLEN = 30 };
 enum { MAX_SEARCH_COUNT = 9999 };
 enum { INC = 20 };
 enum { GAP = 3 };
@@ -1153,10 +1152,8 @@ enum { CMP_KEEPASCII = 0x002 };
 static int      p_deco;
 static long     p_ch;
 static int      p_cp;
-static long     p_acl;
 static char_u   *p_com;
 static char_u   *p_cpo;
-static char_u   *p_debug;
 static char_u   *p_dy;
 static unsigned dy_flags;
 enum { DY_LASTLINE = 0x001 };
@@ -1166,16 +1163,13 @@ static int      p_ed;
 static char_u   *p_ead = (char_u *)"both";
 static char_u   *p_emoji;
 static int      p_ea = TRUE;
-static char_u   *p_ep;
 static int      p_eb;
 static int      p_ek;
 static int      p_et;
-static int      p_fic;
 static char_u   *p_ft;
 static char_u   *p_fcs;
 static char_u   *p_flp;
 static char_u   *p_fo;
-static char_u   *p_fp;
 static int      p_fs;
 static int      p_gd;
 static char_u   *p_jop;
@@ -1185,8 +1179,6 @@ static int      p_prompt;
 static char_u   *p_hl;
 static int      p_hls;
 static long     p_hi;
-static int      p_icon;
-static char_u   *p_iconstring;
 static int      p_ic;
 static int      p_is;
 static int      p_im;
@@ -1246,7 +1238,6 @@ static long     p_sts;
 static int      p_sb = FALSE;
 static int      p_spr = FALSE;
 static int      p_sol;
-static char_u   *p_su;
 static char_u   *p_spk = (char_u *)"cursor";
 
 static long     p_ts;
@@ -1257,10 +1248,6 @@ static long     p_tw;
 static int      p_to;
 static int      p_timeout;
 static long     p_tm;
-static int      p_title;
-static long     p_titlelen;
-static char_u   *p_titleold;
-static char_u   *p_titlestring;
 static int      p_ttimeout;
 static long     p_ttm;
 static int      p_tf;
@@ -1279,7 +1266,6 @@ enum { VE_ONEMORE = 8 };
 enum { VE_NONE = 16 };
 enum { VE_NONEU = 32 };
 static long     p_verbose;
-static char_u  *p_vfile = (char_u *)"";
 static long     p_window;
 static int      p_wiv;
 static char_u   *p_ww;
@@ -1300,9 +1286,7 @@ enum
     , BV_BL = 7
     , BV_CI = 9
     , BV_COM = 17
-    , BV_EP = 25
-    , BV_ET
-    , BV_FP = 28
+    , BV_ET = 26
     , BV_FLP = 30
     , BV_FO
     , BV_FS
@@ -2217,7 +2201,6 @@ struct file_buffer
     char_u      *b_p_fo;
     char_u      *b_p_flp;
     char_u      *b_p_isk;
-    char_u      *b_p_fp;
     int         b_p_fs;
     char_u      *b_p_mps;
     int         b_p_ma;
@@ -2235,7 +2218,6 @@ struct file_buffer
     long        b_p_wm;
     long        b_p_wm_nopaste;
 
-    char_u      *b_p_ep;
     unsigned    b_tc_flags;
     long        b_p_ul;
 
@@ -3533,10 +3515,6 @@ enum { EXFLAG_PRINT = 0x04 };
 static sighandler_T mch_signal(int sig, sighandler_T func);
 static void reset_signals(void);
 static int vim_handle_signal(int sig);
-static int mch_can_restore_title(void);
-static int mch_can_restore_icon(void);
-static void mch_settitle(char_u *title, char_u *icon);
-static void mch_restore_title(int which);
 static long mch_get_pid(void);
 static int mch_dirname(char_u *buf, int len);
 static int mch_FullName(char_u *fname, char_u *buf, int len, int force);
@@ -3598,8 +3576,6 @@ static int buflist_add(char_u *fname, int flags);
 static int otherfile(char_u *ffname);
 static void buf_setino(buf_T *buf);
 static int col_print(char_u *buf, size_t buflen, int col, int vcol);
-static void maketitle(void);
-static void resettitle(void);
 static char_u *fix_fname(char_u *fname);
 static void fname_expand(buf_T *buf, char_u **ffname, char_u **sfname);
 static int bt_quickfix(buf_T *buf);
@@ -3626,7 +3602,6 @@ static int del_bytes(long count, int fixpos_arg, int use_delcombine);
 // ---------------- begin charset.pro ----------------
 static int buf_init_chartab(buf_T *buf, int global);
 static void trans_characters(char_u *buf, int bufsize);
-static char_u *transstr(char_u *s);
 static char_u *transchar_buf(buf_T *buf, int c);
 static char_u *transchar_byte(int c);
 static char_u *transchar_byte_buf(buf_T *buf, int c);
@@ -3834,7 +3809,6 @@ static char_u *FullName_save(char_u *fname, int force);
 static int vim_fexists(char_u *fname);
 static int expand_wildcards_eval(char_u **pat, int *num_file, char_u ***file, int flags);
 static int expand_wildcards(int num_pat, char_u **pat, int *num_files, char_u ***files, int flags);
-static int match_suffix(char_u *fname);
 static int gen_expand_wildcards(int num_pat, char_u **pat, int *num_file, char_u ***file, int flags);
 static void FreeWild(int count, char_u **files);
 static int vim_FullName(char_u *fname, char_u *buf, int len, int force);
@@ -4076,11 +4050,8 @@ static void msg_clr_cmdline(void);
 static int msg_end(void);
 static void msg_check(void);
 static int redirecting(void);
-static void verbose_enter(void);
-static void verbose_leave(void);
 static void verbose_enter_scroll(void);
 static void verbose_leave_scroll(void);
-static int verbose_open(void);
 static void give_warning(char_u *message, int hl);
 static void give_warning_with_source(char_u *message, int hl, int with_source);
 static void msg_advance(int col);
@@ -4221,7 +4192,6 @@ static int mb_strnicmp(char_u *s1, char_u *s2, size_t nn);
 static int utf_head_off(char_u *base, char_u *p);
 static void mb_copy_char(char_u **fp, char_u **tp);
 static int mb_off_next(char_u *base, char_u *p);
-static int mb_tail_off(char_u *base, char_u *p);
 static void mb_adjust_cursor(void);
 static void mb_adjustpos(buf_T *buf, pos_T *lp);
 static char_u *mb_prevptr(char_u *line, char_u *p);
@@ -4279,7 +4249,6 @@ static void do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank);
 // ---------------- end ops.pro ----------------
 // ---------------- begin option.pro ----------------
 static void set_string_default(char *name, char_u *val);
-static void set_title_defaults(void);
 static int do_set(char_u *arg_start, int opt_flags);
 static void did_set_option(int opt_idx, int opt_flags, int new_value, int value_checked);
 static void check_options(void);
@@ -4303,8 +4272,6 @@ static char *did_set_smoothscroll(optset_T *args);
 static char *did_set_termsync(optset_T *args);
 static char *did_set_terse(optset_T *args);
 static char *did_set_textwidth(optset_T *args);
-static char *did_set_title_icon(optset_T *args);
-static char *did_set_titlelen(optset_T *args);
 static char *did_set_undolevels(optset_T *args);
 static char *did_set_weirdinvert(optset_T *args);
 static char *did_set_window(optset_T *args);
@@ -4315,7 +4282,6 @@ static void set_option_value_give_err(char_u *name, long number, char_u *string,
 static char_u *get_term_code(char_u *tname);
 static char_u *get_highlight_default(void);
 static void free_termoptions(void);
-static char_u *get_equalprg(void);
 static void after_copy_winopt(win_T *wp);
 static void copy_winopt(winopt_T *from, winopt_T *to);
 static void clear_winopt(winopt_T *wop);
@@ -4349,12 +4315,10 @@ static char *did_set_casemap(optset_T *args);
 static char *did_set_chars_option(optset_T *args);
 static char *did_set_comments(optset_T *args);
 static char *did_set_cpoptions(optset_T *args);
-static char *did_set_debug(optset_T *args);
 static char *did_set_display(optset_T *args);
 static char *did_set_filetype_or_syntax(optset_T *args);
 static char *did_set_formatoptions(optset_T *args);
 static char *did_set_highlight(optset_T *args);
-static char *did_set_iconstring(optset_T *args);
 static char *did_set_iskeyword(optset_T *args);
 static char *did_set_isopt(optset_T *args);
 static char *did_set_jumpoptions(optset_T *args);
@@ -4371,8 +4335,6 @@ static char *did_set_showcmdloc(optset_T *args);
 static char *did_set_term(optset_T *args);
 static char *did_set_term_option(optset_T *args);
 static char *did_set_termresize(optset_T *args);
-static char *did_set_titlestring(optset_T *args);
-static char *did_set_verbosefile(optset_T *args);
 static char *did_set_virtualedit(optset_T *args);
 static char *did_set_whichwrap(optset_T *args);
 static char *did_set_wincolor(optset_T *args);
@@ -4542,9 +4504,6 @@ static void term_fg_color(int n);
 static void term_bg_color(int n);
 static void term_ul_color(int n);
 static char_u *term_bg_default(void);
-static void term_settitle(char_u *title);
-static void term_push_title(int which);
-static void term_pop_title(int which);
 static void ttest(int pairs);
 static void check_shellsize(void);
 static void limit_screen_size(void);
@@ -4835,7 +4794,6 @@ static int      rc_did_emsg  = FALSE ;
 static int      no_wait_return  = 0 ;
 static int      need_wait_return  = 0 ;
 static int      did_wait_return  = FALSE ;
-static int      need_maketitle  = TRUE ;
 
 static int      quit_more  = FALSE ;
 static int      newline_on_exit  = FALSE ;
@@ -5474,9 +5432,6 @@ enum { LOWEST_WIN_ID = 1000 };
 typedef struct timeval elapsed_T;
 static long elapsed(struct timeval *start_tv);
 
-enum { SAVE_RESTORE_TITLE = 1 };
-enum { SAVE_RESTORE_ICON = 2 };
-
 enum { REPTERM_FROM_PART = 1 };
 enum { REPTERM_DO_LT = 2 };
 enum { REPTERM_SPECIAL = 4 };
@@ -5982,7 +5937,7 @@ arglist_del_files(garray_T *alist_ga)
     char_u      *p;
     int         match;
 
-    regmatch.rm_ic = p_fic;
+    regmatch.rm_ic = FALSE;
     for (i = 0; i < alist_ga->ga_len && !got_int; ++i)
     {
         p = ((char_u **)alist_ga->ga_data)[i];
@@ -6568,10 +6523,8 @@ aubuflocal_remove(buf_T *buf)
                 {
                     string_T    *event_name;
 
-                    verbose_enter();
                     event_name = event_nr2name(event);
                     smsg(_("auto-removing autocommand: %s <buffer=%d>"), event_name->string, buf->b_fnum);
-                    verbose_leave();
                 }
             }
          }
@@ -6979,9 +6932,7 @@ auto_next_pat(AutoPatCmd_T *apc, int         stop_at_last)
                     sprintf((char *)namep, fmt, (char *)event_name->string, (char *)ap->pat);
                     if (p_verbose >= 8)
                     {
-                        verbose_enter();
                         smsg(_("Executing %s"), namep);
-                        verbose_leave();
                     }
                 }
 
@@ -7095,7 +7046,6 @@ static char_u   *fname_match(regmatch_T *rmp, char_u *name, int ignore_case);
 static buf_T    *buflist_findname_stat(char_u *ffname, stat_T *st);
 static int      otherfile_buf(buf_T *buf, char_u *ffname, stat_T *stp);
 static int      buf_same_ino(buf_T *buf, stat_T *stp);
-static int      value_changed(char_u *str, char_u **last);
 static int      append_arg_number(win_T *wp, char_u *buf, size_t buflen, int add_file);
 static void     free_buffer(buf_T *);
 static void     free_buffer_stuff(buf_T *buf, int free_options);
@@ -7856,7 +7806,6 @@ enter_buffer(buf_T *buf)
     }
 
     check_arg_idx(curwin);
-    maketitle();
     if (curwin->w_topline == 1 && !curwin->w_topline_was_set)
     {
         scroll_cursor_halfway(FALSE, FALSE);
@@ -8111,7 +8060,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     {
         clear_string_option(&buf->b_p_bt);
     }
-    clear_string_option(&buf->b_p_fp);
     clear_string_option(&buf->b_p_mps);
     clear_string_option(&buf->b_p_fo);
     clear_string_option(&buf->b_p_flp);
@@ -8119,7 +8067,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     clear_string_option(&buf->b_p_com);
     clear_string_option(&buf->b_p_nf);
     clear_string_option(&buf->b_p_ft);
-    clear_string_option(&buf->b_p_ep);
     clear_string_option(&buf->b_p_qe);
     buf->b_p_fs = -1;
     buf->b_p_ul =  (-123456) ;
@@ -8365,7 +8312,7 @@ fname_match(regmatch_T  *rmp, char_u      *name, int         ignore_case)
         return NULL;
     }
 
-    rmp->rm_ic = p_fic || ignore_case;
+    rmp->rm_ic = ignore_case;
     if (vim_regexec(rmp, name, (colnr_T)0))
     {
         match = name;
@@ -8706,7 +8653,6 @@ buf_name_changed(buf_T *buf)
     {
         check_arg_idx(curwin);
     }
-    maketitle();
     status_redraw_all();
     fmarks_check_names(buf);
     ml_timestamp(buf);
@@ -8894,193 +8840,6 @@ col_print(char_u  *buf, size_t  buflen, int     col, int     vcol)
     }
 
     return (int)vim_snprintf_safelen((char *)buf, buflen, "%d-%d", col, vcol);
-}
-
-static char_u *lasttitle = NULL;
-static char_u *lasticon = NULL;
-
-    static void
-maketitle(void)
-{
-    char_u      *title_str = NULL;
-    char_u      *icon_str = NULL;
-    int         mustset;
-    char_u      buf[ (1024+1) ];
-    size_t      buflen = 0;
-
-    if (!redrawing())
-    {
-        need_maketitle = TRUE;
-        return;
-    }
-
-    need_maketitle = FALSE;
-    if (!p_title && !p_icon && lasttitle == NULL && lasticon == NULL)
-    {
-        return;
-    }
-
-    if (p_title)
-    {
-        int maxlen = 0;
-
-        if (p_titlelen > 0)
-        {
-            maxlen = p_titlelen * Columns / 100;
-            if (maxlen < 10)
-            {
-                maxlen = 10;
-            }
-        }
-
-        title_str = buf;
-        if (*p_titlestring != NUL)
-        {
-                title_str = p_titlestring;
-            buflen =  strlen((char *)(title_str)) ;
-        }
-        else
-        {
-            char_u  *p;
-
-            if (curbuf->b_fname == NULL)
-            {
-                buflen = vim_snprintf_safelen((char *)buf,  (sizeof(buf) - 100) , "%s", _("[No Name]"));
-            }
-            else
-            {
-                buflen = vim_snprintf_safelen((char *)buf,  (sizeof(buf) - 100) , "%s", ((p = transstr(gettail(curbuf->b_fname))) != NULL) ? p : (char_u *)"");
-                vim_free(p);
-            }
-
-            {
-                switch (bufIsChanged(curbuf) + (curbuf->b_p_ro * 2) + (!curbuf->b_p_ma * 4))
-                {
-                    case 1:
-                        buflen += vim_snprintf_safelen((char *)buf + buflen, sizeof(buf) - buflen, " +");
-                        break;
-                    case 2:
-                        buflen += vim_snprintf_safelen((char *)buf + buflen, sizeof(buf) - buflen, " =");
-                        break;
-                    case 3:
-                        buflen += vim_snprintf_safelen((char *)buf + buflen, sizeof(buf) - buflen, " =+");
-                        break;
-                    case 4:
-                    case 6:
-                        buflen += vim_snprintf_safelen((char *)buf + buflen, sizeof(buf) - buflen, " -");
-                        break;
-                    case 5:
-                    case 7:
-                        buflen += vim_snprintf_safelen((char *)buf + buflen, sizeof(buf) - buflen, " -+");
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            if (curbuf->b_fname != NULL)
-            {
-                buflen += vim_snprintf_safelen((char *)buf + buflen, sizeof(buf) - buflen, " (");
-
-                home_replace(curbuf, curbuf->b_ffname, buf + buflen, (int)( (sizeof(buf) - 20)  - buflen), TRUE);
-
-                p = gettail_sep(buf + buflen);
-                if (p == buf + buflen)
-                {
-                    buflen += vim_snprintf_safelen((char *)buf + buflen,  (sizeof(buf) - 20)  - buflen, "%s)", _("help"));
-                }
-                else
-                {
-                    if (buflen <  (sizeof(buf) - 20) )
-                    {
-                        *p = NUL;
-
-                        buflen += vim_snprintf_safelen((char *)buf + buflen,  (sizeof(buf) - 20)  - buflen, "%s)", ((p = transstr(buf + buflen)) != NULL) ? p : (char_u *)"");
-                        vim_free(p);
-                    }
-                    else
-                    {
-                        buflen += vim_snprintf_safelen((char *)buf + buflen,  (sizeof(buf) - 10)  - buflen, "...)");
-                    }
-                }
-            }
-
-            buflen += append_arg_number(curwin, buf + buflen,  (sizeof(buf) - 10)  - buflen, FALSE);
-
-            buflen += vim_snprintf_safelen((char *)buf + buflen, sizeof(buf) - buflen, " - %s", (char_u *)"VIM");
-
-            if (maxlen > 0)
-            {
-                if (vim_strsize(buf) > maxlen)
-                {
-                    trunc_string(buf, buf, maxlen, sizeof(buf));
-                }
-            }
-        }
-    }
-    mustset = value_changed(title_str, &lasttitle);
-
-    if (p_icon)
-    {
-        icon_str = buf;
-        if (*p_iconstring != NUL)
-        {
-                icon_str = p_iconstring;
-        }
-        else
-        {
-            char_u  *name;
-            int     namelen;
-
-            name = buf_spname(curbuf);
-            if (name == NULL)
-            {
-                name = gettail(curbuf->b_ffname);
-            }
-            namelen = (int) strlen((char *)(name)) ;
-            if (namelen > 100)
-            {
-                namelen -= 100;
-                namelen += (*mb_tail_off)(name, name + namelen) + 1;
-                name += namelen;
-            }
-             strcpy((char *)(buf), (char *)(name)) ;
-            trans_characters(buf, sizeof(buf));
-        }
-    }
-
-    mustset |= value_changed(icon_str, &lasticon);
-
-    if (mustset)
-    {
-        resettitle();
-    }
-}
-
-    static int
-value_changed(char_u *str, char_u **last)
-{
-    if ((str == NULL) != (*last == NULL) || (str != NULL && *last != NULL &&  strcmp((char *)(str), (char *)(*last))  != 0))
-    {
-        vim_free(*last);
-        if (str == NULL)
-        {
-            *last = NULL;
-            mch_restore_title(last == &lasttitle ? SAVE_RESTORE_TITLE : SAVE_RESTORE_ICON);
-        }
-        else
-        {
-            *last = vim_strsave(str);
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
-    static void
-resettitle(void)
-{
-    mch_settitle(lasttitle, lasticon);
 }
 
     static int
@@ -9732,7 +9491,6 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
     if (forceit && overwriting && vim_strchr(p_cpo, CPO_KEEPRO) == NULL)
     {
         buf->b_p_ro = FALSE;
-        need_maketitle = TRUE;
         status_redraw_all();
     }
 
@@ -10179,7 +9937,6 @@ changed_internal(void)
     ml_setflags(curbuf);
     check_status(curbuf);
     redraw_tabline = TRUE;
-    need_maketitle = TRUE;
 }
 
     static void
@@ -10458,7 +10215,6 @@ unchanged(buf_T *buf, int ff, int always_inc_changedtick)
         ml_setflags(buf);
         check_status(buf);
         redraw_tabline = TRUE;
-        need_maketitle = TRUE;
         ++ ((buf)->b_ct_di.di_tv.vval.v_number) ;
     }
     else if (always_inc_changedtick)
@@ -11946,87 +11702,6 @@ trans_characters(char_u      *buf, int         bufsize)
     }
 }
 
-    static char_u *
-transstr(char_u *s)
-{
-    char_u      *res;
-    char_u      *p;
-    int l;
-    int len;
-    int c;
-    char_u      hexbuf[11];
-
-    len = 0;
-    p = s;
-    while (*p != NUL)
-    {
-        if ((l = utfc_ptr2len(p)) > 1)
-        {
-            c = utf_ptr2char(p);
-            p += l;
-            if (vim_isprintc(c))
-            {
-                len += l;
-            }
-            else
-            {
-                transchar_hex(hexbuf, c);
-                len += (int) strlen((char *)(hexbuf)) ;
-            }
-        }
-        else
-        {
-            l = byte2cells(*p++);
-            if (l > 0)
-            {
-                len += l;
-            }
-            else
-            {
-                len += 4;
-            }
-        }
-    }
-    res = alloc(len + 1);
-
-    if (res == NULL)
-    {
-        return NULL;
-    }
-
-    char_u *d = res;
-
-    p = s;
-    while (*p != NUL)
-    {
-        if ((l = utfc_ptr2len(p)) > 1)
-        {
-            c = utf_ptr2char(p);
-            if (vim_isprintc(c))
-            {
-                 memmove((char *)(d), (char *)(p), (size_t)l) ;
-                d += l;
-            }
-            else
-            {
-                transchar_hex(d, c);
-                d +=  strlen((char *)(d)) ;
-            }
-            p += l;
-        }
-        else
-        {
-            char_u      *trs = transchar_byte(*p++);
-            size_t      trs_len =  strlen((char *)(trs)) ;
-
-             memmove((char *)(d), (char *)(trs), trs_len) ;
-            d += trs_len;
-        }
-    }
-    *d = NUL;
-    return res;
-}
-
 static char_u   transchar_charbuf[7];
 
     static char_u *
@@ -13399,7 +13074,6 @@ ExpandEscape(expand_T    *xp, char_u      *str, int         numfiles, char_u    
 ExpandOne_start(int mode, expand_T *xp, char_u *str, int options)
 {
     int         non_suf_match;
-    int         i;
     char_u      *ss = NULL;
 
     if (ExpandFromContext(xp, str, &xp->xp_files, &xp->xp_numfiles, options) == FAIL)
@@ -13429,13 +13103,6 @@ ExpandOne_start(int mode, expand_T *xp, char_u *str, int options)
             if ((xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_DIRECTORIES) && xp->xp_numfiles > 1)
             {
                 non_suf_match = 0;
-                for (i = 0; i < 2; ++i)
-                {
-                    if (match_suffix(xp->xp_files[i]))
-                    {
-                        ++non_suf_match;
-                    }
-                }
             }
             if (non_suf_match != 1)
             {
@@ -13749,7 +13416,6 @@ static char *(history_names[]) =
     "search",
     "expr",
     "input",
-    "debug",
     NULL
 };
 
@@ -15916,11 +15582,6 @@ showruler(int always)
         return;
     }
         win_redr_ruler(curwin, always, FALSE);
-
-    if (need_maketitle)
-    {
-        maketitle();
-    }
 
     if (redraw_tabline)
     {
@@ -21922,7 +21583,6 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
 
         changed_line_abv_curs();
 
-        maketitle();
     }
 
     if (command == NULL)
@@ -27058,10 +26718,7 @@ ex_stop(exarg_T *eap)
     out_flush();
     stoptermcap();
     out_flush();
-    mch_restore_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
     ui_suspend();
-    maketitle();
-    resettitle();
     starttermcap();
     scroll_start();
     redraw_later_clear();
@@ -27240,12 +26897,7 @@ do_exedit(exarg_T     *eap, win_T       *old_curwin)
         {
             do_cmd_argument(eap->do_ecmd_cmd);
         }
-        n = curwin->w_arg_idx_invalid;
         check_arg_idx(curwin);
-        if (n != curwin->w_arg_idx_invalid)
-        {
-            maketitle();
-        }
     }
 
     ex_no_reprint = TRUE;
@@ -27667,10 +27319,6 @@ redraw_cmd(int clear)
     if ((State & MODE_CMDLINE) == 0)
     {
         setcursor();
-    }
-    if (need_maketitle)
-    {
-        maketitle();
     }
     RedrawingDisabled = save_RedrawingDisabled;
     p_lz = save_p_lz;
@@ -31944,7 +31592,7 @@ match_file_pat(char_u      *pattern, regprog_T   **prog, char_u      *fname, cha
     regmatch_T  regmatch;
     int         result = FALSE;
 
-    regmatch.rm_ic = p_fic;
+    regmatch.rm_ic = FALSE;
     if (prog != NULL)
     {
         regmatch.regprog = *prog;
@@ -32413,20 +32061,12 @@ dir_of_file_exists(char_u *fname)
     static int
 vim_fnamecmp(char_u *x, char_u *y)
 {
-    if (p_fic)
-    {
-        return  mb_strnicmp((char_u *)(x), (char_u *)(y), (int)MAXCOL) ;
-    }
     return  strcmp((char *)(x), (char *)(y)) ;
 }
 
     static int
 vim_fnamencmp(char_u *x, char_u *y, size_t len)
 {
-    if (p_fic)
-    {
-        return  mb_strnicmp((char_u *)(x), (char_u *)(y), (int)(len)) ;
-    }
     return  strncmp((char *)(x), (char *)(y), (len)) ;
 }
 
@@ -32523,10 +32163,6 @@ expand_wildcards_eval(char_u       **pat, int           *num_file, char_u      *
 expand_wildcards(int            num_pat, char_u       **pat, int           *num_files, char_u      ***files, int            flags)
 {
     int         retval;
-    int i;
-    int j;
-    char_u      *p;
-    int         non_suf_match;
 
     retval = gen_expand_wildcards(num_pat, pat, num_files, files, flags);
 
@@ -32535,59 +32171,7 @@ expand_wildcards(int            num_pat, char_u       **pat, int           *num_
         return retval;
     }
 
-    if (*num_files > 1 && !got_int)
-    {
-        non_suf_match = 0;
-        for (i = 0; i < *num_files; ++i)
-        {
-            if (!match_suffix((*files)[i]))
-            {
-                p = (*files)[i];
-                for (j = i; j > non_suf_match; --j)
-                {
-                    (*files)[j] = (*files)[j - 1];
-                }
-                (*files)[non_suf_match++] = p;
-            }
-        }
-    }
-
     return retval;
-}
-
-    static int
-match_suffix(char_u *fname)
-{
-    int fnamelen;
-    int setsuflen;
-    char_u      *setsuf;
-    char_u      suf_buf[MAXSUFLEN];
-
-    fnamelen = (int) strlen((char *)(fname)) ;
-    setsuflen = 0;
-    for (setsuf = p_su; *setsuf; )
-    {
-        setsuflen = copy_option_part(&setsuf, suf_buf, MAXSUFLEN, ".,");
-        if (setsuflen == 0)
-        {
-            char_u *tail = gettail(fname);
-
-            if (vim_strchr(tail, '.') == NULL)
-            {
-                setsuflen = 1;
-                break;
-            }
-        }
-        else
-        {
-            if (fnamelen >= setsuflen &&  vim_fnamencmp((char_u *)(suf_buf), (char_u *)(fname + fnamelen - setsuflen), ((size_t)setsuflen))  == 0)
-            {
-                break;
-            }
-            setsuflen = 0;
-        }
-    }
-    return (setsuflen != 0);
 }
 
     static int
@@ -39645,18 +39229,6 @@ ins_compl_win_active(win_T *wp)
     return FALSE;
 }
 
-    static bool
-ins_compl_autocomplete_pending(void)
-{
-    return FALSE;
-}
-
-    static long
-ins_compl_autocomplete_elapsed(void)
-{
-    return 0;
-}
-
 // ==================== linematch.c ====================
 
 // ==================== locale.c ====================
@@ -45767,35 +45339,6 @@ mb_off_next(char_u *base, char_u *p)
     return utfc_ptr2len(p - head_off) - head_off;
 }
 
-    static int
-mb_tail_off(char_u *base, char_u *p)
-{
-    int         i;
-    int         j;
-
-    if (*p == NUL)
-    {
-        return 0;
-    }
-
-    for (i = 0; (p[i + 1] & 0xc0) == 0x80; ++i)
-    {
-        ;
-    }
-    for (j = 0; p - j > base; ++j)
-    {
-        if ((p[-j] & 0xc0) != 0x80)
-        {
-            break;
-        }
-    }
-    if (utf8len_tab[p[-j]] != i + j + 1)
-    {
-        return 0;
-    }
-    return i;
-}
-
     static void
 utf_find_illegal(void)
 {
@@ -48270,9 +47813,6 @@ enum { MESSAGES_HISTORY = 0x004 };
 static int msg_flags = MESSAGES_HIT_ENTER | MESSAGES_HISTORY;
 static int msg_wait = 0;
 
-static FILE *verbose_fd = NULL;
-static int  verbose_did_open = FALSE;
-
     static int
 msg(char *s)
 {
@@ -48634,7 +48174,7 @@ msg_source(int attr)
     static int
 emsg_not_now(void)
 {
-    if ((emsg_off > 0 && vim_strchr(p_debug, 'm') == NULL && vim_strchr(p_debug, 't') == NULL))
+    if ((emsg_off > 0))
     {
         return TRUE;
     }
@@ -48650,7 +48190,7 @@ emsg_core(const char *s)
 
     ++called_emsg;
 
-    if (!emsg_off || vim_strchr(p_debug, 't') != NULL)
+    if (!emsg_off)
     {
         if (emsg_silent != 0)
         {
@@ -50785,11 +50325,6 @@ redir_write(char_u *str, int maxlen)
         return;
     }
 
-    if (*p_vfile != NUL && verbose_fd == NULL)
-    {
-        verbose_open();
-    }
-
     if (redirecting())
     {
         if (*s != '\n' && *s != '\r')
@@ -50800,10 +50335,6 @@ redir_write(char_u *str, int maxlen)
                     {
                     fputs(" ", redir_fd);
                     }
-                if (verbose_fd != NULL)
-                {
-                    fputs(" ", verbose_fd);
-                }
                 ++cur_col;
             }
         }
@@ -50814,10 +50345,6 @@ redir_write(char_u *str, int maxlen)
                 {
                     putc(*s, redir_fd);
                 }
-            if (verbose_fd != NULL)
-            {
-                putc(*s, verbose_fd);
-            }
             if (*s == '\r' || *s == '\n')
             {
                 cur_col = 0;
@@ -50843,86 +50370,19 @@ redir_write(char_u *str, int maxlen)
     static int
 redirecting(void)
 {
-    return redir_fd != NULL || *p_vfile != NUL
-                                       ;
-}
-
-    static void
-verbose_enter(void)
-{
-    if (*p_vfile != NUL)
-    {
-        ++msg_silent;
-    }
-}
-
-    static void
-verbose_leave(void)
-{
-    if (*p_vfile != NUL)
-    {
-        if (--msg_silent < 0)
-        {
-            msg_silent = 0;
-        }
-    }
+    return redir_fd != NULL;
 }
 
     static void
 verbose_enter_scroll(void)
 {
-    if (*p_vfile != NUL)
-    {
-        ++msg_silent;
-    }
-    else
-    {
-        msg_scroll = TRUE;
-    }
+    msg_scroll = TRUE;
 }
 
     static void
 verbose_leave_scroll(void)
 {
-    if (*p_vfile != NUL)
-    {
-        if (--msg_silent < 0)
-        {
-            msg_silent = 0;
-        }
-    }
-    else
-    {
-        cmdline_row = msg_row;
-    }
-}
-
-    static void
-verbose_stop(void)
-{
-    if (verbose_fd != NULL)
-    {
-        fclose(verbose_fd);
-        verbose_fd = NULL;
-    }
-    verbose_did_open = FALSE;
-}
-
-    static int
-verbose_open(void)
-{
-    if (verbose_fd == NULL && !verbose_did_open)
-    {
-        verbose_did_open = TRUE;
-
-        verbose_fd =  fopen(((char *)p_vfile), ("a")) ;
-        if (verbose_fd == NULL)
-        {
-            semsg(_(e_cant_open_file_str), p_vfile);
-            return FAIL;
-        }
-    }
-    return OK;
+    cmdline_row = msg_row;
 }
 
     static void
@@ -51715,11 +51175,6 @@ vim_beep(unsigned val)
         }
     }
 
-    if (vim_strchr(p_debug, 'e') != NULL)
-    {
-        msg_source( highlight_attr[(int)(HLF_W)] );
-        msg_attr(_("Beep!"),  highlight_attr[(int)(HLF_W)] );
-    }
 }
 
     static char_u *
@@ -64451,34 +63906,6 @@ op_colon(oparg_T *oap)
     {
         stuffReadbuff((char_u *)"!");
     }
-    if (oap->op_type == OP_INDENT)
-    {
-        if (*get_equalprg() == NUL)
-        {
-            stuffReadbuff((char_u *)"indent");
-        }
-        else
-        {
-            stuffReadbuff(get_equalprg());
-        }
-        stuffReadbuff((char_u *)"\n");
-    }
-    else if (oap->op_type == OP_FORMAT)
-    {
-        if (*curbuf->b_p_fp != NUL)
-        {
-            stuffReadbuff(curbuf->b_p_fp);
-        }
-        else if (*p_fp != NUL)
-        {
-            stuffReadbuff(p_fp);
-        }
-        else
-        {
-            stuffReadbuff((char_u *)"fmt");
-        }
-        stuffReadbuff((char_u *)"\n']");
-    }
 
 }
 
@@ -65004,7 +64431,7 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
         case OP_INDENT:
         case OP_COLON:
 
-            if (oap->op_type == OP_INDENT && *get_equalprg() == NUL)
+            if (oap->op_type == OP_INDENT)
             {
                 op_reindent(oap, get_indent);
                 break;
@@ -65031,14 +64458,7 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
 
         case OP_FORMAT:
             {
-                if (*p_fp != NUL || *curbuf->b_p_fp != NUL)
-                {
-                    op_colon(oap);
-                }
-                else
-                {
-                    op_format(oap, FALSE);
-                }
+                op_format(oap, FALSE);
             }
             break;
         case OP_FORMAT2:
@@ -65187,9 +64607,6 @@ static struct vimoption options[] =
                             (char_u *)&p_ambw, PV_NONE, did_set_ambiwidth, NULL,
                             {(char_u *)"single", (char_u *)0L}
                               },
-    {"autocompletedelay", "acl", P_NUM|P_VI_DEF,
-                            (char_u *)&p_acl, PV_NONE, NULL, NULL,
-                            {(char_u *)0L, (char_u *)0L}   },
     {"autoindent",  "ai",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_ai,   (idopt_T)(PV_BUF + (int)(BV_AI))  , NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
@@ -65243,9 +64660,6 @@ static struct vimoption options[] =
                             (char_u *)&p_cpo, PV_NONE, did_set_cpoptions, NULL,
                             {(char_u *) "aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>;" , (char_u *) "aABceFsz" }
                               },
-    {"debug",       NULL,   P_STRING|P_VI_DEF,
-                            (char_u *)&p_debug, PV_NONE, did_set_debug, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
     {"delcombine", "deco",  P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_deco, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -65259,9 +64673,6 @@ static struct vimoption options[] =
                             (char_u *)&p_emoji, PV_NONE, did_set_ambiwidth, NULL,
                             {(char_u *)TRUE, (char_u *)0L}
                               },
-    {"equalprg",    "ep",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_ep,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_EP)) ))  , NULL, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
     {"errorbells",  "eb",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_eb, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -65271,11 +64682,6 @@ static struct vimoption options[] =
     {"expandtab",   "et",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_et,   (idopt_T)(PV_BUF + (int)(BV_ET))  , NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
-    {"fileignorecase", "fic", P_BOOL|P_VI_DEF,
-                            (char_u *)&p_fic, PV_NONE, NULL, NULL,
-                            {
-                                    (char_u *)FALSE,
-                                        (char_u *)0L}   },
     {"filetype",    "ft",   P_STRING|P_ALLOCED|P_VI_DEF|P_NOGLOB|P_NFNAME,
                             (char_u *)&p_ft,   (idopt_T)(PV_BUF + (int)(BV_FT))  ,
                             did_set_filetype_or_syntax, NULL,
@@ -65294,9 +64700,6 @@ static struct vimoption options[] =
                             (char_u *)&p_fo,   (idopt_T)(PV_BUF + (int)(BV_FO))  , did_set_formatoptions, NULL,
                             {(char_u *) "vt" , (char_u *) "tcq" }
                               },
-    {"formatprg",   "fp",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_fp,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FP)) ))  , NULL, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
     {"fsync",       "fs",   P_BOOL|P_SECURE|P_VI_DEF,
                             (char_u *)&p_fs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  , NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}
@@ -65315,13 +64718,6 @@ static struct vimoption options[] =
     {"hlsearch",    "hls",  P_BOOL|P_VI_DEF|P_VIM|P_RALL|P_HLONLY,
                             (char_u *)&p_hls, PV_NONE, did_set_hlsearch, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
-    {"icon",        NULL,   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_icon, PV_NONE, did_set_title_icon, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"iconstring",  NULL,   P_STRING|P_VI_DEF|P_MLE,
-                            (char_u *)&p_iconstring, PV_NONE,
-                            did_set_iconstring, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
     {"ignorecase",  "ic",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_ic, PV_NONE, did_set_ignorecase, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -65539,10 +64935,6 @@ static struct vimoption options[] =
                             |P_ONECOMMA|P_COLON|P_NODUP,
                             (char_u *)NULL, PV_NONE, NULL, NULL,
                             {(char_u *)"", (char_u *)0L}   },
-    {"suffixes",    "su",   P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_su, PV_NONE, NULL, NULL,
-                            {(char_u *)".bak,~,.o,.h,.info,.swp,.obj",
-                                (char_u *)0L}   },
     {"tabstop",     "ts",   P_NUM|P_VI_DEF|P_RBUF,
                             (char_u *)&p_ts,   (idopt_T)(PV_BUF + (int)(BV_TS))  ,
                             did_set_shiftwidth_tabstop, NULL,
@@ -65572,21 +64964,6 @@ static struct vimoption options[] =
     {"timeoutlen",  "tm",   P_NUM|P_VI_DEF,
                             (char_u *)&p_tm, PV_NONE, NULL, NULL,
                             {(char_u *)1000L, (char_u *)0L}   },
-    {"title",       NULL,   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_title, PV_NONE, did_set_title_icon, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
-    {"titlelen",    NULL,   P_NUM|P_VI_DEF,
-                            (char_u *)&p_titlelen, PV_NONE, did_set_titlelen, NULL,
-                            {(char_u *)85L, (char_u *)0L}   },
-    {"titleold",    NULL,   P_STRING|P_VI_DEF|P_GETTEXT|P_SECURE|P_NO_MKRC,
-                            (char_u *)&p_titleold, PV_NONE, NULL, NULL,
-                            {(char_u *) "Thanks for flying Vim" ,
-                                                               (char_u *)0L}
-                              },
-    {"titlestring", NULL,   P_STRING|P_VI_DEF|P_MLE,
-                            (char_u *)&p_titlestring, PV_NONE,
-                            did_set_titlestring, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
     {"ttimeout",    NULL,   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_ttimeout, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -65616,9 +64993,6 @@ static struct vimoption options[] =
     {"verbose",     "vbs",  P_NUM|P_VI_DEF,
                             (char_u *)&p_verbose, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
-    {"verbosefile", "vfile", P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
-                            (char_u *)&p_vfile, PV_NONE, did_set_verbosefile, NULL,
-                            {(char_u *)"", (char_u *)0L}   },
     {"virtualedit", "ve",   P_STRING|P_ONECOMMA|P_NODUP|P_VI_DEF
                                                             |P_VIM|P_CURSWANT,
                             (char_u *)&p_ve,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_VE)) ))  , did_set_virtualedit, NULL,
@@ -66046,31 +65420,6 @@ set_init_2(void)
 set_init_3(void)
 {
 
-    set_title_defaults();
-}
-
-    static void
-set_title_defaults(void)
-{
-    int     idx1;
-    long    val;
-
-    idx1 = findoption((char_u *)"title");
-    if (idx1 >= 0 && !(options[idx1].flags & P_WAS_SET))
-    {
-            val = mch_can_restore_title();
-        options[idx1].def_val[VI_DEFAULT] = (char_u *)(long_i)val;
-        p_title = val;
-    }
-    idx1 = findoption((char_u *)"icon");
-    if (idx1 < 0 || (options[idx1].flags & P_WAS_SET))
-    {
-        return;
-    }
-
-        val = mch_can_restore_icon();
-    options[idx1].def_val[VI_DEFAULT] = (char_u *)(long_i)val;
-    p_icon = val;
 }
 
     static void
@@ -67363,15 +66712,6 @@ did_set_option(int     opt_idx, int     opt_flags, int     new_value, int     va
     }
 }
 
-    static void
-did_set_title(void)
-{
-    if (starting != NO_SCREEN)
-    {
-        maketitle();
-    }
-}
-
     static char_u *
 option_expand(int opt_idx, char_u *val)
 {
@@ -67466,7 +66806,6 @@ set_term_option_alloced(char_u **p)
     static void
 redraw_titles(void)
 {
-    need_maketitle = TRUE;
     redraw_tabline = TRUE;
 }
 
@@ -67849,32 +67188,6 @@ did_set_textwidth(optset_T *args  __attribute__((unused)) )
     {
         errmsg = e_argument_must_be_positive;
         p_tw = 0;
-    }
-
-    return errmsg;
-}
-
-    static char *
-did_set_title_icon(optset_T *args  __attribute__((unused)) )
-{
-    did_set_title();
-    return NULL;
-}
-
-    static char *
-did_set_titlelen(optset_T *args)
-{
-    long old_value = args->os_oldval.number;
-    char *errmsg = NULL;
-
-    if (p_titlelen < 0)
-    {
-        errmsg = e_argument_must_be_positive;
-        p_titlelen = 85;
-    }
-    if (starting != NO_SCREEN && old_value != p_titlelen)
-    {
-        need_maketitle = TRUE;
     }
 
     return errmsg;
@@ -68681,7 +67994,6 @@ showoneopt(struct vimoption    *p, int                 opt_flags)
     static void
 clear_termoptions(void)
 {
-    mch_restore_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
     stoptermcap();
 
     free_termoptions();
@@ -68783,12 +68095,8 @@ get_varp_scope(struct vimoption *p, int scope)
     {
         switch ((int)p->indir)
         {
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FP)) ))  :
-                return (char_u *)&(curbuf->b_p_fp);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  :
                 return (char_u *)&(curbuf->b_p_fs);
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_EP)) ))  :
-                return (char_u *)&(curbuf->b_p_ep);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SISO)) ))  :
                 return (char_u *)&(curwin-> w_onebuf_opt.wo_siso );
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SO)) ))  :
@@ -68829,9 +68137,6 @@ get_varp(struct vimoption *p)
         case PV_NONE:
             return p->var;
 
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_EP)) ))  :
-            return *curbuf->b_p_ep != NUL
-                                    ? (char_u *)&curbuf->b_p_ep : p->var;
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SISO)) ))  :
             return curwin-> w_onebuf_opt.wo_siso  >= 0
                                     ? (char_u *)&(curwin-> w_onebuf_opt.wo_siso ) : p->var;
@@ -68841,9 +68146,6 @@ get_varp(struct vimoption *p)
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SOP)) ))  :
             return curwin-> w_onebuf_opt.wo_sop  != -1
                                     ? (char_u *)&(curwin-> w_onebuf_opt.wo_sop ) : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FP)) ))  :
-            return *curbuf->b_p_fp != NUL
-                                    ? (char_u *)&(curbuf->b_p_fp) : p->var;
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  :
             return curbuf->b_p_fs >= 0
                                     ? (char_u *)&(curbuf->b_p_fs) : p->var;
@@ -68938,16 +68240,6 @@ get_option_var(int opt_idx)
 get_option_did_set_cb(int opt_idx)
 {
     return options[opt_idx].opt_did_set_cb;
-}
-
-    static char_u *
-get_equalprg(void)
-{
-    if (*curbuf->b_p_ep == NUL)
-    {
-        return p_ep;
-    }
-    return curbuf->b_p_ep;
 }
 
     static void
@@ -69127,7 +68419,6 @@ buf_copy_options(buf_T *buf, int flags)
               ;
               ;
               ;
-            buf->b_p_fp = empty_option;
               ;
               ;
               ;
@@ -69135,7 +68426,6 @@ buf_copy_options(buf_T *buf, int flags)
             buf->b_p_fs = -1;
             buf->b_p_ul =  (-123456) ;
             buf->b_bkc_flags = 0;
-            buf->b_p_ep = empty_option;
             buf->b_tc_flags = 0;
             buf->b_cot_flags = 0;
             buf->b_p_qe = vim_strsave(p_qe);
@@ -69355,7 +68645,6 @@ static char *(p_ve_values[]) = {"block", "insert", "all", "onemore", "none", "NO
 static char *(p_sel_values[]) = {"inclusive", "exclusive", "old", NULL};
 static char *(p_slm_values[]) = {"mouse", "key", "cmd", NULL};
 static char *(p_km_values[]) = {"startsel", "stopsel", NULL};
-static char *(p_debug_values[]) = {"msg", "throw", "beep", NULL};
 static char *(p_buftype_values[]) = {"nofile", "nowrite", "quickfix", "help", "terminal", "acwrite", "prompt", "popup", NULL};
 static char *(p_bs_values[]) = {"indent", "eol", "start", "nostop", NULL};
 static char *(p_sloc_values[]) = {"last", "statusline", "tabline", NULL};
@@ -69388,7 +68677,6 @@ illegal_char(char *errbuf, size_t errbuflen, int c)
 check_buf_options(buf_T *buf)
 {
     check_string_option(&buf->b_p_bt);
-    check_string_option(&buf->b_p_fp);
     check_string_option(&buf->b_p_mps);
     check_string_option(&buf->b_p_fo);
     check_string_option(&buf->b_p_flp);
@@ -69397,7 +68685,6 @@ check_buf_options(buf_T *buf)
     check_string_option(&buf->b_p_nf);
     check_string_option(&buf->b_p_qe);
     check_string_option(&buf->b_p_ft);
-    check_string_option(&buf->b_p_ep);
 }
 
     static void
@@ -69796,12 +69083,6 @@ did_set_cpoptions(optset_T *args)
 }
 
     static char *
-did_set_debug(optset_T *args  __attribute__((unused)) )
-{
-    return did_set_opt_strings(p_debug, p_debug_values, TRUE);
-}
-
-    static char *
 did_set_display(optset_T *args  __attribute__((unused)) )
 {
     if (opt_strings_flags(p_dy, p_dy_values, &dy_flags, TRUE) != OK)
@@ -69847,22 +69128,6 @@ did_set_highlight(optset_T *args  __attribute__((unused)) )
     }
 
     return NULL;
-}
-
-    static char *
-parse_titleiconstring(optset_T *args  __attribute__((unused)) , int flagval  __attribute__((unused)) )
-{
-    did_set_title();
-
-    return NULL;
-}
-
-    static char *
-did_set_iconstring(optset_T *args)
-{
-    int flagval = 0;
-
-    return parse_titleiconstring(args, flagval);
 }
 
     static char *
@@ -70135,26 +69400,6 @@ did_set_termresize(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_titlestring(optset_T *args)
-{
-    int flagval = 0;
-
-    return parse_titleiconstring(args, flagval);
-}
-
-    static char *
-did_set_verbosefile(optset_T *args  __attribute__((unused)) )
-{
-    verbose_stop();
-    if (*p_vfile != NUL && verbose_open() == FAIL)
-    {
-        return e_invalid_argument;
-    }
-
-    return NULL;
-}
-
-    static char *
 did_set_virtualedit(optset_T *args)
 {
     char_u              *ve = p_ve;
@@ -70366,11 +69611,7 @@ opt_strings_flags(char_u      *val, char        **values, unsigned    *flagp, in
 
 static int ignore_sigtstp = FALSE;
 
-static char_u   *oldtitle = NULL;
 static volatile sig_atomic_t oldtitle_outdated = FALSE;
-static int      unix_did_set_title = FALSE;
-static char_u   *oldicon = NULL;
-static int      did_set_icon = FALSE;
 
 static int  WaitForChar(long msec, int *interrupted, int ignore_input);
 static int  RealWaitForChar(int, long, int *, int *interrupted);
@@ -70805,127 +70046,6 @@ mch_input_isatty(void)
 }
 
     static int
-get_x11_title(int test_only  __attribute__((unused)) )
-{
-    return FALSE;
-}
-
-    static int
-get_x11_icon(int test_only)
-{
-    if (!test_only)
-    {
-        if ( strncmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("builtin_"), (8))  == 0)
-        {
-            oldicon = vim_strsave( ( term_strings[(int)(KS_NAME)] )  + 8);
-        }
-        else
-        {
-            oldicon = vim_strsave( ( term_strings[(int)(KS_NAME)] ) );
-        }
-    }
-    return FALSE;
-}
-
-    static int
-mch_can_restore_title(void)
-{
-    return get_x11_title(TRUE);
-}
-
-    static int
-mch_can_restore_icon(void)
-{
-    return get_x11_icon(TRUE);
-}
-
-    static void
-mch_settitle(char_u *title, char_u *icon)
-{
-    int         type = 0;
-    static int  recursive = 0;
-
-    if ( ( term_strings[(int)(KS_NAME)] )  == NULL)
-    {
-        return;
-    }
-    if (title == NULL && icon == NULL)
-    {
-        return;
-    }
-
-    if (recursive)
-    {
-        return;
-    }
-    ++recursive;
-
-    if ((type || * ( term_strings[(int)(KS_TS)] )  != NUL) && title != NULL)
-    {
-        if (oldtitle_outdated)
-        {
-            oldtitle_outdated = FALSE;
-             vim_free(oldtitle);
-             (oldtitle) = NULL;
-        }
-        if (oldtitle == NULL)
-        {
-            (void)get_x11_title(FALSE);
-        }
-
-        if (* ( term_strings[(int)(KS_TS)] )  != NUL)
-        {
-            term_settitle(title);
-        }
-        unix_did_set_title = TRUE;
-    }
-
-    if ((type || * ( term_strings[(int)(KS_CIS)] )  != NUL) && icon != NULL)
-    {
-        if (oldicon == NULL)
-        {
-            get_x11_icon(FALSE);
-        }
-
-        if (* ( term_strings[(int)(KS_CIS)] )  != NUL)
-        {
-            out_str( ( term_strings[(int)(KS_CIS)] ) );
-            out_str_nf(icon);
-            out_str( ( term_strings[(int)(KS_CIE)] ) );
-            out_flush();
-        }
-        did_set_icon = TRUE;
-    }
-    --recursive;
-}
-
-    static void
-mch_restore_title(int which)
-{
-    int do_push_pop = unix_did_set_title || did_set_icon;
-
-    char_u *title = ((which & SAVE_RESTORE_TITLE) && unix_did_set_title)
-                        ? (oldtitle ? oldtitle : p_titleold) : NULL;
-    char_u *tofree = NULL;
-    if (title == oldtitle && oldtitle != NULL)
-    {
-        tofree = vim_strsave(title);
-        if (tofree != NULL)
-        {
-            title = tofree;
-        }
-    }
-    mch_settitle(title, ((which & SAVE_RESTORE_ICON) && did_set_icon) ? oldicon : NULL);
-    vim_free(tofree);
-
-    if (do_push_pop)
-    {
-        term_pop_title(which);
-        term_push_title(which);
-    }
-}
-
-    static int
 vim_is_xterm(char_u *name)
 {
     if (name == NULL)
@@ -71131,8 +70251,6 @@ mch_exit(int r)
 
     {
         settmode(TMODE_COOK);
-        mch_restore_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
-        term_pop_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
 
         if (swapping_screen() && !newline_on_exit)
         {
@@ -88251,7 +87369,6 @@ set_termname(char_u *term)
     if (starting != NO_SCREEN)
     {
         starttermcap();
-        maketitle();
     }
 
     if (width <= 0 || height <= 0)
@@ -88701,49 +87818,6 @@ term_bg_default(void)
 }
 
     static void
-term_settitle(char_u *title)
-{
-      ;
-
-     out_str((char_u *)(tgoto((char *) ( term_strings[(int)(KS_TS)] ) , 0, 0))) ;
-    out_str_nf(title);
-    out_str( ( term_strings[(int)(KS_FS)] ) );
-    out_flush();
-}
-
-    static void
-term_push_title(int which)
-{
-    if ((which & SAVE_RESTORE_TITLE) &&  ( term_strings[(int)(KS_CST)] )  != NULL && * ( term_strings[(int)(KS_CST)] )  != NUL)
-    {
-         out_str((char_u *)( ( term_strings[(int)(KS_CST)] ) )) ;
-        out_flush();
-    }
-
-    if ((which & SAVE_RESTORE_ICON) &&  ( term_strings[(int)(KS_SSI)] )  != NULL && * ( term_strings[(int)(KS_SSI)] )  != NUL)
-    {
-         out_str((char_u *)( ( term_strings[(int)(KS_SSI)] ) )) ;
-        out_flush();
-    }
-}
-
-    static void
-term_pop_title(int which)
-{
-    if ((which & SAVE_RESTORE_TITLE) &&  ( term_strings[(int)(KS_CRT)] )  != NULL && * ( term_strings[(int)(KS_CRT)] )  != NUL)
-    {
-         out_str((char_u *)( ( term_strings[(int)(KS_CRT)] ) )) ;
-        out_flush();
-    }
-
-    if ((which & SAVE_RESTORE_ICON) &&  ( term_strings[(int)(KS_SRI)] )  != NULL && * ( term_strings[(int)(KS_SRI)] )  != NUL)
-    {
-         out_str((char_u *)( ( term_strings[(int)(KS_SRI)] ) )) ;
-        out_flush();
-    }
-}
-
-    static void
 ttest(int pairs)
 {
 
@@ -88951,7 +88025,6 @@ set_shellsize_inner(int width, int height, int mustset)
 
     if (starting != NO_SCREEN)
     {
-        maketitle();
 
         changed_line_abv_curs();
         invalidate_botline();
@@ -93891,13 +92964,7 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
             resize_func(FALSE);
         }
 
-        bool delay_pending = ins_compl_autocomplete_pending() && p_acl > 0
-                && typebuf.tb_len == 0
-                && !ins_compl_active()
-                && (get_real_state() & MODE_INSERT) != 0;
-        long acl_elapsed = delay_pending ? ins_compl_autocomplete_elapsed() : 0;
-
-        if (wtime < 0 && did_start_blocking && !delay_pending)
+        if (wtime < 0 && did_start_blocking)
         {
             wait_time = -1;
         }
@@ -93907,20 +92974,6 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
             if (wtime >= 0)
             {
                 wait_time = wtime - elapsed_time;
-            }
-            else if (delay_pending)
-            {
-                long delay_left = p_acl - acl_elapsed;
-                long ut_left = p_ut - elapsed_time;
-
-                if (did_start_blocking)
-                {
-                    wait_time = delay_left;
-                }
-                else
-                {
-                    wait_time = MIN(delay_left, ut_left);
-                }
             }
             else
             {
@@ -93932,26 +92985,6 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
                 if (wtime >= 0)
                 {
                     return 0;
-                }
-
-                if (delay_pending && acl_elapsed >= p_acl && maxlen >= 3 && !typebuf_changed(tb_change_cnt))
-                {
-                    if (buf == NULL)
-                    {
-                        char_u  ibuf[3];
-
-                        ibuf[0] = CSI;
-                        ibuf[1] = KS_EXTRA;
-                        ibuf[2] = (int)KE_COMPLETE_DELAY;
-                        add_to_input_buf(ibuf, 3);
-                    }
-                    else
-                    {
-                        buf[0] =  (0x80) ;
-                        buf[1] = KS_EXTRA;
-                        buf[2] = (int)KE_COMPLETE_DELAY;
-                    }
-                    return 3;
                 }
 
                 did_start_blocking = TRUE;
@@ -94318,10 +93351,6 @@ ui_focus_change(int         in_focus)
         redraw_after_callback(TRUE, TRUE);
     }
 
-    if (need_maketitle)
-    {
-        maketitle();
-    }
 }
 
 // ==================== undo.c ====================
@@ -99679,7 +98708,6 @@ win_enter_ext(win_T *wp, int flags)
         }
     }
 
-    maketitle();
     curwin->w_redr_status = true;
     redraw_tabline = TRUE;
     redraw_vseps = TRUE;
@@ -101324,8 +100352,6 @@ vim_main2(void)
     }
     scroll_start();
 
-    term_push_title( (SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON) );
-
     if (exmode_active)
     {
         set_must_redraw(UPD_CLEAR);
@@ -101586,10 +100612,6 @@ main_loop(int         cmdwin, int         noexmode)
                 showmode();
             }
             redraw_statuslines();
-            if (need_maketitle)
-            {
-                maketitle();
-            }
             if (keep_msg != NULL)
             {
                 char_u *p = vim_strsave(keep_msg);
