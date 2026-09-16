@@ -194,29 +194,16 @@ enum { KS_EXTRA = 253 };
 
 enum { KS_MODIFIER = 252 };
 
-enum { KS_MOUSE = 251 };
 enum { KS_VER_SCROLLBAR = 249 };
 enum { KS_HOR_SCROLLBAR = 248 };
 
-enum { KS_NETTERM_MOUSE = 247 };
-enum { KS_DEC_MOUSE = 246 };
-
 enum { KS_SELECT = 245 };
 
-enum { KS_JSBTERM_MOUSE = 243 };
-
 enum { KS_KEY = 242 };
-
-enum { KS_PTERM_MOUSE = 241 };
 
 enum { KS_TABLINE = 240 };
 
 enum { KS_TABMENU = 239 };
-
-enum { KS_URXVT_MOUSE = 238 };
-
-enum { KS_SGR_MOUSE = 237 };
-enum { KS_SGR_MOUSE_RELEASE = 236 };
 
 enum key_extra
 {
@@ -2626,10 +2613,6 @@ typedef struct
     char_u      *oe_set_arg;
 } optexpand_T;
 
-typedef struct {
-    int         spv_has_spell;
-} spellvars_T;
-
 typedef struct
 {
     int     key;
@@ -2688,8 +2671,6 @@ typedef struct s_xmparam {
 int xdl_merge(mmfile_t *orig, mmfile_t *mf1, mmfile_t *mf2, xmparam_t const *xmp, mmbuffer_t *result);
 
 // ---------------- end xdiff.h ----------------
-
-enum { MOUSE_RELEASE = 0x03 };
 
 enum { VALID_PATH = 1 };
 enum { VALID_HEAD = 2 };
@@ -3819,7 +3800,6 @@ static int ins_compl_win_active(win_T *wp);
 // ---------------- end locale.pro ----------------
 // ---------------- begin main.pro ----------------
 static void may_trigger_safestate(int safe);
-static void state_no_longer_safe(char *reason);
 static int work_pending(void);
 static void may_trigger_deferred_events(void);
 static void main_loop(int cmdwin, int noexmode);
@@ -4023,7 +4003,6 @@ static int cmp_keyvalue_value_ni(const void *a, const void *b);
 
 // ---------------- end misc2.pro ----------------
 // ---------------- begin mouse.pro ----------------
-static int is_mouse_key(int c);
 
 // ---------------- end mouse.pro ----------------
 // ---------------- begin move.pro ----------------
@@ -4667,7 +4646,6 @@ static int      emsg_off  = 0 ;
 static int      info_message  = FALSE ;
 static int      msg_hist_off  = FALSE ;
 static int      did_emsg;
-static int      did_emsg_syntax;
 static int      called_emsg;
 static int      in_echowindow;
 static int      ex_exitval  = 0 ;
@@ -4705,7 +4683,6 @@ static linenr_T search_last_line  =  LONG_MAX  ;
 static int      no_smartcase  = FALSE ;
 
 static int      need_check_timestamps  = FALSE ;
-static int      did_check_timestamps  = FALSE ;
 
 static int      highlight_attr[HLF_COUNT];
 static int      cterm_normal_fg_color  = 0 ;
@@ -4724,8 +4701,6 @@ static bufref_T au_new_curbuf  = {NULL, 0, 0} ;
 static buf_T    *au_pending_free_buf  = NULL ;
 static win_T    *au_pending_free_win  = NULL ;
 
-static int      mouse_row;
-static int      mouse_col;
 static int      mouse_dragging  = 0 ;
 
 static int      updating_screen  = FALSE ;
@@ -4893,7 +4868,6 @@ static int      cmd_silent  = FALSE ;
 static int      in_assert_fails  = FALSE ;
 
 static int      swap_exists_action  = SEA_NONE ;
-static int      swap_exists_did_quit  = FALSE ;
 
 static char_u   *IObuff;
 static char_u   *NameBuff;
@@ -4906,7 +4880,6 @@ static int      readonlymode  = FALSE ;
 static typebuf_T typebuf
                     = {NULL, NULL, 0, 0, 0, 0, 0, 0, 0}
                     ;
-static int      typebuf_was_empty  = FALSE ;
 
 static int      ex_normal_busy  = 0 ;
 static int      ex_normal_lock  = 0 ;
@@ -4935,7 +4908,6 @@ static tmode_T  cur_tmode  = TMODE_COOK ;
 static int      searchcmdlen;
 
 static int      did_outofmem_msg  = FALSE ;
-static int      did_swapwrite_msg  = FALSE ;
 static int      undo_off  = FALSE ;
 static int      global_busy  = 0 ;
 static int      listcmd_busy  = FALSE ;
@@ -6673,8 +6645,6 @@ win_found:
     }
 }
 
-static int      autocmd_nested = FALSE;
-
     static int
 apply_autocmds(event_T     event, char_u      *fname, char_u      *fname_io, int         force, buf_T       *buf)
 {
@@ -6891,7 +6861,6 @@ getnextac(int c  __attribute__((unused)) , void *cookie, int indent  __attribute
     {
         au_del_cmd(ac);
     }
-    autocmd_nested = ac->nested;
     current_sctx = ac->script_ctx;
     acp->script_ctx = current_sctx;
     if (ac->last)
@@ -7524,7 +7493,6 @@ handle_swap_exists(bufref_T *old_curbuf)
     if (swap_exists_action == SEA_QUIT)
     {
         swap_exists_action = SEA_NONE;
-        swap_exists_did_quit = TRUE;
         close_buffer(curwin, curbuf, DOBUF_UNLOAD, FALSE, FALSE, TRUE);
         if (old_curbuf == NULL || !bufref_valid(old_curbuf) || old_curbuf->br_buf == curbuf)
         {
@@ -13267,7 +13235,7 @@ win_line_continue(winlinevars_T *wlv)
 }
 
     static int
-win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         endrow, int         number_only, spellvars_T *spv  __attribute__((unused)) )
+win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         endrow, int         number_only)
 {
     winlinevars_T       wlv;
 
@@ -15508,8 +15476,6 @@ win_update(win_T *wp)
 
     lnum = wp->w_topline;
 
-    spellvars_T spv;
-
     idx = 0;
     row = 0;
     srow = 0;
@@ -15681,7 +15647,7 @@ win_update(win_T *wp)
             {
                 prepare_search_hl(wp, &screen_search_hl, lnum);
 
-                row = win_line(wp, lnum, srow, wp->w_height, 0, &spv);
+                row = win_line(wp, lnum, srow, wp->w_height, 0);
 
             }
 
@@ -15710,7 +15676,7 @@ win_update(win_T *wp)
         {
             if ((wp-> w_onebuf_opt.wo_nu  && mod_top != 0 && lnum >= mod_bot && buf->b_mod_set && buf->b_mod_xlines != 0) || (wp-> w_onebuf_opt.wo_rnu  && wp->w_last_cursor_lnum_rnu != wp->w_cursor.lnum))
             {
-                    (void)win_line(wp, lnum, srow, wp->w_height, wp->w_lines[idx].wl_size, &spv);
+                    (void)win_line(wp, lnum, srow, wp->w_height, wp->w_lines[idx].wl_size);
             }
 
             row += wp->w_lines[idx++].wl_size;
@@ -16410,7 +16376,6 @@ edit(int         cmdchar, int         startln, long        count)
 
         if (stuff_empty())
         {
-            did_check_timestamps = FALSE;
             if (need_check_timestamps)
             {
                 check_timestamps(FALSE);
@@ -23051,7 +23016,6 @@ do_cmdline(char_u      *cmdline, char_u      *(*fgetline)(int, void *, int, getl
         ;
 
     vim_free(cmdline_copy);
-    did_emsg_syntax = FALSE;
 
     if (did_inc_RedrawingDisabled)
     {
@@ -23368,7 +23332,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
                 did_append_cmd = TRUE;
             }
             errormsg = (char *)IObuff;
-            did_emsg_syntax = TRUE;
         }
         goto doend;
     }
@@ -32325,7 +32288,6 @@ ins_typebuf(char_u      *str, int         noremap, int         offset, int      
     {
         typebuf.tb_change_cnt = 1;
     }
-    state_no_longer_safe("ins_typebuf()");
 
     addlen = (int) strlen((char *)(str)) ;
 
@@ -32701,8 +32663,6 @@ static typebuf_T saved_typebuf[NSCRIPT];
 
 static int old_char = -1;
 static int old_mod_mask;
-static int old_mouse_row;
-static int old_mouse_col;
 static int old_KeyStuffed;
 
 static int can_get_old_char(void)
@@ -32885,8 +32845,6 @@ vgetc(void)
         c = old_char;
         old_char = -1;
         mod_mask = old_mod_mask;
-        mouse_row = old_mouse_row;
-        mouse_col = old_mouse_col;
     }
     else
     {
@@ -33078,7 +33036,6 @@ vgetc(void)
 
     if (c !=   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  )
     {
-        state_no_longer_safe("key typed");
     }
 
     return c;
@@ -33540,8 +33497,6 @@ vungetc(int c)
 {
     old_char = c;
     old_mod_mask = mod_mask;
-    old_mouse_row = mouse_row;
-    old_mouse_col = mouse_col;
     old_KeyStuffed = KeyStuffed;
 }
 
@@ -33587,7 +33542,6 @@ vgetorpeek(int advance)
     if (advance)
     {
         KeyStuffed = FALSE;
-        typebuf_was_empty = FALSE;
     }
 
     init_typebuf();
@@ -33809,7 +33763,6 @@ vgetorpeek(int advance)
                     }
                     if (advance)
                     {
-                        typebuf_was_empty = TRUE;
                     }
 
                     if (pending_exmode_active)
@@ -33992,7 +33945,6 @@ inchar(char_u      *buf, int         maxlen, long        wait_time)
     if (State !=  (0x2000 | MODE_NORMAL) )
     {
         did_outofmem_msg = FALSE;
-        did_swapwrite_msg = FALSE;
     }
     undo_off = FALSE;
 
@@ -49121,7 +49073,7 @@ get_keystroke(void)
         if (n ==  (0x80) )
         {
             n =  ((buf[1]) == KS_SPECIAL ?  (0x80)  : (buf[1]) == KS_ZERO ?   (-((KS_ZERO) + ((int)( ('X') ) << 8)))   :  (-((buf[1]) + ((int)(buf[2]) << 8))) ) ;
-            if (buf[1] == KS_MODIFIER || n ==   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))   || (is_mouse_key(n) && n !=   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))  ))
+            if (buf[1] == KS_MODIFIER || n ==   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  )
             {
                 if (buf[1] == KS_MODIFIER)
                 {
@@ -50166,9 +50118,6 @@ static struct key_name_entry
     {TRUE, CAR,  {(char_u *)("CR"),  (sizeof("CR" "") - 1) } , FALSE},
     {TRUE, CSI,  {(char_u *)("CSI"),  (sizeof("CSI" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_CURSORHOLD) << 8)))  ,  {(char_u *)("CursorHold"),  (sizeof("CursorHold" "") - 1) } , FALSE},
-    {
-    FALSE,
-          (-((KS_DEC_MOUSE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("DecMouse"),  (sizeof("DecMouse" "") - 1) } , FALSE},
     {TRUE,   (-(('k') + ((int)('D') << 8)))  ,  {(char_u *)("Del"),  (sizeof("Del" "") - 1) } , FALSE},
     {TRUE,   (-(('k') + ((int)('D') << 8)))  ,  {(char_u *)("Delete"),  (sizeof("Delete" "") - 1) } , TRUE},
     {TRUE,   (-(('k') + ((int)('d') << 8)))  ,  {(char_u *)("Down"),  (sizeof("Down" "") - 1) } , FALSE},
@@ -50225,9 +50174,6 @@ static struct key_name_entry
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_IGNORE) << 8)))  ,  {(char_u *)("Ignore"),  (sizeof("Ignore" "") - 1) } , FALSE},
     {TRUE,   (-(('k') + ((int)('I') << 8)))  ,  {(char_u *)("Ins"),  (sizeof("Ins" "") - 1) } , TRUE},
     {TRUE,   (-(('k') + ((int)('I') << 8)))  ,  {(char_u *)("Insert"),  (sizeof("Insert" "") - 1) } , FALSE},
-    {
-    FALSE,
-          (-((KS_JSBTERM_MOUSE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("JsbMouse"),  (sizeof("JsbMouse" "") - 1) } , FALSE},
     {TRUE,   (-(('K') + ((int)('C') << 8)))  ,  {(char_u *)("k0"),  (sizeof("k0" "") - 1) } , FALSE},
     {TRUE,   (-(('K') + ((int)('D') << 8)))  ,  {(char_u *)("k1"),  (sizeof("k1" "") - 1) } , FALSE},
     {TRUE,   (-(('K') + ((int)('E') << 8)))  ,  {(char_u *)("k2"),  (sizeof("k2" "") - 1) } , FALSE},
@@ -50252,17 +50198,9 @@ static struct key_name_entry
     {TRUE,   (-(('K') + ((int)('6') << 8)))  ,  {(char_u *)("kPlus"),  (sizeof("kPlus" "") - 1) } , FALSE},
     {TRUE,   (-(('K') + ((int)('B') << 8)))  ,  {(char_u *)("kPoint"),  (sizeof("kPoint" "") - 1) } , FALSE},
     {TRUE,   (-(('k') + ((int)('l') << 8)))  ,  {(char_u *)("Left"),  (sizeof("Left" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE_NM) << 8)))  ,  {(char_u *)("LeftMouseNM"),  (sizeof("LeftMouseNM" "") - 1) } , FALSE},
     {TRUE, NL,  {(char_u *)("LF"),  (sizeof("LF" "") - 1) } , TRUE},
     {TRUE, NL,  {(char_u *)("LineFeed"),  (sizeof("LineFeed" "") - 1) } , TRUE},
     {TRUE, '<',  {(char_u *)("lt"),  (sizeof("lt" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MIDDLEDRAG) << 8)))  ,  {(char_u *)("MiddleDrag"),  (sizeof("MiddleDrag" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MIDDLERELEASE) << 8)))  ,  {(char_u *)("MiddleRelease"),  (sizeof("MiddleRelease" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))  ,  {(char_u *)("MouseDown"),  (sizeof("MouseDown" "") - 1) } , TRUE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))  ,  {(char_u *)("MouseUp"),  (sizeof("MouseUp" "") - 1) } , TRUE},
-    {
-    FALSE,
-          (-((KS_NETTERM_MOUSE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("NetMouse"),  (sizeof("NetMouse" "") - 1) } , FALSE},
     {TRUE, NL,  {(char_u *)("NewLine"),  (sizeof("NewLine" "") - 1) } , TRUE},
     {TRUE, NL,  {(char_u *)("NL"),  (sizeof("NL" "") - 1) } , FALSE},
     {TRUE,   (-((KS_ZERO) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("Nul"),  (sizeof("Nul" "") - 1) } , FALSE},
@@ -50272,16 +50210,9 @@ static struct key_name_entry
     {TRUE,   (-(('P') + ((int)('E') << 8)))  ,  {(char_u *)("PasteEnd"),  (sizeof("PasteEnd" "") - 1) } , FALSE},
     {TRUE,   (-(('P') + ((int)('S') << 8)))  ,  {(char_u *)("PasteStart"),  (sizeof("PasteStart" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_PLUG) << 8)))  ,  {(char_u *)("Plug"),  (sizeof("Plug" "") - 1) } , FALSE},
-    {
-    FALSE,
-          (-((KS_PTERM_MOUSE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("PtermMouse"),  (sizeof("PtermMouse" "") - 1) } , FALSE},
     {TRUE, CAR,  {(char_u *)("Return"),  (sizeof("Return" "") - 1) } , TRUE},
     {TRUE,   (-(('k') + ((int)('r') << 8)))  ,  {(char_u *)("Right"),  (sizeof("Right" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_RIGHTDRAG) << 8)))  ,  {(char_u *)("RightDrag"),  (sizeof("RightDrag" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))  ,  {(char_u *)("RightRelease"),  (sizeof("RightRelease" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_SCRIPT_COMMAND) << 8)))  ,  {(char_u *)("ScriptCmd"),  (sizeof("ScriptCmd" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_SGR_MOUSE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("SgrMouse"),  (sizeof("SgrMouse" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_SGR_MOUSE_RELEASE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("SgrMouseRelease"),  (sizeof("SgrMouseRelease" "") - 1) } , FALSE},
     {
     FALSE,
           (-((KS_EXTRA) + ((int)(KE_SNR) << 8)))  ,  {(char_u *)("SNR"),  (sizeof("SNR" "") - 1) } , FALSE},
@@ -50290,13 +50221,6 @@ static struct key_name_entry
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_TAB) << 8)))  ,  {(char_u *)("Tab"),  (sizeof("Tab" "") - 1) } , FALSE},
     {TRUE,   (-(('&') + ((int)('8') << 8)))  ,  {(char_u *)("Undo"),  (sizeof("Undo" "") - 1) } , FALSE},
     {TRUE,   (-(('k') + ((int)('u') << 8)))  ,  {(char_u *)("Up"),  (sizeof("Up" "") - 1) } , FALSE},
-    {
-    FALSE,
-          (-((KS_URXVT_MOUSE) + ((int)( ('X') ) << 8)))  ,  {(char_u *)("UrxvtMouse"),  (sizeof("UrxvtMouse" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_X1DRAG) << 8)))  ,  {(char_u *)("X1Drag"),  (sizeof("X1Drag" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_X1RELEASE) << 8)))  ,  {(char_u *)("X1Release"),  (sizeof("X1Release" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_X2DRAG) << 8)))  ,  {(char_u *)("X2Drag"),  (sizeof("X2Drag" "") - 1) } , FALSE},
-    {TRUE,   (-((KS_EXTRA) + ((int)(KE_X2RELEASE) << 8)))  ,  {(char_u *)("X2Release"),  (sizeof("X2Release" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_CSI) << 8)))  ,  {(char_u *)("xCSI"),  (sizeof("xCSI" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_XDOWN) << 8)))  ,  {(char_u *)("xDown"),  (sizeof("xDown" "") - 1) } , FALSE},
     {TRUE,   (-((KS_EXTRA) + ((int)(KE_XEND) << 8)))  ,  {(char_u *)("xEnd"),  (sizeof("xEnd" "") - 1) } , FALSE},
@@ -50960,49 +50884,6 @@ cmp_keyvalue_value_ni(const void *a, const void *b)
 }
 
 // ==================== mouse.c ====================
-
-static win_T *dragwin = NULL;
-
-    static int
-is_mouse_key(int c)
-{
-    return c ==   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_LEFTMOUSE_NM) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_LEFTDRAG) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_LEFTRELEASE_NM) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEMOVE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_MIDDLEDRAG) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_MIDDLERELEASE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTMOUSE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTDRAG) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_RIGHTRELEASE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEDOWN) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSEUP) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSELEFT) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_MOUSERIGHT) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_X1MOUSE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_X1DRAG) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_X1RELEASE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_X2MOUSE) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_X2DRAG) << 8)))  
-        || c ==   (-((KS_EXTRA) + ((int)(KE_X2RELEASE) << 8)))  ;
-}
-
-    static void
-reset_dragwin(void)
-{
-    dragwin = NULL;
-}
-
-static int      held_button = MOUSE_RELEASE;
-
-    static void
-reset_held_button(void)
-{
-    held_button = MOUSE_RELEASE;
-}
 
 // ==================== move.c ====================
 
@@ -54399,7 +54280,6 @@ end_visual_mode(void)
 {
     VIsual_select_exclu_adj = FALSE;
     end_visual_mode_keep_button();
-    reset_held_button();
 }
 
     static void
@@ -66839,8 +66719,6 @@ opt_strings_flags(char_u      *val, char        **values, unsigned    *flagp, in
 
 static int ignore_sigtstp = FALSE;
 
-static volatile sig_atomic_t oldtitle_outdated = FALSE;
-
 static int  WaitForChar(long msec, int *interrupted, int ignore_input);
 static int  RealWaitForChar(int, long, int *, int *interrupted);
 
@@ -66860,8 +66738,6 @@ static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***fil
 
 static volatile sig_atomic_t do_resize = FALSE;
 static volatile sig_atomic_t got_tstp = FALSE;
-static volatile sig_atomic_t deadly_signal = 0;
-static volatile sig_atomic_t in_mch_delay = FALSE;
 
 static tmode_T mch_cur_tmode = TMODE_COOK;
 
@@ -66978,7 +66854,6 @@ mch_delay(long msec, int flags)
 
     if (flags & MCH_DELAY_IGNOREINPUT)
     {
-        in_mch_delay = TRUE;
         call_settmode = mch_cur_tmode == TMODE_RAW
                                && (msec > 500 || (flags & MCH_DELAY_SETTMODE));
         if (call_settmode)
@@ -66999,7 +66874,6 @@ mch_delay(long msec, int flags)
         {
             settmode(old_tmode);
         }
-        in_mch_delay = FALSE;
     }
     else
     {
@@ -67061,7 +66935,6 @@ deathtrap  (int sigarg  __attribute__((unused)) )
             break;
         }
     }
-    deadly_signal = sigarg;
 
     full_screen = FALSE;
     if (entered >= 3)
@@ -67089,11 +66962,9 @@ deathtrap  (int sigarg  __attribute__((unused)) )
     static void
 after_sigcont(void)
 {
-    oldtitle_outdated = TRUE;
 
     settmode(TMODE_RAW);
     need_check_timestamps = TRUE;
-    did_check_timestamps = FALSE;
 }
 
 static void sigcont_handler  (int) ;
@@ -79461,7 +79332,6 @@ static char_u   lastc_bytes[MB_MAXBYTES + 1];
 static int      lastc_bytelen = 1;
 
 static char_u       *mr_pattern = NULL;
-static size_t       mr_patternlen = 0;
 
     static int
 search_regcomp(char_u      *pat, size_t      patlen, char_u      **used_pat, int         pat_save, int         pat_use, int         options, regmmatch_T *regmatch)
@@ -79513,14 +79383,6 @@ search_regcomp(char_u      *pat, size_t      patlen, char_u      **used_pat, int
 
     vim_free(mr_pattern);
         mr_pattern = vim_strnsave(pat, patlen);
-    if (mr_pattern == NULL)
-    {
-        mr_patternlen = 0;
-    }
-    else
-    {
-        mr_patternlen = patlen;
-    }
 
     if (!(options & SEARCH_KEEP) && (cmdmod.cmod_flags & CMOD_KEEPPATTERNS) == 0)
     {
@@ -84138,7 +84000,6 @@ static tcap_entry_T builtin_debug[] = {
     {  (-(('k') + ((int)('N') << 8)))  ,        "[PAGEDOWN]"},
     {  (-(('K') + ((int)('3') << 8)))  ,         "[KPAGEUP]"},
     {  (-(('K') + ((int)('5') << 8)))  ,       "[KPAGEDOWN]"},
-    {  (-((KS_MOUSE) + ((int)( ('X') ) << 8)))  ,           "[MOUSE]"},
     {  (-(('K') + ((int)('6') << 8)))  ,           "[KPLUS]"},
     {  (-(('K') + ((int)('7') << 8)))  ,          "[KMINUS]"},
     {  (-(('K') + ((int)('8') << 8)))  ,         "[KDIVIDE]"},
@@ -86769,7 +86630,6 @@ check_termcode(int         max_offset, char_u      *buf, int         bufsize, in
         modifiers = 0;
 
         {
-            int  mouse_index_found = -1;
             int keypad_index_found = -1;
             int keypad_slen_found = 0;
 
@@ -86784,7 +86644,6 @@ check_termcode(int         max_offset, char_u      *buf, int         bufsize, in
                 }
                 if ( strncmp((char *)(termcodes[idx].code), (char *)(tp), ((size_t)(slen > len ? len : slen)))  == 0)
                 {
-                    int     looks_like_mouse_start = FALSE;
 
                     if (len < slen)
                     {
@@ -86801,49 +86660,7 @@ check_termcode(int         max_offset, char_u      *buf, int         bufsize, in
                         }
                     }
 
-                    if (slen == 2 && len > 2 && termcodes[idx].code[0] == ESC && termcodes[idx].code[1] == '[')
-                    {
-                        if (! (isdigit ((unsigned char)(tp[2]))) )
-                        {
-                            looks_like_mouse_start = TRUE;
-                        }
-                        else if (termcodes[idx].name[0] == KS_DEC_MOUSE)
-                        {
-                            char_u  *nr = tp + 2;
-                            int     count = 0;
-
-                            for (;;)
-                            {
-                                ++count;
-                                (void)getdigits(&nr);
-                                if (nr >= tp + len)
-                                {
-                                    return -1;
-                                }
-                                if (*nr != ';')
-                                {
-                                    break;
-                                }
-                                ++nr;
-                                if (nr >= tp + len)
-                                {
-                                    return -1;
-                                }
-                            }
-                            if (count < 4)
-                            {
-                                continue;
-                            }
-                        }
-                    }
-                    if (looks_like_mouse_start)
-                    {
-                        if (mouse_index_found < 0)
-                        {
-                            mouse_index_found = idx;
-                        }
-                    }
-                    else if (!is_keypad)
+                    if (!is_keypad)
                     {
                         key_name[0] = termcodes[idx].name[0];
                         key_name[1] = termcodes[idx].name[1];
@@ -86851,7 +86668,7 @@ check_termcode(int         max_offset, char_u      *buf, int         bufsize, in
                     }
                 }
 
-                if (termcodes[idx].modlen > 0 && mouse_index_found < 0)
+                if (termcodes[idx].modlen > 0)
                 {
                     modslen = termcodes[idx].modlen;
                     if (cpo_koffset && offset && len < modslen)
@@ -86926,11 +86743,6 @@ check_termcode(int         max_offset, char_u      *buf, int         bufsize, in
                 key_name[1] = termcodes[keypad_index_found].name[1];
                 slen = keypad_slen_found;
             }
-            else if (idx == tc_len && mouse_index_found >= 0)
-            {
-                key_name[0] = termcodes[mouse_index_found].name[0];
-                key_name[1] = termcodes[mouse_index_found].name[1];
-            }
         }
 
         if (key_name[0] == NUL)
@@ -86967,10 +86779,6 @@ handle_osc:
         if (key_name[0] == NUL)
         {
             continue;
-        }
-
-        if (key_name[0] == KS_MOUSE || key_name[0] == KS_SGR_MOUSE || key_name[0] == KS_SGR_MOUSE_RELEASE)
-        {
         }
 
         if (key_name[0] == KS_EXTRA)
@@ -91511,8 +91319,6 @@ static int split_disallowed = 0;
 
 static int close_disallowed = 0;
 
-static int frame_locked = 0;
-
     static int
 window_layout_locked(enum CMD_index cmd)
 {
@@ -93170,8 +92976,6 @@ winframe_remove(win_T       *win, int         *dirp, tabpage_T   *tp, frame_T   
         return NULL;
     }
 
-    frame_locked++;
-
     wp = frame2win(frp_close->fr_parent);
     row = wp->w_winrow;
     col = wp->w_wincol;
@@ -93210,8 +93014,6 @@ winframe_remove(win_T       *win, int         *dirp, tabpage_T   *tp, frame_T   
     {
         *unflat_altfr = frp2;
     }
-
-    frame_locked--;
 
     return wp;
 }
@@ -94158,7 +93960,6 @@ leave_tabpage(buf_T       *new_curbuf, int         trigger_leave_autocmds)
         }
     }
 
-    reset_dragwin();
     tp->tp_curwin = curwin;
     tp->tp_prevwin = prevwin;
     tp->tp_firstwin = firstwin;
@@ -94197,8 +93998,6 @@ enter_tabpage(tabpage_T   *tp, buf_T       *old_curbuf, int         trigger_ente
 
     last_status(FALSE);
     win_comp_pos();
-
-    reset_dragwin();
 
     if (curtab->tp_old_Rows !=  (Rows - p_ch - tabline_height())  || (old_off != firstwin->w_winrow))
     {
@@ -96104,7 +95903,6 @@ common_init_2(mparm_T *paramp)
 
 }
 
-static int      was_safe = FALSE;
 static oparg_T  *current_oap = NULL;
 
     static int
@@ -96131,13 +95929,6 @@ may_trigger_safestate(int safe)
     {
         apply_autocmds(EVENT_SAFESTATE, NULL, NULL, FALSE, curbuf);
     }
-    was_safe = is_safe;
-}
-
-    static void
-state_no_longer_safe(char *reason  __attribute__((unused)) )
-{
-    was_safe = FALSE;
 }
 
     static int
@@ -96198,7 +95989,6 @@ main_loop(int         cmdwin, int         noexmode)
     {
         if (stuff_empty())
         {
-            did_check_timestamps = FALSE;
             if (need_check_timestamps)
             {
                 check_timestamps(FALSE);
@@ -96242,8 +96032,6 @@ main_loop(int         cmdwin, int         noexmode)
             msg_scroll = FALSE;
         }
         quit_more = FALSE;
-
-        was_safe = FALSE;
 
         if (skip_redraw || exmode_active)
         {

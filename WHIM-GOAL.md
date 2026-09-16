@@ -3660,6 +3660,66 @@ and `'{,'}d` is refused.
 
 Measured: 97,684 → **96,848 lines**.
 
+## Phase 67 — no mouse, no spell plumbing, no write-only flags
+
+Three cuts, none of which changes what the editor can do, because none of it
+could happen in the first place. This is the first phase driven by
+`tools/coverage.sh` and by a scan for **write-only statics**, rather than by a
+capability to remove.
+
+- **The mouse, which cannot arrive.** There is no `'mouse'` option row, and
+  `setmouse()`, `mch_setmouse()`, `mouse_has()` and `p_mouse` are all gone, so
+  nothing ever asks a terminal to report mouse events. What served them goes:
+  `is_mouse_key()` and the term in the input loop that called it,
+  `reset_dragwin()`/`reset_held_button()` with `dragwin` and `held_button`,
+  `mouse_row`/`mouse_col` and `old_mouse_row`/`old_mouse_col` — a save-and-restore
+  pair nothing else reads — the 18 mouse rows of `key_names_table`, the `[MOUSE]`
+  entry of the terminal string table, and `check_termcode()`'s mouse matching.
+  **The 26 `nv_cmds` rows stay at `nv_error`**: that table's index is a permutation
+  of its rows, so a removed row renumbers the keys after it.
+- **The spell plumbing.** `spellvars_T` was one field, `win_line()`'s `spv`
+  parameter was already `__attribute__((unused))`, and `win_update()` declared one
+  on the stack only to pass its address twice.
+- **Fourteen write-only statics.** `did_check_timestamps`, `was_safe`,
+  `did_emsg_syntax`, `typebuf_was_empty`, `in_mch_delay`, `mr_patternlen`,
+  `frame_locked`, `swap_exists_did_quit`, `did_swapwrite_msg`, `autocmd_nested`,
+  `dragwin`, `held_button`, `oldtitle_outdated`, `deadly_signal`. Two were a whole
+  function body, so `state_no_longer_safe()` and its two calls go with `was_safe`.
+
+**`vim_ignored` is not one of them, though it looks identical to the detector.**
+Its five sites are `vim_ignored = ftruncate(...)`, `= dup(2)` and
+`= write(1, ...)`: it exists to swallow `warn_unused_result`, and removing it
+*adds* warnings — a `(void)` cast does not silence that attribute in gcc. The
+phase greps that it survives.
+
+**One real change of behaviour is buried in the mouse cut.**
+`looks_like_mouse_start` is not mouse-specific despite its name: it is set for any
+two-byte `ESC [` termcode whose third byte is not a digit, and it *defers* the
+match so a longer code — a mouse one — can win instead. With no mouse code able to
+arrive, deferring can only lose, so the fold makes such a code match at once.
+`tools/arrowcheck.py`, which drives a real pty, is what would catch that going
+wrong.
+
+**Two failures, both in the phase's own counting, and both caught by a guard
+rather than by the build.**
+
+1. **A probe that could not fail.** It asserted `:map <LeftMouse> x` is refused
+   once the name is gone. Measured on both binaries: **an unrecognised `<...>` is
+   taken as a literal string, not refused** — `<Foo>` and `<ZZnotakey>` are
+   accepted too. The evidence that the names are gone is the grep; what the probe
+   checks now is that a name which *does* exist still maps.
+2. **Thirteen of eighteen rows.** Five mouse rows — `DecMouse`, `JsbMouse`,
+   `NetMouse`, `PtermMouse`, `UrxvtMouse` — are written across **three** lines
+   (`{`, `FALSE,`, then code and name), so a single-line pattern could not see
+   them. This is phase 54's wrapped-option-row trap again. Both patterns are
+   anchored on the *name*, which is what keeps them off the sixth three-line row,
+   `SNR`.
+
+### The delta
+
+**None.** No key, command or option changes — every cut is code nothing could
+reach. Measured: 96,848 → **96,636 lines**.
+
 ## Unused, and unuseful
 
 These are different questions and only one of them has a tool.
@@ -3688,22 +3748,50 @@ working features and call it progress.
 
 ### What it says today
 
-**42% of `whim-vim`'s functions are never entered** — 1,163 of 2,738, holding
-17,806 lines. Measured after completion's predicates were stubbed, and before
-its callers were cut:
+**36% of `whim-vim`'s functions are never entered** — 750 of 2,065, holding
+11,235 lines. Measured after Phase 67:
 
 ```
-    235  do_window                  CTRL-W, which no harness presses
+    258  win_split_ins              the window layout, reachable only via aucmd_prepbuf
     158  win_equal_rec
-    145  getexmodeline
-    139  open_cmdwin
-    136  eval_vars
-    124  set_context_in_set_cmd     command-line completion
-    123  set_context_by_cmdname
-    119  op_replace
+    136  eval_vars                  % and # expansion in an Ex line
     117  scroll_cursor_bot
-    108  op_insert
+    115  op_replace                 Visual-block r
+    108  op_insert                  Visual-block I and A
+    101  do_more_prompt
+    100  handle_csi
+     98  cursor_pos_info            g CTRL-G
+     98  change_indent              Insert-mode CTRL-D and CTRL-T
+     94  shift_block
+     91  win_close
+     91  file_pat_to_reg_pat
+     89  nv_zet                     the z commands
+     89  internal_format            wrapping at 'textwidth'
 ```
+
+**Two entries were examined in this review and deliberately not cut**, which is
+worth recording so the next pass does not re-litigate them.
+
+**The `z` commands are kind 2.** `nv_zet` (177 lines), `nv_z_get_count` (54) and
+`set_leftcol` (52, called from `nv_zet` alone) would free 283 lines — but not
+`scroll_cursor_top`, `scroll_cursor_halfway` or `scroll_cursor_bot`, which keep
+external callers in `update_topline()` and `scroll_redraw()` and so stay whatever
+happens to `z`. What would go is view positioning (`zt`, `zz`, `zb`, `z<CR>`,
+`z.`, `z-`), horizontal scrolling (`zh`, `zl`, `zH`, `zL`, `zs`, `ze`, which do
+nothing unless `'wrap'` is off) and `zp`/`zP`/`zy`. **Kept**: `zz` centring the
+current line has no replacement among CTRL-E/CTRL-Y, CTRL-D/CTRL-U, CTRL-F/CTRL-B
+or H/M/L, and a never-entered `nv_zet` is a statement about the harness, which
+presses no `z`.
+
+**The window layout is not the kind-3 candidate it looks like.** 2,162 lines
+across 21 functions — `win_split_ins` (538 by its own extent), `win_equal_rec`
+(314), `win_close` (196), `last_status_rec` (149), the `frame_*` family — and
+`win_split()`, `win_new_tabpage()` and `make_windows()` have **zero** mentions, so
+nothing user-facing can split a window. But `win_split_ins()`'s caller is
+`aucmd_prepbuf()`, which is called from `open_buffer()`, `buf_write()`,
+`ins_redraw()` and `set_termname()` — all live. It is reachable and never taken,
+not unreachable. Cutting it means proving the autocommand window can never be
+created and folding those four callers: a phase, not a sweep.
 
 **The list is doing its job, and the way to read it is against the last
 reading.** After Phase 6 it said 1,520 of 3,255 over 27,865 lines, with
