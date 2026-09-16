@@ -980,7 +980,6 @@ static int      p_pi;
 static char_u   *p_qe;
 static int      p_ro;
 static int      p_remap;
-static long     p_re;
 static long     p_report;
 static int      p_ru;
 static long     p_sj;
@@ -1139,7 +1138,6 @@ typedef struct {
 
 enum { NSUBEXP = 10 };
 
-enum { AUTOMATIC_ENGINE = 0 };
 enum { BACKTRACKING_ENGINE = 1 };
 typedef struct regengine regengine_T;
 
@@ -1166,32 +1164,6 @@ typedef struct
     int                 regmlen;
     char_u              program[1];
 } bt_regprog_T;
-
-typedef struct nfa_state nfa_state_T;
-struct nfa_state
-{
-    int                 c;
-    int                 id;
-    int                 val;
-};
-
-typedef struct
-{
-    regengine_T         *engine;
-    unsigned            regflags;
-    unsigned            re_engine;
-    unsigned            re_flags;
-    int                 re_in_use;
-
-    nfa_state_T         *start;
-
-    int                 reganch;
-    int                 regstart;
-    char_u              *match_text;
-
-    char_u              *pattern;
-    nfa_state_T         state[1];
-} nfa_regprog_T;
 
 typedef struct
 {
@@ -61406,11 +61378,6 @@ check_num_option_bounds(long        *pp, long        old_value, long        old_
         errmsg = e_invalid_argument;
         p_hi = 10000;
     }
-    if (p_re < 0 || p_re > 2)
-    {
-        errmsg = e_invalid_argument;
-        p_re = 0;
-    }
     if (p_report < 0)
     {
         errmsg = e_argument_must_be_positive;
@@ -70625,35 +70592,6 @@ vim_regexec_string(regmatch_T  *rmp, char_u      *line, colnr_T     col, int    
     result = rmp->regprog->engine->regexec_nl(rmp, line, col, nl);
     rmp->regprog->re_in_use = FALSE;
 
-    if (rmp->regprog->re_engine == AUTOMATIC_ENGINE && result ==  (-1) )
-    {
-        int    save_p_re = p_re;
-        int    re_flags = rmp->regprog->re_flags;
-        char_u *pat = vim_strsave(((nfa_regprog_T *)rmp->regprog)->pattern);
-
-        p_re = BACKTRACKING_ENGINE;
-        if (pat != NULL)
-        {
-            regprog_T *prev_prog = rmp->regprog;
-
-            rmp->regprog = vim_regcomp(pat, re_flags);
-            if (rmp->regprog == NULL)
-            {
-                rmp->regprog = prev_prog;
-            }
-            else
-            {
-                vim_regfree(prev_prog);
-                rmp->regprog->re_in_use = TRUE;
-                result = rmp->regprog->engine->regexec_nl(rmp, line, col, nl);
-                rmp->regprog->re_in_use = FALSE;
-            }
-            vim_free(pat);
-        }
-
-        p_re = save_p_re;
-    }
-
     rex_in_use = rex_in_use_save;
     if (rex_in_use)
     {
@@ -70691,35 +70629,6 @@ vim_regexec_multi(regmmatch_T *rmp, win_T       *win, buf_T       *buf, linenr_T
 
     result = rmp->regprog->engine->regexec_multi(rmp, win, buf, lnum, col, timed_out);
     rmp->regprog->re_in_use = FALSE;
-
-    if (rmp->regprog->re_engine == AUTOMATIC_ENGINE && result ==  (-1) )
-    {
-        int    save_p_re = p_re;
-        int    re_flags = rmp->regprog->re_flags;
-        char_u *pat = vim_strsave(((nfa_regprog_T *)rmp->regprog)->pattern);
-
-        p_re = BACKTRACKING_ENGINE;
-        if (pat != NULL)
-        {
-            regprog_T *prev_prog = rmp->regprog;
-
-            rmp->regprog = vim_regcomp(pat, re_flags);
-            if (rmp->regprog == NULL)
-            {
-                rmp->regprog = prev_prog;
-            }
-            else
-            {
-                vim_regfree(prev_prog);
-
-                rmp->regprog->re_in_use = TRUE;
-                result = rmp->regprog->engine->regexec_multi(rmp, win, buf, lnum, col, timed_out);
-                rmp->regprog->re_in_use = FALSE;
-            }
-            vim_free(pat);
-        }
-        p_re = save_p_re;
-    }
 
     rex_in_use = rex_in_use_save;
     if (rex_in_use)
