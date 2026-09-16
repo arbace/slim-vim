@@ -3176,7 +3176,6 @@ static void no_write_message(void);
 static int curbuf_reusable(void);
 static buf_T *buflist_new(char_u *ffname_arg, char_u *sfname_arg, linenr_T lnum, int flags);
 static void free_buf_options(buf_T *buf, int free_p_ff);
-static int buflist_findpat(char_u *pattern, char_u *pattern_end, int unlisted, int diffmode, int curtab_only);
 static buf_T *buflist_findnr(int nr);
 static void buflist_setfpos(buf_T *buf, win_T *win, linenr_T lnum, colnr_T col, int copy_options);
 static void get_winopts(buf_T *buf);
@@ -3391,7 +3390,6 @@ static char_u *shorten_fname(char_u *full_path, char_u *dir_name);
 static void shorten_fnames(int force);
 static int check_timestamps(int focus);
 static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
-static char_u *file_pat_to_reg_pat(char_u *pat, char_u *pat_end, char *allow_dirs, int no_bslash);
 static long read_eintr(int fd, void *buf, size_t bufsize);
 static long write_eintr(int fd, void *buf, size_t bufsize);
 
@@ -4697,7 +4695,6 @@ static char e_too_many_brackets[]  =  "E76: Too many ["  ;
 static char e_too_many_file_names[]  =  "E77: Too many file names"  ;
 static char e_unknown_mark[]  =  "E78: Unknown mark"  ;
 static char e_cannot_allocate_any_buffer_exiting[]  =  "E82: Cannot allocate any buffer, exiting..."  ;
-static char e_no_matching_buffer_for_str[]  =  "E94: No matching buffer for %s"  ;
 static char e_buffer_with_this_name_already_exists[]  =  "E95: Buffer with this name already exists"  ;
 static char e_cannot_move_range_of_lines_into_itself[]  =  "E134: Cannot move a range of lines into itself"  ;
 static char e_use_bang_to_write_partial_buffer[]  =  "E140: Use ! to write partial buffer"  ;
@@ -4719,8 +4716,6 @@ static char e_readpre_autocommands_must_not_change_current_buffer[]  =  "E201: *
 static char e_autocommands_deleted_or_unloaded_buffer_to_be_written[]  =  "E203: Autocommands deleted or unloaded buffer to be written"  ;
 static char e_autocommands_changed_number_of_lines_in_unexpected_way[]  =  "E204: Autocommand changed number of lines in unexpected way"  ;
 static char e_cant_open_file_for_writing[]  =  "E212: Can't open file for writing"  ;
-static char e_missing_open_curly[]  =  "E219: Missing {."  ;
-static char e_missing_close_curly[]  =  "E220: Missing }."  ;
 static char e_add_to_internal_buffer_that_was_already_read_from[]  = "E222: Add to internal buffer that was already read from" ;
 static char e_recursive_mapping[]  =  "E223: Recursive mapping"  ;
 static char e_global_abbreviation_already_exists_for_str[]  =  "E224: Global abbreviation already exists for %s"  ;
@@ -5216,8 +5211,6 @@ unblock_autocmds(void)
 
 static void     enter_buffer(buf_T *buf);
 static void     buflist_getfpos(void);
-static char_u   *buflist_match(regmatch_T *rmp, buf_T *buf, int ignore_case);
-static char_u   *fname_match(regmatch_T *rmp, char_u *name, int ignore_case);
 static buf_T    *buflist_findname_stat(char_u *ffname, stat_T *st);
 static int      otherfile_buf(buf_T *buf, char_u *ffname, stat_T *stp);
 static int      buf_same_ino(buf_T *buf, stat_T *stp);
@@ -5959,121 +5952,6 @@ buflist_findname_stat(char_u      *ffname, stat_T      *stp)
         return curbuf;
     }
     return NULL;
-}
-
-    static int
-buflist_findpat(char_u      *pattern, char_u      *pattern_end, int         unlisted, int         diffmode  __attribute__((unused)) , int         curtab_only)
-{
-    int         match = -1;
-    char_u      *pat;
-    char_u      *patend;
-    int         attempt;
-    char_u      *p;
-    int         toggledollar;
-
-    if ((pattern_end == pattern + 1 && (*pattern == '%' || *pattern == '#')) || (in_vim9script() && pattern_end == pattern + 2 && pattern[0] == '%' && pattern[1] == '%'))
-    {
-        if (*pattern == '#' || pattern_end == pattern + 2)
-        {
-            match = 0;
-        }
-        else
-        {
-            match = curbuf->b_fnum;
-        }
-    }
-
-    else
-    {
-        pat = file_pat_to_reg_pat(pattern, pattern_end, NULL, FALSE);
-        if (pat == NULL)
-        {
-            return -1;
-        }
-        patend = pat +  strlen((char *)(pat))  - 1;
-        toggledollar = (patend > pat && *patend == '$');
-
-        for (attempt = 0; attempt <= 3; ++attempt)
-        {
-            regmatch_T      regmatch;
-
-            if (toggledollar)
-            {
-                *patend = (attempt < 2) ? NUL : '$';
-            }
-            p = pat;
-            if (*p == '^' && !(attempt & 1))
-            {
-                ++p;
-            }
-            regmatch.regprog = vim_regcomp(p, magic_isset() ? RE_MAGIC : 0);
-            if (regmatch.regprog == NULL)
-            {
-                vim_free(pat);
-                return -1;
-            }
-            if (buflist_match(&regmatch, curbuf, FALSE) != NULL)
-            {
-                match = curbuf->b_fnum;
-            }
-            vim_regfree(regmatch.regprog);
-            if (match >= 0)
-            {
-                break;
-            }
-        }
-
-        vim_free(pat);
-    }
-
-    if (match < 0)
-    {
-        semsg(_(e_no_matching_buffer_for_str), pattern);
-    }
-    return match;
-}
-
-    static char_u *
-buflist_match(regmatch_T  *rmp, buf_T       *buf, int         ignore_case)
-{
-    char_u      *match;
-
-    match = fname_match(rmp, buf->b_sfname, ignore_case);
-    if (match == NULL && rmp->regprog != NULL)
-    {
-        match = fname_match(rmp, buf->b_ffname, ignore_case);
-    }
-
-    return match;
-}
-
-    static char_u *
-fname_match(regmatch_T  *rmp, char_u      *name, int         ignore_case)
-{
-    char_u      *match = NULL;
-    char_u      *p;
-
-    if (name == NULL || rmp->regprog == NULL)
-    {
-        return NULL;
-    }
-
-    rmp->rm_ic = ignore_case;
-    if (vim_regexec(rmp, name, (colnr_T)0))
-    {
-        match = name;
-    }
-    else if (rmp->regprog != NULL)
-    {
-        p = home_replace_save(NULL, name);
-        if (p != NULL && vim_regexec(rmp, p, (colnr_T)0))
-        {
-            match = name;
-        }
-        vim_free(p);
-    }
-
-    return match;
 }
 
     static buf_T *
@@ -20902,22 +20780,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         goto doend;
     }
 
-    if ((ea.argt & EX_BUFNAME) && *ea.arg != NUL && ea.addr_count == 0 && ! ((int)(ea.cmdidx) < 0) )
-    {
-        p = ea.arg +  strlen((char *)(ea.arg)) ;
-        while (p > ea.arg &&  ((p[-1]) == ' ' || (p[-1]) == '\t') )
-        {
-            --p;
-        }
-        ea.line2 = buflist_findpat(ea.arg, p, (ea.argt & EX_BUFUNL) != 0, FALSE, FALSE);
-        if (ea.line2 < 0)
-        {
-            goto doend;
-        }
-        ea.addr_count = 1;
-        ea.arg = skipwhite(p);
-    }
-
     if (ea.cmdidx == CMD_try && cmdmod.cmod_did_esilent > 0)
     {
         emsg_silent -= cmdmod.cmod_did_esilent;
@@ -27600,174 +27462,6 @@ buf_store_time(buf_T *buf, stat_T *st, char_u *fname  __attribute__((unused)) )
     buf->b_mtime_ns = (long)st-> st_mtim.tv_nsec ;
     buf->b_orig_size = st->st_size;
     buf->b_orig_mode = (int)st->st_mode;
-}
-
-    static char_u *
-file_pat_to_reg_pat(char_u      *pat, char_u      *pat_end, char        *allow_dirs, int         no_bslash  __attribute__((unused)) )
-{
-    int         size = 2;
-    char_u      *endp;
-    char_u      *reg_pat;
-    char_u      *p;
-    int         i;
-    int         nested = 0;
-    int         add_dollar = TRUE;
-
-    if (allow_dirs != NULL)
-    {
-        *allow_dirs = FALSE;
-    }
-    if (pat_end == NULL)
-    {
-        pat_end = pat +  strlen((char *)(pat)) ;
-    }
-
-    for (p = pat; p < pat_end; p++)
-    {
-        switch (*p)
-        {
-            case '*':
-            case '.':
-            case ',':
-            case '{':
-            case '}':
-            case '~':
-                size += 2;
-                break;
-            default:
-                size++;
-                break;
-        }
-    }
-    reg_pat = alloc(size + 1);
-    if (reg_pat == NULL)
-    {
-        return NULL;
-    }
-
-    i = 0;
-
-    if (pat[0] == '*')
-    {
-        while (pat[0] == '*' && pat < pat_end - 1)
-        {
-            pat++;
-        }
-    }
-    else
-    {
-        reg_pat[i++] = '^';
-    }
-    endp = pat_end - 1;
-    if (endp >= pat && *endp == '*')
-    {
-        while (endp - pat > 0 && *endp == '*')
-        {
-            endp--;
-        }
-        add_dollar = FALSE;
-    }
-    for (p = pat; *p && nested >= 0 && p <= endp; p++)
-    {
-        switch (*p)
-        {
-            case '*':
-                reg_pat[i++] = '.';
-                reg_pat[i++] = '*';
-                while (p[1] == '*')
-                {
-                    ++p;
-                }
-                break;
-            case '.':
-            case '~':
-                reg_pat[i++] = '\\';
-                reg_pat[i++] = *p;
-                break;
-            case '?':
-                reg_pat[i++] = '.';
-                break;
-            case '\\':
-                if (p[1] == NUL)
-                {
-                    break;
-                }
-                if (*++p == '?')
-                {
-                    reg_pat[i++] = '?';
-                }
-                else
-                {
-                    if (*p == ',' || *p == '%' || *p == '#' || vim_isspace(*p) || *p == '{' || *p == '}')
-                    {
-                        reg_pat[i++] = *p;
-                    }
-                    else if (*p == '\\' && p[1] == '\\' && p[2] == '{')
-                    {
-                        reg_pat[i++] = '\\';
-                        reg_pat[i++] = '{';
-                        p += 2;
-                    }
-                    else
-                    {
-                        if (allow_dirs != NULL && vim_ispathsep(*p))
-                        {
-                            *allow_dirs = TRUE;
-                        }
-                        reg_pat[i++] = '\\';
-                        reg_pat[i++] = *p;
-                    }
-                }
-                break;
-            case '{':
-                reg_pat[i++] = '\\';
-                reg_pat[i++] = '(';
-                nested++;
-                break;
-            case '}':
-                reg_pat[i++] = '\\';
-                reg_pat[i++] = ')';
-                --nested;
-                break;
-            case ',':
-                if (nested)
-                {
-                    reg_pat[i++] = '\\';
-                    reg_pat[i++] = '|';
-                }
-                else
-                {
-                    reg_pat[i++] = ',';
-                }
-                break;
-            default:
-                if (allow_dirs != NULL && vim_ispathsep(*p))
-                {
-                    *allow_dirs = TRUE;
-                }
-                reg_pat[i++] = *p;
-                break;
-        }
-    }
-    if (add_dollar)
-    {
-        reg_pat[i++] = '$';
-    }
-    reg_pat[i] = NUL;
-    if (nested != 0)
-    {
-        if (nested < 0)
-        {
-            emsg(_(e_missing_open_curly));
-        }
-        else
-        {
-            emsg(_(e_missing_close_curly));
-        }
-         vim_free(reg_pat);
-         (reg_pat) = NULL;
-    }
-    return reg_pat;
 }
 
     static long
