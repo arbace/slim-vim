@@ -924,11 +924,9 @@ enum { OP_UPPER = 11 };
 enum { OP_LOWER = 12 };
 enum { OP_JOIN = 13 };
 enum { OP_JOIN_NS = 14 };
-enum { OP_ROT13 = 15 };
 enum { OP_REPLACE = 16 };
 enum { OP_INSERT = 17 };
 enum { OP_APPEND = 18 };
-enum { OP_FUNCTION = 27 };
 enum { OP_NR_ADD = 28 };
 enum { OP_NR_SUB = 29 };
 
@@ -3812,7 +3810,6 @@ static void fix_indent(void);
 
 // ---------------- end indent.pro ----------------
 // ---------------- begin insexpand.pro ----------------
-static void ins_ctrl_x(void);
 static int ctrl_x_mode_scroll(void);
 static int ins_compl_col_range_attr(linenr_T lnum, int col);
 static int ins_compl_lnum_in_range(linenr_T lnum);
@@ -5234,7 +5231,6 @@ static char e_no_previously_used_register[]  =  "E748: No previously used regist
 static char e_empty_buffer[]  =  "E749: Empty buffer"  ;
 static char e_too_many_arguments_to_printf[]  =  "E767: Too many arguments for printf()"  ;
 static char e_missing_rsb_after_str_lsb[]  =  "E769: Missing ] after %s["  ;
-static char e_eval_feature_not_available[]  =  "E775: Eval feature not available"  ;
 static char e_not_allowed_to_edit_another_buffer_now[]  =  "E788: Not allowed to edit another buffer now"  ;
 static char e_undojoin_is_not_allowed_after_undo[]  =  "E790: undojoin is not allowed after undo"  ;
 static char e_invalid_id_nr_must_be_greater_than_or_equal_to_one_1[]  =  "E799: Invalid ID: %d (must be greater than or equal to 1)"  ;
@@ -16843,7 +16839,6 @@ doESCkey:
             goto normalchar;
 
         case Ctrl_X:
-            ins_ctrl_x();
             break;
 
         case Ctrl_RSB:
@@ -38005,11 +38000,6 @@ fix_indent(void)
 
 // ==================== insexpand.c ====================
 
-    static void
-ins_ctrl_x(void)
-{
-}
-
 static int ctrl_x_mode_scroll(void)
     {
     return FALSE;
@@ -56110,14 +56100,6 @@ nv_search(cmdarg_T *cap)
     oparg_T     *oap = cap->oap;
     pos_T       save_cursor = curwin->w_cursor;
 
-    if (cap->cmdchar == '?' && cap->oap->op_type == OP_ROT13)
-    {
-        cap->cmdchar = 'g';
-        cap->nchar = '?';
-        nv_operator(cap);
-        return;
-    }
-
     cap->searchbuf = getcmdline(cap->cmdchar, cap->count1, 0, 0);
 
     if (cap->searchbuf == NULL)
@@ -57774,8 +57756,6 @@ nv_g_cmd(cmdarg_T *cap)
     case '~':
     case 'u':
     case 'U':
-    case '?':
-    case '@':
         nv_operator(cap);
         break;
 
@@ -60045,11 +60025,6 @@ swapchar(int op_type, pos_T *pos)
 
     c = gchar_pos(pos);
 
-    if (c >= 0x80 && op_type == OP_ROT13)
-    {
-        return FALSE;
-    }
-
     if ((op_type == OP_UPPER || op_type == OP_NOP || op_type == OP_TILDE) && c == 0xdf)
     {
         pos_T   sp = curwin->w_cursor;
@@ -60064,22 +60039,14 @@ swapchar(int op_type, pos_T *pos)
     nc = c;
     if ( vim_islower(c) )
     {
-        if (op_type == OP_ROT13)
-        {
-            nc =  (((((c) - ('a')) + 13) % 26) + ('a')) ;
-        }
-        else if (op_type != OP_LOWER)
+        if (op_type != OP_LOWER)
         {
             nc =  vim_toupper(c) ;
         }
     }
     else if ( vim_isupper(c) )
     {
-        if (op_type == OP_ROT13)
-        {
-            nc =  (((((c) - ('A')) + 13) % 26) + ('A')) ;
-        }
-        else if (op_type != OP_UPPER)
+        if (op_type != OP_UPPER)
         {
             nc =  vim_tolower(c) ;
         }
@@ -61656,12 +61623,6 @@ op_colon(oparg_T *oap)
 }
 
     static void
-op_function(oparg_T *oap  __attribute__((unused)) )
-{
-    emsg(_(e_eval_feature_not_available));
-}
-
-    static void
 get_op_vcol(oparg_T     *oap, colnr_T     redo_VIsual_vcol, int         initial)
 {
     colnr_T start;
@@ -62022,7 +61983,7 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
                 VIsual_active = FALSE;
                 mouse_dragging = 0;
                 may_clear_cmdline();
-                if ((oap->op_type == OP_YANK || oap->op_type == OP_COLON || oap->op_type == OP_FUNCTION) && oap->motion_force == NUL)
+                if ((oap->op_type == OP_YANK || oap->op_type == OP_COLON) && oap->motion_force == NUL)
                 {
                     redraw_curbuf_later(UPD_INVERTED);
                 }
@@ -62164,7 +62125,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
         case OP_TILDE:
         case OP_UPPER:
         case OP_LOWER:
-        case OP_ROT13:
             if (empty_region_error)
             {
                 vim_beep(BO_OPER);
@@ -62176,16 +62136,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
             }
             check_cursor_col();
             break;
-
-        case OP_FUNCTION:
-            {
-                redo_VIsual_T   save_redo_VIsual = redo_VIsual;
-
-                op_function(oap);
-
-                redo_VIsual = save_redo_VIsual;
-                break;
-            }
 
         case OP_INSERT:
         case OP_APPEND:
