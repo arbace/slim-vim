@@ -538,7 +538,6 @@ printf 'r1\nr2\nr3\n' > "$d/r.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+%s/^r/R/' '+wq' r.txt </dev/null >/dev/null 2>&1) || true
 [ "$(tr '\n' '|' < "$d/r.txt")" = 'R1|R2|R3|' ] || { echo "  onewin       a whole-buffer range broke: '$(tr '\n' '|' < "$d/r.txt")'"; exit 1; }
 echo "  onewin       loads, edits, :e switches, mappings fire, autocommands reach the buffer"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

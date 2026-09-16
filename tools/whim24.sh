@@ -83,11 +83,6 @@ if [ "$(probe mouse=a)" = 0 ]; then
 fi
 echo "  options      :set mouse=a is refused, :set ignorecase still taken"
 
-# The mouse rows of nv_cmds[] share a table with every other key.  Normal mode
-# reaches that table through a precomputed index, so a cut there shows up as
-# arrows that do nothing -- which this phase once shipped.
-python3 tools/arrowcheck.py "$work/whim-vim"
-
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
     helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \

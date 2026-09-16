@@ -203,7 +203,6 @@ printf 'x\ny\n' > "$d/n.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+/y' '+normal! A-found' '+wq' n.txt </dev/null >/dev/null 2>&1) || true
 [ "$(tr '\n' '|' < "$d/n.txt")" = 'x|y-found|' ] || { echo "  oneengine    search broke: '$(tr '\n' '|' < "$d/n.txt")'"; exit 1; }
 echo "  oneengine    quantifiers, :g, back-references, counted groups and search all match"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

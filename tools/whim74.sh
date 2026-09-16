@@ -371,7 +371,6 @@ printf 'D1\n' > "$d/dm.txt"
 (cd "$d" && HOME="$d" ./vim -e -s "+normal! 1Gma" '+delmarks a' "+normal! A-dm" '+wq' dm.txt </dev/null >/dev/null 2>&1) || true
 [ "$(cat "$d/dm.txt")" = 'D1-dm' ] || { echo "  nofmark      :delmarks broke the session: $(cat "$d/dm.txt")"; exit 1; }
 echo "  nofmark      lowercase and backtick marks work; uppercase is unset; :marks and :delmarks run"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

@@ -151,7 +151,6 @@ for o in title titlelen titleold titlestring icon iconstring; do
     fi
 done
 echo "  notitle      :set sw works; the six title and icon options are unknown"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

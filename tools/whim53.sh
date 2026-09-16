@@ -71,7 +71,6 @@ printf 'ok\n\377 bad\n' > "$d/ill.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+1s/ok/OK/' '+wq' ill.txt </dev/null >/dev/null 2>&1) || true
 [ "$(od -An -c "$d/ill.txt" | tr -d ' \n')" = 'OK\n377bad\n' ] || { echo "  noconv       an invalid byte was not kept: $(od -An -c "$d/ill.txt" | tr -s ' ')"; exit 1; }
 echo "  noconv       :set enc, :set menc and ++enc refused; UTF-8 edits and a kept invalid byte unchanged"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

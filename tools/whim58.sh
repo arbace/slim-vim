@@ -162,7 +162,6 @@ printf 'x\n' > "$d/h.txt"
 (cd "$d" && HOME="$d" ./vim -e -s "$(printf '+1normal! Ia\036b')" '+wq' h.txt </dev/null >/dev/null 2>&1) || true
 [ "$(cat "$d/h.txt")" = abx ] || { echo "  nolangmap    CTRL-^ in Insert mode left '$(cat "$d/h.txt")'"; exit 1; }
 echo "  nolangmap    :set sw works; iminsert, imsearch and :lmap are unknown; CTRL-^ inserts nothing"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

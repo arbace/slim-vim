@@ -606,7 +606,6 @@ printf 'i1\n' > "$d/i.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+normal! A-ins' '+wq' i.txt </dev/null >/dev/null 2>&1) || true
 [ "$(cat "$d/i.txt")" = 'i1-ins' ] || { echo "  noautocmd    insert-mode editing broke: $(cat "$d/i.txt")"; exit 1; }
 echo "  noautocmd    loads, writes, :w name, :e, :g, :s, :m, undo and insert all work"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

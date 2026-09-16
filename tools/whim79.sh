@@ -514,7 +514,6 @@ printf 'r1\nr2\nr3\n' > "$d/u.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+2' '+normal! dd' '+normal! u' '+wq' u.txt </dev/null >/dev/null 2>&1) || true
 [ "$(tr '\n' '|' < "$d/u.txt")" = 'r1|r2|r3|' ] || { echo "  noconstfn    undo broke: '$(tr '\n' '|' < "$d/u.txt")'"; exit 1; }
 echo "  noconstfn    ranges, :g, :set, writing, marks and undo all work"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

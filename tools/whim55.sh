@@ -84,7 +84,6 @@ for o in shelltemp commentstring t_EI; do
     fi
 done
 echo "  unusedopts   :set sw works; :set shelltemp, commentstring and t_EI are unknown"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

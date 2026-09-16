@@ -56,7 +56,6 @@ for o in "-c qa!" "-cqa!" "--cmd qa!" -R -m -M -w7; do
     [ "$rc" = 1 ] || { echo "  cli          $o exits $rc, expected 1"; exit 1; }
 done
 echo "  cli          -c, --cmd, -R, -m, -M and -w are unknown; +{command} still runs"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \

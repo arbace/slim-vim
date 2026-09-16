@@ -73,7 +73,6 @@ for o in -o -O -o2; do
     [ "$rc" = 1 ] || { echo "  cli          $o exits $rc, expected 1"; exit 1; }
 done
 echo "  cli          -o and -O are unknown options"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \

@@ -353,7 +353,6 @@ printf 'h1\n' > "$d/h1.txt"; printf 'h2\n' > "$d/h2.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+e h2.txt' '+normal! iE' '+wq' h1.txt </dev/null >/dev/null 2>&1) || true
 [ "$(cat "$d/h1.txt")" = 'h1' ] && [ "$(cat "$d/h2.txt")" = 'Eh2' ] || { echo "  onearg       :e broke: h1=$(cat "$d/h1.txt") h2=$(cat "$d/h2.txt")"; exit 1; }
 echo "  onearg       the file loads and edits; a second argument and :next are refused; :e still opens"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

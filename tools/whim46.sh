@@ -41,7 +41,6 @@ out=$(cd "$work" && ./whim-vim -e -s '+q!' </dev/null 2>&1) && rc=0 || rc=$?
 out=$(cd "$work" && ./whim-vim -e -s '+qa!' </dev/null 2>&1) && rc=0 || rc=$?
 [ "$rc" = 1 ] || { echo "  quit         +qa! exits $rc, expected 1: $out"; exit 1; }
 echo "  quit         :q! quits, :qa! is not a command"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n \

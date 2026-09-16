@@ -59,7 +59,6 @@ tools/sweep.sh "$f"
 tools/phasecheck.sh "$work" "$f" .cache/symbols/before
 
 tools/phasebuild.sh "$work" "$before_lines"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n \

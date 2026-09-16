@@ -1,52 +1,22 @@
-// One translation unit.  What were 67 .c files, their headers and
-// the forward declarations that used to be proto/*.pro, in the order
-// the preprocessor used to paste them.  main() is last.
-
-#include <limits.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/param.h>
-#include <dirent.h>
 #include <time.h>
-#include <sys/time.h>
 #include <signal.h>
-#include <pwd.h>
-#include <sys/file.h>
 #include <string.h>
-#include <strings.h>
-#include <setjmp.h>
-#include <locale.h>
-#include <float.h>
-#include <math.h>
 #include <errno.h>
 #include <stdint.h>
-#include <inttypes.h>
 #include <wctype.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include <stdbool.h>
-#include <sys/select.h>
 #include <fcntl.h>
 #include <iconv.h>
-#include <wchar.h>
-#include <utime.h>
-#include <langinfo.h>
-#include <sys/sysinfo.h>
 #include <sys/ioctl.h>
-#include <sys/wait.h>
-#include <stropts.h>
-#include <sys/utsname.h>
 #include <termios.h>
-#include <dlfcn.h>
-#include <sys/resource.h>
 
-// Constants that were #defines inside a struct body, where a bare enum
-// declaration declares nothing.  They are plain integers with no
-// dependencies, so they sit together here.
 enum { BH_DIRTY = 1 };
 enum { BH_LOCKED = 2 };
 enum { CMOD_SILENT = 0x0002 };
@@ -83,31 +53,9 @@ enum { ME_ARG_MISSING = 2 };
 enum { ME_GARBAGE = 3 };
 enum { ME_EXTRA_CMD = 4 };
 
-// Set before the headers because they change what the headers
-// produce: EXTERN makes globals.h define rather than declare, and
-// IN_OPTION_C does the same for a few options.
-
-// ==================== alloc.c ====================
-
-// ---------------- begin vim.h ----------------
-
-// ---------------- begin config.h ----------------
-
 enum { VIM_SIZEOF_INT = 4 };
 
-// ---------------- end config.h ----------------
-
-// ---------------- begin os_unix.h ----------------
-
 typedef void (*sighandler_T)  (int) ;
-
-// ---------------- end os_unix.h ----------------
-
-// ---------------- begin osdef.h ----------------
-
-extern int      _Xmblen(char *, size_t);
-
-// ---------------- end osdef.h ----------------
 
 enum { NUMBUFLEN = 65 };
 
@@ -134,8 +82,6 @@ enum { MAX_TYPENR = 65535 };
 typedef unsigned int u8char_T;
 
 typedef long long vimlong_T;
-
-// ---------------- begin ascii.h ----------------
 
 enum { NUL = '\000' };
 enum { BELL = '\007' };
@@ -182,9 +128,6 @@ enum { CSI = 0x9b };
 enum { DCS = 0x90 };
 enum { OSC = 0x9d };
 enum { STERM = 0x9c };
-
-// ---------------- end ascii.h ----------------
-// ---------------- begin keymap.h ----------------
 
 enum { KS_ZERO = 255 };
 
@@ -335,9 +278,6 @@ enum { MAX_KEY_NAME_LEN = 32 };
 
 enum { MAX_KEY_CODE_LEN = 6 };
 
-// ---------------- end keymap.h ----------------
-// ---------------- begin termdefs.h ----------------
-
 enum SpecialKey
 {
     KS_NAME = 0,
@@ -438,17 +378,6 @@ typedef enum {
     TMODE_SLEEP,
     TMODE_RAW} tmode_T;
 
-// ---------------- end termdefs.h ----------------
-// ---------------- begin macros.h ----------------
-
-// ---------------- end macros.h ----------------
-
-// _() and NGETTEXT keep their names as functions rather than being expanded.
-// format_arg(1) is how glibc declares gettext: it tells gcc the return value is
-// the argument's format string, so -Wformat, -Wformat-security and
-// -Wformat-nonliteral still see through the call.  Without it this conversion
-// silently loses those diagnostics, which is why the check is that the warning
-// set is unchanged, not that it builds.
 static inline __attribute__((format_arg(1))) char *_(const char *x)
 {
     return (char *)x;
@@ -789,8 +718,6 @@ enum { MB_MAXBYTES = 21 };
 
 typedef time_t      time_T;
 
-// ---------------- begin option.h ----------------
-
 enum { P_BOOL = 0x01 };
 enum { P_NUM = 0x02 };
 enum { P_STRING = 0x04 };
@@ -1079,10 +1006,6 @@ enum
 
 enum { ERR_BUFLEN = 80 };
 
-// ---------------- end option.h ----------------
-
-// ---------------- begin structs.h ----------------
-
 typedef struct
 {
     char_u  *string;
@@ -1129,8 +1052,6 @@ typedef struct {
     int     br_fnum;
     int     br_buf_free_count;
 } bufref_T;
-
-// ---------------- begin regexp.h ----------------
 
 enum { NSUBEXP = 10 };
 
@@ -1193,8 +1114,6 @@ struct regengine
 enum { REGSUB_COPY = 1 };
 enum { REGSUB_MAGIC = 2 };
 enum { REGSUB_BACKSLASH = 4 };
-
-// ---------------- end regexp.h ----------------
 
 enum { JUMPLISTSIZE = 100 };
 enum { TAGSTACKSIZE = 20 };
@@ -2347,50 +2266,7 @@ typedef enum
     TERM_SYNC_OUTPUT_FLUSH = 1 << 3,
 } term_sync_output_T;
 
-// ---------------- end structs.h ----------------
-// ---------------- begin xdiff.h ----------------
-
-typedef struct s_mmfile {
-        char *ptr;
-        long size;
-} mmfile_t;
-
-typedef struct s_mmbuffer {
-        char *ptr;
-        long size;
-} mmbuffer_t;
-
-typedef struct s_xpparam {
-        unsigned long flags;
-
-        char **anchors;
-} xpparam_t;
-
-typedef struct s_xdemitcb {
-        void *priv;
-        int (*out_hunk)(void *, long old_begin, long old_nr, long new_begin, long new_nr, const char *func, long funclen);
-        int (*out_line)(void *, mmbuffer_t *, int);
-} xdemitcb_t;
-
 typedef long (*find_func_t)(const char *line, long line_len, char *buffer, long buffer_size, void *priv);
-
-typedef struct s_xdemitconf {
-        unsigned long flags;
-} xdemitconf_t;
-
-void *xdl_mmfile_first(mmfile_t *mmf, long *size);
-long xdl_mmfile_size(mmfile_t *mmf);
-
-int xdl_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp, xdemitconf_t const *xecfg, xdemitcb_t *ecb);
-
-typedef struct s_xmparam {
-        xpparam_t xpp;
-        int level;
-} xmparam_t;
-
-int xdl_merge(mmfile_t *orig, mmfile_t *mf1, mmfile_t *mf2, xmparam_t const *xmp, mmbuffer_t *result);
-
-// ---------------- end xdiff.h ----------------
 
 enum { VALID_PATH = 1 };
 enum { VALID_HEAD = 2 };
@@ -2428,8 +2304,6 @@ typedef enum {
 typedef char *(*opt_did_set_cb_T)(optset_T *args);
 
 typedef int (*opt_expand_cb_T)(optexpand_T *args, int *numMatches, char_u ***matches);
-
-// ---------------- begin ex_cmds.h ----------------
 
 enum { EX_RANGE = 0x001 };
 enum { EX_BANG = 0x002 };
@@ -2614,14 +2488,6 @@ enum { EXFLAG_LIST = 0x01 };
 enum { EXFLAG_NR = 0x02 };
 enum { EXFLAG_PRINT = 0x04 };
 
-// ---------------- end ex_cmds.h ----------------
-// ---------------- begin spell.h ----------------
-
-// ---------------- end spell.h ----------------
-
-// ---------------- begin proto.h ----------------
-
-// ---------------- begin os_unix.pro ----------------
 static sighandler_T mch_signal(int sig, sighandler_T func);
 static void reset_signals(void);
 static int vim_handle_signal(int sig);
@@ -2639,21 +2505,12 @@ static int get_tty_info(int fd, ttyinfo_T *info);
 static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
 static int mch_has_wildcard(char_u *p);
 
-// ---------------- end os_unix.pro ----------------
-
-// ---------------- begin alloc.pro ----------------
 static void *lalloc(size_t size, int message);
 static void do_outofmem_msg(size_t size);
 static void ga_init(garray_T *gap);
 static int ga_grow_inner(garray_T *gap, int n);
-// ---------------- end alloc.pro ----------------
-// ---------------- begin arglist.pro ----------------
-// ---------------- end arglist.pro ----------------
-// ---------------- begin autocmd.pro ----------------
 static void block_autocmds(void);
 static void unblock_autocmds(void);
-// ---------------- end autocmd.pro ----------------
-// ---------------- begin buffer.pro ----------------
 static void set_bufref(bufref_T *bufref, buf_T *buf);
 static int bufref_valid(bufref_T *bufref);
 static int buf_valid(buf_T *buf);
@@ -2681,11 +2538,7 @@ static int bt_help(buf_T *buf);
 static char_u *buf_spname(buf_T *buf);
 static char_u *buf_get_fname(buf_T *buf);
 
-// ---------------- end buffer.pro ----------------
-// ---------------- begin bufwrite.pro ----------------
 static char *new_file_message(void);
-// ---------------- end bufwrite.pro ----------------
-// ---------------- begin change.pro ----------------
 static void changed(void);
 static void changed_internal(void);
 static void changed_lines(linenr_T lnum, colnr_T col, linenr_T lnume, long xtra);
@@ -2695,8 +2548,6 @@ static void ins_char(int c);
 static void ins_char_bytes(char_u *buf, int charlen);
 static int del_chars(long count, int fixpos);
 static int del_bytes(long count, int fixpos_arg, int use_delcombine);
-// ---------------- end change.pro ----------------
-// ---------------- begin charset.pro ----------------
 static int buf_init_chartab(buf_T *buf, int global);
 static void trans_characters(char_u *buf, int bufsize);
 static char_u *transchar_buf(buf_T *buf, int c);
@@ -2732,22 +2583,12 @@ static int vim_isupper(int c);
 static long getdigits(char_u **pp);
 static int hex2nr(int c);
 static int rem_backslash(char_u *str);
-// ---------------- end charset.pro ----------------
-// ---------------- begin cindent.pro ----------------
 static int check_linecomment(char_u *line);
 
-// ---------------- end cindent.pro ----------------
-// ---------------- begin cmdexpand.pro ----------------
 static char_u *ExpandOne(expand_T *xp, char_u *str, char_u *orig, int options, int mode);
 static void ExpandCleanup(expand_T *xp);
 
-// ---------------- end cmdexpand.pro ----------------
-// ---------------- begin cmdhist.pro ----------------
 static void clear_hist_entry(histentry_T *hisptr);
-// ---------------- end cmdhist.pro ----------------
-// ---------------- begin drawline.pro ----------------
-// ---------------- end drawline.pro ----------------
-// ---------------- begin drawscreen.pro ----------------
 static int update_screen(int type_arg);
 static void win_redr_status(win_T *wp, int ignore_pum);
 static void win_redr_ruler(win_T *wp, int always, int ignore_pum);
@@ -2762,8 +2603,6 @@ static void status_redraw_all(void);
 static void redraw_statuslines(void);
 static void redraw_win_range_later(win_T *wp, linenr_T first, linenr_T last);
 
-// ---------------- end drawscreen.pro ----------------
-// ---------------- begin edit.pro ----------------
 static void ins_redraw(int ready);
 static void edit_putchar(int c, int highlight);
 static void edit_unputchar(void);
@@ -2781,10 +2620,6 @@ static int bracketed_paste(paste_mode_T mode, int drop, garray_T *gap);
 static int ins_eol(int c);
 static colnr_T get_nolist_virtcol(void);
 
-// ---------------- end edit.pro ----------------
-// ---------------- begin eval.pro ----------------
-// ---------------- end eval.pro ----------------
-// ---------------- begin ex_cmds.pro ----------------
 static void do_shell(char_u *cmd, int flags);
 static int do_write(exarg_T *eap);
 static int check_overwrite(exarg_T *eap, buf_T *buf, char_u *fname, char_u *ffname, int other);
@@ -2795,12 +2630,8 @@ static void global_exe(char_u *cmd);
 static char_u *skip_vimgrep_pat(char_u *p, char_u **s, int *flags);
 static char_u *skip_vimgrep_pat_ext(char_u *p, char_u **s, int *flags, char_u **nulp, int *cp);
 
-// ---------------- end ex_cmds.pro ----------------
-// ---------------- begin ex_cmds2.pro ----------------
 static int check_changed(buf_T *buf, int flags);
 static int check_fname(void);
-// ---------------- end ex_cmds2.pro ----------------
-// ---------------- begin ex_docmd.pro ----------------
 static int do_cmdline_cmd(char_u *cmd);
 static int do_cmdline(char_u *cmdline, char_u *(*fgetline)(int, void *, int, getline_opt_T), void *cookie, int flags);
 static int getline_equal(char_u *(*fgetline)(int, void *, int, getline_opt_T), void *cookie, char_u *(*func)(int, void *, int, getline_opt_T));
@@ -2831,8 +2662,6 @@ static void exec_normal(int was_typed, int use_vpeekc, int may_use_terminal_loop
 static char_u *eval_vars(char_u *src, char_u *srcstart, size_t *usedlen, linenr_T *lnump, char **errormsg, int *escaped, int empty_is_error);
 static void set_no_hlsearch(int flag);
 
-// ---------------- end ex_docmd.pro ----------------
-// ---------------- begin ex_getln.pro ----------------
 static int parse_pattern_and_range(pos_T *incsearch_start, int *search_delim, int *skiplen, int *patlen);
 static int text_locked(void);
 static void text_locked_msg(void);
@@ -2859,8 +2688,6 @@ static cmdline_info_T *get_cmdline_info(void);
 static int get_cmdline_firstc(void);
 static int get_list_range(char_u **str, int *num1, int *num2);
 
-// ---------------- end ex_getln.pro ----------------
-// ---------------- begin fileio.pro ----------------
 static void filemess(buf_T *buf, char_u *name, char_u *s, int attr);
 static int readfile(char_u *fname, char_u *sfname, linenr_T from, linenr_T lines_to_skip, linenr_T lines_to_read, exarg_T *eap, int flags);
 static int check_file_readonly(char_u *fname, int perm);
@@ -2877,8 +2704,6 @@ static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
 static long read_eintr(int fd, void *buf, size_t bufsize);
 static long write_eintr(int fd, void *buf, size_t bufsize);
 
-// ---------------- end fileio.pro ----------------
-// ---------------- begin filepath.pro ----------------
 static size_t home_replace(buf_T *buf, char_u *src, char_u *dst, int dstlen, int one);
 static char_u *home_replace_save(buf_T *buf, char_u *src);
 static char_u *gettail(char_u *fname);
@@ -2897,16 +2722,12 @@ static int gen_expand_wildcards(int num_pat, char_u **pat, int *num_file, char_u
 static void FreeWild(int count, char_u **files);
 static int vim_FullName(char_u *fname, char_u *buf, int len, int force);
 
-// ---------------- end filepath.pro ----------------
-// ---------------- begin findfile.pro ----------------
 static void vim_findfile_cleanup(void *ctx);
 static char_u *find_file_in_path(char_u *ptr, int len, int options, int first, char_u *rel_fname, char_u **file_to_find, char **search_ctx);
 static char_u *file_name_at_cursor(int options, long count, linenr_T *file_lnum);
 static char_u *file_name_in_line(char_u *line, int col, int options, long count, char_u *rel_fname, linenr_T *file_lnum);
 static char_u *find_file_name_in_path(char_u *ptr, int len, int options, long count, char_u *rel_fname);
 
-// ---------------- end findfile.pro ----------------
-// ---------------- begin getchar.pro ----------------
 static string_T get_inserted(void);
 static int stuff_empty(void);
 static void ResetRedobuff(void);
@@ -2934,8 +2755,6 @@ static void vungetc(int c);
 static int fix_input_buffer(char_u *buf, int len);
 static int do_cmdkey_command(int key, int flags);
 
-// ---------------- end getchar.pro ----------------
-// ---------------- begin hashtab.pro ----------------
 static void hash_init(hashtab_T *ht);
 static hashitem_T *hash_find(hashtab_T *ht, char_u *key);
 static hashitem_T *hash_lookup(hashtab_T *ht, char_u *key, hash_T hash);
@@ -2944,12 +2763,8 @@ static int hash_add_item(hashtab_T *ht, hashitem_T *hi, char_u *key, hash_T hash
 static int hash_remove(hashtab_T *ht, hashitem_T *hi, char *command);
 static hash_T hash_hash(char_u *key);
 
-// ---------------- end hashtab.pro ----------------
-// ---------------- begin help.pro ----------------
 static void prepare_help_buffer(void);
 static void fix_help_buffer(void);
-// ---------------- end help.pro ----------------
-// ---------------- begin highlight.pro ----------------
 static void do_highlight(char_u *line, int forceit, int init);
 static void restore_cterm_colors(void);
 static void clear_hl_tables(void);
@@ -2966,8 +2781,6 @@ static bool push_highlight_overrides(hl_override_T *arr, int len);
 static void pop_highlight_overrides(void);
 static char *update_winhighlight(win_T *wp, char_u *opt);
 static int hlf_get_id(win_T *wp, int hlf);
-// ---------------- end highlight.pro ----------------
-// ---------------- begin indent.pro ----------------
 static long get_sw_value(buf_T *buf);
 static long get_sw_value_col(buf_T *buf, colnr_T col, int left);
 static long get_sts_value(void);
@@ -2982,14 +2795,8 @@ static void change_indent(int type, int amount, int round, int replaced, int cal
 static int copy_indent(int size, char_u *src);
 static void fix_indent(void);
 
-// ---------------- end indent.pro ----------------
-// ---------------- begin insexpand.pro ----------------
 static int ctrl_x_mode_scroll(void);
-// ---------------- end insexpand.pro ----------------
-// ---------------- begin locale.pro ----------------
 
-// ---------------- end locale.pro ----------------
-// ---------------- begin main.pro ----------------
 static void may_trigger_safestate(int safe);
 static int work_pending(void);
 static void may_trigger_deferred_events(void);
@@ -2997,8 +2804,6 @@ static void main_loop(int cmdwin, int noexmode);
 static void getout(int exitval);
 static void mainerr_arg_missing(char_u *str);
 
-// ---------------- end main.pro ----------------
-// ---------------- begin map.pro ----------------
 static mapblock_T *get_maphash_list(int state, int c);
 static mapblock_T *get_buf_maphash_list(int state, int c);
 static int is_maphash_valid(void);
@@ -3006,8 +2811,6 @@ static void map_clear_mode(buf_T *buf, int mode, int local, int abbr);
 static char_u *vim_strsave_escape_csi(char_u *p);
 static size_t vim_unescape_csi(char_u *p);
 static void add_map(char_u *map, int mode, int nore);
-// ---------------- end map.pro ----------------
-// ---------------- begin mark.pro ----------------
 static int setmark(int c);
 static int setmark_pos(int c, pos_T *pos, int fnum);
 static void setpcmark(void);
@@ -3021,18 +2824,12 @@ static void mark_adjust_nofold(linenr_T line1, linenr_T line2, long amount, long
 static void mark_col_adjust(linenr_T lnum, colnr_T mincol, long lnum_amount, long col_amount, int spaces_removed);
 static void set_last_cursor(win_T *win);
 
-// ---------------- end mark.pro ----------------
-// ---------------- begin match.pro ----------------
 static void init_search_hl(win_T *wp, match_T *search_hl);
 static void prepare_search_hl(win_T *wp, match_T *search_hl, linenr_T lnum);
 static int prepare_search_hl_line(win_T *wp, linenr_T lnum, colnr_T mincol, char_u **line, match_T *search_hl, int *search_attr);
 static int update_search_hl(win_T *wp, linenr_T lnum, colnr_T col, char_u **line, match_T *search_hl, int *has_match_conc, int *match_conc, int did_line_attr, int lcs_eol_one, int *on_last_col);
 static int get_prevcol_hl_flag(win_T *wp, match_T *search_hl, long curcol);
 static void get_search_match_hl(win_T *wp, match_T *search_hl, long col, int *char_attr);
-// ---------------- end match.pro ----------------
-// ---------------- begin memfile.pro ----------------
-// ---------------- end memfile.pro ----------------
-// ---------------- begin memline.pro ----------------
 static int ml_open(buf_T *buf);
 static void ml_close(buf_T *buf, int del_file);
 static void ml_timestamp(buf_T *buf);
@@ -3057,8 +2854,6 @@ static linenr_T ml_firstmarked(void);
 static void ml_clearmarked(void);
 static void ml_setflags(buf_T *buf);
 
-// ---------------- end memline.pro ----------------
-
 static int smsg(const char *, ...)  __attribute__((cold))   __attribute__((format(printf, 1, 2))) ;
 
 static int smsg_attr(int, const char *, ...)  __attribute__((format(printf, 2, 3))) ;
@@ -3077,7 +2872,6 @@ static int vim_vsnprintf(char *str, size_t str_m, const char *fmt, va_list ap)
 static int vim_vsnprintf_typval(char *str, size_t str_m, const char *fmt, va_list ap, typval_T *tvs)
          __attribute__((format(printf, 3, 0))) ;
 
-// ---------------- begin message.pro ----------------
 static int msg(char *s);
 static int msg_attr(char *s, int attr);
 static int msg_attr_keep(char *s, int attr, int keep);
@@ -3124,8 +2918,6 @@ static void verbose_leave_scroll(void);
 static void give_warning(char_u *message, int hl);
 static void give_warning_with_source(char_u *message, int hl, int with_source);
 static void msg_advance(int col);
-// ---------------- end message.pro ----------------
-// ---------------- begin misc1.pro ----------------
 static int plines_win(win_T *wp, linenr_T lnum, int limit_winheight);
 static int plines_win_nofold(win_T *wp, linenr_T lnum);
 static int plines_m_win(win_T *wp, linenr_T first, linenr_T last, int max);
@@ -3149,8 +2941,6 @@ static int path_is_url(char_u *p);
 static int path_with_url(char_u *fname);
 static int trim_to_int(vimlong_T x);
 
-// ---------------- end misc1.pro ----------------
-// ---------------- begin misc2.pro ----------------
 static int virtual_active(void);
 static int getviscol(void);
 static int coladvance_force(colnr_T wcol);
@@ -3184,11 +2974,6 @@ static int cmp_keyvalue_value_n(const void *a, const void *b);
 static int cmp_keyvalue_value_i(const void *a, const void *b);
 static int cmp_keyvalue_value_ni(const void *a, const void *b);
 
-// ---------------- end misc2.pro ----------------
-// ---------------- begin mouse.pro ----------------
-
-// ---------------- end mouse.pro ----------------
-// ---------------- begin move.pro ----------------
 static int plines_correct_topline(win_T *wp, linenr_T lnum, int limit_winheight);
 static void set_valid_virtcol(win_T *wp, colnr_T vcol);
 static int sms_marker_overlap(win_T *wp, int extra2);
@@ -3228,8 +3013,6 @@ static void scroll_cursor_halfway(int atend, int prefer_above);
 static void cursor_correct(void);
 static int pagescroll(int dir, long count, int half);
 
-// ---------------- end move.pro ----------------
-// ---------------- begin mbyte.pro ----------------
 static int mb_get_class(char_u *p);
 static int mb_get_class_buf(char_u *p, buf_T *buf);
 static int utf_char2cells(int c);
@@ -3264,8 +3047,6 @@ static int mb_charlen(char_u *str);
 static char_u *mb_unescape(char_u **pp);
 static int mb_lefthalve(int row, int col);
 
-// ---------------- end mbyte.pro ----------------
-// ---------------- begin normal.pro ----------------
 static void normal_cmd(oparg_T *oap, int toplevel);
 static void check_visual_highlight(void);
 static void end_visual_mode(void);
@@ -3295,8 +3076,6 @@ static int unadjust_for_sel(void);
 static int unadjust_for_sel_inner(pos_T *pp);
 static void set_cursor_for_append_to_line(void);
 
-// ---------------- end normal.pro ----------------
-// ---------------- begin ops.pro ----------------
 static int get_op_type(int char1, int char2);
 static void op_shift(oparg_T *oap, int curs_top, int amount);
 static void shift_line(int left, int round, int amount, int call_changed_bytes);
@@ -3310,8 +3089,6 @@ static void clear_oparg(oparg_T *oap);
 static void cursor_pos_info(dict_T *dict);
 static void do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank);
 
-// ---------------- end ops.pro ----------------
-// ---------------- begin option.pro ----------------
 static void set_string_default(char *name, char_u *val);
 static int do_set(char_u *arg_start, int opt_flags);
 static void did_set_option(int opt_idx, int opt_flags, int new_value, int value_checked);
@@ -3359,8 +3136,6 @@ static long get_sidescrolloff_value(void);
 static unsigned int get_ve_flags(void);
 static int magic_isset(void);
 
-// ---------------- end option.pro ----------------
-// ---------------- begin optionstr.pro ----------------
 static void didset_string_options(void);
 static void check_buf_options(buf_T *buf);
 static void free_string_option(char_u *p);
@@ -3399,10 +3174,6 @@ static char *did_set_wincolor(optset_T *args);
 static char *did_set_winhighlight(optset_T *args);
 static char *did_set_string_option(int opt_idx, char_u **varp, char_u *oldval, char_u *value, char *errbuf, size_t errbuflen, int opt_flags, set_op_T op, int *value_checked);
 
-// ---------------- end optionstr.pro ----------------
-// ---------------- begin popupmenu.pro ----------------
-// ---------------- end popupmenu.pro ----------------
-// ---------------- begin regexp.pro ----------------
 static int re_multiline(regprog_T *prog);
 static char_u *skip_regexp(char_u *startp, int delim, int magic);
 static char_u *skip_regexp_ex(char_u *startp, int dirc, int magic, char_u **newp, int *dropped, magic_T *magic_val);
@@ -3413,8 +3184,6 @@ static void vim_regfree(regprog_T *prog);
 static int vim_regexec(regmatch_T *rmp, char_u *line, colnr_T col);
 static long vim_regexec_multi(regmmatch_T *rmp, win_T *win, buf_T *buf, linenr_T lnum, colnr_T col, int *timed_out);
 
-// ---------------- end regexp.pro ----------------
-// ---------------- begin register.pro ----------------
 static void reset_y_append(void);
 static int valid_yank_reg(int regname, int writing);
 static int get_yank_register(int regname, int writing);
@@ -3431,13 +3200,9 @@ static int op_yank(oparg_T *oap, int deleting, int mess);
 static void do_put(int regname, char_u *expr_result, int dir, long count, int flags);
 static char_u get_reg_type(int regname, long *reglen);
 
-// ---------------- end register.pro ----------------
-// ---------------- begin scriptfile.pro ----------------
 static estack_T *estack_push(etype_T type, char_u *name, long lnum);
 static estack_T *estack_pop(void);
 static char_u *estack_sfile(estack_arg_T which);
-// ---------------- end scriptfile.pro ----------------
-// ---------------- begin screen.pro ----------------
 static int get_win_attr(win_T *wp);
 static void win_draw_end(win_T *wp, int c1, int c2, int draw_margin, int row, int endrow, hlf_T hl);
 static void reset_screen_attr(void);
@@ -3482,14 +3247,6 @@ static char *set_fillchars_option(win_T *wp, char_u *val, int apply, char *errbu
 static char *set_listchars_option(win_T *wp, char_u *val, int apply, char *errbuf, size_t errbuflen);
 static char *check_chars_options(void);
 
-// ---------------- end screen.pro ----------------
-// ---------------- begin session.pro ----------------
-
-// ---------------- end session.pro ----------------
-// ---------------- begin fuzzy.pro ----------------
-
-// ---------------- end fuzzy.pro ----------------
-// ---------------- begin search.pro ----------------
 static int search_regcomp(char_u *pat, size_t patlen, char_u **used_pat, int pat_save, int pat_use, int options, regmmatch_T *regmatch);
 static char_u *get_search_pat(void);
 static void save_re_pat(int idx, char_u *pat, size_t patlen, int magic);
@@ -3509,8 +3266,6 @@ static pos_T *findmatchlimit(oparg_T *oap, int initc, int flags, int maxtravel);
 static void showmatch(int c);
 static int current_search(long count, int forward);
 
-// ---------------- end search.pro ----------------
-// ---------------- begin strings.pro ----------------
 static char_u *vim_strsave(char_u *string);
 static char_u *vim_strnsave(char_u *string, size_t len);
 static char_u *vim_strsave_escaped(char_u *string, char_u *esc_chars);
@@ -3528,11 +3283,6 @@ static char_u *vim_strrchr(char_u *string, int c);
 static void sort_strings(char_u **files, int count);
 static char_u *concat_str(char_u *str1, char_u *str2);
 
-// ---------------- end strings.pro ----------------
-// ---------------- begin tag.pro ----------------
-
-// ---------------- end tag.pro ----------------
-// ---------------- begin term.pro ----------------
 static void apply_keyprotocol(char_u *term, keyprot_T prot);
 static keyprot_T match_keyprotocol(char_u *term);
 static int set_termname(char_u *term);
@@ -3591,8 +3341,6 @@ static void term_set_win_resize(bool state);
 static int sync_output_active(void);
 static void term_set_sync_output(int flags);
 
-// ---------------- end term.pro ----------------
-// ---------------- begin textobject.pro ----------------
 static int fwd_word(long count, int bigword, int eol);
 static int bck_word(long count, int bigword, int stop);
 static int end_word(long count, int bigword, int stop, int empty);
@@ -3601,16 +3349,10 @@ static int current_word(oparg_T *oap, long count, int include, int bigword);
 static int current_block(oparg_T *oap, long count, int include, int what, int other);
 static int current_quote(oparg_T *oap, long count, int include, int quotechar);
 
-// ---------------- end textobject.pro ----------------
-// ---------------- begin textformat.pro ----------------
 static void internal_format(int textwidth, int second_indent, int flags, int format_only, int c);
 static int comp_textwidth(void);
 
-// ---------------- end textformat.pro ----------------
-// ---------------- begin time.pro ----------------
 static time_T vim_time(void);
-// ---------------- end time.pro ----------------
-// ---------------- begin ui.pro ----------------
 static void ui_write(char_u *s, int len, int console);
 static int ui_inchar(char_u *buf, int maxlen, long wtime, int tb_change_cnt);
 static int inchar_loop(char_u *buf, int maxlen, long wtime, int tb_change_cnt, int (*wait_func)(long wtime, int *interrupted, int ignore_input), int (*resize_func)(int check_only));
@@ -3632,8 +3374,6 @@ static int check_col(int col);
 static int check_row(int row);
 static void ui_focus_change(int in_focus);
 
-// ---------------- end ui.pro ----------------
-// ---------------- begin undo.pro ----------------
 static int u_save_cursor(void);
 static int u_save(linenr_T top, linenr_T bot);
 static int u_savesub(linenr_T lnum);
@@ -3655,17 +3395,8 @@ static int anyBufIsChanged(void);
 static int bufIsChangedNotTerm(buf_T *buf);
 static int curbufIsChanged(void);
 
-// ---------------- end undo.pro ----------------
-// ---------------- begin usercmd.pro ----------------
 static char *uc_fun_cmd(void);
 
-// ---------------- end usercmd.pro ----------------
-// ---------------- begin version.pro ----------------
-// ---------------- end version.pro ----------------
-// ---------------- begin vim9script.pro ----------------
-
-// ---------------- end vim9script.pro ----------------
-// ---------------- begin window.pro ----------------
 static int win_valid(win_T *win);
 static int win_valid_any_tab(win_T *win);
 static void curwin_init(void);
@@ -3696,12 +3427,6 @@ static int last_stl_height(int morewin);
 static int min_rows(void);
 static int min_rows_for_all_tabpages(void);
 static void check_lnums(int do_curwin);
-
-// ---------------- end window.pro ----------------
-
-// ---------------- end proto.h ----------------
-
-// ---------------- begin globals.h ----------------
 
 static long     Rows
                     = 24L
@@ -4099,9 +3824,6 @@ static int allow_osc_key  = 0 ;
 
 static int silence_w23_w24_msg  = 0 ;
 
-// ---------------- end globals.h ----------------
-// ---------------- begin errors.h ----------------
-
 static char e_interrupted[]  =  "Interrupted"  ;
 
 static char e_backslash_should_be_followed_by[]  =  "E10: \\ should be followed by /, ? or &"  ;
@@ -4346,8 +4068,6 @@ static char e_cannot_switch_to_a_closing_buffer[]  =  "E1546: Cannot switch to a
 static char e_osc_response_timed_out[]  =  "E1568: OSC command response timed out: %.*s"  ;
 static char e_leadtab_requires_tab[]  =  "E1572: 'listchars' field \"leadtab\" requires \"tab\" to be specified"  ;
 
-// ---------------- end errors.h ----------------
-
 enum { VGR_GLOBAL = 1 };
 enum { VGR_NOJUMP = 2 };
 enum { VGR_FUZZY = 4 };
@@ -4384,8 +4104,6 @@ enum { VSE_SHELL = 1 };
 enum { VSE_BUFFER = 2 };
 
 enum { GETVCOL_END_EXCL_LBR = 1 };
-
-// ---------------- end vim.h ----------------
 
     static void *
 alloc(size_t size)
@@ -4435,10 +4153,6 @@ lalloc(size_t size, int message)
     p = malloc(size);
     if (p == NULL && !releasing)
     {
-        // The scrollback is the only memory left to reclaim.  This used to be
-        // a retry loop, because mf_release_all() could page buffer blocks out
-        // to the swap file and free them; it cannot, so there is nothing to
-        // retry with.  `releasing` stays, because clear_sb_text() allocates.
         releasing = TRUE;
         clear_sb_text(TRUE);
         releasing = FALSE;
@@ -4618,10 +4332,6 @@ ga_append(garray_T *gap, int c)
     return OK;
 }
 
-// ==================== arglist.c ====================
-
-// ==================== autocmd.c ====================
-
     static void
 block_autocmds(void)
 {
@@ -4632,8 +4342,6 @@ unblock_autocmds(void)
 {
 
 }
-
-// ==================== buffer.c ====================
 
 static void     enter_buffer(buf_T *buf);
 static void     buflist_getfpos(void);
@@ -5882,20 +5590,12 @@ fname_expand(buf_T       *buf  __attribute__((unused)) , char_u      **ffname, c
 
 }
 
-// ---------------- begin version.h ----------------
-
-// Nothing but the preprocessor can build a string literal from a constant, so
-// the version strings are character arrays built from the two numbers instead.
-// The numbers stay the single source of truth and sizeof still gives the
-// length; what an array cannot do is literal concatenation, so the places that
-// pasted "VIM - Vi IMproved " onto it take it through %s.
 enum { VIM_VERSION_MAJOR = 9 };
 enum { VIM_VERSION_MINOR = 2 };
 static const char VIM_VERSION_DATE_ONLY[] = "2026 Feb 14";
 
 static const char VIM_VERSION_SHORT[] = {'0' + VIM_VERSION_MAJOR, '.', '0' + VIM_VERSION_MINOR, NUL};
 static const char VIM_VERSION_LONG_ONLY[] = {'V', 'I', 'M', ' ', '-', ' ', 'V', 'i', ' ', 'I', 'M', 'p', 'r', 'o', 'v', 'e', 'd', ' ', '0' + VIM_VERSION_MAJOR, '.', '0' + VIM_VERSION_MINOR, NUL};
-// ---------------- end version.h ----------------
 
     static int
 bt_help(buf_T *buf)
@@ -5922,8 +5622,6 @@ buf_get_fname(buf_T *buf)
     }
     return buf->b_fname;
 }
-
-// ==================== bufwrite.c ====================
 
 enum { SMALLBUFSIZE = 256 };
 
@@ -6602,8 +6300,6 @@ nofail:
 
     return retval;
 }
-
-// ==================== change.c ====================
 
     static void
 change_warning(int col)
@@ -7674,8 +7370,6 @@ del_lines(long nlines, int undo)
 
     deleted_lines_mark(first, n);
 }
-
-// ==================== charset.c ====================
 
 static int parse_isopt(char_u *var, buf_T *buf, int only_check);
 static int win_nolbr_chartabsize(chartabsize_T *cts, int *headp);
@@ -9097,8 +8791,6 @@ backslash_halve(char_u *p)
     }
 }
 
-// ==================== cindent.c ====================
-
     static char_u *
 skip_string(char_u *p)
 {
@@ -9206,8 +8898,6 @@ check_linecomment(char_u *line)
     }
     return (int)(p - line);
 }
-
-// ==================== cmdexpand.c ====================
 
 static int      ExpandFromContext(expand_T *xp, char_u *, char_u ***, int *, int);
 
@@ -9585,8 +9275,6 @@ ExpandFromContext(expand_T    *xp, char_u      *pat, char_u      ***matches, int
     return expand_files_and_dirs(xp, pat, matches, numMatches, flags, options);
 
 }
-
-// ==================== cmdhist.c ====================
 
 static histentry_T *(history[HIST_COUNT]) = {NULL, NULL, NULL, NULL, NULL};
 static int      hisidx[HIST_COUNT] = {-1, -1, -1, -1, -1};
@@ -10018,8 +9706,6 @@ ex_history(exarg_T *eap)
         }
     }
 }
-
-// ==================== drawline.c ====================
 
     static int
 get_lcs_ext(win_T *wp)
@@ -11340,8 +11026,6 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
     vim_free(wlv.saved_p_extra_free);
     return wlv.row;
 }
-
-// ==================== drawscreen.c ====================
 
 static void win_update(win_T *wp);
 static int  did_update_one_window;
@@ -12926,8 +12610,6 @@ redraw_win_range_later(win_T       *wp, linenr_T    first, linenr_T    last)
         redraw_win_later(wp, UPD_VALID);
     }
 }
-
-// ==================== edit.c ====================
 
 enum { BACKSPACE_CHAR = 1 };
 enum { BACKSPACE_WORD = 2 };
@@ -16235,10 +15917,6 @@ get_nolist_virtcol(void)
     return curwin->w_virtcol;
 }
 
-// ==================== eval.c ====================
-
-// ==================== ex_cmds.c ====================
-
 static void do_filter(linenr_T line1, linenr_T line2, exarg_T *eap, char_u *cmd, int do_in, int do_out);
 static int not_writing(void);
 static int check_readonly(int *forceit, buf_T *buf);
@@ -18956,8 +18634,6 @@ skip_vimgrep_pat_ext(char_u *p, char_u **s, int *flags, char_u **nulp, int *cp)
     return p;
 }
 
-// ==================== ex_cmds2.c ====================
-
     static int
 check_changed(buf_T *buf, int flags)
 {
@@ -19124,8 +18800,6 @@ check_fname(void)
     return OK;
 }
 
-// ==================== ex_docmd.c ====================
-
 static int      quitmore = 0;
 static int      ex_pressedreturn = FALSE;
 
@@ -19142,7 +18816,6 @@ static char     *invalid_range(exarg_T *eap);
 static void     correct_range(exarg_T *eap);
 static char_u   *repl_cmdline(exarg_T *eap, char_u *src, size_t srclen, char_u *repl, char_u **cmdlinep);
 static void     ex_print(exarg_T *eap);
-// ---------------- begin ex_cmds.h ----------------
 
 typedef void (*ex_func_T) (exarg_T *eap);
 
@@ -19156,8 +18829,6 @@ struct cmdname
 };
 
 static struct cmdname cmdnames[];
-
-// ---------------- end ex_cmds.h ----------------
 
 static char_u dollar_command[2] = {'$', 0};
 
@@ -22480,8 +22151,6 @@ ex_nohlsearch(exarg_T *eap  __attribute__((unused)) )
     redraw_all_later(UPD_SOME_VALID);
 }
 
-// ==================== ex_getln.c ====================
-
 enum { CMDLINE_NOT_CHANGED = 1 };
 enum { CMDLINE_CHANGED = 2 };
 enum { GOTO_NORMAL_MODE = 3 };
@@ -25041,8 +24710,6 @@ get_list_range(char_u **str, int *num1, int *num2)
     return OK;
 }
 
-// ==================== fileio.c ====================
-
 static linenr_T readfile_linenr(linenr_T linecnt, char_u *p, char_u *endp);
 
     static void
@@ -26125,8 +25792,6 @@ write_eintr(int fd, void *buf, size_t bufsize)
     return ret;
 }
 
-// ==================== filepath.c ====================
-
     static void
 shorten_dir_len(char_u *str, int trim_len)
 {
@@ -26188,9 +25853,6 @@ home_replace(buf_T       *buf, char_u      *src, char_u      *dst, int         d
 {
     size_t len;
 
-    // A name is shown as what it is.  This was the shortening of a path under
-    // $HOME to ~/..., and its thirteen callers are every place that displays a
-    // file name to the user; they keep working, and see the name unchanged.
     if (src == NULL)
     {
         *dst = NUL;
@@ -26467,8 +26129,6 @@ vim_FullName(char_u      *fname, char_u      *buf, int         len, int         
     }
     return retval;
 }
-
-// ==================== findfile.c ====================
 
 typedef struct ff_stack
 {
@@ -26856,10 +26516,6 @@ find_file_name_in_path(char_u      *ptr, int         len, int         options, l
 
     return file_name;
 }
-
-// ==================== fuzzy.c ====================
-
-// ==================== getchar.c ====================
 
 enum { MINIMAL_SIZE = 20 };
 
@@ -29479,8 +29135,6 @@ do_cmdkey_command(int key  __attribute__((unused)) , int flags)
     return res;
 }
 
-// ==================== hashtab.c ====================
-
 enum { PERTURB_SHIFT = 5 };
 
 static int hash_may_resize(hashtab_T *ht, int minitems);
@@ -29766,8 +29420,6 @@ hash_hash(char_u *key)
     return hash;
 }
 
-// ==================== help.c ====================
-
     static void
 prepare_help_buffer(void)
 {
@@ -29832,8 +29484,6 @@ fix_help_buffer(void)
     }
 
 }
-
-// ==================== highlight.c ====================
 
 enum { SG_TERM = 1 };
 enum { SG_CTERM = 2 };
@@ -32513,8 +32163,6 @@ update_wincolor(win_T *wp, char_u *opt)
     return errmsg;
 }
 
-// ==================== indent.c ====================
-
     static long
 get_sw_value(buf_T *buf)
 {
@@ -33251,18 +32899,10 @@ fix_indent(void)
     }
 }
 
-// ==================== insexpand.c ====================
-
 static int ctrl_x_mode_scroll(void)
     {
     return FALSE;
 }
-
-// ==================== linematch.c ====================
-
-// ==================== locale.c ====================
-
-// ==================== map.c ====================
 
 static mapblock_T       *first_abbr = NULL;
 
@@ -34471,8 +34111,6 @@ ex_mapclear(exarg_T *eap)
     map_clear(eap->cmd, eap->arg, eap->forceit, FALSE);
 }
 
-// ==================== mark.c ====================
-
 static char_u *mark_line(pos_T *mp, int lead_len);
 static void show_one_mark(int, char_u *, pos_T *, char_u *, int current);
 static void mark_adjust_internal(linenr_T line1, linenr_T line2, long amount, long amount_after, int adjust_folds);
@@ -35221,8 +34859,6 @@ set_last_cursor(win_T *win)
     }
 }
 
-// ==================== match.c ====================
-
 enum { SEARCH_HL_PRIORITY = 0 };
 
     static int
@@ -35965,8 +35601,6 @@ ex_match(exarg_T *eap)
     }
     eap->nextcmd = find_nextcmd(end);
 }
-
-// ==================== mbyte.c ====================
 
 static inline int utf_ptr2char_and_len(char_u *p, int *lenp);
 static inline int utf_ptr2char_and_len_len(char_u *p, int size, int *lenp);
@@ -38813,8 +38447,6 @@ mb_fix_col(int col, int row)
     return col;
 }
 
-// ==================== memfile.c ====================
-
 enum { MEMFILE_PAGE_SIZE = 4096 };
 
 static void mf_ins_hash(memfile_T *, bhdr_T *);
@@ -38840,10 +38472,6 @@ mf_open(void)
 {
     memfile_T           *mfp;
 
-    // No caller can name a file: ml_open() passes nothing, and the recovery
-    // reader that passed a name went with the rest of recovery, above.  So
-    // there is no descriptor, no block is ever in a file, and the page size is
-    // ours to choose.
     if ((mfp =  (memfile_T *)alloc(sizeof(memfile_T)) ) == NULL)
     {
         return NULL;
@@ -38965,8 +38593,6 @@ mf_get(memfile_T *mfp, blocknr_T nr, int page_count)
     hp = mf_find_hash(mfp, nr);
     if (hp == NULL)
     {
-            // A block that is not in the hash is not anywhere: it could only
-            // ever have come back from the file, and there is no file.
             return NULL;
         }
     else
@@ -39029,8 +38655,6 @@ mf_free(memfile_T *mfp, bhdr_T *hp)
     static int
 mf_sync(memfile_T *mfp, int flags)
 {
-    // Nothing to sync to.  Reporting the buffer clean is what the fd-less arm
-    // of this always did; it is now the whole function.
     mfp->mf_dirty = MF_DIRTY_NO;
     return FAIL;
 }
@@ -39371,8 +38995,6 @@ mf_hash_grow(mf_hashtab_T *mht)
 
     return OK;
 }
-
-// ==================== memline.c ====================
 
 typedef struct block0           ZERO_BL;
 typedef struct pointer_block    PTR_BL;
@@ -41029,8 +40651,6 @@ ml_setflags(buf_T *buf)
         }
     }
 }
-
-// ==================== message.c ====================
 
 static void add_msg_hist(char_u *s, int len, int attr);
 static void check_msg_hist(void);
@@ -43706,8 +43326,6 @@ msg_warn_missing_clipboard(void)
     }
 }
 
-// ==================== misc1.c ====================
-
 enum { URL_SLASH = 1 };
 enum { URL_BACKSLASH = 2 };
 
@@ -44168,9 +43786,6 @@ expand_env_esc(char_u      *srcp, char_u      *dst, int         dstlen, char_u  
     char_u      *src;
     char_u      *dst_start = dst;
 
-    // $VAR is part of a name, not a place to look one up.  There is no
-    // environment to ask, so what is left of this is the escape handling and
-    // the bound on dstlen: a name reaches its caller as it was written.
     src = skipwhite(srcp);
     --dstlen;
     while (*src && dstlen > 0)
@@ -44203,14 +43818,6 @@ prepare_to_exit(void)
         {
         }
 
-        // settmode() returns at once when !full_screen, and deathtrap()
-        // clears it before this runs -- so on the way out from a signal
-        // the one thing this function exists for never happened: the
-        // terminal was left with ICANON and ECHO off and the shell that
-        // got it back was unusable.  The guard is there to avoid drawing
-        // on a screen that is not there, and putting the terminal back is
-        // not drawing, so it is lent full_screen for the length of the
-        // call.  Upstream has the same hole.
         {
             int was_full_screen = full_screen;
 
@@ -44328,8 +43935,6 @@ trim_to_int(vimlong_T x)
 {
     return x > INT_MAX ? INT_MAX : x < INT_MIN ? INT_MIN : x;
 }
-
-// ==================== misc2.c ====================
 
 static int coladvance2(pos_T *pos, int addspaces, int finetune, colnr_T wcol);
 
@@ -45821,10 +45426,6 @@ cmp_keyvalue_value_ni(const void *a, const void *b)
 
     return vim_strnicmp_asc((char *)kv1->value.string, (char *)kv2->value.string, MAX(kv1->value.length, kv2->value.length));
 }
-
-// ==================== mouse.c ====================
-
-// ==================== move.c ====================
 
 static void redraw_for_cursorline(win_T *wp);
 static int scrolljump_value(void);
@@ -48061,8 +47662,6 @@ pagescroll(int dir, long count, int half)
     return did_move ? OK : FAIL;
 }
 
-// ==================== normal.c ====================
-
 static int      VIsual_mode_orig = NUL;
 
 static void     unshift_special(cmdarg_T *cap);
@@ -48142,8 +47741,6 @@ static void     nv_put(cmdarg_T *cap);
 static void     nv_put_opt(cmdarg_T *cap, int fix_indent);
 static void     nv_open(cmdarg_T *cap);
 static void     nv_cursorhold(cmdarg_T *cap);
-
-// ---------------- begin nv_cmds.h ----------------
 
 typedef void (*nv_func_T)(cmdarg_T *cap);
 
@@ -48363,10 +47960,6 @@ static const struct nv_cmd
      {  (-((KS_EXTRA) + ((int)(KE_SCRIPT_COMMAND) << 8)))  , nv_colon, 0, 0} ,
 };
 
-// ---------------- end nv_cmds.h ----------------
-
-// ---------------- begin nv_cmdidxs.h ----------------
-
 static const unsigned short nv_cmd_idx[] =
 {
       0,
@@ -48566,8 +48159,6 @@ static const unsigned short nv_cmd_idx[] =
 };
 
 static const int nv_max_linear = 126;
-
-// ---------------- end nv_cmdidxs.h ----------------
 
     static int
 find_command(int cmdchar)
@@ -53365,8 +52956,6 @@ nv_cursorhold(cmdarg_T *cap)
     cap->retval |= CA_COMMAND_BUSY;
 }
 
-// ==================== ops.c ====================
-
 static void shift_block(oparg_T *oap, int amount);
 static void     mb_adjust_opend(oparg_T *oap);
 static int      do_addsub(int op_type, pos_T *pos, int length, linenr_T Prenum1);
@@ -56820,10 +56409,6 @@ pbyte(pos_T lp, int c)
     *(p + lp.col) = c;
 }
 
-// ==================== option.c ====================
-
-// ---------------- begin optiondefs.h ----------------
-
 enum { PV_BOTH = 0x1000 };
 enum { PV_WIN = 0x2000 };
 enum { PV_BUF = 0x4000 };
@@ -57324,8 +56909,6 @@ static struct vimoption options[] =
 
     {NULL, NULL, 0, NULL, PV_NONE, NULL, NULL, {NULL, NULL}   }
 };
-
-// ---------------- end optiondefs.h ----------------
 
 static void set_options_default(int opt_flags);
 static void set_string_default_esc(char *name, char_u *val, int escape);
@@ -60699,8 +60282,6 @@ magic_isset(void)
     return p_magic;
 }
 
-// ==================== optionstr.c ====================
-
 static char *(p_ambw_values[]) = {"single", "double", NULL};
 static char *(p_bg_values[]) = {"light", "dark", NULL};
 static char *(p_bo_values[]) = {"all", "backspace", "cursor", "complete",
@@ -61534,8 +61115,6 @@ opt_strings_flags(char_u      *val, char        **values, unsigned    *flagp, in
     return OK;
 }
 
-// ==================== os_unix.c ====================
-
 static int ignore_sigtstp = FALSE;
 
 static int  WaitForChar(long msec, int *interrupted, int ignore_input);
@@ -61981,10 +61560,6 @@ mch_get_pid(void)
     static int
 mch_dirname(char_u *buf, int len)
 {
-    // Asked once.  Nothing can move this process -- :cd, :lcd and :tcd are
-    // not commands, :! does not fork, and mch_FullName() no longer chdirs -- so every
-    // later call is asking the kernel a question whose answer cannot have
-    // changed since the first one.
     static char_u   cwd[ PATH_MAX ];
     static int      cwd_len = -1;
 
@@ -62010,16 +61585,6 @@ mch_FullName(char_u      *fname, char_u      *buf, int         len, int         
 {
     int         buflen = 0;
 
-    // The dance that used to be here chdir'd into the leading directory of a
-    // relative name, asked getcwd() where that landed, and chdir'd back -- so
-    // that `..` and a symlinked directory were resolved on the way.  Nothing
-    // moves this process any more, so a full name is the working directory
-    // with the name appended, and a `..` in it survives into the answer.
-    //
-    // `force` asked for that re-resolution even when the name was already
-    // absolute.  There is nothing left to re-resolve, so an absolute name is
-    // its own answer -- and prepending the cwd to one was the whole of the
-    // first attempt at this, which moved :read, :write and :wq.
     if (!mch_isFullName(fname))
     {
         if (mch_dirname(buf, len) == FAIL)
@@ -62493,15 +62058,6 @@ mch_has_wildcard(char_u *p)
     }
     return FALSE;
 }
-
-// ==================== pathdef.c ====================
-
-// ==================== popupmenu.c ====================
-
-// Token pasting is the one thing C has no answer to, so the three functions
-// this macro defined are written out.
-
-// ==================== regexp.c ====================
 
     static int
 no_Magic(int x)
@@ -64335,8 +63891,6 @@ init_regexec_multi(regmmatch_T     *rmp, win_T           *win, buf_T           *
     rex.reg_icombine = FALSE;
     rex.reg_maxcol = rmp->rmm_maxcol;
 }
-
-// ==================== regexp_bt.c ====================
 
 enum { END = 0 };
 enum { BOL = 1 };
@@ -68635,8 +68189,6 @@ static regengine_T bt_regengine =
     bt_regexec_multi
 };
 
-// ==================== regexp_nfa.c ====================
-
     static regprog_T *
 vim_regcomp(char_u *expr_arg, int re_flags)
 {
@@ -68739,8 +68291,6 @@ vim_regexec_multi(regmmatch_T *rmp, win_T       *win, buf_T       *buf, linenr_T
 
     return result <= 0 ? 0 : result;
 }
-
-// ==================== register.c ====================
 
 static yankreg_T        y_regs[NUM_REGISTERS];
 
@@ -70737,8 +70287,6 @@ get_reg_type(int regname, long *reglen)
     }
     return MAUTO;
 }
-
-// ==================== screen.c ====================
 
 static int      screen_attr = 0;
 
@@ -73832,8 +73380,6 @@ if (set_fillchars_option(wp, wp-> w_onebuf_opt.wo_fcs , FALSE, NULL, 0) != NULL)
     return NULL;
 }
 
-// ==================== scriptfile.c ====================
-
     static void
 estack_init(void)
 {
@@ -73893,8 +73439,6 @@ estack_sfile(estack_arg_T which  __attribute__((unused)) )
         return vim_strsave(entry->es_name);
     }
 }
-
-// ==================== search.c ====================
 
 typedef struct searchstat
 {
@@ -76331,10 +75875,6 @@ update_search_stat(int                 dirc, pos_T               *pos, pos_T    
     p_ws = save_ws;
 }
 
-// ==================== session.c ====================
-
-// ==================== strings.c ====================
-
     static char_u *
 vim_strsave(char_u *string)
 {
@@ -78123,10 +77663,6 @@ error:
 
     return (int)str_l;
 }
-
-// ==================== tag.c ====================
-
-// ==================== term.c ====================
 
 enum { BT_EXTRA_KEYS = 0x101 };
 
@@ -81849,8 +81385,6 @@ term_set_sync_output(int flags)
     }
 }
 
-// ==================== textformat.c ====================
-
     static void
 internal_format(int         textwidth, int         second_indent, int         flags, int         format_only, int         c)
 {
@@ -82055,8 +81589,6 @@ comp_textwidth(void)
     }
     return textwidth;
 }
-
-// ==================== textobject.c ====================
 
 static int skip_chars(int, int);
 
@@ -82960,8 +82492,6 @@ abort_search:
     return FALSE;
 }
 
-// ==================== time.c ====================
-
     static time_T
 vim_time(void)
 {
@@ -82971,16 +82501,10 @@ vim_time(void)
     static void
 add_time(char_u *buf, size_t buflen, time_t tt)
 {
-    // How long ago, not when.  Phase 20 took away every way this editor could
-    // be told what zone the clock is in, and undo history does not outlive the
-    // process -- :wundo and :rundo are not commands -- so every time this formats is
-    // within one session, which is exactly what "ago" measures.
     long seconds = (long)(vim_time() - tt);
 
     vim_snprintf((char *)buf, buflen, NGETTEXT("%ld second ago", "%ld seconds ago", seconds), seconds);
 }
-
-// ==================== ui.c ====================
 
     static void
 ui_write(char_u *s, int len, int console  __attribute__((unused)) )
@@ -83373,8 +82897,6 @@ ui_focus_change(int         in_focus)
     }
 
 }
-
-// ==================== undo.c ====================
 
 static void u_unch_branch(u_header_T *uhp);
 static u_entry_T *u_get_headentry(void);
@@ -85116,8 +84638,6 @@ curbufIsChanged(void)
     return bufIsChanged(curbuf);
 }
 
-// ==================== usercmd.c ====================
-
     static char *
 uc_fun_cmd(void)
 {
@@ -85134,8 +84654,6 @@ uc_fun_cmd(void)
     IObuff[i] = NUL;
     return (char *)IObuff;
 }
-
-// ==================== version.c ====================
 
 static const char      *Version = VIM_VERSION_SHORT;
 
@@ -85166,8 +84684,6 @@ init_longVersion(void)
         vim_snprintf(longVersion, len, msg, VIM_VERSION_LONG_ONLY, VIM_VERSION_DATE_ONLY, date_time);
     }
 }
-
-// ==================== vim9script.c ====================
 
 static struct cmdname cmdnames[] =
 {
@@ -85287,14 +84803,7 @@ static struct cmdname cmdnames[] =
 
 };
 
-// Two lists, kept aligned by the compiler rather than by an X-macro: every row
-// is written [CMD_append] = {...}, so it lands at its own enumerator whatever
-// order the rows are in.  That is stronger than the macro's guarantee of equal
-// *order*.  A dropped last row is caught here; a dropped middle row leaves a
-// zeroed hole, which the command sweep catches.
 static_assert(sizeof(cmdnames) / sizeof(cmdnames[0]) == CMD_SIZE, "cmdnames[] and enum CMD_index have drifted apart");
-
-// ==================== window.c ====================
 
 static void frame_comp_pos(frame_T *topfrp, int *row, int *col);
 static void frame_setheight(frame_T *curfrp, int height);
@@ -86367,8 +85876,6 @@ frame_check_width(frame_T *topfrp, int width)
 {
     return topfrp->fr_width == width;
 }
-
-// ==================== main.c ====================
 
 enum { EDIT_NONE = 0 };
 enum { EDIT_FILE = 1 };

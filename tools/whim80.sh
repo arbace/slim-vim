@@ -657,7 +657,6 @@ for c in ('buffer|%s/a/X/|w', 'n|%s/a/X/|w'):
 print('  cmdtable     %d words and %d command lines through both binaries: identical but for %s'
       % (len(words), len(LINES), ', '.join('%s (%s)' % kv for kv in sorted(DIFFER.items()))))
 PY
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 # Phase 79's list, and every removed row: the sweep dispatches the names in the

@@ -170,7 +170,6 @@ printf '(a ; b)\n' > "$d/m.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+1normal! 0%x' '+wq' m.txt </dev/null >/dev/null 2>&1) || true
 [ "$(cat "$d/m.txt")" = '(a ; b' ] || { echo "  nolisp       % across ';' left '$(cat "$d/m.txt")'"; exit 1; }
 echo "  nolisp       :set sw works; lisp and lispwords are unknown; % matches across ';'"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

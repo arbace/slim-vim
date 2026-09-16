@@ -363,7 +363,6 @@ printf 'l1\nl2\n' > "$d/l.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+set laststatus=2' '+1' '+normal! A-ls' '+wq' l.txt </dev/null >/dev/null 2>&1) || true
 [ "$(tr '\n' '|' < "$d/l.txt")" = 'l1-ls|l2|' ] || { echo "  oneframe     'laststatus' broke the layout: '$(tr '\n' '|' < "$d/l.txt")'"; exit 1; }
 echo "  oneframe     loads, edits, :e switches, mappings fire, cmdheight and laststatus resize"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

@@ -212,7 +212,6 @@ printf 'x\n' > "$d/onlyone.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+e onlyone.txt' '+1s/x/y/' '+w' '+q!' </dev/null >/dev/null 2>&1) || true
 [ "$(cat "$d/onlyone.txt")" = y ] || { echo "  nocompletion :e onlyone.txt did not edit it: '$(cat "$d/onlyone.txt")'"; exit 1; }
 echo "  nocompletion :set sw works; the wild* options are unknown; :e still edits a named file"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

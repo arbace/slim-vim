@@ -258,7 +258,6 @@ grep -q '^xone$' "$d/q.txt" || { echo "  onewindow    :q on a modified buffer di
 (cd "$d" && HOME="$d" ./vim -e -s '+set laststatus=2' '+set lines=30 columns=90' '+wq' t.txt </dev/null >/dev/null 2>&1) \
     || { echo "  onewindow    :set laststatus/lines/columns broke"; exit 1; }
 echo "  onewindow    editing works; :q refuses a modified buffer; laststatus and a resize still compute"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

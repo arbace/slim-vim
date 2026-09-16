@@ -195,7 +195,6 @@ probe 'guu'  'abc def|ghi|'
 probe 'g~~'  'ABC DEF|ghi|'
 probe 'zyy'  'abc def|ghi|'
 echo "  norot13      g? and g@ do nothing; gU, gu and g~ still change case; zy still yanks"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

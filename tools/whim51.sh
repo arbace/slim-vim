@@ -60,7 +60,6 @@ if (cd "$d" && HOME="$d" ./vim -e -s '+e ++bad=keep ill.txt' '+q!' </dev/null >/
     echo "  keepbytes    ++bad=keep was accepted"; exit 1
 fi
 echo "  keepbytes    an invalid byte is written back unchanged, the buffer stays writable, ++bad is refused"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

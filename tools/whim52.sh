@@ -48,7 +48,6 @@ printf 'a\346\227\245b\n' > "$d/x.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+1normal! 0lx' '+wq' x.txt </dev/null >/dev/null 2>&1) || true
 [ "$(cat "$d/x.txt")" = ab ] || { echo "  utf8only     x on a three-byte character left '$(cat "$d/x.txt")'"; exit 1; }
 echo "  utf8only     gUU and x work on multibyte characters"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

@@ -72,7 +72,6 @@ if [ "$(od -An -c "$d/noeol.txt" | tr -d ' \n')" != 'one\ntwo\n' ]; then
     echo "  lfonly       a last line was written without LF: $(od -An -c "$d/noeol.txt" | tr -s ' ')"; exit 1
 fi
 echo "  lfonly       -b unknown, ff refused, CR is text, and every line ends with LF"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

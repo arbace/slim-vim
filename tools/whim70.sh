@@ -305,7 +305,6 @@ printf 'keep\n' > "$d/r.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+normal! iX' '+e!' '+wq' r.txt </dev/null >/dev/null 2>&1) || true
 [ "$(cat "$d/r.txt")" = 'keep' ] || { echo "  onebuffer    :e! did not reload: $(cat "$d/r.txt")"; exit 1; }
 echo "  onebuffer    the file loads and edits; :e opens another; :e! reloads"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

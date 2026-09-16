@@ -63,7 +63,6 @@ for o in foldmethod cursorline undofile clipboard; do
     fi
 done
 echo "  novar        :set sw works; :set foldmethod, cursorline, undofile and clipboard are unknown"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

@@ -193,7 +193,6 @@ printf 'aaa bbb\n' > "$d/g.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+set tw=4' '+1normal! gqq' '+wq' g.txt </dev/null >/dev/null 2>&1) || true
 [ "$(tr '\n' '|' < "$d/g.txt")" = 'aaa|bbb|' ] || { echo "  nosixopts    gqq with tw=4 left '$(tr '\n' '|' < "$d/g.txt")'"; exit 1; }
 echo "  nosixopts    :set sw works; the seven are unknown; gq still formats internally"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

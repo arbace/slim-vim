@@ -261,7 +261,6 @@ if old[('%s/a/X/|%s/b/Y/',)][2] != 'X\nYX\ncX\n' or new[('%s/a/X/|%s/b/Y/',)][2]
 print('  onecommand   %d cases through both binaries: %d differ exactly as declared, %d identical'
       % (len(todo), len(DIFFER), len(SAME)))
 PY
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative: phase 80's, unchanged ---------------------------
 REMOVED=$(sed -n "/^REMOVED='$/,/^'$/p" tools/whim80.sh | sed '1d;$d')

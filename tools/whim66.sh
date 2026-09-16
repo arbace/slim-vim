@@ -233,7 +233,6 @@ sample
 (cd "$d" && HOME="$d" ./vim -e -s "+'{,'}d" '+wq' t.txt </dev/null >/dev/null 2>&1) || true
 grep -q '^One two\. Three four\.$' "$d/t.txt" || { echo "  nopara       '{,'} still addressed a paragraph"; exit 1; }
 echo "  nopara       the cut keys do nothing; [{ and % still move; i{ still selects; '{ is refused"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

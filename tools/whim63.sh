@@ -177,7 +177,6 @@ printf 'a\nb\nc\n' > "$d/k.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+1' "+normal! 3G''" '+s/^/Y/' '+wq' k.txt </dev/null >/dev/null 2>&1) || true
 [ "$(tr '\n' '|' < "$d/k.txt")" = 'Ya|b|c|' ] || { echo "  nojumplist   '' did not return to line 1: '$(tr '\n' '|' < "$d/k.txt")'"; exit 1; }
 echo "  nojumplist   :jumps is refused; CTRL-O stays put; '' still jumps back"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode \

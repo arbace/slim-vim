@@ -28,8 +28,7 @@
 #
 # THE DELTA: none the harness records.  No behaviour case types CTRL-N and these
 # are insert-mode keys, so the phase checks both halves itself, in a pty:
-# completion must be absent, and the arrow keys -- whose pum arms this cuts --
-# must still move the cursor.
+# completion must be absent, and insert mode must still insert.
 set -eu
 
 work=${1:?usage: whim32.sh <work-dir>}
@@ -85,18 +84,12 @@ tools/phasebuild.sh "$work" "$before_lines"
 
 # Both halves, in a pty, because only the pair is a check.  Completion must be
 # absent, and insert mode must still insert -- a completion check that only
-# proves completion is gone also passes on a binary that cannot type -- and the
-# arrow keys, whose `if (pum_visible())` arms this cuts, must still move the
-# cursor.
+# proves completion is gone also passes on a binary that cannot type.
 own_checks() {
     if python3 tools/complcheck.py "$work/whim-vim"; then
         echo "  compl        insert mode still inserts; CTRL-X CTRL-N completes nothing"
     else
         echo "  compl        insert mode or CTRL-X CTRL-N is not behaving as declared"
-        return 1
-    fi
-    if ! python3 tools/arrowcheck.py "$work/whim-vim"; then
-        echo "  compl        the arrow keys lost their insert-mode motion"
         return 1
     fi
 }

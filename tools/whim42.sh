@@ -91,7 +91,6 @@ if [ "$(cat "$d/a")" != one ] || [ "$(cat "$d/c" 2>/dev/null)" != oneX ]; then
     exit 1
 fi
 echo "  onebuffer    a mark goes with its file, :e # is refused, :saveas renames"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \

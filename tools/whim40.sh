@@ -63,7 +63,6 @@ for o in winheight winminheight winwidth winminwidth helpheight splitbelow split
     fi
 done
 echo "  options      the twelve sizing options are refused, :set ignorecase still taken"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \

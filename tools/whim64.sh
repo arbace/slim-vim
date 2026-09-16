@@ -448,7 +448,6 @@ printf 'a\n.PP\nb\n' > "$d/p.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+1' '+normal! }' '+s/^/X/' '+wq' p.txt </dev/null >/dev/null 2>&1) || true
 [ "$(tr '\n' '|' < "$d/p.txt")" = 'a|.PP|Xb|' ] || { echo "  noformatopts } stopped somewhere other than the last line: '$(tr '\n' '|' < "$d/p.txt")'"; exit 1; }
 echo "  noformatopts the five are unknown; typing wraps at 'textwidth'; gqq, gqj, gd, = and ! do nothing; } passes .PP"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \

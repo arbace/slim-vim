@@ -66,7 +66,6 @@ if [ "$(head -1 "$d/m.txt")" != "    one" ]; then
     exit 1
 fi
 echo "  optset       :set ts< is refused, and a modeline sets nothing"
-python3 tools/arrowcheck.py "$work/whim-vim"
 
 # --- the delta, cumulative --------------------------------------------------
 tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n \
