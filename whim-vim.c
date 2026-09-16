@@ -2037,7 +2037,6 @@ typedef struct
 
 struct window_S
 {
-    int         w_id;
 
     buf_T       *w_buffer;
 
@@ -2169,7 +2168,6 @@ typedef struct oparg_S
 typedef struct cmdarg_S
 {
     oparg_T     *oap;
-    int         prechar;
     int         cmdchar;
     int         nchar;
     int         ncharC1;
@@ -3228,7 +3226,6 @@ static int vim_iswordp_buf(char_u *p, buf_T *buf);
 static int vim_isprintc(int c);
 static int vim_isprintc_strict(int c);
 static void init_chartabsize_arg(chartabsize_T *cts, win_T *wp, linenr_T lnum, colnr_T col, char_u *line, char_u *ptr);
-static void clear_chartabsize_arg(chartabsize_T *cts);
 static int lbr_chartabsize_adv(chartabsize_T *cts);
 static int win_lbr_chartabsize(chartabsize_T *cts, int *headp, int *tailp);
 static void getvcol(win_T *wp, pos_T *pos, colnr_T *start, colnr_T *cursor, colnr_T *end, int flags);
@@ -3554,10 +3551,8 @@ static void get_search_match_hl(win_T *wp, match_T *search_hl, long col, int *ch
 // ---------------- end memfile.pro ----------------
 // ---------------- begin memline.pro ----------------
 static int ml_open(buf_T *buf);
-static void ml_setname(buf_T *buf);
 static void ml_close(buf_T *buf, int del_file);
 static void ml_timestamp(buf_T *buf);
-static void ml_preserve(buf_T *buf, int message);
 static char_u *ml_get(linenr_T lnum);
 static char_u *ml_get_pos(pos_T *pos);
 static char_u *ml_get_curline(void);
@@ -3669,7 +3664,6 @@ static void fast_breakcheck(void);
 static int goto_im(void);
 static int path_is_url(char_u *p);
 static int path_with_url(char_u *fname);
-static void may_trigger_modechanged(void);
 static int trim_to_int(vimlong_T x);
 
 // ---------------- end misc1.pro ----------------
@@ -3926,7 +3920,6 @@ static char *did_set_string_option(int opt_idx, char_u **varp, char_u *oldval, c
 // ---------------- begin popupmenu.pro ----------------
 static int pum_visible(void);
 static int pum_redraw_in_same_position(void);
-static void pum_may_redraw(void);
 // ---------------- end popupmenu.pro ----------------
 // ---------------- begin regexp.pro ----------------
 static int re_multiline(regprog_T *prog);
@@ -4067,7 +4060,6 @@ static int add_termcap_entry(char_u *name, int force);
 static int term_is_8bit(char_u *name);
 static void out_flush(void);
 static void out_flush_cursor(int force, int clear_selection);
-static void out_flush_check(void);
 static void out_char(unsigned c);
 static void out_str_nf(char_u *s);
 static void out_str_cf(char_u *s);
@@ -4202,7 +4194,6 @@ static int win_valid(win_T *win);
 static int win_valid_any_tab(win_T *win);
 static void curwin_init(void);
 static void snapshot_windows_scroll_size(void);
-static void may_trigger_win_scrolled_resized(void);
 static void unuse_tabpage(tabpage_T *tp);
 static void goto_tabpage_tp(tabpage_T *tp, int trigger_enter_autocmds, int trigger_leave_autocmds);
 static void goto_tabpage_win(tabpage_T *tp, win_T *wp);
@@ -4265,8 +4256,6 @@ static match_T  screen_search_hl;
 static linenr_T search_hl_has_cursor_lnum  = 0 ;
 
 static int      no_hlsearch  = FALSE ;
-
-static int redrawing_for_callback  = 0 ;
 
 static short    *TabPageIdxs  = NULL ;
 
@@ -4373,8 +4362,6 @@ static  long  fallback_fg_rgb  =  (( long )0x1ffffff)  ;
 static  long  fallback_bg_rgb  =  (( long )0x1ffffff)  ;
 
 static int      autocmd_busy  = FALSE ;
-static int      autocmd_no_enter  = FALSE ;
-static int      autocmd_no_leave  = FALSE ;
 
 static bufref_T au_new_curbuf  = {NULL, 0, 0} ;
 
@@ -4383,8 +4370,6 @@ static int      mouse_dragging  = 0 ;
 static int      updating_screen  = FALSE ;
 
 static int      redraw_not_allowed  = FALSE ;
-
-static win_T    *prevwin  = NULL ;
 
 static win_T    *curwin;
 
@@ -4912,8 +4897,6 @@ enum { MSCR_UP = 1 };
 
 enum { KEYLEN_REMOVED = 9999 };
 
-enum { LOWEST_WIN_ID = 1000 };
-
 typedef struct timeval elapsed_T;
 static long elapsed(struct timeval *start_tv);
 
@@ -5174,8 +5157,6 @@ ga_append(garray_T *gap, int c)
 
 // ==================== autocmd.c ====================
 
-static int      autocmd_blocked = 0;
-
     static int
 has_cursormoved(void)
 {
@@ -5197,13 +5178,11 @@ has_insertcharpre(void)
     static void
 block_autocmds(void)
 {
-    ++autocmd_blocked;
 }
 
     static void
 unblock_autocmds(void)
 {
-    --autocmd_blocked;
 
 }
 
@@ -5221,11 +5200,6 @@ static void     free_buffer_stuff(buf_T *buf, int free_options);
 static int      buf_free_count = 0;
 
 static int      top_file_num = 1;
-
-    static void
-trigger_undo_ftplugin(buf_T *buf, win_T *win)
-{
-}
 
     static int
 calc_percentage(long part, long whole)
@@ -5802,7 +5776,6 @@ buflist_new(char_u      *ffname_arg, char_u      *sfname_arg, linenr_T    lnum, 
 
         buf = curbuf;
         set_bufref(&bufref, buf);
-        trigger_undo_ftplugin(buf, curwin);
         buf_freeall(buf, BFA_WIPE | BFA_DEL);
         if (!bufref_valid(&bufref))
         {
@@ -6229,7 +6202,6 @@ buf_name_changed(buf_T *buf)
 {
     if (buf->b_ml.ml_mfp != NULL)
     {
-        ml_setname(buf);
     }
 
     if (curwin->w_buffer == buf)
@@ -6893,7 +6865,6 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
 
     if (reset_changed && !newfile && overwriting)
     {
-        ml_preserve(buf, FALSE);
         if (got_int)
         {
             errmsg = (char_u *)_(e_interrupted);
@@ -8747,7 +8718,6 @@ linetabsize_col(int startcol, char_u *s)
             cts.cts_vcol = (int)vcol;
         }
     }
-    clear_chartabsize_arg(&cts);
     return (int)cts.cts_vcol;
 }
 
@@ -8758,7 +8728,6 @@ win_linetabsize(win_T *wp, linenr_T lnum, char_u *line, colnr_T len)
 
     init_chartabsize_arg(&cts, wp, lnum, 0, line, line);
     win_linetabsize_cts(&cts, len);
-    clear_chartabsize_arg(&cts);
     return (int)cts.cts_vcol;
 }
 
@@ -8881,11 +8850,6 @@ init_chartabsize_arg(chartabsize_T   *cts, win_T           *wp, linenr_T        
     cts->cts_vcol = col;
     cts->cts_line = line;
     cts->cts_ptr = ptr;
-}
-
-    static void
-clear_chartabsize_arg(chartabsize_T *cts  __attribute__((unused)) )
-{
 }
 
     static int
@@ -9068,7 +9032,6 @@ getvcol(win_T       *wp, pos_T       *pos, colnr_T     *start, colnr_T     *curs
         vcol = cts.cts_vcol;
         ptr = cts.cts_ptr;
     }
-    clear_chartabsize_arg(&cts);
 
     if (*ptr == NUL && pos->col < MAXCOL && pos->col > ptr - line)
     {
@@ -11145,7 +11108,6 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
         }
         wlv.vcol = cts.cts_vcol;
         ptr = cts.cts_ptr;
-        clear_chartabsize_arg(&cts);
 
         if (wlv.vcol < v && (virtual_active() || (VIsual_active && wp->w_buffer == curwin->w_buffer)))
         {
@@ -12152,7 +12114,6 @@ update_screen(int type_arg)
     end_search_hl();
 
     pum_will_redraw = save_pum_will_redraw;
-    pum_may_redraw();
 
     if (redraw_vseps)
     {
@@ -13438,7 +13399,6 @@ redraw_asap(int type)
     static void
 redraw_after_callback(int call_update_screen, int do_message)
 {
-    ++redrawing_for_callback;
 
     term_set_sync_output(TERM_SYNC_OUTPUT_ENABLE);
 
@@ -13479,7 +13439,6 @@ redraw_after_callback(int call_update_screen, int do_message)
     term_set_sync_output(TERM_SYNC_OUTPUT_DISABLE);
         out_flush();
 
-    --redrawing_for_callback;
 }
 
     static void
@@ -13794,7 +13753,6 @@ edit(int         cmdchar, int         startln, long        count)
         State = MODE_INSERT;
     }
 
-    may_trigger_modechanged();
     stop_insert_mode = FALSE;
 
     if (gchar_cursor() == TAB)
@@ -14390,7 +14348,6 @@ ins_redraw(int ready)
 
     if (ready)
     {
-        may_trigger_win_scrolled_resized();
     }
 
     may_trigger_safestate(ready && !ins_compl_active() && !pum_visible());
@@ -15819,7 +15776,6 @@ ins_esc(long        *count, int         cmdchar, int         nomove)
     }
 
     State = MODE_NORMAL;
-    may_trigger_modechanged();
     if (gchar_cursor() == TAB)
     {
         curwin->w_valid &= ~(VALID_WROW|VALID_WCOL|VALID_VIRTCOL);
@@ -15902,7 +15858,6 @@ ins_insert(int replaceState)
     {
         State = replaceState;
     }
-    may_trigger_modechanged();
     AppendCharToRedobuff(  (-(('k') + ((int)('I') << 8)))  );
     showmode();
 }
@@ -16774,7 +16729,6 @@ ins_tab(void)
             cts.cts_vcol += i;
         }
         vcol = cts.cts_vcol;
-        clear_chartabsize_arg(&cts);
 
         if (change_col >= 0)
         {
@@ -16789,7 +16743,6 @@ ins_tab(void)
             }
             ptr = cts.cts_ptr;
             vcol = cts.cts_vcol;
-            clear_chartabsize_arg(&cts);
 
             if (vcol > want_vcol)
             {
@@ -16890,7 +16843,6 @@ ins_copychar(linenr_T lnum)
     {
         ptr = cts.cts_ptr;
     }
-    clear_chartabsize_arg(&cts);
 
     c = utf_ptr2char(ptr);
     if (c == NUL)
@@ -20030,7 +19982,6 @@ do_exmode(int         improved)
         exmode_active = EXMODE_NORMAL;
     }
     State = MODE_NORMAL;
-    may_trigger_modechanged();
 
     if (global_busy)
     {
@@ -23937,7 +23888,6 @@ restore_viewstate(viewstate_T *vs)
 typedef struct {
     pos_T       search_start;
     pos_T       save_cursor;
-    int         winid;
     viewstate_T init_viewstate;
     viewstate_T old_viewstate;
     pos_T       match_start;
@@ -23950,7 +23900,6 @@ typedef struct {
     static void
 init_incsearch_state(incsearch_state_T *is_state)
 {
-    is_state->winid = curwin->w_id;
     is_state->match_start = curwin->w_cursor;
     is_state->did_incsearch = FALSE;
     is_state->incsearch_postponed = FALSE;
@@ -25100,10 +25049,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
 
         if (wild_type == WILD_CANCEL || wild_type == WILD_APPLY)
         {
-            if (is_state.winid != curwin->w_id)
-            {
-                init_incsearch_state(&is_state);
-            }
             if (KeyTyped || vpeekc() == NUL)
             {
                 may_do_incsearch_highlighting(firstc, count, &is_state);
@@ -25133,7 +25078,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
         case   (-(('k') + ((int)('I') << 8)))  :
         case   (-((KS_EXTRA) + ((int)(KE_KINS) << 8)))  :
                 ccline.overstrike = !ccline.overstrike;
-                may_trigger_modechanged();
                 status_redraw_curbuf();
                 redraw_statuslines();
                 goto cmdline_not_changed;
@@ -25346,10 +25290,6 @@ cmdline_not_changed:
         }
 
 cmdline_changed:
-        if (is_state.winid != curwin->w_id)
-        {
-            init_incsearch_state(&is_state);
-        }
         if (KeyTyped || vpeekc() == NUL)
         {
             may_do_incsearch_highlighting(firstc, count, &is_state);
@@ -30402,7 +30342,6 @@ vgetorpeek(int advance)
                                     cts.cts_ptr +=
                                                utfc_ptr2len(cts.cts_ptr);
                                 }
-                                clear_chartabsize_arg(&cts);
 
                                 curwin->w_wrow = curwin->w_cline_row
                                            + curwin->w_wcol / curwin->w_width;
@@ -34422,7 +34361,6 @@ change_indent(int         type, int         amount, int         round, int      
         }
         vcol = last_vcol;
         new_cursor_col = cts.cts_ptr - cts.cts_line;
-        clear_chartabsize_arg(&cts);
 
         if (vcol != (int)curwin->w_virtcol)
         {
@@ -40884,8 +40822,6 @@ typedef enum {
 
 static void ml_upd_block0(buf_T *buf, upd_block0_T what);
 static void set_b0_fname(ZERO_BL *, buf_T *buf);
-static void set_b0_dir_flag(ZERO_BL *b0p, buf_T *buf);
-static void add_b0_fenc(ZERO_BL *b0p, buf_T *buf);
 static void ml_flush_line(buf_T *);
 static bhdr_T *ml_new_data(memfile_T *, int, int);
 static bhdr_T *ml_new_ptr(memfile_T *);
@@ -41001,11 +40937,6 @@ error:
 }
 
     static void
-ml_setname(buf_T *buf)
-{
-}
-
-    static void
 ml_close(buf_T *buf, int del_file)
 {
     if (buf->b_ml.ml_mfp == NULL)
@@ -41091,7 +41022,6 @@ ml_upd_block0(buf_T *buf, upd_block0_T what)
         }
         else
         {
-            set_b0_dir_flag(b0p, buf);
         }
     }
     mf_put(mfp, hp, TRUE, FALSE);
@@ -41136,22 +41066,6 @@ set_b0_fname(ZERO_BL *b0p, buf_T *buf)
         }
     }
 
-    add_b0_fenc(b0p, curbuf);
-}
-
-    static void
-set_b0_dir_flag(ZERO_BL *b0p, buf_T *buf)
-{
-}
-
-    static void
-add_b0_fenc(ZERO_BL     *b0p, buf_T       *buf)
-{
-}
-
-    static void
-ml_preserve(buf_T *buf, int message)
-{
 }
 
     static char_u  *
@@ -42479,7 +42393,6 @@ ml_setflags(buf_T *buf)
         {
             b0p = (ZERO_BL *)(hp->bh_data);
             b0p-> b0_fname[B0_FNAME_SIZE_ORG - 1]  = buf->b_changed ? B0_DIRTY : 0;
-            add_b0_fenc(b0p, buf);
             hp->bh_flags |= BH_DIRTY;
             mf_sync(buf->b_ml.ml_mfp, MFS_ZERO);
             break;
@@ -45221,7 +45134,6 @@ plines_win_nofold(win_T *wp, linenr_T lnum)
         return 1;
     }
     win_linetabsize_cts(&cts, (colnr_T)MAXCOL);
-    clear_chartabsize_arg(&cts);
     col = (int)cts.cts_vcol;
 
     if (wp-> w_onebuf_opt.wo_list  && wp->w_lcs_chars.eol != NUL)
@@ -45276,7 +45188,6 @@ plines_win_col(win_T *wp, linenr_T lnum, long column)
     {
         col += win_lbr_chartabsize(&cts, NULL, NULL) - 1;
     }
-    clear_chartabsize_arg(&cts);
 
     width = wp->w_width - win_col_off(wp);
     if (width <= 0)
@@ -45775,11 +45686,6 @@ path_with_url(char_u *fname)
     return path_is_url(p);
 }
 
-    static void
-may_trigger_modechanged(void)
-{
-}
-
     static int
 vim_append_digit_long(long *value, int digit)
 {
@@ -45938,7 +45844,6 @@ coladvance2(pos_T       *pos, int         addspaces, int         finetune, colnr
         }
         col = cts.cts_vcol;
         idx = (int)(cts.cts_ptr - line);
-        clear_chartabsize_arg(&cts);
 
         if (col > wcol || (!virtual_active() && one_more == 0))
         {
@@ -50429,7 +50334,6 @@ normal_cmd(oparg_T     *oap, int         toplevel  __attribute__((unused)) )
     ca.opcount = opcount;
 
     finish_op = (oap->op_type != OP_NOP);
-    may_trigger_modechanged();
 
     if (!finish_op && !oap->regname)
     {
@@ -50632,7 +50536,6 @@ normal_end:
     if (oap->op_type == OP_NOP)
     {
         finish_op = FALSE;
-        may_trigger_modechanged();
     }
 
     if (oap->op_type == OP_NOP && oap->regname == 0 && ca.cmdchar !=   (-((KS_EXTRA) + ((int)(KE_CURSORHOLD) << 8)))  )
@@ -50650,7 +50553,6 @@ normal_end:
         if (restart_VIsual_select == 1)
         {
             VIsual_select = TRUE;
-            may_trigger_modechanged();
             showmode();
             restart_VIsual_select = 0;
             VIsual_select_reg = 0;
@@ -50708,7 +50610,6 @@ end_visual_mode_keep_button(void)
     may_clear_cmdline();
 
     adjust_cursor_eol();
-    may_trigger_modechanged();
 }
 
     static void
@@ -51832,7 +51733,6 @@ nv_ctrlg(cmdarg_T *cap)
     if (VIsual_active)
     {
         VIsual_select = !VIsual_select;
-        may_trigger_modechanged();
         showmode();
     }
     else if (!checkclearop(cap->oap))
@@ -51872,7 +51772,6 @@ nv_ctrlo(cmdarg_T *cap)
     if (VIsual_active && VIsual_select)
     {
         VIsual_select = FALSE;
-        may_trigger_modechanged();
         showmode();
         restart_VIsual_select = 2;
     }
@@ -53238,7 +53137,6 @@ nv_visual(cmdarg_T *cap)
         {
             VIsual_mode = cap->cmdchar;
             showmode();
-            may_trigger_modechanged();
         }
         redraw_curbuf_later(UPD_INVERTED);
     }
@@ -53364,8 +53262,6 @@ n_start_visual_mode(int c)
         coladvance(curwin->w_virtcol);
     }
     VIsual = curwin->w_cursor;
-
-    may_trigger_modechanged();
 
     if (p_smd && msg_silent == 0)
     {
@@ -55176,7 +55072,6 @@ shift_block(oparg_T *oap, int amount)
         }
         bd.textstart = cts.cts_ptr;
         bd.start_vcol = cts.cts_vcol;
-        clear_chartabsize_arg(&cts);
 
         if (!curbuf->b_p_et)
         {
@@ -55233,7 +55128,6 @@ shift_block(oparg_T *oap, int amount)
         }
         non_white_col = cts.cts_vcol;
         non_white = cts.cts_ptr;
-        clear_chartabsize_arg(&cts);
 
         block_space_width = non_white_col - oap->start_vcol;
         shift_amount = (block_space_width < (size_t)total ? block_space_width : (size_t)total);
@@ -55260,7 +55154,6 @@ shift_block(oparg_T *oap, int amount)
         }
         verbatim_copy_width = cts.cts_vcol;
         verbatim_copy_end = cts.cts_ptr;
-        clear_chartabsize_arg(&cts);
 
         fill = destination_col - verbatim_copy_width;
 
@@ -56704,7 +56597,6 @@ block_prep(oparg_T             *oap, struct block_def    *bdp, linenr_T         
     }
     bdp->start_vcol = cts.cts_vcol;
     pstart = cts.cts_ptr;
-    clear_chartabsize_arg(&cts);
 
     bdp->start_char_vcols = incr;
     if (bdp->start_vcol < oap->start_vcol)
@@ -56760,7 +56652,6 @@ block_prep(oparg_T             *oap, struct block_def    *bdp, linenr_T         
             }
             bdp->end_vcol = cts.cts_vcol;
             pend = cts.cts_ptr;
-            clear_chartabsize_arg(&cts);
 
             if (bdp->end_vcol <= oap->end_vcol && (!is_del || oap->op_type == OP_APPEND || oap->op_type == OP_REPLACE))
             {
@@ -58847,11 +58738,6 @@ static int wc_use_keyname(char_u *varp, long *wcp);
 static void compatible_set(void);
 
     static void
-set_init_default_printencoding(void)
-{
-}
-
-    static void
 set_init_expand_env(void)
 {
     int         opt_idx;
@@ -58881,16 +58767,9 @@ set_init_expand_env(void)
 }
 
     static void
-set_init_lang_env(void)
-{
-}
-
-    static void
 set_init_1(void)
 {
     p_cp = FALSE;
-
-    set_init_default_printencoding();
 
     set_options_default(0);
 
@@ -58908,8 +58787,6 @@ set_init_1(void)
     set_init_expand_env();
 
     didset_options2();
-
-    set_init_lang_env();
 
 }
 
@@ -59112,12 +58989,6 @@ set_init_2(void)
         set_string_option_direct(NULL, idx, (char_u *)"dark", OPT_FREE, 0);
         options[idx].flags &= ~P_WAS_SET;
     }
-
-}
-
-    static void
-set_init_3(void)
-{
 
 }
 
@@ -63682,12 +63553,6 @@ mch_nodetype(char_u *name)
 }
 
     static void
-mch_early_init(void)
-{
-
-}
-
-    static void
 exit_scroll(void)
 {
     if (silent_mode)
@@ -63919,11 +63784,6 @@ mch_set_shellsize(void)
 }
 
     static void
-mch_new_shellsize(void)
-{
-}
-
-    static void
 mch_breakcheck(int force)
 {
     if ((mch_cur_tmode == TMODE_RAW || force) && RealWaitForChar(read_cmd_fd, 0L, NULL, NULL))
@@ -64087,11 +63947,6 @@ pum_visible(void)
 pum_redraw_in_same_position(void)
 {
     return FALSE;
-}
-
-    static void
-pum_may_redraw(void)
-{
 }
 
 // ==================== regexp.c ====================
@@ -71630,7 +71485,6 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
             vcol = cts.cts_vcol;
             ptr = cts.cts_ptr;
             bd.textcol = (colnr_T)(ptr - oldp);
-            clear_chartabsize_arg(&cts);
 
             shortline = (vcol < col) || (vcol == col && !*ptr) ;
 
@@ -71664,7 +71518,6 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                     spaces -= lbr_chartabsize_adv(&cts);
                     cts.cts_vcol = 0;
                 }
-                clear_chartabsize_arg(&cts);
                 if (spaces < 0)
                 {
                     spaces = 0;
@@ -73281,7 +73134,6 @@ screen_char(unsigned off, int row, int col)
     }
     else
     {
-        out_flush_check();
         out_char(ScreenLines[off]);
     }
 
@@ -73754,7 +73606,6 @@ give_up:
 
     if (starting == 0 && ++retry_count <= 3)
     {
-        may_trigger_win_scrolled_resized();
         goto retry;
     }
 }
@@ -74102,7 +73953,6 @@ windgoto(int row, int col)
                         {
                             screen_stop_highlight();
                         }
-                        out_flush_check();
                         out_char(ScreenLines[off]);
                         ++off;
                     }
@@ -80907,11 +80757,6 @@ out_flush_cursor(int     force  __attribute__((unused)) , int     clear_selectio
 }
 
     static void
-out_flush_check(void)
-{
-}
-
-    static void
 out_char(unsigned c)
 {
     if (c == '\n')
@@ -84790,7 +84635,6 @@ ui_new_shellsize(void)
 {
     if (full_screen && !exiting)
     {
-            mch_new_shellsize();
     }
 }
 
@@ -87632,11 +87476,6 @@ may_make_initial_scroll_size_snapshot(void)
     }
 }
 
-    static void
-may_trigger_win_scrolled_resized(void)
-{
-}
-
 static int min_set_ch = 1;
 
     static void
@@ -87857,7 +87696,6 @@ win_enter_ext(win_T *wp, int flags)
     }
     if (curwin_invalid == 0)
     {
-        prevwin = curwin;
         curwin->w_redr_status = true;
     }
     curwin = wp;
@@ -87912,8 +87750,6 @@ win_enter_ext(win_T *wp, int flags)
     return did_decrement;
 }
 
-static int last_win_id = LOWEST_WIN_ID - 1;
-
     static win_T *
 win_alloc(win_T *after, int hidden)
 {
@@ -87930,8 +87766,6 @@ win_alloc(win_T *after, int hidden)
         vim_free(new_wp);
         return NULL;
     }
-
-    new_wp->w_id = ++last_win_id;
 
     block_autocmds();
 
@@ -88670,7 +88504,6 @@ static void *s_vbuf = NULL;
     static int
 vim_main2(void)
 {
-    set_init_3();
 
     starting = NO_BUFFERS;
     no_wait_return = FALSE;
@@ -88849,7 +88682,6 @@ may_trigger_deferred_events(void)
 
     if (!finish_op)
     {
-        may_trigger_win_scrolled_resized();
     }
 
     recursive = false;
@@ -89270,8 +89102,6 @@ read_stdin(void)
     static void
 create_windows(mparm_T *parmp  __attribute__((unused)) )
 {
-    ++autocmd_no_enter;
-    ++autocmd_no_leave;
 
     curbuf = curwin->w_buffer;
     if (curbuf->b_ml.ml_mfp == NULL)
@@ -89285,8 +89115,6 @@ create_windows(mparm_T *parmp  __attribute__((unused)) )
     }
 
     curbuf = curwin->w_buffer;
-    --autocmd_no_enter;
-    --autocmd_no_leave;
 }
 
     static void
@@ -89350,8 +89178,6 @@ mainerr_arg_missing(char_u *str)
 main
 (int argc, char **argv)
 {
-
-    mch_early_init();
 
       memset((&(params)), (0), (sizeof(params)))  ;
     params.argc = argc;
