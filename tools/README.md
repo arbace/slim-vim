@@ -63,7 +63,7 @@ it refuses outright if any multi-line comment has code on both sides.
 
 ## The three-tier memoize
 
-`slim.mk` sequences the ten phases; these implement the memoize described in
+`slim.mk` sequences the twelve phases; these implement the memoize described in
 `CLAUDE.md` and `README.md`. None of them knows anything about the phases
 themselves.
 
@@ -73,7 +73,7 @@ themselves.
   same input never costs an agent twice.
 - **`implhash.sh <n>`** — half the cache key: the phase's program plus every
   tool, patch, table and template it names, one level of indirection deep.
-  Narrow on purpose, so editing `resolve.py` re-runs phase 5 and not all ten.
+  Narrow on purpose, so editing `resolve.py` re-runs phase 5 and not all twelve.
 - **`synth.sh <n> <build>`** — memoize an agent's *behaviour* as code: diff the
   two boundaries, write `patches/p<n>-residue.patch`, and write a
   `phase<n>.sh` that applies it if the phase had none.
@@ -90,8 +90,8 @@ themselves.
   phase still lacks a program — a `claude` that can actually authenticate.
 - **`agentphase.sh <n> <work>`** — one `claude -p` scoped to a single phase,
   handed the tree at that phase's input and forbidden everything outside it.
-  The prompt is assembled invariant-first, phase-text-last, so the ten phase
-  agents share one cached prefix instead of making ten.
+  The prompt is assembled invariant-first, phase-text-last, so the twelve phase
+  agents share one cached prefix instead of making twelve.
 - **`agentdocs.sh`** — the document update, run only when `slim-vim.c` actually
   changed. A pass that reproduced the previous one made no sentence wrong.
 - **`snapshot.sh`**, **`restore.sh`** — a boundary is a tar (the restore point,
