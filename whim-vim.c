@@ -599,11 +599,6 @@ enum { FNAME_HYP = 4 };
 enum { FNAME_REL = 16 };
 enum { FNAME_UNESC = 32 };
 
-enum { GETF_SETMARK = 0x01 };
-enum { GETF_ALT = 0x02 };
-enum { GETFILE_ERROR = 1 };
-enum { GETFILE_NOT_WRITTEN = 2 };
-enum { GETFILE_SAME_FILE = 0 };
 enum { BLN_CURBUF = 1 };
 enum { BLN_LISTED = 2 };
 enum { BLN_DUMMY = 4 };
@@ -1364,7 +1359,6 @@ enum { REGSUB_BACKSLASH = 4 };
 
 // ---------------- end regexp.h ----------------
 
-enum { EXTRA_MARKS = 10 };
 enum { JUMPLISTSIZE = 100 };
 enum { TAGSTACKSIZE = 20 };
 
@@ -1373,12 +1367,6 @@ typedef struct filemark
     pos_T       mark;
     int         fnum;
 } fmark_T;
-
-typedef struct xfilemark
-{
-    fmark_T     fmark;
-    char_u      *fname;
-} xfmark_T;
 
 typedef struct taggy
 {
@@ -3488,7 +3476,6 @@ static int ins_apply_autocmds(event_T event);
 static void do_shell(char_u *cmd, int flags);
 static int do_write(exarg_T *eap);
 static int check_overwrite(exarg_T *eap, buf_T *buf, char_u *fname, char_u *ffname, int other);
-static int getfile(int fnum, char_u *ffname_arg, char_u *sfname_arg, int setpm, linenr_T lnum, int forceit);
 static int do_ecmd(int fnum, char_u *ffname, char_u *sfname, exarg_T *eap, linenr_T newlnum, int flags, win_T *oldwin);
 static int check_secure(void);
 static int do_sub_msg(int count_only);
@@ -3725,7 +3712,6 @@ static void setpcmark(void);
 static void checkpcmark(void);
 static pos_T *getmark(int c, int changefile);
 static pos_T *getmark_buf_fnum(buf_T *buf, int c, int changefile, int *fnum);
-static void fmarks_check_names(buf_T *buf);
 static int check_mark(pos_T *pos);
 static void clrallmarks(buf_T *buf);
 static void mark_adjust(linenr_T line1, linenr_T line2, long amount, long amount_after);
@@ -4888,7 +4874,6 @@ static char e_too_many_brackets[]  =  "E76: Too many ["  ;
 static char e_too_many_file_names[]  =  "E77: Too many file names"  ;
 static char e_unknown_mark[]  =  "E78: Unknown mark"  ;
 static char e_cannot_allocate_any_buffer_exiting[]  =  "E82: Cannot allocate any buffer, exiting..."  ;
-static char e_buffer_nr_not_found[]  =  "E92: Buffer %d not found"  ;
 static char e_no_matching_buffer_for_str[]  =  "E94: No matching buffer for %s"  ;
 static char e_buffer_with_this_name_already_exists[]  =  "E95: Buffer with this name already exists"  ;
 static char e_cannot_move_range_of_lines_into_itself[]  =  "E134: Cannot move a range of lines into itself"  ;
@@ -6775,7 +6760,6 @@ buflist_new(char_u      *ffname_arg, char_u      *sfname_arg, linenr_T    lnum, 
     }
     buf_clear_file(buf);
     clrallmarks(buf);
-    fmarks_check_names(buf);
     if (!(flags & BLN_DUMMY))
     {
         bufref_T bufref;
@@ -6802,69 +6786,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     clear_string_option(&buf->b_p_qe);
     buf->b_p_fs = -1;
     buf->b_p_ul =  (-123456) ;
-}
-
-    static int
-buflist_getfile(int         n, linenr_T    lnum, int         options, int         forceit)
-{
-    buf_T       *buf;
-    pos_T       *fpos;
-    colnr_T     col;
-
-    buf = buflist_findnr(n);
-    if (buf == NULL)
-    {
-        if ((options & GETF_ALT) && n == 0)
-        {
-            emsg(_(e_no_alternate_file));
-        }
-        else
-        {
-            semsg(_(e_buffer_nr_not_found), n);
-        }
-        return FAIL;
-    }
-
-    if (buf == curbuf)
-    {
-        return OK;
-    }
-
-    if (text_or_buf_locked())
-    {
-        return FAIL;
-    }
-
-    if (lnum == 0)
-    {
-        fpos = buflist_findfpos(buf);
-        lnum = fpos->lnum;
-        col = fpos->col;
-    }
-    else
-    {
-        col = 0;
-    }
-
-    ++RedrawingDisabled;
-    int retval = FAIL;
-    if ( ((getfile(buf->b_fnum, NULL, NULL, (options & GETF_SETMARK), lnum, forceit)) <= 0) )
-    {
-        if (!p_sol && col != 0)
-        {
-            curwin->w_cursor.col = col;
-            check_cursor_col();
-            curwin->w_cursor.coladd = 0;
-            curwin->w_set_curswant = true;
-        }
-        retval = OK;
-    }
-
-    if (RedrawingDisabled > 0)
-    {
-        --RedrawingDisabled;
-    }
-    return retval;
 }
 
     static void
@@ -7029,19 +6950,6 @@ buflist_findnr(int nr)
         return (buf_T *)(hi->hi_key - ((unsigned)(curbuf->b_key - (char_u *)curbuf)));
     }
     return NULL;
-}
-
-    static char_u *
-buflist_nr2name(int         n, int         fullname, int         helptail)
-{
-    buf_T       *buf;
-
-    buf = buflist_findnr(n);
-    if (buf == NULL)
-    {
-        return NULL;
-    }
-    return home_replace_save(helptail ? buf : NULL, fullname ? buf->b_ffname : buf->b_fname);
 }
 
     static void
@@ -7310,7 +7218,6 @@ buf_name_changed(buf_T *buf)
     {
     }
     status_redraw_all();
-    fmarks_check_names(buf);
     ml_timestamp(buf);
 }
 
@@ -18866,85 +18773,6 @@ check_readonly(int *forceit, buf_T *buf)
     }
 
     return FALSE;
-}
-
-    static int
-getfile(int         fnum, char_u      *ffname_arg, char_u      *sfname_arg, int         setpm, linenr_T    lnum, int         forceit)
-{
-    char_u      *ffname = ffname_arg;
-    char_u      *sfname = sfname_arg;
-    int         other;
-    int         retval;
-    char_u      *free_me = NULL;
-
-    if (!check_can_set_curbuf_forceit(forceit))
-    {
-        return GETFILE_ERROR;
-    }
-
-    if (text_locked())
-    {
-        return GETFILE_ERROR;
-    }
-    if (curbuf_locked())
-    {
-        return GETFILE_ERROR;
-    }
-
-    if (fnum == 0)
-    {
-        fname_expand(curbuf, &ffname, &sfname);
-        other = otherfile(ffname);
-        free_me = ffname;
-    }
-    else
-    {
-        other = (fnum != curbuf->b_fnum);
-    }
-
-    if (other)
-    {
-        ++no_wait_return;
-    }
-    if (other && !forceit && curbuf->b_nwindows == 1 && curbufIsChanged())
-    {
-        {
-            --no_wait_return;
-            no_write_message();
-            retval = GETFILE_NOT_WRITTEN;
-            goto theend;
-        }
-    }
-    if (other)
-    {
-        --no_wait_return;
-    }
-    if (setpm)
-    {
-        setpcmark();
-    }
-    if (!other)
-    {
-        if (lnum != 0)
-        {
-            curwin->w_cursor.lnum = lnum;
-        }
-        check_cursor_lnum();
-        beginline(BL_SOL | BL_FIX);
-        retval = GETFILE_SAME_FILE;
-    }
-    else if (do_ecmd(fnum, ffname, sfname, NULL, lnum, (forceit ? ECMD_FORCEIT : 0), curwin) == OK)
-    {
-        retval =  (-1) ;
-    }
-    else
-    {
-        retval = GETFILE_ERROR;
-    }
-
-theend:
-    vim_free(free_me);
-    return retval;
 }
 
     static int
@@ -37489,10 +37317,6 @@ ex_mapclear(exarg_T *eap)
 
 // ==================== mark.c ====================
 
-static xfmark_T namedfm[ ('z' - 'a' + 1)  + EXTRA_MARKS];
-
-static void fname2fnum(xfmark_T *fm);
-static void fmarks_check_one(xfmark_T *fm, char_u *name, buf_T *buf);
 static char_u *mark_line(pos_T *mp, int lead_len);
 static void show_one_mark(int, char_u *, pos_T *, char_u *, int current);
 static void mark_adjust_internal(linenr_T line1, linenr_T line2, long amount, long amount_after, int adjust_folds);
@@ -37572,22 +37396,6 @@ setmark_pos(int c, pos_T *pos, int fnum)
     {
         i = c - 'a';
         buf->b_namedm[i] = *pos;
-        return OK;
-    }
-    if ( ((unsigned)(c) - 'A' < 26)  ||  ((unsigned)(c) - '0' < 10) )
-    {
-        if ( ((unsigned)(c) - '0' < 10) )
-        {
-            i = c - '0' +  ('z' - 'a' + 1) ;
-        }
-        else
-        {
-            i = c - 'A';
-        }
-        namedfm[i].fmark.mark = *pos;
-        namedfm[i].fmark.fnum = fnum;
-         vim_free(namedfm[i].fname);
-         (namedfm[i].fname) = NULL;
         return OK;
     }
     return FAIL;
@@ -37738,46 +37546,6 @@ getmark_buf_fnum(buf_T       *buf, int         c, int         changefile, int   
     {
         posp = &(buf->b_namedm[c - 'a']);
     }
-    else if ( ((unsigned)(c) - 'A' < 26)  ||  ((unsigned)(c) - '0' < 10) )
-    {
-        if ( ((unsigned)(c) - '0' < 10) )
-        {
-            c = c - '0' +  ('z' - 'a' + 1) ;
-        }
-        else
-        {
-            c -= 'A';
-        }
-        posp = &(namedfm[c].fmark.mark);
-
-        if (namedfm[c].fmark.fnum == 0)
-        {
-            fname2fnum(&namedfm[c]);
-        }
-
-        if (fnum != NULL)
-        {
-            *fnum = namedfm[c].fmark.fnum;
-        }
-        else if (namedfm[c].fmark.fnum != buf->b_fnum)
-        {
-            posp = &pos_copy;
-
-            if (namedfm[c].fmark.mark.lnum != 0 && changefile && namedfm[c].fmark.fnum)
-            {
-                if (buflist_getfile(namedfm[c].fmark.fnum, (linenr_T)1, GETF_SETMARK, FALSE) == OK)
-                {
-                    curwin->w_cursor = namedfm[c].fmark.mark;
-                    return (pos_T *)-1;
-                }
-                pos_copy.lnum = -1;
-            }
-            else
-            {
-                pos_copy.lnum = 0;
-            }
-        }
-    }
 
     return posp;
 }
@@ -37824,47 +37592,6 @@ getnextmark(pos_T       *startpos, int         dir, int         begin_line)
     return result;
 }
 
-    static void
-fname2fnum(xfmark_T *fm)
-{
-}
-
-    static void
-fmarks_check_names(buf_T *buf)
-{
-    char_u      *name;
-    int         i;
-
-    if (buf->b_ffname == NULL)
-    {
-        return;
-    }
-
-    name = home_replace_save(buf, buf->b_ffname);
-    if (name == NULL)
-    {
-        return;
-    }
-
-    for (i = 0; i <  ('z' - 'a' + 1)  + EXTRA_MARKS; ++i)
-    {
-        fmarks_check_one(&namedfm[i], name, buf);
-    }
-
-    vim_free(name);
-}
-
-    static void
-fmarks_check_one(xfmark_T *fm, char_u *name, buf_T *buf)
-{
-    if (fm->fmark.fnum == 0 && fm->fname != NULL &&  vim_fnamecmp((char_u *)(name), (char_u *)(fm->fname))  == 0)
-    {
-        fm->fmark.fnum = buf->b_fnum;
-         vim_free(fm->fname);
-         (fm->fname) = NULL;
-    }
-}
-
     static int
 check_mark(pos_T *pos)
 {
@@ -37892,16 +37619,7 @@ check_mark(pos_T *pos)
     static void
 clrallmarks(buf_T *buf)
 {
-    static int          i = -1;
-
-    if (i == -1)
-    {
-        for (i = 0; i <  ('z' - 'a' + 1)  + 1; i++)
-        {
-            namedfm[i].fmark.mark.lnum = 0;
-            namedfm[i].fname = NULL;
-        }
-    }
+    int         i;
 
     for (i = 0; i <  ('z' - 'a' + 1) ; i++)
     {
@@ -37915,16 +37633,6 @@ clrallmarks(buf_T *buf)
     buf->b_last_insert.lnum = 0;
     buf->b_last_change.lnum = 0;
     buf->b_changelistlen = 0;
-}
-
-    static char_u *
-fm_getname(fmark_T *fmark, int lead_len)
-{
-    if (fmark->fnum == curbuf->b_fnum)
-    {
-        return mark_line(&(fmark->mark), lead_len);
-    }
-    return buflist_nr2name(fmark->fnum, FALSE, TRUE);
 }
 
     static char_u *
@@ -37961,7 +37669,6 @@ ex_marks(exarg_T *eap)
 {
     char_u      *arg = eap->arg;
     int         i;
-    char_u      *name;
     pos_T *posp;
     pos_T *startp;
     pos_T *endp;
@@ -37975,25 +37682,6 @@ ex_marks(exarg_T *eap)
     for (i = 0; i <  ('z' - 'a' + 1) ; ++i)
     {
         show_one_mark(i + 'a', arg, &curbuf->b_namedm[i], NULL, TRUE);
-    }
-    for (i = 0; i <  ('z' - 'a' + 1)  + EXTRA_MARKS; ++i)
-    {
-        if (namedfm[i].fmark.fnum != 0)
-        {
-            name = fm_getname(&namedfm[i].fmark, 15);
-        }
-        else
-        {
-            name = namedfm[i].fname;
-        }
-        if (name != NULL)
-        {
-            show_one_mark(i >=  ('z' - 'a' + 1)  ? i -  ('z' - 'a' + 1)  + '0' : i + 'A', arg, &namedfm[i].fmark.mark, name, namedfm[i].fmark.fnum == curbuf->b_fnum);
-            if (namedfm[i].fmark.fnum != 0)
-            {
-                vim_free(name);
-            }
-        }
     }
     show_one_mark('"', arg, &curbuf->b_last_cursor, NULL, TRUE);
     show_one_mark('[', arg, &curbuf->b_op_start, NULL, TRUE);
@@ -38087,9 +37775,6 @@ ex_delmarks(exarg_T *eap)
     int from;
     int to;
     int         i;
-    int         lower;
-    int         digit;
-    int         n;
 
     if (*eap->arg == NUL && eap->forceit)
     {
@@ -38107,15 +37792,13 @@ ex_delmarks(exarg_T *eap)
     {
         for (p = eap->arg; *p != NUL; ++p)
         {
-            lower =  ((unsigned)(*p) - 'a' < 26) ;
-            digit =  ((unsigned)(*p) - '0' < 10) ;
-            if (lower || digit ||  ((unsigned)(*p) - 'A' < 26) )
+            if ( ((unsigned)(*p) - 'a' < 26) )
             {
                 if (p[1] == '-')
                 {
                     from = *p;
                     to = p[2];
-                    if (!(lower ?  ((unsigned)(p[2]) - 'a' < 26)  : (digit ?  ((unsigned)(p[2]) - '0' < 10)  :  ((unsigned)(p[2]) - 'A' < 26) )) || to < from)
+                    if (! ((unsigned)(p[2]) - 'a' < 26)  || to < from)
                     {
                         semsg(_(e_invalid_argument_str), p);
                         return;
@@ -38129,25 +37812,7 @@ ex_delmarks(exarg_T *eap)
 
                 for (i = from; i <= to; ++i)
                 {
-                    if (lower)
-                    {
-                        curbuf->b_namedm[i - 'a'].lnum = 0;
-                    }
-                    else
-                    {
-                        if (digit)
-                        {
-                            n = i - '0' +  ('z' - 'a' + 1) ;
-                        }
-                        else
-                        {
-                            n = i - 'A';
-                        }
-                        namedfm[n].fmark.mark.lnum = 0;
-                        namedfm[n].fmark.fnum = 0;
-                         vim_free(namedfm[n].fname);
-                         (namedfm[n].fname) = NULL;
-                    }
+                    curbuf->b_namedm[i - 'a'].lnum = 0;
                 }
             }
             else
@@ -38254,17 +37919,6 @@ mark_adjust_internal(linenr_T    line1, linenr_T    line2, long        amount, l
         for (i = 0; i <  ('z' - 'a' + 1) ; i++)
         {
              {   lp = &(curbuf->b_namedm[i].lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = 0;            else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
-            if (namedfm[i].fmark.fnum == fnum)
-            {
-                 {     lp = &(namedfm[i].fmark.mark.lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = line1;        else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
-            }
-        }
-        for (i =  ('z' - 'a' + 1) ; i <  ('z' - 'a' + 1)  + EXTRA_MARKS; i++)
-        {
-            if (namedfm[i].fmark.fnum == fnum)
-            {
-                 {     lp = &(namedfm[i].fmark.mark.lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = line1;        else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
-            }
         }
 
          {   lp = &(curbuf->b_last_insert.lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = 0;            else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
@@ -38364,17 +38018,6 @@ mark_col_adjust(linenr_T    lnum, colnr_T     mincol, long        lnum_amount, l
     for (i = 0; i <  ('z' - 'a' + 1) ; i++)
     {
          {    posp = &(curbuf->b_namedm[i]);      if (posp->lnum == lnum && posp->col >= mincol)  {           posp->lnum += lnum_amount;      if (col_amount < 0 && posp->col <= (colnr_T)-col_amount)            posp->col = 0;      else if (posp->col < spaces_removed)                posp->col = col_amount + spaces_removed;            else                posp->col += col_amount;        }     } ;
-        if (namedfm[i].fmark.fnum == fnum)
-        {
-             {    posp = &(namedfm[i].fmark.mark);      if (posp->lnum == lnum && posp->col >= mincol)  {           posp->lnum += lnum_amount;      if (col_amount < 0 && posp->col <= (colnr_T)-col_amount)            posp->col = 0;      else if (posp->col < spaces_removed)                posp->col = col_amount + spaces_removed;            else                posp->col += col_amount;        }     } ;
-        }
-    }
-    for (i =  ('z' - 'a' + 1) ; i <  ('z' - 'a' + 1)  + EXTRA_MARKS; i++)
-    {
-        if (namedfm[i].fmark.fnum == fnum)
-        {
-             {    posp = &(namedfm[i].fmark.mark);      if (posp->lnum == lnum && posp->col >= mincol)  {           posp->lnum += lnum_amount;      if (col_amount < 0 && posp->col <= (colnr_T)-col_amount)            posp->col = 0;      else if (posp->col < spaces_removed)                posp->col = col_amount + spaces_removed;            else                posp->col += col_amount;        }     } ;
-        }
     }
 
      {    posp = &(curbuf->b_last_insert);      if (posp->lnum == lnum && posp->col >= mincol)  {           posp->lnum += lnum_amount;      if (col_amount < 0 && posp->col <= (colnr_T)-col_amount)            posp->col = 0;      else if (posp->col < spaces_removed)                posp->col = col_amount + spaces_removed;            else                posp->col += col_amount;        }     } ;
