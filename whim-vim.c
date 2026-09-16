@@ -1009,7 +1009,6 @@ enum { CPO_INSEND = 'H' };
 enum { CPO_INTMOD = 'i' };
 enum { CPO_INDENT = 'I' };
 enum { CPO_JOINSP = 'j' };
-enum { CPO_ENDOFSENT = 'J' };
 enum { CPO_KEYCODE = 'k' };
 enum { CPO_KOFFSET = 'K' };
 enum { CPO_LITERAL = 'l' };
@@ -1041,7 +1040,6 @@ enum { CPO_MINUS = '-' };
 enum { CPO_SPECI = '<' };
 enum { CPO_REGAPPEND = '>' };
 enum { CPO_HASH = '#' };
-enum { CPO_PARA = '{' };
 enum { CPO_PRESERVE = '&' };
 enum { CPO_SUBPERCENT = '/' };
 enum { CPO_BACKSL = '\\' };
@@ -4352,7 +4350,6 @@ static pos_T *findmatch(oparg_T *oap, int initc);
 static pos_T *findmatchlimit(oparg_T *oap, int initc, int flags, int maxtravel);
 static void showmatch(int c);
 static int current_search(long count, int forward);
-static int linewhite(linenr_T lnum);
 
 // ---------------- end search.pro ----------------
 // ---------------- begin strings.pro ----------------
@@ -4440,17 +4437,12 @@ static void term_set_sync_output(int flags);
 
 // ---------------- end term.pro ----------------
 // ---------------- begin textobject.pro ----------------
-static int findsent(int dir, long count);
-static int findpar(int *pincl, int dir, long count, int what, int both);
-static int startPS(linenr_T lnum, int para, int both);
 static int fwd_word(long count, int bigword, int eol);
 static int bck_word(long count, int bigword, int stop);
 static int end_word(long count, int bigword, int stop, int empty);
 static int bckend_word(long count, int bigword, int eol);
 static int current_word(oparg_T *oap, long count, int include, int bigword);
-static int current_sent(oparg_T *oap, long count, int include);
 static int current_block(oparg_T *oap, long count, int include, int what, int other);
-static int current_par(oparg_T *oap, long count, int include, int type);
 static int current_quote(oparg_T *oap, long count, int include, int quotechar);
 
 // ---------------- end textobject.pro ----------------
@@ -39482,37 +39474,6 @@ getmark_buf_fnum(buf_T       *buf, int         c, int         changefile, int   
     {
         posp = &(buf->b_op_end);
     }
-    else if (c == '{' || c == '}')
-    {
-        pos_T   pos;
-        oparg_T oa;
-        int     slcb = listcmd_busy;
-
-        pos = curwin->w_cursor;
-        listcmd_busy = TRUE;
-        if (findpar(&oa.inclusive, c == '}' ? FORWARD :  (-1) , 1L, NUL, FALSE))
-        {
-            pos_copy = curwin->w_cursor;
-            posp = &pos_copy;
-        }
-        curwin->w_cursor = pos;
-        listcmd_busy = slcb;
-    }
-    else if (c == '(' || c == ')')
-    {
-        pos_T   pos;
-        int     slcb = listcmd_busy;
-
-        pos = curwin->w_cursor;
-        listcmd_busy = TRUE;
-        if (findsent(c == ')' ? FORWARD :  (-1) , 1L))
-        {
-            pos_copy = curwin->w_cursor;
-            posp = &pos_copy;
-        }
-        curwin->w_cursor = pos;
-        listcmd_busy = slcb;
-    }
     else if (c == '<' || c == '>')
     {
         startp = &buf->b_visual.vi_start;
@@ -53316,9 +53277,7 @@ static int      normal_search(cmdarg_T *cap, int dir, char_u *pat, size_t patlen
 static void     nv_csearch(cmdarg_T *cap);
 static void     nv_brackets(cmdarg_T *cap);
 static void     nv_percent(cmdarg_T *cap);
-static void     nv_brace(cmdarg_T *cap);
 static void     nv_mark(cmdarg_T *cap);
-static void     nv_findpar(cmdarg_T *cap);
 static void     nv_undo(cmdarg_T *cap);
 static void     nv_kundo(cmdarg_T *cap);
 static void     nv_Replace(cmdarg_T *cap);
@@ -53427,8 +53386,8 @@ static const struct nv_cmd
      {'%', nv_percent, 0, 0} ,
      {'&', nv_optrans, 0, 0} ,
      {'\'', nv_gomark,  (0x04|NV_NCH) , TRUE} ,
-     {'(', nv_brace, 0,  (-1) } ,
-     {')', nv_brace, 0, FORWARD} ,
+     {'(', nv_error, 0,  (-1) } ,
+     {')', nv_error, 0, FORWARD} ,
      {'*', nv_ident, 0, 0} ,
      {'+', nv_down, 0, TRUE} ,
      {',', nv_csearch, 0, TRUE} ,
@@ -53510,9 +53469,9 @@ static const struct nv_cmd
      {'x', nv_abbrev, NV_KEEPREG, 0} ,
      {'y', nv_operator, 0, 0} ,
      {'z', nv_zet,  (0x04|NV_NCH) , 0} ,
-     {'{', nv_findpar, 0,  (-1) } ,
+     {'{', nv_error, 0,  (-1) } ,
      {'|', nv_pipe, 0, 0} ,
-     {'}', nv_findpar, 0, FORWARD} ,
+     {'}', nv_error, 0, FORWARD} ,
      {'~', nv_tilde, 0, 0} ,
 
      {POUND, nv_ident, 0, 0} ,
@@ -56224,43 +56183,18 @@ nv_bracket_block(cmdarg_T *cap, pos_T *old_pos)
 {
     pos_T       new_pos = {0, 0, 0};
     pos_T       *pos = NULL;
-    pos_T       prev_pos;
     long        n;
     int         findc;
-    int         c;
 
-    if (cap->nchar == '*')
-    {
-        cap->nchar = '/';
-    }
-    prev_pos.lnum = 0;
-    if (cap->nchar == 'm' || cap->nchar == 'M')
-    {
-        if (cap->cmdchar == '[')
-        {
-            findc = '{';
-        }
-        else
-        {
-            findc = '}';
-        }
-        n = 9999;
-    }
-    else
-    {
-        findc = cap->nchar;
-        n = cap->count1;
-    }
+    findc = cap->nchar;
+    n = cap->count1;
     for ( ; n > 0; --n)
     {
         if ((pos = findmatchlimit(cap->oap, findc, (cap->cmdchar == '[') ? FM_BACKWARD : FM_FORWARD, 0)) == NULL)
         {
             if (new_pos.lnum == 0)
             {
-                if (cap->nchar != 'm' && cap->nchar != 'M')
-                {
-                    clearopbeep(cap->oap);
-                }
+                clearopbeep(cap->oap);
             }
             else
             {
@@ -56268,76 +56202,11 @@ nv_bracket_block(cmdarg_T *cap, pos_T *old_pos)
             }
             break;
         }
-        prev_pos = new_pos;
         curwin->w_cursor = *pos;
         new_pos = *pos;
     }
     curwin->w_cursor = *old_pos;
 
-    if (cap->nchar == 'm' || cap->nchar == 'M')
-    {
-        int         norm = ((findc == '{') == (cap->nchar == 'm'));
-
-        n = cap->count1;
-        if (prev_pos.lnum != 0)
-        {
-            pos = &prev_pos;
-            curwin->w_cursor = prev_pos;
-            if (norm)
-            {
-                --n;
-            }
-        }
-        else
-        {
-            pos = NULL;
-        }
-        while (n > 0)
-        {
-            for (;;)
-            {
-                if ((findc == '{' ? dec_cursor() : inc_cursor()) < 0)
-                {
-                    if (pos == NULL)
-                    {
-                        clearopbeep(cap->oap);
-                    }
-                    n = 0;
-                    break;
-                }
-                c = gchar_cursor();
-                if (c == '{' || c == '}')
-                {
-                    if ((c == findc && norm) || (n == 1 && !norm))
-                    {
-                        new_pos = curwin->w_cursor;
-                        pos = &new_pos;
-                        n = 0;
-                    }
-                    else if (new_pos.lnum == 0)
-                    {
-                        new_pos = curwin->w_cursor;
-                        pos = &new_pos;
-                    }
-                    else if ((pos = findmatchlimit(cap->oap, findc, (cap->cmdchar == '[') ? FM_BACKWARD : FM_FORWARD, 0)) == NULL)
-                    {
-                        n = 0;
-                    }
-                    else
-                    {
-                        curwin->w_cursor = *pos;
-                    }
-                    break;
-                }
-            }
-            --n;
-        }
-        curwin->w_cursor = *old_pos;
-        if (pos == NULL && new_pos.lnum != 0)
-        {
-            clearopbeep(cap->oap);
-        }
-    }
     if (pos != NULL)
     {
         setpcmark();
@@ -56352,7 +56221,6 @@ nv_brackets(cmdarg_T *cap)
     pos_T       prev_pos;
     pos_T       *pos = NULL;
     pos_T       old_pos;
-    int         flag;
     long        n;
 
     cap->oap->motion_type = MCHAR;
@@ -56366,34 +56234,9 @@ nv_brackets(cmdarg_T *cap)
     }
     else
     {
-    if (  (cap->cmdchar == '[' && vim_strchr((char_u *)"{(*/#mM", cap->nchar) != NULL) || (cap->cmdchar == ']' && vim_strchr((char_u *)"})*/#mM", cap->nchar) != NULL))
+    if (  (cap->cmdchar == '[' && vim_strchr((char_u *)"{(", cap->nchar) != NULL) || (cap->cmdchar == ']' && vim_strchr((char_u *)"})", cap->nchar) != NULL))
     {
         nv_bracket_block(cap, &old_pos);
-    }
-
-    else if (cap->nchar == '[' || cap->nchar == ']')
-    {
-        if (cap->nchar == cap->cmdchar)
-        {
-            flag = '{';
-        }
-        else
-        {
-            flag = '}';
-        }
-
-        curwin->w_set_curswant = true;
-        if (!findpar(&cap->oap->inclusive, cap->arg, cap->count1, flag, (cap->oap->op_type != OP_NOP && cap->arg == FORWARD && flag == '{')))
-        {
-            clearopbeep(cap->oap);
-        }
-        else
-        {
-            if (cap->oap->op_type == OP_NOP)
-            {
-                beginline(BL_WHITE | BL_FIX);
-            }
-        }
     }
 
     else if (cap->nchar == 'p' || cap->nchar == 'P')
@@ -56489,24 +56332,6 @@ nv_percent(cmdarg_T *cap)
 }
 
     static void
-nv_brace(cmdarg_T *cap)
-{
-    cap->oap->motion_type = MCHAR;
-    cap->oap->use_reg_one = TRUE;
-    cap->oap->inclusive = FALSE;
-    curwin->w_set_curswant = true;
-
-    if (findsent(cap->arg, cap->count1) == FAIL)
-    {
-        clearopbeep(cap->oap);
-        return;
-    }
-
-    adjust_cursor(cap->oap);
-    curwin->w_cursor.coladd = 0;
-}
-
-    static void
 nv_mark(cmdarg_T *cap)
 {
     if (checkclearop(cap->oap))
@@ -56518,22 +56343,6 @@ nv_mark(cmdarg_T *cap)
     {
         clearopbeep(cap->oap);
     }
-}
-
-    static void
-nv_findpar(cmdarg_T *cap)
-{
-    cap->oap->motion_type = MCHAR;
-    cap->oap->inclusive = FALSE;
-    cap->oap->use_reg_one = TRUE;
-    curwin->w_set_curswant = true;
-    if (!findpar(&cap->oap->inclusive, cap->arg, cap->count1, NUL, FALSE))
-    {
-        clearopbeep(cap->oap);
-        return;
-    }
-
-    curwin->w_cursor.coladd = 0;
 }
 
     static void
@@ -58516,12 +58325,6 @@ nv_object(cmdarg_T    *cap)
         case '<':
         case '>':
                 flag = current_block(cap->oap, cap->count1, include, '<', '>');
-                break;
-        case 'p':
-                flag = current_par(cap->oap, cap->count1, include, 'p');
-                break;
-        case 's':
-                flag = current_sent(cap->oap, cap->count1, include);
                 break;
         case '"':
         case '\'':
@@ -81913,15 +81716,6 @@ current_search(long        count, int         forward)
     return OK;
 }
 
-    static int
-linewhite(linenr_T lnum)
-{
-    char_u  *p;
-
-    p = skipwhite(ml_get(lnum));
-    return (*p == NUL);
-}
-
     static void
 cmdline_search_stat(int         dirc, pos_T       *pos, pos_T       *cursor_pos, int         show_top_bot_msg, char_u      *msgbuf, size_t      msgbuflen, int         recompute, int         maxcount, long        timeout)
 {
@@ -87902,237 +87696,6 @@ comp_textwidth(void)
 
 static int skip_chars(int, int);
 
-    static int
-findsent(int dir, long count)
-{
-    pos_T pos;
-    pos_T tpos;
-    pos_T       prev_pos;
-    int         c;
-    int         (*func)(pos_T *);
-    int         startlnum;
-    int         noskip = FALSE;
-    int         cpo_J;
-    int         found_dot;
-
-    pos = curwin->w_cursor;
-    if (dir == FORWARD)
-    {
-        func = incl;
-    }
-    else
-    {
-        func = decl;
-    }
-
-    while (count--)
-    {
-        prev_pos = pos;
-
-        if (gchar_pos(&pos) == NUL)
-        {
-            do
-            {
-                if ((*func)(&pos) == -1)
-                {
-                    break;
-                }
-            }
-            while (gchar_pos(&pos) == NUL)
-                ;
-            if (dir == FORWARD)
-            {
-                goto found;
-            }
-        }
-        else if (dir == FORWARD && pos.col == 0 && startPS(pos.lnum, NUL, FALSE))
-        {
-            if (pos.lnum == curbuf->b_ml.ml_line_count)
-            {
-                return FAIL;
-            }
-            ++pos.lnum;
-            goto found;
-        }
-        else if (dir ==  (-1) )
-        {
-            decl(&pos);
-        }
-
-        found_dot = FALSE;
-        while (c = gchar_pos(&pos),  ((c) == ' ' || (c) == '\t')  || vim_strchr((char_u *)".!?)]\"'", c) != NULL)
-        {
-            tpos = pos;
-            if (decl(&tpos) == -1 || ( (*ml_get(tpos.lnum) == NUL)  && dir == FORWARD))
-            {
-                break;
-            }
-
-            if (found_dot)
-            {
-                break;
-            }
-            if (vim_strchr((char_u *) ".!?", c) != NULL)
-            {
-                found_dot = TRUE;
-            }
-
-            if (vim_strchr((char_u *) ")]\"'", c) != NULL && vim_strchr((char_u *) ".!?)]\"'", gchar_pos(&tpos)) == NULL)
-            {
-                break;
-            }
-
-            decl(&pos);
-        }
-
-        startlnum = pos.lnum;
-        cpo_J = vim_strchr(p_cpo, CPO_ENDOFSENT) != NULL;
-
-        for (;;)
-        {
-            c = gchar_pos(&pos);
-            if (c == NUL || (pos.col == 0 && startPS(pos.lnum, NUL, FALSE)))
-            {
-                if (dir ==  (-1)  && pos.lnum != startlnum)
-                {
-                    ++pos.lnum;
-                }
-                break;
-            }
-            if (c == '.' || c == '!' || c == '?')
-            {
-                tpos = pos;
-                do
-                {
-                    if ((c = inc(&tpos)) == -1)
-                    {
-                        break;
-                    }
-                }
-                while (vim_strchr((char_u *)")]\"'", c = gchar_pos(&tpos)) != NULL)
-                    ;
-                if (c == -1  || (!cpo_J && (c == ' ' || c == '\t')) || c == NUL || (cpo_J && (c == ' ' && inc(&tpos) >= 0 && gchar_pos(&tpos) == ' ')))
-                {
-                    pos = tpos;
-                    if (gchar_pos(&pos) == NUL)
-                    {
-                        inc(&pos);
-                    }
-                    break;
-                }
-            }
-            if ((*func)(&pos) == -1)
-            {
-                if (count)
-                {
-                    return FAIL;
-                }
-                noskip = TRUE;
-                break;
-            }
-        }
-found:
-        while (!noskip && ((c = gchar_pos(&pos)) == ' ' || c == '\t'))
-        {
-            if (incl(&pos) == -1)
-            {
-                break;
-            }
-        }
-
-        if ( (((prev_pos).lnum == (pos).lnum) && ((prev_pos).col == (pos).col) && ((prev_pos).coladd == (pos).coladd)) )
-        {
-            if ((*func)(&pos) == -1)
-            {
-                if (count)
-                {
-                    return FAIL;
-                }
-                break;
-            }
-            ++count;
-        }
-    }
-
-    setpcmark();
-    curwin->w_cursor = pos;
-    return OK;
-}
-
-    static int
-findpar(int         *pincl, int         dir, long        count, int         what, int         both)
-{
-    linenr_T    curr;
-    int         did_skip;
-    int         first;
-    int         posix = (vim_strchr(p_cpo, CPO_PARA) != NULL);
-
-    curr = curwin->w_cursor.lnum;
-
-    while (count--)
-    {
-        did_skip = FALSE;
-        for (first = TRUE; ; first = FALSE)
-        {
-            if (*ml_get(curr) != NUL)
-            {
-                did_skip = TRUE;
-            }
-
-            if (!first && did_skip && (startPS(curr, what, both) || (posix && what == NUL && *ml_get(curr) == '{')))
-            {
-                break;
-            }
-
-            if ((curr += dir) < 1 || curr > curbuf->b_ml.ml_line_count)
-            {
-                if (count)
-                {
-                    return FALSE;
-                }
-                curr -= dir;
-                break;
-            }
-        }
-    }
-    setpcmark();
-    if (both && *ml_get(curr) == '}')
-    {
-        ++curr;
-    }
-    curwin->w_cursor.lnum = curr;
-    if (curr == curbuf->b_ml.ml_line_count && what != '}' && dir == FORWARD)
-    {
-        char_u *line = ml_get(curr);
-
-        if ((curwin->w_cursor.col = ml_get_len(curr)) != 0)
-        {
-            --curwin->w_cursor.col;
-            curwin->w_cursor.col -=
-                             utf_head_off(line, line + curwin->w_cursor.col);
-            *pincl = TRUE;
-        }
-    }
-    else
-    {
-        curwin->w_cursor.col = 0;
-    }
-    return TRUE;
-}
-
-    static int
-startPS(linenr_T lnum, int para, int both)
-{
-    char_u      *s;
-
-    s = ml_get(lnum);
-    if (*s == para || *s == '\f' || (both && *s == '}'))
-    {
-        return TRUE;
-    }
-    return FALSE;
-}
-
 static int      cls_bigword;
 
     static int
@@ -88395,40 +87958,6 @@ back_in_line(void)
     }
 }
 
-    static void
-find_first_blank(pos_T *posp)
-{
-    int     c;
-
-    while (decl(posp) != -1)
-    {
-        c = gchar_pos(posp);
-        if (! ((c) == ' ' || (c) == '\t') )
-        {
-            incl(posp);
-            break;
-        }
-    }
-}
-
-    static void
-findsent_forward(long    count, int     at_start_sent)
-{
-    while (count--)
-    {
-        findsent(FORWARD, 1L);
-        if (at_start_sent)
-        {
-            find_first_blank(&curwin->w_cursor);
-        }
-        if (count == 0 || at_start_sent)
-        {
-            decl(&curwin->w_cursor);
-        }
-        at_start_sent = !at_start_sent;
-    }
-}
-
     static int
 current_word(oparg_T     *oap, long        count, int         include, int         bigword)
 {
@@ -88582,191 +88111,6 @@ current_word(oparg_T     *oap, long        count, int         include, int      
         oap->inclusive = inclusive;
     }
 
-    return OK;
-}
-
-    static int
-current_sent(oparg_T *oap, long count, int include)
-{
-    pos_T       start_pos;
-    pos_T       pos;
-    int         start_blank;
-    int         c;
-    int         at_start_sent;
-    long        ncount;
-
-    start_pos = curwin->w_cursor;
-    pos = start_pos;
-    findsent(FORWARD, 1L);
-
-    if (VIsual_active && ! (((start_pos).lnum == (VIsual).lnum) && ((start_pos).col == (VIsual).col) && ((start_pos).coladd == (VIsual).coladd)) )
-    {
-extend:
-        if ( (((start_pos).lnum != (VIsual).lnum)               ? (start_pos).lnum < (VIsual).lnum                   : (start_pos).col != (VIsual).col                        ? (start_pos).col < (VIsual).col                     : (start_pos).coladd < (VIsual).coladd) )
-        {
-            at_start_sent = TRUE;
-            decl(&pos);
-            while ( (((pos).lnum != (curwin->w_cursor).lnum)               ? (pos).lnum < (curwin->w_cursor).lnum                   : (pos).col != (curwin->w_cursor).col                        ? (pos).col < (curwin->w_cursor).col                     : (pos).coladd < (curwin->w_cursor).coladd) )
-            {
-                c = gchar_pos(&pos);
-                if (! ((c) == ' ' || (c) == '\t') )
-                {
-                    at_start_sent = FALSE;
-                    break;
-                }
-                incl(&pos);
-            }
-            if (!at_start_sent)
-            {
-                findsent( (-1) , 1L);
-                if ( (((curwin->w_cursor).lnum == (start_pos).lnum) && ((curwin->w_cursor).col == (start_pos).col) && ((curwin->w_cursor).coladd == (start_pos).coladd)) )
-                {
-                    at_start_sent = TRUE;
-                }
-                else
-                {
-                    findsent(FORWARD, 1L);
-                }
-            }
-            if (include)
-            {
-                count *= 2;
-            }
-            while (count--)
-            {
-                if (at_start_sent)
-                {
-                    find_first_blank(&curwin->w_cursor);
-                }
-                c = gchar_cursor();
-                if (!at_start_sent || (!include && ! ((c) == ' ' || (c) == '\t') ))
-                {
-                    findsent( (-1) , 1L);
-                }
-                at_start_sent = !at_start_sent;
-            }
-        }
-        else
-        {
-            incl(&pos);
-            at_start_sent = TRUE;
-            if (! (((pos).lnum == (curwin->w_cursor).lnum) && ((pos).col == (curwin->w_cursor).col) && ((pos).coladd == (curwin->w_cursor).coladd)) )
-            {
-                at_start_sent = FALSE;
-                while ( (((pos).lnum != (curwin->w_cursor).lnum)               ? (pos).lnum < (curwin->w_cursor).lnum                   : (pos).col != (curwin->w_cursor).col                        ? (pos).col < (curwin->w_cursor).col                     : (pos).coladd < (curwin->w_cursor).coladd) )
-                {
-                    c = gchar_pos(&pos);
-                    if (! ((c) == ' ' || (c) == '\t') )
-                    {
-                        at_start_sent = TRUE;
-                        break;
-                    }
-                    incl(&pos);
-                }
-                if (at_start_sent)
-                {
-                    findsent( (-1) , 1L);
-                }
-                else
-                {
-                    curwin->w_cursor = start_pos;
-                }
-            }
-
-            if (include)
-            {
-                count *= 2;
-            }
-            findsent_forward(count, at_start_sent);
-            if (*p_sel == 'e')
-            {
-                ++curwin->w_cursor.col;
-            }
-        }
-        return OK;
-    }
-
-    while (c = gchar_pos(&pos),  ((c) == ' ' || (c) == '\t') )
-    {
-        incl(&pos);
-    }
-    if ( (((pos).lnum == (curwin->w_cursor).lnum) && ((pos).col == (curwin->w_cursor).col) && ((pos).coladd == (curwin->w_cursor).coladd)) )
-    {
-        start_blank = TRUE;
-        find_first_blank(&start_pos);
-    }
-    else
-    {
-        start_blank = FALSE;
-        findsent( (-1) , 1L);
-        start_pos = curwin->w_cursor;
-    }
-    if (include)
-    {
-        ncount = count * 2;
-    }
-    else
-    {
-        ncount = count;
-        if (start_blank)
-        {
-            --ncount;
-        }
-    }
-    if (ncount > 0)
-    {
-        findsent_forward(ncount, TRUE);
-    }
-    else
-    {
-        decl(&curwin->w_cursor);
-    }
-
-    if (include)
-    {
-        if (start_blank)
-        {
-            find_first_blank(&curwin->w_cursor);
-            c = gchar_pos(&curwin->w_cursor);
-            if ( ((c) == ' ' || (c) == '\t') )
-            {
-                decl(&curwin->w_cursor);
-            }
-        }
-        else if (c = gchar_cursor(), ! ((c) == ' ' || (c) == '\t') )
-        {
-            find_first_blank(&start_pos);
-        }
-    }
-
-    if (VIsual_active)
-    {
-        if ( (((start_pos).lnum == (curwin->w_cursor).lnum) && ((start_pos).col == (curwin->w_cursor).col) && ((start_pos).coladd == (curwin->w_cursor).coladd)) )
-        {
-            goto extend;
-        }
-        if (*p_sel == 'e')
-        {
-            ++curwin->w_cursor.col;
-        }
-        VIsual = start_pos;
-        VIsual_mode = 'v';
-        redraw_cmdline = TRUE;
-        redraw_curbuf_later(UPD_INVERTED);
-    }
-    else
-    {
-        if (incl(&curwin->w_cursor) == -1)
-        {
-            oap->inclusive = TRUE;
-        }
-        else
-        {
-            oap->inclusive = FALSE;
-        }
-        oap->start = start_pos;
-        oap->motion_type = MCHAR;
-    }
     return OK;
 }
 
@@ -88926,186 +88270,6 @@ current_block(oparg_T     *oap, long        count, int         include, int     
             curwin->w_cursor = start_pos;
         }
     }
-
-    return OK;
-}
-
-    static int
-current_par(oparg_T     *oap, long        count, int         include, int         type)
-{
-    linenr_T    start_lnum;
-    linenr_T    end_lnum;
-    int         white_in_front;
-    int         dir;
-    int         start_is_white;
-    int         prev_start_is_white;
-    int         retval = OK;
-    int         do_white = FALSE;
-    int         t;
-    int         i;
-
-    if (type == 'S')
-    {
-        return FAIL;
-    }
-
-    start_lnum = curwin->w_cursor.lnum;
-
-    if (VIsual_active && start_lnum != VIsual.lnum)
-    {
-extend:
-        if (start_lnum < VIsual.lnum)
-        {
-            dir =  (-1) ;
-        }
-        else
-        {
-            dir = FORWARD;
-        }
-        for (i = count; --i >= 0; )
-        {
-            if (start_lnum == (dir ==  (-1)  ? 1 : curbuf->b_ml.ml_line_count))
-            {
-                retval = FAIL;
-                break;
-            }
-
-            prev_start_is_white = -1;
-            for (t = 0; t < 2; ++t)
-            {
-                start_lnum += dir;
-                start_is_white = linewhite(start_lnum);
-                if (prev_start_is_white == start_is_white)
-                {
-                    start_lnum -= dir;
-                    break;
-                }
-                for (;;)
-                {
-                    if (start_lnum == (dir ==  (-1)  ? 1 : curbuf->b_ml.ml_line_count))
-                    {
-                        break;
-                    }
-                    if (start_is_white != linewhite(start_lnum + dir) || (!start_is_white && startPS(start_lnum + (dir > 0 ? 1 : 0), 0, 0)))
-                    {
-                        break;
-                    }
-                    start_lnum += dir;
-                }
-                if (!include)
-                {
-                    break;
-                }
-                if (start_lnum == (dir ==  (-1)  ? 1 : curbuf->b_ml.ml_line_count))
-                {
-                    break;
-                }
-                prev_start_is_white = start_is_white;
-            }
-        }
-        curwin->w_cursor.lnum = start_lnum;
-        curwin->w_cursor.col = 0;
-        return retval;
-    }
-
-    white_in_front = linewhite(start_lnum);
-    while (start_lnum > 1)
-    {
-        if (white_in_front)
-        {
-            if (!linewhite(start_lnum - 1))
-            {
-                break;
-            }
-        }
-        else
-        {
-            if (linewhite(start_lnum - 1) || startPS(start_lnum, 0, 0))
-            {
-                break;
-            }
-        }
-        --start_lnum;
-    }
-
-    end_lnum = start_lnum;
-    while (end_lnum <= curbuf->b_ml.ml_line_count && linewhite(end_lnum))
-    {
-        ++end_lnum;
-    }
-
-    --end_lnum;
-    i = count;
-    if (!include && white_in_front)
-    {
-        --i;
-    }
-    while (i--)
-    {
-        if (end_lnum == curbuf->b_ml.ml_line_count)
-        {
-            return FAIL;
-        }
-
-        if (!include)
-        {
-            do_white = linewhite(end_lnum + 1);
-        }
-
-        if (include || !do_white)
-        {
-            ++end_lnum;
-            while (end_lnum < curbuf->b_ml.ml_line_count && !linewhite(end_lnum + 1) && !startPS(end_lnum + 1, 0, 0))
-            {
-                ++end_lnum;
-            }
-        }
-
-        if (i == 0 && white_in_front && include)
-        {
-            break;
-        }
-
-        if (include || do_white)
-        {
-            while (end_lnum < curbuf->b_ml.ml_line_count && linewhite(end_lnum + 1))
-            {
-                ++end_lnum;
-            }
-        }
-    }
-
-    if (!white_in_front && !linewhite(end_lnum) && include)
-    {
-        while (start_lnum > 1 && linewhite(start_lnum - 1))
-        {
-            --start_lnum;
-        }
-    }
-
-    if (VIsual_active)
-    {
-        if (VIsual_mode == 'V' && start_lnum == curwin->w_cursor.lnum)
-        {
-            goto extend;
-        }
-        if (VIsual.lnum != start_lnum)
-        {
-            VIsual.lnum = start_lnum;
-            VIsual.col = 0;
-        }
-        VIsual_mode = 'V';
-        redraw_curbuf_later(UPD_INVERTED);
-        showmode();
-    }
-    else
-    {
-        oap->start.lnum = start_lnum;
-        oap->start.col = 0;
-        oap->motion_type = MLINE;
-    }
-    curwin->w_cursor.lnum = end_lnum;
-    curwin->w_cursor.col = 0;
 
     return OK;
 }
