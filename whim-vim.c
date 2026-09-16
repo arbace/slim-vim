@@ -712,137 +712,6 @@ enum { OPT_NO_REDRAW = 0x80 };
 enum { NO_SCREEN = 2 };
 enum { NO_BUFFERS = 1 };
 
-enum auto_event
-{
-    EVENT_BUFADD = 0,
-    EVENT_BUFDELETE = 2,
-    EVENT_BUFENTER,
-    EVENT_BUFFILEPOST,
-    EVENT_BUFFILEPRE,
-    EVENT_BUFHIDDEN,
-    EVENT_BUFLEAVE,
-    EVENT_BUFNEW,
-    EVENT_BUFNEWFILE,
-    EVENT_BUFREADCMD = 11,
-    EVENT_BUFREADPOST,
-    EVENT_BUFREADPRE,
-    EVENT_BUFUNLOAD,
-    EVENT_BUFWINENTER,
-    EVENT_BUFWINLEAVE,
-    EVENT_BUFWIPEOUT,
-    EVENT_BUFWRITECMD = 19,
-    EVENT_BUFWRITEPOST,
-    EVENT_BUFWRITEPRE,
-    EVENT_CMDLINECHANGED,
-    EVENT_CMDLINEENTER,
-    EVENT_CMDLINELEAVEPRE,
-    EVENT_CMDLINELEAVE,
-    EVENT_CMDUNDEFINED,
-    EVENT_CMDWINENTER,
-    EVENT_CMDWINLEAVE,
-    EVENT_COLORSCHEME,
-    EVENT_COLORSCHEMEPRE,
-    EVENT_COMPLETECHANGED,
-    EVENT_COMPLETEDONE,
-    EVENT_COMPLETEDONEPRE,
-    EVENT_CURSORHOLD,
-    EVENT_CURSORHOLDI,
-    EVENT_CURSORMOVED,
-    EVENT_CURSORMOVEDC,
-    EVENT_CURSORMOVEDI,
-    EVENT_DIFFUPDATED,
-    EVENT_DIRCHANGED,
-    EVENT_DIRCHANGEDPRE,
-    EVENT_ENCODINGCHANGED,
-    EVENT_EXITPRE,
-    EVENT_FILEAPPENDCMD,
-    EVENT_FILEAPPENDPOST,
-    EVENT_FILEAPPENDPRE,
-    EVENT_FILECHANGEDRO,
-    EVENT_FILECHANGEDSHELL,
-    EVENT_FILECHANGEDSHELLPOST,
-    EVENT_FILEREADCMD = 51,
-    EVENT_FILEREADPOST,
-    EVENT_FILEREADPRE,
-    EVENT_FILETYPE,
-    EVENT_FILEWRITECMD,
-    EVENT_FILEWRITEPOST,
-    EVENT_FILEWRITEPRE,
-    EVENT_FILTERREADPOST,
-    EVENT_FILTERREADPRE,
-    EVENT_FILTERWRITEPOST,
-    EVENT_FILTERWRITEPRE,
-    EVENT_FOCUSGAINED,
-    EVENT_FOCUSLOST,
-    EVENT_FUNCUNDEFINED,
-    EVENT_GUIENTER,
-    EVENT_GUIFAILED,
-    EVENT_INSERTCHANGE,
-    EVENT_INSERTCHARPRE,
-    EVENT_INSERTENTER,
-    EVENT_INSERTLEAVE,
-    EVENT_INSERTLEAVEPRE,
-    EVENT_KEYINPUTPRE,
-    EVENT_MENUPOPUP,
-    EVENT_MODECHANGED,
-    EVENT_OPTIONSET,
-    EVENT_QUICKFIXCMDPOST,
-    EVENT_QUICKFIXCMDPRE,
-    EVENT_QUITPRE,
-    EVENT_REMOTEREPLY,
-    EVENT_SAFESTATE,
-    EVENT_SAFESTATEAGAIN,
-    EVENT_SESSIONLOADPOST,
-    EVENT_SESSIONLOADPRE,
-    EVENT_SESSIONWRITEPOST,
-    EVENT_SHELLCMDPOST,
-    EVENT_SHELLFILTERPOST,
-    EVENT_SIGUSR1,
-    EVENT_SOURCECMD,
-    EVENT_SOURCEPOST,
-    EVENT_SOURCEPRE,
-    EVENT_SPELLFILEMISSING,
-    EVENT_STDINREADPOST,
-    EVENT_STDINREADPRE,
-    EVENT_SWAPEXISTS,
-    EVENT_SYNTAX,
-    EVENT_TABCLOSED,
-    EVENT_TABCLOSEDPRE,
-    EVENT_TABENTER,
-    EVENT_TABLEAVE,
-    EVENT_TABNEW,
-    EVENT_TERMCHANGED,
-    EVENT_TERMINALOPEN,
-    EVENT_TERMINALWINOPEN,
-    EVENT_TERMRESPONSE,
-    EVENT_TERMRESPONSEALL,
-    EVENT_TEXTCHANGED,
-    EVENT_TEXTCHANGEDI,
-    EVENT_TEXTCHANGEDP,
-    EVENT_TEXTCHANGEDT,
-    EVENT_TEXTPUTPOST,
-    EVENT_TEXTPUTPRE,
-    EVENT_TEXTYANKPOST,
-    EVENT_USER,
-    EVENT_VIMENTER,
-    EVENT_VIMLEAVE,
-    EVENT_VIMLEAVEPRE,
-    EVENT_VIMRESIZED,
-    EVENT_VIMRESUME,
-    EVENT_VIMSUSPEND,
-    EVENT_WINCLOSED,
-    EVENT_WINENTER,
-    EVENT_WINLEAVE,
-    EVENT_WINNEW,
-    EVENT_WINNEWPRE,
-    EVENT_WINRESIZED,
-    EVENT_WINSCROLLED,
-
-    NUM_EVENTS,
-};
-
-typedef enum auto_event event_T;
-
 typedef enum
 {
     HLF_8 = 0
@@ -1931,8 +1800,6 @@ struct ufunc_S
 {
     int     dummy;
 };
-typedef struct AutoPatCmd_S AutoPatCmd_T;
-
 typedef enum {
     ETYPE_TOP,
     ETYPE_ARGS = 6,
@@ -1944,7 +1811,6 @@ typedef struct {
     char_u    *es_name;
     etype_T   es_type;
     union {
-        AutoPatCmd_T *aucmd;
     } es_info;
 } estack_T;
 
@@ -2347,15 +2213,6 @@ typedef struct cmdarg_S
 
 enum { CA_COMMAND_BUSY = 1 };
 enum { CA_NO_ADJ_OP_END = 2 };
-
-typedef struct
-{
-    int         save_curwin_id;
-    int         new_curwin_id;
-    int         save_prevwin_id;
-    bufref_T    new_curbuf;
-    int         save_VIsual_active;
-} aco_save_T;
 
 enum { MAX_ARG_CMDS = 10 };
 
@@ -3331,11 +3188,8 @@ static int ga_grow_inner(garray_T *gap, int n);
 // ---------------- begin arglist.pro ----------------
 // ---------------- end arglist.pro ----------------
 // ---------------- begin autocmd.pro ----------------
-static void aucmd_prepbuf(aco_save_T *aco, buf_T *buf);
-static void aucmd_restbuf(aco_save_T *aco);
 static void block_autocmds(void);
 static void unblock_autocmds(void);
-static char_u *getnextac(int c, void *cookie, int indent, getline_opt_T options);
 // ---------------- end autocmd.pro ----------------
 // ---------------- begin buffer.pro ----------------
 static void set_bufref(bufref_T *bufref, buf_T *buf);
@@ -3467,7 +3321,6 @@ static void replace_join(int off);
 static int bracketed_paste(paste_mode_T mode, int drop, garray_T *gap);
 static int ins_eol(int c);
 static colnr_T get_nolist_virtcol(void);
-static int ins_apply_autocmds(event_T event);
 
 // ---------------- end edit.pro ----------------
 // ---------------- begin eval.pro ----------------
@@ -3566,7 +3419,6 @@ static char_u *shorten_fname(char_u *full_path, char_u *dir_name);
 static void shorten_fnames(int force);
 static int check_timestamps(int focus);
 static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
-static int match_file_pat(char_u *pattern, regprog_T **prog, char_u *fname, char_u *sfname, char_u *tail, int allow_dirs);
 static char_u *file_pat_to_reg_pat(char_u *pat, char_u *pat_end, char *allow_dirs, int no_bslash);
 static long read_eintr(int fd, void *buf, size_t bufsize);
 static long write_eintr(int fd, void *buf, size_t bufsize);
@@ -4377,7 +4229,6 @@ static int check_can_set_curbuf_disabled(void);
 static int check_can_set_curbuf_forceit(int forceit);
 static void get_wincmd_addr_type(char_u *arg, exarg_T *eap);
 static int win_valid(win_T *win);
-static win_T *win_find_by_id(int id);
 static int win_valid_any_tab(win_T *win);
 static void curwin_init(void);
 static void snapshot_windows_scroll_size(void);
@@ -5356,469 +5207,12 @@ ga_append(garray_T *gap, int c)
 
 // ==================== autocmd.c ====================
 
-typedef struct AutoCmd
-{
-    char_u          *cmd;
-    char            once;
-    char            nested;
-    char            last;
-    sctx_T          script_ctx;
-    struct AutoCmd  *next;
-} AutoCmd;
-
-typedef struct AutoPat
-{
-    struct AutoPat  *next;
-    char_u          *pat;
-    regprog_T       *reg_prog;
-    AutoCmd         *cmds;
-    int             group;
-    int             patlen;
-    int             buflocal_nr;
-    char            allow_dirs;
-    char            last;
-} AutoPat;
-
-static keyvalue_T event_tab[NUM_EVENTS] = {
-     {(-EVENT_BUFADD), {((char_u *)"BufAdd"),  (sizeof("BufAdd" "") - 1) }} ,
-     {(-EVENT_BUFADD), {((char_u *)"BufCreate"),  (sizeof("BufCreate" "") - 1) }} ,
-     {(-EVENT_BUFDELETE), {((char_u *)"BufDelete"),  (sizeof("BufDelete" "") - 1) }} ,
-     {(-EVENT_BUFENTER), {((char_u *)"BufEnter"),  (sizeof("BufEnter" "") - 1) }} ,
-     {(-EVENT_BUFFILEPOST), {((char_u *)"BufFilePost"),  (sizeof("BufFilePost" "") - 1) }} ,
-     {(-EVENT_BUFFILEPRE), {((char_u *)"BufFilePre"),  (sizeof("BufFilePre" "") - 1) }} ,
-     {(-EVENT_BUFHIDDEN), {((char_u *)"BufHidden"),  (sizeof("BufHidden" "") - 1) }} ,
-     {(-EVENT_BUFLEAVE), {((char_u *)"BufLeave"),  (sizeof("BufLeave" "") - 1) }} ,
-     {(-EVENT_BUFNEW), {((char_u *)"BufNew"),  (sizeof("BufNew" "") - 1) }} ,
-     {(-EVENT_BUFNEWFILE), {((char_u *)"BufNewFile"),  (sizeof("BufNewFile" "") - 1) }} ,
-     {(-EVENT_BUFREADPOST), {((char_u *)"BufRead"),  (sizeof("BufRead" "") - 1) }} ,
-     {(-EVENT_BUFREADCMD), {((char_u *)"BufReadCmd"),  (sizeof("BufReadCmd" "") - 1) }} ,
-     {(-EVENT_BUFREADPOST), {((char_u *)"BufReadPost"),  (sizeof("BufReadPost" "") - 1) }} ,
-     {(-EVENT_BUFREADPRE), {((char_u *)"BufReadPre"),  (sizeof("BufReadPre" "") - 1) }} ,
-     {(-EVENT_BUFUNLOAD), {((char_u *)"BufUnload"),  (sizeof("BufUnload" "") - 1) }} ,
-     {(-EVENT_BUFWINENTER), {((char_u *)"BufWinEnter"),  (sizeof("BufWinEnter" "") - 1) }} ,
-     {(-EVENT_BUFWINLEAVE), {((char_u *)"BufWinLeave"),  (sizeof("BufWinLeave" "") - 1) }} ,
-     {(-EVENT_BUFWIPEOUT), {((char_u *)"BufWipeout"),  (sizeof("BufWipeout" "") - 1) }} ,
-     {(-EVENT_BUFWRITEPRE), {((char_u *)"BufWrite"),  (sizeof("BufWrite" "") - 1) }} ,
-     {(-EVENT_BUFWRITECMD), {((char_u *)"BufWriteCmd"),  (sizeof("BufWriteCmd" "") - 1) }} ,
-     {(-EVENT_BUFWRITEPOST), {((char_u *)"BufWritePost"),  (sizeof("BufWritePost" "") - 1) }} ,
-     {(-EVENT_BUFWRITEPRE), {((char_u *)"BufWritePre"),  (sizeof("BufWritePre" "") - 1) }} ,
-     {(EVENT_CMDLINECHANGED), {((char_u *)"CmdlineChanged"),  (sizeof("CmdlineChanged" "") - 1) }} ,
-     {(EVENT_CMDLINEENTER), {((char_u *)"CmdlineEnter"),  (sizeof("CmdlineEnter" "") - 1) }} ,
-     {(EVENT_CMDLINELEAVE), {((char_u *)"CmdlineLeave"),  (sizeof("CmdlineLeave" "") - 1) }} ,
-     {(EVENT_CMDLINELEAVEPRE), {((char_u *)"CmdlineLeavePre"),  (sizeof("CmdlineLeavePre" "") - 1) }} ,
-     {(EVENT_CMDUNDEFINED), {((char_u *)"CmdUndefined"),  (sizeof("CmdUndefined" "") - 1) }} ,
-     {(EVENT_CMDWINENTER), {((char_u *)"CmdwinEnter"),  (sizeof("CmdwinEnter" "") - 1) }} ,
-     {(EVENT_CMDWINLEAVE), {((char_u *)"CmdwinLeave"),  (sizeof("CmdwinLeave" "") - 1) }} ,
-     {(EVENT_COLORSCHEME), {((char_u *)"ColorScheme"),  (sizeof("ColorScheme" "") - 1) }} ,
-     {(EVENT_COLORSCHEMEPRE), {((char_u *)"ColorSchemePre"),  (sizeof("ColorSchemePre" "") - 1) }} ,
-     {(EVENT_COMPLETECHANGED), {((char_u *)"CompleteChanged"),  (sizeof("CompleteChanged" "") - 1) }} ,
-     {(EVENT_COMPLETEDONE), {((char_u *)"CompleteDone"),  (sizeof("CompleteDone" "") - 1) }} ,
-     {(EVENT_COMPLETEDONEPRE), {((char_u *)"CompleteDonePre"),  (sizeof("CompleteDonePre" "") - 1) }} ,
-     {(-EVENT_CURSORHOLD), {((char_u *)"CursorHold"),  (sizeof("CursorHold" "") - 1) }} ,
-     {(-EVENT_CURSORHOLDI), {((char_u *)"CursorHoldI"),  (sizeof("CursorHoldI" "") - 1) }} ,
-     {(-EVENT_CURSORMOVED), {((char_u *)"CursorMoved"),  (sizeof("CursorMoved" "") - 1) }} ,
-     {(-EVENT_CURSORMOVEDC), {((char_u *)"CursorMovedC"),  (sizeof("CursorMovedC" "") - 1) }} ,
-     {(-EVENT_CURSORMOVEDI), {((char_u *)"CursorMovedI"),  (sizeof("CursorMovedI" "") - 1) }} ,
-     {(EVENT_DIFFUPDATED), {((char_u *)"DiffUpdated"),  (sizeof("DiffUpdated" "") - 1) }} ,
-     {(EVENT_DIRCHANGED), {((char_u *)"DirChanged"),  (sizeof("DirChanged" "") - 1) }} ,
-     {(EVENT_DIRCHANGEDPRE), {((char_u *)"DirChangedPre"),  (sizeof("DirChangedPre" "") - 1) }} ,
-     {(EVENT_ENCODINGCHANGED), {((char_u *)"EncodingChanged"),  (sizeof("EncodingChanged" "") - 1) }} ,
-     {(EVENT_EXITPRE), {((char_u *)"ExitPre"),  (sizeof("ExitPre" "") - 1) }} ,
-     {(-EVENT_FILEAPPENDCMD), {((char_u *)"FileAppendCmd"),  (sizeof("FileAppendCmd" "") - 1) }} ,
-     {(-EVENT_FILEAPPENDPOST), {((char_u *)"FileAppendPost"),  (sizeof("FileAppendPost" "") - 1) }} ,
-     {(-EVENT_FILEAPPENDPRE), {((char_u *)"FileAppendPre"),  (sizeof("FileAppendPre" "") - 1) }} ,
-     {(-EVENT_FILECHANGEDRO), {((char_u *)"FileChangedRO"),  (sizeof("FileChangedRO" "") - 1) }} ,
-     {(-EVENT_FILECHANGEDSHELL), {((char_u *)"FileChangedShell"),  (sizeof("FileChangedShell" "") - 1) }} ,
-     {(-EVENT_FILECHANGEDSHELLPOST), {((char_u *)"FileChangedShellPost"),  (sizeof("FileChangedShellPost" "") - 1) }} ,
-     {(EVENT_ENCODINGCHANGED), {((char_u *)"FileEncoding"),  (sizeof("FileEncoding" "") - 1) }} ,
-     {(-EVENT_FILEREADCMD), {((char_u *)"FileReadCmd"),  (sizeof("FileReadCmd" "") - 1) }} ,
-     {(-EVENT_FILEREADPOST), {((char_u *)"FileReadPost"),  (sizeof("FileReadPost" "") - 1) }} ,
-     {(-EVENT_FILEREADPRE), {((char_u *)"FileReadPre"),  (sizeof("FileReadPre" "") - 1) }} ,
-     {(-EVENT_FILETYPE), {((char_u *)"FileType"),  (sizeof("FileType" "") - 1) }} ,
-     {(-EVENT_FILEWRITECMD), {((char_u *)"FileWriteCmd"),  (sizeof("FileWriteCmd" "") - 1) }} ,
-     {(-EVENT_FILEWRITEPOST), {((char_u *)"FileWritePost"),  (sizeof("FileWritePost" "") - 1) }} ,
-     {(-EVENT_FILEWRITEPRE), {((char_u *)"FileWritePre"),  (sizeof("FileWritePre" "") - 1) }} ,
-     {(-EVENT_FILTERREADPOST), {((char_u *)"FilterReadPost"),  (sizeof("FilterReadPost" "") - 1) }} ,
-     {(-EVENT_FILTERREADPRE), {((char_u *)"FilterReadPre"),  (sizeof("FilterReadPre" "") - 1) }} ,
-     {(-EVENT_FILTERWRITEPOST), {((char_u *)"FilterWritePost"),  (sizeof("FilterWritePost" "") - 1) }} ,
-     {(-EVENT_FILTERWRITEPRE), {((char_u *)"FilterWritePre"),  (sizeof("FilterWritePre" "") - 1) }} ,
-     {(EVENT_FOCUSGAINED), {((char_u *)"FocusGained"),  (sizeof("FocusGained" "") - 1) }} ,
-     {(EVENT_FOCUSLOST), {((char_u *)"FocusLost"),  (sizeof("FocusLost" "") - 1) }} ,
-     {(EVENT_FUNCUNDEFINED), {((char_u *)"FuncUndefined"),  (sizeof("FuncUndefined" "") - 1) }} ,
-     {(EVENT_GUIENTER), {((char_u *)"GUIEnter"),  (sizeof("GUIEnter" "") - 1) }} ,
-     {(EVENT_GUIFAILED), {((char_u *)"GUIFailed"),  (sizeof("GUIFailed" "") - 1) }} ,
-     {(-EVENT_INSERTCHANGE), {((char_u *)"InsertChange"),  (sizeof("InsertChange" "") - 1) }} ,
-     {(-EVENT_INSERTCHARPRE), {((char_u *)"InsertCharPre"),  (sizeof("InsertCharPre" "") - 1) }} ,
-     {(-EVENT_INSERTENTER), {((char_u *)"InsertEnter"),  (sizeof("InsertEnter" "") - 1) }} ,
-     {(-EVENT_INSERTLEAVE), {((char_u *)"InsertLeave"),  (sizeof("InsertLeave" "") - 1) }} ,
-     {(-EVENT_INSERTLEAVEPRE), {((char_u *)"InsertLeavePre"),  (sizeof("InsertLeavePre" "") - 1) }} ,
-     {(EVENT_KEYINPUTPRE), {((char_u *)"KeyInputPre"),  (sizeof("KeyInputPre" "") - 1) }} ,
-     {(EVENT_MENUPOPUP), {((char_u *)"MenuPopup"),  (sizeof("MenuPopup" "") - 1) }} ,
-     {(EVENT_MODECHANGED), {((char_u *)"ModeChanged"),  (sizeof("ModeChanged" "") - 1) }} ,
-     {(EVENT_OPTIONSET), {((char_u *)"OptionSet"),  (sizeof("OptionSet" "") - 1) }} ,
-     {(EVENT_QUICKFIXCMDPOST), {((char_u *)"QuickFixCmdPost"),  (sizeof("QuickFixCmdPost" "") - 1) }} ,
-     {(EVENT_QUICKFIXCMDPRE), {((char_u *)"QuickFixCmdPre"),  (sizeof("QuickFixCmdPre" "") - 1) }} ,
-     {(EVENT_QUITPRE), {((char_u *)"QuitPre"),  (sizeof("QuitPre" "") - 1) }} ,
-     {(EVENT_REMOTEREPLY), {((char_u *)"RemoteReply"),  (sizeof("RemoteReply" "") - 1) }} ,
-     {(EVENT_SAFESTATE), {((char_u *)"SafeState"),  (sizeof("SafeState" "") - 1) }} ,
-     {(EVENT_SAFESTATEAGAIN), {((char_u *)"SafeStateAgain"),  (sizeof("SafeStateAgain" "") - 1) }} ,
-     {(EVENT_SESSIONLOADPOST), {((char_u *)"SessionLoadPost"),  (sizeof("SessionLoadPost" "") - 1) }} ,
-     {(EVENT_SESSIONLOADPRE), {((char_u *)"SessionLoadPre"),  (sizeof("SessionLoadPre" "") - 1) }} ,
-     {(EVENT_SESSIONWRITEPOST), {((char_u *)"SessionWritePost"),  (sizeof("SessionWritePost" "") - 1) }} ,
-     {(EVENT_SHELLCMDPOST), {((char_u *)"ShellCmdPost"),  (sizeof("ShellCmdPost" "") - 1) }} ,
-     {(-EVENT_SHELLFILTERPOST), {((char_u *)"ShellFilterPost"),  (sizeof("ShellFilterPost" "") - 1) }} ,
-     {(EVENT_SIGUSR1), {((char_u *)"SigUSR1"),  (sizeof("SigUSR1" "") - 1) }} ,
-     {(EVENT_SOURCECMD), {((char_u *)"SourceCmd"),  (sizeof("SourceCmd" "") - 1) }} ,
-     {(EVENT_SOURCEPOST), {((char_u *)"SourcePost"),  (sizeof("SourcePost" "") - 1) }} ,
-     {(EVENT_SOURCEPRE), {((char_u *)"SourcePre"),  (sizeof("SourcePre" "") - 1) }} ,
-     {(EVENT_SPELLFILEMISSING), {((char_u *)"SpellFileMissing"),  (sizeof("SpellFileMissing" "") - 1) }} ,
-     {(EVENT_STDINREADPOST), {((char_u *)"StdinReadPost"),  (sizeof("StdinReadPost" "") - 1) }} ,
-     {(EVENT_STDINREADPRE), {((char_u *)"StdinReadPre"),  (sizeof("StdinReadPre" "") - 1) }} ,
-     {(EVENT_SWAPEXISTS), {((char_u *)"SwapExists"),  (sizeof("SwapExists" "") - 1) }} ,
-     {(EVENT_SYNTAX), {((char_u *)"Syntax"),  (sizeof("Syntax" "") - 1) }} ,
-     {(EVENT_TABCLOSED), {((char_u *)"TabClosed"),  (sizeof("TabClosed" "") - 1) }} ,
-     {(EVENT_TABCLOSEDPRE), {((char_u *)"TabClosedPre"),  (sizeof("TabClosedPre" "") - 1) }} ,
-     {(EVENT_TABENTER), {((char_u *)"TabEnter"),  (sizeof("TabEnter" "") - 1) }} ,
-     {(EVENT_TABLEAVE), {((char_u *)"TabLeave"),  (sizeof("TabLeave" "") - 1) }} ,
-     {(EVENT_TABNEW), {((char_u *)"TabNew"),  (sizeof("TabNew" "") - 1) }} ,
-     {(EVENT_TERMCHANGED), {((char_u *)"TermChanged"),  (sizeof("TermChanged" "") - 1) }} ,
-     {(EVENT_TERMINALOPEN), {((char_u *)"TerminalOpen"),  (sizeof("TerminalOpen" "") - 1) }} ,
-     {(EVENT_TERMINALWINOPEN), {((char_u *)"TerminalWinOpen"),  (sizeof("TerminalWinOpen" "") - 1) }} ,
-     {(EVENT_TERMRESPONSE), {((char_u *)"TermResponse"),  (sizeof("TermResponse" "") - 1) }} ,
-     {(EVENT_TERMRESPONSEALL), {((char_u *)"TermResponseAll"),  (sizeof("TermResponseAll" "") - 1) }} ,
-     {(-EVENT_TEXTCHANGED), {((char_u *)"TextChanged"),  (sizeof("TextChanged" "") - 1) }} ,
-     {(-EVENT_TEXTCHANGEDI), {((char_u *)"TextChangedI"),  (sizeof("TextChangedI" "") - 1) }} ,
-     {(-EVENT_TEXTCHANGEDP), {((char_u *)"TextChangedP"),  (sizeof("TextChangedP" "") - 1) }} ,
-     {(-EVENT_TEXTCHANGEDT), {((char_u *)"TextChangedT"),  (sizeof("TextChangedT" "") - 1) }} ,
-     {(-EVENT_TEXTPUTPOST), {((char_u *)"TextPutPost"),  (sizeof("TextPutPost" "") - 1) }} ,
-     {(-EVENT_TEXTPUTPRE), {((char_u *)"TextPutPre"),  (sizeof("TextPutPre" "") - 1) }} ,
-     {(-EVENT_TEXTYANKPOST), {((char_u *)"TextYankPost"),  (sizeof("TextYankPost" "") - 1) }} ,
-     {(EVENT_USER), {((char_u *)"User"),  (sizeof("User" "") - 1) }} ,
-     {(EVENT_VIMENTER), {((char_u *)"VimEnter"),  (sizeof("VimEnter" "") - 1) }} ,
-     {(EVENT_VIMLEAVE), {((char_u *)"VimLeave"),  (sizeof("VimLeave" "") - 1) }} ,
-     {(EVENT_VIMLEAVEPRE), {((char_u *)"VimLeavePre"),  (sizeof("VimLeavePre" "") - 1) }} ,
-     {(EVENT_VIMRESIZED), {((char_u *)"VimResized"),  (sizeof("VimResized" "") - 1) }} ,
-     {(EVENT_VIMRESUME), {((char_u *)"VimResume"),  (sizeof("VimResume" "") - 1) }} ,
-     {(EVENT_VIMSUSPEND), {((char_u *)"VimSuspend"),  (sizeof("VimSuspend" "") - 1) }} ,
-     {(-EVENT_WINCLOSED), {((char_u *)"WinClosed"),  (sizeof("WinClosed" "") - 1) }} ,
-     {(-EVENT_WINENTER), {((char_u *)"WinEnter"),  (sizeof("WinEnter" "") - 1) }} ,
-     {(-EVENT_WINLEAVE), {((char_u *)"WinLeave"),  (sizeof("WinLeave" "") - 1) }} ,
-     {(EVENT_WINNEW), {((char_u *)"WinNew"),  (sizeof("WinNew" "") - 1) }} ,
-     {(EVENT_WINNEWPRE), {((char_u *)"WinNewPre"),  (sizeof("WinNewPre" "") - 1) }} ,
-     {(-EVENT_WINRESIZED), {((char_u *)"WinResized"),  (sizeof("WinResized" "") - 1) }} ,
-     {(-EVENT_WINSCROLLED), {((char_u *)"WinScrolled"),  (sizeof("WinScrolled" "") - 1) }} ,
-};
-
-static AutoPat *first_autopat[NUM_EVENTS] = { NULL };
-static AutoPat *last_autopat[NUM_EVENTS] = { NULL };
-
-struct AutoPatCmd_S
-{
-    AutoPat     *curpat;
-    AutoCmd     *nextcmd;
-    int         group;
-    char_u      *fname;
-    char_u      *sfname;
-    char_u      *tail;
-    event_T     event;
-    sctx_T      script_ctx;
-    int         arg_bufnr;
-    AutoPatCmd_T *next;
-};
-
-static AutoPatCmd_T *active_apc_list = NULL;
-
-static int au_need_clean = FALSE;
-
-static string_T *event_nr2name(event_T event);
-static int apply_autocmds_group(event_T event, char_u *fname, char_u *fname_io, int force, int group, buf_T *buf, exarg_T *eap);
-static void auto_next_pat(AutoPatCmd_T *apc, int stop_at_last);
-
 static int      autocmd_blocked = 0;
-
-    static void
-au_remove_pat(AutoPat *ap)
-{
-     vim_free(ap->pat);
-     (ap->pat) = NULL;
-    ap->buflocal_nr = -1;
-    au_need_clean = TRUE;
-}
-
-static void au_del_cmd(AutoCmd *ac)
-{
-     vim_free(ac->cmd);
-     (ac->cmd) = NULL;
-    au_need_clean = TRUE;
-}
-
-    static void
-au_cleanup(void)
-{
-    AutoPat *ap;
-    AutoPat **prev_ap;
-    AutoCmd *ac;
-    AutoCmd **prev_ac;
-    event_T     event;
-
-    if (autocmd_busy || !au_need_clean)
-    {
-        return;
-    }
-
-    for (event = (event_T)0; (int)event < NUM_EVENTS; event = (event_T)((int)event + 1))
-    {
-        prev_ap = &(first_autopat[(int)event]);
-        for (ap = *prev_ap; ap != NULL; ap = *prev_ap)
-        {
-            int has_cmd = FALSE;
-
-            prev_ac = &(ap->cmds);
-            for (ac = *prev_ac; ac != NULL; ac = *prev_ac)
-            {
-                if (ap->pat == NULL || ac->cmd == NULL)
-                {
-                    *prev_ac = ac->next;
-                    vim_free(ac->cmd);
-                    vim_free(ac);
-                }
-                else
-                {
-                    has_cmd = TRUE;
-                    prev_ac = &(ac->next);
-                }
-            }
-
-            if (ap->pat != NULL && !has_cmd)
-            {
-                au_remove_pat(ap);
-            }
-
-            if (ap->pat == NULL)
-            {
-                if (ap->next == NULL)
-                {
-                    if (prev_ap == &(first_autopat[(int)event]))
-                    {
-                        last_autopat[(int)event] = NULL;
-                    }
-                    else
-                    {
-                        last_autopat[(int)event] = (AutoPat *)prev_ap;
-                    }
-                }
-                *prev_ap = ap->next;
-                vim_regfree(ap->reg_prog);
-                vim_free(ap);
-            }
-            else
-            {
-                prev_ap = &(ap->next);
-            }
-        }
-    }
-
-    au_need_clean = FALSE;
-}
-
-    static void
-aubuflocal_remove(buf_T *buf)
-{
-    AutoPat         *ap;
-    event_T         event;
-    AutoPatCmd_T    *apc;
-
-    for (apc = active_apc_list; apc; apc = apc->next)
-    {
-        if (buf->b_fnum == apc->arg_bufnr)
-        {
-            apc->arg_bufnr = 0;
-        }
-    }
-
-    for (event = (event_T)0; (int)event < NUM_EVENTS; event = (event_T)((int)event + 1))
-    {
-         for ((ap) = first_autopat[(int)(event)]; (ap) != NULL; (ap) = (ap)->next) 
-         {
-            if (ap->buflocal_nr == buf->b_fnum)
-            {
-                au_remove_pat(ap);
-                if (p_verbose >= 6)
-                {
-                    string_T    *event_name;
-
-                    event_name = event_nr2name(event);
-                    smsg(_("auto-removing autocommand: %s <buffer=%d>"), event_name->string, buf->b_fnum);
-                }
-            }
-         }
-    }
-    au_cleanup();
-}
-
-    static string_T *
-event_nr2name(event_T event)
-{
-    int     i;
-    enum {CACHE_SIZE = 12};
-    static int cache_tab[CACHE_SIZE];
-    static int cache_last_index = -1;
-    static string_T unknown =  {(char_u *)("Unknown"),  (sizeof("Unknown" "") - 1) } ;
-
-    if (cache_last_index < 0)
-    {
-        for (i = 0; i < CACHE_SIZE; ++i)
-        {
-            cache_tab[i] = -1;
-        }
-        cache_last_index = CACHE_SIZE - 1;
-    }
-
-    for (i = cache_last_index; cache_tab[i] >= 0; )
-    {
-        if ((event_T)abs(event_tab[cache_tab[i]].key) == event)
-        {
-            return &event_tab[cache_tab[i]].value;
-        }
-
-        if (i == 0)
-        {
-            i = CACHE_SIZE - 1;
-        }
-        else
-        {
-            --i;
-        }
-
-        if (i == cache_last_index)
-        {
-            break;
-        }
-    }
-
-    for (i = 0; i < NUM_EVENTS; ++i)
-    {
-        if ((event_T)abs(event_tab[i].key) == event)
-        {
-            if (cache_last_index == CACHE_SIZE - 1)
-            {
-                cache_last_index = 0;
-            }
-            else
-            {
-                ++cache_last_index;
-            }
-            cache_tab[cache_last_index] = i;
-            return &event_tab[i].value;
-        }
-    }
-
-    return &unknown;
-}
-
-    static void
-aucmd_prepbuf(aco_save_T  *aco, buf_T       *buf)
-{
-    win_T       *win;
-    int         same_buffer = buf == curbuf;
-
-    if (same_buffer)
-    {
-        win = curwin;
-    }
-    else
-    {
-        win = (curwin->w_buffer == buf) ? curwin : NULL;
-    }
-
-    if (win == NULL)
-    {
-        return;
-    }
-
-    aco->save_curwin_id = curwin->w_id;
-    aco->save_prevwin_id = prevwin == NULL ? 0 : prevwin->w_id;
-
-    curwin = win;
-
-    curbuf = buf;
-    aco->new_curwin_id = curwin->w_id;
-    set_bufref(&aco->new_curbuf, curbuf);
-
-    aco->save_VIsual_active = VIsual_active;
-    if (!same_buffer)
-    {
-        VIsual_active = FALSE;
-    }
-}
-
-    static void
-aucmd_restbuf(aco_save_T  *aco)
-{
-    win_T   *save_curwin;
-
-    save_curwin = win_find_by_id(aco->save_curwin_id);
-    if (save_curwin != NULL)
-    {
-        if (curwin->w_id == aco->new_curwin_id && curbuf != aco->new_curbuf.br_buf && bufref_valid(&aco->new_curbuf) && aco->new_curbuf.br_buf->b_ml.ml_mfp != NULL)
-        {
-            --curbuf->b_nwindows;
-            curbuf = aco->new_curbuf.br_buf;
-            curwin->w_buffer = curbuf;
-            ++curbuf->b_nwindows;
-        }
-
-        curwin = save_curwin;
-        curbuf = curwin->w_buffer;
-        prevwin = win_find_by_id(aco->save_prevwin_id);
-
-        VIsual_active = aco->save_VIsual_active;
-        check_cursor();
-    }
-
-    VIsual_active = aco->save_VIsual_active;
-    check_cursor();
-    if (VIsual_active)
-    {
-        check_pos(curbuf, &VIsual);
-    }
-}
-
-    static int
-apply_autocmds(event_T     event, char_u      *fname, char_u      *fname_io, int         force, buf_T       *buf)
-{
-    return apply_autocmds_group(event, fname, fname_io, force,  (-3) , buf, NULL);
-}
-
-    static int
-apply_autocmds_exarg(event_T     event, char_u      *fname, char_u      *fname_io, int         force, buf_T       *buf, exarg_T     *eap)
-{
-    return apply_autocmds_group(event, fname, fname_io, force,  (-3) , buf, eap);
-}
-
-    static int
-apply_autocmds_retval(event_T     event, char_u      *fname, char_u      *fname_io, int         force, buf_T       *buf, int         *retval)
-{
-    int         did_cmd;
-
-    did_cmd = apply_autocmds_group(event, fname, fname_io, force,  (-3) , buf, NULL);
-    if (did_cmd)
-    {
-        *retval = FAIL;
-    }
-    return did_cmd;
-}
 
     static int
 has_cursormoved(void)
 {
     return FALSE;
-}
-
-    static int
-has_cursormovedI(void)
-{
-    return (first_autopat[(int)EVENT_CURSORMOVEDI] != NULL);
 }
 
     static int
@@ -5828,31 +5222,7 @@ has_textchanged(void)
 }
 
     static int
-has_textchangedI(void)
-{
-    return (first_autopat[(int)EVENT_TEXTCHANGEDI] != NULL);
-}
-
-    static int
-has_textchangedP(void)
-{
-    return (first_autopat[(int)EVENT_TEXTCHANGEDP] != NULL);
-}
-
-    static int
 has_insertcharpre(void)
-{
-    return FALSE;
-}
-
-    static int
-has_cmdundefined(void)
-{
-    return FALSE;
-}
-
-    static int
-apply_autocmds_group(event_T     event, char_u      *fname, char_u      *fname_io, int         force, int         group, buf_T       *buf, exarg_T     *eap  __attribute__((unused)) )
 {
     return FALSE;
 }
@@ -5868,149 +5238,6 @@ unblock_autocmds(void)
 {
     --autocmd_blocked;
 
-}
-
-    static int
-is_autocmd_blocked(void)
-{
-    return autocmd_blocked != 0;
-}
-
-    static void
-auto_next_pat(AutoPatCmd_T *apc, int         stop_at_last)
-{
-    AutoPat     *ap;
-    estack_T    *entry;
-
-    entry = ((estack_T *)exestack.ga_data) + exestack.ga_len - 1;
-
-     vim_free(entry->es_name);
-     (entry->es_name) = NULL;
-    entry->es_info.aucmd = NULL;
-
-    for (ap = apc->curpat; ap != NULL && !got_int; ap = ap->next)
-    {
-        apc->curpat = NULL;
-
-        if (ap->pat != NULL && ap->cmds != NULL && (apc->group ==  (-3)  || apc->group == ap->group))
-        {
-            if (ap->buflocal_nr == 0 ? (match_file_pat(NULL, &ap->reg_prog, apc->fname, apc->sfname, apc->tail, ap->allow_dirs)) : ap->buflocal_nr == apc->arg_bufnr)
-            {
-                string_T    *event_name;
-                char        *fmt;
-                char_u      *namep;
-                AutoCmd     *cp;
-
-                event_name = event_nr2name(apc->event);
-                fmt = _("%s Autocommands for \"%s\"");
-                namep = alloc( strlen((char *)(fmt))  + event_name->length + ap->patlen + 1);
-                if (namep != NULL)
-                {
-                    sprintf((char *)namep, fmt, (char *)event_name->string, (char *)ap->pat);
-                    if (p_verbose >= 8)
-                    {
-                        smsg(_("Executing %s"), namep);
-                    }
-                }
-
-                entry->es_name = namep;
-                entry->es_info.aucmd = apc;
-
-                apc->curpat = ap;
-                apc->nextcmd = ap->cmds;
-                for (cp = ap->cmds; cp->next != NULL; cp = cp->next)
-                {
-                    cp->last = FALSE;
-                }
-                cp->last = TRUE;
-            }
-            line_breakcheck();
-            if (apc->curpat != NULL)
-            {
-                break;
-            }
-        }
-        if (stop_at_last && ap->last)
-        {
-            break;
-        }
-    }
-}
-
-    static char_u *
-getnextac(int c  __attribute__((unused)) , void *cookie, int indent  __attribute__((unused)) , getline_opt_T options  __attribute__((unused)) )
-{
-    AutoPatCmd_T    *acp = (AutoPatCmd_T *)cookie;
-    char_u          *retval;
-    AutoCmd         *ac;
-
-    if (acp->curpat == NULL)
-    {
-        return NULL;
-    }
-
-    for (;;)
-    {
-        while (acp->nextcmd != NULL && acp->nextcmd->cmd == NULL)
-        {
-            if (acp->nextcmd->last)
-            {
-                acp->nextcmd = NULL;
-            }
-            else
-            {
-                acp->nextcmd = acp->nextcmd->next;
-            }
-        }
-
-        if (acp->nextcmd != NULL)
-        {
-            break;
-        }
-
-        if (acp->curpat->last)
-        {
-            acp->curpat = NULL;
-        }
-        else
-        {
-            acp->curpat = acp->curpat->next;
-        }
-        if (acp->curpat != NULL)
-        {
-            auto_next_pat(acp, TRUE);
-        }
-        if (acp->curpat == NULL)
-        {
-            return NULL;
-        }
-    }
-
-    ac = acp->nextcmd;
-
-    if (p_verbose >= 9)
-    {
-        verbose_enter_scroll();
-        smsg(_("autocommand %s"), ac->cmd);
-        msg_puts("\n");
-        verbose_leave_scroll();
-    }
-    retval = vim_strsave(ac->cmd);
-    if (ac->once)
-    {
-        au_del_cmd(ac);
-    }
-    current_sctx = ac->script_ctx;
-    acp->script_ctx = current_sctx;
-    if (ac->last)
-    {
-        acp->nextcmd = NULL;
-    }
-    else
-    {
-        acp->nextcmd = ac->next;
-    }
-    return retval;
 }
 
 // ==================== buffer.c ====================
@@ -6087,7 +5314,6 @@ read_buffer(int         read_stdin, exarg_T     *eap, int         flags)
 
         if (retval == OK)
         {
-            apply_autocmds(EVENT_STDINREADPOST, NULL, NULL, FALSE, curbuf);
         }
     }
     return retval;
@@ -6193,7 +5419,6 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
     {
         curwin->w_topline = 1;
     }
-    apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
 
     if (retval != OK)
     {
@@ -6202,20 +5427,7 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
 
     if (bufref_valid(&old_curbuf) && old_curbuf.br_buf->b_ml.ml_mfp != NULL)
     {
-        aco_save_T      aco;
-
-        aucmd_prepbuf(&aco, old_curbuf.br_buf);
-        if (curbuf == old_curbuf.br_buf)
-        {
-            curbuf->b_flags &= ~(BF_CHECK_RO | BF_NEVERLOADED);
-
-            if ((flags & READ_NOWINENTER) == 0)
-            {
-            apply_autocmds(EVENT_BUFWINENTER, NULL, NULL, FALSE, curbuf);
-            }
-
-            aucmd_restbuf(&aco);
-        }
+        curbuf->b_flags &= ~(BF_CHECK_RO | BF_NEVERLOADED);
     }
 
     return retval;
@@ -6322,35 +5534,10 @@ close_buffer(win_T       *win, buf_T       *buf, int         action, int        
 
     if ((win_valid || closed_popup) && win->w_buffer == buf && buf->b_nwindows == 1)
     {
-        ++buf->b_locked;
-        ++buf->b_locked_split;
-        if (apply_autocmds(EVENT_BUFWINLEAVE, buf->b_fname, buf->b_fname, FALSE, buf) && !bufref_valid(&bufref))
-        {
-aucmd_abort:
-            emsg(_(e_autocommands_caused_command_to_abort));
-            return FALSE;
-        }
-        --buf->b_locked;
-        --buf->b_locked_split;
         if (abort_if_last)
         {
-            goto aucmd_abort;
-        }
-
-        if (!unload_buf)
-        {
-            ++buf->b_locked;
-            ++buf->b_locked_split;
-            if (apply_autocmds(EVENT_BUFHIDDEN, buf->b_fname, buf->b_fname, FALSE, buf) && !bufref_valid(&bufref))
-            {
-                goto aucmd_abort;
-            }
-            --buf->b_locked;
-            --buf->b_locked_split;
-            if (abort_if_last)
-            {
-                goto aucmd_abort;
-            }
+            emsg(_(e_autocommands_caused_command_to_abort));
+            return FALSE;
         }
         win_valid = win_valid && win_valid_any_tab(win);
     }
@@ -6413,17 +5600,9 @@ buf_freeall(buf_T *buf, int flags)
     set_bufref(&bufref, buf);
     if (buf->b_ml.ml_mfp != NULL)
     {
-        if (apply_autocmds(EVENT_BUFUNLOAD, buf->b_fname, buf->b_fname, FALSE, buf) && !bufref_valid(&bufref))
-        {
-            return FALSE;
-        }
     }
     if (flags & BFA_WIPE)
     {
-        if (apply_autocmds(EVENT_BUFWIPEOUT, buf->b_fname, buf->b_fname, FALSE, buf) && !bufref_valid(&bufref))
-        {
-            return FALSE;
-        }
     }
     --buf->b_locked;
     --buf->b_locked_split;
@@ -6455,8 +5634,6 @@ free_buffer(buf_T *buf)
     free_buffer_stuff(buf, TRUE);
 
     buf_hashtab_remove(buf);
-
-    aubuflocal_remove(buf);
 
     vim_free(buf);
     if (curbuf == buf)
@@ -6528,16 +5705,13 @@ set_curbuf(buf_T *buf, int action)
     set_bufref(&prevbufref, prevbuf);
     set_bufref(&newbufref, buf);
 
-    if (!apply_autocmds(EVENT_BUFLEAVE, NULL, NULL, FALSE, curbuf) || (bufref_valid(&prevbufref) && bufref_valid(&newbufref)))
+    if (bufref_valid(&prevbufref))
     {
-        if (bufref_valid(&prevbufref))
+        if (prevbuf == curbuf && ((State & MODE_INSERT) == 0 || curbuf->b_nwindows <= 1))
         {
-            if (prevbuf == curbuf && ((State & MODE_INSERT) == 0 || curbuf->b_nwindows <= 1))
-            {
-                u_sync(FALSE);
-            }
-            close_buffer(curwin, prevbuf, unload ? action : (action == DOBUF_GOTO && !bufIsChanged(prevbuf)) ? DOBUF_UNLOAD : 0, FALSE, FALSE, TRUE);
+            u_sync(FALSE);
         }
+        close_buffer(curwin, prevbuf, unload ? action : (action == DOBUF_GOTO && !bufIsChanged(prevbuf)) ? DOBUF_UNLOAD : 0, FALSE, FALSE, TRUE);
     }
     if (curwin->w_buffer == NULL)
     {
@@ -6588,8 +5762,6 @@ enter_buffer(buf_T *buf)
         }
 
         curwin->w_topline = 1;
-        apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
-        apply_autocmds(EVENT_BUFWINENTER, NULL, NULL, FALSE, curbuf);
     }
 
     if (curwin->w_cursor.lnum == 1 && inindent(0))
@@ -6765,10 +5937,6 @@ buflist_new(char_u      *ffname_arg, char_u      *sfname_arg, linenr_T    lnum, 
         bufref_T bufref;
 
         set_bufref(&bufref, buf);
-        if (apply_autocmds(EVENT_BUFNEW, NULL, NULL, FALSE, buf) && !bufref_valid(&bufref))
-        {
-            return NULL;
-        }
     }
 
     return buf;
@@ -7673,14 +6841,11 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
     buf->b_op_end.col = 0;
 
     {
-        aco_save_T      aco;
         int             buf_ffname = FALSE;
         int             buf_sfname = FALSE;
         int             buf_fname_f = FALSE;
         int             buf_fname_s = FALSE;
-        int             did_cmd = FALSE;
         int             empty_memline = (buf->b_ml.ml_mfp == NULL);
-        bufref_T        bufref;
 
         if (ffname == buf->b_ffname)
         {
@@ -7699,58 +6864,7 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
             buf_fname_s = TRUE;
         }
 
-        aucmd_prepbuf(&aco, buf);
-        if (curbuf != buf)
-        {
-            return FAIL;
-        }
-
-        set_bufref(&bufref, buf);
-
-        if (append)
-        {
-            if (!(did_cmd = apply_autocmds_exarg(EVENT_FILEAPPENDCMD, sfname, sfname, FALSE, curbuf, eap)))
-            {
-                apply_autocmds_exarg(EVENT_FILEAPPENDPRE, sfname, sfname, FALSE, curbuf, eap);
-            }
-        }
-        else if (filtering)
-        {
-            apply_autocmds_exarg(EVENT_FILTERWRITEPRE, NULL, sfname, FALSE, curbuf, eap);
-        }
-        else if (reset_changed && whole)
-        {
-            int was_changed = curbufIsChanged();
-
-            did_cmd = apply_autocmds_exarg(EVENT_BUFWRITECMD, sfname, sfname, FALSE, curbuf, eap);
-            if (did_cmd)
-            {
-                if (was_changed && !curbufIsChanged())
-                {
-                    u_unchanged(curbuf);
-                    u_update_save_nr(curbuf);
-                }
-            }
-            else
-            {
-                apply_autocmds_exarg(EVENT_BUFWRITEPRE, sfname, sfname, FALSE, curbuf, eap);
-            }
-        }
-        else
-        {
-            if (!(did_cmd = apply_autocmds_exarg(EVENT_FILEWRITECMD, sfname, sfname, FALSE, curbuf, eap)))
-            {
-                apply_autocmds_exarg(EVENT_FILEWRITEPRE, sfname, sfname, FALSE, curbuf, eap);
-            }
-        }
-
-        aucmd_restbuf(&aco);
-
-        if (!bufref_valid(&bufref))
-        {
-            buf = NULL;
-        }
-        if (buf == NULL || (buf->b_ml.ml_mfp == NULL && !empty_memline) || did_cmd)
+        if (buf == NULL || (buf->b_ml.ml_mfp == NULL && !empty_memline))
         {
             if (buf != NULL && (cmdmod.cmod_flags & CMOD_LOCKMARKS))
             {
@@ -7761,30 +6875,6 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
             --no_wait_return;
             msg_scroll = msg_save;
 
-            if (did_cmd)
-            {
-                if (buf == NULL)
-                {
-                    return OK;
-                }
-                if (overwriting)
-                {
-                    ml_timestamp(buf);
-                    if (append)
-                    {
-                        buf->b_flags &= ~BF_NEW;
-                    }
-                    else
-                    {
-                        buf->b_flags &= ~ (BF_NOTEDITED + BF_NEW + BF_READERR) ;
-                    }
-                }
-                if (reset_changed && buf->b_changed && !append && (overwriting || vim_strchr(p_cpo, CPO_PLUS) != NULL))
-                {
-                    return FAIL;
-                }
-                return OK;
-            }
                 emsg(_(e_autocommands_deleted_or_unloaded_buffer_to_be_written));
             return FAIL;
         }
@@ -8267,35 +7357,6 @@ nofail:
     }
     msg_scroll = msg_save;
 
-    if (!got_int)
-    {
-        aco_save_T      aco;
-
-        aucmd_prepbuf(&aco, buf);
-        if (curbuf == buf)
-        {
-            if (append)
-            {
-                apply_autocmds_exarg(EVENT_FILEAPPENDPOST, fname, fname, FALSE, curbuf, eap);
-            }
-            else if (filtering)
-            {
-                apply_autocmds_exarg(EVENT_FILTERWRITEPOST, NULL, fname, FALSE, curbuf, eap);
-            }
-            else if (reset_changed && whole)
-            {
-                apply_autocmds_exarg(EVENT_BUFWRITEPOST, fname, fname, FALSE, curbuf, eap);
-            }
-            else
-            {
-                apply_autocmds_exarg(EVENT_FILEWRITEPOST, fname, fname, FALSE, curbuf, eap);
-            }
-
-            aucmd_restbuf(&aco);
-        }
-
-    }
-
     got_int |= prev_got_int;
 
     return retval;
@@ -8314,7 +7375,6 @@ change_warning(int col)
     }
 
     ++curbuf_lock;
-    apply_autocmds(EVENT_FILECHANGEDRO, NULL, NULL, FALSE, curbuf);
     --curbuf_lock;
     if (!curbuf->b_p_ro)
     {
@@ -14805,8 +13865,6 @@ edit(int         cmdchar, int         startln, long        count)
     {
         pos_T   save_cursor = curwin->w_cursor;
 
-        ins_apply_autocmds(EVENT_INSERTENTER);
-
         if (need_highlight_changed)
         {
             highlight_changed();
@@ -15160,7 +14218,6 @@ doESCkey:
             {
                 if (cmdchar != 'r' && cmdchar != 'v' && c != Ctrl_C)
                 {
-                    ins_apply_autocmds(EVENT_INSERTLEAVE);
                 }
                 did_cursorhold = FALSE;
 
@@ -15288,7 +14345,6 @@ doESCkey:
             break;
 
         case   (-((KS_EXTRA) + ((int)(KE_CURSORHOLD) << 8)))  :
-            ins_apply_autocmds(EVENT_CURSORHOLDI);
             did_cursorhold = TRUE;
             if (dont_sync_undo == TRUE)
             {
@@ -15480,46 +14536,6 @@ ins_redraw(int ready)
     if (char_avail())
     {
         return;
-    }
-
-    if (ready && (has_cursormovedI()) && ! (((last_cursormoved).lnum == (curwin->w_cursor).lnum) && ((last_cursormoved).col == (curwin->w_cursor).col) && ((last_cursormoved).coladd == (curwin->w_cursor).coladd))  && !pum_visible())
-    {
-        if (has_cursormovedI())
-        {
-            update_curswant();
-            ins_apply_autocmds(EVENT_CURSORMOVEDI);
-        }
-        last_cursormoved = curwin->w_cursor;
-    }
-
-    if (ready && has_textchangedI() && curbuf->b_last_changedtick_i !=  ((curbuf)->b_ct_di.di_tv.vval.v_number)  && !pum_visible())
-    {
-        aco_save_T      aco;
-        varnumber_T     tick =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-
-        aucmd_prepbuf(&aco, curbuf);
-        apply_autocmds(EVENT_TEXTCHANGEDI, NULL, NULL, FALSE, curbuf);
-        aucmd_restbuf(&aco);
-        curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-        if (tick !=  ((curbuf)->b_ct_di.di_tv.vval.v_number) )
-        {
-            u_save(curwin->w_cursor.lnum, (linenr_T)(curwin->w_cursor.lnum + 1));
-        }
-    }
-
-    if (ready && has_textchangedP() && curbuf->b_last_changedtick_pum !=  ((curbuf)->b_ct_di.di_tv.vval.v_number)  && pum_visible())
-    {
-        aco_save_T      aco;
-        varnumber_T     tick =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-
-        aucmd_prepbuf(&aco, curbuf);
-        apply_autocmds(EVENT_TEXTCHANGEDP, NULL, NULL, FALSE, curbuf);
-        aucmd_restbuf(&aco);
-        curbuf->b_last_changedtick_pum =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-        if (tick !=  ((curbuf)->b_ct_di.di_tv.vval.v_number) )
-        {
-            u_save(curwin->w_cursor.lnum, (linenr_T)(curwin->w_cursor.lnum + 1));
-        }
     }
 
     if (ready)
@@ -16922,7 +15938,6 @@ ins_esc(long        *count, int         cmdchar, int         nomove)
 
     if (cmdchar != 'r' && cmdchar != 'v')
     {
-        ins_apply_autocmds(EVENT_INSERTLEAVEPRE);
     }
 
     if (restart_edit == NUL && (colnr_T)temp == curwin->w_cursor.col)
@@ -17029,7 +16044,6 @@ ins_start_select(int c)
     static void
 ins_insert(int replaceState)
 {
-    ins_apply_autocmds(EVENT_INSERTCHANGE);
     if (State & REPLACE_FLAG)
     {
         State = MODE_INSERT;
@@ -18089,22 +17103,6 @@ get_nolist_virtcol(void)
     return curwin->w_virtcol;
 }
 
-    static int
-ins_apply_autocmds(event_T event)
-{
-    varnumber_T tick =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-    int r;
-
-    r = apply_autocmds(event, NULL, NULL, FALSE, curbuf);
-
-    if (event != EVENT_INSERTLEAVE && tick !=  ((curbuf)->b_ct_di.di_tv.vval.v_number) )
-    {
-        u_save(curwin->w_cursor.lnum, (linenr_T)(curwin->w_cursor.lnum + 1));
-    }
-
-    return r;
-}
-
 // ==================== eval.c ====================
 
 // ==================== ex_cmds.c ====================
@@ -18472,7 +17470,6 @@ do_bang(int         addr_count, exarg_T     *eap, int         forceit, int      
     else
     {
         do_filter(line1, line2, eap, newcmd, do_in, do_out);
-        apply_autocmds(EVENT_SHELLFILTERPOST, NULL, NULL, FALSE, curbuf);
     }
 
     if (free_newcmd)
@@ -18547,7 +17544,6 @@ rename_buffer(char_u *new_fname)
     buf_T       *buf;
 
     buf = curbuf;
-    apply_autocmds(EVENT_BUFFILEPRE, NULL, NULL, FALSE, curbuf);
     if (buf != curbuf)
     {
         return FAIL;
@@ -18565,7 +17561,6 @@ rename_buffer(char_u *new_fname)
     curbuf->b_flags |= BF_NOTEDITED;
     vim_free(fname);
     vim_free(sfname);
-    apply_autocmds(EVENT_BUFFILEPOST, NULL, NULL, FALSE, curbuf);
 
     return OK;
 }
@@ -18987,10 +17982,8 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
         }
         else
         {
-            apply_autocmds_retval(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf, &retval);
             if ((flags & ECMD_NOWINENTER) == 0)
             {
-                apply_autocmds_retval(EVENT_BUFWINENTER, NULL, NULL, FALSE, curbuf, &retval);
             }
         }
 
@@ -21512,7 +20505,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     ea.line1 = 1;
     ea.line2 = 1;
 
-    if (quitmore && !getline_equal(fgetline, cookie, getnextac))
+    if (quitmore)
     {
         --quitmore;
     }
@@ -21629,21 +20622,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         }
         errormsg = ex_range_without_command(&ea);
         goto doend;
-    }
-
-    if (p != NULL && ea.cmdidx == CMD_SIZE && !ea.skip &&  ((unsigned)(*ea.cmd) - 'A' < 26)  && has_cmdundefined())
-    {
-        int ret;
-
-        p = ea.cmd;
-        while ( ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) )  ||  ((unsigned)(*p) - '0' < 10) ) )
-        {
-            ++p;
-        }
-        p = vim_strnsave(ea.cmd, p - ea.cmd);
-        ret = apply_autocmds(EVENT_CMDUNDEFINED, p, p, TRUE, NULL);
-        vim_free(p);
-        p = (ret) ? find_ex_command(&ea, NULL, NULL, NULL) : ea.cmd;
     }
 
     if (p == NULL)
@@ -23805,7 +22783,6 @@ not_exiting(int save_exiting)
     static int
 before_quit_autocmds(win_T *wp, int quit_all, int forceit)
 {
-    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, wp->w_buffer);
 
     if (!win_valid(wp) || curbuf_locked() || (wp->w_buffer->b_nwindows == 1 && wp->w_buffer->b_locked > 0))
     {
@@ -23814,7 +22791,6 @@ before_quit_autocmds(win_T *wp, int quit_all, int forceit)
 
     if (quit_all || (check_more(FALSE, forceit) == OK))
     {
-        apply_autocmds(EVENT_EXITPRE, NULL, NULL, FALSE, curbuf);
         if (!win_valid(wp) || curbuf_locked() || (curbuf->b_nwindows == 1 && curbuf->b_locked > 0))
         {
             return TRUE;
@@ -23871,7 +22847,6 @@ ex_cquit(exarg_T *eap  __attribute__((unused)) )
     static void
 ex_stop(exarg_T *eap)
 {
-    apply_autocmds(EVENT_VIMSUSPEND, NULL, NULL, FALSE, NULL);
     windgoto((int)Rows - 1, cmdline_col_off);
     out_char('\n');
     out_flush();
@@ -23882,7 +22857,6 @@ ex_stop(exarg_T *eap)
     scroll_start();
     redraw_later_clear();
     shell_resized();
-    apply_autocmds(EVENT_VIMRESUME, NULL, NULL, FALSE, NULL);
 }
 
     static void
@@ -25055,11 +24029,6 @@ static void     redrawcmdprompt(void);
 static int      empty_pattern_magic(char_u *pat, size_t len, magic_T magic_val);
 
     static void
-trigger_cmd_autocmd(int typechar, int evt)
-{
-}
-
-    static void
 abandon_cmdline(void)
 {
     dealloc_cmdbuff();
@@ -26109,7 +25078,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
     expand_T    xpc;
     cmdline_info_T save_ccline;
     int         did_save_ccline = FALSE;
-    int         cmdline_type;
     int         wild_type = 0;
     int         event_cmdlineleavepre_triggered = FALSE;
     char_u      *prev_cmdbuff = NULL;
@@ -26162,9 +25130,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
     State = MODE_CMDLINE;
 
     settmode(TMODE_RAW);
-
-    cmdline_type = firstc == NUL ? '-' : firstc;
-    trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINEENTER);
 
     init_history();
     hiscnt = get_hislen();
@@ -26248,7 +25213,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
 
         if (KeyTyped && (c == '\n' || c == '\r' || c ==   (-(('K') + ((int)('A') << 8)))   || c == ESC || c == intr_char || c == Ctrl_C))
         {
-            trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINELEAVEPRE);
             event_cmdlineleavepre_triggered = TRUE;
         }
 
@@ -26539,7 +25503,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
 cmdline_not_changed:
         if (ccline.cmdpos != prev_cmdpos)
         {
-            trigger_cmd_autocmd(cmdline_type, EVENT_CURSORMOVEDC);
             prev_cmdpos = ccline.cmdpos;
         }
 
@@ -26559,12 +25522,10 @@ cmdline_changed:
         }
         if (trigger_cmdlinechanged && (ccline.cmdpos != prev_cmdpos || (prev_cmdbuff != NULL &&  strcmp((char *)(prev_cmdbuff), (char *)(ccline.cmdbuff))  != 0)))
         {
-            trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINECHANGED);
         }
 
         if (ccline.cmdpos != prev_cmdpos)
         {
-            trigger_cmd_autocmd(cmdline_type, EVENT_CURSORMOVEDC);
         }
 
     }
@@ -26572,7 +25533,6 @@ cmdline_changed:
 returncmd:
     if (!event_cmdlineleavepre_triggered)
     {
-        trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINELEAVEPRE);
     }
 
     ExpandCleanup(&xpc);
@@ -26607,8 +25567,6 @@ returncmd:
     {
         need_wait_return = FALSE;
     }
-
-    trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINELEAVE);
 
     State = save_State;
 
@@ -27755,20 +26713,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
 
         if (newfile)
         {
-            if (apply_autocmds_exarg(EVENT_BUFREADCMD, NULL, sfname, FALSE, curbuf, eap))
-            {
-                retval = OK;
-                if (retval == OK)
-                {
-                    curbuf->b_flags &= ~BF_NOTEDITED;
-                }
-                goto theend;
-            }
-        }
-        else if (apply_autocmds_exarg(EVENT_FILEREADCMD, sfname, sfname, FALSE, NULL, eap))
-        {
-            retval = OK;
-            goto theend;
         }
 
         curbuf->b_op_start = orig_start;
@@ -27896,7 +26840,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
                     {
                         filemess(curbuf, sfname, (char_u *)_("[New DIRECTORY]"), 0);
                     }
-                    apply_autocmds_exarg(EVENT_BUFNEWFILE, sfname, sfname, FALSE, curbuf, eap);
 
                         retval = OK;
                     goto theend;
@@ -27945,19 +26888,15 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
         msg_scroll = TRUE;
         if (filtering)
         {
-            apply_autocmds_exarg(EVENT_FILTERREADPRE, NULL, sfname, FALSE, curbuf, eap);
         }
         else if (read_stdin)
         {
-            apply_autocmds_exarg(EVENT_STDINREADPRE, NULL, sfname, FALSE, curbuf, eap);
         }
         else if (newfile)
         {
-            apply_autocmds_exarg(EVENT_BUFREADPRE, NULL, sfname, FALSE, curbuf, eap);
         }
         else
         {
-            apply_autocmds_exarg(EVENT_FILEREADPRE, sfname, sfname, FALSE, NULL, eap);
         }
         curbuf->b_op_start = orig_start;
 
@@ -28457,15 +27396,12 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
         msg_scroll = TRUE;
         if (filtering)
         {
-            apply_autocmds_exarg(EVENT_FILTERREADPOST, NULL, sfname, FALSE, curbuf, eap);
         }
         else if (newfile || (read_buffer && sfname != NULL))
         {
-            apply_autocmds_exarg(EVENT_BUFREADPOST, NULL, sfname, FALSE, curbuf, eap);
         }
         else
         {
-            apply_autocmds_exarg(EVENT_FILEREADPOST, sfname, sfname, FALSE, NULL, eap);
         }
         if (msg_scrolled == n)
         {
@@ -28521,7 +27457,6 @@ set_rw_fname(char_u *fname, char_u *sfname)
 {
     buf_T       *buf = curbuf;
 
-    apply_autocmds(EVENT_BUFWIPEOUT, NULL, NULL, FALSE, curbuf);
     if (curbuf != buf)
     {
         emsg(_(e_autocommands_changed_buffer_or_buffer_name));
@@ -28532,8 +27467,6 @@ set_rw_fname(char_u *fname, char_u *sfname)
     {
         curbuf->b_flags |= BF_NOTEDITED;
     }
-
-    apply_autocmds(EVENT_BUFNEW, NULL, NULL, FALSE, curbuf);
 
     return OK;
 }
@@ -28695,38 +27628,6 @@ buf_store_time(buf_T *buf, stat_T *st, char_u *fname  __attribute__((unused)) )
     buf->b_mtime_ns = (long)st-> st_mtim.tv_nsec ;
     buf->b_orig_size = st->st_size;
     buf->b_orig_mode = (int)st->st_mode;
-}
-
-    static int
-match_file_pat(char_u      *pattern, regprog_T   **prog, char_u      *fname, char_u      *sfname, char_u      *tail, int         allow_dirs)
-{
-    regmatch_T  regmatch;
-    int         result = FALSE;
-
-    regmatch.rm_ic = FALSE;
-    if (prog != NULL)
-    {
-        regmatch.regprog = *prog;
-    }
-    else
-    {
-        regmatch.regprog = vim_regcomp(pattern, RE_MAGIC);
-    }
-
-    if (regmatch.regprog != NULL && ((allow_dirs && (vim_regexec(&regmatch, fname, (colnr_T)0) || (sfname != NULL && vim_regexec(&regmatch, sfname, (colnr_T)0)))) || (!allow_dirs && vim_regexec(&regmatch, tail, (colnr_T)0))))
-    {
-        result = TRUE;
-    }
-
-    if (prog != NULL)
-    {
-        *prog = regmatch.regprog;
-    }
-    else
-    {
-        vim_regfree(regmatch.regprog);
-    }
-    return result;
 }
 
     static char_u *
@@ -38863,8 +37764,6 @@ mb_init(void)
     (void)init_chartab();
 
     screenalloc(FALSE);
-
-    apply_autocmds(EVENT_ENCODINGCHANGED, NULL, (char_u *)"", FALSE, curbuf);
 
     return NULL;
 }
@@ -56280,7 +55179,6 @@ nv_open(cmdarg_T *cap)
     static void
 nv_cursorhold(cmdarg_T *cap)
 {
-    apply_autocmds(EVENT_CURSORHOLD, NULL, NULL, FALSE, curbuf);
     did_cursorhold = TRUE;
     cap->retval |= CA_COMMAND_BUSY;
 }
@@ -75253,7 +74151,6 @@ give_up:
 
     if (starting == 0 && ++retry_count <= 3)
     {
-        apply_autocmds(EVENT_VIMRESIZED, NULL, NULL, FALSE, curbuf);
         may_trigger_win_scrolled_resized();
         goto retry;
     }
@@ -82198,21 +81095,6 @@ set_termname(char_u *term)
         }
         check_map_keycodes();
 
-        {
-            buf_T       *buf;
-            aco_save_T  aco;
-
-             buf = curbuf;
-            if (curbuf->b_ml.ml_mfp != NULL)
-            {
-                aucmd_prepbuf(&aco, buf);
-                if (curbuf == buf)
-                {
-                    apply_autocmds(EVENT_TERMCHANGED, NULL, NULL, FALSE, curbuf);
-                    aucmd_restbuf(&aco);
-                }
-            }
-        }
     }
 
     return OK;
@@ -83521,7 +82403,6 @@ handle_u7_response(int *arg, char_u *tp  __attribute__((unused)) , int csi_len  
         {
             set_option_value_give_err((char_u *)"ambw", 0L, (char_u *)aw, 0);
             redraw_asap(UPD_CLEAR);
-            apply_autocmds(EVENT_TERMRESPONSEALL, (char_u *)"ambiguouswidth", NULL, FALSE, curbuf);
         }
     }
     else if (arg[0] == 3)
@@ -83995,7 +82876,6 @@ handle_csi(char_u  *tp, int     len, char_u  *argp, int     offset, char_u  *buf
     else if (first == '?' && trail == 'c')
     {
         *slen = csi_len;
-        apply_autocmds(EVENT_TERMRESPONSEALL, (char_u *)"da1", NULL, FALSE, curbuf);
 
         key_name[0] = (int)KS_EXTRA;
         key_name[1] = (int)KE_IGNORE;
@@ -84049,8 +82929,6 @@ handle_csi(char_u  *tp, int     len, char_u  *argp, int     offset, char_u  *buf
         handle_version_response(first, arg, argc, tp);
 
         *slen = csi_len;
-        apply_autocmds(EVENT_TERMRESPONSE, NULL, NULL, FALSE, curbuf);
-        apply_autocmds(EVENT_TERMRESPONSEALL, (char_u *)"version", NULL, FALSE, curbuf);
         key_name[0] = (int)KS_EXTRA;
         key_name[1] = (int)KE_IGNORE;
     }
@@ -84129,7 +83007,6 @@ check_for_color_response(char_u *resp, int len)
                     }
                 }
 
-                apply_autocmds(EVENT_TERMRESPONSEALL, is_bg ? (char_u *)"background" : (char_u *)"foreground", NULL, FALSE, curbuf);
                 break;
             }
         }
@@ -84190,7 +83067,6 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
             check_for_color_response(osc_state.buf.ga_data, osc_state.buf.ga_len - 1);
 
             char_u savebg = *p_bg;
-            apply_autocmds(EVENT_TERMRESPONSEALL, (char_u *)"osc", NULL, FALSE, curbuf);
             if (*p_bg != savebg)
             {
                 redraw_asap(UPD_CLEAR);
@@ -84269,7 +83145,6 @@ handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
                 key_name[0] = (int)KS_EXTRA;
                 key_name[1] = (int)KE_IGNORE;
                 *slen = i + 1;
-                apply_autocmds(EVENT_TERMRESPONSEALL, (char_u *)"cursorshape", NULL, FALSE, curbuf);
                 break;
             }
         }
@@ -86555,8 +85430,6 @@ ui_focus_change(int         in_focus)
         need_redraw = check_timestamps(FALSE);
         last_time = time(NULL);
     }
-
-    need_redraw |= apply_autocmds(in_focus ? EVENT_FOCUSGAINED : EVENT_FOCUSLOST, NULL, NULL, FALSE, curbuf);
 
     if (need_redraw)
     {
@@ -89103,12 +87976,6 @@ win_valid(win_T *win)
     return win != NULL && win == curwin;
 }
 
-    static win_T *
-win_find_by_id(int id)
-{
-    return (curwin->w_id == id) ? curwin : NULL;
-}
-
     static int
 win_valid_any_tab(win_T *win)
 {
@@ -89359,14 +88226,12 @@ win_enter_ext(win_T *wp, int flags)
     {
         if (wp->w_buffer != curbuf)
         {
-            apply_autocmds(EVENT_BUFLEAVE, NULL, NULL, FALSE, curbuf);
             other_buffer = TRUE;
             if (!win_valid(wp))
             {
                 return FALSE;
             }
         }
-        apply_autocmds(EVENT_WINLEAVE, NULL, NULL, FALSE, curbuf);
         if (!win_valid(wp))
         {
             return FALSE;
@@ -89410,14 +88275,11 @@ win_enter_ext(win_T *wp, int flags)
 
     if (flags & WEE_TRIGGER_NEW_AUTOCMDS)
     {
-        apply_autocmds(EVENT_WINNEW, NULL, NULL, FALSE, curbuf);
     }
     if (flags & WEE_TRIGGER_ENTER_AUTOCMDS)
     {
-        apply_autocmds(EVENT_WINENTER, NULL, NULL, FALSE, curbuf);
         if (other_buffer)
         {
-            apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
         }
     }
 
@@ -90257,7 +89119,6 @@ vim_main2(void)
         curwin->w_cursor.lnum = curbuf->b_ml.ml_line_count;
     }
 
-    apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
     setpcmark();
 
     shorten_fnames(FALSE);
@@ -90277,8 +89138,6 @@ vim_main2(void)
     {
         need_start_insertmode = TRUE;
     }
-
-    apply_autocmds(EVENT_VIMENTER, NULL, NULL, FALSE, curbuf);
 
     if (restart_edit != 0)
     {
@@ -90349,7 +89208,6 @@ may_trigger_safestate(int safe)
 
     if (is_safe)
     {
-        apply_autocmds(EVENT_SAFESTATE, NULL, NULL, FALSE, curbuf);
     }
 }
 
@@ -90374,14 +89232,12 @@ may_trigger_deferred_events(void)
     {
         if (has_cursormoved())
         {
-            apply_autocmds(EVENT_CURSORMOVED, NULL, NULL, FALSE, curbuf);
         }
         last_cursormoved = curwin->w_cursor;
     }
 
     if (!finish_op && has_textchanged() && curbuf->b_last_changedtick !=  ((curbuf)->b_ct_di.di_tv.vval.v_number) )
     {
-        apply_autocmds(EVENT_TEXTCHANGED, NULL, NULL, FALSE, curbuf);
         curbuf->b_last_changedtick =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
     }
 
@@ -90556,7 +89412,6 @@ getout(int exitval)
     if (v_dying <= 1)
     {
         buf_T           *buf;
-        int             unblock = 0;
 
         if (curwin->w_buffer != NULL && buf_valid(curwin->w_buffer))
         {
@@ -90566,7 +89421,6 @@ getout(int exitval)
                 bufref_T bufref;
 
                 set_bufref(&bufref, buf);
-                apply_autocmds(EVENT_BUFWINLEAVE, buf->b_fname, buf->b_fname, FALSE, buf);
                 if (bufref_valid(&bufref))
                 {
                      ((buf)->b_ct_di.di_tv.vval.v_number)  = -1;
@@ -90579,35 +89433,13 @@ getout(int exitval)
             bufref_T bufref;
 
             set_bufref(&bufref, curbuf);
-            apply_autocmds(EVENT_BUFUNLOAD, curbuf->b_fname, curbuf->b_fname, FALSE, curbuf);
         }
 
-        if (is_autocmd_blocked())
-        {
-            unblock_autocmds();
-            ++unblock;
-        }
-        apply_autocmds(EVENT_VIMLEAVEPRE, NULL, NULL, FALSE, curbuf);
-        if (unblock)
-        {
-            block_autocmds();
-        }
     }
 
     if (v_dying <= 1)
     {
-        int     unblock = 0;
 
-        if (is_autocmd_blocked())
-        {
-            unblock_autocmds();
-            ++unblock;
-        }
-        apply_autocmds(EVENT_VIMLEAVE, NULL, NULL, FALSE, curbuf);
-        if (unblock)
-        {
-            block_autocmds();
-        }
     }
 
     if (did_emsg)
