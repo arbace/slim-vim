@@ -59,12 +59,14 @@ the phase is wrong.**
    a change is the *point*, so the phase must say which behaviour changes and
    the harness must show exactly that set and no more. "Six cases differ" is a
    check; "some cases differ" is not.
-3. **A command is never deleted from the table; it is pointed at `ex_ni`.**
-   `enum CMD_index`, `cmdnames[]` and the derived `ex_cmdidxs` block keep their
-   shape, nothing renumbers, and the trap `SLIM-GOAL.md` records — deleting
-   `:help` makes the name resolve to `:helpclose` — cannot fire. The command
-   still parses and reports that it is not implemented, which is also the
-   honest answer for an editor that has no runtime to show you.
+3. **A command is deleted from both lists, and no other command inherits its
+   words.** Until Phase 80 a removed command was pointed at `ex_ni` and kept its
+   row, because the lookup took the first row whose name began with what was
+   typed, so every row decided the abbreviations of the rows below it — the trap
+   `SLIM-GOAL.md` records, where deleting `:help` makes the name run
+   `:helpclose`. Phase 80 gave each row its shortest abbreviation and deleted the
+   489 stubs. A typed word now names a row only if it is at least that long, so
+   a match is unique, and a deleted row's words resolve to nothing: E492.
 4. **`whim-vim.c` is produced from the committed `slim-vim.c`**, not from a
    pass. The two pipelines are decoupled: `make whim-vim` needs no clone, no
    network and no agent, and the memoize key is `slim-vim.c`'s digest and the
@@ -4588,6 +4590,137 @@ saving. Five quit probes calibrated on q78 guard it: `:q` refuses a modified fil
 `:q!` discards, `:wq` and `:x` write and exit.
 
 Measured: 89,233 → **88,636 lines**.
+
+## Phase 80 — the Ex command table, cut to the commands that exist
+
+600 rows in `enum CMD_index` and `cmdnames[]`, and **489 were `ex_ni` or
+`ex_script_ni`**. Every phase that removed a command had pointed its row at the stub
+and left it, under rule 3 as it then read, because a row still did one job: its
+*name* decided what every abbreviation of every other name meant. The rows, and the
+two-level prefix index generated from them, were kept for that alone.
+
+**The rows go and what they were for stays.** The old lookup took the first row, in
+index order, whose name started with the typed word, so a command's shortest
+abbreviation was implied by every row above it. Measured on q79: deleting the 489
+rows in place hands **15 prefixes** that used to reach a stub to a live command —
+`:n` to `nmap`, `:o` to `omap`, `:h` to `highlight`, `:sa` to `saveas`, `:la` to
+`later`, `:en` to `enew`, `:ve` to `verbose`. No live command would lose an
+abbreviation or gain another's; an error would just quietly become a mapping
+listing.
+
+So each surviving row **carries its shortest abbreviation**, computed from the
+600-row table before a row is touched, in the field that held the name's length —
+whose one reader was the Vim9 whole-name check, dead since Phase 79. A word names a
+row when it is a prefix of the name and at least that long. That makes a match
+**unique**, which makes row order irrelevant, which makes the index pointless:
+`cmdidxs1`, `cmdidxs2`, `command_count` and E943 go, and the lookup is a scan of 111
+rows. `tools/create_cmdidxs.py --check`, which fifteen phases between 58 and 79 ran, has no
+block to check in `whim-vim.c` any more and is not called from here on. Its `names()`
+still reads the table for `exsweep.py`, and refuses fewer than 100 rows; a phase that
+takes the table below that has to lower the floor.
+
+**Proved rather than argued, twice.** The program models the old lookup — the index
+read out of the file, its start points and all — and the new one, over all 2,538
+prefixes of the 600 names. They must agree wherever the old answer survives, find
+nothing wherever it did not, and no word may match two rows. Then every one of those
+words, plus 94 command lines covering every address form the surviving commands
+take, goes through **both binaries** — the input's, built in the background while
+the edits run, and the output — comparing exit status, stderr, the file afterwards
+and anything left in the directory. Words the old table sent to `:stop` or
+`:suspend` are left out, as the command sweep leaves those commands out.
+
+### What went with the rows
+
+- **26 `CMD_` tests** of commands that no longer exist: `:wincmd`'s address type, the
+  filename-escaping exceptions for `:grep`, `:make` and `:terminal`, `:new`/`:split`/
+  `:sview` in `do_exedit`, `:try`, the Vim9 `:final` and `:horizontal` quirks, and
+  the index's two start points `CMD_Next` and `CMD_bang`.
+- **The `ni` flag** in `do_one_cmd`, which exempted a stub from the range, bang,
+  count and argument checks. No row can raise it.
+- **The user-command test `(int)cmdidx < 0`**: nothing assigns a negative index.
+- **The `py3` and `vim9` digit rules** in `find_ex_command`: no row left starts with
+  `py` or `vim`.
+- **Seven address types** only stub rows used — argument list, buffers, loaded
+  buffers, two for tab pages, two for quickfix — 49 case labels, 35 whole arms, and
+  the buffer-offset arithmetic behind them. The program refuses to delete an arm
+  that the arm above it can fall into.
+- **`:if`, and with it `ea.skip`.** `:if` was a stub row that `do_one_cmd`
+  special-cased to raise `if_level`, which made later commands skipped. But `:if`
+  takes the rest of its line, `if_level` is reset at the end of every `do_cmdline`,
+  and nothing passes `DOCMD_REPEAT`, so no command could ever run with it raised.
+  `ea.skip` was already constantly false, and its nineteen readers fold.
+
+### The delta
+
+A removed name gives **E492 "Not an editor command"** instead of E319, with the same
+exit status, and the command sweep cannot see the text. Two things can see a
+difference, and both were agreed before the program was written:
+
+- **`:if`** was accepted silently (exit 0) and is an error now (exit 1).
+- **`stub|cmd`** used to run `cmd` after the stub's error, because a stub row with
+  `EX_TRLBAR` split its line at the bar; an unknown name takes the whole line.
+  `:buffer|%s/a/X/|w` wrote the substitution before and writes nothing now.
+  `:h|…` is the control: `:help`'s row never had `EX_TRLBAR`, and it comes out the
+  same.
+
+And every removed row leaves the command sweep, which dispatches the names in the
+table — so the declared list is Phase 79's plus all 489, and the program requires
+that list to be exactly the stub rows.
+
+### What the dry runs caught
+
+All five were in the checks or my arithmetic, not the edits: a `vim9` word check
+that matched the string literal `"vim9"` (which is how the digit rules were found); a
+lookup span counted as 31 lines that is 33; `cutil.delete_definition` returning a
+pair, not the text; a "no `sizeof(\"` left" check that matched unrelated string
+lengths elsewhere in the file; and `:h|…` expected to differ, because I assumed every
+stub row split at the bar without reading `:help`'s flags.
+
+Measured: 88,636 → **87,142 lines**, the binary 1,008,424 → 955,976 bytes.
+
+## Phase 81 — one line, one command
+
+An Ex line could hold several commands separated by `|` and end in a `"` comment.
+Both exist for scripts — a vimrc, a sourced file, a function body — and this editor
+reads none. Every command it runs was typed, came from `+cmd`, or came from a
+mapping's right-hand side. So a line is one command now, and `|` and `"` are ordinary
+argument characters. **A newline still ends a command**: that is the rule itself, and
+the newline branch of `separate_nextcmd` is kept exactly as it was.
+
+**The machinery was small and in one place.** `separate_nextcmd` split a bar-splitting
+command's argument at `|`, `"` or a newline; `check_nextcmd`, `find_nextcmd`,
+`ends_excmd` and `ends_excmd2` each knew the same three characters; and a handful of
+callers knew them again — `:substitute`'s tail, the trailing-characters check in
+`do_one_cmd`, `:a|text`, `:|` printing the line, and the whole-line `:" comment`
+with the `starts_with_colon` flag that only existed to feed it.
+
+**Decided before it was written:**
+
+- `a|b` — the bar is argument text. A command without `EX_EXTRA` reports E488; one
+  with it takes the bar. `:map Q A|b` now maps `Q` to `A|b`.
+- `a " x` — the quote is argument text too, so `:set ts=3 " x` is an error and
+  `:" x` is E492.
+- `\|` means nothing special: the backslash stays, so `:map Q A\|b` maps to `A\|b`.
+  CTRL-V handling is unchanged.
+
+**`EX_NOTRLCOM` stays.** Its comment meaning is gone, but it still decides whether
+trailing spaces are stripped, which is what lets a mapping end in a space.
+
+### The delta
+
+No behaviour case, terminal row or swept command uses a bar or a comment, so the
+cumulative list is phase 80's, unchanged, and `whimdelta.sh` confirms it. What moves
+is probed directly: 43 cases through q80's binary and this one, comparing exit
+status, stderr and what was written. Fourteen differ, each declared with its reason;
+29 controls must not — `:s/a\|b/…/` and `:g/a\|c/d` (a bar inside a pattern was
+never a separator), `:normal! A|x`, `:map Q A"b` (a mapping never took a comment),
+CTRL-V before a bar, and two commands separated by a real newline.
+
+One expectation in the corpus was wrong on the first run, and not the edit: the
+mapping cases assumed the cursor on line 1, and `-e -s` starts on the last line.
+
+Measured: 87,142 → **87,107 lines**. A small cut by count — the point was the
+rule, and the splitter was never large.
 
 ## Unused, and unuseful
 

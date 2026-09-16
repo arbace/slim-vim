@@ -441,9 +441,6 @@ typedef enum {
 // ---------------- end termdefs.h ----------------
 // ---------------- begin macros.h ----------------
 
-enum { ERROR_IF_POPUP_WINDOW = 0 };
-enum { ERROR_IF_TERM_POPUP_WINDOW = 0 };
-
 // ---------------- end macros.h ----------------
 
 // _() and NGETTEXT keep their names as functions rather than being expanded.
@@ -2449,30 +2446,17 @@ enum { EX_NOTRLCOM = 0x800 };
 enum { EX_ZEROR = 0x1000 };
 enum { EX_CTRLV = 0x2000 };
 enum { EX_CMDARG = 0x4000 };
-enum { EX_BUFNAME = 0x8000 };
-enum { EX_BUFUNL = 0x10000 };
 enum { EX_ARGOPT = 0x20000 };
 enum { EX_SBOXOK = 0x40000 };
 enum { EX_CMDWIN = 0x80000 };
 enum { EX_MODIFY = 0x100000 };
 enum { EX_FLAGS = 0x200000 };
-enum { EX_EXPAND = 0x800000 };
 enum { EX_LOCK_OK = 0x1000000 };
 enum { EX_NONWHITE_OK = 0x2000000 };
-enum { EX_EXPR_ARG = 0x8000000 };
-enum { EX_WHOLE = 0x10000000 };
-enum { EX_EXPORT = 0x20000000 };
 typedef enum {
     ADDR_LINES,
     ADDR_WINDOWS,
-    ADDR_ARGUMENTS,
-    ADDR_LOADED_BUFFERS,
-    ADDR_BUFFERS,
-    ADDR_TABS,
-    ADDR_TABS_RELATIVE,
-    ADDR_QUICKFIX_VALID,
-    ADDR_QUICKFIX,
-    ADDR_UNSIGNED,
+    ADDR_UNSIGNED = 9,
     ADDR_OTHER,
     ADDR_NONE
 } cmd_addr_T;
@@ -2482,591 +2466,108 @@ typedef struct exarg exarg_T;
 enum CMD_index
 {
     CMD_append,
-    CMD_abbreviate,
-    CMD_abclear,
-    CMD_aboveleft,
-    CMD_abstract,
-    CMD_all,
-    CMD_amenu,
-    CMD_anoremenu,
-    CMD_args,
-    CMD_argadd,
-    CMD_argdelete,
-    CMD_argdo,
-    CMD_argdedupe,
-    CMD_argedit,
-    CMD_argglobal,
-    CMD_arglocal,
-    CMD_argument,
     CMD_ascii,
-    CMD_autocmd,
-    CMD_augroup,
-    CMD_aunmenu,
-    CMD_buffer,
-    CMD_bNext,
-    CMD_ball,
-    CMD_badd,
-    CMD_balt,
-    CMD_bdelete,
-    CMD_behave,
-    CMD_belowright,
-    CMD_bfirst,
-    CMD_blast,
-    CMD_bmodified,
-    CMD_bnext,
-    CMD_botright,
-    CMD_bprevious,
-    CMD_brewind,
-    CMD_break,
-    CMD_breakadd,
-    CMD_breakdel,
-    CMD_breaklist,
-    CMD_browse,
-    CMD_buffers,
-    CMD_bufdo,
-    CMD_bunload,
-    CMD_bwipeout,
     CMD_change,
-    CMD_cNext,
-    CMD_cNfile,
-    CMD_cabbrev,
-    CMD_cabclear,
-    CMD_cabove,
-    CMD_caddbuffer,
-    CMD_caddexpr,
-    CMD_caddfile,
-    CMD_cafter,
-    CMD_call,
-    CMD_catch,
-    CMD_cbuffer,
-    CMD_cbefore,
-    CMD_cbelow,
-    CMD_cbottom,
-    CMD_cc,
-    CMD_cclose,
-    CMD_cd,
-    CMD_cdo,
-    CMD_center,
-    CMD_cexpr,
-    CMD_cfile,
-    CMD_cfdo,
-    CMD_cfirst,
-    CMD_cgetfile,
-    CMD_cgetbuffer,
-    CMD_cgetexpr,
-    CMD_chdir,
     CMD_changes,
-    CMD_checkpath,
-    CMD_checktime,
-    CMD_chistory,
-    CMD_clist,
-    CMD_clipreset,
-    CMD_clast,
-    CMD_class,
-    CMD_close,
-    CMD_clearjumps,
     CMD_cmap,
     CMD_cmapclear,
-    CMD_cmenu,
-    CMD_cnext,
-    CMD_cnewer,
-    CMD_cnfile,
     CMD_cnoremap,
-    CMD_cnoreabbrev,
-    CMD_cnoremenu,
     CMD_copy,
-    CMD_colder,
-    CMD_colorscheme,
-    CMD_command,
-    CMD_comclear,
-    CMD_compiler,
-    CMD_continue,
-    CMD_confirm,
-    CMD_const,
-    CMD_copen,
-    CMD_cprevious,
-    CMD_cpfile,
     CMD_cquit,
-    CMD_crewind,
-    CMD_cscope,
-    CMD_cstag,
     CMD_cunmap,
-    CMD_cunabbrev,
-    CMD_cunmenu,
-    CMD_cwindow,
     CMD_delete,
     CMD_delmarks,
-    CMD_debug,
-    CMD_debuggreedy,
-    CMD_def,
-    CMD_defcompile,
-    CMD_defer,
-    CMD_delcommand,
-    CMD_delfunction,
     CMD_display,
-    CMD_diffupdate,
-    CMD_diffget,
-    CMD_diffoff,
-    CMD_diffpatch,
-    CMD_diffput,
-    CMD_diffsplit,
-    CMD_diffthis,
-    CMD_digraphs,
-    CMD_disassemble,
-    CMD_djump,
-    CMD_dlist,
-    CMD_doautocmd,
-    CMD_doautoall,
-    CMD_drop,
-    CMD_dsearch,
-    CMD_dsplit,
     CMD_edit,
     CMD_earlier,
-    CMD_echo,
-    CMD_echoerr,
-    CMD_echohl,
-    CMD_echomsg,
-    CMD_echoconsole,
-    CMD_echon,
-    CMD_echowindow,
-    CMD_else,
-    CMD_elseif,
-    CMD_emenu,
-    CMD_endif,
-    CMD_endinterface,
-    CMD_endclass,
-    CMD_enddef,
-    CMD_endenum,
-    CMD_endfunction,
-    CMD_endfor,
-    CMD_endtry,
-    CMD_endwhile,
     CMD_enew,
-    CMD_enum,
-    CMD_eval,
     CMD_ex,
-    CMD_execute,
     CMD_exit,
-    CMD_export,
-    CMD_exusage,
     CMD_file,
-    CMD_files,
-    CMD_filetype,
     CMD_filter,
-    CMD_find,
-    CMD_final,
-    CMD_finally,
-    CMD_finish,
-    CMD_first,
     CMD_fixdel,
-    CMD_fold,
-    CMD_foldclose,
-    CMD_folddoopen,
-    CMD_folddoclosed,
-    CMD_foldopen,
-    CMD_for,
-    CMD_function,
     CMD_global,
-    CMD_goto,
-    CMD_grep,
-    CMD_grepadd,
-    CMD_gui,
-    CMD_gvim,
-    CMD_help,
-    CMD_helpclose,
-    CMD_helpfind,
-    CMD_helpgrep,
-    CMD_helptags,
-    CMD_hardcopy,
     CMD_highlight,
-    CMD_hide,
     CMD_history,
-    CMD_horizontal,
     CMD_insert,
-    CMD_iabbrev,
-    CMD_iabclear,
-    CMD_if,
-    CMD_ijump,
-    CMD_ilist,
     CMD_imap,
     CMD_imapclear,
-    CMD_imenu,
-    CMD_import,
     CMD_inoremap,
-    CMD_inoreabbrev,
-    CMD_inoremenu,
-    CMD_intro,
-    CMD_interface,
     CMD_iput,
-    CMD_isearch,
-    CMD_isplit,
     CMD_iunmap,
-    CMD_iunabbrev,
-    CMD_iunmenu,
     CMD_join,
-    CMD_jumps,
     CMD_k,
     CMD_keepmarks,
     CMD_keepjumps,
     CMD_keeppatterns,
-    CMD_keepalt,
     CMD_list,
-    CMD_lNext,
-    CMD_lNfile,
-    CMD_last,
-    CMD_labove,
-    CMD_language,
-    CMD_laddexpr,
-    CMD_laddbuffer,
-    CMD_laddfile,
-    CMD_lafter,
     CMD_later,
-    CMD_lbuffer,
-    CMD_lbefore,
-    CMD_lbelow,
-    CMD_lbottom,
-    CMD_lcd,
-    CMD_lchdir,
-    CMD_lclose,
-    CMD_lcscope,
-    CMD_ldo,
-    CMD_left,
-    CMD_leftabove,
-    CMD_let,
-    CMD_lexpr,
-    CMD_legacy,
-    CMD_lfile,
-    CMD_lfdo,
-    CMD_lfirst,
-    CMD_lgetfile,
-    CMD_lgetbuffer,
-    CMD_lgetexpr,
-    CMD_lgrep,
-    CMD_lgrepadd,
-    CMD_lhelpgrep,
-    CMD_lhistory,
-    CMD_ll,
-    CMD_llast,
-    CMD_llist,
-    CMD_lmap,
-    CMD_lmapclear,
-    CMD_lmake,
-    CMD_lnoremap,
-    CMD_lnext,
-    CMD_lnewer,
-    CMD_lnfile,
-    CMD_loadview,
-    CMD_loadkeymap,
     CMD_lockmarks,
-    CMD_lockvar,
-    CMD_lolder,
-    CMD_lopen,
-    CMD_lprevious,
-    CMD_lpfile,
-    CMD_lrewind,
-    CMD_ltag,
-    CMD_lunmap,
-    CMD_lua,
-    CMD_luado,
-    CMD_luafile,
-    CMD_lvimgrep,
-    CMD_lvimgrepadd,
-    CMD_lwindow,
-    CMD_ls,
     CMD_move,
     CMD_mark,
-    CMD_make,
     CMD_map,
     CMD_mapclear,
     CMD_marks,
     CMD_match,
-    CMD_menu,
-    CMD_menutranslate,
     CMD_messages,
-    CMD_mkexrc,
-    CMD_mksession,
-    CMD_mkspell,
-    CMD_mkvimrc,
-    CMD_mkview,
-    CMD_mode,
-    CMD_mzscheme,
-    CMD_mzfile,
-    CMD_next,
-    CMD_nbkey,
-    CMD_nbclose,
-    CMD_nbstart,
-    CMD_new,
     CMD_nmap,
     CMD_nmapclear,
-    CMD_nmenu,
     CMD_nnoremap,
-    CMD_nnoremenu,
     CMD_noremap,
-    CMD_noautocmd,
     CMD_nohlsearch,
-    CMD_noreabbrev,
-    CMD_noremenu,
-    CMD_noswapfile,
     CMD_normal,
     CMD_number,
     CMD_nunmap,
-    CMD_nunmenu,
-    CMD_open,
-    CMD_oldfiles,
     CMD_omap,
     CMD_omapclear,
-    CMD_omenu,
-    CMD_only,
     CMD_onoremap,
-    CMD_onoremenu,
-    CMD_options,
     CMD_ounmap,
-    CMD_ounmenu,
-    CMD_ownsyntax,
     CMD_print,
-    CMD_packadd,
-    CMD_packloadall,
-    CMD_pbuffer,
-    CMD_pclose,
-    CMD_perl,
-    CMD_perldo,
-    CMD_pedit,
-    CMD_pop,
-    CMD_popup,
-    CMD_ppop,
-    CMD_preserve,
-    CMD_previous,
-    CMD_promptfind,
-    CMD_promptrepl,
-    CMD_profile,
-    CMD_profdel,
-    CMD_psearch,
-    CMD_ptag,
-    CMD_ptNext,
-    CMD_ptfirst,
-    CMD_ptjump,
-    CMD_ptlast,
-    CMD_ptnext,
-    CMD_ptprevious,
-    CMD_ptrewind,
-    CMD_ptselect,
     CMD_put,
-    CMD_public,
-    CMD_pwd,
-    CMD_python,
-    CMD_pydo,
-    CMD_pyfile,
-    CMD_py3,
-    CMD_py3do,
-    CMD_python3,
-    CMD_py3file,
-    CMD_pyx,
-    CMD_pyxdo,
-    CMD_pythonx,
-    CMD_pyxfile,
     CMD_quit,
-    CMD_quitall,
-    CMD_qall,
     CMD_read,
-    CMD_recover,
     CMD_redo,
-    CMD_redir,
     CMD_redraw,
     CMD_redrawstatus,
-    CMD_redrawtabline,
-    CMD_redrawtabpanel,
     CMD_registers,
-    CMD_resize,
-    CMD_retab,
-    CMD_return,
-    CMD_rewind,
-    CMD_right,
-    CMD_rightbelow,
-    CMD_runtime,
-    CMD_ruby,
-    CMD_rubydo,
-    CMD_rubyfile,
-    CMD_rundo,
-    CMD_rviminfo,
     CMD_substitute,
-    CMD_sNext,
-    CMD_sargument,
-    CMD_sall,
-    CMD_sandbox,
     CMD_saveas,
-    CMD_sbuffer,
-    CMD_sbNext,
-    CMD_sball,
-    CMD_sbfirst,
-    CMD_sblast,
-    CMD_sbmodified,
-    CMD_sbnext,
-    CMD_sbprevious,
-    CMD_sbrewind,
-    CMD_scriptnames,
-    CMD_scriptencoding,
-    CMD_scriptversion,
-    CMD_scscope,
     CMD_set,
-    CMD_setfiletype,
-    CMD_setglobal,
-    CMD_setlocal,
-    CMD_sfind,
-    CMD_sfirst,
-    CMD_shell,
-    CMD_simalt,
-    CMD_sign,
     CMD_silent,
-    CMD_sleep,
-    CMD_slast,
     CMD_smagic,
     CMD_smap,
     CMD_smapclear,
-    CMD_smenu,
-    CMD_snext,
     CMD_snomagic,
     CMD_snoremap,
-    CMD_snoremenu,
-    CMD_source,
-    CMD_sort,
-    CMD_split,
-    CMD_spellgood,
-    CMD_spelldump,
-    CMD_spellinfo,
-    CMD_spellrepall,
-    CMD_spellrare,
-    CMD_spellundo,
-    CMD_spellwrong,
-    CMD_sprevious,
-    CMD_srewind,
     CMD_stop,
-    CMD_stag,
-    CMD_startinsert,
-    CMD_startgreplace,
-    CMD_startreplace,
-    CMD_static,
-    CMD_stopinsert,
-    CMD_stjump,
-    CMD_stselect,
-    CMD_sunhide,
     CMD_sunmap,
-    CMD_sunmenu,
     CMD_suspend,
-    CMD_sview,
-    CMD_swapname,
-    CMD_syntax,
-    CMD_syntime,
-    CMD_syncbind,
-    CMD_smile,
     CMD_t,
-    CMD_tNext,
-    CMD_tag,
-    CMD_tags,
-    CMD_tab,
-    CMD_tabclose,
-    CMD_tabdo,
-    CMD_tabedit,
-    CMD_tabfind,
-    CMD_tabfirst,
-    CMD_tabmove,
-    CMD_tablast,
-    CMD_tabnext,
-    CMD_tabnew,
-    CMD_tabonly,
-    CMD_tabprevious,
-    CMD_tabNext,
-    CMD_tabrewind,
-    CMD_tabs,
-    CMD_tcd,
-    CMD_tchdir,
-    CMD_tcl,
-    CMD_tcldo,
-    CMD_tclfile,
-    CMD_tearoff,
-    CMD_terminal,
-    CMD_tfirst,
-    CMD_throw,
-    CMD_this,
-    CMD_tjump,
-    CMD_tlast,
-    CMD_tlmenu,
-    CMD_tlnoremenu,
-    CMD_tlunmenu,
-    CMD_tmenu,
-    CMD_tmap,
-    CMD_tmapclear,
-    CMD_tnext,
-    CMD_tnoremap,
-    CMD_topleft,
-    CMD_tprevious,
-    CMD_trewind,
-    CMD_try,
-    CMD_tselect,
-    CMD_tunmenu,
-    CMD_tunmap,
-    CMD_type,
     CMD_undo,
     CMD_undojoin,
     CMD_undolist,
-    CMD_unabbreviate,
-    CMD_unhide,
-    CMD_uniq,
-    CMD_unlet,
-    CMD_unlockvar,
     CMD_unmap,
-    CMD_unmenu,
     CMD_unsilent,
     CMD_update,
     CMD_vglobal,
-    CMD_var,
-    CMD_version,
     CMD_verbose,
-    CMD_vertical,
     CMD_visual,
     CMD_view,
-    CMD_vimgrep,
-    CMD_vimgrepadd,
-    CMD_vim9cmd,
-    CMD_vim9script,
-    CMD_viusage,
     CMD_vmap,
     CMD_vmapclear,
-    CMD_vmenu,
     CMD_vnoremap,
-    CMD_vnew,
-    CMD_vnoremenu,
-    CMD_vsplit,
     CMD_vunmap,
-    CMD_vunmenu,
     CMD_write,
-    CMD_wNext,
-    CMD_wall,
-    CMD_while,
     CMD_winsize,
-    CMD_wincmd,
-    CMD_windo,
-    CMD_winpos,
-    CMD_wlrestore,
-    CMD_wnext,
-    CMD_wprevious,
     CMD_wq,
-    CMD_wqall,
-    CMD_wundo,
-    CMD_wviminfo,
     CMD_xit,
-    CMD_xall,
     CMD_xmap,
     CMD_xmapclear,
-    CMD_xmenu,
     CMD_xnoremap,
-    CMD_xnoremenu,
-    CMD_xrestore,
     CMD_xunmap,
-    CMD_xunmenu,
     CMD_yank,
     CMD_z,
 
-    CMD_bang,
     CMD_pound,
     CMD_and,
     CMD_star,
@@ -3074,16 +2575,9 @@ enum CMD_index
     CMD_equal,
     CMD_rshift,
     CMD_at,
-    CMD_block,
-    CMD_endblock,
     CMD_tilde,
 
-    CMD_Next,
     CMD_Print,
-    CMD_X,
-
-    CMD_increment,
-    CMD_decrement,
 
     CMD_SIZE};
 
@@ -3319,7 +2813,6 @@ static int parse_cmd_address(exarg_T *eap, char **errormsg, int silent);
 static char_u *find_ex_command(exarg_T *eap, int *full, int (*lookup)(char_u *, size_t, int cmd, cctx_T *), cctx_T *cctx);
 static char_u *skip_range(char_u *cmd_start, int skip_star, int *ctx);
 static linenr_T get_address(exarg_T *eap, char_u **ptr, cmd_addr_T addr_type, int skip, int silent, int to_other_file, int address_count);
-static void ex_ni(exarg_T *eap);
 static int expand_filename(exarg_T *eap, char_u **cmdlinep, char **errormsgp);
 static void separate_nextcmd(exarg_T *eap, int keep_backslash);
 static char_u *skip_cmd_arg(char_u *p, int rembs);
@@ -4173,7 +3666,6 @@ static char *uc_fun_cmd(void);
 
 // ---------------- end vim9script.pro ----------------
 // ---------------- begin window.pro ----------------
-static void get_wincmd_addr_type(char_u *arg, exarg_T *eap);
 static int win_valid(win_T *win);
 static int win_valid_any_tab(win_T *win);
 static void curwin_init(void);
@@ -4824,13 +4316,11 @@ static char e_nfa_regexp_cannot_repeat_str[]  =  "E888: (NFA regexp) cannot repe
 static char e_buffer_cannot_be_registered[]  =  "E931: Buffer cannot be registered"  ;
 static char e_attempt_to_delete_buffer_that_is_in_use_str[]  =  "E937: Attempt to delete a buffer that is in use: %s"  ;
 static char e_positive_count_required[]  =  "E939: Positive count required"  ;
-static char e_command_table_needs_to_be_updated_run_make_cmdidxs[]  = "E943: Command table needs to be updated, run 'make cmdidxs'" ;
 static char e_reverse_range_in_character_class[]  =  "E944: Reverse range in character class"  ;
 static char e_range_too_large_in_character_class[]  =  "E945: Range too large in character class"  ;
 static char e_file_changed_while_writing[]  =  "E949: File changed while writing"  ;
 static char e_cannot_use_pattern_recursively[]  =  "E956: Cannot use pattern recursively"  ;
 static char e_yank_register_changed_while_using_it[]  =  "E1064: Yank register changed while using it"  ;
-static char e_command_cannot_be_shortened_str[]  =  "E1065: Command cannot be shortened: %s"  ;
 static char e_cmd_mapping_must_end_with_cr_before_second_cmd[]  =  "E1136: <Cmd> mapping must end with <CR> before second <Cmd>"  ;
 static char e_regexp_number_after_dot_pos_search_chr[]  =  "E1204: No Number allowed after .: '\\%%%c'"  ;
 static char e_cannot_use_bar_to_separate_commands_here_str[]  =  "E1231: Cannot use a bar to separate commands here: %s"  ;
@@ -5163,12 +4653,6 @@ calc_percentage(long part, long whole)
     return (part > 1000000L)
         ? (int)(part / (whole / 100L))
         : (int)((part * 100L) / whole);
-}
-
-    static int
-get_highest_fnum(void)
-{
-    return top_file_num - 1;
 }
 
     static int
@@ -17811,12 +17295,7 @@ ex_append(exarg_T *eap)
             }
         }
         ex_keep_indent = FALSE;
-        if (*eap->arg == '|')
-        {
-            theline = vim_strsave(eap->arg + 1);
-            *eap->arg = NUL;
-        }
-        else if (eap->ea_getline == NULL)
+        if (eap->ea_getline == NULL)
         {
             if (eap->nextcmd == NULL)
             {
@@ -18280,36 +17759,33 @@ ex_substitute(exarg_T *eap)
             return;
         }
 
-        if (!eap->skip)
+        if ( strcmp((char *)(sub), (char *)("%"))  == 0 && vim_strchr(p_cpo, CPO_SUBPERCENT) != NULL)
         {
-            if ( strcmp((char *)(sub), (char *)("%"))  == 0 && vim_strchr(p_cpo, CPO_SUBPERCENT) != NULL)
+            if (old_sub == NULL)
             {
-                if (old_sub == NULL)
-                {
-                    emsg(_(e_no_previous_substitute_regular_expression));
-                    vim_free(sub);
-                    return;
-                }
+                emsg(_(e_no_previous_substitute_regular_expression));
                 vim_free(sub);
-                sub = vim_strsave(old_sub);
-                if (sub == NULL)
-                {
-                    return;
-                }
+                return;
             }
-            else if (!keeppatterns)
+            vim_free(sub);
+            sub = vim_strsave(old_sub);
+            if (sub == NULL)
             {
-                vim_free(old_sub);
-                old_sub = vim_strsave(sub);
-                if (old_sub == NULL)
-                {
-                    vim_free(sub);
-                    return;
-                }
+                return;
+            }
+        }
+        else if (!keeppatterns)
+        {
+            vim_free(old_sub);
+            old_sub = vim_strsave(sub);
+            if (old_sub == NULL)
+            {
+                vim_free(sub);
+                return;
             }
         }
     }
-    else if (!eap->skip)
+    else
     {
         if (old_sub == NULL)
         {
@@ -18331,11 +17807,6 @@ ex_substitute(exarg_T *eap)
     {
         linenr_T    joined_lines_count;
 
-        if (eap->skip)
-        {
-            vim_free(sub);
-            return;
-        }
         curwin->w_cursor.lnum = eap->line1;
         if (*cmd == 'l')
         {
@@ -18461,7 +17932,7 @@ ex_substitute(exarg_T *eap)
     if ( ((unsigned)(*cmd) - '0' < 10) )
     {
         i = getdigits(&cmd);
-        if (i <= 0 && !eap->skip && subflags.do_error)
+        if (i <= 0 && subflags.do_error)
         {
             emsg(_(e_positive_count_required));
             vim_free(sub);
@@ -18484,7 +17955,7 @@ ex_substitute(exarg_T *eap)
     }
 
     cmd = skipwhite(cmd);
-    if (*cmd && *cmd != '"')
+    if (*cmd)
     {
         set_nextcmd(eap, cmd);
         if (eap->nextcmd == NULL)
@@ -18493,12 +17964,6 @@ ex_substitute(exarg_T *eap)
             vim_free(sub);
             return;
         }
-    }
-
-    if (eap->skip)
-    {
-        vim_free(sub);
-        return;
     }
 
     if (!subflags.do_count && !curbuf->b_p_ma)
@@ -19665,7 +19130,6 @@ static int      quitmore = 0;
 static int      ex_pressedreturn = FALSE;
 
 static char_u   *do_one_cmd(char_u **, int, char_u *(*fgetline)(int, void *, int, getline_opt_T), void *cookie);
-static int      if_level = 0;
 static void     append_command(char_u *cmd);
 
 static char_u   *getargcmd(char_u **);
@@ -19674,7 +19138,6 @@ static int      getargopt(exarg_T *eap);
 static linenr_T default_address(exarg_T *eap);
 static void address_default_all(exarg_T *eap);
 static void     get_flags(exarg_T *eap);
-static void     ex_script_ni(exarg_T *eap);
 static char     *invalid_range(exarg_T *eap);
 static void     correct_range(exarg_T *eap);
 static char_u   *repl_cmdline(exarg_T *eap, char_u *src, size_t srclen, char_u *repl, char_u **cmdlinep);
@@ -19686,7 +19149,7 @@ typedef void (*ex_func_T) (exarg_T *eap);
 struct cmdname
 {
     char_u      *cmd_name;
-    size_t      cmd_namelen;
+    int         cmd_minlen;
     ex_func_T   cmd_func;
     long_u      cmd_argt;
     cmd_addr_T  cmd_addr_type;
@@ -19695,69 +19158,6 @@ struct cmdname
 static struct cmdname cmdnames[];
 
 // ---------------- end ex_cmds.h ----------------
-// ---------------- begin ex_cmdidxs.h ----------------
-static const unsigned short cmdidxs1[26] =
-{
-    0,
-    21,
-    45,
-    113,
-    139,
-    168,
-    185,
-    191,
-    201,
-    222,
-    224,
-    229,
-    292,
-    310,
-    330,
-    342,
-    383,
-    386,
-    407,
-    477,
-    524,
-    536,
-    557,
-    572,
-    582,
-    583
-};
-
-static const unsigned char cmdidxs2[26][26] =
-{
-    {  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  5,  6,  7,  0,  0,  0,  8, 17,  0, 18,  0,  0,  0,  0,  0 },
-    {  2,  0,  0,  5,  6,  8,  0,  0,  0,  0,  0,  9, 10, 11, 12, 13,  0, 14,  0,  0,  0,  0, 23,  0,  0,  0 },
-    {  3, 12, 16, 18, 20, 22, 25,  0,  0,  0,  0, 33, 39, 42, 48, 58, 60, 61, 62,  0, 64,  0, 67,  0,  0,  0 },
-    {  0,  0,  0,  0,  0,  0,  0,  0,  9, 19,  0, 20,  0,  0, 21,  0,  0, 23, 24,  0,  0,  0,  0,  0,  0,  0 },
-    {  1,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  9, 11, 12,  0,  0,  0,  0,  0,  0,  0, 23,  0, 24,  0,  0 },
-    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10,  0,  0,  0,  0,  0, 16,  0,  0,  0,  0,  0 },
-    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  2,  0,  0,  4,  5,  0,  0,  0,  0 },
-    {  5,  0,  0,  0,  0,  0,  0,  0,  6,  0,  0,  0,  0,  0,  9,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },
-    {  1,  0,  0,  0,  0,  3,  0,  0,  0,  4,  0,  5,  6,  0,  0, 15,  0,  0, 16,  0, 18,  0,  0,  0,  0,  0 },
-    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0 },
-    {  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },
-    {  3, 11, 15, 19, 20, 25, 28, 33,  0,  0,  0, 35, 38, 41, 45, 51,  0, 53, 62, 54, 55, 59, 61,  0,  0,  0 },
-    {  1,  0,  0,  0,  7,  0,  0,  0,  0,  0, 10,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 16 },
-    {  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  5,  8, 10,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0 },
-    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  5,  0,  0,  0,  0,  0,  0,  9,  0, 11,  0,  0,  0 },
-    {  1,  3,  4,  0,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  8, 10,  0,  0, 17, 18, 27,  0, 29,  0, 30,  0 },
-    {  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },
-    {  0,  0,  0,  0,  0,  0,  0,  0, 13,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 15, 20,  0,  0,  0,  0 },
-    {  2,  6, 15,  0, 19, 23,  0, 25, 26,  0,  0, 29, 31, 35, 39, 41,  0, 50,  0, 51,  0, 64, 65,  0, 66,  0 },
-    {  2,  0, 19,  0, 24, 26,  0, 27,  0, 29,  0, 30, 34, 37, 39, 40,  0, 41, 43,  0, 44,  0,  0,  0, 46,  0 },
-    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },
-    {  1,  0,  0,  0,  2,  0,  0,  0,  5,  0,  0,  0, 12, 15,  0,  0,  0,  0, 18,  0, 19,  0,  0,  0,  0,  0 },
-    {  2,  0,  0,  0,  0,  0,  0,  3,  4,  0,  0,  8,  0,  9,  0, 10, 11,  0,  0,  0, 13, 14,  0,  0,  0,  0 },
-    {  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2,  5,  0,  0,  0,  7,  0,  0,  8,  0,  0,  0,  0,  0 },
-    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },
-    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 }
-};
-
-static const int command_count = 600;
-// ---------------- end ex_cmdidxs.h ----------------
 
 static char_u dollar_command[2] = {'$', 0};
 
@@ -19885,12 +19285,6 @@ msg_verbose_cmd(linenr_T lnum, char_u *cmd)
 do_cmdline_cmd(char_u *cmd)
 {
     return do_cmdline(cmd, NULL, NULL, DOCMD_VERBOSE|DOCMD_NOWAIT|DOCMD_KEYTYPED);
-}
-
-    static int
-do_cmd_argument(char_u *cmd)
-{
-    return do_cmdline(cmd, NULL, NULL, DOCMD_VERBOSE|DOCMD_NOWAIT|DOCMD_KEYTYPED|DOCMD_RANGEOK);
 }
 
     static int
@@ -20039,8 +19433,6 @@ do_cmdline(char_u      *cmdline, char_u      *(*fgetline)(int, void *, int, getl
         }
     }
 
-    if_level = 0;
-
     --call_depth;
     return retval;
 }
@@ -20049,18 +19441,6 @@ do_cmdline(char_u      *cmdline, char_u      *(*fgetline)(int, void *, int, getl
 getline_equal(char_u      *(*fgetline)(int, void *, int, getline_opt_T), void        *cookie  __attribute__((unused)) , char_u      *(*func)(int, void *, int, getline_opt_T))
 {
     return fgetline == func;
-}
-
-    static int
-compute_buffer_local_count(int addr_type, int lnum, int offset)
-{
-    return curbuf->b_fnum;
-}
-
-    static int
-comment_start(char_u *p, int starts_with_colon  __attribute__((unused)) )
-{
-    return *p == '"';
 }
 
     static char_u *
@@ -20075,9 +19455,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     cmdmod_T    save_cmdmod;
     int         save_reg_executing = reg_executing;
     int         save_pending_end_reg_executing = pending_end_reg_executing;
-    int         ni;
     char_u      *cmd;
-    int         starts_with_colon = FALSE;
     int         sourcing = flags & DOCMD_VERBOSE;
     int         did_append_cmd = FALSE;
 
@@ -20108,8 +19486,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     apply_cmdmod(&cmdmod);
     after_modifier = ea.cmd;
 
-    ea.skip = (if_level > 0);
-
     cmd = ea.cmd;
 
     ea.cmd = skip_range(ea.cmd, TRUE, NULL);
@@ -20118,21 +19494,13 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
 
     ea.cmd = cmd;
 
-    if (! ((int)(ea.cmdidx) < 0) )
+    if (ea.cmdidx != CMD_SIZE)
     {
-        if (ea.cmdidx != CMD_SIZE)
-        {
-            ea.addr_type = cmdnames[(int)ea.cmdidx].cmd_addr_type;
-        }
-        else
-        {
-            ea.addr_type = ADDR_LINES;
-        }
-
-        if (ea.cmdidx == CMD_wincmd && p != NULL)
-        {
-            get_wincmd_addr_type(skipwhite(p), &ea);
-        }
+        ea.addr_type = cmdnames[(int)ea.cmdidx].cmd_addr_type;
+    }
+    else
+    {
+        ea.addr_type = ADDR_LINES;
     }
 
     if (parse_cmd_address(&ea, &errormsg, FALSE) == FAIL)
@@ -20146,25 +19514,18 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         ea.cmd = skipwhite(ea.cmd + 1);
     }
 
-    if (*ea.cmd == NUL || comment_start(ea.cmd, starts_with_colon) || (ea.nextcmd = check_nextcmd(ea.cmd)) != NULL)
+    if (*ea.cmd == NUL || (ea.nextcmd = check_nextcmd(ea.cmd)) != NULL)
     {
-        if (ea.skip)
-        {
-            goto doend;
-        }
         errormsg = ex_range_without_command(&ea);
         goto doend;
     }
 
     if (p == NULL)
     {
-        if (!ea.skip)
-        {
-            errormsg = _(e_ambiguous_use_of_user_defined_command);
-        }
+        errormsg = _(e_ambiguous_use_of_user_defined_command);
         goto doend;
     }
-    if (*p == '!' && ea.cmd[1] == 0151 && ea.cmd[0] == 78 && ! ((int)(ea.cmdidx) < 0) )
+    if (*p == '!' && ea.cmd[1] == 0151 && ea.cmd[0] == 78)
     {
         errormsg = uc_fun_cmd();
         goto doend;
@@ -20172,38 +19533,20 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
 
     if (ea.cmdidx == CMD_SIZE)
     {
-        if (!ea.skip)
+         strcpy((char *)(IObuff), (char *)(_(e_not_an_editor_command))) ;
+        if (!sourcing)
         {
-             strcpy((char *)(IObuff), (char *)(_(e_not_an_editor_command))) ;
-            if (!sourcing)
+            if (after_modifier != NULL)
             {
-                if (after_modifier != NULL)
-                {
-                    append_command(after_modifier);
-                }
-                else
-                {
-                    append_command(*cmdlinep);
-                }
-                did_append_cmd = TRUE;
+                append_command(after_modifier);
             }
-            errormsg = (char *)IObuff;
+            else
+            {
+                append_command(*cmdlinep);
+            }
+            did_append_cmd = TRUE;
         }
-        goto doend;
-    }
-
-    ni = (! ((int)(ea.cmdidx) < 0)  && (cmdnames[ea.cmdidx].cmd_func == ex_ni || cmdnames[ea.cmdidx].cmd_func == ex_script_ni));
-
-    if (ea.cmdidx == CMD_if)
-    {
-        ++if_level;
-    }
-    if (if_level)
-    {
-        if (ea.cmdidx == CMD_endif)
-        {
-            --if_level;
-        }
+        errormsg = (char *)IObuff;
         goto doend;
     }
 
@@ -20217,47 +19560,38 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         ea.forceit = FALSE;
     }
 
-    if (! ((int)(ea.cmdidx) < 0) )
+    ea.argt = (long)cmdnames[(int)ea.cmdidx].cmd_argt;
+
+    if (!curbuf->b_p_ma && (ea.argt & EX_MODIFY))
     {
-        ea.argt = (long)cmdnames[(int)ea.cmdidx].cmd_argt;
+        errormsg = _(e_cannot_make_changes_modifiable_is_off);
+        goto doend;
     }
 
-    if (!ea.skip)
+    if (text_locked() && !(ea.argt & EX_LOCK_OK))
     {
-        if (!curbuf->b_p_ma && (ea.argt & EX_MODIFY))
-        {
-            errormsg = _(e_cannot_make_changes_modifiable_is_off);
-            goto doend;
-        }
-
-        if (! ((int)(ea.cmdidx) < 0) )
-        {
-            if (text_locked() && !(ea.argt & EX_LOCK_OK))
-            {
-                errormsg = _(get_text_locked_msg());
-                goto doend;
-            }
-        }
-
-        if (!(ea.argt & (EX_CMDWIN | EX_LOCK_OK)) && ea.cmdidx != CMD_checktime && ea.cmdidx != CMD_edit && ea.cmdidx != CMD_file && ! ((int)(ea.cmdidx) < 0)  && curbuf_locked())
-        {
-            goto doend;
-        }
-
-        if (!ni && !(ea.argt & EX_RANGE) && ea.addr_count > 0)
-        {
-            errormsg = _(e_no_range_allowed);
-            goto doend;
-        }
+        errormsg = _(get_text_locked_msg());
+        goto doend;
     }
 
-    if (!ni && !(ea.argt & EX_BANG) && ea.forceit)
+    if (!(ea.argt & (EX_CMDWIN | EX_LOCK_OK)) && ea.cmdidx != CMD_edit && ea.cmdidx != CMD_file && curbuf_locked())
+    {
+        goto doend;
+    }
+
+    if (!(ea.argt & EX_RANGE) && ea.addr_count > 0)
+    {
+        errormsg = _(e_no_range_allowed);
+        goto doend;
+    }
+
+    if (!(ea.argt & EX_BANG) && ea.forceit)
     {
         errormsg = _(e_no_bang_allowed);
         goto doend;
     }
 
-    if (!ea.skip && !ni && (ea.argt & EX_RANGE))
+    if (ea.argt & EX_RANGE)
     {
         if (!global_busy && ea.line1 > ea.line2)
         {
@@ -20290,14 +19624,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
 
     correct_range(&ea);
 
-    if (ea.cmdidx == CMD_bang)
-    {
-        ea.arg = p;
-    }
-    else
-    {
-        ea.arg = skipwhite(p);
-    }
+    ea.arg = skipwhite(p);
 
     if (ea.cmdidx == CMD_file && *ea.arg != NUL && curbuf_locked())
     {
@@ -20308,7 +19635,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     {
         while (ea.arg[0] == '+' && ea.arg[1] == '+')
         {
-            if (getargopt(&ea) == FAIL && !ni)
+            if (getargopt(&ea) == FAIL)
             {
                 errormsg = _(e_invalid_argument);
                 goto doend;
@@ -20369,7 +19696,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     {
         separate_nextcmd(&ea, FALSE);
     }
-    else if (ea.cmdidx == CMD_bang || ea.cmdidx == CMD_terminal || ea.cmdidx == CMD_global || ea.cmdidx == CMD_vglobal || ea.usefilter)
+    else if (ea.cmdidx == CMD_global || ea.cmdidx == CMD_vglobal || ea.usefilter)
     {
         for (p = ea.arg; *p; ++p)
         {
@@ -20377,7 +19704,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
             {
                   memmove((char *)((p)), (char *)((p + 1)),  strlen((char *)(p + 1))  + 1)  ;
             }
-            else if (*p == '\n' && !(ea.argt & EX_EXPR_ARG))
+            else if (*p == '\n')
             {
                 ea.nextcmd = p + 1;
                 *p = NUL;
@@ -20391,25 +19718,25 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         address_default_all(&ea);
     }
 
-    if (       (ea.argt & EX_REGSTR) && *ea.arg != NUL && (! ((int)(ea.cmdidx) < 0)  || *ea.arg != '=') && !((ea.argt & EX_COUNT) &&  ((unsigned)(*ea.arg) - '0' < 10) ))
+    if (       (ea.argt & EX_REGSTR) && *ea.arg != NUL && !((ea.argt & EX_COUNT) &&  ((unsigned)(*ea.arg) - '0' < 10) ))
     {
         if (*ea.arg == '*' || *ea.arg == '+')
         {
             errormsg = _(e_invalid_register_name);
             goto doend;
         }
-        if (valid_yank_reg(*ea.arg, (! ((int)(ea.cmdidx) < 0)  && ea.cmdidx != CMD_put && ea.cmdidx != CMD_iput)))
+        if (valid_yank_reg(*ea.arg, (ea.cmdidx != CMD_put && ea.cmdidx != CMD_iput)))
         {
             ea.regname = *ea.arg++;
             ea.arg = skipwhite(ea.arg);
         }
     }
 
-    if ((ea.argt & EX_COUNT) &&  ((unsigned)(*ea.arg) - '0' < 10)  && (!(ea.argt & EX_BUFNAME) || *(p = skipdigits(ea.arg + 1)) == NUL ||  ((*p) == ' ' || (*p) == '\t') ))
+    if ((ea.argt & EX_COUNT) &&  ((unsigned)(*ea.arg) - '0' < 10))
     {
         n = getdigits_quoted(&ea.arg);
         ea.arg = skipwhite(ea.arg);
-        if (n <= 0 && !ni && (ea.argt & EX_ZEROR) == 0)
+        if (n <= 0 && (ea.argt & EX_ZEROR) == 0)
         {
             errormsg = _(e_positive_count_required);
             goto doend;
@@ -20445,13 +19772,13 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     {
         get_flags(&ea);
     }
-    if (!ni && !(ea.argt & EX_EXTRA) && *ea.arg != NUL && *ea.arg != '"' && (*ea.arg != '|' || (ea.argt & EX_TRLBAR) == 0))
+    if (!(ea.argt & EX_EXTRA) && *ea.arg != NUL)
     {
         errormsg = ex_errmsg(e_trailing_characters_str, ea.arg);
         goto doend;
     }
 
-    if (!ni && (ea.argt & EX_NEEDARG) && *ea.arg == NUL)
+    if ((ea.argt & EX_NEEDARG) && *ea.arg == NUL)
     {
         errormsg = _(e_argument_required);
         goto doend;
@@ -20460,16 +19787,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     if ((ea.argt & EX_XFILE) && expand_filename(&ea, cmdlinep, &errormsg) == FAIL)
     {
         goto doend;
-    }
-
-    if (ea.cmdidx == CMD_try && cmdmod.cmod_did_esilent > 0)
-    {
-        emsg_silent -= cmdmod.cmod_did_esilent;
-        if (emsg_silent < 0)
-        {
-            emsg_silent = 0;
-        }
-        cmdmod.cmod_did_esilent = 0;
     }
 
     (cmdnames[ea.cmdidx].cmd_func)(&ea);
@@ -20528,7 +19845,7 @@ ex_range_without_command(exarg_T *eap)
 {
     char *errormsg = NULL;
 
-    if ((*eap->cmd == '|' || (exmode_active && eap->cmd != (char_u *)exmode_plus + 1)))
+    if (exmode_active && eap->cmd != (char_u *)exmode_plus + 1)
     {
         eap->cmdidx = CMD_print;
         eap->argt = EX_RANGE+EX_COUNT+EX_TRLBAR;
@@ -20604,7 +19921,6 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
     char_u  *orig_cmd = eap->cmd;
     char_u  *cmd_start = NULL;
     int     use_plus_cmd = FALSE;
-    int     starts_with_colon = FALSE;
     int     has_visual_range = FALSE;
 
       memset(((cmod)), (0), (sizeof(*(cmod))))  ;
@@ -20623,10 +19939,6 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
 
         while (*eap->cmd == ' ' || *eap->cmd == '\t' || *eap->cmd == ':')
         {
-            if (*eap->cmd == ':')
-            {
-                starts_with_colon = TRUE;
-            }
             ++eap->cmd;
         }
 
@@ -20640,15 +19952,6 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
             break;
         }
 
-        if (comment_start(eap->cmd, starts_with_colon))
-        {
-            eap->nextcmd = vim_strchr(eap->cmd, '\n');
-            if (eap->nextcmd != NULL)
-            {
-                ++eap->nextcmd;
-            }
-            return FAIL;
-        }
         if (*eap->cmd == '\n')
         {
             eap->nextcmd = eap->cmd + 1;
@@ -20900,7 +20203,7 @@ parse_cmd_address(exarg_T *eap, char **errormsg, int silent)
         eap->line1 = eap->line2;
         eap->line2 = default_address(eap);
         eap->cmd = skipwhite(eap->cmd);
-        lnum = get_address(eap, &eap->cmd, eap->addr_type, eap->skip, silent, eap->addr_count == 0, address_count++);
+        lnum = get_address(eap, &eap->cmd, eap->addr_type, FALSE, silent, eap->addr_count == 0, address_count++);
         if (eap->cmd == NULL)
         {
             goto theend;
@@ -20917,34 +20220,13 @@ parse_cmd_address(exarg_T *eap, char **errormsg, int silent)
                         eap->line1 = 1;
                         eap->line2 = curbuf->b_ml.ml_line_count;
                         break;
-                    case ADDR_LOADED_BUFFERS:
-                    case ADDR_BUFFERS:
-                        eap->line1 = curbuf->b_fnum;
-                        eap->line2 = curbuf->b_fnum;
-                        break;
                     case ADDR_WINDOWS:
-                    case ADDR_TABS:
-                        if ( ((int)(eap->cmdidx) < 0) )
-                        {
-                            eap->line1 = 1;
-                            eap->line2 = 1;
-                        }
-                        else
-                        {
-                            *errormsg = _(e_invalid_range);
-                            goto theend;
-                        }
-                        break;
-                    case ADDR_TABS_RELATIVE:
-                    case ADDR_UNSIGNED:
-                    case ADDR_QUICKFIX:
                         *errormsg = _(e_invalid_range);
                         goto theend;
-                    case ADDR_ARGUMENTS:
-                        eap->line1 = eap->line2 = 0;
                         break;
-                    case ADDR_QUICKFIX_VALID:
-                        break;
+                    case ADDR_UNSIGNED:
+                        *errormsg = _(e_invalid_range);
+                        goto theend;
                     case ADDR_NONE:
                         break;
                 }
@@ -20961,22 +20243,19 @@ parse_cmd_address(exarg_T *eap, char **errormsg, int silent)
                 }
 
                 ++eap->cmd;
-                if (!eap->skip)
+                fp = getmark('<', FALSE);
+                if (check_mark(fp) == FAIL)
                 {
-                    fp = getmark('<', FALSE);
-                    if (check_mark(fp) == FAIL)
-                    {
-                        goto theend;
-                    }
-                    eap->line1 = fp->lnum;
-                    fp = getmark('>', FALSE);
-                    if (check_mark(fp) == FAIL)
-                    {
-                        goto theend;
-                    }
-                    eap->line2 = fp->lnum;
-                    ++eap->addr_count;
+                    goto theend;
                 }
+                eap->line1 = fp->lnum;
+                fp = getmark('>', FALSE);
+                if (check_mark(fp) == FAIL)
+                {
+                    goto theend;
+                }
+                eap->line2 = fp->lnum;
+                ++eap->addr_count;
             }
         }
         else
@@ -20987,20 +20266,17 @@ parse_cmd_address(exarg_T *eap, char **errormsg, int silent)
 
         if (*eap->cmd == ';')
         {
-            if (!eap->skip)
-            {
-                curwin->w_cursor.lnum = eap->line2;
+            curwin->w_cursor.lnum = eap->line2;
 
-                if (eap->line2 > 0)
-                {
-                    check_cursor();
-                }
-                else
-                {
-                    check_cursor_col();
-                }
-                need_check_cursor = TRUE;
+            if (eap->line2 > 0)
+            {
+                check_cursor();
             }
+            else
+            {
+                check_cursor_col();
+            }
+            need_check_cursor = TRUE;
         }
         else if (*eap->cmd != ',')
         {
@@ -21084,7 +20360,6 @@ find_ex_command(exarg_T *eap, int     *full  __attribute__((unused)) , int     (
     int         len;
     char_u      *p;
     int         i;
-    int         vim9 = FALSE;
 
     p = eap->cmd;
     if (one_letter_cmd(p, &eap->cmdidx))
@@ -21101,28 +20376,13 @@ find_ex_command(exarg_T *eap, int     *full  __attribute__((unused)) , int     (
         {
             ++p;
         }
-        if (eap->cmd[0] == 'p' && eap->cmd[1] == 'y')
-        {
-            while ( ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) )  ||  ((unsigned)(*p) - '0' < 10) ) )
-            {
-                ++p;
-            }
-        }
-        else if (*p == '9' &&  strncmp((char *)("vim9"), (char *)(eap->cmd), (4))  == 0)
-        {
-            ++p;
-            while ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) ) )
-            {
-                ++p;
-            }
-        }
 
-        if (p == eap->cmd && vim_strchr((char_u *)"@*!=><&~#}", *p) != NULL)
+        if (p == eap->cmd && vim_strchr((char_u *)"@*=><&~#", *p) != NULL)
         {
             ++p;
         }
         len = (int)(p - eap->cmd);
-        if (!vim9 && *eap->cmd == 'd' && (p[-1] == 'l' || p[-1] == 'p'))
+        if (*eap->cmd == 'd' && (p[-1] == 'l' || p[-1] == 'p'))
         {
             for (i = 0; i < len; ++i)
             {
@@ -21145,50 +20405,11 @@ find_ex_command(exarg_T *eap, int     *full  __attribute__((unused)) , int     (
             }
         }
 
-        if ( ((unsigned)(eap->cmd[0]) - 'a' < 26) )
+        for (eap->cmdidx = (cmdidx_T)0; (int)eap->cmdidx < (int)CMD_SIZE; eap->cmdidx = (cmdidx_T)((int)eap->cmdidx + 1))
         {
-            int c1 = eap->cmd[0];
-            int c2 = len == 1 ? NUL : eap->cmd[1];
-
-            if (command_count != (int)CMD_SIZE)
-            {
-                iemsg(e_command_table_needs_to_be_updated_run_make_cmdidxs);
-                getout(1);
-            }
-
-            eap->cmdidx = cmdidxs1[ ((c1) - 'a') ];
-            if ( ((unsigned)(c2) - 'a' < 26) )
-            {
-                eap->cmdidx += cmdidxs2[ ((c1) - 'a') ][ ((c2) - 'a') ];
-            }
-        }
-        else if ( ((unsigned)(eap->cmd[0]) - 'A' < 26) )
-        {
-            eap->cmdidx = CMD_Next;
-        }
-        else
-        {
-            eap->cmdidx = CMD_bang;
-        }
-
-        for ( ; (int)eap->cmdidx < (int)CMD_SIZE; eap->cmdidx = (cmdidx_T)((int)eap->cmdidx + 1))
-        {
-            if ( strncmp((char *)(cmdnames[(int)eap->cmdidx].cmd_name), (char *)((char *)eap->cmd), ((size_t)len))  == 0)
+            if (len >= cmdnames[(int)eap->cmdidx].cmd_minlen &&  strncmp((char *)(cmdnames[(int)eap->cmdidx].cmd_name), (char *)((char *)eap->cmd), ((size_t)len))  == 0)
             {
                 break;
-            }
-        }
-
-        if (vim9 && eap->cmdidx != CMD_SIZE)
-        {
-            if (eap->cmdidx == CMD_mode || eap->cmdidx == CMD_Print)
-            {
-                eap->cmdidx = CMD_SIZE;
-            }
-            else if ((cmdnames[eap->cmdidx].cmd_argt & EX_WHOLE) && len < (int)cmdnames[eap->cmdidx].cmd_namelen)
-            {
-                semsg(_(e_command_cannot_be_shortened_str), eap->cmd);
-                eap->cmdidx = CMD_SIZE;
             }
         }
 
@@ -21208,16 +20429,6 @@ find_ex_command(exarg_T *eap, int     *full  __attribute__((unused)) , int     (
         {
             eap->cmdidx = CMD_SIZE;
         }
-    }
-
-    if (eap->cmdidx == CMD_final && p - eap->cmd == 4 && !vim9)
-    {
-        eap->cmdidx = CMD_finally;
-    }
-
-    if (eap->cmdidx == CMD_horizontal && p - eap->cmd == 2)
-    {
-        eap->cmdidx = CMD_SIZE;
     }
 
     return p;
@@ -21331,23 +20542,8 @@ default_address(exarg_T *eap)
         case ADDR_WINDOWS:
             lnum =  1 ;
             break;
-        case ADDR_ARGUMENTS:
-            lnum = 0;
-            break;
-        case ADDR_LOADED_BUFFERS:
-        case ADDR_BUFFERS:
-            lnum = curbuf->b_fnum;
-            break;
-        case ADDR_TABS:
-            lnum =  1 ;
-            break;
-        case ADDR_TABS_RELATIVE:
         case ADDR_UNSIGNED:
             lnum = 1;
-            break;
-        case ADDR_QUICKFIX:
-            break;
-        case ADDR_QUICKFIX_VALID:
             break;
         case ADDR_NONE:
             break;
@@ -21383,26 +20579,11 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
                     case ADDR_WINDOWS:
                         lnum =  1 ;
                         break;
-                    case ADDR_ARGUMENTS:
-                        lnum = 0;
-                        break;
-                    case ADDR_LOADED_BUFFERS:
-                    case ADDR_BUFFERS:
-                        lnum = curbuf->b_fnum;
-                        break;
-                    case ADDR_TABS:
-                        lnum =  1 ;
-                        break;
                     case ADDR_NONE:
-                    case ADDR_TABS_RELATIVE:
                     case ADDR_UNSIGNED:
                         addr_error(addr_type);
                         cmd = NULL;
                         goto error;
-                        break;
-                    case ADDR_QUICKFIX:
-                        break;
-                    case ADDR_QUICKFIX_VALID:
                         break;
                 }
                 break;
@@ -21418,26 +20599,11 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
                     case ADDR_WINDOWS:
                         lnum =  1 ;
                         break;
-                    case ADDR_ARGUMENTS:
-                        lnum = 0;
-                        break;
-                    case ADDR_LOADED_BUFFERS:
-                    case ADDR_BUFFERS:
-                        lnum = curbuf->b_fnum;
-                        break;
-                    case ADDR_TABS:
-                        lnum =  1 ;
-                        break;
                     case ADDR_NONE:
-                    case ADDR_TABS_RELATIVE:
                     case ADDR_UNSIGNED:
                         addr_error(addr_type);
                         cmd = NULL;
                         goto error;
-                        break;
-                    case ADDR_QUICKFIX:
-                        break;
-                    case ADDR_QUICKFIX_VALID:
                         break;
                 }
                 break;
@@ -21612,23 +20778,6 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
                     case ADDR_WINDOWS:
                         lnum =  1 ;
                         break;
-                    case ADDR_ARGUMENTS:
-                        lnum = 0;
-                        break;
-                    case ADDR_LOADED_BUFFERS:
-                    case ADDR_BUFFERS:
-                        lnum = curbuf->b_fnum;
-                        break;
-                    case ADDR_TABS:
-                        lnum =  1 ;
-                        break;
-                    case ADDR_TABS_RELATIVE:
-                        lnum = 1;
-                        break;
-                    case ADDR_QUICKFIX:
-                        break;
-                    case ADDR_QUICKFIX_VALID:
-                        break;
                     case ADDR_NONE:
                     case ADDR_UNSIGNED:
                         lnum = 0;
@@ -21659,32 +20808,19 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
                 }
             }
 
-            if (addr_type == ADDR_TABS_RELATIVE)
+            if (i == '-')
             {
-                emsg(_(e_invalid_range));
-                cmd = NULL;
-                goto error;
-            }
-            else if (addr_type == ADDR_LOADED_BUFFERS || addr_type == ADDR_BUFFERS)
-            {
-                lnum = compute_buffer_local_count(addr_type, lnum, (i == '-') ? -1 * n : n);
+                lnum -= n;
             }
             else
             {
-                if (i == '-')
+                if (lnum >= 0 && n >= LONG_MAX - lnum)
                 {
-                    lnum -= n;
+                    emsg(_(e_line_number_out_of_range));
+                    cmd = NULL;
+                    goto error;
                 }
-                else
-                {
-                    if (lnum >= 0 && n >= LONG_MAX - lnum)
-                    {
-                        emsg(_(e_line_number_out_of_range));
-                        cmd = NULL;
-                        goto error;
-                    }
-                    lnum += n;
-                }
+                lnum += n;
             }
         }
     } while (*cmd == '/' || *cmd == '?');
@@ -21704,29 +20840,12 @@ address_default_all(exarg_T *eap)
         case ADDR_OTHER:
             eap->line2 = curbuf->b_ml.ml_line_count;
             break;
-        case ADDR_LOADED_BUFFERS:
-        case ADDR_BUFFERS:
-            eap->line1 = curbuf->b_fnum;
-            eap->line2 = curbuf->b_fnum;
-            break;
         case ADDR_WINDOWS:
             eap->line2 =  1 ;
             break;
-        case ADDR_TABS:
-            eap->line2 =  1 ;
-            break;
-        case ADDR_TABS_RELATIVE:
-            eap->line2 = 1;
-            break;
-        case ADDR_ARGUMENTS:
-            eap->line1 = eap->line2 = 0;
-            break;
-        case ADDR_QUICKFIX_VALID:
-            break;
         case ADDR_NONE:
         case ADDR_UNSIGNED:
-        case ADDR_QUICKFIX:
-            iemsg("Cannot use EX_DFLALL with ADDR_NONE, ADDR_UNSIGNED or ADDR_QUICKFIX");
+            iemsg("Cannot use EX_DFLALL with ADDR_NONE or ADDR_UNSIGNED");
             break;
     }
 }
@@ -21752,25 +20871,6 @@ get_flags(exarg_T *eap)
     }
 }
 
-    static void
-ex_ni(exarg_T *eap)
-{
-    if (!eap->skip)
-    {
-        eap->errmsg =
-                _(e_sorry_command_is_not_available_in_this_version);
-    }
-}
-
-    static void
-ex_script_ni(exarg_T *eap)
-{
-    if (!eap->skip)
-    {
-        ex_ni(eap);
-    }
-}
-
     static char *
 invalid_range(exarg_T *eap)
 {
@@ -21790,38 +20890,13 @@ invalid_range(exarg_T *eap)
                     return _(e_invalid_range);
                 }
                 break;
-            case ADDR_ARGUMENTS:
-                break;
-            case ADDR_BUFFERS:
-                if (eap->line1 < 1 || eap->line2 > get_highest_fnum())
-                {
-                    return _(e_invalid_range);
-                }
-                break;
-            case ADDR_LOADED_BUFFERS:
-                if (curbuf->b_ml.ml_mfp == NULL || eap->line1 < curbuf->b_fnum || eap->line2 > curbuf->b_fnum)
-                {
-                    return _(e_invalid_range);
-                }
-                break;
             case ADDR_WINDOWS:
                 if (eap->line2 >  1 )
                 {
                     return _(e_invalid_range);
                 }
                 break;
-            case ADDR_TABS:
-                if (eap->line2 >  1 )
-                {
-                    return _(e_invalid_range);
-                }
-                break;
-            case ADDR_TABS_RELATIVE:
             case ADDR_OTHER:
-                break;
-            case ADDR_QUICKFIX:
-                break;
-            case ADDR_QUICKFIX_VALID:
                 break;
             case ADDR_UNSIGNED:
             case ADDR_NONE:
@@ -21887,7 +20962,7 @@ expand_filename(exarg_T     *eap, char_u      **cmdlinep, char        **errormsg
             vim_free(l);
         }
 
-        if (!eap->usefilter && !escaped && eap->cmdidx != CMD_bang && eap->cmdidx != CMD_grep && eap->cmdidx != CMD_grepadd && eap->cmdidx != CMD_hardcopy && eap->cmdidx != CMD_lgrep && eap->cmdidx != CMD_lgrepadd && eap->cmdidx != CMD_lmake && eap->cmdidx != CMD_make && eap->cmdidx != CMD_terminal)
+        if (!eap->usefilter && !escaped)
         {
             char_u      *l;
 
@@ -21906,7 +20981,7 @@ expand_filename(exarg_T     *eap, char_u      **cmdlinep, char        **errormsg
             }
         }
 
-        if ((eap->usefilter || eap->cmdidx == CMD_bang || eap->cmdidx == CMD_terminal) &&  (char_u *)strpbrk((char *)(repl), (char *)((char_u *)"!"))  != NULL)
+        if (eap->usefilter &&  (char_u *)strpbrk((char *)(repl), (char *)((char_u *)"!"))  != NULL)
         {
             char_u      *l;
 
@@ -22039,7 +21114,7 @@ separate_nextcmd(exarg_T *eap, int keep_backslash)
     {
         if (*p == Ctrl_V)
         {
-            if ((eap->argt & (EX_CTRLV | EX_XFILE)) || keep_backslash)
+            if (eap->argt & (EX_CTRLV | EX_XFILE))
             {
                 ++p;
             }
@@ -22053,15 +21128,12 @@ separate_nextcmd(exarg_T *eap, int keep_backslash)
             }
         }
 
-        else if ((*p == '"' && !(eap->argt & EX_NOTRLCOM) && ((eap->cmdidx != CMD_at && eap->cmdidx != CMD_star) || p != eap->arg) && (eap->cmdidx != CMD_redir || p != eap->arg + 1 || p[-1] != '@')) || (*p == '|' && eap->cmdidx != CMD_append && eap->cmdidx != CMD_change && eap->cmdidx != CMD_insert) || *p == '\n')
+        else if (*p == '\n')
         {
             if ((vim_strchr(p_cpo, CPO_BAR) == NULL || !(eap->argt & EX_CTRLV)) && *(p - 1) == '\\')
             {
-                if (!keep_backslash)
-                {
-                      memmove((char *)((p - 1)), (char *)((p)),  strlen((char *)(p))  + 1)  ;
-                    --p;
-                }
+                  memmove((char *)((p - 1)), (char *)((p)),  strlen((char *)(p))  + 1)  ;
+                --p;
             }
             else
             {
@@ -22146,9 +21218,7 @@ getargopt(exarg_T *eap)
     static int
 ends_excmd(int c)
 {
-    int comment_char = '"';
-
-    return (c == NUL || c == '|' || c == comment_char || c == '\n');
+    return (c == NUL || c == '\n');
 }
 
     static int
@@ -22156,17 +21226,13 @@ ends_excmd2(char_u *cmd_start  __attribute__((unused)) , char_u *cmd)
 {
     int c = *cmd;
 
-    if (c == NUL || c == '|' || c == '\n')
-    {
-        return TRUE;
-    }
-    return c == '"';
+    return (c == NUL || c == '\n');
 }
 
     static char_u *
 find_nextcmd(char_u *p)
 {
-    while (*p != '|' && *p != '\n')
+    while (*p != '\n')
     {
         if (*p == NUL)
         {
@@ -22182,7 +21248,7 @@ check_nextcmd(char_u *p)
 {
     char_u *s = skipwhite(p);
 
-    if (*s == '|' || *s == '\n')
+    if (*s == '\n')
     {
         return (s + 1);
     }
@@ -22367,10 +21433,6 @@ do_exedit(exarg_T     *eap, win_T       *old_curwin)
     int         n;
     int         exmode_was = exmode_active;
 
-    if ((eap->cmdidx != CMD_pedit && ERROR_IF_POPUP_WINDOW) || ERROR_IF_TERM_POPUP_WINDOW)
-    {
-        return;
-    }
     if (exmode_active && (eap->cmdidx == CMD_visual || eap->cmdidx == CMD_view))
     {
         exmode_active = FALSE;
@@ -22410,44 +21472,29 @@ do_exedit(exarg_T     *eap, win_T       *old_curwin)
         }
     }
 
-    if ((eap->cmdidx == CMD_new || eap->cmdidx == CMD_vnew) && *eap->arg == NUL)
+    if (*eap->arg != NUL && text_or_buf_locked())
     {
-        setpcmark();
-        (void)do_ecmd(0, NULL, NULL, eap,  (linenr_T)1 , ECMD_HIDE + (eap->forceit ? ECMD_FORCEIT : 0), old_curwin == NULL ? curwin : NULL);
+        return;
     }
-    else if ((eap->cmdidx != CMD_split && eap->cmdidx != CMD_vsplit) || *eap->arg != NUL)
-    {
-        if (*eap->arg != NUL && text_or_buf_locked())
-        {
-            return;
-        }
 
-        n = readonlymode;
-        if (eap->cmdidx == CMD_view || eap->cmdidx == CMD_sview)
-        {
-            readonlymode = TRUE;
-        }
-        else if (eap->cmdidx == CMD_enew)
-        {
-            readonlymode = FALSE;
-        }
-        setpcmark();
-        if (do_ecmd(0, (eap->cmdidx == CMD_enew ? NULL : eap->arg), NULL, eap, (*eap->arg == NUL && eap->do_ecmd_lnum == 0 && vim_strchr(p_cpo, CPO_GOTO1) != NULL) ?  (linenr_T)1  : eap->do_ecmd_lnum, (eap->forceit ? ECMD_FORCEIT : 0) + (old_curwin != NULL ? ECMD_OLDBUF : 0), old_curwin == NULL ? curwin : NULL) == FAIL)
-        {
-        }
-        else if (readonlymode && curbuf->b_nwindows == 1)
-        {
-            curbuf->b_p_ro = TRUE;
-        }
-        readonlymode = n;
-    }
-    else
+    n = readonlymode;
+    if (eap->cmdidx == CMD_view)
     {
-        if (eap->do_ecmd_cmd != NULL)
-        {
-            do_cmd_argument(eap->do_ecmd_cmd);
-        }
+        readonlymode = TRUE;
     }
+    else if (eap->cmdidx == CMD_enew)
+    {
+        readonlymode = FALSE;
+    }
+    setpcmark();
+    if (do_ecmd(0, (eap->cmdidx == CMD_enew ? NULL : eap->arg), NULL, eap, (*eap->arg == NUL && eap->do_ecmd_lnum == 0 && vim_strchr(p_cpo, CPO_GOTO1) != NULL) ?  (linenr_T)1  : eap->do_ecmd_lnum, (eap->forceit ? ECMD_FORCEIT : 0) + (old_curwin != NULL ? ECMD_OLDBUF : 0), old_curwin == NULL ? curwin : NULL) == FAIL)
+    {
+    }
+    else if (readonlymode && curbuf->b_nwindows == 1)
+    {
+        curbuf->b_p_ro = TRUE;
+    }
+    readonlymode = n;
 
     ex_no_reprint = TRUE;
 }
@@ -36875,10 +35922,7 @@ ex_match(exarg_T *eap)
         return;
     }
 
-    if (!eap->skip)
-    {
-        match_delete(curwin, id, FALSE);
-    }
+    match_delete(curwin, id, FALSE);
 
     if (ends_excmd2(eap->cmd, eap->arg))
     {
@@ -36891,10 +35935,7 @@ ex_match(exarg_T *eap)
     else
     {
         p = skiptowhite(eap->arg);
-        if (!eap->skip)
-        {
-            g = vim_strnsave(eap->arg, p - eap->arg);
-        }
+        g = vim_strnsave(eap->arg, p - eap->arg);
         p = skipwhite(p);
         if (*p == NUL)
         {
@@ -36903,27 +35944,24 @@ ex_match(exarg_T *eap)
             return;
         }
         end = skip_regexp(p + 1, *p, TRUE);
-        if (!eap->skip)
+        if (*end != NUL && !ends_excmd2(end, skipwhite(end + 1)))
         {
-            if (*end != NUL && !ends_excmd2(end, skipwhite(end + 1)))
-            {
-                vim_free(g);
-                eap->errmsg = ex_errmsg(e_trailing_characters_str, end);
-                return;
-            }
-            if (*end != *p)
-            {
-                vim_free(g);
-                semsg(_(e_invalid_argument_str), p);
-                return;
-            }
-
-            c = *end;
-            *end = NUL;
-            match_add(curwin, g, p + 1, 10, id, NULL, NULL);
             vim_free(g);
-            *end = c;
+            eap->errmsg = ex_errmsg(e_trailing_characters_str, end);
+            return;
         }
+        if (*end != *p)
+        {
+            vim_free(g);
+            semsg(_(e_invalid_argument_str), p);
+            return;
+        }
+
+        c = *end;
+        *end = NUL;
+        match_add(curwin, g, p + 1, 10, id, NULL, NULL);
+        vim_free(g);
+        *end = c;
     }
     eap->nextcmd = find_nextcmd(end);
 }
@@ -62944,7 +61982,7 @@ mch_get_pid(void)
 mch_dirname(char_u *buf, int len)
 {
     // Asked once.  Nothing can move this process -- :cd, :lcd and :tcd are
-    // ex_ni, :! does not fork, and mch_FullName() no longer chdirs -- so every
+    // not commands, :! does not fork, and mch_FullName() no longer chdirs -- so every
     // later call is asking the kernel a question whose answer cannot have
     // changed since the first one.
     static char_u   cwd[ PATH_MAX ];
@@ -83935,7 +82973,7 @@ add_time(char_u *buf, size_t buflen, time_t tt)
 {
     // How long ago, not when.  Phase 20 took away every way this editor could
     // be told what zone the clock is in, and undo history does not outlive the
-    // process -- :wundo and :rundo are ex_ni -- so every time this formats is
+    // process -- :wundo and :rundo are not commands -- so every time this formats is
     // within one session, which is exactly what "ago" measures.
     long seconds = (long)(vim_time() - tt);
 
@@ -86133,609 +85171,119 @@ init_longVersion(void)
 
 static struct cmdname cmdnames[] =
 {
-    [CMD_append] = {(char_u *)"append", sizeof("append") - 1, ex_append, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_abbreviate] = {(char_u *)"abbreviate", sizeof("abbreviate") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_abclear] = {(char_u *)"abclear", sizeof("abclear") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_aboveleft] = {(char_u *)"aboveleft", sizeof("aboveleft") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_abstract] = {(char_u *)"abstract", sizeof("abstract") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
-    [CMD_all] = {(char_u *)"all", sizeof("all") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_amenu] = {(char_u *)"amenu", sizeof("amenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_anoremenu] = {(char_u *)"anoremenu", sizeof("anoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_args] = {(char_u *)"args", sizeof("args") - 1, ex_ni, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_argadd] = {(char_u *)"argadd", sizeof("argadd") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR| (EX_XFILE | EX_EXTRA) |EX_TRLBAR), ADDR_ARGUMENTS},
-    [CMD_argdelete] = {(char_u *)"argdelete", sizeof("argdelete") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE| (EX_XFILE | EX_EXTRA) |EX_TRLBAR), ADDR_ARGUMENTS},
-    [CMD_argdo] = {(char_u *)"argdo", sizeof("argdo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_ARGUMENTS},
-    [CMD_argdedupe] = {(char_u *)"argdedupe", sizeof("argdedupe") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_argedit] = {(char_u *)"argedit", sizeof("argedit") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_RANGE|EX_ZEROR| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_ARGUMENTS},
-    [CMD_argglobal] = {(char_u *)"argglobal", sizeof("argglobal") - 1, ex_ni, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_arglocal] = {(char_u *)"arglocal", sizeof("arglocal") - 1, ex_ni, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_argument] = {(char_u *)"argument", sizeof("argument") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_ARGUMENTS},
-    [CMD_ascii] = {(char_u *)"ascii", sizeof("ascii") - 1, do_ascii, (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_autocmd] = {(char_u *)"autocmd", sizeof("autocmd") - 1, ex_ni, (long_u)(EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_augroup] = {(char_u *)"augroup", sizeof("augroup") - 1, ex_ni, (long_u)(EX_BANG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_aunmenu] = {(char_u *)"aunmenu", sizeof("aunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_buffer] = {(char_u *)"buffer", sizeof("buffer") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_BUFNAME|EX_BUFUNL|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_TRLBAR), ADDR_BUFFERS},
-    [CMD_bNext] = {(char_u *)"bNext", sizeof("bNext") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_ball] = {(char_u *)"ball", sizeof("ball") - 1, ex_ni, (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_badd] = {(char_u *)"badd", sizeof("badd") - 1, ex_ni, (long_u)(EX_NEEDARG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_balt] = {(char_u *)"balt", sizeof("balt") - 1, ex_ni, (long_u)(EX_NEEDARG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_bdelete] = {(char_u *)"bdelete", sizeof("bdelete") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_BUFNAME|EX_COUNT|EX_EXTRA|EX_TRLBAR), ADDR_BUFFERS},
-    [CMD_behave] = {(char_u *)"behave", sizeof("behave") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_belowright] = {(char_u *)"belowright", sizeof("belowright") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_bfirst] = {(char_u *)"bfirst", sizeof("bfirst") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_blast] = {(char_u *)"blast", sizeof("blast") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_bmodified] = {(char_u *)"bmodified", sizeof("bmodified") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_bnext] = {(char_u *)"bnext", sizeof("bnext") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_botright] = {(char_u *)"botright", sizeof("botright") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_bprevious] = {(char_u *)"bprevious", sizeof("bprevious") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_brewind] = {(char_u *)"brewind", sizeof("brewind") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_break] = {(char_u *)"break", sizeof("break") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_breakadd] = {(char_u *)"breakadd", sizeof("breakadd") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_breakdel] = {(char_u *)"breakdel", sizeof("breakdel") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_breaklist] = {(char_u *)"breaklist", sizeof("breaklist") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_browse] = {(char_u *)"browse", sizeof("browse") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_buffers] = {(char_u *)"buffers", sizeof("buffers") - 1, ex_ni, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_bufdo] = {(char_u *)"bufdo", sizeof("bufdo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_BUFFERS},
-    [CMD_bunload] = {(char_u *)"bunload", sizeof("bunload") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_BUFNAME|EX_COUNT|EX_EXTRA|EX_TRLBAR), ADDR_LOADED_BUFFERS},
-    [CMD_bwipeout] = {(char_u *)"bwipeout", sizeof("bwipeout") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_BUFNAME|EX_BUFUNL|EX_COUNT|EX_EXTRA|EX_TRLBAR), ADDR_BUFFERS},
-    [CMD_change] = {(char_u *)"change", sizeof("change") - 1, ex_change, (long_u)(EX_BANG|EX_WHOLEFOLD|EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_cNext] = {(char_u *)"cNext", sizeof("cNext") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_cNfile] = {(char_u *)"cNfile", sizeof("cNfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_cabbrev] = {(char_u *)"cabbrev", sizeof("cabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cabclear] = {(char_u *)"cabclear", sizeof("cabclear") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cabove] = {(char_u *)"cabove", sizeof("cabove") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_caddbuffer] = {(char_u *)"caddbuffer", sizeof("caddbuffer") - 1,  ex_ni , (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
-    [CMD_caddexpr] = {(char_u *)"caddexpr", sizeof("caddexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG), ADDR_NONE},
-    [CMD_caddfile] = {(char_u *)"caddfile", sizeof("caddfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
-    [CMD_cafter] = {(char_u *)"cafter", sizeof("cafter") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_call] = {(char_u *)"call", sizeof("call") - 1,  ex_ni , (long_u)(EX_RANGE|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_catch] = {(char_u *)"catch", sizeof("catch") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_cbuffer] = {(char_u *)"cbuffer", sizeof("cbuffer") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
-    [CMD_cbefore] = {(char_u *)"cbefore", sizeof("cbefore") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_cbelow] = {(char_u *)"cbelow", sizeof("cbelow") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_cbottom] = {(char_u *)"cbottom", sizeof("cbottom") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_cc] = {(char_u *)"cc", sizeof("cc") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_QUICKFIX},
-    [CMD_cclose] = {(char_u *)"cclose", sizeof("cclose") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_cd] = {(char_u *)"cd", sizeof("cd") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cdo] = {(char_u *)"cdo", sizeof("cdo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
-    [CMD_center] = {(char_u *)"center", sizeof("center") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_cexpr] = {(char_u *)"cexpr", sizeof("cexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG|EX_BANG), ADDR_NONE},
-    [CMD_cfile] = {(char_u *)"cfile", sizeof("cfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_BANG), ADDR_NONE},
-    [CMD_cfdo] = {(char_u *)"cfdo", sizeof("cfdo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
-    [CMD_cfirst] = {(char_u *)"cfirst", sizeof("cfirst") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_cgetfile] = {(char_u *)"cgetfile", sizeof("cgetfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
-    [CMD_cgetbuffer] = {(char_u *)"cgetbuffer", sizeof("cgetbuffer") - 1,  ex_ni , (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
-    [CMD_cgetexpr] = {(char_u *)"cgetexpr", sizeof("cgetexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG), ADDR_NONE},
-    [CMD_chdir] = {(char_u *)"chdir", sizeof("chdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_changes] = {(char_u *)"changes", sizeof("changes") - 1, ex_changes, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_checkpath] = {(char_u *)"checkpath", sizeof("checkpath") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_BANG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_checktime] = {(char_u *)"checktime", sizeof("checktime") - 1, ex_ni, (long_u)(EX_RANGE|EX_BUFNAME|EX_COUNT|EX_EXTRA|EX_TRLBAR), ADDR_OTHER},
-    [CMD_chistory] = {(char_u *)"chistory", sizeof("chistory") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_clist] = {(char_u *)"clist", sizeof("clist") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_clipreset] = {(char_u *)"clipreset", sizeof("clipreset") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_clast] = {(char_u *)"clast", sizeof("clast") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_class] = {(char_u *)"class", sizeof("class") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
-    [CMD_close] = {(char_u *)"close", sizeof("close") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_WINDOWS},
-    [CMD_clearjumps] = {(char_u *)"clearjumps", sizeof("clearjumps") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cmap] = {(char_u *)"cmap", sizeof("cmap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cmapclear] = {(char_u *)"cmapclear", sizeof("cmapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cmenu] = {(char_u *)"cmenu", sizeof("cmenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_cnext] = {(char_u *)"cnext", sizeof("cnext") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_cnewer] = {(char_u *)"cnewer", sizeof("cnewer") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_cnfile] = {(char_u *)"cnfile", sizeof("cnfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_cnoremap] = {(char_u *)"cnoremap", sizeof("cnoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cnoreabbrev] = {(char_u *)"cnoreabbrev", sizeof("cnoreabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cnoremenu] = {(char_u *)"cnoremenu", sizeof("cnoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_copy] = {(char_u *)"copy", sizeof("copy") - 1, ex_copymove, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_colder] = {(char_u *)"colder", sizeof("colder") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_colorscheme] = {(char_u *)"colorscheme", sizeof("colorscheme") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_command] = {(char_u *)"command", sizeof("command") - 1, ex_ni, (long_u)(EX_EXTRA|EX_BANG|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_comclear] = {(char_u *)"comclear", sizeof("comclear") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_compiler] = {(char_u *)"compiler", sizeof("compiler") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_continue] = {(char_u *)"continue", sizeof("continue") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_confirm] = {(char_u *)"confirm", sizeof("confirm") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_const] = {(char_u *)"const", sizeof("const") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_BANG|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
-    [CMD_copen] = {(char_u *)"copen", sizeof("copen") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_cprevious] = {(char_u *)"cprevious", sizeof("cprevious") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_cpfile] = {(char_u *)"cpfile", sizeof("cpfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_OTHER},
-    [CMD_cquit] = {(char_u *)"cquit", sizeof("cquit") - 1, ex_cquit, (long_u)(EX_RANGE|EX_COUNT|EX_ZEROR|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_crewind] = {(char_u *)"crewind", sizeof("crewind") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_cscope] = {(char_u *)"cscope", sizeof("cscope") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_XFILE), ADDR_NONE},
-    [CMD_cstag] = {(char_u *)"cstag", sizeof("cstag") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
-    [CMD_cunmap] = {(char_u *)"cunmap", sizeof("cunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cunabbrev] = {(char_u *)"cunabbrev", sizeof("cunabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cunmenu] = {(char_u *)"cunmenu", sizeof("cunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_cwindow] = {(char_u *)"cwindow", sizeof("cwindow") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_delete] = {(char_u *)"delete", sizeof("delete") - 1, ex_operators, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_REGSTR|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_delmarks] = {(char_u *)"delmarks", sizeof("delmarks") - 1, ex_delmarks, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_debug] = {(char_u *)"debug", sizeof("debug") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_debuggreedy] = {(char_u *)"debuggreedy", sizeof("debuggreedy") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_def] = {(char_u *)"def", sizeof("def") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_BANG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
-    [CMD_defcompile] = {(char_u *)"defcompile", sizeof("defcompile") - 1,  ex_ni , (long_u)(EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_TRLBAR|EX_EXTRA), ADDR_NONE},
-    [CMD_defer] = {(char_u *)"defer", sizeof("defer") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_delcommand] = {(char_u *)"delcommand", sizeof("delcommand") - 1, ex_ni, (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_delfunction] = {(char_u *)"delfunction", sizeof("delfunction") - 1,  ex_ni , (long_u)(EX_BANG|EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_display] = {(char_u *)"display", sizeof("display") - 1, ex_display, (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_diffupdate] = {(char_u *)"diffupdate", sizeof("diffupdate") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
-    [CMD_diffget] = {(char_u *)"diffget", sizeof("diffget") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_MODIFY), ADDR_LINES},
-    [CMD_diffoff] = {(char_u *)"diffoff", sizeof("diffoff") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
-    [CMD_diffpatch] = {(char_u *)"diffpatch", sizeof("diffpatch") - 1,  ex_ni , (long_u)(EX_EXTRA| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_MODIFY), ADDR_NONE},
-    [CMD_diffput] = {(char_u *)"diffput", sizeof("diffput") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR), ADDR_LINES},
-    [CMD_diffsplit] = {(char_u *)"diffsplit", sizeof("diffsplit") - 1,  ex_ni , (long_u)(EX_EXTRA| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
-    [CMD_diffthis] = {(char_u *)"diffthis", sizeof("diffthis") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_digraphs] = {(char_u *)"digraphs", sizeof("digraphs") - 1, ex_ni, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_disassemble] = {(char_u *)"disassemble", sizeof("disassemble") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_NEEDARG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_djump] = {(char_u *)"djump", sizeof("djump") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA), ADDR_LINES},
-    [CMD_dlist] = {(char_u *)"dlist", sizeof("dlist") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_doautocmd] = {(char_u *)"doautocmd", sizeof("doautocmd") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_doautoall] = {(char_u *)"doautoall", sizeof("doautoall") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_drop] = {(char_u *)"drop", sizeof("drop") - 1, ex_ni, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_NEEDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_dsearch] = {(char_u *)"dsearch", sizeof("dsearch") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_dsplit] = {(char_u *)"dsplit", sizeof("dsplit") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA), ADDR_LINES},
-    [CMD_edit] = {(char_u *)"edit", sizeof("edit") - 1, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_earlier] = {(char_u *)"earlier", sizeof("earlier") - 1, ex_later, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NOSPC|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_echo] = {(char_u *)"echo", sizeof("echo") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_echoerr] = {(char_u *)"echoerr", sizeof("echoerr") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_echohl] = {(char_u *)"echohl", sizeof("echohl") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_echomsg] = {(char_u *)"echomsg", sizeof("echomsg") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_echoconsole] = {(char_u *)"echoconsole", sizeof("echoconsole") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_echon] = {(char_u *)"echon", sizeof("echon") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_echowindow] = {(char_u *)"echowindow", sizeof("echowindow") - 1,  ex_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_else] = {(char_u *)"else", sizeof("else") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_elseif] = {(char_u *)"elseif", sizeof("elseif") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_emenu] = {(char_u *)"emenu", sizeof("emenu") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_RANGE|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_endif] = {(char_u *)"endif", sizeof("endif") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_endinterface] = {(char_u *)"endinterface", sizeof("endinterface") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_endclass] = {(char_u *)"endclass", sizeof("endclass") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_enddef] = {(char_u *)"enddef", sizeof("enddef") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_endenum] = {(char_u *)"endenum", sizeof("endenum") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_endfunction] = {(char_u *)"endfunction", sizeof("endfunction") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_endfor] = {(char_u *)"endfor", sizeof("endfor") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_endtry] = {(char_u *)"endtry", sizeof("endtry") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_endwhile] = {(char_u *)"endwhile", sizeof("endwhile") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_enew] = {(char_u *)"enew", sizeof("enew") - 1, ex_edit, (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
-    [CMD_enum] = {(char_u *)"enum", sizeof("enum") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
-    [CMD_eval] = {(char_u *)"eval", sizeof("eval") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_ex] = {(char_u *)"ex", sizeof("ex") - 1, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_execute] = {(char_u *)"execute", sizeof("execute") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_exit] = {(char_u *)"exit", sizeof("exit") - 1, ex_exit, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_export] = {(char_u *)"export", sizeof("export") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_exusage] = {(char_u *)"exusage", sizeof("exusage") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_file] = {(char_u *)"file", sizeof("file") - 1, ex_file, (long_u)(EX_RANGE|EX_ZEROR|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_OTHER},
-    [CMD_files] = {(char_u *)"files", sizeof("files") - 1, ex_ni, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_filetype] = {(char_u *)"filetype", sizeof("filetype") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_filter] = {(char_u *)"filter", sizeof("filter") - 1, ex_wrongmodifier, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_find] = {(char_u *)"find", sizeof("find") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_NEEDARG), ADDR_OTHER},
-    [CMD_final] = {(char_u *)"final", sizeof("final") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
-    [CMD_finally] = {(char_u *)"finally", sizeof("finally") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_finish] = {(char_u *)"finish", sizeof("finish") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_first] = {(char_u *)"first", sizeof("first") - 1, ex_ni, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_fixdel] = {(char_u *)"fixdel", sizeof("fixdel") - 1, do_fixdel, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_fold] = {(char_u *)"fold", sizeof("fold") - 1,  ex_ni , (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_foldclose] = {(char_u *)"foldclose", sizeof("foldclose") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_WHOLEFOLD|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_folddoopen] = {(char_u *)"folddoopen", sizeof("folddoopen") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_LINES},
-    [CMD_folddoclosed] = {(char_u *)"folddoclosed", sizeof("folddoclosed") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_LINES},
-    [CMD_foldopen] = {(char_u *)"foldopen", sizeof("foldopen") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_WHOLEFOLD|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_for] = {(char_u *)"for", sizeof("for") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_function] = {(char_u *)"function", sizeof("function") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_BANG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_EXPORT), ADDR_NONE},
-    [CMD_global] = {(char_u *)"global", sizeof("global") - 1, ex_global, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_EXTRA|EX_DFLALL|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_goto] = {(char_u *)"goto", sizeof("goto") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_grep] = {(char_u *)"grep", sizeof("grep") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_OTHER},
-    [CMD_grepadd] = {(char_u *)"grepadd", sizeof("grepadd") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_OTHER},
-    [CMD_gui] = {(char_u *)"gui", sizeof("gui") - 1,  ex_ni , (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_gvim] = {(char_u *)"gvim", sizeof("gvim") - 1,  ex_ni , (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_help] = {(char_u *)"help", sizeof("help") - 1, ex_ni, (long_u)(EX_BANG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_helpclose] = {(char_u *)"helpclose", sizeof("helpclose") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_helpfind] = {(char_u *)"helpfind", sizeof("helpfind") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_helpgrep] = {(char_u *)"helpgrep", sizeof("helpgrep") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_NEEDARG), ADDR_NONE},
-    [CMD_helptags] = {(char_u *)"helptags", sizeof("helptags") - 1, ex_ni, (long_u)(EX_NEEDARG| (EX_XFILE | EX_EXTRA) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_hardcopy] = {(char_u *)"hardcopy", sizeof("hardcopy") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_EXTRA|EX_EXPAND|EX_TRLBAR|EX_DFLALL|EX_BANG), ADDR_LINES},
-    [CMD_highlight] = {(char_u *)"highlight", sizeof("highlight") - 1, ex_highlight, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_hide] = {(char_u *)"hide", sizeof("hide") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_EXTRA|EX_TRLBAR), ADDR_WINDOWS},
-    [CMD_history] = {(char_u *)"history", sizeof("history") - 1, ex_history, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_horizontal] = {(char_u *)"horizontal", sizeof("horizontal") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_insert] = {(char_u *)"insert", sizeof("insert") - 1, ex_append, (long_u)(EX_BANG|EX_RANGE|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_iabbrev] = {(char_u *)"iabbrev", sizeof("iabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_iabclear] = {(char_u *)"iabclear", sizeof("iabclear") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_if] = {(char_u *)"if", sizeof("if") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_ijump] = {(char_u *)"ijump", sizeof("ijump") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA), ADDR_LINES},
-    [CMD_ilist] = {(char_u *)"ilist", sizeof("ilist") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_imap] = {(char_u *)"imap", sizeof("imap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_imapclear] = {(char_u *)"imapclear", sizeof("imapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_imenu] = {(char_u *)"imenu", sizeof("imenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_import] = {(char_u *)"import", sizeof("import") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_inoremap] = {(char_u *)"inoremap", sizeof("inoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_inoreabbrev] = {(char_u *)"inoreabbrev", sizeof("inoreabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_inoremenu] = {(char_u *)"inoremenu", sizeof("inoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_intro] = {(char_u *)"intro", sizeof("intro") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_interface] = {(char_u *)"interface", sizeof("interface") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
-    [CMD_iput] = {(char_u *)"iput", sizeof("iput") - 1, ex_iput, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_REGSTR|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_isearch] = {(char_u *)"isearch", sizeof("isearch") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_isplit] = {(char_u *)"isplit", sizeof("isplit") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA), ADDR_LINES},
-    [CMD_iunmap] = {(char_u *)"iunmap", sizeof("iunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_iunabbrev] = {(char_u *)"iunabbrev", sizeof("iunabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_iunmenu] = {(char_u *)"iunmenu", sizeof("iunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_join] = {(char_u *)"join", sizeof("join") - 1, ex_join, (long_u)(EX_BANG|EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_jumps] = {(char_u *)"jumps", sizeof("jumps") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_k] = {(char_u *)"k", sizeof("k") - 1, ex_mark, (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_keepmarks] = {(char_u *)"keepmarks", sizeof("keepmarks") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_keepjumps] = {(char_u *)"keepjumps", sizeof("keepjumps") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_keeppatterns] = {(char_u *)"keeppatterns", sizeof("keeppatterns") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_keepalt] = {(char_u *)"keepalt", sizeof("keepalt") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_list] = {(char_u *)"list", sizeof("list") - 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_lNext] = {(char_u *)"lNext", sizeof("lNext") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_lNfile] = {(char_u *)"lNfile", sizeof("lNfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_last] = {(char_u *)"last", sizeof("last") - 1, ex_ni, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_labove] = {(char_u *)"labove", sizeof("labove") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_language] = {(char_u *)"language", sizeof("language") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_laddexpr] = {(char_u *)"laddexpr", sizeof("laddexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG), ADDR_NONE},
-    [CMD_laddbuffer] = {(char_u *)"laddbuffer", sizeof("laddbuffer") - 1,  ex_ni , (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
-    [CMD_laddfile] = {(char_u *)"laddfile", sizeof("laddfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
-    [CMD_lafter] = {(char_u *)"lafter", sizeof("lafter") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_later] = {(char_u *)"later", sizeof("later") - 1, ex_later, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NOSPC|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lbuffer] = {(char_u *)"lbuffer", sizeof("lbuffer") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
-    [CMD_lbefore] = {(char_u *)"lbefore", sizeof("lbefore") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_lbelow] = {(char_u *)"lbelow", sizeof("lbelow") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_lbottom] = {(char_u *)"lbottom", sizeof("lbottom") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_lcd] = {(char_u *)"lcd", sizeof("lcd") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lchdir] = {(char_u *)"lchdir", sizeof("lchdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lclose] = {(char_u *)"lclose", sizeof("lclose") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_lcscope] = {(char_u *)"lcscope", sizeof("lcscope") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_XFILE), ADDR_NONE},
-    [CMD_ldo] = {(char_u *)"ldo", sizeof("ldo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
-    [CMD_left] = {(char_u *)"left", sizeof("left") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_leftabove] = {(char_u *)"leftabove", sizeof("leftabove") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_let] = {(char_u *)"let", sizeof("let") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lexpr] = {(char_u *)"lexpr", sizeof("lexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG|EX_BANG), ADDR_NONE},
-    [CMD_legacy] = {(char_u *)"legacy", sizeof("legacy") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lfile] = {(char_u *)"lfile", sizeof("lfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_BANG), ADDR_NONE},
-    [CMD_lfdo] = {(char_u *)"lfdo", sizeof("lfdo") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_QUICKFIX_VALID},
-    [CMD_lfirst] = {(char_u *)"lfirst", sizeof("lfirst") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_lgetfile] = {(char_u *)"lgetfile", sizeof("lgetfile") - 1,  ex_ni , (long_u)(EX_TRLBAR| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
-    [CMD_lgetbuffer] = {(char_u *)"lgetbuffer", sizeof("lgetbuffer") - 1,  ex_ni , (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR), ADDR_LINES},
-    [CMD_lgetexpr] = {(char_u *)"lgetexpr", sizeof("lgetexpr") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_NOTRLCOM|EX_EXPR_ARG), ADDR_NONE},
-    [CMD_lgrep] = {(char_u *)"lgrep", sizeof("lgrep") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_OTHER},
-    [CMD_lgrepadd] = {(char_u *)"lgrepadd", sizeof("lgrepadd") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_OTHER},
-    [CMD_lhelpgrep] = {(char_u *)"lhelpgrep", sizeof("lhelpgrep") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_NEEDARG), ADDR_NONE},
-    [CMD_lhistory] = {(char_u *)"lhistory", sizeof("lhistory") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_ll] = {(char_u *)"ll", sizeof("ll") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_QUICKFIX},
-    [CMD_llast] = {(char_u *)"llast", sizeof("llast") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_llist] = {(char_u *)"llist", sizeof("llist") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lmap] = {(char_u *)"lmap", sizeof("lmap") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lmapclear] = {(char_u *)"lmapclear", sizeof("lmapclear") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lmake] = {(char_u *)"lmake", sizeof("lmake") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_NONE},
-    [CMD_lnoremap] = {(char_u *)"lnoremap", sizeof("lnoremap") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lnext] = {(char_u *)"lnext", sizeof("lnext") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_lnewer] = {(char_u *)"lnewer", sizeof("lnewer") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_lnfile] = {(char_u *)"lnfile", sizeof("lnfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_loadview] = {(char_u *)"loadview", sizeof("loadview") - 1,  ex_ni , (long_u)( ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
-    [CMD_loadkeymap] = {(char_u *)"loadkeymap", sizeof("loadkeymap") - 1,  ex_ni , (long_u)(EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lockmarks] = {(char_u *)"lockmarks", sizeof("lockmarks") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_lockvar] = {(char_u *)"lockvar", sizeof("lockvar") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lolder] = {(char_u *)"lolder", sizeof("lolder") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_UNSIGNED},
-    [CMD_lopen] = {(char_u *)"lopen", sizeof("lopen") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_lprevious] = {(char_u *)"lprevious", sizeof("lprevious") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_lpfile] = {(char_u *)"lpfile", sizeof("lpfile") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_OTHER},
-    [CMD_lrewind] = {(char_u *)"lrewind", sizeof("lrewind") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
-    [CMD_ltag] = {(char_u *)"ltag", sizeof("ltag") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_BANG| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
-    [CMD_lunmap] = {(char_u *)"lunmap", sizeof("lunmap") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_lua] = {(char_u *)"lua", sizeof("lua") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_luado] = {(char_u *)"luado", sizeof("luado") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_luafile] = {(char_u *)"luafile", sizeof("luafile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_lvimgrep] = {(char_u *)"lvimgrep", sizeof("lvimgrep") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_lvimgrepadd] = {(char_u *)"lvimgrepadd", sizeof("lvimgrepadd") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_lwindow] = {(char_u *)"lwindow", sizeof("lwindow") - 1,  ex_ni , (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_ls] = {(char_u *)"ls", sizeof("ls") - 1, ex_ni, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_move] = {(char_u *)"move", sizeof("move") - 1, ex_copymove, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_mark] = {(char_u *)"mark", sizeof("mark") - 1, ex_mark, (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_make] = {(char_u *)"make", sizeof("make") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_NONE},
-    [CMD_map] = {(char_u *)"map", sizeof("map") - 1, ex_map, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_mapclear] = {(char_u *)"mapclear", sizeof("mapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_marks] = {(char_u *)"marks", sizeof("marks") - 1, ex_marks, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_match] = {(char_u *)"match", sizeof("match") - 1, ex_match, (long_u)(EX_RANGE|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_menu] = {(char_u *)"menu", sizeof("menu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_menutranslate] = {(char_u *)"menutranslate", sizeof("menutranslate") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_messages] = {(char_u *)"messages", sizeof("messages") - 1, ex_messages, (long_u)(EX_EXTRA|EX_TRLBAR|EX_RANGE|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_mkexrc] = {(char_u *)"mkexrc", sizeof("mkexrc") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_mksession] = {(char_u *)"mksession", sizeof("mksession") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
-    [CMD_mkspell] = {(char_u *)"mkspell", sizeof("mkspell") - 1,  ex_ni , (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE), ADDR_NONE},
-    [CMD_mkvimrc] = {(char_u *)"mkvimrc", sizeof("mkvimrc") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_mkview] = {(char_u *)"mkview", sizeof("mkview") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
-    [CMD_mode] = {(char_u *)"mode", sizeof("mode") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_mzscheme] = {(char_u *)"mzscheme", sizeof("mzscheme") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_LINES},
-    [CMD_mzfile] = {(char_u *)"mzfile", sizeof("mzfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_next] = {(char_u *)"next", sizeof("next") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_nbkey] = {(char_u *)"nbkey", sizeof("nbkey") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NEEDARG), ADDR_NONE},
-    [CMD_nbclose] = {(char_u *)"nbclose", sizeof("nbclose") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_nbstart] = {(char_u *)"nbstart", sizeof("nbstart") - 1,  ex_ni , (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_new] = {(char_u *)"new", sizeof("new") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_nmap] = {(char_u *)"nmap", sizeof("nmap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_nmapclear] = {(char_u *)"nmapclear", sizeof("nmapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_nmenu] = {(char_u *)"nmenu", sizeof("nmenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_nnoremap] = {(char_u *)"nnoremap", sizeof("nnoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_nnoremenu] = {(char_u *)"nnoremenu", sizeof("nnoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_noremap] = {(char_u *)"noremap", sizeof("noremap") - 1, ex_map, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_noautocmd] = {(char_u *)"noautocmd", sizeof("noautocmd") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_nohlsearch] = {(char_u *)"nohlsearch", sizeof("nohlsearch") - 1, ex_nohlsearch, (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_noreabbrev] = {(char_u *)"noreabbrev", sizeof("noreabbrev") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_noremenu] = {(char_u *)"noremenu", sizeof("noremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_noswapfile] = {(char_u *)"noswapfile", sizeof("noswapfile") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_normal] = {(char_u *)"normal", sizeof("normal") - 1, ex_normal, (long_u)(EX_RANGE|EX_BANG|EX_EXTRA|EX_NEEDARG|EX_NOTRLCOM|EX_CTRLV|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_number] = {(char_u *)"number", sizeof("number") - 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_nunmap] = {(char_u *)"nunmap", sizeof("nunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_nunmenu] = {(char_u *)"nunmenu", sizeof("nunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_open] = {(char_u *)"open", sizeof("open") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_EXTRA), ADDR_LINES},
-    [CMD_oldfiles] = {(char_u *)"oldfiles", sizeof("oldfiles") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_omap] = {(char_u *)"omap", sizeof("omap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_omapclear] = {(char_u *)"omapclear", sizeof("omapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_omenu] = {(char_u *)"omenu", sizeof("omenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_only] = {(char_u *)"only", sizeof("only") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_WINDOWS},
-    [CMD_onoremap] = {(char_u *)"onoremap", sizeof("onoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_onoremenu] = {(char_u *)"onoremenu", sizeof("onoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_options] = {(char_u *)"options", sizeof("options") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_ounmap] = {(char_u *)"ounmap", sizeof("ounmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_ounmenu] = {(char_u *)"ounmenu", sizeof("ounmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_ownsyntax] = {(char_u *)"ownsyntax", sizeof("ownsyntax") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_print] = {(char_u *)"print", sizeof("print") - 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_LINES},
-    [CMD_packadd] = {(char_u *)"packadd", sizeof("packadd") - 1,  ex_ni , (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_packloadall] = {(char_u *)"packloadall", sizeof("packloadall") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_pbuffer] = {(char_u *)"pbuffer", sizeof("pbuffer") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_BUFNAME|EX_BUFUNL|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_TRLBAR), ADDR_BUFFERS},
-    [CMD_pclose] = {(char_u *)"pclose", sizeof("pclose") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
-    [CMD_perl] = {(char_u *)"perl", sizeof("perl") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_perldo] = {(char_u *)"perldo", sizeof("perldo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_pedit] = {(char_u *)"pedit", sizeof("pedit") - 1,  ex_ni , (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_pop] = {(char_u *)"pop", sizeof("pop") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_COUNT|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_popup] = {(char_u *)"popup", sizeof("popup") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_BANG|EX_TRLBAR|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_ppop] = {(char_u *)"ppop", sizeof("ppop") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_COUNT|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_preserve] = {(char_u *)"preserve", sizeof("preserve") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_previous] = {(char_u *)"previous", sizeof("previous") - 1, ex_ni, (long_u)(EX_EXTRA|EX_RANGE|EX_COUNT|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_promptfind] = {(char_u *)"promptfind", sizeof("promptfind") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_promptrepl] = {(char_u *)"promptrepl", sizeof("promptrepl") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_profile] = {(char_u *)"profile", sizeof("profile") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_profdel] = {(char_u *)"profdel", sizeof("profdel") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_psearch] = {(char_u *)"psearch", sizeof("psearch") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_WHOLEFOLD|EX_DFLALL|EX_EXTRA), ADDR_LINES},
-    [CMD_ptag] = {(char_u *)"ptag", sizeof("ptag") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_ptNext] = {(char_u *)"ptNext", sizeof("ptNext") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_ptfirst] = {(char_u *)"ptfirst", sizeof("ptfirst") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_ptjump] = {(char_u *)"ptjump", sizeof("ptjump") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
-    [CMD_ptlast] = {(char_u *)"ptlast", sizeof("ptlast") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
-    [CMD_ptnext] = {(char_u *)"ptnext", sizeof("ptnext") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_ptprevious] = {(char_u *)"ptprevious", sizeof("ptprevious") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_ptrewind] = {(char_u *)"ptrewind", sizeof("ptrewind") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_ptselect] = {(char_u *)"ptselect", sizeof("ptselect") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
-    [CMD_put] = {(char_u *)"put", sizeof("put") - 1, ex_put, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_REGSTR|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_public] = {(char_u *)"public", sizeof("public") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_pwd] = {(char_u *)"pwd", sizeof("pwd") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_python] = {(char_u *)"python", sizeof("python") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_pydo] = {(char_u *)"pydo", sizeof("pydo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_pyfile] = {(char_u *)"pyfile", sizeof("pyfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_py3] = {(char_u *)"py3", sizeof("py3") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_py3do] = {(char_u *)"py3do", sizeof("py3do") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_python3] = {(char_u *)"python3", sizeof("python3") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_py3file] = {(char_u *)"py3file", sizeof("py3file") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_pyx] = {(char_u *)"pyx", sizeof("pyx") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_pyxdo] = {(char_u *)"pyxdo", sizeof("pyxdo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_pythonx] = {(char_u *)"pythonx", sizeof("pythonx") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_pyxfile] = {(char_u *)"pyxfile", sizeof("pyxfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_quit] = {(char_u *)"quit", sizeof("quit") - 1, ex_quit, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_WINDOWS},
-    [CMD_quitall] = {(char_u *)"quitall", sizeof("quitall") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_qall] = {(char_u *)"qall", sizeof("qall") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_read] = {(char_u *)"read", sizeof("read") - 1, ex_read, (long_u)(EX_BANG|EX_RANGE|EX_WHOLEFOLD| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_recover] = {(char_u *)"recover", sizeof("recover") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_NONE},
-    [CMD_redo] = {(char_u *)"redo", sizeof("redo") - 1, ex_redo, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_redir] = {(char_u *)"redir", sizeof("redir") - 1, ex_ni, (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_redraw] = {(char_u *)"redraw", sizeof("redraw") - 1, ex_redraw, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_redrawstatus] = {(char_u *)"redrawstatus", sizeof("redrawstatus") - 1, ex_redrawstatus, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_redrawtabline] = {(char_u *)"redrawtabline", sizeof("redrawtabline") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_redrawtabpanel] = {(char_u *)"redrawtabpanel", sizeof("redrawtabpanel") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_registers] = {(char_u *)"registers", sizeof("registers") - 1, ex_display, (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_resize] = {(char_u *)"resize", sizeof("resize") - 1, ex_ni, (long_u)(EX_RANGE|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_retab] = {(char_u *)"retab", sizeof("retab") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_RANGE|EX_WHOLEFOLD|EX_DFLALL|EX_BANG| (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_return] = {(char_u *)"return", sizeof("return") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_rewind] = {(char_u *)"rewind", sizeof("rewind") - 1, ex_ni, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_right] = {(char_u *)"right", sizeof("right") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_rightbelow] = {(char_u *)"rightbelow", sizeof("rightbelow") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_runtime] = {(char_u *)"runtime", sizeof("runtime") - 1, ex_ni, (long_u)(EX_BANG|EX_NEEDARG| (EX_XFILE | EX_EXTRA) |EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_ruby] = {(char_u *)"ruby", sizeof("ruby") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_rubydo] = {(char_u *)"rubydo", sizeof("rubydo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_rubyfile] = {(char_u *)"rubyfile", sizeof("rubyfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_rundo] = {(char_u *)"rundo", sizeof("rundo") - 1,  ex_ni , (long_u)(EX_NEEDARG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
-    [CMD_rviminfo] = {(char_u *)"rviminfo", sizeof("rviminfo") - 1,  ex_ni , (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_substitute] = {(char_u *)"substitute", sizeof("substitute") - 1, ex_substitute, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_sNext] = {(char_u *)"sNext", sizeof("sNext") - 1, ex_ni, (long_u)(EX_EXTRA|EX_RANGE|EX_COUNT|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sargument] = {(char_u *)"sargument", sizeof("sargument") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_ARGUMENTS},
-    [CMD_sall] = {(char_u *)"sall", sizeof("sall") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sandbox] = {(char_u *)"sandbox", sizeof("sandbox") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_saveas] = {(char_u *)"saveas", sizeof("saveas") - 1, ex_write, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_CMDWIN|EX_LOCK_OK|EX_TRLBAR), ADDR_NONE},
-    [CMD_sbuffer] = {(char_u *)"sbuffer", sizeof("sbuffer") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_BUFNAME|EX_BUFUNL|EX_COUNT|EX_EXTRA|EX_CMDARG|EX_TRLBAR), ADDR_BUFFERS},
-    [CMD_sbNext] = {(char_u *)"sbNext", sizeof("sbNext") - 1, ex_ni, (long_u)(EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sball] = {(char_u *)"sball", sizeof("sball") - 1, ex_ni, (long_u)(EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sbfirst] = {(char_u *)"sbfirst", sizeof("sbfirst") - 1, ex_ni, (long_u)(EX_CMDARG|EX_TRLBAR), ADDR_NONE},
-    [CMD_sblast] = {(char_u *)"sblast", sizeof("sblast") - 1, ex_ni, (long_u)(EX_CMDARG|EX_TRLBAR), ADDR_NONE},
-    [CMD_sbmodified] = {(char_u *)"sbmodified", sizeof("sbmodified") - 1, ex_ni, (long_u)(EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sbnext] = {(char_u *)"sbnext", sizeof("sbnext") - 1, ex_ni, (long_u)(EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sbprevious] = {(char_u *)"sbprevious", sizeof("sbprevious") - 1, ex_ni, (long_u)(EX_RANGE|EX_COUNT|EX_CMDARG|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sbrewind] = {(char_u *)"sbrewind", sizeof("sbrewind") - 1, ex_ni, (long_u)(EX_CMDARG|EX_TRLBAR), ADDR_NONE},
-    [CMD_scriptnames] = {(char_u *)"scriptnames", sizeof("scriptnames") - 1,  ex_ni , (long_u)(EX_BANG| (EX_XFILE | EX_EXTRA) |EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_scriptencoding] = {(char_u *)"scriptencoding", sizeof("scriptencoding") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_scriptversion] = {(char_u *)"scriptversion", sizeof("scriptversion") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_scscope] = {(char_u *)"scscope", sizeof("scscope") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_set] = {(char_u *)"set", sizeof("set") - 1, ex_set, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
-    [CMD_setfiletype] = {(char_u *)"setfiletype", sizeof("setfiletype") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_setglobal] = {(char_u *)"setglobal", sizeof("setglobal") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
-    [CMD_setlocal] = {(char_u *)"setlocal", sizeof("setlocal") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
-    [CMD_sfind] = {(char_u *)"sfind", sizeof("sfind") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR|EX_NEEDARG), ADDR_OTHER},
-    [CMD_sfirst] = {(char_u *)"sfirst", sizeof("sfirst") - 1, ex_ni, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_shell] = {(char_u *)"shell", sizeof("shell") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_simalt] = {(char_u *)"simalt", sizeof("simalt") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_sign] = {(char_u *)"sign", sizeof("sign") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_RANGE|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_silent] = {(char_u *)"silent", sizeof("silent") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_BANG|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_sleep] = {(char_u *)"sleep", sizeof("sleep") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_slast] = {(char_u *)"slast", sizeof("slast") - 1, ex_ni, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_smagic] = {(char_u *)"smagic", sizeof("smagic") - 1, ex_submagic, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_smap] = {(char_u *)"smap", sizeof("smap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_smapclear] = {(char_u *)"smapclear", sizeof("smapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_smenu] = {(char_u *)"smenu", sizeof("smenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_snext] = {(char_u *)"snext", sizeof("snext") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_snomagic] = {(char_u *)"snomagic", sizeof("snomagic") - 1, ex_submagic, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_snoremap] = {(char_u *)"snoremap", sizeof("snoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_snoremenu] = {(char_u *)"snoremenu", sizeof("snoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_source] = {(char_u *)"source", sizeof("source") - 1, ex_ni, (long_u)(EX_RANGE|EX_DFLALL|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_sort] = {(char_u *)"sort", sizeof("sort") - 1, ex_ni, (long_u)(EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_MODIFY), ADDR_LINES},
-    [CMD_split] = {(char_u *)"split", sizeof("split") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_spellgood] = {(char_u *)"spellgood", sizeof("spellgood") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_NEEDARG|EX_EXTRA|EX_TRLBAR), ADDR_OTHER},
-    [CMD_spelldump] = {(char_u *)"spelldump", sizeof("spelldump") - 1,  ex_ni , (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
-    [CMD_spellinfo] = {(char_u *)"spellinfo", sizeof("spellinfo") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_spellrepall] = {(char_u *)"spellrepall", sizeof("spellrepall") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_spellrare] = {(char_u *)"spellrare", sizeof("spellrare") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_NEEDARG|EX_EXTRA|EX_TRLBAR), ADDR_OTHER},
-    [CMD_spellundo] = {(char_u *)"spellundo", sizeof("spellundo") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_NEEDARG|EX_EXTRA|EX_TRLBAR), ADDR_OTHER},
-    [CMD_spellwrong] = {(char_u *)"spellwrong", sizeof("spellwrong") - 1,  ex_ni , (long_u)(EX_BANG|EX_RANGE|EX_NEEDARG|EX_EXTRA|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sprevious] = {(char_u *)"sprevious", sizeof("sprevious") - 1, ex_ni, (long_u)(EX_EXTRA|EX_RANGE|EX_COUNT|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_srewind] = {(char_u *)"srewind", sizeof("srewind") - 1, ex_ni, (long_u)(EX_EXTRA|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_stop] = {(char_u *)"stop", sizeof("stop") - 1, ex_stop, (long_u)(EX_TRLBAR|EX_BANG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_stag] = {(char_u *)"stag", sizeof("stag") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_startinsert] = {(char_u *)"startinsert", sizeof("startinsert") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_startgreplace] = {(char_u *)"startgreplace", sizeof("startgreplace") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_startreplace] = {(char_u *)"startreplace", sizeof("startreplace") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_static] = {(char_u *)"static", sizeof("static") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_stopinsert] = {(char_u *)"stopinsert", sizeof("stopinsert") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_stjump] = {(char_u *)"stjump", sizeof("stjump") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
-    [CMD_stselect] = {(char_u *)"stselect", sizeof("stselect") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
-    [CMD_sunhide] = {(char_u *)"sunhide", sizeof("sunhide") - 1, ex_ni, (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_sunmap] = {(char_u *)"sunmap", sizeof("sunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_sunmenu] = {(char_u *)"sunmenu", sizeof("sunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_suspend] = {(char_u *)"suspend", sizeof("suspend") - 1, ex_stop, (long_u)(EX_TRLBAR|EX_BANG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_sview] = {(char_u *)"sview", sizeof("sview") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_swapname] = {(char_u *)"swapname", sizeof("swapname") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_syntax] = {(char_u *)"syntax", sizeof("syntax") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_syntime] = {(char_u *)"syntime", sizeof("syntime") - 1,  ex_ni , (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_syncbind] = {(char_u *)"syncbind", sizeof("syncbind") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_smile] = {(char_u *)"smile", sizeof("smile") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
-    [CMD_t] = {(char_u *)"t", sizeof("t") - 1, ex_copymove, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_tNext] = {(char_u *)"tNext", sizeof("tNext") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_tag] = {(char_u *)"tag", sizeof("tag") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_tags] = {(char_u *)"tags", sizeof("tags") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tab] = {(char_u *)"tab", sizeof("tab") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_TABS},
-    [CMD_tabclose] = {(char_u *)"tabclose", sizeof("tabclose") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_TABS},
-    [CMD_tabdo] = {(char_u *)"tabdo", sizeof("tabdo") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_TABS},
-    [CMD_tabedit] = {(char_u *)"tabedit", sizeof("tabedit") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_ZEROR|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_TABS},
-    [CMD_tabfind] = {(char_u *)"tabfind", sizeof("tabfind") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_ZEROR|EX_CMDARG|EX_ARGOPT|EX_NEEDARG|EX_TRLBAR), ADDR_TABS},
-    [CMD_tabfirst] = {(char_u *)"tabfirst", sizeof("tabfirst") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_tabmove] = {(char_u *)"tabmove", sizeof("tabmove") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS},
-    [CMD_tablast] = {(char_u *)"tablast", sizeof("tablast") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_tabnext] = {(char_u *)"tabnext", sizeof("tabnext") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS},
-    [CMD_tabnew] = {(char_u *)"tabnew", sizeof("tabnew") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_ZEROR|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_TABS},
-    [CMD_tabonly] = {(char_u *)"tabonly", sizeof("tabonly") - 1, ex_ni, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_TABS},
-    [CMD_tabprevious] = {(char_u *)"tabprevious", sizeof("tabprevious") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS_RELATIVE},
-    [CMD_tabNext] = {(char_u *)"tabNext", sizeof("tabNext") - 1, ex_ni, (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_NOSPC|EX_TRLBAR), ADDR_TABS_RELATIVE},
-    [CMD_tabrewind] = {(char_u *)"tabrewind", sizeof("tabrewind") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_tabs] = {(char_u *)"tabs", sizeof("tabs") - 1, ex_ni, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tcd] = {(char_u *)"tcd", sizeof("tcd") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tchdir] = {(char_u *)"tchdir", sizeof("tchdir") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tcl] = {(char_u *)"tcl", sizeof("tcl") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_tcldo] = {(char_u *)"tcldo", sizeof("tcldo") - 1,  ex_ni , (long_u)(EX_RANGE|EX_DFLALL|EX_EXTRA|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_tclfile] = {(char_u *)"tclfile", sizeof("tclfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_tearoff] = {(char_u *)"tearoff", sizeof("tearoff") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_terminal] = {(char_u *)"terminal", sizeof("terminal") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_tfirst] = {(char_u *)"tfirst", sizeof("tfirst") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_throw] = {(char_u *)"throw", sizeof("throw") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_this] = {(char_u *)"this", sizeof("this") - 1, ex_ni, (long_u)(EX_EXTRA|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_tjump] = {(char_u *)"tjump", sizeof("tjump") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
-    [CMD_tlast] = {(char_u *)"tlast", sizeof("tlast") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
-    [CMD_tlmenu] = {(char_u *)"tlmenu", sizeof("tlmenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_tlnoremenu] = {(char_u *)"tlnoremenu", sizeof("tlnoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_tlunmenu] = {(char_u *)"tlunmenu", sizeof("tlunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tmenu] = {(char_u *)"tmenu", sizeof("tmenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_tmap] = {(char_u *)"tmap", sizeof("tmap") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tmapclear] = {(char_u *)"tmapclear", sizeof("tmapclear") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tnext] = {(char_u *)"tnext", sizeof("tnext") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_tnoremap] = {(char_u *)"tnoremap", sizeof("tnoremap") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_topleft] = {(char_u *)"topleft", sizeof("topleft") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_tprevious] = {(char_u *)"tprevious", sizeof("tprevious") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_trewind] = {(char_u *)"trewind", sizeof("trewind") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
-    [CMD_try] = {(char_u *)"try", sizeof("try") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tselect] = {(char_u *)"tselect", sizeof("tselect") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR| (EX_EXTRA | EX_NOSPC) ), ADDR_NONE},
-    [CMD_tunmenu] = {(char_u *)"tunmenu", sizeof("tunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tunmap] = {(char_u *)"tunmap", sizeof("tunmap") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_type] = {(char_u *)"type", sizeof("type") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
-    [CMD_undo] = {(char_u *)"undo", sizeof("undo") - 1, ex_undo, (long_u)(EX_RANGE|EX_COUNT|EX_ZEROR|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_undojoin] = {(char_u *)"undojoin", sizeof("undojoin") - 1, ex_undojoin, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_undolist] = {(char_u *)"undolist", sizeof("undolist") - 1, ex_undolist, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_unabbreviate] = {(char_u *)"unabbreviate", sizeof("unabbreviate") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_unhide] = {(char_u *)"unhide", sizeof("unhide") - 1, ex_ni, (long_u)(EX_RANGE|EX_COUNT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_uniq] = {(char_u *)"uniq", sizeof("uniq") - 1, ex_ni, (long_u)(EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_BANG|EX_EXTRA|EX_NOTRLCOM|EX_MODIFY), ADDR_LINES},
-    [CMD_unlet] = {(char_u *)"unlet", sizeof("unlet") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_unlockvar] = {(char_u *)"unlockvar", sizeof("unlockvar") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_NEEDARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_unmap] = {(char_u *)"unmap", sizeof("unmap") - 1, ex_unmap, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_unmenu] = {(char_u *)"unmenu", sizeof("unmenu") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_unsilent] = {(char_u *)"unsilent", sizeof("unsilent") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_update] = {(char_u *)"update", sizeof("update") - 1, ex_update, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR), ADDR_LINES},
-    [CMD_vglobal] = {(char_u *)"vglobal", sizeof("vglobal") - 1, ex_global, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_DFLALL|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_var] = {(char_u *)"var", sizeof("var") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_EXPR_ARG|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE|EX_EXPORT), ADDR_NONE},
-    [CMD_version] = {(char_u *)"version", sizeof("version") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_verbose] = {(char_u *)"verbose", sizeof("verbose") - 1, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_RANGE|EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_vertical] = {(char_u *)"vertical", sizeof("vertical") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
-    [CMD_visual] = {(char_u *)"visual", sizeof("visual") - 1, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_view] = {(char_u *)"view", sizeof("view") - 1, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_vimgrep] = {(char_u *)"vimgrep", sizeof("vimgrep") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_vimgrepadd] = {(char_u *)"vimgrepadd", sizeof("vimgrepadd") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_XFILE|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_vim9cmd] = {(char_u *)"vim9cmd", sizeof("vim9cmd") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_vim9script] = {(char_u *)"vim9script", sizeof("vim9script") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_viusage] = {(char_u *)"viusage", sizeof("viusage") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_vmap] = {(char_u *)"vmap", sizeof("vmap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_vmapclear] = {(char_u *)"vmapclear", sizeof("vmapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_vmenu] = {(char_u *)"vmenu", sizeof("vmenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_vnoremap] = {(char_u *)"vnoremap", sizeof("vnoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_vnew] = {(char_u *)"vnew", sizeof("vnew") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_vnoremenu] = {(char_u *)"vnoremenu", sizeof("vnoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_vsplit] = {(char_u *)"vsplit", sizeof("vsplit") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_RANGE|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_vunmap] = {(char_u *)"vunmap", sizeof("vunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_vunmenu] = {(char_u *)"vunmenu", sizeof("vunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_write] = {(char_u *)"write", sizeof("write") - 1, ex_write, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_wNext] = {(char_u *)"wNext", sizeof("wNext") - 1, ex_ni, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_wall] = {(char_u *)"wall", sizeof("wall") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_while] = {(char_u *)"while", sizeof("while") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_WHOLE), ADDR_NONE},
-    [CMD_winsize] = {(char_u *)"winsize", sizeof("winsize") - 1, ex_winsize, (long_u)(EX_EXTRA|EX_NEEDARG|EX_TRLBAR), ADDR_NONE},
-    [CMD_wincmd] = {(char_u *)"wincmd", sizeof("wincmd") - 1, ex_ni, (long_u)(EX_NEEDARG| (EX_EXTRA | EX_NOSPC) |EX_RANGE|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_windo] = {(char_u *)"windo", sizeof("windo") - 1, ex_ni, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_RANGE|EX_DFLALL|EX_EXPAND), ADDR_WINDOWS},
-    [CMD_winpos] = {(char_u *)"winpos", sizeof("winpos") - 1, ex_ni, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_wlrestore] = {(char_u *)"wlrestore", sizeof("wlrestore") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_BANG), ADDR_NONE},
-    [CMD_wnext] = {(char_u *)"wnext", sizeof("wnext") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_wprevious] = {(char_u *)"wprevious", sizeof("wprevious") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_wq] = {(char_u *)"wq", sizeof("wq") - 1, ex_exit, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR), ADDR_LINES},
-    [CMD_wqall] = {(char_u *)"wqall", sizeof("wqall") - 1, ex_ni, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_wundo] = {(char_u *)"wundo", sizeof("wundo") - 1,  ex_ni , (long_u)(EX_BANG|EX_NEEDARG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) ), ADDR_NONE},
-    [CMD_wviminfo] = {(char_u *)"wviminfo", sizeof("wviminfo") - 1,  ex_ni , (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_xit] = {(char_u *)"xit", sizeof("xit") - 1, ex_exit, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_xall] = {(char_u *)"xall", sizeof("xall") - 1, ex_ni, (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
-    [CMD_xmap] = {(char_u *)"xmap", sizeof("xmap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_xmapclear] = {(char_u *)"xmapclear", sizeof("xmapclear") - 1, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_xmenu] = {(char_u *)"xmenu", sizeof("xmenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_xnoremap] = {(char_u *)"xnoremap", sizeof("xnoremap") - 1, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_xnoremenu] = {(char_u *)"xnoremenu", sizeof("xnoremenu") - 1,  ex_ni , (long_u)(EX_RANGE|EX_ZEROR|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
-    [CMD_xrestore] = {(char_u *)"xrestore", sizeof("xrestore") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_xunmap] = {(char_u *)"xunmap", sizeof("xunmap") - 1, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_xunmenu] = {(char_u *)"xunmenu", sizeof("xunmenu") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_yank] = {(char_u *)"yank", sizeof("yank") - 1, ex_operators, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_REGSTR|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_z] = {(char_u *)"z", sizeof("z") - 1, ex_z, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_EXTRA|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_append] = {(char_u *)"append", 1, ex_append, (long_u)(EX_BANG|EX_RANGE|EX_ZEROR|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_ascii] = {(char_u *)"ascii", 2, do_ascii, (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_change] = {(char_u *)"change", 1, ex_change, (long_u)(EX_BANG|EX_WHOLEFOLD|EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_changes] = {(char_u *)"changes", 7, ex_changes, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_cmap] = {(char_u *)"cmap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_cmapclear] = {(char_u *)"cmapclear", 5, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_cnoremap] = {(char_u *)"cnoremap", 3, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_copy] = {(char_u *)"copy", 2, ex_copymove, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_cquit] = {(char_u *)"cquit", 2, ex_cquit, (long_u)(EX_RANGE|EX_COUNT|EX_ZEROR|EX_TRLBAR|EX_BANG), ADDR_UNSIGNED},
+    [CMD_cunmap] = {(char_u *)"cunmap", 2, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_delete] = {(char_u *)"delete", 1, ex_operators, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_REGSTR|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_delmarks] = {(char_u *)"delmarks", 4, ex_delmarks, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_display] = {(char_u *)"display", 2, ex_display, (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_edit] = {(char_u *)"edit", 1, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
+    [CMD_earlier] = {(char_u *)"earlier", 2, ex_later, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NOSPC|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_enew] = {(char_u *)"enew", 3, ex_edit, (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
+    [CMD_ex] = {(char_u *)"ex", 2, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
+    [CMD_exit] = {(char_u *)"exit", 3, ex_exit, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_file] = {(char_u *)"file", 1, ex_file, (long_u)(EX_RANGE|EX_ZEROR|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_OTHER},
+    [CMD_filter] = {(char_u *)"filter", 4, ex_wrongmodifier, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
+    [CMD_fixdel] = {(char_u *)"fixdel", 3, do_fixdel, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_global] = {(char_u *)"global", 1, ex_global, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_EXTRA|EX_DFLALL|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_highlight] = {(char_u *)"highlight", 2, ex_highlight, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_history] = {(char_u *)"history", 3, ex_history, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_insert] = {(char_u *)"insert", 1, ex_append, (long_u)(EX_BANG|EX_RANGE|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_imap] = {(char_u *)"imap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_imapclear] = {(char_u *)"imapclear", 5, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_inoremap] = {(char_u *)"inoremap", 3, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_iput] = {(char_u *)"iput", 2, ex_iput, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_REGSTR|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_iunmap] = {(char_u *)"iunmap", 2, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_join] = {(char_u *)"join", 1, ex_join, (long_u)(EX_BANG|EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_k] = {(char_u *)"k", 1, ex_mark, (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_keepmarks] = {(char_u *)"keepmarks", 2, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
+    [CMD_keepjumps] = {(char_u *)"keepjumps", 5, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
+    [CMD_keeppatterns] = {(char_u *)"keeppatterns", 5, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
+    [CMD_list] = {(char_u *)"list", 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_later] = {(char_u *)"later", 3, ex_later, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NOSPC|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_lockmarks] = {(char_u *)"lockmarks", 3, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
+    [CMD_move] = {(char_u *)"move", 1, ex_copymove, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_mark] = {(char_u *)"mark", 2, ex_mark, (long_u)(EX_RANGE| (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_map] = {(char_u *)"map", 3, ex_map, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_mapclear] = {(char_u *)"mapclear", 4, ex_mapclear, (long_u)(EX_EXTRA|EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_marks] = {(char_u *)"marks", 5, ex_marks, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_match] = {(char_u *)"match", 3, ex_match, (long_u)(EX_RANGE|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
+    [CMD_messages] = {(char_u *)"messages", 3, ex_messages, (long_u)(EX_EXTRA|EX_TRLBAR|EX_RANGE|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
+    [CMD_nmap] = {(char_u *)"nmap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_nmapclear] = {(char_u *)"nmapclear", 5, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_nnoremap] = {(char_u *)"nnoremap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_noremap] = {(char_u *)"noremap", 2, ex_map, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_nohlsearch] = {(char_u *)"nohlsearch", 3, ex_nohlsearch, (long_u)(EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_normal] = {(char_u *)"normal", 4, ex_normal, (long_u)(EX_RANGE|EX_BANG|EX_EXTRA|EX_NEEDARG|EX_NOTRLCOM|EX_CTRLV|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_number] = {(char_u *)"number", 2, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_nunmap] = {(char_u *)"nunmap", 3, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_omap] = {(char_u *)"omap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_omapclear] = {(char_u *)"omapclear", 5, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_onoremap] = {(char_u *)"onoremap", 3, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_ounmap] = {(char_u *)"ounmap", 2, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_print] = {(char_u *)"print", 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_LINES},
+    [CMD_put] = {(char_u *)"put", 2, ex_put, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_REGSTR|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_quit] = {(char_u *)"quit", 1, ex_quit, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_WINDOWS},
+    [CMD_read] = {(char_u *)"read", 1, ex_read, (long_u)(EX_BANG|EX_RANGE|EX_WHOLEFOLD| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_redo] = {(char_u *)"redo", 3, ex_redo, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_redraw] = {(char_u *)"redraw", 4, ex_redraw, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_redrawstatus] = {(char_u *)"redrawstatus", 7, ex_redrawstatus, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_registers] = {(char_u *)"registers", 3, ex_display, (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_substitute] = {(char_u *)"substitute", 1, ex_substitute, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_saveas] = {(char_u *)"saveas", 3, ex_write, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_CMDWIN|EX_LOCK_OK|EX_TRLBAR), ADDR_NONE},
+    [CMD_set] = {(char_u *)"set", 2, ex_set, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
+    [CMD_silent] = {(char_u *)"silent", 3, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_BANG|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_smagic] = {(char_u *)"smagic", 2, ex_submagic, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_smap] = {(char_u *)"smap", 4, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_smapclear] = {(char_u *)"smapclear", 5, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_snomagic] = {(char_u *)"snomagic", 3, ex_submagic, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_snoremap] = {(char_u *)"snoremap", 4, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_stop] = {(char_u *)"stop", 2, ex_stop, (long_u)(EX_TRLBAR|EX_BANG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_sunmap] = {(char_u *)"sunmap", 4, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_suspend] = {(char_u *)"suspend", 3, ex_stop, (long_u)(EX_TRLBAR|EX_BANG|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_t] = {(char_u *)"t", 1, ex_copymove, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_undo] = {(char_u *)"undo", 1, ex_undo, (long_u)(EX_RANGE|EX_COUNT|EX_ZEROR|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
+    [CMD_undojoin] = {(char_u *)"undojoin", 5, ex_undojoin, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_undolist] = {(char_u *)"undolist", 5, ex_undolist, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_unmap] = {(char_u *)"unmap", 3, ex_unmap, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_unsilent] = {(char_u *)"unsilent", 3, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_update] = {(char_u *)"update", 2, ex_update, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR), ADDR_LINES},
+    [CMD_vglobal] = {(char_u *)"vglobal", 1, ex_global, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_DFLALL|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_verbose] = {(char_u *)"verbose", 4, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_RANGE|EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
+    [CMD_visual] = {(char_u *)"visual", 2, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
+    [CMD_view] = {(char_u *)"view", 3, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
+    [CMD_vmap] = {(char_u *)"vmap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_vmapclear] = {(char_u *)"vmapclear", 5, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_vnoremap] = {(char_u *)"vnoremap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_vunmap] = {(char_u *)"vunmap", 2, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_write] = {(char_u *)"write", 1, ex_write, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_winsize] = {(char_u *)"winsize", 2, ex_winsize, (long_u)(EX_EXTRA|EX_NEEDARG|EX_TRLBAR), ADDR_NONE},
+    [CMD_wq] = {(char_u *)"wq", 2, ex_exit, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR), ADDR_LINES},
+    [CMD_xit] = {(char_u *)"xit", 1, ex_exit, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_xmap] = {(char_u *)"xmap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_xmapclear] = {(char_u *)"xmapclear", 5, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_xnoremap] = {(char_u *)"xnoremap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_xunmap] = {(char_u *)"xunmap", 2, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_yank] = {(char_u *)"yank", 1, ex_operators, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_REGSTR|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_z] = {(char_u *)"z", 1, ex_z, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_EXTRA|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
 
-    [CMD_bang] = {(char_u *)"!", sizeof("!") - 1, ex_ni, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_pound] = {(char_u *)"#", sizeof("#") - 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_and] = {(char_u *)"&", sizeof("&") - 1, ex_substitute, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_star] = {(char_u *)"*", sizeof("*") - 1, ex_at, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_lshift] = {(char_u *)"<", sizeof("<") - 1, ex_operators, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_equal] = {(char_u *)"=", sizeof("=") - 1, ex_equal, (long_u)(EX_RANGE|EX_TRLBAR|EX_DFLALL|EX_FLAGS|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_rshift] = {(char_u *)">", sizeof(">") - 1, ex_operators, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
-    [CMD_at] = {(char_u *)"@", sizeof("@") - 1, ex_at, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_block] = {(char_u *)"{", sizeof("{") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_LOCK_OK|EX_CMDWIN), ADDR_NONE},
-    [CMD_endblock] = {(char_u *)"}", sizeof("}") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_tilde] = {(char_u *)"~", sizeof("~") - 1, ex_substitute, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_pound] = {(char_u *)"#", 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_and] = {(char_u *)"&", 1, ex_substitute, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_star] = {(char_u *)"*", 1, ex_at, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_lshift] = {(char_u *)"<", 1, ex_operators, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_equal] = {(char_u *)"=", 1, ex_equal, (long_u)(EX_RANGE|EX_TRLBAR|EX_DFLALL|EX_FLAGS|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
+    [CMD_rshift] = {(char_u *)">", 1, ex_operators, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
+    [CMD_at] = {(char_u *)"@", 1, ex_at, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
+    [CMD_tilde] = {(char_u *)"~", 1, ex_substitute, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY|EX_NONWHITE_OK), ADDR_LINES},
 
-    [CMD_Next] = {(char_u *)"Next", sizeof("Next") - 1, ex_ni, (long_u)(EX_EXTRA|EX_RANGE|EX_COUNT|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
-    [CMD_Print] = {(char_u *)"Print", sizeof("Print") - 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_X] = {(char_u *)"X", sizeof("X") - 1,  ex_ni , (long_u)(EX_TRLBAR), ADDR_NONE},
-
-    [CMD_increment] = {(char_u *)"++", sizeof("++") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_decrement] = {(char_u *)"--", sizeof("--") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
+    [CMD_Print] = {(char_u *)"Print", 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
 
 };
 
@@ -86743,7 +85291,7 @@ static struct cmdname cmdnames[] =
 // is written [CMD_append] = {...}, so it lands at its own enumerator whatever
 // order the rows are in.  That is stronger than the macro's guarantee of equal
 // *order*.  A dropped last row is caught here; a dropped middle row leaves a
-// zeroed hole, which the 600-command sweep catches.
+// zeroed hole, which the command sweep catches.
 static_assert(sizeof(cmdnames) / sizeof(cmdnames[0]) == CMD_SIZE, "cmdnames[] and enum CMD_index have drifted apart");
 
 // ==================== window.c ====================
@@ -86773,83 +85321,6 @@ enum { WEE_CURWIN_INVALID = 0x02 };
 enum { WEE_TRIGGER_NEW_AUTOCMDS = 0x04 };
 enum { WEE_TRIGGER_ENTER_AUTOCMDS = 0x08 };
 enum { WEE_TRIGGER_LEAVE_AUTOCMDS = 0x10 };
-
-    static void
-get_wincmd_addr_type(char_u *arg, exarg_T *eap)
-{
-    switch (*arg)
-    {
-    case 'S':
-    case Ctrl_S:
-    case 's':
-    case Ctrl_N:
-    case 'n':
-    case 'j':
-    case Ctrl_J:
-    case 'k':
-    case Ctrl_K:
-    case 'T':
-    case Ctrl_R:
-    case 'r':
-    case 'R':
-    case 'K':
-    case 'J':
-    case '+':
-    case '-':
-    case Ctrl__:
-    case '_':
-    case '|':
-    case ']':
-    case Ctrl_RSB:
-    case 'g':
-    case Ctrl_G:
-    case Ctrl_V:
-    case 'v':
-    case 'h':
-    case Ctrl_H:
-    case 'l':
-    case Ctrl_L:
-    case 'H':
-    case 'L':
-    case '>':
-    case '<':
-    case 'f':
-    case 'F':
-    case Ctrl_F:
-                eap->addr_type = ADDR_OTHER;
-                break;
-
-    case Ctrl_HAT:
-    case '^':
-                eap->addr_type = ADDR_BUFFERS;
-                break;
-
-    case Ctrl_Q:
-    case 'q':
-    case Ctrl_C:
-    case 'c':
-    case Ctrl_O:
-    case 'o':
-    case Ctrl_W:
-    case 'w':
-    case 'W':
-    case 'x':
-    case Ctrl_X:
-                eap->addr_type = ADDR_WINDOWS;
-                break;
-
-    case 't':
-    case Ctrl_T:
-    case 'b':
-    case Ctrl_B:
-    case 'p':
-    case Ctrl_P:
-    case '=':
-    case CAR:
-                eap->addr_type = ADDR_NONE;
-                break;
-    }
-}
 
     static int
 win_valid(win_T *win)

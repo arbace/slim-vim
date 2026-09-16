@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Two hundred and fifty-six tracked files once both pipelines have run:
-thirteen at the root, and 243 under
+Two hundred and fifty-eight tracked files once both pipelines have run:
+thirteen at the root, and 245 under
 `tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
-eighty for `whim.mk`), the memoize
+eighty-two for `whim.mk`), the memoize
 driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
 `patches/` and `templates/`. Three of the thirteen are products
 (`slim-vim.c`, `whim-vim.c`, `LICENSE`), two are records (`upstream.sha`,
@@ -1053,7 +1053,10 @@ Two traps if you ever remove a command:
 
 - **A removed name is inherited by the next command sharing its prefix.**
   Deleting only `CMD_help` makes `:help` silently run `:helpclose`. Check what a
-  removed name now resolves to before assuming it errors.
+  removed name now resolves to before assuming it errors. `whim-vim.c` does not
+  have this trap: from its Phase 80 each row carries its shortest abbreviation,
+  the lookup is a scan with no index, and a deleted row's words resolve to
+  nothing.
 - **Related commands do not sort together.** `:lhelpgrep` survives a sweep of
   everything starting with `help`, because it sorts under `l`. Grep for the
   *handler* name (`ex_helpgrep`), not the command name.
