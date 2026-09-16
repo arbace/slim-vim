@@ -1382,9 +1382,7 @@ typedef struct xfilemark
 
 typedef struct taggy
 {
-    char_u      *tagname;
     fmark_T     fmark;
-    char_u      *user_data;
 } taggy_T;
 
 typedef struct
@@ -2096,15 +2094,8 @@ enum { SNAP_COUNT = 3 };
 typedef struct tabpage_S tabpage_T;
 struct tabpage_S
 {
-    tabpage_T       *tp_next;
     frame_T         *tp_topframe;
     win_T           *tp_curwin;
-    win_T           *tp_prevwin;
-    win_T           *tp_firstwin;
-    win_T           *tp_lastwin;
-    long            tp_old_Rows;
-    long            tp_old_Columns;
-    int             tp_old_coloff;
     long            tp_ch_used;
 
     frame_T         *(tp_snapshot[SNAP_COUNT]);
@@ -2231,9 +2222,6 @@ struct window_S
 
     buf_T       *w_buffer;
 
-    win_T       *w_prev;
-    win_T       *w_next;
-
     frame_T     *w_frame;
 
     pos_T       w_cursor;
@@ -2312,9 +2300,6 @@ struct window_S
     linenr_T    w_ru_line_count;
     bool        w_ru_empty;
 
-    char_u      *w_localdir;
-    char_u      *w_prevdir;
-
     winopt_T    w_onebuf_opt;
     winopt_T    w_allbuf_opt;
 
@@ -2329,7 +2314,6 @@ struct window_S
     int         w_next_match_id;
 
     taggy_T     w_tagstack[TAGSTACKSIZE];
-    int         w_tagstackidx;
     int         w_tagstacklen;
 
     int         w_fraction;
@@ -4420,8 +4404,6 @@ static void curwin_init(void);
 static void snapshot_windows_scroll_size(void);
 static void may_trigger_win_scrolled_resized(void);
 static void unuse_tabpage(tabpage_T *tp);
-static void use_tabpage(tabpage_T *tp);
-static int valid_tabpage(tabpage_T *tpc);
 static void goto_tabpage_tp(tabpage_T *tp, int trigger_enter_autocmds, int trigger_leave_autocmds);
 static void goto_tabpage_win(tabpage_T *tp, win_T *wp);
 static void win_enter(win_T *wp, int undo_sync);
@@ -4602,8 +4584,6 @@ static int      updating_screen  = FALSE ;
 
 static int      redraw_not_allowed  = FALSE ;
 
-static win_T    *firstwin;
-static win_T    *lastwin;
 static win_T    *prevwin  = NULL ;
 
 static win_T    *curwin;
@@ -4612,9 +4592,7 @@ static int      pum_will_redraw  = FALSE ;
 
 static frame_T  *topframe;
 
-static tabpage_T    *first_tabpage;
 static tabpage_T    *curtab;
-static tabpage_T    *lastused_tabpage;
 static int          redraw_tabline  = FALSE ;
 static int          redraw_vseps  = FALSE ;
 
@@ -5772,13 +5750,7 @@ aucmd_prepbuf(aco_save_T  *aco, buf_T       *buf)
     }
     else
     {
-         for ((win) = firstwin; (win) != NULL; (win) = (win)->w_next) 
-         {
-            if (win->w_buffer == buf)
-            {
-                break;
-            }
-         }
+        win = (curwin->w_buffer == buf) ? curwin : NULL;
     }
 
     if (win == NULL)
@@ -6323,16 +6295,11 @@ can_unload_buffer(buf_T *buf)
 
     if (can_unload && updating_screen)
     {
-        win_T   *wp;
 
-         for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-         {
-            if (wp->w_buffer == buf)
-            {
-                can_unload = FALSE;
-                break;
-            }
-         }
+        if (curwin->w_buffer == buf)
+        {
+            can_unload = FALSE;
+        }
     }
     if (can_unload && buf->b_saving)
     {
@@ -6353,8 +6320,6 @@ close_buffer(win_T       *win, buf_T       *buf, int         action, int        
 {
     int         hiding_buf;
     bufref_T    bufref;
-    int         is_curwin = (curwin != NULL && curwin == win && curwin->w_buffer == buf);
-    tabpage_T   *the_curtab = curtab;
     int         unload_buf = (action != 0);
     int         wipe_buf = (action == DOBUF_WIPE || action == DOBUF_WIPE_REUSE);
     int         del_buf = (action == DOBUF_DEL || wipe_buf);
@@ -6412,13 +6377,6 @@ aucmd_abort:
         win_valid = win_valid && win_valid_any_tab(win);
     }
 
-    if (is_curwin && curwin != win && win_valid)
-    {
-        block_autocmds();
-        goto_tabpage_win(the_curtab, win);
-        unblock_autocmds();
-    }
-
     hiding_buf = buf->b_nwindows <= 0 || ((win_valid || closed_popup) && win->w_buffer == buf && buf->b_nwindows == 1);
 
     if (!hiding_buf || !unload_buf)
@@ -6471,9 +6429,6 @@ buf_freeall(buf_T *buf, int flags)
 {
     int         is_curbuf = (buf == curbuf);
     bufref_T    bufref;
-    int         is_curwin = (curwin != NULL && curwin->w_buffer == buf);
-    win_T       *the_curwin = curwin;
-    tabpage_T   *the_curtab = curtab;
 
     ++buf->b_locked;
     ++buf->b_locked_split;
@@ -6494,13 +6449,6 @@ buf_freeall(buf_T *buf, int flags)
     }
     --buf->b_locked;
     --buf->b_locked_split;
-
-    if (is_curwin && curwin != the_curwin && win_valid_any_tab(the_curwin))
-    {
-        block_autocmds();
-        goto_tabpage_win(the_curtab, the_curwin);
-        unblock_autocmds();
-    }
 
     if (buf == curbuf && !is_curbuf)
     {
@@ -7305,19 +7253,13 @@ setfname(buf_T       *buf, char_u      *ffname_arg, char_u      *sfname_arg, int
         if (obuf != NULL && obuf != buf)
         {
             win_T       *win;
-            tabpage_T   *tab;
             int         in_use = FALSE;
 
-             for ((tab) = first_tabpage; (tab) != NULL; (tab) = (tab)->tp_next)
-             {
-                 for ((win) = ((tab) == curtab)            ? firstwin : (tab)->tp_firstwin; (win); (win) = (win)->w_next)
-                 {
-                if (win->w_buffer == obuf)
-                {
-                    in_use = TRUE;
-                }
-                 }
-             }
+             win = curwin;
+        if (win->w_buffer == obuf)
+        {
+            in_use = TRUE;
+        }
 
             if (obuf->b_ml.ml_mfp != NULL || in_use)
             {
@@ -8529,7 +8471,6 @@ changed_internal(void)
 changed_common(linenr_T    lnum, colnr_T     col, linenr_T    lnume, long        xtra)
 {
     win_T       *wp;
-    tabpage_T   *tp;
     int         i;
     int         cols;
     pos_T       *p;
@@ -8573,27 +8514,17 @@ changed_common(linenr_T    lnum, colnr_T     col, linenr_T    lnume, long       
                 {
                     curbuf->b_changelistlen = JUMPLISTSIZE - 1;
                      memmove((char *)(curbuf->b_changelist), (char *)(curbuf->b_changelist + 1), sizeof(pos_T) * (JUMPLISTSIZE - 1)) ;
-                     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-                     {
-                         for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-                    {
-                        if (wp->w_buffer == curbuf && wp->w_changelistidx > 0)
-                        {
-                            --wp->w_changelistidx;
-                        }
-                    }
-                     }
-                }
-                 for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-                 {
-                     for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
+                     wp = curwin;
+                if (wp->w_buffer == curbuf && wp->w_changelistidx > 0)
                 {
-                    if (wp->w_buffer == curbuf && wp->w_changelistidx == curbuf->b_changelistlen)
-                    {
-                        ++wp->w_changelistidx;
-                    }
+                    --wp->w_changelistidx;
                 }
-                 }
+                }
+                 wp = curwin;
+            if (wp->w_buffer == curbuf && wp->w_changelistidx == curbuf->b_changelistlen)
+            {
+                ++wp->w_changelistidx;
+            }
                 ++curbuf->b_changelistlen;
             }
         }
@@ -8607,79 +8538,74 @@ changed_common(linenr_T    lnum, colnr_T     col, linenr_T    lnume, long       
         check_visual_pos();
     }
 
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-     {
-         for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
+     wp = curwin;
+if (wp->w_buffer == curbuf)
+{
+    linenr_T last = lnume + xtra - 1;
+
+    if (!redraw_not_allowed && wp->w_redr_type < UPD_VALID)
     {
-        if (wp->w_buffer == curbuf)
+        wp->w_redr_type = UPD_VALID;
+    }
+
+    if (xtra != 0 && wp->w_redraw_top != 0)
+    {
+        redraw_win_later(wp, UPD_NOT_VALID);
+    }
+
+    if (wp->w_skipcol > 0 && (last < wp->w_topline || (wp->w_topline >= lnum && wp->w_topline < lnume && linetabsize_eol(wp, wp->w_topline) <= wp->w_skipcol + sms_marker_overlap(wp, -1))))
+    {
+        wp->w_skipcol = 0;
+    }
+
+    if (wp->w_cursor.lnum > lnum)
+    {
+        changed_line_abv_curs_win(wp);
+    }
+    else if (wp->w_cursor.lnum == lnum && wp->w_cursor.col >= col)
+    {
+        changed_cline_bef_curs_win(wp);
+    }
+    if (wp->w_botline >= lnum)
+    {
+        if (xtra < 0)
         {
-            linenr_T last = lnume + xtra - 1;
-
-            if (!redraw_not_allowed && wp->w_redr_type < UPD_VALID)
-            {
-                wp->w_redr_type = UPD_VALID;
-            }
-
-            if (xtra != 0 && wp->w_redraw_top != 0)
-            {
-                redraw_win_later(wp, UPD_NOT_VALID);
-            }
-
-            if (wp->w_skipcol > 0 && (last < wp->w_topline || (wp->w_topline >= lnum && wp->w_topline < lnume && linetabsize_eol(wp, wp->w_topline) <= wp->w_skipcol + sms_marker_overlap(wp, -1))))
-            {
-                wp->w_skipcol = 0;
-            }
-
-            if (wp->w_cursor.lnum > lnum)
-            {
-                changed_line_abv_curs_win(wp);
-            }
-            else if (wp->w_cursor.lnum == lnum && wp->w_cursor.col >= col)
-            {
-                changed_cline_bef_curs_win(wp);
-            }
-            if (wp->w_botline >= lnum)
-            {
-                if (xtra < 0)
-                {
-                    invalidate_botline_win(wp);
-                }
-                else
-                {
-                    approximate_botline_win(wp);
-                }
-            }
-
-            for (i = 0; i < wp->w_lines_valid; ++i)
-            {
-                if (wp->w_lines[i].wl_valid)
-                {
-                    if (wp->w_lines[i].wl_lnum >= lnum)
-                    {
-                        if (wp->w_lines[i].wl_lnum < lnume || i == 0)
-                        {
-                            wp->w_lines[i].wl_valid = FALSE;
-                        }
-                        else if (xtra != 0)
-                        {
-                            wp->w_lines[i].wl_lnum += xtra;
-                        }
-                    }
-                }
-            }
-
-            if (wp-> w_onebuf_opt.wo_rnu  && xtra != 0)
-            {
-                wp->w_last_cursor_lnum_rnu = 0;
-            }
-
+            invalidate_botline_win(wp);
         }
-        if (wp == curwin && xtra != 0 && search_hl_has_cursor_lnum >= lnum)
+        else
         {
-            search_hl_has_cursor_lnum += xtra;
+            approximate_botline_win(wp);
         }
     }
-     }
+
+    for (i = 0; i < wp->w_lines_valid; ++i)
+    {
+        if (wp->w_lines[i].wl_valid)
+        {
+            if (wp->w_lines[i].wl_lnum >= lnum)
+            {
+                if (wp->w_lines[i].wl_lnum < lnume || i == 0)
+                {
+                    wp->w_lines[i].wl_valid = FALSE;
+                }
+                else if (xtra != 0)
+                {
+                    wp->w_lines[i].wl_lnum += xtra;
+                }
+            }
+        }
+    }
+
+    if (wp-> w_onebuf_opt.wo_rnu  && xtra != 0)
+    {
+        wp->w_last_cursor_lnum_rnu = 0;
+    }
+
+}
+if (wp == curwin && xtra != 0 && search_hl_has_cursor_lnum >= lnum)
+{
+    search_hl_has_cursor_lnum += xtra;
+}
 
     set_must_redraw(UPD_VALID);
 
@@ -13245,7 +13171,6 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
 // ==================== drawscreen.c ====================
 
 static void win_update(win_T *wp);
-static void borrow_stl_vsep_hl(void);
 static int  did_update_one_window;
 
     static int
@@ -13326,22 +13251,20 @@ update_screen(int type_arg)
                     type = UPD_NOT_VALID;
                     redraw_as_cleared();
                 }
-                 for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
+                 wp = curwin;
+                if (wp->w_winrow < msg_scrolled)
                 {
-                    if (wp->w_winrow < msg_scrolled)
+                    if ( (wp->w_winrow)  + wp->w_height > msg_scrolled && wp->w_redr_type < UPD_REDRAW_TOP && wp->w_lines_valid > 0 && wp->w_topline == wp->w_lines[0].wl_lnum)
                     {
-                        if ( (wp->w_winrow)  + wp->w_height > msg_scrolled && wp->w_redr_type < UPD_REDRAW_TOP && wp->w_lines_valid > 0 && wp->w_topline == wp->w_lines[0].wl_lnum)
+                        wp->w_upd_rows = msg_scrolled -  (wp->w_winrow) ;
+                        wp->w_redr_type = UPD_REDRAW_TOP;
+                    }
+                    else
+                    {
+                        wp->w_redr_type = UPD_NOT_VALID;
+                        if ( (wp->w_winrow)  + wp->w_height + wp->w_status_height <= msg_scrolled)
                         {
-                            wp->w_upd_rows = msg_scrolled -  (wp->w_winrow) ;
-                            wp->w_redr_type = UPD_REDRAW_TOP;
-                        }
-                        else
-                        {
-                            wp->w_redr_type = UPD_NOT_VALID;
-                            if ( (wp->w_winrow)  + wp->w_height + wp->w_status_height <= msg_scrolled)
-                            {
-                                wp->w_redr_status = true;
-                            }
+                            wp->w_redr_status = true;
                         }
                     }
                 }
@@ -13396,28 +13319,26 @@ update_screen(int type_arg)
 
     did_update_one_window = FALSE;
     screen_search_hl.rm.regprog = NULL;
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
+     wp = curwin;
+    override_success = push_highlight_overrides(wp->w_hl, wp->w_hl_len);
+
+    if (wp->w_redr_type != 0)
     {
-        override_success = push_highlight_overrides(wp->w_hl, wp->w_hl_len);
-
-        if (wp->w_redr_type != 0)
-        {
-            cursor_off();
-            win_update(wp);
-        }
-
-        if (wp->w_redr_status)
-        {
-            cursor_off();
-            win_redr_status(wp, TRUE);
-        }
-
-        if (override_success)
-        {
-            pop_highlight_overrides();
-        }
-
+        cursor_off();
+        win_update(wp);
     }
+
+    if (wp->w_redr_status)
+    {
+        cursor_off();
+        win_redr_status(wp, TRUE);
+    }
+
+    if (override_success)
+    {
+        pop_highlight_overrides();
+    }
+
     end_search_hl();
 
     pum_will_redraw = save_pum_will_redraw;
@@ -13426,21 +13347,15 @@ update_screen(int type_arg)
     if (redraw_vseps)
     {
         redraw_vseps = FALSE;
-         for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-         {
-            if (wp->w_vsep_width > 0)
-            {
-                draw_vsep_win(wp, 0);
-            }
-         }
+         wp = curwin;
+        if (wp->w_vsep_width > 0)
+        {
+            draw_vsep_win(wp, 0);
+        }
     }
 
-    borrow_stl_vsep_hl();
-
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        wp->w_buffer->b_mod_set = false;
-     }
+     wp = curwin;
+    wp->w_buffer->b_mod_set = false;
 
     after_updating_screen(TRUE);
 
@@ -13599,85 +13514,6 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
 }
 
     static void
-borrow_stl_vsep_hl(void)
-{
-    win_T   *left = NULL;
-    win_T   *right = NULL;
-
-    if (!redrawing() || ScreenLines == NULL)
-    {
-        return;
-    }
-
-     for ((left) = firstwin; (left) != NULL; (left) = (left)->w_next) 
-    {
-        if (left->w_status_height == 0 || left->w_vsep_width == 0)
-        {
-            continue;
-        }
-        if (!stl_connected(left))
-        {
-            continue;
-        }
-
-        win_T   *neighbour = NULL;
-        int start = 0;
-        int end = 0;
-
-         for ((right) = firstwin; (right) != NULL; (right) = (right)->w_next) 
-        {
-            if (right == left || right->w_status_height == 0)
-            {
-                continue;
-            }
-            if (right->w_wincol !=  ((left)->w_wincol + (left)->w_width)  + 1)
-            {
-                continue;
-            }
-            int l_stl_row =  (left->w_winrow)  + left->w_height;
-            int r_stl_row =  (right->w_winrow)  + right->w_height;
-
-            start = l_stl_row > r_stl_row ? l_stl_row : r_stl_row;
-            end = l_stl_row + left->w_status_height
-                                < r_stl_row + right->w_status_height
-                ? l_stl_row + left->w_status_height
-                : r_stl_row + right->w_status_height;
-            if (start < end)
-            {
-                neighbour = right;
-                break;
-            }
-        }
-        if (neighbour == NULL)
-        {
-            continue;
-        }
-
-        int     hl;
-        if (left != curwin && neighbour != curwin && fillchar_status(&hl, left) != ' ')
-        {
-            continue;
-        }
-
-        int dst_col =  ((left)->w_wincol + (left)->w_width) ;
-        int src_col = (neighbour == curwin)
-                                ? neighbour->w_wincol :  ((left)->w_wincol + (left)->w_width)  - 1;
-
-        for (int r = start; r < end; r++)
-        {
-            unsigned    dst_off = LineOffset[r] + dst_col;
-            sattr_T     attr = ScreenAttrs[LineOffset[r] + src_col];
-
-            if (ScreenAttrs[dst_off] != attr)
-            {
-                ScreenAttrs[dst_off] = attr;
-                screen_char(dst_off, r, dst_col);
-            }
-        }
-    }
-}
-
-    static void
 showruler(int always)
 {
     if (!always && !redrawing())
@@ -13713,7 +13549,7 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
         return;
     }
 
-    if (wp == lastwin && lastwin->w_status_height == 0)
+    if (wp == curwin && curwin->w_status_height == 0)
     {
         if (edit_submode != NULL)
         {
@@ -14033,7 +13869,7 @@ win_update(win_T *wp)
                     {
                         check_for_delay(FALSE);
                     }
-                    if (win_ins_lines(wp, 0, i, FALSE, wp == firstwin) == OK)
+                    if (win_ins_lines(wp, 0, i, FALSE, TRUE) == OK)
                     {
                         if (wp->w_lines_valid != 0)
                         {
@@ -14095,7 +13931,7 @@ win_update(win_T *wp)
                 if (row > 0)
                 {
                     check_for_delay(FALSE);
-                    if (win_del_lines(wp, 0, row, FALSE, wp == firstwin, 0) == OK)
+                    if (win_del_lines(wp, 0, row, FALSE, TRUE, 0) == OK)
                     {
                         bot_start = wp->w_height - row;
                     }
@@ -14681,13 +14517,11 @@ win_update(win_T *wp)
                 curbuf->b_mod_xlines = j;
             }
             must_redraw = 0;
-             for ((wwp) = firstwin; (wwp) != NULL; (wwp) = (wwp)->w_next) 
-             {
-                if (wwp->w_redr_type > must_redraw)
-                {
-                    must_redraw = wwp->w_redr_type;
-                }
-             }
+             wwp = curwin;
+            if (wwp->w_redr_type > must_redraw)
+            {
+                must_redraw = wwp->w_redr_type;
+            }
             recursive = FALSE;
         }
     }
@@ -14873,10 +14707,8 @@ redraw_all_later(int type)
 {
     win_T       *wp;
 
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        redraw_win_later(wp, type);
-     }
+     wp = curwin;
+    redraw_win_later(wp, type);
     set_must_redraw(type);
 }
 
@@ -14900,19 +14732,17 @@ redraw_buf_later(buf_T *buf, int type)
 {
     win_T       *wp;
 
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
+     wp = curwin;
+    if (wp->w_buffer == buf)
     {
-        if (wp->w_buffer == buf)
-        {
-            redraw_win_later(wp, type);
-        }
+        redraw_win_later(wp, type);
     }
 }
 
     static void
 ruler_redraw_lastwin(void)
 {
-    if (p_ru && lastwin->w_status_height == 0)
+    if (p_ru && curwin->w_status_height == 0)
     {
         redraw_cmdline = TRUE;
     }
@@ -14923,14 +14753,12 @@ status_redraw_all(void)
 {
     win_T       *wp;
 
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        if (wp->w_status_height)
-        {
-            wp->w_redr_status = true;
-            redraw_later(UPD_VALID);
-        }
-     }
+     wp = curwin;
+    if (wp->w_status_height)
+    {
+        wp->w_redr_status = true;
+        redraw_later(UPD_VALID);
+    }
     ruler_redraw_lastwin();
 }
 
@@ -14939,15 +14767,13 @@ status_redraw_curbuf(void)
 {
     win_T       *wp;
 
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        if (wp->w_status_height != 0 && wp->w_buffer == curbuf)
-        {
-            wp->w_redr_status = true;
-            redraw_later(UPD_VALID);
-        }
-     }
-    if (lastwin->w_buffer == curbuf)
+     wp = curwin;
+    if (wp->w_status_height != 0 && wp->w_buffer == curbuf)
+    {
+        wp->w_redr_status = true;
+        redraw_later(UPD_VALID);
+    }
+    if (curwin->w_buffer == curbuf)
     {
         ruler_redraw_lastwin();
     }
@@ -14958,19 +14784,16 @@ redraw_statuslines(void)
 {
     win_T       *wp;
 
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        if (wp->w_redr_status)
+     wp = curwin;
+    if (wp->w_redr_status)
+    {
+        bool ret = push_highlight_overrides(wp->w_hl, wp->w_hl_len);
+        win_redr_status(wp, FALSE);
+        if (ret)
         {
-            bool ret = push_highlight_overrides(wp->w_hl, wp->w_hl_len);
-            win_redr_status(wp, FALSE);
-            if (ret)
-            {
-                pop_highlight_overrides();
-            }
+            pop_highlight_overrides();
         }
-     }
-    borrow_stl_vsep_hl();
+    }
     if (redraw_tabline)
     {
         draw_tabline();
@@ -19695,7 +19518,7 @@ ex_z(exarg_T *eap)
     {
         bigness = Rows - 1;
     }
-    else if (! (firstwin == lastwin) )
+    else if (! TRUE )
     {
         bigness = curwin->w_height - 3;
     }
@@ -21294,24 +21117,18 @@ check_changed_any(int         hidden, int         unload)
 
     bufnrs[bufnum++] = curbuf->b_fnum;
 
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        if (wp->w_buffer != curbuf)
-        {
-            add_bufnum(bufnrs, &bufnum, wp->w_buffer->b_fnum);
-        }
-     }
+     wp = curwin;
+    if (wp->w_buffer != curbuf)
+    {
+        add_bufnum(bufnrs, &bufnum, wp->w_buffer->b_fnum);
+    }
 
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) 
-     {
-        if (tp != curtab)
-        {
-             for ((wp) = ((tp) == NULL || (tp) == curtab)             ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next) 
-             {
-                add_bufnum(bufnrs, &bufnum, wp->w_buffer->b_fnum);
-             }
-        }
-     }
+     tp = curtab;
+    if (tp != curtab)
+    {
+         wp = curwin;
+        add_bufnum(bufnrs, &bufnum, wp->w_buffer->b_fnum);
+    }
 
     bufcount = 1;
 
@@ -21359,26 +21176,22 @@ check_changed_any(int         hidden, int         unload)
 
     if (buf != curbuf)
     {
-         for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-         {
-             for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-             {
-            if (wp->w_buffer == buf)
-            {
-                bufref_T bufref;
+         tp = curtab;
+         wp = curwin;
+    if (wp->w_buffer == buf)
+    {
+        bufref_T bufref;
 
-                set_bufref(&bufref, buf);
+        set_bufref(&bufref, buf);
 
-                goto_tabpage_win(tp, wp);
+        goto_tabpage_win(tp, wp);
 
-                if (!bufref_valid(&bufref))
-                {
-                    goto theend;
-                }
-                goto buf_found;
-            }
-             }
-         }
+        if (!bufref_valid(&bufref))
+        {
+            goto theend;
+        }
+        goto buf_found;
+    }
     }
 buf_found:
 
@@ -21836,35 +21649,13 @@ compute_buffer_local_count(int addr_type, int lnum, int offset)
     static int
 current_win_nr(win_T *win)
 {
-    win_T       *wp;
-    int         nr = 0;
-
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-    {
-        ++nr;
-        if (wp == win)
-        {
-            break;
-        }
-    }
-    return nr;
+    return 1;
 }
 
     static int
 current_tab_nr(tabpage_T *tab)
 {
-    tabpage_T   *tp;
-    int         nr = 0;
-
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) 
-    {
-        ++nr;
-        if (tp == tab)
-        {
-            break;
-        }
-    }
-    return nr;
+    return 1;
 }
 
     static int
@@ -27858,8 +27649,8 @@ compute_cmdrow(void)
     }
     else
     {
-        cmdline_row =  (lastwin->w_winrow)  + lastwin->w_height
-                                                    + lastwin->w_status_height;
+        cmdline_row =  (curwin->w_winrow)  + curwin->w_height
+                                                    + curwin->w_status_height;
     }
 }
 
@@ -35342,14 +35133,12 @@ highlight_changed(void)
         }
     }
 
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-    {
-        char *errmsg = update_winhighlight(wp, wp-> w_onebuf_opt.wo_whl );
+     wp = curwin;
+    char *errmsg = update_winhighlight(wp, wp-> w_onebuf_opt.wo_whl );
 
-        if (errmsg != NULL)
-        {
-            emsg(_(errmsg));
-        }
+    if (errmsg != NULL)
+    {
+        emsg(_(errmsg));
     }
 
     return OK;
@@ -35369,24 +35158,6 @@ update_highlight_overrides(hl_override_T *old, hl_override_T *hl_new, int newlen
         {
             set->arr = hl_new;
             set->len = newlen;
-        }
-    }
-}
-
-    static void
-remove_highlight_overrides(hl_override_T *arr)
-{
-    if (arr == NULL || overrides == NULL)
-    {
-        return;
-    }
-
-    for (hl_overrides_T *set = overrides; set != NULL; set = set->next)
-    {
-        if (set->arr == arr)
-        {
-            set->arr = NULL;
-            break;
         }
     }
 }
@@ -38477,7 +38248,6 @@ mark_adjust_internal(linenr_T    line1, linenr_T    line2, long        amount, l
     int         fnum = curbuf->b_fnum;
     linenr_T    *lp;
     win_T       *win;
-    tabpage_T   *tab;
     wininfo_T   *wip;
     static pos_T initpos = {1, 0, 0};
 
@@ -38532,59 +38302,54 @@ mark_adjust_internal(linenr_T    line1, linenr_T    line2, long        amount, l
          {     lp = &(saved_cursor.lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = line1;        else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
     }
 
-     for ((tab) = first_tabpage; (tab) != NULL; (tab) = (tab)->tp_next)
-     {
-         for ((win) = ((tab) == curtab)            ? firstwin : (tab)->tp_firstwin; (win); (win) = (win)->w_next)
+     win = curwin;
+if (win->w_buffer == curbuf)
+{
+    if ((cmdmod.cmod_flags & CMOD_LOCKMARKS) == 0)
     {
-        if (win->w_buffer == curbuf)
+        for (i = 0; i < win->w_tagstacklen; i++)
         {
-            if ((cmdmod.cmod_flags & CMOD_LOCKMARKS) == 0)
+            if (win->w_tagstack[i].fmark.fnum == fnum)
             {
-                for (i = 0; i < win->w_tagstacklen; i++)
-                {
-                    if (win->w_tagstack[i].fmark.fnum == fnum)
-                    {
-                         {     lp = &(win->w_tagstack[i].fmark.mark.lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = line1;        else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
-                    }
-                }
+                 {     lp = &(win->w_tagstack[i].fmark.mark.lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = line1;        else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
             }
-
-            if (win->w_old_cursor_lnum != 0)
-            {
-                 {     lp = &(win->w_old_cursor_lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = line1;        else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
-                 {     lp = &(win->w_old_visual_lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = line1;        else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
-            }
-
-            if (win != curwin)
-            {
-                if (win->w_topline >= line1 && win->w_topline <= line2)
-                {
-                    if (amount ==  LONG_MAX )
-                    {
-                        if (line1 <= 1)
-                        {
-                            win->w_topline = 1;
-                        }
-                        else
-                        {
-                            win->w_topline = line1 - 1;
-                        }
-                    }
-                    else if (win->w_topline > line1)
-                    {
-                        win->w_topline += amount;
-                    }
-                }
-                else if (amount_after && win->w_topline > line2)
-                {
-                    win->w_topline += amount_after;
-                }
-                 {     pos_T *posp = &(win->w_cursor);       if (posp->lnum >= line1 && posp->lnum <= line2)         {           if (amount ==  LONG_MAX )          {           posp->lnum = MAX(line1 - 1, 1);                 posp->col = 0;      }       else               posp->lnum += amount;   }       else if (amount_after && posp->lnum > line2)        posp->lnum += amount_after;     } ;
-            }
-
         }
     }
-     }
+
+    if (win->w_old_cursor_lnum != 0)
+    {
+         {     lp = &(win->w_old_cursor_lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = line1;        else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
+         {     lp = &(win->w_old_visual_lnum);       if (*lp >= line1 && *lp <= line2)       {           if (amount ==  LONG_MAX )              *lp = line1;        else                *lp += amount;  }       else if (amount_after && *lp > line2)       *lp += amount_after;     } ;
+    }
+
+    if (win != curwin)
+    {
+        if (win->w_topline >= line1 && win->w_topline <= line2)
+        {
+            if (amount ==  LONG_MAX )
+            {
+                if (line1 <= 1)
+                {
+                    win->w_topline = 1;
+                }
+                else
+                {
+                    win->w_topline = line1 - 1;
+                }
+            }
+            else if (win->w_topline > line1)
+            {
+                win->w_topline += amount;
+            }
+        }
+        else if (amount_after && win->w_topline > line2)
+        {
+            win->w_topline += amount_after;
+        }
+         {     pos_T *posp = &(win->w_cursor);       if (posp->lnum >= line1 && posp->lnum <= line2)         {           if (amount ==  LONG_MAX )          {           posp->lnum = MAX(line1 - 1, 1);                 posp->col = 0;      }       else               posp->lnum += amount;   }       else if (amount_after && posp->lnum > line2)        posp->lnum += amount_after;     } ;
+    }
+
+}
 
      for ((wip) = (curbuf)->b_wininfo; (wip) != NULL; (wip) = (wip)->wi_next) 
          {     pos_T *posp = &(wip->wi_fpos);       if (posp->lnum >= line1 && posp->lnum <= line2)         {           if (amount ==  LONG_MAX )          {           posp->lnum = MAX(line1 - 1, 1);                 posp->col = 0;      }       else               posp->lnum += amount;   }       else if (amount_after && posp->lnum > line2)        posp->lnum += amount_after;     } ;
@@ -38637,22 +38402,20 @@ mark_col_adjust(linenr_T    lnum, colnr_T     mincol, long        lnum_amount, l
 
      {    posp = &saved_cursor;      if (posp->lnum == lnum && posp->col >= mincol)  {           posp->lnum += lnum_amount;      if (col_amount < 0 && posp->col <= (colnr_T)-col_amount)            posp->col = 0;      else if (posp->col < spaces_removed)                posp->col = col_amount + spaces_removed;            else                posp->col += col_amount;        }     } ;
 
-     for ((win) = firstwin; (win) != NULL; (win) = (win)->w_next) 
+     win = curwin;
+    if (win->w_buffer == curbuf)
     {
-        if (win->w_buffer == curbuf)
+        for (i = 0; i < win->w_tagstacklen; i++)
         {
-            for (i = 0; i < win->w_tagstacklen; i++)
+            if (win->w_tagstack[i].fmark.fnum == fnum)
             {
-                if (win->w_tagstack[i].fmark.fnum == fnum)
-                {
-                     {    posp = &(win->w_tagstack[i].fmark.mark);      if (posp->lnum == lnum && posp->col >= mincol)  {           posp->lnum += lnum_amount;      if (col_amount < 0 && posp->col <= (colnr_T)-col_amount)            posp->col = 0;      else if (posp->col < spaces_removed)                posp->col = col_amount + spaces_removed;            else                posp->col += col_amount;        }     } ;
-                }
+                 {    posp = &(win->w_tagstack[i].fmark.mark);      if (posp->lnum == lnum && posp->col >= mincol)  {           posp->lnum += lnum_amount;      if (col_amount < 0 && posp->col <= (colnr_T)-col_amount)            posp->col = 0;      else if (posp->col < spaces_removed)                posp->col = col_amount + spaces_removed;            else                posp->col += col_amount;        }     } ;
             }
+        }
 
-            if (win != curwin)
-            {
-                 {    posp = &win->w_cursor;      if (posp->lnum == lnum && posp->col >= mincol)  {           posp->lnum += lnum_amount;      if (col_amount < 0 && posp->col <= (colnr_T)-col_amount)            posp->col = 0;      else if (posp->col < spaces_removed)                posp->col = col_amount + spaces_removed;            else                posp->col += col_amount;        }     } ;
-            }
+        if (win != curwin)
+        {
+             {    posp = &win->w_cursor;      if (posp->lnum == lnum && posp->col >= mincol)  {           posp->lnum += lnum_amount;      if (col_amount < 0 && posp->col <= (colnr_T)-col_amount)            posp->col = 0;      else if (posp->col < spaces_removed)                posp->col = col_amount + spaces_removed;            else                posp->col += col_amount;        }     } ;
         }
     }
 }
@@ -47395,14 +47158,12 @@ check_status(buf_T *buf)
 {
     win_T       *wp;
 
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        if (wp->w_buffer == buf && wp->w_status_height)
-        {
-            wp->w_redr_status = true;
-            set_must_redraw(UPD_VALID);
-        }
-     }
+     wp = curwin;
+    if (wp->w_buffer == buf && wp->w_status_height)
+    {
+        wp->w_redr_status = true;
+        set_must_redraw(UPD_VALID);
+    }
 }
 
     static int
@@ -51534,7 +51295,7 @@ pagescroll(int dir, long count, int half)
     }
     else
     {
-        count *= (( (firstwin == lastwin)  && p_window > 0 && p_window < Rows - 1) ? MAX(1, p_window - 2) : get_scroll_overlap(dir));
+        count *= (( TRUE  && p_window > 0 && p_window < Rows - 1) ? MAX(1, p_window - 2) : get_scroll_overlap(dir));
         did_move = scroll_with_sms(dir, count, &count);
 
         if (did_move)
@@ -61033,7 +60794,6 @@ set_options_default(int         opt_flags)
 {
     int         i;
     win_T       *wp;
-    tabpage_T   *tp;
 
     for (i = 0; !istermoption_idx(i); i++)
     {
@@ -61043,13 +60803,8 @@ set_options_default(int         opt_flags)
         }
     }
 
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-     {
-         for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-         {
-        win_comp_scroll(wp);
-         }
-     }
+     wp = curwin;
+win_comp_scroll(wp);
 }
 
     static void
@@ -63939,14 +63694,6 @@ get_option_did_set_cb(int opt_idx)
 }
 
     static void
-win_copy_options(win_T *wp_from, win_T *wp_to)
-{
-    copy_winopt(&wp_from->w_onebuf_opt, &wp_to->w_onebuf_opt);
-    copy_winopt(&wp_from->w_allbuf_opt, &wp_to->w_allbuf_opt);
-    after_copy_winopt(wp_to);
-}
-
-    static void
 after_copy_winopt(win_T *wp)
 {
     char *errmsg = update_winhighlight(wp, wp-> w_onebuf_opt.wo_whl );
@@ -64629,33 +64376,27 @@ did_set_global_listfillchars(char_u *val, int opt_lcs, int opt_flags, char *errb
         return errmsg;
     }
 
-    tabpage_T   *tp;
     win_T       *wp;
 
     if (!(opt_flags & OPT_GLOBAL))
     {
         clear_string_option(local_ptr);
     }
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-     {
-         for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
+     wp = curwin;
+if (opt_lcs)
+{
+    if (*wp-> w_onebuf_opt.wo_lcs  == NUL)
     {
-        if (opt_lcs)
-        {
-            if (*wp-> w_onebuf_opt.wo_lcs  == NUL)
-            {
-                (void)set_listchars_option(wp, wp-> w_onebuf_opt.wo_lcs , TRUE, NULL, 0);
-            }
-        }
-        else
-        {
-            if (*wp-> w_onebuf_opt.wo_fcs  == NUL)
-            {
-                (void)set_fillchars_option(wp, wp-> w_onebuf_opt.wo_fcs , TRUE, NULL, 0);
-            }
-        }
+        (void)set_listchars_option(wp, wp-> w_onebuf_opt.wo_lcs , TRUE, NULL, 0);
     }
-     }
+}
+else
+{
+    if (*wp-> w_onebuf_opt.wo_fcs  == NUL)
+    {
+        (void)set_fillchars_option(wp, wp-> w_onebuf_opt.wo_fcs , TRUE, NULL, 0);
+    }
+}
 
     redraw_all_later(UPD_NOT_VALID);
 
@@ -74764,7 +74505,7 @@ screen_line(win_T   *wp, int     row, int     coloff, int     endcol, int     cl
 
     if (clear_width > 0)
     {
-        if (coloff + col < firstwin->w_wincol + topframe->fr_width)
+        if (coloff + col < curwin->w_wincol + topframe->fr_width)
         {
             if (!skip_for_popup(row, col + coloff))
             {
@@ -75475,7 +75216,7 @@ redraw_block(int row, int end, win_T *wp)
 
     if (wp == NULL)
     {
-        col = firstwin->w_wincol;
+        col = curwin->w_wincol;
         width = topframe->fr_width;
     }
     else
@@ -75727,7 +75468,6 @@ screenalloc(int doclear)
     unsigned        *new_LineOffset;
     char_u          *new_LineWraps;
     short           *new_TabPageIdxs;
-    tabpage_T       *tp;
     static int      entered = FALSE;
     static int      done_outofmem_msg = FALSE;
     int             retry_count = 0;
@@ -75751,13 +75491,8 @@ retry:
 
     comp_col();
 
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-     {
-         for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-         {
-        win_free_lsize(wp);
-         }
-     }
+     wp = curwin;
+win_free_lsize(wp);
     new_ScreenLines =  (schar_T *)lalloc(sizeof(schar_T) * ((Rows + 1) * Columns), FALSE) ;
      memset((new_ScreenLinesC), (0), (sizeof(u8char_T *) * MAX_MCO)) ;
     new_ScreenLinesUC =  (u8char_T *)lalloc(sizeof(u8char_T) * ((Rows + 1) * Columns), FALSE) ;
@@ -75771,17 +75506,12 @@ retry:
     new_LineWraps =  (char_u *)lalloc(sizeof(char_u) * (Rows), FALSE) ;
     new_TabPageIdxs =  (short *)lalloc(sizeof(short) * (Columns), FALSE) ;
 
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-     {
-         for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-    {
-        if (win_alloc_lines(wp) == FAIL)
-        {
-            outofmem = TRUE;
-            goto give_up;
-        }
-    }
-     }
+     wp = curwin;
+if (win_alloc_lines(wp) == FAIL)
+{
+    outofmem = TRUE;
+    goto give_up;
+}
 give_up:
     found_null = FALSE;
     for (int i = 0; i < p_mco; ++i)
@@ -75994,7 +75724,7 @@ screenclear2(int doclear)
 
     screen_cleared = TRUE;
 
-    win_rest_invalid(firstwin);
+    win_rest_invalid(curwin);
     redraw_cmdline = TRUE;
     redraw_tabline = TRUE;
     if (must_redraw == UPD_CLEAR)
@@ -76340,15 +76070,11 @@ win_ins_lines(win_T       *wp, int         row, int         line_count, int     
     }
 
     did_delete = FALSE;
-    if (wp->w_next != NULL || wp->w_status_height)
+    if (wp->w_status_height)
     {
         if (screen_del_lines(0,  (wp->w_winrow)  + wp->w_height - line_count, line_count, (int)Rows, FALSE, 0, NULL) == OK)
         {
             did_delete = TRUE;
-        }
-        else if (wp->w_next)
-        {
-            return FAIL;
         }
     }
     if (!did_delete)
@@ -76369,7 +76095,6 @@ win_ins_lines(win_T       *wp, int         row, int         line_count, int     
         if (did_delete)
         {
             wp->w_redr_status = true;
-            win_rest_invalid( ((wp)->w_next) );
         }
         return FAIL;
     }
@@ -76403,12 +76128,11 @@ win_del_lines(win_T       *wp, int         row, int         line_count, int     
         return FAIL;
     }
 
-    if (wp->w_next || wp->w_status_height || cmdline_row < Rows - 1)
+    if (wp->w_status_height || cmdline_row < Rows - 1)
     {
         if (screen_ins_lines(0,  (wp->w_winrow)  + wp->w_height - line_count, line_count, (int)Rows, clear_attr, NULL) == FAIL)
         {
             wp->w_redr_status = true;
-            win_rest_invalid(wp->w_next);
         }
     }
     else
@@ -76474,23 +76198,14 @@ win_do_lines(win_T       *wp, int         row, int         line_count, int      
         return retval;
     }
 
-    if (wp->w_next != NULL && p_tf)
-    {
-        return FAIL;
-    }
-
     return MAYBE;
 }
 
     static void
 win_rest_invalid(win_T *wp)
 {
-    while (wp != NULL)
-    {
-        redraw_win_later(wp, UPD_NOT_VALID);
-        wp->w_redr_status = true;
-        wp = wp->w_next;
-    }
+    redraw_win_later(wp, UPD_NOT_VALID);
+    wp->w_redr_status = true;
     redraw_cmdline = TRUE;
 }
 
@@ -77041,9 +76756,9 @@ showmode(void)
         clear_showcmd();
     }
 
-    if (redrawing() && lastwin->w_status_height == 0)
+    if (redrawing() && curwin->w_status_height == 0)
     {
-        win_redr_ruler(lastwin, TRUE, show_ruler_with_pum);
+        win_redr_ruler(curwin, TRUE, show_ruler_with_pum);
     }
 
     redraw_cmdline = FALSE;
@@ -77634,7 +77349,6 @@ set_listchars_option(win_T *wp, char_u *val, int apply, char *errbuf, size_t err
     static char *
 check_chars_options(void)
 {
-    tabpage_T   *tp;
     win_T           *wp;
 
     if (set_listchars_option(curwin, p_lcs, FALSE, NULL, 0) != NULL)
@@ -77645,20 +77359,15 @@ check_chars_options(void)
     {
         return e_conflicts_with_value_of_fillchars;
     }
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-     {
-         for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-    {
-        if (set_listchars_option(wp, wp-> w_onebuf_opt.wo_lcs , FALSE, NULL, 0) != NULL)
-        {
-            return e_conflicts_with_value_of_listchars;
-        }
-        if (set_fillchars_option(wp, wp-> w_onebuf_opt.wo_fcs , FALSE, NULL, 0) != NULL)
-        {
-            return e_conflicts_with_value_of_fillchars;
-        }
-    }
-     }
+     wp = curwin;
+if (set_listchars_option(wp, wp-> w_onebuf_opt.wo_lcs , FALSE, NULL, 0) != NULL)
+{
+    return e_conflicts_with_value_of_listchars;
+}
+if (set_fillchars_option(wp, wp-> w_onebuf_opt.wo_fcs , FALSE, NULL, 0) != NULL)
+{
+    return e_conflicts_with_value_of_fillchars;
+}
     return NULL;
 }
 
@@ -89659,8 +89368,6 @@ static_assert(sizeof(cmdnames) / sizeof(cmdnames[0]) == CMD_SIZE, "cmdnames[] an
 
 // ==================== window.c ====================
 
-static void win_init(win_T *newp, win_T *oldp, int flags);
-static void win_init_some(win_T *newp, win_T *oldp);
 static void frame_comp_pos(frame_T *topfrp, int *row, int *col);
 static void frame_setheight(frame_T *curfrp, int height);
 static void frame_setwidth(frame_T *curfrp, int width);
@@ -89674,12 +89381,9 @@ static int frame_minwidth(frame_T *topfrp, win_T *next_curwin);
 static int win_alloc_firstwin(win_T *oldwin);
 static void new_frame(win_T *wp);
 static tabpage_T *alloc_tabpage(void);
-static int leave_tabpage(buf_T *new_curbuf, int trigger_leave_autocmds);
-static void enter_tabpage(tabpage_T *tp, buf_T *old_curbuf, int trigger_enter_autocmds, int trigger_leave_autocmds);
 static void frame_fix_height(win_T *wp);
 static int frame_minheight(frame_T *topfrp, win_T *next_curwin);
 static int win_enter_ext(win_T *wp, int flags);
-static void win_append(win_T *after, win_T *wp);
 static void frame_add_height(frame_T *frp, int n);
 static void last_status_rec(frame_T *fr, int statusline);
 
@@ -89782,134 +89486,22 @@ get_wincmd_addr_type(char_u *arg, exarg_T *eap)
     }
 }
 
-    static void
-win_init(win_T *newp, win_T *oldp, int flags  __attribute__((unused)) )
-{
-    int         i;
-
-    newp->w_buffer = oldp->w_buffer;
-    oldp->w_buffer->b_nwindows++;
-    newp->w_cursor = oldp->w_cursor;
-    newp->w_valid = 0;
-    newp->w_curswant = oldp->w_curswant;
-    newp->w_set_curswant = oldp->w_set_curswant;
-    newp->w_topline = oldp->w_topline;
-    newp->w_leftcol = oldp->w_leftcol;
-    newp->w_pcmark = oldp->w_pcmark;
-    newp->w_prev_pcmark = oldp->w_prev_pcmark;
-    newp->w_wrow = oldp->w_wrow;
-    newp->w_fraction = oldp->w_fraction;
-    newp->w_prev_fraction_row = oldp->w_prev_fraction_row;
-
-    remove_highlight_overrides(newp->w_hl);
-     vim_free(newp->w_hl);
-     (newp->w_hl) = NULL;
-
-    newp->w_localdir = (oldp->w_localdir == NULL)
-                                    ? NULL : vim_strsave(oldp->w_localdir);
-    newp->w_prevdir = (oldp->w_prevdir == NULL)
-                                    ? NULL : vim_strsave(oldp->w_prevdir);
-
-    if (*p_spk != 'c')
-    {
-        if (*p_spk == 't')
-        {
-            newp->w_skipcol = oldp->w_skipcol;
-        }
-        newp->w_botline = oldp->w_botline;
-        newp->w_prev_height = oldp->w_height -  0 ;
-        newp->w_prev_winrow = oldp->w_winrow + 2 *  0 ;
-    }
-
-    for (i = 0; i < oldp->w_tagstacklen; i++)
-    {
-        taggy_T *tag = &newp->w_tagstack[i];
-        *tag = oldp->w_tagstack[i];
-        if (tag->tagname != NULL)
-        {
-            tag->tagname = vim_strsave(tag->tagname);
-        }
-        if (tag->user_data != NULL)
-        {
-            tag->user_data = vim_strsave(tag->user_data);
-        }
-    }
-    newp->w_tagstackidx = oldp->w_tagstackidx;
-    newp->w_tagstacklen = oldp->w_tagstacklen;
-
-    newp->w_changelistidx = oldp->w_changelistidx;
-
-    win_init_some(newp, oldp);
-
-}
-
-    static void
-win_init_some(win_T *newp, win_T *oldp)
-{
-    win_copy_options(oldp, newp);
-}
-
-    static int
-win_valid_popup(win_T *win  __attribute__((unused)) )
-{
-    return FALSE;
-}
-
     static int
 win_valid(win_T *win)
 {
-    win_T       *wp;
-
-    if (win == NULL)
-    {
-        return FALSE;
-    }
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        if (wp == win)
-        {
-            return TRUE;
-        }
-     }
-    return win_valid_popup(win);
+    return win != NULL && win == curwin;
 }
 
     static win_T *
 win_find_by_id(int id)
 {
-    win_T   *wp;
-
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-     {
-        if (wp->w_id == id)
-        {
-            return wp;
-        }
-     }
-    return NULL;
+    return (curwin->w_id == id) ? curwin : NULL;
 }
 
     static int
 win_valid_any_tab(win_T *win)
 {
-    win_T       *wp;
-    tabpage_T   *tp;
-
-    if (win == NULL)
-    {
-        return FALSE;
-    }
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) 
-    {
-         for ((wp) = ((tp) == NULL || (tp) == curtab)             ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next) 
-        {
-            if (wp == win)
-            {
-                return TRUE;
-            }
-        }
-    }
-    return win_valid_popup(win);
+    return win != NULL && win == curwin;
 }
 
     static void
@@ -89939,14 +89531,12 @@ curwin_init(void)
 snapshot_windows_scroll_size(void)
 {
     win_T *wp;
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-    {
-        wp->w_last_topline = wp->w_topline;
-        wp->w_last_leftcol = wp->w_leftcol;
-        wp->w_last_skipcol = wp->w_skipcol;
-        wp->w_last_width = wp->w_width;
-        wp->w_last_height = wp->w_height;
-    }
+     wp = curwin;
+    wp->w_last_topline = wp->w_topline;
+    wp->w_last_leftcol = wp->w_leftcol;
+    wp->w_last_skipcol = wp->w_skipcol;
+    wp->w_last_width = wp->w_width;
+    wp->w_last_height = wp->w_height;
 }
 
 static int did_initial_scroll_size_snapshot = FALSE;
@@ -90366,22 +89956,10 @@ frame_minwidth(frame_T     *topfrp, win_T       *next_curwin)
 unuse_tabpage(tabpage_T *tp)
 {
     tp->tp_topframe = topframe;
-    tp->tp_firstwin = firstwin;
-    tp->tp_lastwin = lastwin;
     tp->tp_curwin = curwin;
 }
 
 static int command_frame_height = TRUE;
-
-    static void
-use_tabpage(tabpage_T *tp)
-{
-    curtab = tp;
-    topframe = curtab->tp_topframe;
-    firstwin = curtab->tp_firstwin;
-    lastwin = curtab->tp_lastwin;
-    curwin = curtab->tp_curwin;
-}
 
     static int
 win_alloc_first(void)
@@ -90391,13 +89969,12 @@ win_alloc_first(void)
         return FAIL;
     }
 
-    first_tabpage = alloc_tabpage();
-    if (first_tabpage == NULL)
+    curtab = alloc_tabpage();
+    if (curtab == NULL)
     {
         return FAIL;
     }
-    curtab = first_tabpage;
-    unuse_tabpage(first_tabpage);
+    unuse_tabpage(curtab);
 
     return OK;
 }
@@ -90410,22 +89987,14 @@ win_alloc_firstwin(win_T *oldwin)
     {
         return FAIL;
     }
-    if (oldwin == NULL)
+    curbuf = buflist_new(NULL, NULL, 1L, BLN_LISTED);
+    if (curbuf == NULL)
     {
-        curbuf = buflist_new(NULL, NULL, 1L, BLN_LISTED);
-        if (curwin == NULL || curbuf == NULL)
-        {
-            return FAIL;
-        }
-        curwin->w_buffer = curbuf;
-        curbuf->b_nwindows = 1;
-        curwin_init();
+        return FAIL;
     }
-    else
-    {
-        win_init(curwin, oldwin, 0);
-
-    }
+    curwin->w_buffer = curbuf;
+    curbuf->b_nwindows = 1;
+    curwin_init();
 
     new_frame(curwin);
     if (curwin->w_frame == NULL)
@@ -90456,10 +90025,10 @@ new_frame(win_T *wp)
     static void
 win_init_size(void)
 {
-    firstwin->w_height =  (Rows - p_ch - tabline_height()) ;
-    firstwin->w_prev_height =  (Rows - p_ch - tabline_height()) ;
+    curwin->w_height =  (Rows - p_ch - tabline_height()) ;
+    curwin->w_prev_height =  (Rows - p_ch - tabline_height()) ;
     topframe->fr_height =  (Rows - p_ch - tabline_height()) ;
-    firstwin->w_width = topframe->fr_width;
+    curwin->w_width = topframe->fr_width;
 }
 
     static tabpage_T *
@@ -90478,137 +90047,12 @@ alloc_tabpage(void)
     return tp;
 }
 
-    static int
-valid_tabpage(tabpage_T *tpc)
-{
-    tabpage_T   *tp;
-
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) 
-     {
-        if (tp == tpc)
-        {
-            return TRUE;
-        }
-     }
-    return FALSE;
-}
-
-    static int
-leave_tabpage(buf_T       *new_curbuf, int         trigger_leave_autocmds)
-{
-    tabpage_T   *tp = curtab;
-
-    reset_VIsual_and_resel();
-    if (trigger_leave_autocmds)
-    {
-        if (new_curbuf != curbuf)
-        {
-            apply_autocmds(EVENT_BUFLEAVE, NULL, NULL, FALSE, curbuf);
-            if (curtab != tp)
-            {
-                return FAIL;
-            }
-        }
-        apply_autocmds(EVENT_WINLEAVE, NULL, NULL, FALSE, curbuf);
-        if (curtab != tp)
-        {
-            return FAIL;
-        }
-        apply_autocmds(EVENT_TABLEAVE, NULL, NULL, FALSE, curbuf);
-        if (curtab != tp)
-        {
-            return FAIL;
-        }
-    }
-
-    tp->tp_curwin = curwin;
-    tp->tp_prevwin = prevwin;
-    tp->tp_firstwin = firstwin;
-    tp->tp_lastwin = lastwin;
-    tp->tp_old_Rows =  (Rows - p_ch - tabline_height()) ;
-    if (tp->tp_old_Columns != -1)
-    {
-        tp->tp_old_Columns = topframe->fr_width;
-        tp->tp_old_coloff = firstwin->w_wincol;
-    }
-    firstwin = NULL;
-    lastwin = NULL;
-    return OK;
-}
-
-    static void
-enter_tabpage(tabpage_T   *tp, buf_T       *old_curbuf, int         trigger_enter_autocmds, int         trigger_leave_autocmds)
-{
-    int         old_off = tp->tp_firstwin->w_winrow;
-    win_T       *next_prevwin = tp->tp_prevwin;
-    tabpage_T   *last_tab = curtab;
-
-    use_tabpage(tp);
-
-    if (p_ch != curtab->tp_ch_used)
-    {
-        int new_ch = curtab->tp_ch_used;
-        curtab->tp_ch_used = p_ch;
-        command_frame_height = FALSE;
-        set_option_value((char_u *)"cmdheight", new_ch, NULL, 0);
-        command_frame_height = TRUE;
-    }
-
-    (void)win_enter_ext(tp->tp_curwin, WEE_CURWIN_INVALID | (trigger_enter_autocmds ? WEE_TRIGGER_ENTER_AUTOCMDS : 0) | (trigger_leave_autocmds ? WEE_TRIGGER_LEAVE_AUTOCMDS : 0));
-    prevwin = next_prevwin;
-
-    last_status(FALSE);
-    win_comp_pos();
-
-    if (curtab->tp_old_Rows !=  (Rows - p_ch - tabline_height())  || (old_off != firstwin->w_winrow))
-    {
-        shell_new_rows();
-    }
-    if (curtab->tp_old_Columns !=  Columns  || curtab->tp_old_coloff !=  0 )
-    {
-        if (starting == 0)
-        {
-            shell_new_columns();
-            curtab->tp_old_Columns = topframe->fr_width;
-            curtab->tp_old_coloff = firstwin->w_wincol;
-        }
-        else
-        {
-            curtab->tp_old_Columns = -1;
-        }
-    }
-
-    lastused_tabpage = last_tab;
-
-    if (trigger_enter_autocmds)
-    {
-        apply_autocmds(EVENT_TABENTER, NULL, NULL, FALSE, curbuf);
-        if (old_curbuf != curbuf)
-        {
-            apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
-        }
-    }
-
-    redraw_all_later(UPD_NOT_VALID);
-}
-
     static void
 goto_tabpage_tp(tabpage_T   *tp, int         trigger_enter_autocmds, int         trigger_leave_autocmds)
 {
     set_keep_msg(NULL, 0);
 
     skip_win_fix_scroll = TRUE;
-    if (tp != curtab && leave_tabpage(tp->tp_curwin->w_buffer, trigger_leave_autocmds) == OK)
-    {
-        if (valid_tabpage(tp))
-        {
-            enter_tabpage(tp, curbuf, trigger_enter_autocmds, trigger_leave_autocmds);
-        }
-        else
-        {
-            enter_tabpage(curtab, curbuf, trigger_enter_autocmds, trigger_leave_autocmds);
-        }
-    }
     skip_win_fix_scroll = FALSE;
 }
 
@@ -90755,10 +90199,6 @@ win_alloc(win_T *after, int hidden)
 
     block_autocmds();
 
-    if (!hidden)
-    {
-        win_append(after, new_wp);
-    }
     new_wp->w_wincol =  0 ;
     new_wp->w_width =  Columns ;
 
@@ -90777,40 +90217,6 @@ win_alloc(win_T *after, int hidden)
     unblock_autocmds();
     new_wp->w_next_match_id = 1000;
     return new_wp;
-}
-
-    static void
-win_append(win_T *after, win_T *wp)
-{
-    win_T       *before;
-
-    if (after == NULL)
-    {
-        before = firstwin;
-    }
-    else
-    {
-        before = after->w_next;
-    }
-
-    wp->w_next = before;
-    wp->w_prev = after;
-    if (after == NULL)
-    {
-        firstwin = wp;
-    }
-    else
-    {
-        after->w_next = wp;
-    }
-    if (before == NULL)
-    {
-        lastwin = wp;
-    }
-    else
-    {
-        before->w_prev = wp;
-    }
 }
 
     static int
@@ -90840,7 +90246,7 @@ shell_new_rows(void)
 {
     int         h = (int) (Rows - p_ch - tabline_height()) ;
 
-    if (firstwin == NULL)
+    if (curwin == NULL)
     {
         return;
     }
@@ -90870,7 +90276,7 @@ shell_new_rows(void)
     static void
 shell_new_columns(void)
 {
-    if (firstwin == NULL)
+    if (curwin == NULL)
     {
         return;
     }
@@ -90885,7 +90291,7 @@ shell_new_columns(void)
 
     win_comp_pos();
 
-    cmdline_col_off = firstwin->w_wincol;
+    cmdline_col_off = curwin->w_wincol;
     cmdline_width = topframe->fr_width;
     comp_col();
     if (!skip_win_fix_scroll)
@@ -91042,7 +90448,7 @@ frame_setheight(frame_T *curfrp, int height)
             }
             else
             {
-                room_cmdline = Rows - p_ch - (lastwin->w_winrow +  (lastwin)->w_height  + lastwin->w_status_height);
+                room_cmdline = Rows - p_ch - (curwin->w_winrow +  (curwin)->w_height  + curwin->w_status_height);
                 if (room_cmdline < 0)
                 {
                     room_cmdline = 0;
@@ -91278,52 +90684,50 @@ win_fix_scroll(int resize)
 
     skip_update_topline = TRUE;
     win_T       *wp;
-     for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
+     wp = curwin;
+    if (wp->w_height != wp->w_prev_height)
     {
-        if (wp->w_height != wp->w_prev_height)
+        wp->w_do_win_fix_cursor = true;
+
+        if (*p_spk == 's' && wp->w_winrow != wp->w_prev_winrow && wp->w_botline - 1 <= wp->w_buffer->b_ml.ml_line_count)
         {
-            wp->w_do_win_fix_cursor = true;
+            int diff = (wp->w_winrow - wp->w_prev_winrow)
+                                      + (wp->w_height - wp->w_prev_height);
+            pos_T cursor = wp->w_cursor;
+            linenr_T topline = wp->w_topline;
+            colnr_T skipcol = wp->w_skipcol;
 
-            if (*p_spk == 's' && wp->w_winrow != wp->w_prev_winrow && wp->w_botline - 1 <= wp->w_buffer->b_ml.ml_line_count)
+            wp->w_cursor.lnum = wp->w_botline - 1;
+
+            if (diff > 0)
             {
-                int diff = (wp->w_winrow - wp->w_prev_winrow)
-                                          + (wp->w_height - wp->w_prev_height);
-                pos_T cursor = wp->w_cursor;
-                linenr_T topline = wp->w_topline;
-                colnr_T skipcol = wp->w_skipcol;
-
-                wp->w_cursor.lnum = wp->w_botline - 1;
-
-                if (diff > 0)
-                {
-                    cursor_down_inner(wp, diff);
-                }
-                else
-                {
-                    cursor_up_inner(wp, -diff);
-                }
-
-                wp->w_fraction = FRACTION_MULT;
-                scroll_to_fraction(wp, wp->w_prev_height);
-
-                wp->w_cursor = cursor;
-                if (wp->w_topline == topline)
-                {
-                    wp->w_skipcol = skipcol;
-                }
-                wp->w_valid &= ~VALID_WCOL;
+                cursor_down_inner(wp, diff);
             }
-            else if (wp == curwin)
+            else
             {
-                wp->w_valid &= ~VALID_CROW;
+                cursor_up_inner(wp, -diff);
             }
 
-            invalidate_botline_win(wp);
-            validate_botline_win(wp);
+            wp->w_fraction = FRACTION_MULT;
+            scroll_to_fraction(wp, wp->w_prev_height);
+
+            wp->w_cursor = cursor;
+            if (wp->w_topline == topline)
+            {
+                wp->w_skipcol = skipcol;
+            }
+            wp->w_valid &= ~VALID_WCOL;
         }
-        wp->w_prev_height = wp->w_height;
-        wp->w_prev_winrow = wp->w_winrow;
+        else if (wp == curwin)
+        {
+            wp->w_valid &= ~VALID_CROW;
+        }
+
+        invalidate_botline_win(wp);
+        validate_botline_win(wp);
     }
+    wp->w_prev_height = wp->w_height;
+    wp->w_prev_winrow = wp->w_winrow;
     skip_update_topline = FALSE;
     if (!(get_real_state() & (MODE_NORMAL|MODE_CMDLINE|MODE_TERMINAL)))
     {
@@ -91547,7 +90951,7 @@ command_height(void)
 {
     int         old_p_ch = curtab->tp_ch_used;
 
-    frame_T *frp = lastwin->w_frame;
+    frame_T *frp = curwin->w_frame;
     while (frp->fr_width != topframe->fr_width && frp->fr_parent != NULL)
     {
         frp = frp->fr_parent;
@@ -91774,14 +91178,14 @@ tabline_height(void)
     static int
 last_stl_height(int         morewin)
 {
-    return (p_ls == 2 || (p_ls == 1 && (morewin || ! (firstwin == lastwin) )))
+    return (p_ls == 2 || (p_ls == 1 && (morewin || ! TRUE )))
                 ? STATUS_HEIGHT : 0;
 }
 
     static int
 min_rows(void)
 {
-    if (firstwin == NULL)
+    if (curwin == NULL)
     {
         return MIN_LINES;
     }
@@ -91797,19 +91201,17 @@ min_rows_for_all_tabpages(void)
     tabpage_T   *tp;
     int         n;
 
-    if (firstwin == NULL)
+    if (curwin == NULL)
     {
         return MIN_LINES;
     }
 
     total = 0;
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) 
+     tp = curtab;
+    n = frame_minheight(tp->tp_topframe, NULL);
+    if (total < n)
     {
-        n = frame_minheight(tp->tp_topframe, NULL);
-        if (total < n)
-        {
-            total = n;
-        }
+        total = n;
     }
     total += tabline_height();
     total += MIN_CMDHEIGHT;
@@ -91826,44 +91228,38 @@ only_one_window(void)
 check_lnums_both(int do_curwin, int nested)
 {
     win_T       *wp;
-    tabpage_T   *tp;
 
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-     {
-         for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-         {
-        if ((do_curwin || wp != curwin) && wp->w_buffer == curbuf)
-        {
-            int need_adjust;
+     wp = curwin;
+if ((do_curwin || wp != curwin) && wp->w_buffer == curbuf)
+{
+    int need_adjust;
 
-            if (!nested)
-            {
-                wp->w_save_cursor.w_cursor_save = wp->w_cursor;
-                wp->w_save_cursor.w_topline_save = wp->w_topline;
-            }
+    if (!nested)
+    {
+        wp->w_save_cursor.w_cursor_save = wp->w_cursor;
+        wp->w_save_cursor.w_topline_save = wp->w_topline;
+    }
 
-            need_adjust = wp->w_cursor.lnum > curbuf->b_ml.ml_line_count;
-            if (need_adjust)
-            {
-                wp->w_cursor.lnum = curbuf->b_ml.ml_line_count;
-            }
-            if (need_adjust || !nested)
-            {
-                wp->w_save_cursor.w_cursor_corr = wp->w_cursor;
-            }
+    need_adjust = wp->w_cursor.lnum > curbuf->b_ml.ml_line_count;
+    if (need_adjust)
+    {
+        wp->w_cursor.lnum = curbuf->b_ml.ml_line_count;
+    }
+    if (need_adjust || !nested)
+    {
+        wp->w_save_cursor.w_cursor_corr = wp->w_cursor;
+    }
 
-            need_adjust = wp->w_topline > curbuf->b_ml.ml_line_count;
-            if (need_adjust)
-            {
-                wp->w_topline = curbuf->b_ml.ml_line_count;
-            }
-            if (need_adjust || !nested)
-            {
-                wp->w_save_cursor.w_topline_corr = wp->w_topline;
-            }
-        }
-         }
-     }
+    need_adjust = wp->w_topline > curbuf->b_ml.ml_line_count;
+    if (need_adjust)
+    {
+        wp->w_topline = curbuf->b_ml.ml_line_count;
+    }
+    if (need_adjust || !nested)
+    {
+        wp->w_save_cursor.w_topline_corr = wp->w_topline;
+    }
+}
 }
 
     static void
@@ -92297,35 +91693,21 @@ getout(int exitval)
 
     if (v_dying <= 1)
     {
-        tabpage_T       *tp;
-        tabpage_T       *next_tp;
         buf_T           *buf;
-        win_T           *wp;
         int             unblock = 0;
 
-        for (tp = first_tabpage; tp != NULL; tp = next_tp)
+        if (curwin->w_buffer != NULL && buf_valid(curwin->w_buffer))
         {
-            next_tp = tp->tp_next;
-             for ((wp) = ((tp) == NULL || (tp) == curtab)             ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next) 
+            buf = curwin->w_buffer;
+            if ( ((buf)->b_ct_di.di_tv.vval.v_number)  != -1)
             {
-                if (wp->w_buffer == NULL || !buf_valid(wp->w_buffer))
-                {
-                    continue;
-                }
-                buf = wp->w_buffer;
-                if ( ((buf)->b_ct_di.di_tv.vval.v_number)  != -1)
-                {
-                    bufref_T bufref;
+                bufref_T bufref;
 
-                    set_bufref(&bufref, buf);
-                    apply_autocmds(EVENT_BUFWINLEAVE, buf->b_fname, buf->b_fname, FALSE, buf);
-                    if (bufref_valid(&bufref))
-                    {
-                         ((buf)->b_ct_di.di_tv.vval.v_number)  = -1;
-                    }
-
-                    next_tp = first_tabpage;
-                    break;
+                set_bufref(&bufref, buf);
+                apply_autocmds(EVENT_BUFWINLEAVE, buf->b_fname, buf->b_fname, FALSE, buf);
+                if (bufref_valid(&bufref))
+                {
+                     ((buf)->b_ct_di.di_tv.vval.v_number)  = -1;
                 }
             }
         }
@@ -92591,41 +91973,20 @@ read_stdin(void)
     static void
 create_windows(mparm_T *parmp  __attribute__((unused)) )
 {
-    int         dorewind;
-    int         done = 0;
-
     ++autocmd_no_enter;
     ++autocmd_no_leave;
-    dorewind = TRUE;
-    while (done++ < 1000)
+
+    curbuf = curwin->w_buffer;
+    if (curbuf->b_ml.ml_mfp == NULL)
     {
-        if (dorewind)
-        {
-            curwin = firstwin;
-        }
-        else
-        {
-            if (curwin->w_next == NULL)
-            {
-                break;
-            }
-            curwin = curwin->w_next;
-        }
-        dorewind = FALSE;
-        curbuf = curwin->w_buffer;
-        if (curbuf->b_ml.ml_mfp == NULL)
-        {
-            (void)open_buffer(FALSE, NULL, 0);
-            dorewind = TRUE;
-        }
-        ui_breakcheck();
-        if (got_int)
-        {
-            (void)vgetc();
-            break;
-        }
+        (void)open_buffer(FALSE, NULL, 0);
     }
-    curwin = firstwin;
+    ui_breakcheck();
+    if (got_int)
+    {
+        (void)vgetc();
+    }
+
     curbuf = curwin->w_buffer;
     --autocmd_no_enter;
     --autocmd_no_leave;
