@@ -609,7 +609,6 @@ enum { BLN_LISTED = 2 };
 enum { BLN_DUMMY = 4 };
 enum { BLN_NEW = 8 };
 enum { BLN_NOOPT = 16 };
-enum { BLN_REUSE = 64 };
 enum { BLN_NOCURWIN = 128 };
 
 enum { MAPTYPE_MAP = 0 };
@@ -1973,9 +1972,6 @@ typedef struct {
 struct file_buffer
 {
     memline_T   b_ml;
-
-    buf_T       *b_next;
-    buf_T       *b_prev;
 
     int         b_nwindows;
 
@@ -3748,7 +3744,6 @@ static void add_map(char_u *map, int mode, int nore);
 // ---------------- begin mark.pro ----------------
 static int setmark(int c);
 static int setmark_pos(int c, pos_T *pos, int fnum);
-static void mark_forget_file(win_T *wp, int fnum);
 static void setpcmark(void);
 static void checkpcmark(void);
 static pos_T *getmark(int c, int changefile);
@@ -4277,7 +4272,6 @@ static char_u *concat_str(char_u *str1, char_u *str2);
 
 // ---------------- end strings.pro ----------------
 // ---------------- begin tag.pro ----------------
-static void tagstack_clear_entry(taggy_T *item);
 
 // ---------------- end tag.pro ----------------
 // ---------------- begin term.pro ----------------
@@ -4602,8 +4596,6 @@ static int      autocmd_no_leave  = FALSE ;
 
 static bufref_T au_new_curbuf  = {NULL, 0, 0} ;
 
-static buf_T    *au_pending_free_buf  = NULL ;
-
 static int      mouse_dragging  = 0 ;
 
 static int      updating_screen  = FALSE ;
@@ -4626,8 +4618,6 @@ static tabpage_T    *lastused_tabpage;
 static int          redraw_tabline  = FALSE ;
 static int          redraw_vseps  = FALSE ;
 
-static buf_T    *firstbuf  = NULL ;
-static buf_T    *lastbuf  = NULL ;
 static buf_T    *curbuf  = NULL ;
 
 static int      mf_dont_release  = FALSE ;
@@ -4927,9 +4917,7 @@ static char e_too_many_brackets[]  =  "E76: Too many ["  ;
 static char e_too_many_file_names[]  =  "E77: Too many file names"  ;
 static char e_unknown_mark[]  =  "E78: Unknown mark"  ;
 static char e_cannot_allocate_any_buffer_exiting[]  =  "E82: Cannot allocate any buffer, exiting..."  ;
-static char e_cannot_allocate_buffer_using_other_one[]  =  "E83: Cannot allocate buffer, using other one..."  ;
 static char e_buffer_nr_not_found[]  =  "E92: Buffer %d not found"  ;
-static char e_more_than_one_match_for_str[]  =  "E93: More than one match for %s"  ;
 static char e_no_matching_buffer_for_str[]  =  "E94: No matching buffer for %s"  ;
 static char e_buffer_with_this_name_already_exists[]  =  "E95: Buffer with this name already exists"  ;
 static char e_cannot_move_range_of_lines_into_itself[]  =  "E134: Cannot move a range of lines into itself"  ;
@@ -6091,7 +6079,6 @@ static void     free_buffer_stuff(buf_T *buf, int free_options);
 static int      buf_free_count = 0;
 
 static int      top_file_num = 1;
-static garray_T buf_reuse =  {0, 0, 0, 0, NULL} ;
 
     static void
 trigger_undo_ftplugin(buf_T *buf, win_T *win)
@@ -6172,24 +6159,10 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
     if (ml_open(curbuf) == FAIL)
     {
         close_buffer(curwin, curbuf, 0, FALSE, FALSE, FALSE);
-         for ((curbuf) = firstbuf; (curbuf) != NULL; (curbuf) = (curbuf)->b_next) 
-         {
-            if (curbuf->b_ml.ml_mfp != NULL)
-            {
-                break;
-            }
-         }
-        if (curbuf == NULL)
-        {
-            emsg(_(e_cannot_allocate_any_buffer_exiting));
+        emsg(_(e_cannot_allocate_any_buffer_exiting));
 
-            v_dying = 2;
-            getout(2);
-        }
-
-        emsg(_(e_cannot_allocate_buffer_using_other_one));
-        enter_buffer(curbuf);
-        return FAIL;
+        v_dying = 2;
+        getout(2);
     }
 
     if (curbuf->b_ml.ml_mfp != NULL)
@@ -6317,16 +6290,7 @@ bufref_valid(bufref_T *bufref)
     static int
 buf_valid(buf_T *buf)
 {
-    buf_T       *bp;
-
-     for ((bp) = lastbuf; (bp) != NULL; (bp) = (bp)->b_prev) 
-     {
-        if (bp == buf)
-        {
-            return TRUE;
-        }
-     }
-    return FALSE;
+    return buf == curbuf;
 }
 
 static hashtab_T buf_hashtab;
@@ -6479,71 +6443,15 @@ aucmd_abort:
         win->w_buffer = NULL;
     }
 
-    if (wipe_buf && buf->b_nwindows <= 0 && (buf->b_prev != NULL || buf->b_next != NULL))
+    if (del_buf)
     {
-        tabpage_T       *tp;
-        win_T           *wp;
+        free_buffer_stuff(buf, TRUE);
 
-         for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-         {
-             for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-             {
-            mark_forget_file(wp, buf->b_fnum);
-             }
-         }
+        buf->b_flags = BF_CHECK_RO | BF_NEVERLOADED;
 
-        if (action == DOBUF_WIPE_REUSE)
-        {
-            if (buf_reuse.ga_itemsize == 0)
-            {
-                ga_init2(&buf_reuse, sizeof(int), 50);
-            }
-            if (ga_grow(&buf_reuse, 1) == OK)
-            {
-                ((int *)buf_reuse.ga_data)[buf_reuse.ga_len++] = buf->b_fnum;
-            }
-        }
-        if (buf->b_sfname != buf->b_ffname)
-        {
-             vim_free(buf->b_sfname);
-             (buf->b_sfname) = NULL;
-        }
-        else
-        {
-            buf->b_sfname = NULL;
-        }
-         vim_free(buf->b_ffname);
-         (buf->b_ffname) = NULL;
-        if (buf->b_prev == NULL)
-        {
-            firstbuf = buf->b_next;
-        }
-        else
-        {
-            buf->b_prev->b_next = buf->b_next;
-        }
-        if (buf->b_next == NULL)
-        {
-            lastbuf = buf->b_prev;
-        }
-        else
-        {
-            buf->b_next->b_prev = buf->b_prev;
-        }
-        free_buffer(buf);
+        buf->b_p_initialized = false;
     }
-    else
-    {
-        if (del_buf)
-        {
-            free_buffer_stuff(buf, TRUE);
-
-            buf->b_flags = BF_CHECK_RO | BF_NEVERLOADED;
-
-            buf->b_p_initialized = false;
-        }
-        buf_clear_file(buf);
-    }
+    buf_clear_file(buf);
 
     return TRUE;
 }
@@ -6624,18 +6532,10 @@ free_buffer(buf_T *buf)
 
     aubuflocal_remove(buf);
 
-    if (autocmd_busy)
+    vim_free(buf);
+    if (curbuf == buf)
     {
-        buf->b_next = au_pending_free_buf;
-        au_pending_free_buf = buf;
-    }
-    else
-    {
-        vim_free(buf);
-        if (curbuf == buf)
-        {
-            curbuf = NULL;
-        }
+        curbuf = NULL;
     }
 }
 
@@ -6693,7 +6593,6 @@ set_curbuf(buf_T *buf, int action)
     int         unload = (action == DOBUF_UNLOAD || action == DOBUF_DEL || action == DOBUF_WIPE || action == DOBUF_WIPE_REUSE);
     bufref_T    newbufref;
     bufref_T    prevbufref;
-    int         valid;
 
     setpcmark();
 
@@ -6714,17 +6613,9 @@ set_curbuf(buf_T *buf, int action)
             close_buffer(curwin, prevbuf, unload ? action : (action == DOBUF_GOTO && !bufIsChanged(prevbuf)) ? DOBUF_UNLOAD : 0, FALSE, FALSE, TRUE);
         }
     }
-    valid = buf_valid(buf);
-    if ((valid && buf != curbuf) || curwin->w_buffer == NULL)
+    if (curwin->w_buffer == NULL)
     {
-        if (!valid)
-        {
-            enter_buffer(lastbuf);
-        }
-        else
-        {
-            enter_buffer(buf);
-        }
+        enter_buffer(buf);
     }
 }
 
@@ -6905,54 +6796,7 @@ buflist_new(char_u      *ffname_arg, char_u      *sfname_arg, linenr_T    lnum, 
     }
     else
     {
-        buf->b_next = NULL;
-        if (firstbuf == NULL)
-        {
-            buf->b_prev = NULL;
-            firstbuf = buf;
-        }
-        else
-        {
-            lastbuf->b_next = buf;
-            buf->b_prev = lastbuf;
-        }
-        lastbuf = buf;
-
-        if ((flags & BLN_REUSE) && buf_reuse.ga_len > 0)
-        {
-            --buf_reuse.ga_len;
-            buf->b_fnum = ((int *)buf_reuse.ga_data)[buf_reuse.ga_len];
-
-            while (buf->b_prev != NULL && buf->b_fnum < buf->b_prev->b_fnum)
-            {
-                buf_T   *prev = buf->b_prev;
-
-                prev->b_next = buf->b_next;
-                if (prev->b_next != NULL)
-                {
-                    prev->b_next->b_prev = prev;
-                }
-                buf->b_next = prev;
-                buf->b_prev = prev->b_prev;
-                if (buf->b_prev != NULL)
-                {
-                    buf->b_prev->b_next = buf;
-                }
-                prev->b_prev = buf;
-                if (lastbuf == buf)
-                {
-                    lastbuf = prev;
-                }
-                if (firstbuf == prev)
-                {
-                    firstbuf = buf;
-                }
-            }
-        }
-        else
-        {
-            buf->b_fnum = top_file_num++;
-        }
+        buf->b_fnum = top_file_num++;
         if (top_file_num < 0)
         {
             emsg(_("W14: Warning: List of file names overflow"));
@@ -7108,24 +6952,17 @@ buflist_getfpos(void)
     static buf_T *
 buflist_findname_stat(char_u      *ffname, stat_T      *stp)
 {
-    buf_T       *buf;
-
-     for ((buf) = lastbuf; (buf) != NULL; (buf) = (buf)->b_prev) 
-     {
-        if ((buf->b_flags & BF_DUMMY) == 0 && !otherfile_buf(buf, ffname, stp))
-        {
-            return buf;
-        }
-     }
+    if ((curbuf->b_flags & BF_DUMMY) == 0 && !otherfile_buf(curbuf, ffname, stp))
+    {
+        return curbuf;
+    }
     return NULL;
 }
 
     static int
 buflist_findpat(char_u      *pattern, char_u      *pattern_end, int         unlisted, int         diffmode  __attribute__((unused)) , int         curtab_only)
 {
-    buf_T       *buf;
     int         match = -1;
-    int         find_listed;
     char_u      *pat;
     char_u      *patend;
     int         attempt;
@@ -7154,80 +6991,40 @@ buflist_findpat(char_u      *pattern, char_u      *pattern_end, int         unli
         patend = pat +  strlen((char *)(pat))  - 1;
         toggledollar = (patend > pat && *patend == '$');
 
-        find_listed = TRUE;
-        for (;;)
+        for (attempt = 0; attempt <= 3; ++attempt)
         {
-            for (attempt = 0; attempt <= 3; ++attempt)
+            regmatch_T      regmatch;
+
+            if (toggledollar)
             {
-                regmatch_T      regmatch;
-
-                if (toggledollar)
-                {
-                    *patend = (attempt < 2) ? NUL : '$';
-                }
-                p = pat;
-                if (*p == '^' && !(attempt & 1))
-                {
-                    ++p;
-                }
-                regmatch.regprog = vim_regcomp(p, magic_isset() ? RE_MAGIC : 0);
-
-                 for ((buf) = lastbuf; (buf) != NULL; (buf) = (buf)->b_prev) 
-                {
-                    if (regmatch.regprog == NULL)
-                    {
-                        vim_free(pat);
-                        return -1;
-                    }
-                    if (find_listed && buflist_match(&regmatch, buf, FALSE) != NULL)
-                    {
-                        if (curtab_only)
-                        {
-                            win_T       *wp;
-
-                             for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-                             {
-                                if (wp->w_buffer == buf)
-                                {
-                                    break;
-                                }
-                             }
-                            if (wp == NULL)
-                            {
-                                continue;
-                            }
-                        }
-                        if (match >= 0)
-                        {
-                            match = -2;
-                            break;
-                        }
-                        match = buf->b_fnum;
-                    }
-                }
-
-                vim_regfree(regmatch.regprog);
-                if (match >= 0)
-                {
-                    break;
-                }
+                *patend = (attempt < 2) ? NUL : '$';
             }
-
-            if (!unlisted || !find_listed || match != -1)
+            p = pat;
+            if (*p == '^' && !(attempt & 1))
+            {
+                ++p;
+            }
+            regmatch.regprog = vim_regcomp(p, magic_isset() ? RE_MAGIC : 0);
+            if (regmatch.regprog == NULL)
+            {
+                vim_free(pat);
+                return -1;
+            }
+            if (buflist_match(&regmatch, curbuf, FALSE) != NULL)
+            {
+                match = curbuf->b_fnum;
+            }
+            vim_regfree(regmatch.regprog);
+            if (match >= 0)
             {
                 break;
             }
-            find_listed = FALSE;
         }
 
         vim_free(pat);
     }
 
-    if (match == -2)
-    {
-        semsg(_(e_more_than_one_match_for_str), pattern);
-    }
-    else if (match < 0)
+    if (match < 0)
     {
         semsg(_(e_no_matching_buffer_for_str), pattern);
     }
@@ -21482,10 +21279,7 @@ check_changed_any(int         hidden, int         unload)
     tabpage_T   *tp;
     win_T       *wp;
 
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-     {
-        ++bufcount;
-     }
+    bufcount = 1;
 
     if (bufcount == 0)
     {
@@ -21519,10 +21313,7 @@ check_changed_any(int         hidden, int         unload)
         }
      }
 
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-     {
-        add_bufnum(bufnrs, &bufnum, buf->b_fnum);
-     }
+    bufcount = 1;
 
     for (i = 0; i < bufnum; ++i)
     {
@@ -22039,50 +21830,7 @@ getline_equal(char_u      *(*fgetline)(int, void *, int, getline_opt_T), void   
     static int
 compute_buffer_local_count(int addr_type, int lnum, int offset)
 {
-    buf_T   *buf;
-    buf_T   *nextbuf;
-    int     count = offset;
-
-    buf = firstbuf;
-    while (buf->b_next != NULL && buf->b_fnum < lnum)
-    {
-        buf = buf->b_next;
-    }
-    while (count != 0)
-    {
-        count += (offset < 0) ? 1 : -1;
-        nextbuf = (offset < 0) ? buf->b_prev : buf->b_next;
-        if (nextbuf == NULL)
-        {
-            break;
-        }
-        buf = nextbuf;
-        if (addr_type == ADDR_LOADED_BUFFERS)
-        {
-            while (buf->b_ml.ml_mfp == NULL)
-            {
-                nextbuf = (offset < 0) ? buf->b_prev : buf->b_next;
-                if (nextbuf == NULL)
-                {
-                    break;
-                }
-                buf = nextbuf;
-            }
-        }
-    }
-    if (addr_type == ADDR_LOADED_BUFFERS)
-    {
-        while (buf->b_ml.ml_mfp == NULL)
-        {
-            nextbuf = (offset >= 0) ? buf->b_prev : buf->b_next;
-            if (nextbuf == NULL)
-            {
-                break;
-            }
-            buf = nextbuf;
-        }
-    }
-    return buf->b_fnum;
+    return curbuf->b_fnum;
 }
 
     static int
@@ -23100,25 +22848,9 @@ parse_cmd_address(exarg_T *eap, char **errormsg, int silent)
                         eap->line2 = curbuf->b_ml.ml_line_count;
                         break;
                     case ADDR_LOADED_BUFFERS:
-                        {
-                            buf_T       *buf = firstbuf;
-
-                            while (buf->b_next != NULL && buf->b_ml.ml_mfp == NULL)
-                            {
-                                buf = buf->b_next;
-                            }
-                            eap->line1 = buf->b_fnum;
-                            buf = lastbuf;
-                            while (buf->b_prev != NULL && buf->b_ml.ml_mfp == NULL)
-                            {
-                                buf = buf->b_prev;
-                            }
-                            eap->line2 = buf->b_fnum;
-                            break;
-                        }
                     case ADDR_BUFFERS:
-                        eap->line1 = firstbuf->b_fnum;
-                        eap->line2 = lastbuf->b_fnum;
+                        eap->line1 = curbuf->b_fnum;
+                        eap->line2 = curbuf->b_fnum;
                         break;
                     case ADDR_WINDOWS:
                     case ADDR_TABS:
@@ -23568,7 +23300,6 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
     pos_T       pos;
     pos_T       *fp;
     linenr_T    lnum;
-    buf_T       *buf;
 
     cmd = skipwhite(*ptr);
     lnum =  LONG_MAX ;
@@ -23626,19 +23357,8 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
                         lnum = 0;
                         break;
                     case ADDR_LOADED_BUFFERS:
-                        buf = lastbuf;
-                        while (buf->b_ml.ml_mfp == NULL)
-                        {
-                            if (buf->b_prev == NULL)
-                            {
-                                break;
-                            }
-                            buf = buf->b_prev;
-                        }
-                        lnum = buf->b_fnum;
-                        break;
                     case ADDR_BUFFERS:
-                        lnum = lastbuf->b_fnum;
+                        lnum = curbuf->b_fnum;
                         break;
                     case ADDR_TABS:
                         lnum =  current_tab_nr(NULL) ;
@@ -23920,25 +23640,9 @@ address_default_all(exarg_T *eap)
             eap->line2 = curbuf->b_ml.ml_line_count;
             break;
         case ADDR_LOADED_BUFFERS:
-            {
-                buf_T *buf = firstbuf;
-
-                while (buf->b_next != NULL && buf->b_ml.ml_mfp == NULL)
-                {
-                    buf = buf->b_next;
-                }
-                eap->line1 = buf->b_fnum;
-                buf = lastbuf;
-                while (buf->b_prev != NULL && buf->b_ml.ml_mfp == NULL)
-                {
-                    buf = buf->b_prev;
-                }
-                eap->line2 = buf->b_fnum;
-            }
-            break;
         case ADDR_BUFFERS:
-            eap->line1 = firstbuf->b_fnum;
-            eap->line2 = lastbuf->b_fnum;
+            eap->line1 = curbuf->b_fnum;
+            eap->line2 = curbuf->b_fnum;
             break;
         case ADDR_WINDOWS:
             eap->line2 =  current_win_nr(NULL) ;
@@ -24009,7 +23713,6 @@ ex_script_ni(exarg_T *eap)
     static char *
 invalid_range(exarg_T *eap)
 {
-    buf_T       *buf;
 
     if (       eap->line1 < 0 || eap->line2 < 0 || eap->line1 > eap->line2)
     {
@@ -24035,29 +23738,7 @@ invalid_range(exarg_T *eap)
                 }
                 break;
             case ADDR_LOADED_BUFFERS:
-                buf = firstbuf;
-                while (buf->b_ml.ml_mfp == NULL)
-                {
-                    if (buf->b_next == NULL)
-                    {
-                        return _(e_invalid_range);
-                    }
-                    buf = buf->b_next;
-                }
-                if (eap->line1 < buf->b_fnum)
-                {
-                    return _(e_invalid_range);
-                }
-                buf = lastbuf;
-                while (buf->b_ml.ml_mfp == NULL)
-                {
-                    if (buf->b_prev == NULL)
-                    {
-                        return _(e_invalid_range);
-                    }
-                    buf = buf->b_prev;
-                }
-                if (eap->line2 > buf->b_fnum)
+                if (curbuf->b_ml.ml_mfp == NULL || eap->line1 < curbuf->b_fnum || eap->line2 > curbuf->b_fnum)
                 {
                     return _(e_invalid_range);
                 }
@@ -29382,11 +29063,9 @@ shorten_fnames(int force)
     buf_T       *buf;
 
     mch_dirname(dirname,  PATH_MAX );
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-    {
-        shorten_buf_fname(buf, dirname, force);
+     buf = curbuf;
+    shorten_buf_fname(buf, dirname, force);
 
-    }
     status_redraw_all();
     redraw_tabline = TRUE;
 }
@@ -37889,7 +37568,7 @@ check_map_keycodes(void)
     validate_maphash();
     estack_push(ETYPE_INTERNAL, (char_u *)"mappings", 0);
 
-    for (bp = firstbuf; ; bp = bp->b_next)
+    for (bp = curbuf; ; bp = NULL)
     {
         for (abbr = 0; abbr <= 1; ++abbr)
         {
@@ -38148,26 +37827,6 @@ setmark_pos(int c, pos_T *pos, int fnum)
         return OK;
     }
     return FAIL;
-}
-
-    static void
-mark_forget_file(win_T *wp, int fnum)
-{
-    int         i;
-
-    for (i = wp->w_tagstacklen - 1; i >= 0; --i)
-    {
-        if (wp->w_tagstack[i].fmark.fnum == fnum)
-        {
-            tagstack_clear_entry(&wp->w_tagstack[i]);
-            if (wp->w_tagstackidx > i)
-            {
-                --wp->w_tagstackidx;
-            }
-            --wp->w_tagstacklen;
-             memmove((char *)(&wp->w_tagstack[i]), (char *)(&wp->w_tagstack[i + 1]), (wp->w_tagstacklen - i) * sizeof(wp->w_tagstack[i])) ;
-        }
-    }
 }
 
     static void
@@ -43405,10 +43064,8 @@ ml_close_all(int del_file)
 {
     buf_T       *buf;
 
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-     {
-        ml_close(buf, del_file && ((buf->b_flags & BF_PRESERVED) == 0 || vim_strchr(p_cpo, CPO_PRESERVE) == NULL));
-     }
+     buf = curbuf;
+    ml_close(buf, del_file && ((buf->b_flags & BF_PRESERVED) == 0 || vim_strchr(p_cpo, CPO_PRESERVE) == NULL));
 }
 
     static void
@@ -43416,13 +43073,11 @@ ml_close_notmod(void)
 {
     buf_T       *buf;
 
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-     {
-        if (!bufIsChanged(buf))
-        {
-            ml_close(buf, TRUE);
-        }
-     }
+     buf = curbuf;
+    if (!bufIsChanged(buf))
+    {
+        ml_close(buf, TRUE);
+    }
 }
 
     static void
@@ -63040,14 +62695,12 @@ did_set_paste(optset_T *args  __attribute__((unused)) )
     {
         if (!old_p_paste)
         {
-             for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-            {
-                buf->b_p_tw_nopaste = buf->b_p_tw;
-                buf->b_p_wm_nopaste = buf->b_p_wm;
-                buf->b_p_sts_nopaste = buf->b_p_sts;
-                buf->b_p_ai_nopaste = buf->b_p_ai;
-                buf->b_p_et_nopaste = buf->b_p_et;
-            }
+             buf = curbuf;
+            buf->b_p_tw_nopaste = buf->b_p_tw;
+            buf->b_p_wm_nopaste = buf->b_p_wm;
+            buf->b_p_sts_nopaste = buf->b_p_sts;
+            buf->b_p_ai_nopaste = buf->b_p_ai;
+            buf->b_p_et_nopaste = buf->b_p_et;
 
             save_sm = p_sm;
             save_sta = p_sta;
@@ -63059,14 +62712,12 @@ did_set_paste(optset_T *args  __attribute__((unused)) )
             p_wm_nopaste = p_wm;
         }
 
-         for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-        {
-            buf->b_p_tw = 0;
-            buf->b_p_wm = 0;
-            buf->b_p_sts = 0;
-            buf->b_p_ai = 0;
-            buf->b_p_et = 0;
-        }
+         buf = curbuf;
+        buf->b_p_tw = 0;
+        buf->b_p_wm = 0;
+        buf->b_p_sts = 0;
+        buf->b_p_ai = 0;
+        buf->b_p_et = 0;
 
         p_sm = 0;
         p_sta = 0;
@@ -63084,14 +62735,12 @@ did_set_paste(optset_T *args  __attribute__((unused)) )
 
     else if (old_p_paste)
     {
-         for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-        {
-            buf->b_p_tw = buf->b_p_tw_nopaste;
-            buf->b_p_wm = buf->b_p_wm_nopaste;
-            buf->b_p_sts = buf->b_p_sts_nopaste;
-            buf->b_p_ai = buf->b_p_ai_nopaste;
-            buf->b_p_et = buf->b_p_et_nopaste;
-        }
+         buf = curbuf;
+        buf->b_p_tw = buf->b_p_tw_nopaste;
+        buf->b_p_wm = buf->b_p_wm_nopaste;
+        buf->b_p_sts = buf->b_p_sts_nopaste;
+        buf->b_p_ai = buf->b_p_ai_nopaste;
+        buf->b_p_et = buf->b_p_et_nopaste;
 
         p_sm = save_sm;
         p_sta = save_sta;
@@ -82307,15 +81956,6 @@ error:
 
 // ==================== tag.c ====================
 
-    static void
-tagstack_clear_entry(taggy_T *item)
-{
-     vim_free(item->tagname);
-     (item->tagname) = NULL;
-     vim_free(item->user_data);
-     (item->user_data) = NULL;
-}
-
 // ==================== term.c ====================
 
 enum { BT_EXTRA_KEYS = 0x101 };
@@ -83238,16 +82878,14 @@ set_termname(char_u *term)
             buf_T       *buf;
             aco_save_T  aco;
 
-             for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
+             buf = curbuf;
+            if (curbuf->b_ml.ml_mfp != NULL)
             {
-                if (curbuf->b_ml.ml_mfp != NULL)
+                aucmd_prepbuf(&aco, buf);
+                if (curbuf == buf)
                 {
-                    aucmd_prepbuf(&aco, buf);
-                    if (curbuf == buf)
-                    {
-                        apply_autocmds(EVENT_TERMCHANGED, NULL, NULL, FALSE, curbuf);
-                        aucmd_restbuf(&aco);
-                    }
+                    apply_autocmds(EVENT_TERMCHANGED, NULL, NULL, FALSE, curbuf);
+                    aucmd_restbuf(&aco);
                 }
             }
         }
@@ -89330,16 +88968,7 @@ bufIsChanged(buf_T *buf)
     static int
 anyBufIsChanged(void)
 {
-    buf_T *buf;
-
-     for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-     {
-        if (bufIsChanged(buf))
-        {
-            return TRUE;
-        }
-     }
-    return FALSE;
+    return bufIsChanged(curbuf);
 }
 
     static int
@@ -92701,20 +92330,13 @@ getout(int exitval)
             }
         }
 
-         for ((buf) = firstbuf; (buf) != NULL; (buf) = (buf)->b_next) 
-         {
-            if (buf->b_ml.ml_mfp != NULL)
-            {
-                bufref_T bufref;
+        if (curbuf->b_ml.ml_mfp != NULL)
+        {
+            bufref_T bufref;
 
-                set_bufref(&bufref, buf);
-                apply_autocmds(EVENT_BUFUNLOAD, buf->b_fname, buf->b_fname, FALSE, buf);
-                if (!bufref_valid(&bufref))
-                {
-                    break;
-                }
-            }
-         }
+            set_bufref(&bufref, curbuf);
+            apply_autocmds(EVENT_BUFUNLOAD, curbuf->b_fname, curbuf->b_fname, FALSE, curbuf);
+        }
 
         if (is_autocmd_blocked())
         {
