@@ -10,7 +10,7 @@
 # What counts as the implementation is the phase's own program plus everything
 # it names: the tools it calls, the patches it applies, the tables it reads,
 # the templates it installs.  Extracting that by grepping the script for paths
-# under tools/ is exact enough and keeps the invalidation narrow -- editing
+# under tools/ and pipes/ is exact enough and keeps the invalidation narrow -- editing
 # resolve.py should re-run phase 5, not all ten.  One level of indirection is
 # followed, which covers canon.sh calling seven canonicalisers.
 #
@@ -20,12 +20,12 @@ set -eu
 
 phase=${1:?usage: implhash.sh <phase> [pipeline]}
 . tools/pipeline.sh "${2:-slim}"
-prog="tools/$IMPL$phase.sh"
+prog="pipes/$IMPL$phase.sh"
 
 [ -f "$prog" ] || { echo agent; exit 0; }
 
 deps() {
-    grep -oE 'tools/[A-Za-z0-9_/-]+\.(py|sh|txt|mk|patch)' "$1" 2>/dev/null || true
+    grep -oE '(tools|pipes)/[A-Za-z0-9_/-]+\.(py|sh|txt|mk|patch)' "$1" 2>/dev/null || true
 }
 
 {

@@ -19,7 +19,7 @@ printf '  %-6s %-10s %10s  %s\n' phase tier residue notes
 printf '  %-6s %-10s %10s  %s\n' ----- ---------- ---------- -----
 total=0
 for p in $PHASE_LIST; do
-    prog="tools/$IMPL$p.sh"
+    prog="pipes/$IMPL$p.sh"
     res="tools/patches/$IMPL$p-residue.patch"
     fixed="tools/patches/$IMPL$p.patch"
 

@@ -192,7 +192,7 @@ whim-repass:
 # end invalidates nothing before it.  A cached phase replays in 0.6 s and a warm
 # pass in one.
 #
-# So the loop while you are trying ideas out is: write tools/whimN.sh, add it
+# So the loop while you are trying ideas out is: write pipes/whimN.sh, add it
 # here, and `make whim-tip`.  Only the new phase runs.
 #
 # WHAT THIS DOES NOT DO, and must not be mistaken for: falsify the boundaries

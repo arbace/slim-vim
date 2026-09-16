@@ -68,7 +68,7 @@ it refuses outright if any multi-line comment has code on both sides.
 themselves.
 
 - **`memo.sh <n> <work> <build>`** — the driver. Tier 3 (a cached result for
-  this exact input and implementation), else tier 2 (`tools/slim<n>.sh`), else
+  this exact input and implementation), else tier 2 (`pipes/slim<n>.sh`), else
   tier 1 (an agent) — and an agent run always leaves a tier 2 behind, so the
   same input never costs an agent twice.
 - **`implhash.sh <n>`** — half the cache key: the phase's program plus every
@@ -104,7 +104,7 @@ themselves.
   failure.
 - **`verifypass.sh slim|whim [phase...]`** — every recorded boundary checked at
   once. Each phase runs on the recorded boundary before it, in a scratch root of
-  its own with `tools/` linked in and a `.cache/` nobody else writes, and must
+  its own with `tools/` and `pipes/` linked in and a `.cache/` nobody else writes, and must
   reproduce the boundary it recorded: by induction the same proof as a repass
   from an empty cache, in the wall time of the slowest phase. `make slim-verify`,
   `make whim-verify`; `JOBS=n` to run fewer at once.
@@ -123,32 +123,34 @@ themselves.
 
 ## Phases that are programs
 
-Each was written by diffing the two boundaries the agent left — `p2.tar`
+They live in `pipes/`, not here: `pipes/slim<N>.sh` and `pipes/whim<N>.sh`, one
+file per phase, and everything below them in this directory is what they call.
+The slim ones that replaced an agent are described here. Each was written by diffing the two boundaries the agent left — `p2.tar`
 against `p3.tar` says exactly what Phase 3 did, with no prose in between — and
 each reproduces that boundary byte for byte.
 
-- **`phase0.sh`** — configure, build, delete the asserts, rebuild, and check
+- **`pipes/slim0.sh`** — configure, build, delete the asserts, rebuild, and check
   the harness disagrees with the baselines in exactly the six cases Phase 1
   owns. **33 s against 2 m 57 s.** Uses `dropasserts.py`.
-- **`phase1.sh`** — apply `patches/slim1.patch`, delete the configure
+- **`pipes/slim1.sh`** — apply `patches/slim1.patch`, delete the configure
   machinery, rebuild, and run all four harnesses against the baselines. **17 s
   against 17 m 16 s.** This is the phase that changes behaviour, so it is also
   the phase that pins it.
-- **`phase2.sh`** — prune to what the compiler opens, and flatten. **5 s against
+- **`pipes/slim2.sh`** — prune to what the compiler opens, and flatten. **5 s against
   7 m 13 s.** Both deletions are *computed*: a source whose object defines no
   symbols compiles to nothing (61 of 128), and a file the `-MD` dependency
   files never name was never opened. Installs `templates/pruned.mk` rather than
   operating on upstream's makefile.
-- **`phase3.sh`** — unwrap `HAVE_CONFIG_H`, name the 97 `.pro` includes by
+- **`pipes/slim3.sh`** — unwrap `HAVE_CONFIG_H`, name the 97 `.pro` includes by
   path, point `xdiff.h` at `vim.h`, install the makefile, drop `config.mk`.
   **1 s against 7 m 02 s.** Uses `unwrapif.py` and `templates/upstream.mk`.
-- **`phase4.sh`** — splice, untab, decomment, and require the blank-line count
+- **`pipes/slim4.sh`** — splice, untab, decomment, and require the blank-line count
   not to move. **63 s against 5 m 41 s.**
-- **`phase5.sh`** — plant, tally, resolve, drop `#undef`, tier 2 across all 67
+- **`pipes/slim5.sh`** — plant, tally, resolve, drop `#undef`, tier 2 across all 67
   units. **8 s against 7 m 00 s.** 8,251 conditional groups become 17.
-- **`phase7.sh`** — the seven canonicalisers to a joint fixpoint, checked by
+- **`pipes/slim7.sh`** — the seven canonicalisers to a joint fixpoint, checked by
   tier 1. **39 s against 5 m 24 s.** Uses `canon.sh`.
-- **`phase9.sh`** — delete, split the X-macro, convert, expand, unwrap,
+- **`pipes/slim9.sh`** — delete, split the X-macro, convert, expand, unwrap,
   canonicalise. **34 s against 943 s**, with a 134-line residue where it began
   as a 33,670-line recording. Uses `dropmacros.py`, `xmacro9.py`,
   `gettext9.py`, `toenum.py`, `expand.py`, `undowhile.py` and `canon.sh`.

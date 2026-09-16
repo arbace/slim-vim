@@ -46,8 +46,8 @@ The configuration is `tiny`, no GUI, no terminal library, **plus
 `+extra_search`** — which upstream has no configure flag for.
 
 **This repository holds the process, not the product.** Between passes it is
-six things — `.gitignore`, `Makefile`, `README.md`, this file, `SLIM-GOAL.md` and
-`tools/` — and `slim-vim.c` and `LICENSE` appear when a pass produces them. A
+seven things — `.gitignore`, `Makefile`, `README.md`, this file, `SLIM-GOAL.md`,
+`tools/` and `pipes/` — and `slim-vim.c` and `LICENSE` appear when a pass produces them. A
 checkout that has never run one has no editor in it, and everything below
 describes what a pass makes rather than what is necessarily on disk right now.
 
@@ -69,13 +69,20 @@ it is the only one.
 ## Layout
 
 Two hundred and fifty-eight tracked files once both pipelines have run:
-thirteen at the root, and 245 under
-`tools/` — the passes, the harnesses, the phase programs (twelve for `slim.mk`,
-eighty-three for `whim.mk`), the memoize
-driver, a `README.md`, and the data a pass cannot derive: `renames.txt`,
-`patches/` and `templates/`. Three of the thirteen are products
+thirteen at the root, 95 under `pipes/` — the phase programs, twelve for
+`slim.mk` and eighty-three for `whim.mk`, and nothing else — and 150 under
+`tools/` — the passes, the harnesses, the canonicalisers and cutters the phases
+call, the memoize driver, a `README.md`, and the data a pass cannot derive:
+`renames.txt`, `patches/` and `templates/`. Three of the thirteen are products
 (`slim-vim.c`, `whim-vim.c`, `LICENSE`), two are records (`upstream.sha`,
-`slim.sha`), and the other eight and `tools/` are the seed.
+`slim.sha`), and the other eight, `tools/` and `pipes/` are the seed.
+
+**`pipes/` is the pipeline steps and `tools/` is what they are built from.** A
+file in `pipes/` is `<pipeline><N>.sh`, run by the memoize driver as phase N of
+that pipeline and by nothing else; everything a phase calls lives in `tools/`.
+Both run from the repository root, so a path in either names the other directly.
+`tools/implhash.sh` follows paths into both when it hashes a phase, and the
+scratch roots of `whim-verify` and `whim-specpass` link both in.
 
 ```
 slim-vim.c     the editor, headers and forward declarations included
@@ -85,7 +92,8 @@ slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
-tools/         the harnesses, the passes, and the phases that are programs
+pipes/         the phases that are programs, one file per phase
+tools/         the harnesses, the passes, and what the phases call
 README.md  CLAUDE.md  SLIM-GOAL.md  WHIM-GOAL.md  LICENSE  .gitignore
 ```
 
@@ -136,7 +144,7 @@ will not tell you so.** The content-keyed tier-3 check lives *inside* the
 recipe, and make never gets there: a phase's prerequisite is the previous
 boundary *file*, so an existing `q27.sha256` that is newer than `q26.sha256` is
 "up to date" and the recipe is skipped whatever the implementation digest now
-says. Measured: with `tools/whim33.sh` edited so `implhash.sh` returns a
+says. Measured: with `pipes/whim33.sh` edited so `implhash.sh` returns a
 different key, `make -n whim-pass` plans **no phase recipes at all**. A rewrite
 of the unreachability phase's program silently did not execute this way, and the
 pass reported success.
@@ -190,8 +198,8 @@ the next `make` cheap.
 `README.md` is the front door and carries no figures; this file and `SLIM-GOAL.md`
 are the authority, which is what keeps a third description from drifting.
 
-`tools/` is the only tracked subdirectory at the root and has a `README.md` of
-its own; `tools/templates/` beneath it holds the makefile Phase 3 installs into
+`tools/` and `pipes/` are the only tracked subdirectories at the root, and
+`tools/` has a `README.md` of its own; `tools/templates/` beneath it holds the makefile Phase 3 installs into
 the staging tree.
 Nothing in it is part of the build; the build reads `slim-vim.c` and nothing else.
 
@@ -317,7 +325,7 @@ through them in order:
 | tier | what it is | cost | what it can do |
 | --- | --- | --- | --- |
 | **3** | the **result** — the boundary itself | 0.17 s | nothing; it is an answer |
-| **2** | the **code** — `tools/<pipeline><N>.sh` | 1–380 s | exactly what it was written for |
+| **2** | the **code** — `pipes/<pipeline><N>.sh` | 1–380 s | exactly what it was written for |
 | **1** | the **agent** — `claude -p`, one phase | 5–17 min | cope with something it has not seen |
 
 **Tier 3 is keyed by content, not by time.** The key is the input boundary's
@@ -337,7 +345,7 @@ and never a check.
 
 **The point of tier 1 is what it leaves behind.** When an agent runs,
 `tools/synth.sh` diffs the two boundaries and writes the difference out as
-`tools/patches/p<N>-residue.patch`, plus a `phase<N>.sh` that applies it if the
+`tools/patches/p<N>-residue.patch`, plus a `pipes/<pipeline><N>.sh` that applies it if the
 phase had no program at all. So the same input never costs an agent twice, and
 a phase acquires a fast path the first time it is ever run. A cached agent
 answer saves one repetition; a *synthesised program* saves every future one.
@@ -1075,7 +1083,7 @@ make                 # ls-remote, compare against upstream.sha, and if they
 
 **The pass is `slim.mk`, and it is twelve make targets, not one agent.** A phase's
 prerequisite is the previous phase's boundary, so `make` sequences them — and a
-phase is run by a **program** if `tools/<pipeline><N>.sh` exists and by an **agent**
+phase is run by a **program** if `pipes/<pipeline><N>.sh` exists and by an **agent**
 if it does not. Converting a phase is therefore adding a file; nothing else
 changes, and the pass runs end to end at every point in between.
 
@@ -1152,7 +1160,7 @@ describe.
 
 `upstream/` is a **staging directory, not a checkout of anything**. It is
 gitignored, so its 8,581 files cannot reach a commit, and it does not exist
-between passes. `tools/` is what the pass is run with; `.reference/baselines/`,
+between passes. `tools/` and `pipes/` are what the pass is run with; `.reference/baselines/`,
 once a pass has made it, is what the next one is checked against. Nothing in
 `upstream/` survives.
 

@@ -59,6 +59,7 @@ if [ "${1:-}" = "--one" ]; then
     d=$scratch/$TAG$n
     mkdir -p "$d/.reference" "$d/.cache"
     ln -s "$root/tools" "$d/tools"
+    ln -s "$root/pipes" "$d/pipes"
     ln -s "$root/.reference/baselines" "$d/.reference/baselines"
     if [ -f "$root/slim-vim.c" ]; then ln -s "$root/slim-vim.c" "$d/slim-vim.c"; fi
     start=$(date +%s)
@@ -74,7 +75,7 @@ if [ "${1:-}" = "--one" ]; then
         if [ -f "$PWORK/whim-vim.c" ]; then
             tools/symbols.sh "$PWORK/whim-vim.c" .cache/symbols/before
         fi
-        if ! "tools/$IMPL$n.sh" "$PWORK" > log 2>&1; then
+        if ! "pipes/$IMPL$n.sh" "$PWORK" > log 2>&1; then
             echo "$TAG$n failed $(( $(date +%s) - start ))s -- $d/log" > "$res"
             exit 0
         fi

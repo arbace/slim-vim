@@ -63,7 +63,7 @@ costs less than this one did.
 | **Not stripped** | No feature was removed — `:help`, `:hardcopy`, the encodings, locale and iconv are all here. Upstream's `tiny` plus `+extra_search`. |
 | **Not stock, though** | It ships no vimrc, so one is compiled in: `tabstop=4`, `expandtab`, `autoindent`, `nocompatible`, `hlsearch`, `ruler` and more. `-u NONE` undoes none of it. |
 | **Not portable yet** | Alpine and musl: `-O0 -static -s`, no feature-test macros, no `-lm`. Another libc wants them back. |
-| **Not an editor between passes** | `slim-vim.c` and `LICENSE` are products; the makefiles, the documents, `tools/` and `.gitignore` are the seed. |
+| **Not an editor between passes** | `slim-vim.c` and `LICENSE` are products; the makefiles, the documents, `tools/`, `pipes/` and `.gitignore` are the seed. |
 
 ## Commands
 

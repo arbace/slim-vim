@@ -27,8 +27,8 @@
 #
 # ISOLATION WITHOUT TOUCHING A PHASE PROGRAM.  The programs name every path
 # relative to the directory they run in -- .cache/compile, .cache/symbols,
-# .reference/baselines -- so each job gets a scratch root of its own: tools/ and
-# the baselines linked in read-only, a .cache/ nobody else writes, and its own
+# .reference/baselines -- so each job gets a scratch root of its own: tools/, pipes/
+# and the baselines linked in read-only, a .cache/ nobody else writes, and its own
 # work tree.  No memo, no tier 3 and no agent: the program is run directly,
 # because the question is what the PROGRAM produces.
 #
@@ -54,6 +54,7 @@ if [ "${1:-}" = "--one" ]; then
     res=$scratch/$TAG$n.result
     mkdir -p "$d/.reference" "$d/.cache"
     ln -s "$root/tools" "$d/tools"
+    ln -s "$root/pipes" "$d/pipes"
     ln -s "$root/.reference/baselines" "$d/.reference/baselines"
     # The whim pipeline's declared input, which its phase 0 compares the seed
     # against by name.  Read-only, like everything else linked in.
@@ -72,7 +73,7 @@ if [ "${1:-}" = "--one" ]; then
         if [ -f "$PWORK/whim-vim.c" ]; then
             tools/symbols.sh "$PWORK/whim-vim.c" .cache/symbols/before
         fi
-        if ! "tools/$IMPL$n.sh" "$PWORK" > log 2>&1; then
+        if ! "pipes/$IMPL$n.sh" "$PWORK" > log 2>&1; then
             echo "$TAG$n FAILED $(( $(date +%s) - start ))s -- $d/log" > "$res"
             exit 0
         fi

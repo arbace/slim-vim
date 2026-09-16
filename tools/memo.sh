@@ -11,7 +11,7 @@
 #     This is what makes re-running a pass free, and what makes editing one
 #     phase re-run that phase and the ones after it, rather than all ten.
 #
-#   TIER 2, the CODE.  tools/<pipeline><N>.sh: a deterministic program.  Fast,
+#   TIER 2, the CODE.  pipes/<pipeline><N>.sh: a deterministic program.  Fast,
 #     checkable, and brittle exactly where upstream is free to move.  Its
 #     degenerate form is a patch, which tools/synth.sh can write automatically
 #     from what tier 1 did; improving it means replacing patch with algorithm,
@@ -78,14 +78,14 @@ fi
 
 # --- tier 2: the code -----------------------------------------------------
 tier=
-if [ -x "tools/$IMPL$phase.sh" ]; then
+if [ -x "pipes/$IMPL$phase.sh" ]; then
     # Keep the input, so that a failure can still be handed to tier 1 from the
     # state the phase was actually given.
     cp "$build/$TAG$(($phase - 1)).tar" "$build/.memo-in.tar" 2>/dev/null \
         || cp "$build/input.tar" "$build/.memo-in.tar"
     # Indented, so the tools' own reports read as subordinate to the phase
     # lines rather than competing with them.
-    if "tools/$IMPL$phase.sh" "$work" 2>&1 | sed 's/^/      /'; then
+    if "pipes/$IMPL$phase.sh" "$work" 2>&1 | sed 's/^/      /'; then
         tier=program
     else
         echo "  tier 2       $TAG$phase FAILED -- falling through to the agent"
