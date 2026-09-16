@@ -718,9 +718,6 @@ enum { OPT_NO_REDRAW = 0x80 };
 enum { NO_SCREEN = 2 };
 enum { NO_BUFFERS = 1 };
 
-enum { SEA_NONE = 0 };
-enum { SEA_DIALOG = 1 };
-enum { SEA_QUIT = 2 };
 enum auto_event
 {
     EVENT_BUFADD = 0,
@@ -2088,7 +2085,6 @@ struct file_buffer
     unsigned    b_tc_flags;
     long        b_p_ul;
 
-    bool        b_may_swap;
     bool        b_did_warn;
 
     bool        b_help;
@@ -2241,8 +2237,6 @@ struct window_S
 
     win_T       *w_prev;
     win_T       *w_next;
-
-    int         w_locked;
 
     frame_T     *w_frame;
 
@@ -3390,7 +3384,6 @@ static int close_buffer(win_T *win, buf_T *buf, int action, int abort_if_last, i
 static void buf_clear_file(buf_T *buf);
 static int buf_freeall(buf_T *buf, int flags);
 static void free_wininfo(wininfo_T *wip);
-static void handle_swap_exists(bufref_T *old_curbuf);
 static void set_curbuf(buf_T *buf, int action);
 static void no_write_message(void);
 static int curbuf_reusable(void);
@@ -3782,8 +3775,6 @@ static void get_search_match_hl(win_T *wp, match_T *search_hl, long col, int *ch
 // ---------------- begin memline.pro ----------------
 static int ml_open(buf_T *buf);
 static void ml_setname(buf_T *buf);
-static void ml_open_file(buf_T *buf);
-static void check_need_swap(int newfile);
 static void ml_close(buf_T *buf, int del_file);
 static void ml_timestamp(buf_T *buf);
 static void ml_preserve(buf_T *buf, int message);
@@ -3892,7 +3883,6 @@ static void beep_flush(void);
 static void vim_beep(unsigned val);
 static char_u *expand_env_save(char_u *src);
 static char_u *expand_env_save_opt(char_u *src, int one, char_u *esc_chars);
-static size_t expand_env(char_u *src, char_u *dst, int dstlen);
 static size_t expand_env_esc(char_u *srcp, char_u *dst, int dstlen, char_u *esc_chars, int one, char_u *startstr);
 static void line_breakcheck(void);
 static void fast_breakcheck(void);
@@ -4767,8 +4757,6 @@ static int      emsg_noredir  = 0 ;
 static int      cmd_silent  = FALSE ;
 
 static int      in_assert_fails  = FALSE ;
-
-static int      swap_exists_action  = SEA_NONE ;
 
 static char_u   *IObuff;
 static char_u   *NameBuff;
@@ -6696,42 +6684,6 @@ free_wininfo(wininfo_T *wip)
         clear_winopt(&wip->wi_opt);
     }
     vim_free(wip);
-}
-
-    static void
-handle_swap_exists(bufref_T *old_curbuf)
-{
-    buf_T       *buf;
-
-    if (swap_exists_action == SEA_QUIT)
-    {
-        swap_exists_action = SEA_NONE;
-        close_buffer(curwin, curbuf, DOBUF_UNLOAD, FALSE, FALSE, TRUE);
-        if (old_curbuf == NULL || !bufref_valid(old_curbuf) || old_curbuf->br_buf == curbuf)
-        {
-            block_autocmds();
-            buf = buflist_new(NULL, NULL, 1L, BLN_CURBUF | BLN_LISTED);
-            unblock_autocmds();
-        }
-        else
-        {
-            buf = old_curbuf->br_buf;
-        }
-        if (buf != NULL)
-        {
-            int old_msg_silent = msg_silent;
-
-            if (shortmess(SHM_FILEINFO))
-            {
-                msg_silent = 1;
-            }
-            enter_buffer(buf);
-            msg_silent = old_msg_silent;
-
-        }
-
-    }
-    swap_exists_action = SEA_NONE;
 }
 
     static void
@@ -8757,29 +8709,9 @@ changed(void)
 {
     if (!curbuf->b_changed)
     {
-        int     save_msg_scroll = msg_scroll;
 
         change_warning(0);
 
-        if (curbuf->b_may_swap)
-        {
-            int save_need_wait_return = need_wait_return;
-
-            need_wait_return = FALSE;
-            ml_open_file(curbuf);
-
-            if (need_wait_return && emsg_silent == 0 && !in_assert_fails)
-            {
-                out_flush();
-                ui_delay(2002L, TRUE);
-                wait_return(TRUE);
-                msg_scroll = save_msg_scroll;
-            }
-            else
-            {
-                need_wait_return = save_need_wait_return;
-            }
-        }
         changed_internal();
     }
     ++ ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
@@ -19485,127 +19417,28 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
     if (other_file)
     {
 
-        if (fnum)
-        {
-            buf = buflist_findnr(fnum);
-        }
-        else
-        {
-            buf = buflist_new(ffname, sfname, 0L, BLN_CURBUF | ((flags & ECMD_SET_HELP) ? 0 : BLN_LISTED));
-
-            if (oldwin != NULL)
-            {
-                oldwin = curwin;
-            }
-            set_bufref(&old_curbuf, curbuf);
-        }
-        if (buf == NULL)
+        if (ffname != NULL && setfname(curbuf, ffname, sfname, FALSE) == FAIL)
         {
             goto theend;
         }
+        if (oldwin != NULL)
+        {
+            oldwin = curwin;
+        }
+        set_bufref(&old_curbuf, curbuf);
+        buf = curbuf;
         if (buf->b_locked_split)
         {
             emsg(_(e_cannot_switch_to_a_closing_buffer));
             goto theend;
         }
-        if (buf->b_ml.ml_mfp == NULL)
-        {
-            oldbuf = FALSE;
-        }
-        else
-        {
-            oldbuf = TRUE;
-            set_bufref(&bufref, buf);
-            if (!bufref_valid(&bufref) || curbuf != old_curbuf.br_buf)
-            {
-                goto theend;
-            }
-        }
+        oldbuf = FALSE;
 
         if ((oldbuf && newlnum ==  (linenr_T)0 ) || newlnum ==  ((linenr_T)-1) )
         {
             pos = buflist_findfpos(buf);
             newlnum = pos->lnum;
             solcol = pos->col;
-        }
-
-        if (buf != curbuf)
-        {
-            bufref_T    save_au_new_curbuf;
-
-            if (buf->b_fname != NULL)
-            {
-                new_name = vim_strsave(buf->b_fname);
-            }
-            save_au_new_curbuf = au_new_curbuf;
-            set_bufref(&au_new_curbuf, buf);
-            apply_autocmds(EVENT_BUFLEAVE, NULL, NULL, FALSE, curbuf);
-
-            if (!bufref_valid(&au_new_curbuf))
-            {
-                delbuf_msg(new_name);
-                au_new_curbuf = save_au_new_curbuf;
-                goto theend;
-            }
-            if (buf == curbuf)
-            {
-                auto_buf = TRUE;
-            }
-            else
-            {
-                win_T       *the_curwin = curwin;
-
-                ++the_curwin->w_locked;
-                ++buf->b_locked;
-
-                if (curbuf == old_curbuf.br_buf)
-                {
-                    buf_copy_options(buf, BCO_ENTER);
-                }
-
-                u_sync(FALSE);
-                close_buffer(curwin, curbuf, DOBUF_WIPE, FALSE, FALSE, oldwin != NULL);
-
-                if (win_valid(the_curwin))
-                {
-                    --the_curwin->w_locked;
-                }
-                --buf->b_locked;
-
-                if (!bufref_valid(&au_new_curbuf))
-                {
-                    if (curwin->w_buffer == NULL)
-                    {
-                        buf = lastbuf;
-                    }
-                    else
-                    {
-                        delbuf_msg(new_name);
-                        au_new_curbuf = save_au_new_curbuf;
-                        goto theend;
-                    }
-                }
-                if (buf == curbuf)
-                {
-                    auto_buf = TRUE;
-                }
-                else
-                {
-                    if (curwin->w_buffer != NULL)
-                    {
-                        --curwin->w_buffer->b_nwindows;
-                    }
-
-                    curwin->w_buffer = buf;
-                    curbuf = buf;
-                    ++curbuf->b_nwindows;
-
-                }
-
-                get_winopts(curbuf);
-            }
-            vim_free(new_name);
-            au_new_curbuf = save_au_new_curbuf;
         }
 
         curwin->w_pcmark.lnum = 1;
@@ -19635,7 +19468,7 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
         goto theend;
     }
 
-    if (!other_file && !oldbuf)
+    if (!oldbuf)
     {
         set_last_cursor(curwin);
         if (newlnum ==  ((linenr_T)-1)  || newlnum ==  (linenr_T)0 )
@@ -19703,7 +19536,6 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
         topline = curwin->w_topline;
         if (!oldbuf)
         {
-            swap_exists_action = SEA_DIALOG;
             curbuf->b_flags |= BF_CHECK_RO;
 
             if (flags & ECMD_NOWINENTER)
@@ -19711,12 +19543,6 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
                 readfile_flags |= READ_NOWINENTER;
             }
             (void)open_buffer(FALSE, eap, readfile_flags);
-
-            if (swap_exists_action == SEA_QUIT)
-            {
-                retval = FAIL;
-            }
-            handle_swap_exists(&old_curbuf);
         }
         else
         {
@@ -28764,7 +28590,6 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
                 {
                     curbuf->b_flags |= BF_NEW;
 
-                    check_need_swap(newfile);
                     if (curbuf != old_curbuf || (using_b_ffname && (old_b_ffname != curbuf->b_ffname)) || (using_b_fname && (old_b_fname != curbuf->b_fname)))
                     {
                         emsg(_(e_autocommands_changed_buffer_or_buffer_name));
@@ -28798,20 +28623,10 @@ readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    
         curbuf->b_p_ro = TRUE;
     }
 
-    check_need_swap(newfile);
     if (!read_stdin && (curbuf != old_curbuf || (using_b_ffname && (old_b_ffname != curbuf->b_ffname)) || (using_b_fname && (old_b_fname != curbuf->b_fname))))
     {
         emsg(_(e_autocommands_changed_buffer_or_buffer_name));
         if (!read_buffer)
-        {
-            close(fd);
-        }
-        goto theend;
-    }
-
-    if (swap_exists_action == SEA_QUIT)
-    {
-        if (!read_buffer && !read_stdin)
         {
             close(fd);
         }
@@ -38589,29 +38404,6 @@ getnextmark(pos_T       *startpos, int         dir, int         begin_line)
     static void
 fname2fnum(xfmark_T *fm)
 {
-    char_u      *p;
-
-    if (fm->fname == NULL)
-    {
-        return;
-    }
-
-    if (fm->fname[0] == '~' && (fm->fname[1] == '/'))
-    {
-        size_t len;
-
-        len = expand_env((char_u *)"~/", NameBuff,  PATH_MAX );
-        vim_strncpy(NameBuff + len, fm->fname + 2,  PATH_MAX  - len - 1);
-    }
-    else
-    {
-        vim_strncpy(NameBuff, fm->fname,  PATH_MAX  - 1);
-    }
-
-    mch_dirname(IObuff,  (1024+1) );
-    p = shorten_fname(NameBuff, IObuff);
-
-    (void)buflist_new(NameBuff, p, (linenr_T)1, 0);
 }
 
     static void
@@ -43494,8 +43286,6 @@ ml_open(buf_T *buf)
     buf->b_ml.ml_locked = NULL;
     buf->b_ml.ml_line_lnum = 0;
 
-    buf->b_may_swap = false;
-
     mfp = mf_open();
     if (mfp == NULL)
     {
@@ -43590,24 +43380,6 @@ error:
     static void
 ml_setname(buf_T *buf)
 {
-}
-
-    static void
-ml_open_file(buf_T *buf)
-{
-    buf->b_may_swap = FALSE;
-}
-
-    static void
-check_need_swap(int     newfile)
-{
-    int old_msg_silent = msg_silent;
-
-    if (curbuf->b_may_swap && (!curbuf->b_p_ro || !newfile))
-    {
-        ml_open_file(curbuf);
-    }
-    msg_silent = old_msg_silent;
 }
 
     static void
@@ -48235,12 +48007,6 @@ expand_env_save_opt(char_u *src, int one, char_u *esc_chars)
         expand_env_esc(src, p,  PATH_MAX , esc_chars, one, NULL);
     }
     return p;
-}
-
-    static size_t
-expand_env(char_u      *src, char_u      *dst, int         dstlen)
-{
-    return expand_env_esc(src, dst, dstlen, NULL, FALSE, NULL);
 }
 
     static size_t
@@ -92534,7 +92300,6 @@ static void mainerr(int, char_u *);
 static void read_stdin(void);
 static void create_windows(mparm_T *parmp);
 static void exe_commands(mparm_T *parmp);
-static void check_swap_exists_action(void);
 
 static char *(main_errors[]) =
 {
@@ -93189,8 +92954,6 @@ read_stdin(void)
 {
     int     i;
 
-    swap_exists_action = SEA_DIALOG;
-
     no_wait_return = TRUE;
     i = msg_didany;
 
@@ -93198,8 +92961,6 @@ read_stdin(void)
 
     no_wait_return = FALSE;
     msg_didany = i;
-
-    check_swap_exists_action();
 
     close(0);
     vim_ignored = dup(2);
@@ -93232,24 +92993,7 @@ create_windows(mparm_T *parmp  __attribute__((unused)) )
         curbuf = curwin->w_buffer;
         if (curbuf->b_ml.ml_mfp == NULL)
         {
-            swap_exists_action = SEA_DIALOG;
-
             (void)open_buffer(FALSE, NULL, 0);
-
-            if (swap_exists_action == SEA_QUIT)
-            {
-                if (TRUE)
-                {
-                    did_emsg = FALSE;
-                    getout(1);
-                }
-                setfname(curbuf, NULL, NULL, FALSE);
-                swap_exists_action = SEA_NONE;
-            }
-            else
-            {
-                handle_swap_exists(NULL);
-            }
             dorewind = TRUE;
         }
         ui_breakcheck();
@@ -93320,16 +93064,6 @@ mainerr(int         n, char_u      *str)
 mainerr_arg_missing(char_u *str)
 {
     mainerr(ME_ARG_MISSING, str);
-}
-
-    static void
-check_swap_exists_action(void)
-{
-    if (swap_exists_action == SEA_QUIT)
-    {
-        getout(1);
-    }
-    handle_swap_exists(NULL);
 }
 
     int
