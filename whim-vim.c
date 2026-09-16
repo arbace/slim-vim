@@ -2114,17 +2114,10 @@ struct frame_S
     char        fr_layout;
     int         fr_width;
     int         fr_height;
-    frame_T     *fr_parent;
-    frame_T     *fr_next;
-    frame_T     *fr_prev;
-    frame_T     *fr_child;
     win_T       *fr_win;
 };
 
 enum { FR_LEAF = 0 };
-enum { FR_ROW = 1 };
-enum { FR_COL = 2 };
-
 typedef struct
 {
     regmmatch_T rm;
@@ -74582,27 +74575,6 @@ draw_vsep_win(win_T *wp, int row)
     static int
 stl_connected(win_T *wp)
 {
-    frame_T     *fr;
-
-    fr = wp->w_frame;
-    while (fr->fr_parent != NULL)
-    {
-        if (fr->fr_parent->fr_layout == FR_COL)
-        {
-            if (fr->fr_next != NULL)
-            {
-                break;
-            }
-        }
-        else
-        {
-            if (fr->fr_next != NULL)
-            {
-                return TRUE;
-            }
-        }
-        fr = fr->fr_parent;
-    }
     return FALSE;
 }
 
@@ -89374,14 +89346,10 @@ static void frame_setwidth(frame_T *curfrp, int width);
 static void win_fix_scroll(int resize);
 static void win_fix_cursor(int normal);
 static void frame_new_height(frame_T *topfrp, int height, int topfirst, int wfh, int set_ch);
-static int frame_fixed_height(frame_T *frp);
-static int frame_fixed_width(frame_T *frp);
 static void frame_new_width(frame_T *topfrp, int width, int leftfirst, int wfw);
-static int frame_minwidth(frame_T *topfrp, win_T *next_curwin);
 static int win_alloc_firstwin(win_T *oldwin);
 static void new_frame(win_T *wp);
 static tabpage_T *alloc_tabpage(void);
-static void frame_fix_height(win_T *wp);
 static int frame_minheight(frame_T *topfrp, win_T *next_curwin);
 static int win_enter_ext(win_T *wp, int flags);
 static void frame_add_height(frame_T *frp, int n);
@@ -89561,11 +89529,7 @@ static int min_set_ch = 1;
     static void
 frame_new_height(frame_T     *topfrp, int         height, int         topfirst, int         wfh, int         set_ch)
 {
-    frame_T     *frp;
-    int         extra_lines;
-    int         h;
-
-    if (topfrp->fr_parent == NULL && set_ch)
+    if (set_ch)
     {
         int new_ch = MAX(min_set_ch, p_ch + topfrp->fr_height - height);
         int save_ch = min_set_ch;
@@ -89576,377 +89540,41 @@ frame_new_height(frame_T     *topfrp, int         height, int         topfirst, 
         min_set_ch = save_ch;
         height = MIN(height,  (Rows - p_ch - tabline_height()) );
     }
-    if (topfrp->fr_win != NULL)
-    {
-        win_new_height(topfrp->fr_win, height - topfrp->fr_win->w_status_height -  0 );
-    }
-    else if (topfrp->fr_layout == FR_ROW)
-    {
-        do
-        {
-             for ((frp) = topfrp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-            {
-                frame_new_height(frp, height, topfirst, wfh, set_ch);
-                if (frp->fr_height > height)
-                {
-                    height = frp->fr_height;
-                    break;
-                }
-            }
-        }
-        while (frp != NULL)
-            ;
-    }
-    else
-    {
-        frp = topfrp->fr_child;
-        if (wfh)
-        {
-            while (frame_fixed_height(frp))
-            {
-                frp = frp->fr_next;
-                if (frp == NULL)
-                {
-                    return;
-                }
-            }
-        }
-        if (!topfirst)
-        {
-            while (frp->fr_next != NULL)
-            {
-                frp = frp->fr_next;
-            }
-            if (wfh)
-            {
-                while (frame_fixed_height(frp))
-                {
-                    frp = frp->fr_prev;
-                }
-            }
-        }
-
-        extra_lines = height - topfrp->fr_height;
-        if (extra_lines < 0)
-        {
-            while (frp != NULL)
-            {
-                h = frame_minheight(frp, NULL);
-                if (frp->fr_height + extra_lines < h)
-                {
-                    extra_lines += frp->fr_height - h;
-                    frame_new_height(frp, h, topfirst, wfh, set_ch);
-                }
-                else
-                {
-                    frame_new_height(frp, frp->fr_height + extra_lines, topfirst, wfh, set_ch);
-                    break;
-                }
-                if (topfirst)
-                {
-                    do
-                    {
-                        frp = frp->fr_next;
-                    }
-                    while (wfh && frp != NULL && frame_fixed_height(frp))
-                        ;
-                }
-                else
-                {
-                    do
-                    {
-                        frp = frp->fr_prev;
-                    }
-                    while (wfh && frp != NULL && frame_fixed_height(frp))
-                        ;
-                }
-                if (frp == NULL)
-                {
-                    height -= extra_lines;
-                }
-            }
-        }
-        else if (extra_lines > 0)
-        {
-            frame_new_height(frp, frp->fr_height + extra_lines, topfirst, wfh, set_ch);
-        }
-    }
+    win_new_height(topfrp->fr_win, height - topfrp->fr_win->w_status_height -  0 );
     topfrp->fr_height = height;
-}
-
-    static int
-frame_fixed_height(frame_T *frp)
-{
-    if (frp->fr_win != NULL)
-    {
-        return FALSE;
-    }
-
-    if (frp->fr_layout == FR_ROW)
-    {
-         for ((frp) = frp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-         {
-            if (frame_fixed_height(frp))
-            {
-                return TRUE;
-            }
-         }
-        return FALSE;
-    }
-
-     for ((frp) = frp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-     {
-        if (!frame_fixed_height(frp))
-        {
-            return FALSE;
-        }
-     }
-    return TRUE;
-}
-
-    static int
-frame_fixed_width(frame_T *frp)
-{
-    if (frp->fr_win != NULL)
-    {
-        return FALSE;
-    }
-
-    if (frp->fr_layout == FR_COL)
-    {
-         for ((frp) = frp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-         {
-            if (frame_fixed_width(frp))
-            {
-                return TRUE;
-            }
-         }
-        return FALSE;
-    }
-
-     for ((frp) = frp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-     {
-        if (!frame_fixed_width(frp))
-        {
-            return FALSE;
-        }
-     }
-    return TRUE;
 }
 
     static void
 frame_new_width(frame_T     *topfrp, int         width, int         leftfirst, int         wfw)
 {
-    frame_T     *frp;
-    int         extra_cols;
-    int         w;
     win_T       *wp;
 
-    if (topfrp->fr_layout == FR_LEAF)
-    {
-        wp = topfrp->fr_win;
-        for (frp = topfrp; frp->fr_parent != NULL; frp = frp->fr_parent)
-        {
-            if (frp->fr_parent->fr_layout == FR_ROW && frp->fr_next != NULL)
-            {
-                break;
-            }
-        }
-        if (frp->fr_parent == NULL)
-        {
-            wp->w_vsep_width = 0;
-        }
-        win_new_width(wp, width - wp->w_vsep_width);
-    }
-    else if (topfrp->fr_layout == FR_COL)
-    {
-        do
-        {
-             for ((frp) = topfrp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-            {
-                frame_new_width(frp, width, leftfirst, wfw);
-                if (frp->fr_width > width)
-                {
-                    width = frp->fr_width;
-                    break;
-                }
-            }
-        } while (frp != NULL);
-    }
-    else
-    {
-        frp = topfrp->fr_child;
-        if (wfw)
-        {
-            while (frame_fixed_width(frp))
-            {
-                frp = frp->fr_next;
-                if (frp == NULL)
-                {
-                    return;
-                }
-            }
-        }
-        if (!leftfirst)
-        {
-            while (frp->fr_next != NULL)
-            {
-                frp = frp->fr_next;
-            }
-            if (wfw)
-            {
-                while (frame_fixed_width(frp))
-                {
-                    frp = frp->fr_prev;
-                }
-            }
-        }
-
-        extra_cols = width - topfrp->fr_width;
-        if (extra_cols < 0)
-        {
-            while (frp != NULL)
-            {
-                w = frame_minwidth(frp, NULL);
-                if (frp->fr_width + extra_cols < w)
-                {
-                    extra_cols += frp->fr_width - w;
-                    frame_new_width(frp, w, leftfirst, wfw);
-                }
-                else
-                {
-                    frame_new_width(frp, frp->fr_width + extra_cols, leftfirst, wfw);
-                    break;
-                }
-                if (leftfirst)
-                {
-                    do
-                    {
-                        frp = frp->fr_next;
-                    }
-                    while (wfw && frp != NULL && frame_fixed_width(frp))
-                        ;
-                }
-                else
-                {
-                    do
-                    {
-                        frp = frp->fr_prev;
-                    }
-                    while (wfw && frp != NULL && frame_fixed_width(frp))
-                        ;
-                }
-                if (frp == NULL)
-                {
-                    width -= extra_cols;
-                }
-            }
-        }
-        else if (extra_cols > 0)
-        {
-            frame_new_width(frp, frp->fr_width + extra_cols, leftfirst, wfw);
-        }
-    }
+    wp = topfrp->fr_win;
+    wp->w_vsep_width = 0;
+    win_new_width(wp, width - wp->w_vsep_width);
     topfrp->fr_width = width;
-}
-
-    static void
-frame_fix_height(win_T *wp)
-{
-    wp->w_frame->fr_height =  (wp)->w_height  + wp->w_status_height;
 }
 
     static int
 frame_minheight(frame_T *topfrp, win_T *next_curwin)
 {
-    frame_T     *frp;
     int         m;
-    int         n;
 
-    if (topfrp->fr_win != NULL)
+    if (topfrp->fr_win == next_curwin)
     {
-        if (topfrp->fr_win == next_curwin)
-        {
-            m = p_wh + topfrp->fr_win->w_status_height;
-        }
-        else
-        {
-            m = p_wmh + topfrp->fr_win->w_status_height;
-            if (topfrp->fr_win == curwin && next_curwin == NULL)
-            {
-                if (p_wmh == 0)
-                {
-                    ++m;
-                }
-                m +=  0 ;
-            }
-        }
-    }
-    else if (topfrp->fr_layout == FR_ROW)
-    {
-        m = 0;
-         for ((frp) = topfrp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-        {
-            n = frame_minheight(frp, next_curwin);
-            if (n > m)
-            {
-                m = n;
-            }
-        }
+        m = p_wh + topfrp->fr_win->w_status_height;
     }
     else
     {
-        m = 0;
-         for ((frp) = topfrp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-         {
-            m += frame_minheight(frp, next_curwin);
-         }
-    }
-
-    return m;
-}
-
-    static int
-frame_minwidth(frame_T     *topfrp, win_T       *next_curwin)
-{
-    frame_T     *frp;
-    int m;
-    int n;
-
-    if (topfrp->fr_win != NULL)
-    {
-        if (topfrp->fr_win == next_curwin)
+        m = p_wmh + topfrp->fr_win->w_status_height;
+        if (topfrp->fr_win == curwin && next_curwin == NULL)
         {
-            m = p_wiw + topfrp->fr_win->w_vsep_width;
-        }
-        else
-        {
-            m = p_wmw + topfrp->fr_win->w_vsep_width;
-            if (p_wmw == 0 && topfrp->fr_win == curwin && next_curwin == NULL)
+            if (p_wmh == 0)
             {
                 ++m;
             }
+            m +=  0 ;
         }
-    }
-    else if (topfrp->fr_layout == FR_COL)
-    {
-        m = 0;
-         for ((frp) = topfrp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-        {
-            n = frame_minwidth(frp, next_curwin);
-            if (n > m)
-            {
-                m = n;
-            }
-        }
-    }
-    else
-    {
-        m = 0;
-         for ((frp) = topfrp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-         {
-            m += frame_minwidth(frp, next_curwin);
-         }
     }
 
     return m;
@@ -90315,9 +89943,6 @@ win_comp_pos(void)
 frame_comp_pos(frame_T *topfrp, int *row, int *col)
 {
     win_T       *wp;
-    frame_T     *frp;
-    int         startcol;
-    int         startrow;
     int         h;
 
     wp = topfrp->fr_win;
@@ -90333,23 +89958,6 @@ frame_comp_pos(frame_T *topfrp, int *row, int *col)
         h =  (wp)->w_height  + wp->w_status_height;
         *row += h > topfrp->fr_height ? topfrp->fr_height : h;
         *col += wp->w_width + wp->w_vsep_width;
-    }
-    else
-    {
-        startrow = *row;
-        startcol = *col;
-         for ((frp) = topfrp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-        {
-            if (topfrp->fr_layout == FR_ROW)
-            {
-                *row = startrow;
-            }
-            else
-            {
-                *col = startcol;
-            }
-            frame_comp_pos(frp, row, col);
-        }
     }
 }
 
@@ -90399,130 +90007,14 @@ win_setheight_win(int height, win_T *win)
     static void
 frame_setheight(frame_T *curfrp, int height)
 {
-    int         room;
-    int         take;
-    int         room_cmdline;
-    int         run;
-    frame_T     *frp;
-    int         h;
-    int         room_reserved;
-
     if (curfrp->fr_height == height)
     {
         return;
     }
 
-    if (curfrp->fr_parent == NULL)
+    if (height > 0)
     {
-        if (height > 0)
-        {
-            frame_new_height(curfrp, height, FALSE, FALSE, TRUE);
-        }
-    }
-    else if (curfrp->fr_parent->fr_layout == FR_ROW)
-    {
-        h = frame_minheight(curfrp->fr_parent, NULL);
-        if (height < h)
-        {
-            height = h;
-        }
-        frame_setheight(curfrp->fr_parent, height);
-    }
-    else
-    {
-        for (run = 1; run <= 2; ++run)
-        {
-            room = 0;
-            room_reserved = 0;
-             for ((frp) = curfrp->fr_parent->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-            {
-                room += frp->fr_height;
-                if (frp != curfrp)
-                {
-                    room -= frame_minheight(frp, NULL);
-                }
-            }
-            if (curfrp->fr_width != topframe->fr_width)
-            {
-                room_cmdline = 0;
-            }
-            else
-            {
-                room_cmdline = Rows - p_ch - (curwin->w_winrow +  (curwin)->w_height  + curwin->w_status_height);
-                if (room_cmdline < 0)
-                {
-                    room_cmdline = 0;
-                }
-            }
-
-            if (height <= room + room_cmdline)
-            {
-                break;
-            }
-            if (run == 2 || curfrp->fr_width == topframe->fr_width)
-            {
-                height = room + room_cmdline;
-                break;
-            }
-            frame_setheight(curfrp->fr_parent, height + frame_minheight(curfrp->fr_parent,  ((win_T *)-1) ) - (int)p_wmh - 1);
-        }
-
-        take = height - curfrp->fr_height;
-
-        if (height > room + room_cmdline - room_reserved)
-        {
-            room_reserved = room + room_cmdline - height;
-        }
-        if (take < 0 && room - curfrp->fr_height <= room_reserved)
-        {
-            room_reserved = 0;
-        }
-
-        if (take > 0 && room_cmdline > 0)
-        {
-            if (take < room_cmdline)
-            {
-                room_cmdline = take;
-            }
-            take -= room_cmdline;
-            topframe->fr_height += room_cmdline;
-        }
-
         frame_new_height(curfrp, height, FALSE, FALSE, TRUE);
-
-        for (run = 0; run < 2; ++run)
-        {
-            if (run == 0)
-            {
-                frp = curfrp->fr_next;
-            }
-            else
-            {
-                frp = curfrp->fr_prev;
-            }
-            while (frp != NULL && take != 0)
-            {
-                h = frame_minheight(frp, NULL);
-                if (frp->fr_height - take < h)
-                {
-                    take -= frp->fr_height - h;
-                    frame_new_height(frp, h, FALSE, FALSE, TRUE);
-                }
-                else
-                {
-                    frame_new_height(frp, frp->fr_height - take, FALSE, FALSE, TRUE);
-                    take = 0;
-                }
-                if (run == 0)
-                {
-                    frp = frp->fr_next;
-                }
-                else
-                {
-                    frp = frp->fr_prev;
-                }
-            }
-        }
     }
 }
 
@@ -90561,105 +90053,9 @@ win_setwidth_win(int width, win_T *wp)
     static void
 frame_setwidth(frame_T *curfrp, int width)
 {
-    int         room;
-    int         take;
-    int         run;
-    frame_T     *frp;
-    int         w;
-    int         room_reserved;
-
     if (curfrp->fr_width == width)
     {
         return;
-    }
-
-    if (curfrp->fr_parent == NULL)
-    {
-        return;
-    }
-
-    if (curfrp->fr_parent->fr_layout == FR_COL)
-    {
-        w = frame_minwidth(curfrp->fr_parent, NULL);
-        if (width < w)
-        {
-            width = w;
-        }
-        frame_setwidth(curfrp->fr_parent, width);
-    }
-    else
-    {
-        for (run = 1; run <= 2; ++run)
-        {
-            room = 0;
-            room_reserved = 0;
-             for ((frp) = curfrp->fr_parent->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-            {
-                room += frp->fr_width;
-                if (frp != curfrp)
-                {
-                    room -= frame_minwidth(frp, NULL);
-                }
-            }
-
-            if (width <= room)
-            {
-                break;
-            }
-            if (run == 2 || curfrp->fr_height >=  (Rows - p_ch - tabline_height()) )
-            {
-                width = room;
-                break;
-            }
-            frame_setwidth(curfrp->fr_parent, width + frame_minwidth(curfrp->fr_parent,  ((win_T *)-1) ) - (int)p_wmw - 1);
-        }
-
-        take = width - curfrp->fr_width;
-
-        if (width > room - room_reserved)
-        {
-            room_reserved = room - width;
-        }
-        if (take < 0 && room - curfrp->fr_width < room_reserved)
-        {
-            room_reserved = 0;
-        }
-
-        frame_new_width(curfrp, width, FALSE, FALSE);
-
-        for (run = 0; run < 2; ++run)
-        {
-            if (run == 0)
-            {
-                frp = curfrp->fr_next;
-            }
-            else
-            {
-                frp = curfrp->fr_prev;
-            }
-            while (frp != NULL && take != 0)
-            {
-                w = frame_minwidth(frp, NULL);
-                if (frp->fr_width - take < w)
-                {
-                    take -= frp->fr_width - w;
-                    frame_new_width(frp, w, FALSE, FALSE);
-                }
-                else
-                {
-                    frame_new_width(frp, frp->fr_width - take, FALSE, FALSE);
-                    take = 0;
-                }
-                if (run == 0)
-                {
-                    frp = frp->fr_next;
-                }
-                else
-                {
-                    frp = frp->fr_prev;
-                }
-            }
-        }
     }
 }
 
@@ -90950,27 +90346,15 @@ win_comp_scroll(win_T *wp)
 command_height(void)
 {
     int         old_p_ch = curtab->tp_ch_used;
+    frame_T     *frp = curwin->w_frame;
 
-    frame_T *frp = curwin->w_frame;
-    while (frp->fr_width != topframe->fr_width && frp->fr_parent != NULL)
+    if (p_ch > old_p_ch && command_frame_height)
     {
-        frp = frp->fr_parent;
-    }
-
-    while (p_ch > old_p_ch && command_frame_height)
-    {
-        if (frp == NULL)
-        {
-            emsg(_(e_not_enough_room));
-            p_ch = old_p_ch;
-            break;
-        }
         int h = MIN(p_ch - old_p_ch, frp->fr_height - frame_minheight(frp, NULL));
         frame_add_height(frp, -h);
         old_p_ch += h;
-        frp = frp->fr_prev;
     }
-    if (p_ch < old_p_ch && command_frame_height && frp != NULL)
+    if (p_ch < old_p_ch && command_frame_height)
     {
         frame_add_height(frp, (int)(old_p_ch - p_ch));
     }
@@ -90994,15 +90378,6 @@ command_height(void)
 frame_add_height(frame_T *frp, int n)
 {
     frame_new_height(frp, frp->fr_height + n, FALSE, FALSE, FALSE);
-    for (;;)
-    {
-        frp = frp->fr_parent;
-        if (frp == NULL)
-        {
-            break;
-        }
-        frp->fr_height += n;
-    }
 }
 
     static void
@@ -91014,150 +90389,30 @@ last_status(int         morewin)
     static void
 last_status_rec(frame_T *fr, int statusline)
 {
-    frame_T     *fp;
     win_T       *wp;
 
-    if (fr->fr_layout == FR_LEAF)
+    wp = fr->fr_win;
+    if (wp->w_status_height != 0 && !statusline)
     {
-        wp = fr->fr_win;
-        if (wp->w_status_height != 0 && !statusline)
-        {
-            win_new_height(wp, wp->w_height + wp->w_status_height);
-            wp->w_status_height = 0;
-            comp_col();
-        }
-        else if (wp->w_status_height == 0 && statusline)
-        {
-            fp = fr;
-            while (fp->fr_height <= frame_minheight(fp, NULL))
-            {
-                if (fp == topframe)
-                {
-                    emsg(_(e_not_enough_room));
-                    return;
-                }
-                if (fp->fr_parent->fr_layout == FR_COL && fp->fr_prev != NULL)
-                {
-                    fp = fp->fr_prev;
-                }
-                else
-                {
-                    fp = fp->fr_parent;
-                }
-            }
-            wp->w_status_height = statusline_height(wp);
-            if (fp != fr)
-            {
-                frame_new_height(fp, fp->fr_height - wp->w_status_height, FALSE, FALSE, FALSE);
-                frame_fix_height(wp);
-                win_comp_pos();
-            }
-            else
-            {
-                win_new_height(wp, wp->w_height - wp->w_status_height);
-            }
-            comp_col();
-            redraw_all_later(UPD_SOME_VALID);
-        }
-        if (abs(wp->w_height - wp->w_prev_height) == 1)
-        {
-            wp->w_prev_height = wp->w_height;
-        }
+        win_new_height(wp, wp->w_height + wp->w_status_height);
+        wp->w_status_height = 0;
+        comp_col();
     }
-    else if (fr->fr_layout == FR_ROW)
+    else if (wp->w_status_height == 0 && statusline)
     {
-        if (!statusline)
+        if (fr->fr_height <= frame_minheight(fr, NULL))
         {
-             for ((fp) = fr->fr_child; (fp) != NULL; (fp) = (fp)->fr_next) 
-             {
-                last_status_rec(fp, statusline);
-             }
+            emsg(_(e_not_enough_room));
+            return;
         }
-        else
-        {
-            frame_T     *fp2;
-            int         max_stlh = 0;
-            int         new_row_height;
-
-             for ((fp) = fr->fr_child; (fp) != NULL; (fp) = (fp)->fr_next) 
-             {
-                if (fp->fr_win != NULL && fp->fr_win->w_status_height == 0)
-                {
-                    int h = statusline_height(fp->fr_win);
-                    if (h > max_stlh)
-                    {
-                        max_stlh = h;
-                    }
-                }
-             }
-            if (max_stlh == 0)
-            {
-                return;
-            }
-
-            fp2 = fr;
-            while (fp2->fr_height - frame_minheight(fp2, NULL) < max_stlh)
-            {
-                if (fp2 == topframe)
-                {
-                    emsg(_(e_not_enough_room));
-                    return;
-                }
-                if (fp2->fr_parent->fr_layout == FR_COL && fp2->fr_prev != NULL)
-                {
-                    fp2 = fp2->fr_prev;
-                }
-                else
-                {
-                    fp2 = fp2->fr_parent;
-                }
-            }
-
-            if (fp2 != fr)
-            {
-                frame_new_height(fp2, fp2->fr_height - max_stlh, FALSE, FALSE, FALSE);
-                new_row_height = fr->fr_height + max_stlh;
-            }
-            else
-            {
-                new_row_height = fr->fr_height;
-            }
-
-             for ((fp) = fr->fr_child; (fp) != NULL; (fp) = (fp)->fr_next) 
-            {
-                if (fp->fr_win != NULL)
-                {
-                    wp = fp->fr_win;
-                    if (wp->w_status_height == 0)
-                    {
-                        wp->w_status_height = statusline_height(wp);
-                        win_new_height(wp, new_row_height - wp->w_status_height);
-                        frame_fix_height(wp);
-                        comp_col();
-                        redraw_all_later(UPD_SOME_VALID);
-                        if (abs(wp->w_height - wp->w_prev_height) == 1)
-                        {
-                            wp->w_prev_height = wp->w_height;
-                        }
-                    }
-                }
-                else
-                {
-                    last_status_rec(fp, statusline);
-                }
-            }
-
-            fr->fr_height = new_row_height;
-            win_comp_pos();
-        }
+        wp->w_status_height = statusline_height(wp);
+        win_new_height(wp, wp->w_height - wp->w_status_height);
+        comp_col();
+        redraw_all_later(UPD_SOME_VALID);
     }
-    else
+    if (abs(wp->w_height - wp->w_prev_height) == 1)
     {
-        for (fp = fr->fr_child; fp->fr_next != NULL; fp = fp->fr_next)
-        {
-            ;
-        }
-        last_status_rec(fp, statusline);
+        wp->w_prev_height = wp->w_height;
     }
 }
 
@@ -91271,49 +90526,13 @@ check_lnums(int do_curwin)
     static int
 frame_check_height(frame_T *topfrp, int height)
 {
-    frame_T *frp;
-
-    if (topfrp->fr_height != height)
-    {
-        return FALSE;
-    }
-
-    if (topfrp->fr_layout == FR_ROW)
-    {
-         for ((frp) = topfrp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-         {
-            if (frp->fr_height != height)
-            {
-                return FALSE;
-            }
-         }
-    }
-
-    return TRUE;
+    return topfrp->fr_height == height;
 }
 
     static int
 frame_check_width(frame_T *topfrp, int width)
 {
-    frame_T *frp;
-
-    if (topfrp->fr_width != width)
-    {
-        return FALSE;
-    }
-
-    if (topfrp->fr_layout == FR_COL)
-    {
-         for ((frp) = topfrp->fr_child; (frp) != NULL; (frp) = (frp)->fr_next) 
-         {
-            if (frp->fr_width != width)
-            {
-                return FALSE;
-            }
-         }
-    }
-
-    return TRUE;
+    return topfrp->fr_width == width;
 }
 
 // ==================== main.c ====================
