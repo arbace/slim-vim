@@ -442,7 +442,6 @@ typedef enum {
 // ---------------- begin macros.h ----------------
 
 enum { ERROR_IF_POPUP_WINDOW = 0 };
-enum { ERROR_IF_ANY_POPUP_WINDOW = 0 };
 enum { ERROR_IF_TERM_POPUP_WINDOW = 0 };
 
 // ---------------- end macros.h ----------------
@@ -657,12 +656,6 @@ enum { RE_LAST = 2 };
 enum { RE_MAGIC = 1 };
 enum { RE_STRING = 2 };
 enum { RE_STRICT = 4 };
-enum { FPC_SAME = 1 };
-enum { FPC_DIFF = 2 };
-enum { FPC_NOTX = 4 };
-enum { FPC_DIFFX = 6 };
-enum { FPC_SAMEX = 7 };
-
 enum { ECMD_HIDE = 0x01 };
 enum { ECMD_SET_HELP = 0x02 };
 enum { ECMD_OLDBUF = 0x04 };
@@ -1675,19 +1668,6 @@ enum { ML_APPEND_NEW = 1 };
 enum { ML_APPEND_MARK = 2 };
 enum { ML_APPEND_UNDO = 4 };
 
-typedef struct arglist
-{
-    garray_T    al_ga;
-    int         al_refcount;
-    int         id;
-} alist_T;
-
-typedef struct argentry
-{
-    char_u      *ae_fname;
-    int         ae_fnum;
-} aentry_T;
-
 enum { MAX_HL_ID = 20000 };
 
 typedef struct attr_entry
@@ -2342,10 +2322,6 @@ struct window_S
     linenr_T    w_ru_line_count;
     bool        w_ru_empty;
 
-    alist_T     *w_alist;
-    int         w_arg_idx;
-    bool        w_arg_idx_invalid;
-
     char_u      *w_localdir;
     char_u      *w_prevdir;
 
@@ -2432,8 +2408,6 @@ typedef struct
 {
     int         argc;
     char        **argv;
-
-    char_u      *fname;
 
     int         n_commands;
     char_u      *commands[MAX_ARG_CMDS];
@@ -3400,11 +3374,6 @@ static void ga_init(garray_T *gap);
 static int ga_grow_inner(garray_T *gap, int n);
 // ---------------- end alloc.pro ----------------
 // ---------------- begin arglist.pro ----------------
-static void alist_add(alist_T *al, char_u *fname, int set_fnum);
-static void check_arg_idx(win_T *win);
-static void do_argfile(exarg_T *eap, int argn);
-static void ex_next(exarg_T *eap);
-static char_u *alist_name(aentry_T *aep);
 // ---------------- end arglist.pro ----------------
 // ---------------- begin autocmd.pro ----------------
 static void aucmd_prepbuf(aco_save_T *aco, buf_T *buf);
@@ -3432,7 +3401,6 @@ static buf_T *buflist_findnr(int nr);
 static void buflist_setfpos(buf_T *buf, win_T *win, linenr_T lnum, colnr_T col, int copy_options);
 static void get_winopts(buf_T *buf);
 static pos_T *buflist_findfpos(buf_T *buf);
-static void buf_set_name(int fnum, char_u *name);
 static void buf_name_changed(buf_T *buf);
 static int buflist_add(char_u *fname, int flags);
 static int otherfile(char_u *ffname);
@@ -3654,7 +3622,6 @@ static long write_eintr(int fd, void *buf, size_t bufsize);
 // ---------------- begin filepath.pro ----------------
 static size_t home_replace(buf_T *buf, char_u *src, char_u *dst, int dstlen, int one);
 static char_u *home_replace_save(buf_T *buf, char_u *src);
-static int fullpathcmp(char_u *s1, char_u *s2, int checkname, int expandenv);
 static char_u *gettail(char_u *fname);
 static char_u *gettail_sep(char_u *fname);
 static char_u *get_past_head(char_u *path);
@@ -4675,9 +4642,6 @@ static buf_T    *curbuf  = NULL ;
 
 static int      mf_dont_release  = FALSE ;
 
-static alist_T  global_alist;
-static int      arg_had_last  = FALSE ;
-
 static int      ru_col;
 static int      sc_col;
 
@@ -4989,14 +4953,8 @@ static char e_regular_expressions_cant_be_delimited_by_letters[]  =  "E146: Regu
 static char e_cannot_do_global_recursive_with_range[]  =  "E147: Cannot do :global recursive with a range"  ;
 static char e_regular_expression_missing_from_global[]  =  "E148: Regular expression missing from :global"  ;
 static char e_no_write_since_last_change_for_buffer_str[]  =  "E162: No write since last change for buffer \"%s\""  ;
-static char e_there_is_only_one_file_to_edit[]  =  "E163: There is only one file to edit"  ;
-static char e_cannot_go_before_first_file[]  =  "E164: Cannot go before first file"  ;
-static char e_cannot_go_beyond_last_file[]  =  "E165: Cannot go beyond last file"  ;
 static char e_cant_open_linked_file_for_writing[]  =  "E166: Can't open linked file for writing"  ;
 static char e_command_too_recursive[]  =  "E169: Command too recursive"  ;
-
- static char e_nr_more_file_to_edit[] = "E173: %d more file to edit";
- static char e_nr_more_files_to_edit[] = "E173: %d more files to edit";
 
 static char e_argument_must_be_letter_or_forward_backward_quote[]  =  "E191: Argument must be a letter or forward/backward quote"  ;
 static char e_recursive_use_of_normal_too_deep[]  =  "E192: Recursive use of :normal too deep"  ;
@@ -5080,7 +5038,6 @@ static char e_invalid_argument_str[]  =  "E475: Invalid argument: %s"  ;
 static char e_invalid_command[]  =  "E476: Invalid command"  ;
 static char e_invalid_command_str[]  =  "E476: Invalid command: %s"  ;
 static char e_no_bang_allowed[]  =  "E477: No ! allowed"  ;
-static char e_no_match[]  =  "E479: No match"  ;
 static char e_no_match_str_2[]  =  "E480: No match: %s"  ;
 static char e_no_range_allowed[]  =  "E481: No range allowed"  ;
 static char e_cant_open_file_str[]  =  "E484: Can't open file %s"  ;
@@ -5163,7 +5120,6 @@ static char e_yank_register_changed_while_using_it[]  =  "E1064: Yank register c
 static char e_command_cannot_be_shortened_str[]  =  "E1065: Command cannot be shortened: %s"  ;
 static char e_command_modifier_without_command[]  =  "E1082: Command modifier without command"  ;
 static char e_cmd_mapping_must_end_with_cr_before_second_cmd[]  =  "E1136: <Cmd> mapping must end with <CR> before second <Cmd>"  ;
-static char e_cannot_change_arglist_recursively[]  =  "E1156: Cannot change the argument list recursively"  ;
 static char e_regexp_number_after_dot_pos_search_chr[]  =  "E1204: No Number allowed after .: '\\%%%c'"  ;
 static char e_no_white_space_allowed_between_option_and[]  =  "E1205: No white space allowed between option and"  ;
 static char e_cannot_use_bar_to_separate_commands_here_str[]  =  "E1231: Cannot use a bar to separate commands here: %s"  ;
@@ -5465,539 +5421,6 @@ ga_append(garray_T *gap, int c)
 }
 
 // ==================== arglist.c ====================
-
-enum { AL_SET = 1 };
-enum { AL_ADD = 2 };
-enum { AL_DEL = 3 };
-
-static int arglist_locked = FALSE;
-
-    static int
-check_arglist_locked(void)
-{
-    if (arglist_locked)
-    {
-        emsg(_(e_cannot_change_arglist_recursively));
-        return FAIL;
-    }
-    return OK;
-}
-
-    static void
-alist_clear(alist_T *al)
-{
-    if (check_arglist_locked() == FAIL)
-    {
-        return;
-    }
-    while (--al->al_ga.ga_len >= 0)
-    {
-        vim_free( ((aentry_T *)((al)->al_ga.ga_data)) [al->al_ga.ga_len].ae_fname);
-    }
-    ga_clear(&al->al_ga);
-}
-
-    static void
-alist_init(alist_T *al)
-{
-    ga_init2(&al->al_ga, sizeof(aentry_T), 5);
-}
-
-    static void
-alist_set(alist_T     *al, int         count, char_u      **files, int         use_curbuf, int         *fnum_list, int         fnum_len)
-{
-    int         i;
-
-    if (check_arglist_locked() == FAIL)
-    {
-        return;
-    }
-
-    alist_clear(al);
-    if (  __builtin_expect(((((&al->al_ga)->ga_maxlen - (&al->al_ga)->ga_len < (count)) ? ga_grow_inner((&al->al_ga), (count)) : OK) == OK), 1)  )
-    {
-        for (i = 0; i < count; ++i)
-        {
-            if (got_int)
-            {
-                while (i < count)
-                {
-                    vim_free(files[i++]);
-                }
-                break;
-            }
-
-            if (fnum_list != NULL && i < fnum_len)
-            {
-                arglist_locked = TRUE;
-                buf_set_name(fnum_list[i], files[i]);
-                arglist_locked = FALSE;
-            }
-
-            alist_add(al, files[i], use_curbuf ? 2 : 1);
-            ui_breakcheck();
-        }
-        vim_free(files);
-    }
-    else
-    {
-        FreeWild(count, files);
-    }
-    if (al == &global_alist)
-    {
-        arg_had_last = FALSE;
-    }
-}
-
-    static void
-alist_add(alist_T     *al, char_u      *fname, int         set_fnum)
-{
-    win_T       *wp = curwin;
-
-    if (fname == NULL)
-    {
-        return;
-    }
-    if (check_arglist_locked() == FAIL)
-    {
-        return;
-    }
-    arglist_locked = TRUE;
-    ++wp->w_locked;
-
-     ((aentry_T *)((al)->al_ga.ga_data)) [al->al_ga.ga_len].ae_fname = fname;
-         ((aentry_T *)((al)->al_ga.ga_data)) [al->al_ga.ga_len].ae_fnum = 0;
-    if (set_fnum == 2 && curbuf_reusable())
-    {
-         ((aentry_T *)((al)->al_ga.ga_data)) [al->al_ga.ga_len].ae_fnum =
-            buflist_add(fname, BLN_LISTED | BLN_CURBUF);
-    }
-    ++al->al_ga.ga_len;
-
-    arglist_locked = FALSE;
-    --wp->w_locked;
-}
-
-    static char_u *
-do_one_arg(char_u *str)
-{
-    char_u      *p;
-    int         inbacktick;
-
-    inbacktick = FALSE;
-    for (p = str; *str; ++str)
-    {
-        if (rem_backslash(str))
-        {
-            *p++ = *str++;
-            *p++ = *str;
-        }
-        else
-        {
-            if (!inbacktick && vim_isspace(*str))
-            {
-                break;
-            }
-            if (*str == '`')
-            {
-                inbacktick ^= TRUE;
-            }
-            *p++ = *str;
-        }
-    }
-    str = skipwhite(str);
-    *p = NUL;
-
-    return str;
-}
-
-    static int
-get_arglist(garray_T *gap, char_u *str, int escaped)
-{
-    ga_init2(gap, sizeof(char_u *), 20);
-    while (*str != NUL)
-    {
-        if (ga_grow(gap, 1) == FAIL)
-        {
-            ga_clear(gap);
-            return FAIL;
-        }
-        ((char_u **)gap->ga_data)[gap->ga_len++] = str;
-
-        if (!escaped)
-        {
-            return OK;
-        }
-
-        str = do_one_arg(str);
-    }
-    return OK;
-}
-
-    static void
-alist_check_arg_idx(void)
-{
-    win_T       *win;
-    tabpage_T   *tp;
-
-     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
-     {
-         for ((win) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (win); (win) = (win)->w_next)
-         {
-        if (win->w_alist == curwin->w_alist)
-        {
-            check_arg_idx(win);
-        }
-         }
-     }
-}
-
-    static void
-alist_add_list(int         count, char_u      **files, int         after, int         will_edit)
-{
-    int         i;
-    int         old_argcount =  ( (curwin)->w_alist ->al_ga.ga_len) ;
-
-    if (check_arglist_locked() != FAIL &&   __builtin_expect(((((& (curwin)->w_alist ->al_ga)->ga_maxlen - (& (curwin)->w_alist ->al_ga)->ga_len < (count)) ? ga_grow_inner((& (curwin)->w_alist ->al_ga), (count)) : OK) == OK), 1)  )
-    {
-        win_T   *wp = curwin;
-
-        if (after < 0)
-        {
-            after = 0;
-        }
-        if (after >  ( (curwin)->w_alist ->al_ga.ga_len) )
-        {
-            after =  ( (curwin)->w_alist ->al_ga.ga_len) ;
-        }
-        if (after <  ( (curwin)->w_alist ->al_ga.ga_len) )
-        {
-             memmove((char *)(&( ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data) [after + count])), (char *)(&( ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data) [after])), ( ( (curwin)->w_alist ->al_ga.ga_len)  - after) * sizeof(aentry_T)) ;
-        }
-        arglist_locked = TRUE;
-        ++wp->w_locked;
-        for (i = 0; i < count; ++i)
-        {
-             ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data) [after + i].ae_fname = files[i];
-             ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data) [after + i].ae_fnum = 0;
-        }
-        arglist_locked = FALSE;
-        --wp->w_locked;
-         (wp)->w_alist ->al_ga.ga_len += count;
-        if (old_argcount > 0 && wp->w_arg_idx >= after)
-        {
-            wp->w_arg_idx += count;
-        }
-        return;
-    }
-
-    for (i = 0; i < count; ++i)
-    {
-        vim_free(files[i]);
-    }
-}
-
-    static void
-arglist_del_files(garray_T *alist_ga)
-{
-    regmatch_T  regmatch;
-    int         didone;
-    int         i;
-    char_u      *p;
-    int         match;
-
-    regmatch.rm_ic = FALSE;
-    for (i = 0; i < alist_ga->ga_len && !got_int; ++i)
-    {
-        p = ((char_u **)alist_ga->ga_data)[i];
-        p = file_pat_to_reg_pat(p, NULL, NULL, FALSE);
-        if (p == NULL)
-        {
-            break;
-        }
-        regmatch.regprog = vim_regcomp(p, magic_isset() ? RE_MAGIC : 0);
-        if (regmatch.regprog == NULL)
-        {
-            vim_free(p);
-            break;
-        }
-
-        didone = FALSE;
-        for (match = 0; match <  ( (curwin)->w_alist ->al_ga.ga_len) ; ++match)
-        {
-            if (vim_regexec(&regmatch, alist_name(& ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data) [match]), (colnr_T)0))
-            {
-                didone = TRUE;
-                vim_free( ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data) [match].ae_fname);
-                 memmove((char *)( ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data)  + match), (char *)( ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data)  + match + 1), ( ( (curwin)->w_alist ->al_ga.ga_len)  - match - 1) * sizeof(aentry_T)) ;
-                -- ( (curwin)->w_alist ->al_ga.ga_len) ;
-                if (curwin->w_arg_idx > match)
-                {
-                    --curwin->w_arg_idx;
-                }
-                --match;
-            }
-        }
-
-        vim_regfree(regmatch.regprog);
-        vim_free(p);
-        if (!didone)
-        {
-            semsg(_(e_no_match_str_2), ((char_u **)alist_ga->ga_data)[i]);
-        }
-    }
-    ga_clear(alist_ga);
-}
-
-    static int
-do_arglist(char_u      *str, int         what, int         after  __attribute__((unused)) , int         will_edit)
-{
-    garray_T    new_ga;
-    int         exp_count;
-    char_u      **exp_files;
-    int         i;
-    int         arg_escaped = TRUE;
-
-    if (check_arglist_locked() == FAIL)
-    {
-        return FAIL;
-    }
-
-    if (what == AL_ADD && *str == NUL)
-    {
-        if (curbuf->b_ffname == NULL)
-        {
-            return FAIL;
-        }
-        str = curbuf->b_fname;
-        arg_escaped = FALSE;
-    }
-
-    if (get_arglist(&new_ga, str, arg_escaped) == FAIL)
-    {
-        return FAIL;
-    }
-
-    if (what == AL_DEL)
-    {
-        arglist_del_files(&new_ga);
-    }
-    else
-    {
-        i = expand_wildcards(new_ga.ga_len, (char_u **)new_ga.ga_data, &exp_count, &exp_files, EW_DIR|EW_FILE|EW_ADDSLASH|EW_NOTFOUND);
-        ga_clear(&new_ga);
-        if (i == FAIL || exp_count == 0)
-        {
-            emsg(_(e_no_match));
-            return FAIL;
-        }
-
-        if (what == AL_ADD)
-        {
-            alist_add_list(exp_count, exp_files, after, will_edit);
-            vim_free(exp_files);
-        }
-        else
-        {
-            alist_set( (curwin)->w_alist , exp_count, exp_files, will_edit, NULL, 0);
-        }
-    }
-
-    alist_check_arg_idx();
-
-    return OK;
-}
-
-    static int
-editing_arg_idx(win_T *win)
-{
-    return !(win->w_arg_idx >=  ( (win)->w_alist ->al_ga.ga_len)  || (win->w_buffer->b_fnum !=  ((aentry_T *) (win)->w_alist ->al_ga.ga_data) [win->w_arg_idx].ae_fnum && (win->w_buffer->b_ffname == NULL || !(fullpathcmp(alist_name(& ((aentry_T *) (win)->w_alist ->al_ga.ga_data) [win->w_arg_idx]), win->w_buffer->b_ffname, TRUE, TRUE) & FPC_SAME))));
-}
-
-    static void
-check_arg_idx(win_T *win)
-{
-    if ( ( (win)->w_alist ->al_ga.ga_len)  > 1 && !editing_arg_idx(win))
-    {
-        win->w_arg_idx_invalid = true;
-        if (win->w_arg_idx !=  ( (win)->w_alist ->al_ga.ga_len)  - 1 && arg_had_last == FALSE &&  (win)->w_alist  == &global_alist &&  (global_alist.al_ga.ga_len)  > 0 && win->w_arg_idx <  (global_alist.al_ga.ga_len)  && (win->w_buffer->b_fnum ==  ((aentry_T *)global_alist.al_ga.ga_data) [ (global_alist.al_ga.ga_len)  - 1].ae_fnum || (win->w_buffer->b_ffname != NULL && (fullpathcmp(alist_name(& ((aentry_T *)global_alist.al_ga.ga_data) [ (global_alist.al_ga.ga_len)  - 1]), win->w_buffer->b_ffname, TRUE, TRUE) & FPC_SAME))))
-        {
-            arg_had_last = TRUE;
-        }
-    }
-    else
-    {
-        win->w_arg_idx_invalid = false;
-        if (win->w_arg_idx ==  ( (win)->w_alist ->al_ga.ga_len)  - 1 && win->w_alist == &global_alist)
-        {
-            arg_had_last = TRUE;
-        }
-    }
-}
-
-    static void
-ex_previous(exarg_T *eap)
-{
-    if (curwin->w_arg_idx - (int)eap->line2 >=  ( (curwin)->w_alist ->al_ga.ga_len) )
-    {
-        do_argfile(eap,  ( (curwin)->w_alist ->al_ga.ga_len)  - 1);
-    }
-    else
-    {
-        do_argfile(eap, curwin->w_arg_idx - (int)eap->line2);
-    }
-}
-
-    static void
-do_argfile(exarg_T *eap, int argn)
-{
-    int         old_arg_idx = curwin->w_arg_idx;
-
-    if (ERROR_IF_ANY_POPUP_WINDOW)
-    {
-        return;
-    }
-    if (argn < 0 || argn >=  ( (curwin)->w_alist ->al_ga.ga_len) )
-    {
-        if ( ( (curwin)->w_alist ->al_ga.ga_len)  <= 1)
-        {
-            emsg(_(e_there_is_only_one_file_to_edit));
-        }
-        else if (argn < 0)
-        {
-            emsg(_(e_cannot_go_before_first_file));
-        }
-        else
-        {
-            emsg(_(e_cannot_go_beyond_last_file));
-        }
-
-        return;
-    }
-
-    if ((& ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data) [argn])->ae_fnum != curbuf->b_fnum && !check_can_set_curbuf_forceit(eap->forceit))
-    {
-        return;
-    }
-
-    setpcmark();
-
-    if (check_changed(curbuf, (eap->forceit ? CCGD_FORCEIT : 0) | CCGD_EXCMD))
-    {
-        return;
-    }
-
-    curwin->w_arg_idx = argn;
-    if (argn ==  ( (curwin)->w_alist ->al_ga.ga_len)  - 1 && curwin->w_alist == &global_alist)
-    {
-        arg_had_last = TRUE;
-    }
-
-    if (do_ecmd(0, alist_name(& ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data) [curwin->w_arg_idx]), NULL, eap,  ((linenr_T)-1) , (eap->forceit ? ECMD_FORCEIT : 0), curwin) == FAIL)
-    {
-        curwin->w_arg_idx = old_arg_idx;
-    }
-    else
-    {
-        setmark('\'');
-    }
-}
-
-    static void
-ex_next(exarg_T *eap)
-{
-    int         i;
-
-    if (!check_changed(curbuf, (eap->forceit ? CCGD_FORCEIT : 0) | CCGD_EXCMD))
-    {
-        if (*eap->arg != NUL)
-        {
-            if (do_arglist(eap->arg, AL_SET, 0, TRUE) == FAIL)
-            {
-                return;
-            }
-            i = 0;
-        }
-        else
-        {
-            i = curwin->w_arg_idx + (int)eap->line2;
-        }
-        do_argfile(eap, i);
-    }
-}
-
-    static char_u *
-alist_name(aentry_T *aep)
-{
-    buf_T       *bp;
-
-    bp = buflist_findnr(aep->ae_fnum);
-    if (bp == NULL || bp->b_fname == NULL)
-    {
-        return aep->ae_fname;
-    }
-    return bp->b_fname;
-}
-
-    static char_u *
-arg_all(void)
-{
-    int         len;
-    int         idx;
-    char_u      *retval = NULL;
-    char_u      *p;
-
-    for (;;)
-    {
-        len = 0;
-        for (idx = 0; idx <  ( (curwin)->w_alist ->al_ga.ga_len) ; ++idx)
-        {
-            p = alist_name(& ((aentry_T *) (curwin)->w_alist ->al_ga.ga_data) [idx]);
-            if (p == NULL)
-            {
-                continue;
-            }
-            if (len > 0)
-            {
-                if (retval != NULL)
-                {
-                    retval[len] = ' ';
-                }
-                ++len;
-            }
-            for ( ; *p != NUL; ++p)
-            {
-                if (*p == ' ' || *p == '\\' || *p == '`')
-                {
-                    if (retval != NULL)
-                    {
-                        retval[len] = '\\';
-                    }
-                    ++len;
-                }
-                if (retval != NULL)
-                {
-                    retval[len] = *p;
-                }
-                ++len;
-            }
-        }
-
-        if (retval != NULL)
-        {
-            retval[len] = NUL;
-            break;
-        }
-
-        retval = alloc(len + 1);
-        if (retval == NULL)
-        {
-            break;
-        }
-    }
-
-    return retval;
-}
 
 // ==================== autocmd.c ====================
 
@@ -7405,7 +6828,6 @@ enter_buffer(buf_T *buf)
         buflist_getfpos();
     }
 
-    check_arg_idx(curwin);
     if (curwin->w_topline == 1 && !curwin->w_topline_was_set)
     {
         scroll_cursor_halfway(FALSE, FALSE);
@@ -8193,28 +7615,6 @@ setfname(buf_T       *buf, char_u      *ffname_arg, char_u      *sfname_arg, int
 }
 
     static void
-buf_set_name(int fnum, char_u *name)
-{
-    buf_T       *buf;
-
-    buf = buflist_findnr(fnum);
-    if (buf == NULL)
-    {
-        return;
-    }
-
-    if (buf->b_sfname != buf->b_ffname)
-    {
-        vim_free(buf->b_sfname);
-    }
-    vim_free(buf->b_ffname);
-    buf->b_ffname = vim_strsave(name);
-    buf->b_sfname = NULL;
-    fname_expand(buf, &buf->b_ffname, &buf->b_sfname);
-    buf->b_fname = buf->b_sfname;
-}
-
-    static void
 buf_name_changed(buf_T *buf)
 {
     if (buf->b_ml.ml_mfp != NULL)
@@ -8224,7 +7624,6 @@ buf_name_changed(buf_T *buf)
 
     if (curwin->w_buffer == buf)
     {
-        check_arg_idx(curwin);
     }
     status_redraw_all();
     fmarks_check_names(buf);
@@ -8446,29 +7845,7 @@ get_rel_pos(win_T       *wp, char_u      *buf, int         buflen)
     static int
 append_arg_number(win_T       *wp, char_u      *buf, size_t      buflen, int         add_file)
 {
-    if ( ( (curwin)->w_alist ->al_ga.ga_len)  <= 1)
-    {
-        return 0;
-    }
-
-    char *msg;
-    switch ((wp->w_arg_idx_invalid ? 1 : 0) + (add_file ? 2 : 0))
-    {
-        case 0:
-            msg = _(" (%d of %d)");
-            break;
-        case 1:
-            msg = _(" ((%d) of %d)");
-            break;
-        case 2:
-            msg = _(" (file %d of %d)");
-            break;
-        case 3:
-            msg = _(" (file (%d) of %d)");
-            break;
-    }
-
-    return (int)vim_snprintf_safelen((char *)buf, buflen, msg, wp->w_arg_idx + 1,  ( (curwin)->w_alist ->al_ga.ga_len) );
+    return 0;
 }
 
     static char_u  *
@@ -20318,8 +19695,6 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
         curbuf->b_flags &= ~BF_NOTEDITED;
     }
 
-    check_arg_idx(curwin);
-
     if (!auto_buf)
     {
         curwin_init();
@@ -20351,7 +19726,6 @@ do_ecmd(int         fnum, char_u      *ffname, char_u      *sfname, exarg_T     
                 apply_autocmds_retval(EVENT_BUFWINENTER, NULL, NULL, FALSE, curbuf, &retval);
             }
         }
-        check_arg_idx(curwin);
 
         if (! (((curwin->w_cursor).lnum == (orig_pos).lnum) && ((curwin->w_cursor).col == (orig_pos).col) && ((curwin->w_cursor).coladd == (orig_pos).coladd)) )
         {
@@ -23940,15 +23314,7 @@ parse_cmd_address(exarg_T *eap, char **errormsg, int silent)
                         *errormsg = _(e_invalid_range);
                         goto theend;
                     case ADDR_ARGUMENTS:
-                        if ( ( (curwin)->w_alist ->al_ga.ga_len)  == 0)
-                        {
-                            eap->line1 = eap->line2 = 0;
-                        }
-                        else
-                        {
-                            eap->line1 = 1;
-                            eap->line2 =  ( (curwin)->w_alist ->al_ga.ga_len) ;
-                        }
+                        eap->line1 = eap->line2 = 0;
                         break;
                     case ADDR_QUICKFIX_VALID:
                         break;
@@ -24343,11 +23709,7 @@ default_address(exarg_T *eap)
             lnum =  current_win_nr(curwin) ;
             break;
         case ADDR_ARGUMENTS:
-            lnum = curwin->w_arg_idx + 1;
-            if (lnum >  ( (curwin)->w_alist ->al_ga.ga_len) )
-            {
-                lnum =  ( (curwin)->w_alist ->al_ga.ga_len) ;
-            }
+            lnum = 0;
             break;
         case ADDR_LOADED_BUFFERS:
         case ADDR_BUFFERS:
@@ -24400,7 +23762,7 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
                         lnum =  current_win_nr(curwin) ;
                         break;
                     case ADDR_ARGUMENTS:
-                        lnum = curwin->w_arg_idx + 1;
+                        lnum = 0;
                         break;
                     case ADDR_LOADED_BUFFERS:
                     case ADDR_BUFFERS:
@@ -24435,7 +23797,7 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
                         lnum =  current_win_nr(NULL) ;
                         break;
                     case ADDR_ARGUMENTS:
-                        lnum =  ( (curwin)->w_alist ->al_ga.ga_len) ;
+                        lnum = 0;
                         break;
                     case ADDR_LOADED_BUFFERS:
                         buf = lastbuf;
@@ -24640,7 +24002,7 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
                         lnum =  current_win_nr(curwin) ;
                         break;
                     case ADDR_ARGUMENTS:
-                        lnum = curwin->w_arg_idx + 1;
+                        lnum = 0;
                         break;
                     case ADDR_LOADED_BUFFERS:
                     case ADDR_BUFFERS:
@@ -24762,14 +24124,7 @@ address_default_all(exarg_T *eap)
             eap->line2 = 1;
             break;
         case ADDR_ARGUMENTS:
-            if ( ( (curwin)->w_alist ->al_ga.ga_len)  == 0)
-            {
-                eap->line1 = eap->line2 = 0;
-            }
-            else
-            {
-                eap->line2 =  ( (curwin)->w_alist ->al_ga.ga_len) ;
-            }
+            eap->line1 = eap->line2 = 0;
             break;
         case ADDR_QUICKFIX_VALID:
             break;
@@ -24846,10 +24201,6 @@ invalid_range(exarg_T *eap)
                 }
                 break;
             case ADDR_ARGUMENTS:
-                if (eap->line2 >  ( (curwin)->w_alist ->al_ga.ga_len)  + (! ( (curwin)->w_alist ->al_ga.ga_len) ))
-                {
-                    return _(e_invalid_range);
-                }
                 break;
             case ADDR_BUFFERS:
                 if (eap->line1 < 1 || eap->line2 > get_highest_fnum())
@@ -25312,17 +24663,6 @@ set_nextcmd(exarg_T *eap, char_u *arg)
     static int
 check_more(int message, int forceit)
 {
-    int     n =  ( (curwin)->w_alist ->al_ga.ga_len)  - curwin->w_arg_idx - 1;
-
-    if (!forceit &&  ( (curwin)->w_alist ->al_ga.ga_len)  > 1 && !arg_had_last && n > 0 && quitmore == 0)
-    {
-        if (message)
-        {
-            semsg(NGETTEXT(e_nr_more_file_to_edit, e_nr_more_files_to_edit , n), n);
-            quitmore = 2;
-        }
-        return FAIL;
-    }
     return OK;
 }
 
@@ -25583,7 +24923,6 @@ do_exedit(exarg_T     *eap, win_T       *old_curwin)
         {
             do_cmd_argument(eap->do_ecmd_cmd);
         }
-        check_arg_idx(curwin);
     }
 
     ex_no_reprint = TRUE;
@@ -26378,8 +25717,8 @@ eval_vars(char_u      *src, char_u      *srcstart, size_t      *usedlen, linenr_
         case SPEC_HASH:
                 if (off == 0 ? src[1] == '#' : src[2] == '%')
                 {
-                    result = arg_all();
-                    resultbuf = result;
+                    result = (char_u *)"";
+                    resultbuf = NULL;
                     *usedlen = off + 2;
                     if (escaped != NULL)
                     {
@@ -30590,55 +29929,6 @@ home_replace_save(buf_T       *buf, char_u      *src)
         home_replace(buf, src, dst, len, TRUE);
     }
     return dst;
-}
-
-    static int
-fullpathcmp(char_u *s1, char_u *s2, int     checkname, int     expandenv)
-{
-    char_u          exp1[ PATH_MAX ];
-    char_u          full1[ PATH_MAX ];
-    char_u          full2[ PATH_MAX ];
-    stat_T st1;
-    stat_T st2;
-    int r1;
-    int r2;
-
-    if (expandenv)
-    {
-        expand_env(s1, exp1,  PATH_MAX );
-    }
-    else
-    {
-        vim_strncpy(exp1, s1,  PATH_MAX  - 1);
-    }
-    r1 =  stat(((char *)exp1), (&st1)) ;
-    r2 =  stat(((char *)s2), (&st2)) ;
-    if (r1 != 0 && r2 != 0)
-    {
-        if (checkname)
-        {
-            if ( vim_fnamecmp((char_u *)(exp1), (char_u *)(s2))  == 0)
-            {
-                return FPC_SAMEX;
-            }
-            r1 = vim_FullName(exp1, full1,  PATH_MAX , FALSE);
-            r2 = vim_FullName(s2, full2,  PATH_MAX , FALSE);
-            if (r1 == OK && r2 == OK &&  vim_fnamecmp((char_u *)(full1), (char_u *)(full2))  == 0)
-            {
-                return FPC_SAMEX;
-            }
-        }
-        return FPC_NOTX;
-    }
-    if (r1 != 0 || r2 != 0)
-    {
-        return FPC_DIFFX;
-    }
-    if (st1.st_dev == st2.st_dev && st1.st_ino == st2.st_ino)
-    {
-        return FPC_SAME;
-    }
-    return FPC_DIFF;
 }
 
     static char_u *
@@ -90669,7 +89959,7 @@ static struct cmdname cmdnames[] =
     [CMD_mode] = {(char_u *)"mode", sizeof("mode") - 1, ex_ni, (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_mzscheme] = {(char_u *)"mzscheme", sizeof("mzscheme") - 1,  ex_script_ni , (long_u)(EX_RANGE|EX_EXTRA|EX_DFLALL|EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_LINES},
     [CMD_mzfile] = {(char_u *)"mzfile", sizeof("mzfile") - 1,  ex_ni , (long_u)(EX_RANGE| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_NEEDARG|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
-    [CMD_next] = {(char_u *)"next", sizeof("next") - 1, ex_next, (long_u)(EX_RANGE|EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
+    [CMD_next] = {(char_u *)"next", sizeof("next") - 1, ex_ni, (long_u)(EX_RANGE|EX_BANG| (EX_XFILE | EX_EXTRA) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
     [CMD_nbkey] = {(char_u *)"nbkey", sizeof("nbkey") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NEEDARG), ADDR_NONE},
     [CMD_nbclose] = {(char_u *)"nbclose", sizeof("nbclose") - 1,  ex_ni , (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_nbstart] = {(char_u *)"nbstart", sizeof("nbstart") - 1,  ex_ni , (long_u)( (EX_EXTRA | EX_NOSPC) |EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -90713,7 +90003,7 @@ static struct cmdname cmdnames[] =
     [CMD_popup] = {(char_u *)"popup", sizeof("popup") - 1,  ex_ni , (long_u)(EX_NEEDARG|EX_EXTRA|EX_BANG|EX_TRLBAR|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_ppop] = {(char_u *)"ppop", sizeof("ppop") - 1,  ex_ni , (long_u)(EX_RANGE|EX_BANG|EX_COUNT|EX_TRLBAR|EX_ZEROR), ADDR_OTHER},
     [CMD_preserve] = {(char_u *)"preserve", sizeof("preserve") - 1, ex_ni, (long_u)(EX_TRLBAR), ADDR_NONE},
-    [CMD_previous] = {(char_u *)"previous", sizeof("previous") - 1, ex_previous, (long_u)(EX_EXTRA|EX_RANGE|EX_COUNT|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
+    [CMD_previous] = {(char_u *)"previous", sizeof("previous") - 1, ex_ni, (long_u)(EX_EXTRA|EX_RANGE|EX_COUNT|EX_BANG|EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_OTHER},
     [CMD_promptfind] = {(char_u *)"promptfind", sizeof("promptfind") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_promptrepl] = {(char_u *)"promptrepl", sizeof("promptrepl") - 1,  ex_ni , (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_profile] = {(char_u *)"profile", sizeof("profile") - 1,  ex_ni , (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -91161,10 +90451,6 @@ win_init(win_T *newp, win_T *oldp, int flags  __attribute__((unused)) )
     static void
 win_init_some(win_T *newp, win_T *oldp)
 {
-    newp->w_alist = oldp->w_alist;
-    ++newp->w_alist->al_refcount;
-    newp->w_arg_idx = oldp->w_arg_idx;
-
     win_copy_options(oldp, newp);
 }
 
@@ -91738,7 +91024,6 @@ win_alloc_firstwin(win_T *oldwin)
         }
         curwin->w_buffer = curbuf;
         curbuf->b_nwindows = 1;
-        curwin->w_alist = &global_alist;
         curwin_init();
     }
     else
@@ -93384,9 +92669,6 @@ common_init_2(mparm_T *paramp)
 
     init_yank();
 
-    alist_init(&global_alist);
-    global_alist.id = 0;
-
     set_init_1();
 
 }
@@ -93842,18 +93124,18 @@ command_line_scan(mparm_T *parmp)
         {
             argv_idx = -1;
 
-            if (parmp->edit_type != EDIT_NONE && parmp->edit_type != EDIT_FILE)
+            if (parmp->edit_type != EDIT_NONE)
             {
                 mainerr(ME_TOO_MANY_ARGS, (char_u *)argv[0]);
             }
             parmp->edit_type = EDIT_FILE;
 
-            if (ga_grow(&global_alist.al_ga, 1) == FAIL || (p = vim_strsave((char_u *)argv[0])) == NULL)
+            if ((p = vim_strsave((char_u *)argv[0])) == NULL)
             {
                 mch_exit(2);
             }
 
-            alist_add(&global_alist, p, 2);
+            (void)buflist_add(p, BLN_CURBUF | BLN_LISTED);
 
         }
 
@@ -93962,7 +93244,6 @@ create_windows(mparm_T *parmp  __attribute__((unused)) )
                     getout(1);
                 }
                 setfname(curbuf, NULL, NULL, FALSE);
-                curwin->w_arg_idx = -1;
                 swap_exists_action = SEA_NONE;
             }
             else
@@ -94069,11 +93350,6 @@ main
 
     command_line_scan(&params);
 
-    if ( (global_alist.al_ga.ga_len)  > 0)
-    {
-        params.fname = alist_name(& ((aentry_T *)global_alist.al_ga.ga_data) [0]);
-    }
-
     ++RedrawingDisabled;
 
     mch_init();
@@ -94087,11 +93363,6 @@ main
         {
             setvbuf(stdout, s_vbuf, _IOLBF, BUFSIZ);
         }
-    }
-
-    if ( (global_alist.al_ga.ga_len)  > 1 && !silent_mode)
-    {
-        printf(_("%d files to edit\n"),  (global_alist.al_ga.ga_len) );
     }
 
     if (params.want_full_screen && !silent_mode)
