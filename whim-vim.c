@@ -711,18 +711,9 @@ enum { SIN_CHANGED = 1 };
 enum { SIN_INSERT = 2 };
 enum { SIN_UNDO = 4 };
 
-enum { INSCHAR_FORMAT = 1 };
-enum { INSCHAR_DO_COM = 2 };
 enum { INSCHAR_CTRLV = 4 };
-enum { INSCHAR_NO_FEX = 8 };
-enum { INSCHAR_COM_LIST = 16 };
-
 enum { OPENLINE_DELSPACES = 0x01 };
-enum { OPENLINE_DO_COM = 0x02 };
-enum { OPENLINE_KEEPTRAIL = 0x04 };
 enum { OPENLINE_MARKFIX = 0x08 };
-enum { OPENLINE_COM_LIST = 0x10 };
-enum { OPENLINE_FORMAT = 0x20 };
 enum { OPENLINE_FORCE_INDENT = 0x40 };
 
 enum { HIST_CMD = 0 };
@@ -927,10 +918,7 @@ enum { OP_YANK = 2 };
 enum { OP_CHANGE = 3 };
 enum { OP_LSHIFT = 4 };
 enum { OP_RSHIFT = 5 };
-enum { OP_FILTER = 6 };
 enum { OP_TILDE = 7 };
-enum { OP_INDENT = 8 };
-enum { OP_FORMAT = 9 };
 enum { OP_COLON = 10 };
 enum { OP_UPPER = 11 };
 enum { OP_LOWER = 12 };
@@ -940,7 +928,6 @@ enum { OP_ROT13 = 15 };
 enum { OP_REPLACE = 16 };
 enum { OP_INSERT = 17 };
 enum { OP_APPEND = 18 };
-enum { OP_FORMAT2 = 26 };
 enum { OP_FUNCTION = 27 };
 enum { OP_NR_ADD = 28 };
 enum { OP_NR_SUB = 29 };
@@ -1012,27 +999,6 @@ enum { P_MLE = 0x20000000L };
 enum :
     long { P_COLON = 0x80000000L };
 
-enum { FO_WRAP = 't' };
-enum { FO_WRAP_COMS = 'c' };
-enum { FO_RET_COMS = 'r' };
-enum { FO_OPEN_COMS = 'o' };
-enum { FO_NO_OPEN_COMS = '/' };
-enum { FO_Q_COMS = 'q' };
-enum { FO_Q_NUMBER = 'n' };
-enum { FO_Q_SECOND = '2' };
-enum { FO_INS_VI = 'v' };
-enum { FO_INS_LONG = 'l' };
-enum { FO_INS_BLANK = 'b' };
-enum { FO_MBYTE_BREAK = 'm' };
-enum { FO_MBYTE_JOIN = 'M' };
-enum { FO_MBYTE_JOIN2 = 'B' };
-enum { FO_ONE_LETTER = '1' };
-enum { FO_WHITE_PAR = 'w' };
-enum { FO_AUTO = 'a' };
-enum { FO_RIGOROUS_TW = ']' };
-enum { FO_REMOVE_COMS = 'j' };
-enum { FO_PERIOD_ABBR = 'p' };
-
 enum { CPO_BAR = 'b' };
 enum { CPO_BSLASH = 'B' };
 enum { CPO_SEARCH = 'c' };
@@ -1070,7 +1036,6 @@ enum { CPO_YANK = 'y' };
 enum { CPO_KEEPRO = 'Z' };
 enum { CPO_WORD = 'z' };
 enum { CPO_DOLLAR = '$' };
-enum { CPO_FILTER = '!' };
 enum { CPO_MATCH = '%' };
 enum { CPO_STAR = '*' };
 enum { CPO_PLUS = '+' };
@@ -1101,18 +1066,6 @@ enum { SHM_RECORDING = 'q' };
 enum { SHM_FILEINFO = 'F' };
 enum { SHM_SEARCHCOUNT = 'S' };
 enum { SHM_UNDO = 'u' };
-enum { COM_NEST = 'n' };
-enum { COM_BLANK = 'b' };
-enum { COM_START = 's' };
-enum { COM_MIDDLE = 'm' };
-enum { COM_END = 'e' };
-enum { COM_AUTO_END = 'x' };
-enum { COM_FIRST = 'f' };
-enum { COM_LEFT = 'l' };
-enum { COM_RIGHT = 'r' };
-enum { COM_NOBACK = 'O' };
-enum { COM_MAX_LEN = 50 };
-
 enum { BS_INDENT = 'i' };
 enum { BS_EOL = 'l' };
 enum { BS_START = 's' };
@@ -1147,7 +1100,6 @@ enum { CMP_KEEPASCII = 0x002 };
 static int      p_deco;
 static long     p_ch;
 static int      p_cp;
-static char_u   *p_com;
 static char_u   *p_cpo;
 static char_u   *p_dy;
 static unsigned dy_flags;
@@ -1162,8 +1114,6 @@ static int      p_eb;
 static int      p_ek;
 static int      p_et;
 static char_u   *p_fcs;
-static char_u   *p_flp;
-static char_u   *p_fo;
 static int      p_fs;
 static int      p_gd;
 static int      p_prompt;
@@ -1197,7 +1147,6 @@ static int      p_mod;
 static int      p_more;
 static char_u   *p_nf;
 static long     p_ost;
-static char_u   *p_para;
 static int      p_paste;
 static char_u   *p_pt;
 static int      p_pi;
@@ -1210,7 +1159,6 @@ static int      p_ru;
 static long     p_sj;
 static long     p_so;
 static long     p_sop;
-static char_u   *p_sections;
 static char_u   *p_sel;
 static char_u   *p_slm;
 static int      p_sr;
@@ -1272,11 +1220,8 @@ enum
 {
     BV_AI = 0
     , BV_CI = 9
-    , BV_COM = 17
     , BV_ET = 26
-    , BV_FLP = 30
-    , BV_FO
-    , BV_FS
+    , BV_FS = 32
     , BV_ISK = 38
     , BV_MA = 44
     , BV_MOD = 46
@@ -2174,12 +2119,9 @@ struct file_buffer
     int         b_p_ai_nopaste;
     unsigned    b_bkc_flags;
     int         b_p_ci;
-    char_u      *b_p_com;
     unsigned    b_cot_flags;
     int         b_p_et;
     int         b_p_et_nopaste;
-    char_u      *b_p_fo;
-    char_u      *b_p_flp;
     char_u      *b_p_isk;
     int         b_p_fs;
     char_u      *b_p_mps;
@@ -2489,7 +2431,6 @@ typedef struct oparg_S
     int         end_adjusted;
     pos_T       start;
     pos_T       end;
-    pos_T       cursor_start;
 
     long        line_count;
     int         empty;
@@ -4025,7 +3966,6 @@ static void give_warning_with_source(char_u *message, int hl, int with_source);
 static void msg_advance(int col);
 // ---------------- end message.pro ----------------
 // ---------------- begin misc1.pro ----------------
-static int get_leader_len(char_u *line, char_u **flags, int backward, int include_space);
 static int plines_win(win_T *wp, linenr_T lnum, int limit_winheight);
 static int plines_win_nofold(win_T *wp, linenr_T lnum);
 static int plines_m_win(win_T *wp, linenr_T first, linenr_T last, int max);
@@ -4188,7 +4128,6 @@ static void add_to_showcmd_c(int c);
 static void push_showcmd(void);
 static void pop_showcmd(void);
 static void showcmd_update_clear_state(void);
-static int find_decl(char_u *ptr, int len, int locally, int thisblock, int flags_arg);
 static int nv_screengo(oparg_T *oap, int dir, long dist);
 static void nv_scroll_line(cmdarg_T *cap);
 static int get_visual_text(cmdarg_T *cap, char_u **pp, int *lenp);
@@ -4279,10 +4218,8 @@ static char *did_set_backspace(optset_T *args);
 static char *did_set_belloff(optset_T *args);
 static char *did_set_casemap(optset_T *args);
 static char *did_set_chars_option(optset_T *args);
-static char *did_set_comments(optset_T *args);
 static char *did_set_cpoptions(optset_T *args);
 static char *did_set_display(optset_T *args);
-static char *did_set_formatoptions(optset_T *args);
 static char *did_set_highlight(optset_T *args);
 static char *did_set_iskeyword(optset_T *args);
 static char *did_set_isopt(optset_T *args);
@@ -4409,7 +4346,6 @@ static int ignorecase(char_u *pat);
 static int ignorecase_opt(char_u *pat, int ic_in, int scs);
 static int pat_has_uppercase(char_u *pat);
 static char_u *last_search_pat(void);
-static void reset_search_dir(void);
 static void last_pat_prog(regmmatch_T *regmatch);
 static int searchit(win_T *win, buf_T *buf, pos_T *pos, pos_T *end_pos, int dir, char_u *pat, size_t patlen, long count, int options, int pat_use, searchit_arg_T *extra_arg);
 static int parse_search_pattern_offset(char_u **pat, size_t *patlen, int search_delim, int options, char_u **strcopy, char_u **searchstr, size_t *searchstrlen, char_u **dircp, soffset_T *offset);
@@ -4522,13 +4458,8 @@ static int current_quote(oparg_T *oap, long count, int include, int quotechar);
 
 // ---------------- end textobject.pro ----------------
 // ---------------- begin textformat.pro ----------------
-static int has_format_option(int x);
 static void internal_format(int textwidth, int second_indent, int flags, int format_only, int c);
-static void auto_format(int trailblank, int prev_line);
-static void check_auto_format(int end_insert);
-static int comp_textwidth(int ff);
-static void op_format(oparg_T *oap, int keep_cursor);
-static void format_lines(linenr_T line_count, int avoid_fex);
+static int comp_textwidth(void);
 
 // ---------------- end textformat.pro ----------------
 // ---------------- begin time.pro ----------------
@@ -4888,8 +4819,6 @@ static int     did_ai  = FALSE ;
 
 static colnr_T  ai_col  = 0 ;
 
-static int     end_comment_pending  = NUL ;
-
 static int      did_si  = FALSE ;
 
 static int      can_si  = FALSE ;
@@ -5014,7 +4943,6 @@ static volatile sig_atomic_t got_int  = FALSE ;
 
 static int      termcap_active  = FALSE ;
 static tmode_T  cur_tmode  = TMODE_COOK ;
-static int      bangredo  = FALSE ;
 static int      searchcmdlen;
 
 static int      did_outofmem_msg  = FALSE ;
@@ -5288,8 +5216,6 @@ static char e_number_required_after_equal[]  =  "E521: Number required after =" 
 static char e_number_required_after_str_equal_str[]  =  "E521: Number required: &%s = '%s'"  ;
 static char e_not_found_in_termcap[]  =  "E522: Not found in termcap"  ;
 static char e_not_allowed_here[]  =  "E523: Not allowed here"  ;
-static char e_missing_colon[]  =  "E524: Missing colon"  ;
-static char e_zero_length_string[]  =  "E525: Zero length string"  ;
 static char e_cannot_set_term_to_empty_string[]  =  "E529: Cannot set 'term' to empty string"  ;
 static char e_pattern_found_in_every_line_str[]  =  "E538: Pattern found in every line: %s"  ;
 static char e_illegal_character_str[]  =  "E539: Illegal character <%s>"  ;
@@ -7970,10 +7896,7 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     {
     }
     clear_string_option(&buf->b_p_mps);
-    clear_string_option(&buf->b_p_fo);
-    clear_string_option(&buf->b_p_flp);
     clear_string_option(&buf->b_p_isk);
-    clear_string_option(&buf->b_p_com);
     clear_string_option(&buf->b_p_nf);
     clear_string_option(&buf->b_p_qe);
     buf->b_p_fs = -1;
@@ -9786,7 +9709,7 @@ changed_common(linenr_T    lnum, colnr_T     col, linenr_T    lnume, long       
                 }
                 else
                 {
-                    cols = comp_textwidth(FALSE);
+                    cols = comp_textwidth();
                     if (cols == 0)
                     {
                         cols = 79;
@@ -10353,12 +10276,6 @@ open_line(int         dir, int         flags, int         second_line_indent, in
     int         n;
     int         trunc_line = FALSE;
     int         retval = FAIL;
-    int         extra_len = 0;
-    int         lead_len;
-    int         comment_start = 0;
-    char_u      *lead_flags;
-    char_u      *leader = NULL;
-    char_u      *allocated = NULL;
     char_u      *p;
     int         saved_char = NUL;
     pos_T       *pos;
@@ -10408,7 +10325,6 @@ open_line(int         dir, int         flags, int         second_line_indent, in
             p = skipwhite(p_extra);
             first_char = *p;
         }
-        extra_len = (int) strlen((char *)(p_extra)) ;
         saved_char = *p_extra;
         *p_extra = NUL;
     }
@@ -10429,7 +10345,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
     else if (curbuf->b_p_ai || do_si)
     {
         newindent = get_indent_str(saved_line, (int)curbuf->b_p_ts, FALSE);
-        if (newindent == 0 && !(flags & OPENLINE_COM_LIST))
+        if (newindent == 0)
         {
             newindent = second_line_indent;
         }
@@ -10441,17 +10357,9 @@ open_line(int         dir, int         flags, int         second_line_indent, in
 
             old_cursor = curwin->w_cursor;
             ptr = saved_line;
-            if (flags & OPENLINE_DO_COM)
-            {
-                lead_len = get_leader_len(ptr, NULL, FALSE, TRUE);
-            }
-            else
-            {
-                lead_len = 0;
-            }
             if (dir == FORWARD)
             {
-                if ( lead_len == 0 && ptr[0] == '#')
+                if (ptr[0] == '#')
                 {
                     while (ptr[0] == '#' && curwin->w_cursor.lnum > 1)
                     {
@@ -10459,80 +10367,43 @@ open_line(int         dir, int         flags, int         second_line_indent, in
                     }
                     newindent = get_indent();
                 }
-                if (flags & OPENLINE_DO_COM)
+                p = ptr +  strlen((char *)(ptr))  - 1;
+                while (p > ptr &&  ((*p) == ' ' || (*p) == '\t') )
                 {
-                    lead_len = get_leader_len(ptr, NULL, FALSE, TRUE);
+                    --p;
                 }
-                else
+                last_char = *p;
+
+                if (last_char == '{' || last_char == ';')
                 {
-                    lead_len = 0;
-                }
-                if (lead_len > 0)
-                {
-                    p = skipwhite(ptr);
-                    if (p[0] == '/' && p[1] == '*')
+                    if (p > ptr)
                     {
-                        p++;
+                        --p;
                     }
-                    if (p[0] == '*')
-                    {
-                        for (p++; *p; p++)
-                        {
-                            if (p[0] == '/' && p[-1] == '*')
-                            {
-                                curwin->w_cursor.col = (colnr_T)(p - ptr);
-                                if ((pos = findmatch(NULL, NUL)) != NULL)
-                                {
-                                    curwin->w_cursor.lnum = pos->lnum;
-                                    newindent = get_indent();
-                                    break;
-                                }
-                                ptr = ml_get(curwin->w_cursor.lnum);
-                                p = ptr + curwin->w_cursor.col;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    p = ptr +  strlen((char *)(ptr))  - 1;
                     while (p > ptr &&  ((*p) == ' ' || (*p) == '\t') )
                     {
                         --p;
                     }
-                    last_char = *p;
-
-                    if (last_char == '{' || last_char == ';')
+                }
+                if (*p == ')')
+                {
+                    curwin->w_cursor.col = (colnr_T)(p - ptr);
+                    if ((pos = findmatch(NULL, '(')) != NULL)
                     {
-                        if (p > ptr)
-                        {
-                            --p;
-                        }
-                        while (p > ptr &&  ((*p) == ' ' || (*p) == '\t') )
-                        {
-                            --p;
-                        }
+                        curwin->w_cursor.lnum = pos->lnum;
+                        newindent = get_indent();
+                        ptr = ml_get_curline();
                     }
-                    if (*p == ')')
-                    {
-                        curwin->w_cursor.col = (colnr_T)(p - ptr);
-                        if ((pos = findmatch(NULL, '(')) != NULL)
-                        {
-                            curwin->w_cursor.lnum = pos->lnum;
-                            newindent = get_indent();
-                            ptr = ml_get_curline();
-                        }
-                    }
-                    if (last_char == '{')
-                    {
-                        did_si = TRUE;
-                        no_si = TRUE;
-                    }
+                }
+                if (last_char == '{')
+                {
+                    did_si = TRUE;
+                    no_si = TRUE;
                 }
             }
             else
             {
-                if (lead_len == 0 && ptr[0] == '#')
+                if (ptr[0] == '#')
                 {
                     int was_backslashed = FALSE;
 
@@ -10577,392 +10448,6 @@ open_line(int         dir, int         flags, int         second_line_indent, in
         did_ai = TRUE;
     }
 
-    end_comment_pending = NUL;
-    if (flags & OPENLINE_DO_COM)
-    {
-        lead_len = get_leader_len(saved_line, &lead_flags, dir ==  (-1) , TRUE);
-        if (lead_len == 0 && dir == FORWARD && (!has_format_option(FO_NO_OPEN_COMS) || (flags & OPENLINE_FORMAT)))
-        {
-            comment_start = check_linecomment(saved_line);
-            if (comment_start != MAXCOL)
-            {
-                lead_len = get_leader_len(saved_line + comment_start, &lead_flags, FALSE, TRUE);
-                if (lead_len != 0)
-                {
-                    lead_len += comment_start;
-                    if (did_do_comment != NULL)
-                    {
-                        *did_do_comment = TRUE;
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        lead_len = 0;
-    }
-    if (lead_len > 0)
-    {
-        char_u  *lead_repl = NULL;
-        int     lead_repl_len = 0;
-        char_u  lead_middle[COM_MAX_LEN];
-        int     lead_middle_len;
-        char_u  lead_end[COM_MAX_LEN];
-        char_u  *comment_end = NULL;
-        int     extra_space = FALSE;
-        int     current_flag;
-        int     require_blank = FALSE;
-        char_u  *p2;
-
-        for (p = lead_flags; *p && *p != ':'; ++p)
-        {
-            if (*p == COM_BLANK)
-            {
-                require_blank = TRUE;
-                continue;
-            }
-            if (*p == COM_START || *p == COM_MIDDLE)
-            {
-                current_flag = *p;
-                if (*p == COM_START)
-                {
-                    if (dir ==  (-1) )
-                    {
-                        lead_len = 0;
-                        break;
-                    }
-
-                    (void)copy_option_part(&p, lead_middle, COM_MAX_LEN, ",");
-                    require_blank = FALSE;
-                }
-
-                while (*p && p[-1] != ':')
-                {
-                    if (*p == COM_BLANK)
-                    {
-                        require_blank = TRUE;
-                    }
-                    ++p;
-                }
-                lead_middle_len = copy_option_part(&p, lead_middle, COM_MAX_LEN, ",");
-
-                while (*p && p[-1] != ':')
-                {
-                    if (*p == COM_AUTO_END)
-                    {
-                        end_comment_pending = -1;
-                    }
-                    ++p;
-                }
-                n = copy_option_part(&p, lead_end, COM_MAX_LEN, ",");
-
-                if (end_comment_pending == -1)
-                {
-                    end_comment_pending = lead_end[n - 1];
-                }
-
-                if (dir == FORWARD)
-                {
-                    for (p = saved_line + lead_len; *p; ++p)
-                    {
-                        if ( strncmp((char *)(p), (char *)(lead_end), (n))  == 0)
-                        {
-                            comment_end = p;
-                            lead_len = 0;
-                            break;
-                        }
-                    }
-                }
-
-                if (lead_len > 0)
-                {
-                    if (current_flag == COM_START)
-                    {
-                        lead_repl = lead_middle;
-                        lead_repl_len = lead_middle_len;
-                    }
-
-                    if (! ((saved_line[lead_len - 1]) == ' ' || (saved_line[lead_len - 1]) == '\t')  && ((p_extra != NULL && (int)curwin->w_cursor.col == lead_len) || (p_extra == NULL && saved_line[lead_len] == NUL) || require_blank))
-                    {
-                        extra_space = TRUE;
-                    }
-                }
-                break;
-            }
-            if (*p == COM_END)
-            {
-                if (dir == FORWARD)
-                {
-                    comment_end = skipwhite(saved_line);
-                    lead_len = 0;
-                    break;
-                }
-
-                while (p > curbuf->b_p_com && *p != ',')
-                {
-                    --p;
-                }
-                for (lead_repl = p; lead_repl > curbuf->b_p_com && lead_repl[-1] != ':'; --lead_repl)
-                {
-                    ;
-                }
-                lead_repl_len = (int)(p - lead_repl);
-
-                extra_space = TRUE;
-
-                for (p2 = p; *p2 && *p2 != ':'; p2++)
-                {
-                    if (*p2 == COM_AUTO_END)
-                    {
-                        end_comment_pending = -1;
-                    }
-                }
-                if (end_comment_pending == -1)
-                {
-                    while (*p2 && *p2 != ',')
-                    {
-                        p2++;
-                    }
-                    end_comment_pending = p2[-1];
-                }
-                break;
-            }
-            if (*p == COM_FIRST)
-            {
-                if (dir ==  (-1) )
-                {
-                    lead_len = 0;
-                }
-                else
-                {
-                    lead_repl = (char_u *)"";
-                    lead_repl_len = 0;
-                }
-                break;
-            }
-        }
-        if (lead_len)
-        {
-            leader = alloc(lead_len + lead_repl_len + extra_space + extra_len + (second_line_indent > 0 ? second_line_indent : 0) + 1);
-            allocated = leader;
-
-            if (leader == NULL)
-            {
-                lead_len = 0;
-            }
-            else
-            {
-                int li;
-
-                vim_strncpy(leader, saved_line, lead_len);
-
-                for (li = 0; li < comment_start; ++li)
-                {
-                    if (! ((leader[li]) == ' ' || (leader[li]) == '\t') )
-                    {
-                        leader[li] = ' ';
-                    }
-                }
-
-                if (lead_repl != NULL)
-                {
-                    int         c = 0;
-                    int         off = 0;
-
-                    for (p = lead_flags; *p != NUL && *p != ':'; )
-                    {
-                        if (*p == COM_RIGHT || *p == COM_LEFT)
-                        {
-                            c = *p++;
-                        }
-                        else if ( ((unsigned)(*p) - '0' < 10)  || *p == '-')
-                        {
-                            off = getdigits(&p);
-                        }
-                        else
-                        {
-                            ++p;
-                        }
-                    }
-                    if (c == COM_RIGHT)
-                    {
-                        for (p = leader + lead_len - 1; p > leader &&  ((*p) == ' ' || (*p) == '\t') ; --p)
-                        {
-                            ;
-                        }
-                        ++p;
-
-                        {
-                            int     repl_size = vim_strnsize(lead_repl, lead_repl_len);
-                            int     old_size = 0;
-                            char_u  *endp = p;
-                            int     l;
-
-                            while (old_size < repl_size && p > leader)
-                            {
-                                 p -= (utf_head_off(leader, (p) - 1) + 1) ;
-                                old_size += ptr2cells(p);
-                            }
-                            l = lead_repl_len - (int)(endp - p);
-                            if (l != 0)
-                            {
-                                 memmove((char *)(endp + l), (char *)(endp), (size_t)((leader + lead_len) - endp)) ;
-                            }
-                            lead_len += l;
-                        }
-                         memmove((char *)(p), (char *)(lead_repl), (size_t)lead_repl_len) ;
-                        if (p + lead_repl_len > leader + lead_len)
-                        {
-                            p[lead_repl_len] = NUL;
-                        }
-
-                        while (--p >= leader)
-                        {
-                            int l = utf_head_off(leader, p);
-
-                            if (l > 1)
-                            {
-                                p -= l;
-                                if (ptr2cells(p) > 1)
-                                {
-                                    p[1] = ' ';
-                                    --l;
-                                }
-                                 memmove((char *)(p + 1), (char *)(p + l + 1), (size_t)((leader + lead_len) - (p + l + 1))) ;
-                                lead_len -= l;
-                                *p = ' ';
-                            }
-                            else if (! ((*p) == ' ' || (*p) == '\t') )
-                            {
-                                *p = ' ';
-                            }
-                        }
-                    }
-                    else
-                    {
-                        p = skipwhite(leader);
-
-                        {
-                            int     repl_size = vim_strnsize(lead_repl, lead_repl_len);
-                            int     i;
-                            int     l;
-
-                            for (i = 0; i < lead_len && p[i] != NUL; i += l)
-                            {
-                                l = utfc_ptr2len(p + i);
-                                if (vim_strnsize(p, i + l) > repl_size)
-                                {
-                                    break;
-                                }
-                            }
-                            if (i != lead_repl_len)
-                            {
-                                 memmove((char *)(p + lead_repl_len), (char *)(p + i), (size_t)(lead_len - i - (p - leader))) ;
-                                lead_len += lead_repl_len - i;
-                            }
-                        }
-                         memmove((char *)(p), (char *)(lead_repl), (size_t)lead_repl_len) ;
-
-                        for (p += lead_repl_len; p < leader + lead_len; ++p)
-                        {
-                            if (! ((*p) == ' ' || (*p) == '\t') )
-                            {
-                                if (p + 1 < leader + lead_len && p[1] == TAB)
-                                {
-                                    --lead_len;
-                                     memmove((char *)(p), (char *)(p + 1), (leader + lead_len) - p) ;
-                                }
-                                else
-                                {
-                                    int     l = utfc_ptr2len(p);
-
-                                    if (l > 1)
-                                    {
-                                        if (ptr2cells(p) > 1)
-                                        {
-                                            --l;
-                                            *p++ = ' ';
-                                        }
-                                         memmove((char *)(p + 1), (char *)(p + l), (leader + lead_len) - p) ;
-                                        lead_len -= l - 1;
-                                    }
-                                    *p = ' ';
-                                }
-                            }
-                        }
-                        *p = NUL;
-                    }
-
-                    if (curbuf->b_p_ai || do_si)
-                    {
-                        newindent = get_indent_str(leader, (int)curbuf->b_p_ts, FALSE);
-                    }
-
-                    if (newindent + off < 0)
-                    {
-                        off = -newindent;
-                        newindent = 0;
-                    }
-                    else
-                    {
-                        newindent += off;
-                    }
-
-                    while (off > 0 && lead_len > 0 && leader[lead_len - 1] == ' ')
-                    {
-                        if (vim_strchr(skipwhite(leader), '\t') != NULL)
-                        {
-                            break;
-                        }
-                        --lead_len;
-                        --off;
-                    }
-
-                    if (lead_len > 0 &&  ((leader[lead_len - 1]) == ' ' || (leader[lead_len - 1]) == '\t') )
-                    {
-                        extra_space = FALSE;
-                    }
-                    leader[lead_len] = NUL;
-                }
-
-                if (extra_space)
-                {
-                    leader[lead_len++] = ' ';
-                    leader[lead_len] = NUL;
-                }
-
-                newcol = lead_len;
-
-                if (newindent || did_si)
-                {
-                    while (lead_len &&  ((*leader) == ' ' || (*leader) == '\t') )
-                    {
-                        --lead_len;
-                        --newcol;
-                        ++leader;
-                    }
-                }
-
-            }
-            did_si = can_si = FALSE;
-        }
-        else if (comment_end != NULL)
-        {
-            if (comment_end[0] == '*' && comment_end[1] == '/' && (curbuf->b_p_ai || do_si))
-            {
-                old_cursor = curwin->w_cursor;
-                curwin->w_cursor.col = (colnr_T)(comment_end - saved_line);
-                if ((pos = findmatch(NULL, NUL)) != NULL)
-                {
-                    curwin->w_cursor.lnum = pos->lnum;
-                    newindent = get_indent();
-                }
-                curwin->w_cursor = old_cursor;
-            }
-        }
-    }
-
     if (p_extra != NULL)
     {
         *p_extra = saved_char;
@@ -10990,31 +10475,6 @@ open_line(int         dir, int         flags, int         second_line_indent, in
     if (p_extra == NULL)
     {
         p_extra = (char_u *)"";
-    }
-
-    if (lead_len)
-    {
-        if (flags & OPENLINE_COM_LIST && second_line_indent > 0)
-        {
-            int i;
-            int padding = second_line_indent
-                                          - (newindent + (int) strlen((char *)(leader)) );
-
-            for (i = 0; i < padding; i++)
-            {
-                 strcat((char *)(leader), (char *)(" ")) ;
-                less_cols--;
-                newcol++;
-            }
-        }
-         strcat((char *)(leader), (char *)(p_extra)) ;
-        p_extra = leader;
-        did_ai = TRUE;
-        less_cols -= lead_len;
-    }
-    else
-    {
-        end_comment_pending = NUL;
     }
 
     old_cursor = curwin->w_cursor;
@@ -11086,14 +10546,6 @@ open_line(int         dir, int         flags, int         second_line_indent, in
         }
     }
 
-    if ( (((State) & REPLACE_FLAG) && !((State) & VREPLACE_FLAG)) )
-    {
-        while (lead_len-- > 0)
-        {
-            replace_push(NUL);
-        }
-    }
-
     curwin->w_cursor = old_cursor;
 
     if (dir == FORWARD)
@@ -11101,7 +10553,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
         if (trunc_line || (State & MODE_INSERT))
         {
             saved_line[curwin->w_cursor.col] = NUL;
-            if (trunc_line && !(flags & OPENLINE_KEEPTRAIL))
+            if (trunc_line)
             {
                 truncate_spaces(saved_line, curwin->w_cursor.col);
             }
@@ -11170,7 +10622,6 @@ theend:
     curbuf->b_p_pi = saved_pi;
     vim_free(saved_line);
     vim_free(next_line);
-    vim_free(allocated);
     return retval;
 }
 
@@ -12791,12 +12242,6 @@ check_linecomment(char_u *line)
         return MAXCOL;
     }
     return (int)(p - line);
-}
-
-    static int
-cindent_on(void)
-{
-    return FALSE;
 }
 
 // ==================== cmdexpand.c ====================
@@ -16748,16 +16193,12 @@ static void ins_pagedown(void);
 static int  ins_tab(void);
 static int  ins_ctrl_ey(int tc);
 
-static colnr_T  Insstart_textlen;
-static colnr_T  Insstart_blank_vcol;
 static int      update_Insstart_orig = TRUE;
 
 static string_T last_insert = {NULL, 0};
 static int      last_insert_skip;
 static int      new_insert_skip;
 static int      did_restart_edit;
-
-static int      can_cindent;
 
 static int      ins_need_undo;
 
@@ -16825,8 +16266,6 @@ edit(int         cmdchar, int         startln, long        count)
             Insstart.col = 0;
         }
     }
-    Insstart_textlen = (colnr_T)linetabsize_str(ml_get_curline());
-    Insstart_blank_vcol = MAXCOL;
     if (!did_ai)
     {
         ai_col = 0;
@@ -16937,7 +16376,6 @@ edit(int         cmdchar, int         startln, long        count)
     ins_need_undo = TRUE;
 
     where_paste_started.lnum = 0;
-    can_cindent = TRUE;
 
     i = 0;
     if (p_smd && msg_silent == 0)
@@ -17215,7 +16653,6 @@ doESCkey:
 
         case Ctrl_R:
             ins_reg();
-            auto_format(FALSE, TRUE);
             inserted_space = FALSE;
             break;
 
@@ -17230,31 +16667,26 @@ doESCkey:
 
         case Ctrl_T:
             ins_shift(c, lastc);
-            auto_format(FALSE, TRUE);
             inserted_space = FALSE;
             break;
 
         case   (-(('k') + ((int)('D') << 8)))  :
         case   (-((KS_EXTRA) + ((int)(KE_KDEL) << 8)))  :
             ins_del();
-            auto_format(FALSE, TRUE);
             break;
 
         case   (-(('k') + ((int)('b') << 8)))  :
         case   (-((KS_EXTRA) + ((int)(KE_S_BS) << 8)))  :
         case Ctrl_H:
             did_backspace = ins_bs(c, BACKSPACE_CHAR, &inserted_space);
-            auto_format(FALSE, TRUE);
             break;
 
         case Ctrl_W:
             did_backspace = ins_bs(c, BACKSPACE_WORD, &inserted_space);
-            auto_format(FALSE, TRUE);
             break;
 
         case Ctrl_U:
             did_backspace = ins_bs(c, BACKSPACE_LINE, &inserted_space);
-            auto_format(FALSE, TRUE);
             inserted_space = FALSE;
             break;
 
@@ -17393,7 +16825,6 @@ doESCkey:
             {
                 goto normalchar;
             }
-            auto_format(FALSE, TRUE);
             break;
 
         case   (-(('K') + ((int)('A') << 8)))  :
@@ -17405,7 +16836,6 @@ doESCkey:
             {
                 goto doESCkey;
             }
-            auto_format(FALSE, FALSE);
             inserted_space = FALSE;
             break;
 
@@ -17454,22 +16884,12 @@ normalchar:
             if (c == ' ')
             {
                 inserted_space = TRUE;
-                if (inindent(0))
-                {
-                    can_cindent = FALSE;
-                }
-                if (Insstart_blank_vcol == MAXCOL && curwin->w_cursor.lnum == Insstart.lnum)
-                {
-                    Insstart_blank_vcol = get_nolist_virtcol();
-                }
             }
 
             if (vim_iswordc(c) || c != Ctrl_RSB)
             {
                 insert_special(c, FALSE, FALSE);
             }
-
-            auto_format(FALSE, TRUE);
 
             break;
         }
@@ -17964,75 +17384,20 @@ insert_special(int     c, int     allow_modmask, int     ctrlv)
 insertchar(int         c, int         flags, int         second_indent)
 {
     int         textwidth;
-    char_u      *p;
-    int         fo_ins_blank;
-    int         force_format = flags & INSCHAR_FORMAT;
 
-    textwidth = comp_textwidth(force_format);
-    fo_ins_blank = has_format_option(FO_INS_BLANK);
+    textwidth = comp_textwidth();
 
-    if (textwidth > 0 && (force_format || (! ((c) == ' ' || (c) == '\t')  && !((State & REPLACE_FLAG) && !(State & VREPLACE_FLAG) && *ml_get_cursor() != NUL) && (curwin->w_cursor.lnum != Insstart.lnum || ((!has_format_option(FO_INS_LONG) || Insstart_textlen <= (colnr_T)textwidth) && (!fo_ins_blank || Insstart_blank_vcol <= (colnr_T)textwidth))))))
+    if (textwidth > 0 && ! ((c) == ' ' || (c) == '\t')  && !((State & REPLACE_FLAG) && !(State & VREPLACE_FLAG) && *ml_get_cursor() != NUL))
     {
-            internal_format(textwidth, second_indent, flags, c == NUL, c);
+            internal_format(textwidth, second_indent, flags, FALSE, c);
     }
-
-    if (c == NUL)
-    {
-        return;
-    }
-
-    if (did_ai && c == end_comment_pending)
-    {
-        char_u  *line;
-        char_u  lead_end[COM_MAX_LEN];
-        int middle_len;
-        int end_len;
-        int     i;
-
-        i = get_leader_len(line = ml_get_curline(), &p, FALSE, TRUE);
-        if (i > 0 && vim_strchr(p, COM_MIDDLE) != NULL)
-        {
-            while (*p && p[-1] != ':')
-            {
-                ++p;
-            }
-            middle_len = copy_option_part(&p, lead_end, COM_MAX_LEN, ",");
-            while (middle_len > 0 &&  ((lead_end[middle_len - 1]) == ' ' || (lead_end[middle_len - 1]) == '\t') )
-            {
-                --middle_len;
-            }
-
-            while (*p && p[-1] != ':')
-            {
-                ++p;
-            }
-            end_len = copy_option_part(&p, lead_end, COM_MAX_LEN, ",");
-
-            i = curwin->w_cursor.col;
-            while (--i >= 0 &&  ((line[i]) == ' ' || (line[i]) == '\t') )
-            {
-                ;
-            }
-            i++;
-
-            i -= middle_len;
-
-            if (i >= 0 && end_len > 0 && lead_end[end_len - 1] == end_comment_pending)
-            {
-                backspace_until_column(i);
-
-                ins_bytes_len(lead_end, end_len - 1);
-            }
-        }
-    }
-    end_comment_pending = NUL;
 
     did_ai = FALSE;
     did_si = FALSE;
     can_si = FALSE;
     can_si_back = FALSE;
 
-    if (       ! ((c) < ' ' || (c) >= DEL || (c) == '0' || (c) == '^')  && (utf_char2len(c) == 1) && !has_insertcharpre() && vpeekc() != NUL && !(State & REPLACE_FLAG) && !cindent_on())
+    if (       ! ((c) < ' ' || (c) >= DEL || (c) == '0' || (c) == '^')  && (utf_char2len(c) == 1) && !has_insertcharpre() && vpeekc() != NUL && !(State & REPLACE_FLAG))
     {
         char_u          buf[INPUT_BUFLEN + 1];
         int             i;
@@ -18147,7 +17512,6 @@ stop_arrow(void)
         {
             update_Insstart_orig = FALSE;
         }
-        Insstart_textlen = (colnr_T)linetabsize_str(ml_get_curline());
 
         if (u_save_cursor() == OK)
         {
@@ -18172,7 +17536,6 @@ stop_arrow(void)
             if ( (((curwin->w_cursor).lnum != (Insstart).lnum)               ? (curwin->w_cursor).lnum < (Insstart).lnum                   : (curwin->w_cursor).col != (Insstart).col                        ? (curwin->w_cursor).col < (Insstart).col                     : (curwin->w_cursor).coladd < (Insstart).coladd) )
             {
                 Insstart = curwin->w_cursor;
-                Insstart_textlen = (colnr_T)linetabsize_str(ml_get_curline());
             }
             ins_need_undo = FALSE;
         }
@@ -18205,37 +17568,6 @@ stop_insert(pos_T       *end_insert_pos, int         esc, int         nomove)
 
     if (!arrow_used && end_insert_pos != NULL)
     {
-        if (!ins_need_undo && has_format_option(FO_AUTO))
-        {
-            pos_T   tpos = curwin->w_cursor;
-
-            cc = 'x';
-            if (curwin->w_cursor.col > 0 && gchar_cursor() == NUL)
-            {
-                dec_cursor();
-                cc = gchar_cursor();
-                if (! ((cc) == ' ' || (cc) == '\t') )
-                {
-                    curwin->w_cursor = tpos;
-                }
-            }
-
-            auto_format(TRUE, FALSE);
-
-            if ( ((cc) == ' ' || (cc) == '\t') )
-            {
-                if (gchar_cursor() != NUL)
-                {
-                    inc_cursor();
-                }
-                if (gchar_cursor() == NUL && curwin->w_cursor.lnum == tpos.lnum && curwin->w_cursor.col == tpos.col)
-                {
-                    curwin->w_cursor.coladd = tpos.coladd;
-                }
-            }
-        }
-
-        check_auto_format(TRUE);
 
         if (!nomove && did_ai && (esc || (vim_strchr(p_cpo, CPO_INDENT) == NULL && curwin->w_cursor.lnum != end_insert_pos->lnum)) && end_insert_pos->lnum <= curbuf->b_ml.ml_line_count)
         {
@@ -19205,7 +18537,6 @@ ins_shift(int c, int lastc)
     did_si = FALSE;
     can_si = FALSE;
     can_si_back = FALSE;
-    can_cindent = FALSE;
 }
 
     static void
@@ -19286,12 +18617,6 @@ ins_bs(int         c, int         mode, int         *inserted_space_p)
         return FALSE;
     }
     in_indent = inindent(0);
-    if (in_indent)
-    {
-        can_cindent = FALSE;
-    }
-    end_comment_pending = NUL;
-
     if (curwin->w_cursor.coladd > 0)
     {
         if (mode == BACKSPACE_CHAR)
@@ -19335,36 +18660,6 @@ ins_bs(int         c, int         mode, int         *inserted_space_p)
                 temp = gchar_cursor();
                 --curwin->w_cursor.lnum;
 
-                if (has_format_option(FO_AUTO) && has_format_option(FO_WHITE_PAR))
-                {
-                    char_u  *ptr = ml_get_buf(curbuf, curwin->w_cursor.lnum, FALSE);
-                    int     len = ml_get_curline_len();
-
-                    if (len > 0 && ptr[len - 1] == ' ')
-                    {
-                        char_u *newp = alloc(curbuf->b_ml.ml_line_len - 1);
-
-                        if (newp != NULL)
-                        {
-                             memmove((char *)(newp), (char *)(ptr), len - 1) ;
-                            newp[len - 1] = NUL;
-                            if (curbuf->b_ml.ml_line_len > len + 1)
-                            {
-                                 memmove((char *)(newp + len), (char *)(ptr + len + 1), curbuf->b_ml.ml_line_len - len - 1) ;
-                            }
-
-                            if (curbuf->b_ml.ml_flags & (ML_LINE_DIRTY | ML_ALLOCATED))
-                            {
-                                vim_free(curbuf->b_ml.ml_line_ptr);
-                            }
-                            curbuf->b_ml.ml_line_ptr = newp;
-                            curbuf->b_ml.ml_line_len--;
-                            curbuf->b_ml.ml_line_textlen--;
-                            curbuf->b_ml.ml_flags |= ML_LINE_DIRTY;
-                        }
-                    }
-                }
-
                 (void)do_join(2, FALSE, FALSE, FALSE, FALSE);
                 if (temp == NUL && gchar_cursor() != NUL)
                 {
@@ -19396,7 +18691,7 @@ ins_bs(int         c, int         mode, int         *inserted_space_p)
     else
     {
         mincol = 0;
-        if (mode == BACKSPACE_LINE && (curbuf->b_p_ai || cindent_on()))
+        if (mode == BACKSPACE_LINE && curbuf->b_p_ai)
         {
             save_col = curwin->w_cursor.col;
             beginline(BL_WHITE);
@@ -19836,7 +19131,6 @@ ins_up(int         startcol)
             redraw_later(UPD_VALID);
         }
         start_arrow(&tpos);
-        can_cindent = TRUE;
     }
     else
     {
@@ -19860,7 +19154,6 @@ ins_pageup(void)
     if (pagescroll( (-1) , 1L, FALSE) == OK)
     {
         start_arrow(&tpos);
-        can_cindent = TRUE;
     }
     else
     {
@@ -19887,7 +19180,6 @@ ins_down(int         startcol)
             redraw_later(UPD_VALID);
         }
         start_arrow(&tpos);
-        can_cindent = TRUE;
     }
     else
     {
@@ -19911,7 +19203,6 @@ ins_pagedown(void)
     if (pagescroll(FORWARD, 1L, FALSE) == OK)
     {
         start_arrow(&tpos);
-        can_cindent = TRUE;
     }
     else
     {
@@ -19926,17 +19217,7 @@ ins_tab(void)
     int         i;
     int         temp;
 
-    if (Insstart_blank_vcol == MAXCOL && curwin->w_cursor.lnum == Insstart.lnum)
-    {
-        Insstart_blank_vcol = get_nolist_virtcol();
-    }
-
     ind = inindent(0);
-    if (ind)
-    {
-        can_cindent = FALSE;
-    }
-
     if (!curbuf->b_p_et && !(p_sta && ind && curbuf->b_p_ts != get_sw_value(curbuf)) && get_sts_value() == 0)
     {
         return TRUE;
@@ -20140,9 +19421,8 @@ ins_eol(int c)
     }
 
     AppendToRedobuff( (char_u *)"\012" );
-    i = open_line(FORWARD, has_format_option(FO_RET_COMS) ? OPENLINE_DO_COM : 0, old_indent, NULL);
+    i = open_line(FORWARD, 0, old_indent, NULL);
     old_indent = 0;
-    can_cindent = TRUE;
 
     return i;
 }
@@ -20222,7 +19502,6 @@ ins_ctrl_ey(int tc)
             insert_special(c, TRUE, FALSE);
             curbuf->b_p_tw = tw_save;
             c = Ctrl_V;
-            auto_format(FALSE, TRUE);
         }
     }
     return c;
@@ -20241,12 +19520,6 @@ get_nolist_virtcol(void)
     }
     validate_virtcol();
     return curwin->w_virtcol;
-}
-
-    static void
-set_can_cindent(int val)
-{
-    can_cindent = val;
 }
 
     static int
@@ -20618,27 +19891,6 @@ do_bang(int         addr_count, exarg_T     *eap, int         forceit, int      
         free_newcmd = TRUE;
     }
 
-    if (bangredo)
-    {
-        if (!prevcmd_is_set())
-        {
-            goto theend;
-        }
-
-        char_u *cmd = vim_strsave_escaped(prevcmd, (char_u *)"%#");
-
-        if (cmd != NULL)
-        {
-            AppendToRedobuffLit(cmd, -1);
-            vim_free(cmd);
-        }
-        else
-        {
-            AppendToRedobuffLit(prevcmd, -1);
-        }
-        AppendToRedobuff((char_u *)"\n");
-        bangredo = FALSE;
-    }
     if (addr_count == 0)
     {
         msg_start();
@@ -20656,7 +19908,6 @@ do_bang(int         addr_count, exarg_T     *eap, int         forceit, int      
         apply_autocmds(EVENT_SHELLFILTERPOST, NULL, NULL, FALSE, curbuf);
     }
 
-theend:
     if (free_newcmd)
     {
         vim_free(newcmd);
@@ -38323,48 +37574,6 @@ set_indent(int         size, int         flags)
 }
 
     static int
-get_number_indent(linenr_T lnum)
-{
-    colnr_T     col;
-    pos_T       pos;
-
-    regmatch_T  regmatch;
-    int         lead_len = 0;
-
-    if (lnum > curbuf->b_ml.ml_line_count)
-    {
-        return -1;
-    }
-    pos.lnum = 0;
-
-    if ((State & MODE_INSERT) || has_format_option(FO_Q_COMS))
-    {
-        lead_len = get_leader_len(ml_get(lnum), NULL, FALSE, TRUE);
-    }
-
-    regmatch.regprog = vim_regcomp(curbuf->b_p_flp, RE_MAGIC);
-    if (regmatch.regprog != NULL)
-    {
-        regmatch.rm_ic = FALSE;
-
-        if (vim_regexec(&regmatch, ml_get(lnum) + lead_len, (colnr_T)0))
-        {
-            pos.lnum = lnum;
-            pos.col = (colnr_T)(*regmatch.endp - ml_get(lnum));
-            pos.coladd = 0;
-        }
-        vim_regfree(regmatch.regprog);
-    }
-
-    if (pos.lnum == 0 || *ml_get_pos(&pos) == NUL)
-    {
-        return -1;
-    }
-    getvcol(curwin, &pos, &col, NULL, NULL, 0);
-    return (int)col;
-}
-
-    static int
 inindent(int extra)
 {
     char_u      *ptr;
@@ -38381,78 +37590,6 @@ inindent(int extra)
     else
     {
         return FALSE;
-    }
-}
-
-    static void
-op_reindent(oparg_T *oap, int (*how)(void))
-{
-    long        i = 0;
-    char_u      *l;
-    int         amount;
-    linenr_T    first_changed = 0;
-    linenr_T    last_changed = 0;
-    linenr_T    start_lnum = curwin->w_cursor.lnum;
-
-    if (!curbuf->b_p_ma)
-    {
-        emsg(_(e_cannot_make_changes_modifiable_is_off));
-        return;
-    }
-
-    if (u_savecommon(start_lnum - 1, start_lnum + oap->line_count, start_lnum + oap->line_count, FALSE) == OK)
-    {
-        for (i = oap->line_count; --i >= 0 && !got_int; )
-        {
-            if (i > 1 && (i % 50 == 0 || i == oap->line_count - 1) && oap->line_count > p_report)
-            {
-                smsg(_("%ld lines to indent... "), i);
-            }
-
-            l = skipwhite(ml_get_curline());
-            if (*l == NUL)
-            {
-                amount = 0;
-            }
-            else
-            {
-                amount = how();
-            }
-
-            if (amount >= 0 && set_indent(amount, 0))
-            {
-                if (first_changed == 0)
-                {
-                    first_changed = curwin->w_cursor.lnum;
-                }
-                last_changed = curwin->w_cursor.lnum;
-            }
-            ++curwin->w_cursor.lnum;
-            curwin->w_cursor.col = 0;
-        }
-    }
-
-    curwin->w_cursor.lnum = start_lnum;
-    beginline(BL_SOL | BL_FIX);
-
-    if (last_changed != 0)
-    {
-        changed_lines(first_changed, 0, oap->is_VIsual ? start_lnum + oap->line_count : last_changed + 1, 0L);
-    }
-    else if (oap->is_VIsual)
-    {
-        redraw_curbuf_later(UPD_INVERTED);
-    }
-
-    if (oap->line_count > p_report)
-    {
-        i = oap->line_count - (i + 1);
-        smsg(NGETTEXT("%ld line indented ", "%ld lines indented ", i), i);
-    }
-    if ((cmdmod.cmod_flags & CMOD_LOCKMARKS) == 0)
-    {
-        curbuf->b_op_start = oap->start;
-        curbuf->b_op_end = oap->end;
     }
 }
 
@@ -44575,149 +43712,6 @@ utf_head_off(char_u *base, char_u *p)
     return (int)(p - q);
 }
 
-    static int
-utf_eat_space(int cc)
-{
-    return ((cc >= 0x2000 && cc <= 0x206F) || (cc >= 0x2e00 && cc <= 0x2e7f) || (cc >= 0x3000 && cc <= 0x303f) || (cc >= 0xff01 && cc <= 0xff0f) || (cc >= 0xff1a && cc <= 0xff20) || (cc >= 0xff3b && cc <= 0xff40) || (cc >= 0xff5b && cc <= 0xff65));
-}
-
-    static int
-utf_allow_break_before(int cc)
-{
-    static const int BOL_prohibition_punct[] =
-    {
-        '!',
-        '%',
-        ')',
-        ',',
-        ':',
-        ';',
-        '>',
-        '?',
-        ']',
-        '}',
-        0x2019,
-        0x201d,
-        0x2020,
-        0x2021,
-        0x2026,
-        0x2030,
-        0x2031,
-        0x203c,
-        0x2047,
-        0x2048,
-        0x2049,
-        0x2103,
-        0x2109,
-        0x3001,
-        0x3002,
-        0x3009,
-        0x300b,
-        0x300d,
-        0x300f,
-        0x3011,
-        0x3015,
-        0x3017,
-        0x3019,
-        0x301b,
-        0xff01,
-        0xff09,
-        0xff0c,
-        0xff0e,
-        0xff1a,
-        0xff1b,
-        0xff1f,
-        0xff3d,
-        0xff5d,
-    };
-
-    int first = 0;
-    int last  =  (sizeof(BOL_prohibition_punct) / sizeof((BOL_prohibition_punct)[0]))  - 1;
-    int mid   = 0;
-
-    while (first < last)
-    {
-        mid = (first + last)/2;
-
-        if (cc == BOL_prohibition_punct[mid])
-        {
-            return FALSE;
-        }
-        else if (cc > BOL_prohibition_punct[mid])
-        {
-            first = mid + 1;
-        }
-        else
-        {
-            last = mid - 1;
-        }
-    }
-
-    return cc != BOL_prohibition_punct[first];
-}
-
-    static int
-utf_allow_break_after(int cc)
-{
-    static const int EOL_prohibition_punct[] =
-    {
-        '(',
-        '<',
-        '[',
-        '`',
-        '{',
-        0x2018,
-        0x201c,
-        0x3008,
-        0x300a,
-        0x300c,
-        0x300e,
-        0x3010,
-        0x3014,
-        0x3016,
-        0x3018,
-        0x301a,
-        0xff08,
-        0xff3b,
-        0xff5b,
-    };
-
-    int first = 0;
-    int last  =  (sizeof(EOL_prohibition_punct) / sizeof((EOL_prohibition_punct)[0]))  - 1;
-    int mid   = 0;
-
-    while (first < last)
-    {
-        mid = (first + last)/2;
-
-        if (cc == EOL_prohibition_punct[mid])
-        {
-            return FALSE;
-        }
-        else if (cc > EOL_prohibition_punct[mid])
-        {
-            first = mid + 1;
-        }
-        else
-        {
-            last = mid - 1;
-        }
-    }
-
-    return cc != EOL_prohibition_punct[first];
-}
-
-    static int
-utf_allow_break(int cc, int ncc)
-{
-    if (cc == ncc && (cc == 0x2014 || cc == 0x2026))
-    {
-        return FALSE;
-    }
-
-    return utf_allow_break_after(cc) && utf_allow_break_before(ncc);
-}
-
     static void
 mb_copy_char(char_u **fp, char_u **tp)
 {
@@ -49860,281 +48854,6 @@ enum { URL_SLASH = 1 };
 enum { URL_BACKSLASH = 2 };
 
     static int
-get_leader_len(char_u      *line, char_u      **flags, int         backward, int         include_space)
-{
-    int i;
-    int j;
-    int         result;
-    int         got_com = FALSE;
-    int         found_one;
-    char_u      part_buf[COM_MAX_LEN];
-    char_u      *string;
-    char_u      *list;
-    int         middle_match_len = 0;
-    char_u      *prev_list;
-    char_u      *saved_flags = NULL;
-
-    result = i = 0;
-    while ( ((line[i]) == ' ' || (line[i]) == '\t') )
-    {
-        ++i;
-    }
-
-    while (line[i] != NUL)
-    {
-        found_one = FALSE;
-        for (list = curbuf->b_p_com; *list; )
-        {
-            if (!got_com && flags != NULL)
-            {
-                *flags = list;
-            }
-            prev_list = list;
-            (void)copy_option_part(&list, part_buf, COM_MAX_LEN, ",");
-            string = vim_strchr(part_buf, ':');
-            if (string == NULL)
-            {
-                continue;
-            }
-            *string++ = NUL;
-
-            if (middle_match_len != 0 && vim_strchr(part_buf, COM_MIDDLE) == NULL && vim_strchr(part_buf, COM_END) == NULL)
-            {
-                break;
-            }
-
-            if (got_com && vim_strchr(part_buf, COM_NEST) == NULL)
-            {
-                continue;
-            }
-
-            if (backward && vim_strchr(part_buf, COM_NOBACK) != NULL)
-            {
-                continue;
-            }
-
-            if ( ((string[0]) == ' ' || (string[0]) == '\t') )
-            {
-                if (i == 0 || ! ((line[i - 1]) == ' ' || (line[i - 1]) == '\t') )
-                {
-                    continue;
-                }
-                while ( ((string[0]) == ' ' || (string[0]) == '\t') )
-                {
-                    ++string;
-                }
-            }
-            for (j = 0; string[j] != NUL && string[j] == line[i + j]; ++j)
-            {
-                ;
-            }
-            if (string[j] != NUL)
-            {
-                continue;
-            }
-
-            if (vim_strchr(part_buf, COM_BLANK) != NULL && ! ((line[i + j]) == ' ' || (line[i + j]) == '\t')  && line[i + j] != NUL)
-            {
-                continue;
-            }
-
-            if (vim_strchr(part_buf, COM_MIDDLE) != NULL)
-            {
-                if (middle_match_len == 0)
-                {
-                    middle_match_len = j;
-                    saved_flags = prev_list;
-                }
-                continue;
-            }
-            if (middle_match_len != 0 && j > middle_match_len)
-            {
-                middle_match_len = 0;
-            }
-
-            if (middle_match_len == 0)
-            {
-                i += j;
-            }
-            found_one = TRUE;
-            break;
-        }
-
-        if (middle_match_len != 0)
-        {
-            if (!got_com && flags != NULL)
-            {
-                *flags = saved_flags;
-            }
-            i += middle_match_len;
-            found_one = TRUE;
-        }
-
-        if (!found_one)
-        {
-            break;
-        }
-
-        result = i;
-
-        while ( ((line[i]) == ' ' || (line[i]) == '\t') )
-        {
-            ++i;
-        }
-
-        if (include_space)
-        {
-            result = i;
-        }
-
-        got_com = TRUE;
-        if (vim_strchr(part_buf, COM_NEST) == NULL)
-        {
-            break;
-        }
-    }
-    return result;
-}
-
-    static int
-get_last_leader_offset(char_u *line, char_u **flags)
-{
-    int         result = -1;
-    int i;
-    int j;
-    int         lower_check_bound = 0;
-    char_u      *string;
-    char_u      *com_leader;
-    char_u      *com_flags;
-    char_u      *list;
-    int         found_one;
-    char_u      part_buf[COM_MAX_LEN];
-
-    i = (int) strlen((char *)(line)) ;
-    while (--i >= lower_check_bound)
-    {
-        found_one = FALSE;
-        for (list = curbuf->b_p_com; *list; )
-        {
-            char_u *flags_save = list;
-
-            (void)copy_option_part(&list, part_buf, COM_MAX_LEN, ",");
-            string = vim_strchr(part_buf, ':');
-            if (string == NULL)
-            {
-                continue;
-            }
-            *string++ = NUL;
-            com_leader = string;
-
-            if ( ((string[0]) == ' ' || (string[0]) == '\t') )
-            {
-                if (i == 0 || ! ((line[i - 1]) == ' ' || (line[i - 1]) == '\t') )
-                {
-                    continue;
-                }
-                while ( ((*string) == ' ' || (*string) == '\t') )
-                {
-                    ++string;
-                }
-            }
-            for (j = 0; string[j] != NUL && string[j] == line[i + j]; ++j)
-            {
-                 ;
-            }
-            if (string[j] != NUL)
-            {
-                continue;
-            }
-
-            if (vim_strchr(part_buf, COM_BLANK) != NULL && ! ((line[i + j]) == ' ' || (line[i + j]) == '\t')  && line[i + j] != NUL)
-            {
-                continue;
-            }
-
-            if (vim_strchr(part_buf, COM_MIDDLE) != NULL)
-            {
-                for (j = 0;  ((line[j]) == ' ' || (line[j]) == '\t')  && j <= i; j++)
-                {
-                    ;
-                }
-                if (j < i)
-                {
-                    continue;
-                }
-            }
-
-            found_one = TRUE;
-
-            if (flags)
-            {
-                *flags = flags_save;
-            }
-            com_flags = flags_save;
-
-            break;
-        }
-
-        if (found_one)
-        {
-            char_u  part_buf2[COM_MAX_LEN];
-            int len1;
-            int len2;
-            int off;
-
-            result = i;
-            if (vim_strchr(part_buf, COM_NEST) != NULL)
-            {
-                continue;
-            }
-
-            lower_check_bound = i;
-
-            while ( ((*com_leader) == ' ' || (*com_leader) == '\t') )
-            {
-                ++com_leader;
-            }
-            len1 = (int) strlen((char *)(com_leader)) ;
-
-            for (list = curbuf->b_p_com; *list; )
-            {
-                char_u *flags_save = list;
-
-                (void)copy_option_part(&list, part_buf2, COM_MAX_LEN, ",");
-                if (flags_save == com_flags)
-                {
-                    continue;
-                }
-                string = vim_strchr(part_buf2, ':');
-                ++string;
-                while ( ((*string) == ' ' || (*string) == '\t') )
-                {
-                    ++string;
-                }
-                len2 = (int) strlen((char *)(string)) ;
-                if (len2 == 0)
-                {
-                    continue;
-                }
-
-                for (off = (len2 > i ? i : len2); off > 0 && off + len1 > len2;)
-                {
-                    --off;
-                    if ( strncmp((char *)(string + off), (char *)(com_leader), (len2 - off))  == 0)
-                    {
-                        if (i - off < lower_check_bound)
-                        {
-                            lower_check_bound = i - off;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return result;
-}
-
-    static int
 plines(linenr_T lnum)
 {
     return plines_win(curwin, lnum, TRUE);
@@ -54739,7 +53458,7 @@ static const struct nv_cmd
      {':', nv_colon, 0, 0} ,
      {';', nv_csearch, 0, FALSE} ,
      {'<', nv_operator, NV_RL, 0} ,
-     {'=', nv_operator, 0, 0} ,
+     {'=', nv_error, 0, 0} ,
      {'>', nv_operator, NV_RL, 0} ,
      {'?', nv_search, 0, FALSE} ,
      {'@', nv_at,  (0x02|NV_NCH) , FALSE} ,
@@ -56389,204 +55108,6 @@ nv_page(cmdarg_T *cap)
     }
 }
 
-    static void
-nv_gd(oparg_T     *oap, int         nchar, int         thisblock)
-{
-    int         len;
-    char_u      *ptr;
-
-    if ((len = find_ident_under_cursor(&ptr, FIND_IDENT)) == 0 || find_decl(ptr, len, nchar == 'd', thisblock, SEARCH_START) == FAIL)
-    {
-        clearopbeep(oap);
-        return;
-    }
-
-    if (messaging() && !msg_silent && !shortmess(SHM_SEARCHCOUNT))
-    {
-        clear_cmdline = TRUE;
-    }
-}
-
-    static int
-is_ident(char_u *line, int offset)
-{
-    int i;
-    int incomment = FALSE;
-    int instring = 0;
-    int prev = 0;
-
-    for (i = 0; i < offset && line[i] != NUL; i++)
-    {
-        if (instring != 0)
-        {
-            if (prev != '\\' && line[i] == instring)
-            {
-                instring = 0;
-            }
-        }
-        else if ((line[i] == '"' || line[i] == '\'') && !incomment)
-        {
-            instring = line[i];
-        }
-        else
-        {
-            if (incomment)
-            {
-                if (prev == '*' && line[i] == '/')
-                {
-                    incomment = FALSE;
-                }
-            }
-            else if (prev == '/' && line[i] == '*')
-            {
-                incomment = TRUE;
-            }
-            else if (prev == '/' && line[i] == '/')
-            {
-                return FALSE;
-            }
-        }
-
-        prev = line[i];
-    }
-
-    return incomment == FALSE && instring == 0;
-}
-
-    static int
-find_decl(char_u      *ptr, int         len, int         locally, int         thisblock, int         flags_arg)
-{
-    char_u      *pat;
-    size_t      patlen;
-    pos_T       old_pos;
-    pos_T       par_pos;
-    pos_T       found_pos;
-    int         t;
-    int         save_p_ws;
-    int         save_p_scs;
-    int         retval = OK;
-    int         incll;
-    int         searchflags = flags_arg;
-    int         valid;
-
-    if ((pat = alloc(len + 7)) == NULL)
-    {
-        return FAIL;
-    }
-
-    patlen = vim_snprintf((char *)pat, len + 7, vim_iswordp(ptr) ? "\\V\\<%.*s\\>" : "\\V%.*s", len, ptr);
-
-    old_pos = curwin->w_cursor;
-    save_p_ws = p_ws;
-    save_p_scs = p_scs;
-    p_ws = FALSE;
-    p_scs = FALSE;
-
-    if (!locally || !findpar(&incll,  (-1) , 1L, '{', FALSE))
-    {
-        setpcmark();
-        curwin->w_cursor.lnum = 1;
-        par_pos = curwin->w_cursor;
-    }
-    else
-    {
-        par_pos = curwin->w_cursor;
-        while (curwin->w_cursor.lnum > 1 && *skipwhite(ml_get_curline()) != NUL)
-        {
-            --curwin->w_cursor.lnum;
-        }
-    }
-    curwin->w_cursor.col = 0;
-
-     (&found_pos)->lnum = 0;
-     (&found_pos)->col = 0;
-     (&found_pos)->coladd = 0;
-    for (;;)
-    {
-        t = searchit(curwin, curbuf, &curwin->w_cursor, NULL, FORWARD, pat, patlen, 1L, searchflags, RE_LAST, NULL);
-        if (curwin->w_cursor.lnum >= old_pos.lnum)
-        {
-            t = FAIL;
-        }
-
-        if (thisblock && t != FAIL)
-        {
-            pos_T       *pos;
-
-            if ((pos = findmatchlimit(NULL, '}', FM_FORWARD, (int)(old_pos.lnum - curwin->w_cursor.lnum + 1))) != NULL && pos->lnum < old_pos.lnum)
-            {
-                curwin->w_cursor = *pos;
-                continue;
-            }
-        }
-
-        if (t == FAIL)
-        {
-            if (found_pos.lnum != 0)
-            {
-                curwin->w_cursor = found_pos;
-                t = OK;
-            }
-            break;
-        }
-        if (get_leader_len(ml_get_curline(), NULL, FALSE, TRUE) > 0)
-        {
-            ++curwin->w_cursor.lnum;
-            curwin->w_cursor.col = 0;
-            continue;
-        }
-        valid = is_ident(ml_get_curline(), curwin->w_cursor.col);
-
-        if (!valid && found_pos.lnum != 0)
-        {
-            curwin->w_cursor = found_pos;
-            break;
-        }
-
-        if (valid && !locally)
-        {
-            break;
-        }
-        if (valid && curwin->w_cursor.lnum >= par_pos.lnum)
-        {
-            if (found_pos.lnum != 0)
-            {
-                curwin->w_cursor = found_pos;
-            }
-            break;
-        }
-
-        if (!valid)
-        {
-             (&found_pos)->lnum = 0;
-             (&found_pos)->col = 0;
-             (&found_pos)->coladd = 0;
-        }
-        else
-        {
-            found_pos = curwin->w_cursor;
-        }
-        searchflags &= ~SEARCH_START;
-    }
-
-    if (t == FAIL)
-    {
-        retval = FAIL;
-        curwin->w_cursor = old_pos;
-    }
-    else
-    {
-        curwin->w_set_curswant = true;
-        reset_search_dir();
-    }
-
-    vim_free(pat);
-    p_ws = save_p_ws;
-    p_scs = save_p_scs;
-
-    return retval;
-}
-
     static int
 nv_screengo(oparg_T *oap, int dir, long dist)
 {
@@ -57928,26 +56449,6 @@ nv_brackets(cmdarg_T *cap)
     }
 }
 
-    static bool
-buf_has_cstyle_comments(void)
-{
-    char_u      *list;
-    char_u      part_buf[COM_MAX_LEN];
-
-    for (list = curbuf->b_p_com; *list; )
-    {
-        char_u  *string;
-
-        (void)copy_option_part(&list, part_buf, COM_MAX_LEN, ",");
-        string = vim_strchr(part_buf, ':');
-        if (string != NULL && string[1] == '/' && (string[2] == '/' || string[2] == '*'))
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
     static void
 nv_percent(cmdarg_T *cap)
 {
@@ -57987,16 +56488,6 @@ nv_percent(cmdarg_T *cap)
     else
     {
         int     flags = 0;
-
-        if (vim_strchr(p_cpo, CPO_MATCH) == NULL && buf_has_cstyle_comments())
-        {
-            int comment_col = check_linecomment(ml_get_curline());
-
-            if (comment_col == MAXCOL || curwin->w_cursor.col < (colnr_T)comment_col)
-            {
-                flags = FM_SKIPCOMM;
-            }
-        }
 
         cap->oap->motion_type = MCHAR;
         cap->oap->use_reg_one = TRUE;
@@ -59280,21 +57771,12 @@ nv_g_cmd(cmdarg_T *cap)
         nv_goto(cap);
         break;
 
-    case 'q':
-    case 'w':
-        oap->cursor_start = curwin->w_cursor;
-    __attribute__((fallthrough));
     case '~':
     case 'u':
     case 'U':
     case '?':
     case '@':
         nv_operator(cap);
-        break;
-
-    case 'd':
-    case 'D':
-        nv_gd(oap, cap->nchar, (int)cap->count0);
         break;
 
     case   (-((KS_EXTRA) + ((int)(KE_MIDDLEMOUSE) << 8)))  :
@@ -59380,7 +57862,7 @@ n_opencmd(cmdarg_T *cap)
     }
 
     curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-    if (u_save((linenr_T)(curwin->w_cursor.lnum - (cap->cmdchar == 'O' ? 1 : 0)), (linenr_T)(curwin->w_cursor.lnum + (cap->cmdchar == 'o' ? 1 : 0))) == OK && open_line(cap->cmdchar == 'O' ?  (-1)  : FORWARD, has_format_option(FO_OPEN_COMS) ? OPENLINE_DO_COM : 0, 0, NULL) == OK)
+    if (u_save((linenr_T)(curwin->w_cursor.lnum - (cap->cmdchar == 'O' ? 1 : 0)), (linenr_T)(curwin->w_cursor.lnum + (cap->cmdchar == 'o' ? 1 : 0))) == OK && open_line(cap->cmdchar == 'O' ?  (-1)  : FORWARD, 0, 0, NULL) == OK)
     {
         if (vim_strchr(p_cpo, CPO_HASH) != NULL)
         {
@@ -60083,14 +58565,6 @@ nv_object(cmdarg_T    *cap)
     static void
 nv_record(cmdarg_T *cap)
 {
-    if (cap->oap->op_type == OP_FORMAT)
-    {
-        cap->cmdchar = 'g';
-        cap->nchar = 'q';
-        nv_operator(cap);
-        return;
-    }
-
     if (checkclearop(cap->oap))
     {
         return;
@@ -60281,7 +58755,6 @@ nv_put_opt(cmdarg_T *cap, int fix_indent)
             coladvance((colnr_T)MAXCOL);
         }
     }
-    auto_format(FALSE, TRUE);
 }
 
     static void
@@ -61166,10 +59639,6 @@ op_delete(oparg_T *oap)
             curwin->w_cursor = curpos;
             (void)do_join(2, FALSE, FALSE, FALSE, FALSE);
         }
-        if (oap->op_type == OP_DELETE)
-        {
-            auto_format(FALSE, TRUE);
-        }
     }
 
     msgmore(curbuf->b_ml.ml_line_count - old_lcount);
@@ -61963,7 +60432,6 @@ op_change(oparg_T *oap)
             vim_free(ins_text);
         }
     }
-    auto_format(FALSE, TRUE);
 
     return retval;
 }
@@ -61991,59 +60459,6 @@ adjust_cursor_eol(void)
     }
 }
 
-    static char_u *
-skip_comment(char_u   *line, int      process, int      include_space, int      *is_comment)
-{
-    char_u *comment_flags = NULL;
-    int    lead_len;
-    int    leader_offset = get_last_leader_offset(line, &comment_flags);
-
-    *is_comment = FALSE;
-    if (leader_offset != -1)
-    {
-        while (*comment_flags)
-        {
-            if (*comment_flags == COM_END || *comment_flags == ':')
-            {
-                break;
-            }
-            ++comment_flags;
-        }
-        if (*comment_flags != COM_END)
-        {
-            *is_comment = TRUE;
-        }
-    }
-
-    if (process == FALSE)
-    {
-        return line;
-    }
-
-    lead_len = get_leader_len(line, &comment_flags, FALSE, include_space);
-
-    if (lead_len == 0)
-    {
-        return line;
-    }
-
-    while (*comment_flags)
-    {
-        if (*comment_flags == COM_END || *comment_flags == ':')
-        {
-            break;
-        }
-        ++comment_flags;
-    }
-
-    if (*comment_flags == ':' || *comment_flags == NUL)
-    {
-        line += lead_len;
-    }
-
-    return line;
-}
-
     static int
 do_join(long    count, int     insert_space, int     save_undo, int     use_formatoptions  __attribute__((unused)) , int     setmark)
 {
@@ -62060,10 +60475,6 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
     linenr_T    t;
     colnr_T     col = 0;
     int         ret = OK;
-    int         *comments = NULL;
-    int         remove_comments = (use_formatoptions == TRUE)
-                                  && has_format_option(FO_REMOVE_COMS);
-    int         prev_was_comment;
 
     if (save_undo && u_save((linenr_T)(curwin->w_cursor.lnum - 1), (linenr_T)(curwin->w_cursor.lnum + count)) == FAIL)
     {
@@ -62075,16 +60486,6 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
     {
         return FAIL;
     }
-    if (remove_comments)
-    {
-        comments = lalloc_clear(count * sizeof(int), TRUE);
-        if (comments == NULL)
-        {
-            vim_free(spaces);
-            return FAIL;
-        }
-    }
-
     for (t = 0; t < count; ++t)
     {
         curr = curr_start = ml_get((linenr_T)(curwin->w_cursor.lnum + t));
@@ -62093,24 +60494,10 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
             curwin->w_buffer->b_op_start.lnum = curwin->w_cursor.lnum;
             curwin->w_buffer->b_op_start.col  = (colnr_T) strlen((char *)(curr)) ;
         }
-        if (remove_comments)
-        {
-            if (t > 0 && prev_was_comment)
-            {
-                char_u *new_curr = skip_comment(curr, TRUE, insert_space, &prev_was_comment);
-                comments[t] = (int)(new_curr - curr);
-                curr = new_curr;
-            }
-            else
-            {
-                curr = skip_comment(curr, FALSE, insert_space, &prev_was_comment);
-            }
-        }
-
         if (insert_space && t > 0)
         {
             curr = skipwhite(curr);
-            if (*curr != NUL && *curr != ')' && sumsize != 0 && endcurr1 != TAB && (!has_format_option(FO_MBYTE_JOIN) || (utf_ptr2char(curr) < 0x100 && endcurr1 < 0x100)) && (!has_format_option(FO_MBYTE_JOIN2) || (utf_ptr2char(curr) < 0x100 && !(utf_eat_space(endcurr1))) || (endcurr1 < 0x100 && !(utf_eat_space(utf_ptr2char(curr))))))
+            if (*curr != NUL && *curr != ')' && sumsize != 0 && endcurr1 != TAB)
             {
                 if (endcurr1 == ' ')
                 {
@@ -62181,10 +60568,6 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
             break;
         }
         curr = curr_start = ml_get((linenr_T)(curwin->w_cursor.lnum + t - 1));
-        if (remove_comments)
-        {
-            curr += comments[t - 1];
-        }
         if (insert_space && t > 1)
         {
             curr = skipwhite(curr);
@@ -62215,10 +60598,6 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
 
 theend:
     vim_free(spaces);
-    if (remove_comments)
-    {
-        vim_free(comments);
-    }
     return ret;
 }
 
@@ -63274,11 +61653,6 @@ op_colon(oparg_T *oap)
             }
         }
     }
-    if (oap->op_type != OP_COLON)
-    {
-        stuffReadbuff((char_u *)"!");
-    }
-
 }
 
     static void
@@ -63648,7 +62022,7 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
                 VIsual_active = FALSE;
                 mouse_dragging = 0;
                 may_clear_cmdline();
-                if ((oap->op_type == OP_YANK || oap->op_type == OP_COLON || oap->op_type == OP_FUNCTION || oap->op_type == OP_FILTER) && oap->motion_force == NUL)
+                if ((oap->op_type == OP_YANK || oap->op_type == OP_COLON || oap->op_type == OP_FUNCTION) && oap->motion_force == NUL)
                 {
                     redraw_curbuf_later(UPD_INVERTED);
                 }
@@ -63704,7 +62078,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
         case OP_LSHIFT:
         case OP_RSHIFT:
             op_shift(oap, TRUE, oap->is_VIsual ? (int)cap->count1 : 1);
-            auto_format(FALSE, TRUE);
             break;
 
         case OP_JOIN_NS:
@@ -63720,7 +62093,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
             else
             {
                 (void)do_join(oap->line_count, oap->op_type == OP_JOIN, TRUE, TRUE, TRUE);
-                auto_format(FALSE, TRUE);
             }
             break;
 
@@ -63734,10 +62106,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
             else
             {
                 (void)op_delete(oap);
-                if (oap->motion_type == MLINE && has_format_option(FO_AUTO) && u_save_cursor() == OK)
-                {
-                    auto_format(FALSE, TRUE);
-                }
             }
             break;
 
@@ -63789,26 +62157,7 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
             }
             break;
 
-        case OP_FILTER:
-            if (vim_strchr(p_cpo, CPO_FILTER) != NULL)
-            {
-                AppendToRedobuff((char_u *)"!\r");
-            }
-            else
-            {
-                bangredo = TRUE;
-            }
-
-        __attribute__((fallthrough));
-        case OP_INDENT:
         case OP_COLON:
-
-            if (oap->op_type == OP_INDENT)
-            {
-                op_reindent(oap, get_indent);
-                break;
-            }
-
             op_colon(oap);
             break;
 
@@ -63826,15 +62175,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
                 op_tilde(oap);
             }
             check_cursor_col();
-            break;
-
-        case OP_FORMAT:
-            {
-                op_format(oap, FALSE);
-            }
-            break;
-        case OP_FORMAT2:
-            op_format(oap, TRUE);
             break;
 
         case OP_FUNCTION:
@@ -63862,8 +62202,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
                 curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
 
                 op_insert(oap, cap->count1);
-
-                auto_format(FALSE, TRUE);
 
                 if (restart_edit == 0)
                 {
@@ -64003,11 +62341,6 @@ static struct vimoption options[] =
     {"columns",     "co",   P_NUM|P_NODEFAULT|P_NO_MKRC|P_VI_DEF|P_RCLR,
                             (char_u *)&Columns, PV_NONE, NULL, NULL,
                             {(char_u *)80L, (char_u *)0L}   },
-    {"comments",    "com",  P_STRING|P_ALLOCED|P_VI_DEF|P_ONECOMMA|P_NODUP,
-                            (char_u *)&p_com,   (idopt_T)(PV_BUF + (int)(BV_COM))  , did_set_comments, NULL,
-                            {(char_u *)"s1:/*,mb:*,ex:*/,://,b:#,:%,:XCOMM,n:>,fb:-",
-                                (char_u *)0L}
-                              },
     {"compatible",  "cp",   P_BOOL|P_RALL,
                             (char_u *)&p_cp, PV_NONE, did_set_compatible, NULL,
                             {(char_u *)FALSE, (char_u *)FALSE}   },
@@ -64044,14 +62377,6 @@ static struct vimoption options[] =
                             (char_u *)&p_fcs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_FCS)) ))  , did_set_chars_option, NULL,
                             {(char_u *)"vert:|,fold:-,eob:~,lastline:@",
                                                                   (char_u *)0L}
-                              },
-    {"formatlistpat","flp", P_STRING|P_ALLOCED|P_VI_DEF,
-                            (char_u *)&p_flp,   (idopt_T)(PV_BUF + (int)(BV_FLP))  , NULL, NULL,
-                            {(char_u *)"^\\s*\\d\\+[\\]:.)}\\t ]\\s*",
-                                                 (char_u *)0L}   },
-    {"formatoptions","fo",  P_STRING|P_ALLOCED|P_VIM|P_FLAGLIST,
-                            (char_u *)&p_fo,   (idopt_T)(PV_BUF + (int)(BV_FO))  , did_set_formatoptions, NULL,
-                            {(char_u *) "vt" , (char_u *) "tcq" }
                               },
     {"fsync",       "fs",   P_BOOL|P_SECURE|P_VI_DEF,
                             (char_u *)&p_fs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  , NULL, NULL,
@@ -64173,10 +62498,6 @@ static struct vimoption options[] =
     {"osctimeoutlen", "ost", P_NUM|P_VI_DEF,
                             (char_u *)&p_ost, PV_NONE, did_set_osctimeoutlen, NULL,
                             {(char_u *)1000, (char_u *)0L}   },
-    {"paragraphs",  "para", P_STRING|P_VI_DEF,
-                            (char_u *)&p_para, PV_NONE, NULL, NULL,
-                            {(char_u *)"IPLPPPQPP TPHPLIPpLpItpplpipbp",
-                                (char_u *)0L}   },
     {"paste",       NULL,   P_BOOL|P_VI_DEF|P_PRI_MKRC,
                             (char_u *)&p_paste, PV_NONE, did_set_paste, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -64220,10 +62541,6 @@ static struct vimoption options[] =
     {"scrolloffpad", "sop", P_NUM|P_VI_DEF|P_VIM|P_RALL,
                                 (char_u *)&p_sop,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SOP)) ))  , NULL, NULL,
                                 {(char_u *)0L, (char_u *)0L}   },
-    {"sections",    "sect", P_STRING|P_VI_DEF,
-                            (char_u *)&p_sections, PV_NONE, NULL, NULL,
-                            {(char_u *)"SHNHH HUnhsh", (char_u *)0L}
-                              },
     {"selection",   "sel",  P_STRING|P_VI_DEF,
                             (char_u *)&p_sel, PV_NONE, did_set_selection, NULL,
                             {(char_u *)"inclusive", (char_u *)0L}
@@ -67499,14 +65816,8 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_ai);
         case   (idopt_T)(PV_BUF + (int)(BV_CI))  :
             return (char_u *)&(curbuf->b_p_ci);
-        case   (idopt_T)(PV_BUF + (int)(BV_COM))  :
-            return (char_u *)&(curbuf->b_p_com);
         case   (idopt_T)(PV_BUF + (int)(BV_ET))  :
             return (char_u *)&(curbuf->b_p_et);
-        case   (idopt_T)(PV_BUF + (int)(BV_FO))  :
-            return (char_u *)&(curbuf->b_p_fo);
-        case   (idopt_T)(PV_BUF + (int)(BV_FLP))  :
-            return (char_u *)&(curbuf->b_p_flp);
         case   (idopt_T)(PV_BUF + (int)(BV_ISK))  :
             return (char_u *)&(curbuf->b_p_isk);
         case   (idopt_T)(PV_BUF + (int)(BV_MPS))  :
@@ -67702,12 +66013,9 @@ buf_copy_options(buf_T *buf, int flags)
               ;
             buf->b_p_sts_nopaste = p_sts_nopaste;
               ;
-            buf->b_p_com = vim_strsave(p_com);
               ;
               ;
-            buf->b_p_fo = vim_strsave(p_fo);
               ;
-            buf->b_p_flp = vim_strsave(p_flp);
               ;
             buf->b_p_nf = vim_strsave(p_nf);
               ;
@@ -67979,10 +66287,7 @@ illegal_char(char *errbuf, size_t errbuflen, int c)
 check_buf_options(buf_T *buf)
 {
     check_string_option(&buf->b_p_mps);
-    check_string_option(&buf->b_p_fo);
-    check_string_option(&buf->b_p_flp);
     check_string_option(&buf->b_p_isk);
-    check_string_option(&buf->b_p_com);
     check_string_option(&buf->b_p_nf);
     check_string_option(&buf->b_p_qe);
 }
@@ -68306,50 +66611,6 @@ did_set_chars_option(optset_T *args)
 }
 
     static char *
-did_set_comments(optset_T *args)
-{
-    char_u      **varp = (char_u **)args->os_varp;
-    char_u      *s;
-    char        *errmsg = NULL;
-
-    for (s = *varp; *s; )
-    {
-        while (*s && *s != ':')
-        {
-            if (vim_strchr((char_u *) "nbsmexflrO" , *s) == NULL && ! ((unsigned)(*s) - '0' < 10)  && *s != '-')
-            {
-                errmsg = illegal_char(args->os_errbuf, args->os_errbuflen, *s);
-                break;
-            }
-            ++s;
-        }
-        if (*s++ == NUL)
-        {
-            errmsg = e_missing_colon;
-        }
-        else if (*s == ',' || *s == NUL)
-        {
-            errmsg = e_zero_length_string;
-        }
-        if (errmsg != NULL)
-        {
-            break;
-        }
-        while (*s && *s != ',')
-        {
-            if (*s == '\\' && s[1] != NUL)
-            {
-                ++s;
-            }
-            ++s;
-        }
-        s = skip_to_option_part(s);
-    }
-
-    return errmsg;
-}
-
-    static char *
 did_set_cpoptions(optset_T *args)
 {
     char_u      **varp = (char_u **)args->os_varp;
@@ -68367,14 +66628,6 @@ did_set_display(optset_T *args  __attribute__((unused)) )
 
     (void)init_chartab();
     return NULL;
-}
-
-    static char *
-did_set_formatoptions(optset_T *args)
-{
-    char_u      **varp = (char_u **)args->os_varp;
-
-    return did_set_option_listflag(*varp, (char_u *) "tcro/q2vlb1mMBn,aw]jp" , args->os_errbuf, args->os_errbuflen);
 }
 
     static char *
@@ -81724,12 +79977,6 @@ last_search_pat(void)
 }
 
     static void
-reset_search_dir(void)
-{
-    spats[0].off.dir = '/';
-}
-
-    static void
 last_pat_prog(regmmatch_T *regmatch)
 {
     if (spats[last_idx].pat == NULL)
@@ -89496,33 +87743,12 @@ term_set_sync_output(int flags)
 
 // ==================== textformat.c ====================
 
-static int      did_add_space = FALSE;
-
-    static int
-has_format_option(int x)
-{
-    if (p_paste)
-    {
-        return FALSE;
-    }
-    return (vim_strchr(curbuf->b_p_fo, x) != NULL);
-}
-
     static void
 internal_format(int         textwidth, int         second_indent, int         flags, int         format_only, int         c)
 {
     int         cc;
-    int         skip_pos;
     int         save_char = NUL;
     int         haveto_redraw = FALSE;
-    int         fo_ins_blank = has_format_option(FO_INS_BLANK);
-    int         fo_multibyte = has_format_option(FO_MBYTE_BREAK);
-    int         fo_rigor_tw  = has_format_option(FO_RIGOROUS_TW);
-    int         fo_white_par = has_format_option(FO_WHITE_PAR);
-    int         first_line = TRUE;
-    colnr_T     leader_len;
-    int         no_leader = FALSE;
-    int         do_comments = (flags & INSCHAR_DO_COM);
     int         safe_tw = trim_to_int(8 * (vimlong_T)textwidth);
 
     if (!curbuf->b_p_ai && !(State & VREPLACE_FLAG))
@@ -89545,10 +87771,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
         colnr_T virtcol;
         int     orig_col = 0;
         char_u  *saved_text = NULL;
-        colnr_T col;
         colnr_T end_col;
-        int     wcc;
-        int     did_do_comment = FALSE;
         int     first_pass;
 
         if (curwin->w_cursor.col < safe_tw)
@@ -89561,31 +87784,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
             }
         }
 
-        if (no_leader)
-        {
-            do_comments = FALSE;
-        }
-        else if (!(flags & INSCHAR_FORMAT) && has_format_option(FO_WRAP_COMS))
-        {
-            do_comments = TRUE;
-        }
-
-        if (do_comments)
-        {
-            char_u *line = ml_get_curline();
-
-            leader_len = get_leader_len(line, NULL, FALSE, TRUE);
-        }
-        else
-        {
-            leader_len = 0;
-        }
-
-        if (leader_len == 0)
-        {
-            no_leader = TRUE;
-        }
-        if (!(flags & INSCHAR_FORMAT) && leader_len == 0 && !has_format_option(FO_WRAP))
+        if (p_paste)
         {
             break;
         }
@@ -89600,10 +87799,9 @@ internal_format(int         textwidth, int         second_indent, int         fl
         curwin->w_cursor.col = startcol < safe_tw ? startcol : safe_tw;
 
         foundcol = 0;
-        skip_pos = 0;
         first_pass = TRUE;
 
-        while ((!fo_ins_blank && !has_format_option(FO_INS_VI)) || (flags & INSCHAR_FORMAT) || curwin->w_cursor.lnum != Insstart.lnum || curwin->w_cursor.col >= Insstart.col)
+        for (;;)
         {
             if (first_pass && c != NUL)
             {
@@ -89618,50 +87816,15 @@ internal_format(int         textwidth, int         second_indent, int         fl
             {
                 end_col = curwin->w_cursor.col;
 
-                wcc = 0;
                 while (curwin->w_cursor.col > 0 &&  ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
                 {
                     dec_cursor();
                     cc = gchar_cursor();
 
-                    if (wcc < 2)
-                    {
-                        wcc++;
-                    }
                 }
                 if (curwin->w_cursor.col == 0 &&  ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
                 {
                     break;
-                }
-
-                if (has_format_option(FO_PERIOD_ABBR) && cc == '.' && wcc < 2)
-                {
-                    continue;
-                }
-
-                if (curwin->w_cursor.col < leader_len)
-                {
-                    break;
-                }
-                if (has_format_option(FO_ONE_LETTER))
-                {
-                    if (curwin->w_cursor.col == 0)
-                    {
-                        break;
-                    }
-                    if (curwin->w_cursor.col <= leader_len)
-                    {
-                        break;
-                    }
-                    col = curwin->w_cursor.col;
-                    dec_cursor();
-                    cc = gchar_cursor();
-
-                    if ( ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
-                    {
-                        continue;
-                    }
-                    curwin->w_cursor.col = col;
                 }
 
                 inc_cursor();
@@ -89671,104 +87834,6 @@ internal_format(int         textwidth, int         second_indent, int         fl
                 if (curwin->w_cursor.col <= (colnr_T)wantcol)
                 {
                     break;
-                }
-            }
-            else if ((cc >= 0x100 || !utf_allow_break_before(cc)) && fo_multibyte)
-            {
-                int ncc;
-                int allow_break;
-
-                if (curwin->w_cursor.col != startcol)
-                {
-                    if (curwin->w_cursor.col < leader_len)
-                    {
-                        break;
-                    }
-                    col = curwin->w_cursor.col;
-                    inc_cursor();
-                    ncc = gchar_cursor();
-
-                    allow_break =
-                        (utf_allow_break(cc, ncc));
-
-                    if (curwin->w_cursor.col != skip_pos && allow_break)
-                    {
-                        foundcol = curwin->w_cursor.col;
-                        end_foundcol = foundcol;
-                        if (curwin->w_cursor.col <= (colnr_T)wantcol)
-                        {
-                            break;
-                        }
-                    }
-                    curwin->w_cursor.col = col;
-                }
-
-                if (curwin->w_cursor.col == 0)
-                {
-                    break;
-                }
-
-                ncc = cc;
-                col = curwin->w_cursor.col;
-
-                dec_cursor();
-                cc = gchar_cursor();
-
-                if ( ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
-                {
-                    continue;
-                }
-                if (curwin->w_cursor.col < leader_len)
-                {
-                    break;
-                }
-
-                curwin->w_cursor.col = col;
-                skip_pos = curwin->w_cursor.col;
-
-                allow_break =
-                    (utf_allow_break(cc, ncc));
-
-                if (allow_break)
-                {
-                    foundcol = curwin->w_cursor.col;
-                    end_foundcol = foundcol;
-                }
-                if (curwin->w_cursor.col <= (colnr_T)wantcol)
-                {
-                    int ncc_allow_break =
-                         (utf_allow_break_before(ncc));
-
-                    if (allow_break)
-                    {
-                        break;
-                    }
-                    if (!ncc_allow_break && !fo_rigor_tw)
-                    {
-                        if (curwin->w_cursor.col == startcol)
-                        {
-                            end_foundcol = foundcol = 0;
-                            break;
-                        }
-
-                        col = curwin->w_cursor.col;
-
-                        inc_cursor();
-                        cc  = ncc;
-                        ncc = gchar_cursor();
-                        ncc = (ncc != NUL) ? ncc : c;
-
-                        allow_break =
-                                (utf_allow_break(cc, ncc));
-
-                        if (allow_break)
-                        {
-                            end_foundcol = foundcol =
-                                      ncc == NUL? 0 : curwin->w_cursor.col;
-                            break;
-                        }
-                        curwin->w_cursor.col = col;
-                    }
                 }
             }
             if (curwin->w_cursor.col == 0)
@@ -89796,7 +87861,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
         }
 
         curwin->w_cursor.col = foundcol;
-        while ((cc = gchar_cursor(),  ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) ) && (!fo_white_par || curwin->w_cursor.col < startcol))
+        while ((cc = gchar_cursor(),  ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) ))
         {
             inc_cursor();
         }
@@ -89816,68 +87881,17 @@ internal_format(int         textwidth, int         second_indent, int         fl
             }
             saved_text[startcol] = NUL;
 
-            if (!fo_white_par)
-            {
-                backspace_until_column(foundcol);
-            }
+            backspace_until_column(foundcol);
         }
         else
         {
-            if (!fo_white_par)
-            {
-                curwin->w_cursor.col = foundcol;
-            }
+            curwin->w_cursor.col = foundcol;
         }
 
-        open_line(FORWARD, OPENLINE_DELSPACES + OPENLINE_MARKFIX + (fo_white_par ? OPENLINE_KEEPTRAIL : 0) + (do_comments ? OPENLINE_DO_COM : 0) + OPENLINE_FORMAT + ((flags & INSCHAR_COM_LIST) ? OPENLINE_COM_LIST : 0), ((flags & INSCHAR_COM_LIST) ? second_indent : old_indent), &did_do_comment);
-        if (!(flags & INSCHAR_COM_LIST))
-        {
-            old_indent = 0;
-        }
-
-        if (did_do_comment)
-        {
-            no_leader = FALSE;
-        }
+        open_line(FORWARD, OPENLINE_DELSPACES + OPENLINE_MARKFIX, old_indent, NULL);
+        old_indent = 0;
 
         replace_offset = 0;
-        if (first_line)
-        {
-            if (!(flags & INSCHAR_COM_LIST))
-            {
-                if (second_indent < 0 && has_format_option(FO_Q_NUMBER))
-                {
-                    second_indent =
-                                 get_number_indent(curwin->w_cursor.lnum - 1);
-                }
-                if (second_indent >= 0)
-                {
-                    if (State & VREPLACE_FLAG)
-                    {
-                        change_indent(INDENT_SET, second_indent, FALSE, NUL, TRUE);
-                    }
-                    else
-                    {
-                        if (leader_len > 0 && second_indent - leader_len > 0)
-                    {
-                        int i;
-                        int padding = second_indent - leader_len;
-
-                        for (i = 0; i < padding; i++)
-                        {
-                            ins_str((char_u *)" ", 1);
-                        }
-                    }
-                    else
-                    {
-                        (void)set_indent(second_indent, SIN_CHANGED);
-                    }
-                    }
-                }
-            }
-            first_line = FALSE;
-        }
-
         if (State & VREPLACE_FLAG)
         {
             ins_bytes(saved_text);
@@ -89894,7 +87908,6 @@ internal_format(int         textwidth, int         second_indent, int         fl
         }
 
         haveto_redraw = TRUE;
-        set_can_cindent(TRUE);
         did_ai = FALSE;
         did_si = FALSE;
         can_si = FALSE;
@@ -89907,7 +87920,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
         pchar_cursor(save_char);
     }
 
-    if (!format_only && haveto_redraw)
+    if (haveto_redraw)
     {
         update_topline();
         redraw_curbuf_later(UPD_VALID);
@@ -89915,313 +87928,7 @@ internal_format(int         textwidth, int         second_indent, int         fl
 }
 
     static int
-fmt_check_par(linenr_T    lnum, int         *leader_len, char_u      **leader_flags, int         do_comments)
-{
-    char_u      *flags = NULL;
-    char_u      *ptr;
-
-    ptr = ml_get(lnum);
-    if (do_comments)
-    {
-        *leader_len = get_leader_len(ptr, leader_flags, FALSE, TRUE);
-    }
-    else
-    {
-        *leader_len = 0;
-    }
-
-    if (*leader_len > 0)
-    {
-        flags = *leader_flags;
-        while (*flags && *flags != ':' && *flags != COM_END)
-        {
-            ++flags;
-        }
-    }
-
-    return (*skipwhite(ptr + *leader_len) == NUL || (*leader_len > 0 && *flags == COM_END) || startPS(lnum, NUL, FALSE));
-}
-
-    static int
-ends_in_white(linenr_T lnum)
-{
-    char_u      *s = ml_get(lnum);
-    size_t      l;
-
-    if (*s == NUL)
-    {
-        return FALSE;
-    }
-    l = ml_get_len(lnum) - 1;
-    return  ((s[l]) == ' ' || (s[l]) == '\t') ;
-}
-
-    static int
-same_leader(linenr_T lnum, int     leader1_len, char_u  *leader1_flags, int     leader2_len, char_u  *leader2_flags)
-{
-    int idx1 = 0;
-    int idx2 = 0;
-    char_u  *line1;
-
-    if (leader1_len == 0)
-    {
-        return (leader2_len == 0);
-    }
-
-    if (leader1_flags != NULL)
-    {
-        char_u  *p;
-
-        for (p = leader1_flags; *p && *p != ':'; ++p)
-        {
-            if (*p == COM_FIRST)
-            {
-                return (leader2_len == 0);
-            }
-            if (*p == COM_END)
-            {
-                return FALSE;
-            }
-            if (*p == COM_START)
-            {
-                int line_len = ml_get_len(lnum);
-                if (line_len <= leader1_len)
-                {
-                    return FALSE;
-                }
-                if (leader2_flags == NULL || leader2_len == 0)
-                {
-                    return FALSE;
-                }
-                for (p = leader2_flags; *p && *p != ':'; ++p)
-                {
-                    if (*p == COM_MIDDLE)
-                    {
-                        return TRUE;
-                    }
-                }
-                return FALSE;
-            }
-        }
-    }
-
-    line1 = vim_strnsave(ml_get(lnum), ml_get_len(lnum));
-    if (line1 != NULL)
-    {
-        char_u  *line2;
-
-        for (idx1 = 0;  ((line1[idx1]) == ' ' || (line1[idx1]) == '\t') ; ++idx1)
-        {
-            ;
-        }
-        line2 = ml_get(lnum + 1);
-        for (idx2 = 0; idx2 < leader2_len; ++idx2)
-        {
-            if (! ((line2[idx2]) == ' ' || (line2[idx2]) == '\t') )
-            {
-                if (line1[idx1++] != line2[idx2])
-                {
-                    break;
-                }
-            }
-            else
-            {
-                while ( ((line1[idx1]) == ' ' || (line1[idx1]) == '\t') )
-                {
-                    ++idx1;
-                }
-            }
-        }
-        vim_free(line1);
-    }
-    return (idx2 == leader2_len && idx1 == leader1_len);
-}
-
-    static int
-paragraph_start(linenr_T lnum)
-{
-    char_u      *p;
-    int         leader_len = 0;
-    char_u      *leader_flags = NULL;
-    int         next_leader_len;
-    char_u      *next_leader_flags;
-    int         do_comments;
-
-    if (lnum <= 1)
-    {
-        return TRUE;
-    }
-
-    p = ml_get(lnum - 1);
-    if (*p == NUL)
-    {
-        return TRUE;
-    }
-
-    do_comments = has_format_option(FO_Q_COMS);
-    if (fmt_check_par(lnum - 1, &leader_len, &leader_flags, do_comments))
-    {
-        return TRUE;
-    }
-
-    if (fmt_check_par(lnum, &next_leader_len, &next_leader_flags, do_comments))
-    {
-        return TRUE;
-    }
-
-    if (has_format_option(FO_WHITE_PAR) && !ends_in_white(lnum - 1))
-    {
-        return TRUE;
-    }
-
-    if (has_format_option(FO_Q_NUMBER) && (get_number_indent(lnum) > 0))
-    {
-        return TRUE;
-    }
-
-    if (!same_leader(lnum - 1, leader_len, leader_flags, next_leader_len, next_leader_flags))
-    {
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-    static void
-auto_format(int         trailblank, int         prev_line)
-{
-    pos_T       pos;
-    char_u      *old;
-    int         wasatend;
-
-    if (!has_format_option(FO_AUTO))
-    {
-        return;
-    }
-
-    pos = curwin->w_cursor;
-    old = ml_get_curline();
-
-    check_auto_format(FALSE);
-
-    wasatend = (pos.col == ml_get_curline_len());
-    if (*old != NUL && !trailblank && wasatend)
-    {
-        int cc;
-
-        dec_cursor();
-        cc = gchar_cursor();
-        if (! ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1))))  && curwin->w_cursor.col > 0 && has_format_option(FO_ONE_LETTER))
-        {
-            dec_cursor();
-        }
-        cc = gchar_cursor();
-        if ( ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
-        {
-            curwin->w_cursor = pos;
-            return;
-        }
-        curwin->w_cursor = pos;
-    }
-
-    if (*old != NUL && !trailblank && !wasatend && pos.col > 0 && (State & MODE_INSERT))
-    {
-        char_u *line = ml_get_curline();
-        if ( ( ((line[pos.col - 1]) == ' ' || (line[pos.col - 1]) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
-        {
-            curwin->w_cursor = pos;
-            return;
-        }
-    }
-
-    if (has_format_option(FO_WRAP_COMS) && !has_format_option(FO_WRAP) && get_leader_len(old, NULL, FALSE, TRUE) == 0)
-    {
-        return;
-    }
-
-    if (prev_line && !paragraph_start(curwin->w_cursor.lnum))
-    {
-        --curwin->w_cursor.lnum;
-        if (u_save_cursor() == FAIL)
-        {
-            return;
-        }
-    }
-
-    saved_cursor = pos;
-    format_lines((linenr_T)-1, FALSE);
-    curwin->w_cursor = saved_cursor;
-    saved_cursor.lnum = 0;
-
-    if (curwin->w_cursor.lnum > curbuf->b_ml.ml_line_count)
-    {
-        curwin->w_cursor.lnum = curbuf->b_ml.ml_line_count;
-        coladvance((colnr_T)MAXCOL);
-    }
-    else
-    {
-        check_cursor_col();
-    }
-
-    if (!wasatend && has_format_option(FO_WHITE_PAR))
-    {
-        char_u  *new = ml_get_curline();
-        colnr_T len = ml_get_curline_len();
-        if (curwin->w_cursor.col == len)
-        {
-            char_u *pnew = vim_strnsave(new, len + 2);
-            if (pnew == NULL)
-            {
-                return;
-            }
-            pnew[len] = ' ';
-            pnew[len + 1] = NUL;
-            ml_replace(curwin->w_cursor.lnum, pnew, FALSE);
-            did_add_space = TRUE;
-        }
-        else
-        {
-            check_auto_format(FALSE);
-        }
-    }
-
-    check_cursor();
-}
-
-    static void
-check_auto_format(int         end_insert)
-{
-    int         c = ' ';
-    int         cc;
-
-    if (!did_add_space)
-    {
-        return;
-    }
-
-    cc = gchar_cursor();
-    if (! ( ((cc) == ' ' || (cc) == '\t')  && (!utf_iscomposing(utf_ptr2char(ml_get_cursor() + 1)))) )
-    {
-        did_add_space = FALSE;
-    }
-    else
-    {
-        if (!end_insert)
-        {
-            inc_cursor();
-            c = gchar_cursor();
-            dec_cursor();
-        }
-        if (c != NUL)
-        {
-            del_char(FALSE);
-            did_add_space = FALSE;
-        }
-    }
-}
-
-    static int
-comp_textwidth(int         ff)
+comp_textwidth(void)
 {
     int         textwidth;
 
@@ -90238,310 +87945,7 @@ comp_textwidth(int         ff)
     {
         textwidth = 0;
     }
-    if (ff && textwidth == 0)
-    {
-        textwidth = curwin->w_width - 1;
-        if (textwidth > 79)
-        {
-            textwidth = 79;
-        }
-    }
     return textwidth;
-}
-
-    static void
-op_format(oparg_T     *oap, int         keep_cursor)
-{
-    long        old_line_count = curbuf->b_ml.ml_line_count;
-
-    curwin->w_cursor = oap->cursor_start;
-
-    if (u_save((linenr_T)(oap->start.lnum - 1), (linenr_T)(oap->end.lnum + 1)) == FAIL)
-    {
-        return;
-    }
-    curwin->w_cursor = oap->start;
-
-    if (oap->is_VIsual)
-    {
-        redraw_curbuf_later(UPD_INVERTED);
-    }
-
-    if ((cmdmod.cmod_flags & CMOD_LOCKMARKS) == 0)
-    {
-        curbuf->b_op_start = oap->start;
-    }
-
-    if (keep_cursor)
-    {
-        saved_cursor = oap->cursor_start;
-    }
-
-    format_lines(oap->line_count, keep_cursor);
-
-    if (oap->end_adjusted && curwin->w_cursor.lnum < curbuf->b_ml.ml_line_count)
-    {
-        ++curwin->w_cursor.lnum;
-    }
-    beginline(BL_WHITE | BL_FIX);
-    old_line_count = curbuf->b_ml.ml_line_count - old_line_count;
-    msgmore(old_line_count);
-
-    if ((cmdmod.cmod_flags & CMOD_LOCKMARKS) == 0)
-    {
-        curbuf->b_op_end = curwin->w_cursor;
-    }
-
-    if (keep_cursor)
-    {
-        curwin->w_cursor = saved_cursor;
-        saved_cursor.lnum = 0;
-
-        check_cursor();
-    }
-
-    if (oap->is_VIsual)
-    {
-        win_T   *wp;
-
-         for ((wp) = firstwin; (wp) != NULL; (wp) = (wp)->w_next) 
-        {
-            if (wp->w_old_cursor_lnum != 0)
-            {
-                if (wp->w_old_cursor_lnum > wp->w_old_visual_lnum)
-                {
-                    wp->w_old_cursor_lnum += old_line_count;
-                }
-                else
-                {
-                    wp->w_old_visual_lnum += old_line_count;
-                }
-            }
-        }
-    }
-}
-
-    static void
-format_lines(linenr_T    line_count, int         avoid_fex)
-{
-    int         max_len;
-    int         is_not_par;
-    int         next_is_not_par;
-    int         is_end_par;
-    int         prev_is_end_par = FALSE;
-    int         next_is_start_par = FALSE;
-    int         leader_len = 0;
-    int         next_leader_len;
-    char_u      *leader_flags = NULL;
-    char_u      *next_leader_flags = NULL;
-    int         do_comments;
-    int         do_comments_list = 0;
-    int         advance = TRUE;
-    int         second_indent = -1;
-    int         do_second_indent;
-    int         do_number_indent;
-    int         do_trail_white;
-    int         first_par_line = TRUE;
-    int         smd_save;
-    long        count;
-    int         need_set_indent = TRUE;
-    linenr_T    first_line = curwin->w_cursor.lnum;
-    int         force_format = FALSE;
-    int         old_State = State;
-
-    max_len = comp_textwidth(TRUE) * 3;
-
-    do_comments = has_format_option(FO_Q_COMS);
-    do_second_indent = has_format_option(FO_Q_SECOND);
-    do_number_indent = has_format_option(FO_Q_NUMBER);
-    do_trail_white = has_format_option(FO_WHITE_PAR);
-
-    if (curwin->w_cursor.lnum > 1)
-    {
-        is_not_par = fmt_check_par(curwin->w_cursor.lnum - 1, &leader_len, &leader_flags, do_comments);
-    }
-    else
-    {
-        is_not_par = TRUE;
-    }
-    next_is_not_par = fmt_check_par(curwin->w_cursor.lnum, &next_leader_len, &next_leader_flags, do_comments);
-    is_end_par = (is_not_par || next_is_not_par);
-    if (!is_end_par && do_trail_white)
-    {
-        is_end_par = !ends_in_white(curwin->w_cursor.lnum - 1);
-    }
-
-    curwin->w_cursor.lnum--;
-    for (count = line_count; count != 0 && !got_int; --count)
-    {
-        if (advance)
-        {
-            curwin->w_cursor.lnum++;
-            prev_is_end_par = is_end_par;
-            is_not_par = next_is_not_par;
-            leader_len = next_leader_len;
-            leader_flags = next_leader_flags;
-        }
-
-        if (count == 1 || curwin->w_cursor.lnum == curbuf->b_ml.ml_line_count)
-        {
-            next_is_not_par = TRUE;
-            next_leader_len = 0;
-            next_leader_flags = NULL;
-        }
-        else
-        {
-            next_is_not_par = fmt_check_par(curwin->w_cursor.lnum + 1, &next_leader_len, &next_leader_flags, do_comments);
-            if (do_number_indent)
-            {
-                next_is_start_par =
-                           (get_number_indent(curwin->w_cursor.lnum + 1) > 0);
-            }
-        }
-        advance = TRUE;
-        is_end_par = (is_not_par || next_is_not_par || next_is_start_par);
-        if (!is_end_par && do_trail_white)
-        {
-            is_end_par = !ends_in_white(curwin->w_cursor.lnum);
-        }
-
-        if (is_not_par)
-        {
-            if (line_count < 0)
-            {
-                break;
-            }
-        }
-        else
-        {
-            if (first_par_line && (do_second_indent || do_number_indent) && prev_is_end_par && curwin->w_cursor.lnum < curbuf->b_ml.ml_line_count)
-            {
-                if (do_second_indent && ! (*ml_get(curwin->w_cursor.lnum + 1) == NUL) )
-                {
-                    if (leader_len == 0 && next_leader_len == 0)
-                    {
-                        second_indent =
-                                   get_indent_lnum(curwin->w_cursor.lnum + 1);
-                    }
-                    else
-                    {
-                        second_indent = next_leader_len;
-                        do_comments_list = 1;
-                    }
-                }
-                else if (do_number_indent)
-                {
-                    if (leader_len == 0 && next_leader_len == 0)
-                    {
-                        second_indent =
-                                     get_number_indent(curwin->w_cursor.lnum);
-                    }
-                    else
-                    {
-                        second_indent =
-                                     get_number_indent(curwin->w_cursor.lnum);
-                        do_comments_list = 1;
-                    }
-                }
-            }
-
-            if (curwin->w_cursor.lnum >= curbuf->b_ml.ml_line_count || !same_leader(curwin->w_cursor.lnum, leader_len, leader_flags, next_leader_len, next_leader_flags))
-            {
-                if (next_leader_flags == NULL ||  strncmp((char *)(next_leader_flags), (char *)("://"), (3))  != 0 || check_linecomment(ml_get_curline()) == MAXCOL)
-                {
-                is_end_par = TRUE;
-                }
-            }
-
-            if (is_end_par || force_format)
-            {
-                if (need_set_indent)
-                {
-                    int         indent = 0;
-
-                    if (curwin->w_cursor.lnum == first_line)
-                    {
-                        indent = get_indent();
-                    }
-                    else
-                    {
-                        indent = get_indent();
-                    }
-                    (void)set_indent(indent, SIN_CHANGED);
-                }
-
-                State = MODE_NORMAL;
-                coladvance((colnr_T)MAXCOL);
-                while (curwin->w_cursor.col && vim_isspace(gchar_cursor()))
-                {
-                    dec_cursor();
-                }
-
-                State = MODE_INSERT;
-                smd_save = p_smd;
-                p_smd = FALSE;
-
-                insertchar(NUL, INSCHAR_FORMAT + (do_comments ? INSCHAR_DO_COM : 0) + (do_comments && do_comments_list ? INSCHAR_COM_LIST : 0) + (avoid_fex ? INSCHAR_NO_FEX : 0), second_indent);
-
-                State = old_State;
-                p_smd = smd_save;
-
-                second_indent = -1;
-                need_set_indent = is_end_par;
-                if (is_end_par)
-                {
-                    if (line_count < 0)
-                    {
-                        break;
-                    }
-                    first_par_line = TRUE;
-                }
-                force_format = FALSE;
-            }
-
-            if (!is_end_par)
-            {
-                advance = FALSE;
-                curwin->w_cursor.lnum++;
-                curwin->w_cursor.col = 0;
-                if (line_count < 0 && u_save_cursor() == FAIL)
-                {
-                    break;
-                }
-                if (next_leader_len > 0)
-                {
-                    (void)del_bytes((long)next_leader_len, FALSE, FALSE);
-                    mark_col_adjust(curwin->w_cursor.lnum, (colnr_T)0, 0L, (long)-next_leader_len, 0);
-                }
-                else if (second_indent > 0)
-                {
-                    int indent = getwhitecols_curline();
-
-                    if (indent > 0)
-                    {
-                        (void)del_bytes(indent, FALSE, FALSE);
-                        mark_col_adjust(curwin->w_cursor.lnum, (colnr_T)0, 0L, (long)-indent, 0);
-                    }
-                }
-                curwin->w_cursor.lnum--;
-                if (do_join(2, TRUE, FALSE, FALSE, FALSE) == FAIL)
-                {
-                    beep_flush();
-                    break;
-                }
-                first_par_line = FALSE;
-                if (ml_get_curline_len() > max_len)
-                {
-                    force_format = TRUE;
-                }
-                else
-                {
-                    force_format = FALSE;
-                }
-            }
-        }
-        line_breakcheck();
-    }
 }
 
 // ==================== textobject.c ====================
@@ -90767,36 +88171,12 @@ findpar(int         *pincl, int         dir, long        count, int         what
 }
 
     static int
-inmacro(char_u *opt, char_u *s)
-{
-    char_u      *macro;
-
-    for (macro = opt; macro[0]; ++macro)
-    {
-        if (       (macro[0] == s[0] || (macro[0] == ' ' && (s[0] == NUL || s[0] == ' '))) && (macro[1] == s[1] || ((macro[1] == NUL || macro[1] == ' ') && (s[0] == NUL || s[1] == NUL || s[1] == ' '))))
-        {
-            break;
-        }
-        ++macro;
-        if (macro[0] == NUL)
-        {
-            break;
-        }
-    }
-    return (macro[0] != NUL);
-}
-
-    static int
 startPS(linenr_T lnum, int para, int both)
 {
     char_u      *s;
 
     s = ml_get(lnum);
     if (*s == para || *s == '\f' || (both && *s == '}'))
-    {
-        return TRUE;
-    }
-    if (*s == '.' && (inmacro(p_sections, s + 1) || (!para && inmacro(p_para, s + 1))))
     {
         return TRUE;
     }
