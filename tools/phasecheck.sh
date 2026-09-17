@@ -29,15 +29,21 @@ before=${3:?}
 
 obj=$work/phase.o
 
-# THE SWEEP ALREADY COMPILED THIS FILE.  Its last round is, by definition, a
-# compile of a file that the round then did not change -- so if the source is
-# still what that round saw, its object and its stderr answer both of the
-# questions below and this compile is pure waste.  Keyed by content, like tier 3
-# of the memoize: a different file has a different sha, so nothing goes stale.
+# THE SWEEP ALREADY COMPILED THIS FILE, twice over.  Its last round is, by
+# definition, a round on a file it then did not change -- so if the source is
+# still what that round saw, two of its answers are the two this compile is for,
+# and it is pure waste.  The warnings are deadsweep.py's stderr (last.txt), from
+# a compile that generates no code; the object is the plain -O0 one sweep.sh
+# builds in the background for phasebuild.sh (build.o), and which symbols an
+# object defines and needs does not depend on warning flags.  Both are keyed by
+# content, like tier 3 of the memoize, and both must match: a different file has
+# a different sha, so nothing goes stale, and anything else compiles as before.
 src_sha=$(sha256sum "$src" | cut -d' ' -f1)
-if [ -f .cache/compile/last.sha ] && [ -f .cache/compile/last.o ] \
-        && [ "$(cat .cache/compile/last.sha)" = "$src_sha" ]; then
-    cp .cache/compile/last.o "$obj"
+if [ -f .cache/compile/last.sha ] && [ -f .cache/compile/last.txt ] \
+        && [ -f .cache/compile/build.sha ] && [ -f .cache/compile/build.o ] \
+        && [ "$(cat .cache/compile/last.sha)" = "$src_sha" ] \
+        && [ "$(cat .cache/compile/build.sha)" = "$src_sha" ]; then
+    cp .cache/compile/build.o "$obj"
     cp .cache/compile/last.txt "$work/gcc.txt"
 elif ! gcc -c -O0 -Wall -Wextra -Wno-unused-parameter -o "$obj" "$src" \
         2>"$work/gcc.txt"; then

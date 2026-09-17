@@ -955,6 +955,14 @@ Substituting `-fsyntax-only` is faster but does **not** report
 names and run it again — deleting a function orphans its callees, and reaching
 silence took eight rounds.
 
+**`-flto -fno-fat-lto-objects` is the fast form that does report it**: gcc
+builds the call graph, warns, and writes GIMPLE instead of generating code. The
+warnings are byte-identical, in 2.4 s instead of 6.0 on a 129,000-line file, and
+that is what `tools/deadsweep.py` compiles with. It leaves no object `nm` can
+read, so `tools/phasecheck.sh` takes the plain `-O0` object `sweep.sh` builds in
+the background for the phase's link, `.cache/compile/build.o`, when both its sha
+and the warnings' sha are the source's — and compiles for itself otherwise.
+
 **Key on the warning option, never the sentence.** `'X' defined but not used` is
 emitted for both functions and variables, and only `[-Wunused-function]` versus
 `[-Wunused-variable]` distinguishes them. Treating every hit as a function

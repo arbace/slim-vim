@@ -44,11 +44,12 @@
 # argument assumes.  The obvious shape was worth measuring and not worth
 # keeping.
 #
-# THE LAST ROUND'S COMPILE IS KEPT, in .cache/compile, because the round that
-# ends a sweep is by definition a compile of a file that then does not change --
-# and phasecheck.sh wanted exactly that compile, for exactly the same two
-# answers.  It reuses it when the sha still matches, saving one compile of a
-# 145,000-line file in every phase.
+# THE LAST ROUND'S COMPILES ARE KEPT, in .cache/compile, because the round that
+# ends a sweep is by definition a round on a file that then does not change --
+# and phasecheck.sh wanted exactly those, for exactly the same two answers: the
+# warnings deadsweep.py asked for, and an object to run `nm` over, which is the
+# plain one the build rides along on (below).  It reuses them when both shas
+# still match, saving one compile of a 145,000-line file in every phase.
 #
 # THAT IS WHY canon.sh RUNS IN THE ROUND and not after the loop.  It was after
 # the loop, and the obvious move -- run it before instead, so the terminating
