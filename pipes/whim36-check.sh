@@ -30,11 +30,3 @@ echo "  tabs         nothing makes, reaches, moves, lists or draws a second tab 
 tools/phasecheck.sh "$work" "$f" "$state/symbols"
 
 tools/phasebuild.sh "$work" "$before_lines"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime command comclear colorscheme \
-    abbreviate noreabbrev abclear iabbrev inoreabbrev iabclear cabbrev cnoreabbrev cabclear \
-    sleep smile vim9script autocmd augroup doautocmd doautoall noautocmd sandbox filetype \
-    tab tabedit tabfirst tabmove tablast tabnext tabnew tabonly tabprevious tabNext tabrewind tabs redrawtabline

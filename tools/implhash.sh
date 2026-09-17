@@ -52,8 +52,27 @@ driven() {
     echo tools/symbols.sh
 }
 
+# The declared delta is data: the driver checks it after a stage, and phase 80's
+# edit reads its table cut from it.  What is hashed is the lines of
+# pipes/<pipeline>.delta for the unit's phases and every phase before them (for
+# --edit, the phase's own lines) -- not the whole file, so declaring a new phase's
+# delta at the end moves no earlier key -- and, for a unit, tools/whimdelta.sh.
+delta_lines() {
+    [ -f "pipes/$IMPL.delta" ] || return 0
+    case $progs in *-edit.sh*) ;; *) return 0 ;; esac
+    awk -v N="${phase#*-}" -v ONLY="${edit_only:-}" '
+        /^[ \t]*#/ || NF == 0 { next }
+        /^[0-9]/ { p = $1 + 0 }
+        p <= N && (ONLY == "" || p == N) { print }' "pipes/$IMPL.delta"
+    if [ -z "${edit_only:-}" ]; then
+        cat tools/whimdelta.sh
+        for e in $(deps tools/whimdelta.sh | sort -u); do [ -f "$e" ] && cat "$e"; done
+    fi
+}
+
 {
     for p in $progs; do cat "$p"; done
+    delta_lines
     for d in $( { for p in $progs; do deps "$p"; done; driven; } | sort -u); do
         [ -f "$d" ] || continue
         cat "$d"

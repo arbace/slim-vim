@@ -57,8 +57,3 @@ if [ "$ov" != "0:one" ]; then
     exit 1
 fi
 echo "  overwrite    :w! over an existing other file writes it"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime

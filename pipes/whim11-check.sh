@@ -32,13 +32,3 @@ if [ "$sw" != "f.txt " ]; then
     exit 1
 fi
 echo "  swapfile     editing a file leaves the file, and nothing else"
-
-# --- the delta, cumulative --------------------------------------------------
-# Three surprises in this list, all of them the harness being more exact than
-# the author.  :mksession and :mkview do NOT move -- they already failed.  And
-# :recover leaves the list it joined in Phase 7: globbing's removal had made it
-# fail differently from the slim baseline, and ex_ni makes it fail the SAME way
-# again, so it stops being a difference.  A cumulative delta can shrink.
-tools/whimdelta.sh "$work/whim-vim" "$f" --cases filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime

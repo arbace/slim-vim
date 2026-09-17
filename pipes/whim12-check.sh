@@ -58,8 +58,3 @@ if [ "$ok" != "c380c3890a" ]; then
     exit 1
 fi
 echo "  utf-8        multibyte case conversion still works, and 'encoding' is utf-8"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime

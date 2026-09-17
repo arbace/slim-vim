@@ -60,8 +60,3 @@ if [ "$rel" != "one 2 three " ]; then
     exit 1
 fi
 echo "  relative     a relative path with a directory in it opens and writes"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime

@@ -1,7 +1,17 @@
 #!/bin/sh
 # What whim-vim does differently from slim-vim, as a check rather than a report.
 #
-# Usage: tools/whimdelta.sh <binary> <source> [--term-moved] [--cases c1,c2] [commands...]
+# Usage: tools/whimdelta.sh <binary> <source> --phase N
+#        tools/whimdelta.sh <binary> <source> [--term-moved] [--cases c1,c2] [commands...]
+#        tools/whimdelta.sh --declared N
+#
+# --phase N checks the delta pipes/whim.delta declares up to phase N: every line
+# for a phase <= N, a command added by its name and taken out by drop:name, a case
+# by case:name, the terminal table by term-moved.  tools/phaserun.sh calls it once
+# per stage, for the stage's last phase, because the list up to a phase is the
+# whole difference from slim at that phase and so contains every earlier phase's.
+# The second form states a list by hand.  --declared N prints the commands phase N
+# itself declares, one per line -- phase 80's edit reads its table cut from there.
 #
 # This is the rule that separates WHIM-GOAL.md from SLIM-GOAL.md.  There, any
 # behavioural change is a bug and the check is "nothing moved".  Here a change
@@ -12,21 +22,40 @@
 # "Six commands differ" is a check.  "Some commands differ" is not.
 set -eu
 
-bin=${1:?usage: whimdelta.sh <binary> <source> [--cases c1,c2] [commands...]}
-src=${2:?}
-shift 2
+delta_awk='
+    /^[ \t]*#/ || NF == 0 { next }
+    {
+        i = 1
+        if ($0 ~ /^[0-9]/) { phase = $1 + 0; i = 2 }
+        if (phase > N) next
+        for (; i <= NF; i++) {
+            w = $i
+            if (phase == N && w !~ /^(case:|drop:|term-moved$)/) own[++nown] = w
+            if (w == "term-moved") term = 1
+            else if (w ~ /^drop:case:/) delete cases[substr(w, 11)]
+            else if (w ~ /^drop:/) delete cmds[substr(w, 6)]
+            else if (w ~ /^case:/) cases[substr(w, 6)] = 1
+            else cmds[w] = 1
+        }
+    }
+    END {
+        if (WHAT == "term") print (term ? "yes" : "no")
+        else if (WHAT == "cases") for (c in cases) print c
+        else if (WHAT == "cmds") for (c in cmds) print c
+        else if (WHAT == "own") for (k = 1; k <= nown; k++) print own[k]
+    }'
+declared() {
+    awk -v N="$1" -v WHAT="$2" "$delta_awk" pipes/whim.delta
+}
 
-# INSIDE A STAGE, only the last phase's delta is checked.  tools/phaserun.sh runs
-# every phase's check after the stage's one sweep, on the stage's one binary, and
-# a delta list is cumulative -- each phase states the whole difference from slim
-# -- so the last phase's list is every earlier phase's list plus what came after
-# it, and an earlier list checked against the stage's binary would fail on
-# exactly the commands a later phase in the stage removed.  The driver says so
-# by setting WHIMDELTA_SKIP to the phase whose list will be checked.
-if [ -n "${WHIMDELTA_SKIP:-}" ]; then
-    echo "  delta        left to phase $WHIMDELTA_SKIP, whose list includes this one"
+if [ "${1:-}" = "--declared" ]; then
+    declared "${2:?usage: whimdelta.sh --declared N}" own
     exit 0
 fi
+
+bin=${1:?usage: whimdelta.sh <binary> <source> --phase N | [--term-moved] [--cases c1,c2] [commands...]}
+src=${2:?}
+shift 2
 
 # A phase may change an editing BEHAVIOUR as well as an Ex command's exit, and
 # until Phase 8 none had, so this tool asserted "behaviour: none" outright.
@@ -34,17 +63,24 @@ fi
 # keystroke -- but a default is not a check, and a phase that genuinely moves a
 # case has to be able to say which.  Declared the same way and held to the same
 # rule: exactly these, and no others.
-term_moved=no
-if [ "${1:-}" = "--term-moved" ]; then
-    term_moved=yes
-    shift
+if [ "${1:-}" = "--phase" ]; then
+    n=${2:?usage: whimdelta.sh <binary> <source> --phase N}
+    term_moved=$(declared "$n" term)
+    cases=$(declared "$n" cases | sort -u | tr '\n' ' ')
+    expected=$(declared "$n" cmds | sort -u | tr '\n' ' ')
+else
+    term_moved=no
+    if [ "${1:-}" = "--term-moved" ]; then
+        term_moved=yes
+        shift
+    fi
+    cases=
+    if [ "${1:-}" = "--cases" ]; then
+        cases=$(printf '%s' "$2" | tr ',' '\n' | sort -u | tr '\n' ' ')
+        shift 2
+    fi
+    expected=$(printf '%s\n' "$@" | sort -u | tr '\n' ' ')
 fi
-cases=
-if [ "${1:-}" = "--cases" ]; then
-    cases=$(printf '%s' "$2" | tr ',' '\n' | sort -u | tr '\n' ' ')
-    shift 2
-fi
-expected=$(printf '%s\n' "$@" | sort -u | tr '\n' ' ')
 
 # Before anything behavioural: no option global may be left without the row
 # that initialises it.  This is a source question rather than a behavioural one,

@@ -25,7 +25,3 @@ if [ "$(cat .cache/symbols/last/after)" -ge "$(cat .cache/symbols/last/before)" 
 fi
 
 tools/phasebuild.sh "$work" "$before_lines"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --cases filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd recover '!' 

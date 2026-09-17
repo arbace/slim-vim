@@ -45,9 +45,10 @@
 #                        `total`, `keep` and `old/whim-vim.c`.  An edit that starts
 #                        a background job waits for it before it exits.
 #
-# THE DELTA IS THE STAGE'S.  A delta list is the whole difference from slim at its
-# phase, so only the last phase's is checked; every earlier check runs with
-# WHIMDELTA_SKIP set (tools/whimdelta.sh).
+# THE DELTA IS THE STAGE'S, and no check part states one.  pipes/<pipeline>.delta
+# declares what each phase changes; the lines up to a phase are the whole difference
+# from slim at that phase, so the stage's last phase's contains every earlier one's,
+# and this driver runs tools/whimdelta.sh --phase <last> once, after the checks.
 #
 # The state directories are .cache/state/<tag><N>, and the stage's own
 # .cache/state/<tag><unit>.stage, relative to where the unit runs -- never inside
@@ -146,21 +147,20 @@ done
 tools/sweep.sh "$f"
 
 # The checks, in order, all on the stage's one swept text and one binary.  Every
-# check compares symbols with the stage's start.  Only the last phase's check
-# checks the delta: a delta list is the whole difference from slim at its phase, so
-# the last list is the stage's, and an earlier one would fail on exactly what a
-# later phase in the stage removed (tools/whimdelta.sh).
+# check compares symbols with the stage's start.
 for p in $phases; do
     state=.cache/state/$TAG$p
     rm -rf "$state/symbols"
     cp -r "$stage_state/symbols" "$state/symbols"
     [ "$first" = "$last" ] || printf '  %-12s %s\n' "check $p" "$(tools/phasename.sh "$p" "$PIPE" 2>/dev/null || true)"
-    if [ "$p" = "$last" ]; then
-        "pipes/$IMPL$p-check.sh" "$work" "$state"
-    else
-        WHIMDELTA_SKIP=$last "pipes/$IMPL$p-check.sh" "$work" "$state"
-    fi
+    "pipes/$IMPL$p-check.sh" "$work" "$state"
 done
+
+# The declared delta, once: pipes/<pipeline>.delta up to the stage's last phase is
+# the whole difference from slim there, and so holds every earlier phase's.
+if [ -f "pipes/$IMPL.delta" ]; then
+    tools/whimdelta.sh "$work/${PSOURCE%.c}" "$f" --phase "$last"
+fi
 
 for p in $phases; do rm -rf ".cache/state/$TAG$p"; done
 rm -rf "$stage_state"

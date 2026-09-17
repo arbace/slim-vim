@@ -54,8 +54,3 @@ esac
 [ "$(probe autoindent)" = 0 ] || { echo "  options      the control failed"; exit 1; }
 [ "$(probe cindent)" = 0 ] && { echo "  options      :set cindent was accepted"; exit 1; }
 echo "  autoindent   still indents; :set cindent is refused"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime

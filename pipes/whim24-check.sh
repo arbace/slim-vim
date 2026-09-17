@@ -53,8 +53,3 @@ if [ "$(probe mouse=a)" = 0 ]; then
     exit 1
 fi
 echo "  options      :set mouse=a is refused, :set ignorecase still taken"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime

@@ -1,0 +1,139 @@
+# The whim pipeline's declared delta: what each phase changes, in advance.
+#
+# Read by tools/whimdelta.sh --phase N, which takes every line up to phase N and
+# checks the binary moved in exactly that way: these Ex commands, these behaviour
+# cases, the terminal table or not -- and nothing else (WHIM-GOAL.md, the rule that
+# separates it from SLIM-GOAL.md).  One line per phase that changes the list; a
+# phase with no line declares nothing new.  Continuation lines are indented.
+#
+#   word          an Ex command whose exit, or what it leaves behind, now differs
+#   case:NAME     a behaviour case (tools/behaviour.py) whose recording now differs
+#   term-moved    the terminal table (tools/termcheck.py) now differs
+#   drop:word     a command declared earlier that no longer differs
+#
+# The list up to a phase is the whole difference from slim-vim at that phase, which
+# is why a stage checks only its last phase's: every earlier phase's is inside it.
+# The list is measured against slim-vim's own recorded baselines, never against the
+# previous phase: each phase states the whole difference from slim, so a phase that
+# quietly undid an earlier one shows up.  It used to be written out in full at the
+# end of every phase program, 82 growing copies; the notes below came with it.
+#
+# 1: exactly ONE command changes what the sweep records, and the reason is worth
+# stating because it is not the obvious one.  The sweep runs in an environment
+# with no runtime installed -- which is the target environment -- so :help,
+# :helptags, :runtime, :exusage and :viusage were ALREADY failing in slim-vim:
+# they went looking for files that were not there.  Pointing them at ex_ni
+# changes the message and not the outcome.
+#
+# :helpclose is the exception, and the only honest entry in this list: closing a
+# help window that is not open is a no-op that SUCCEEDS, so it is the one row
+# whose recorded result moves from ok to E319.
+#
+# The user-visible delta is larger than this, on a machine that does have a vim
+# runtime installed.  The harness cannot see that and does not pretend to; what
+# it can prove is that nothing ELSE moved.
+1     helpclose
+#
+# 2 adds nothing.  Every command it touched was already ex_ni, so the Ex sweep
+# records nothing new; what changed is `:set`, which the sweep does not exercise.
+# The evidence that work happened is the score, not the delta, and saying so is
+# better than inventing a delta to point at.
+3     intro version
+7     cd chdir lcd lchdir tcd tchdir pwd recover
+8     case:filter case:read_cmd !
+9     language
+#
+# ONE row moves, not fifteen.  Retiring a command only shows up in the sweep if
+# the command used to SUCCEED: :tag, :tjump and the rest already failed with no
+# tags file to read, and ex_ni fails too, so their recorded exit is unchanged.
+# :tags listed an empty tag stack and exited 0, and now reports instead.  The
+# declared list is what moved, not what was cut.
+10    tags
+#
+# Three surprises in this list, all of them the harness being more exact than
+# the author.  :mksession and :mkview do NOT move -- they already failed.  And
+# :recover leaves the list it joined in Phase 7: globbing's removal had made it
+# fail differently from the slim baseline, and ex_ni makes it fail the SAME way
+# again, so it stops being a difference.  A cumulative delta can shrink.
+11    preserve swapname mkvimrc mkexrc checktime drop:recover
+12    case:bomb_on
+#
+# term-moved: phase 19 collapsed the terminal table for good.  The comparison is
+# always against the slim baseline, so every phase after it inherits the line.
+19    term-moved
+29    command comclear
+33    colorscheme
+34    abbreviate noreabbrev abclear iabbrev inoreabbrev iabclear cabbrev cnoreabbrev
+      cabclear
+35    sleep smile vim9script autocmd augroup doautocmd doautoall noautocmd sandbox
+      filetype
+36    tab tabedit tabfirst tabmove tablast tabnext tabnew tabonly tabprevious tabNext
+      tabrewind tabs redrawtabline
+37    browse confirm mode open tmap tmapclear tnoremap
+38    all args argadd argdelete argdedupe argglobal arglocal argument first last rewind
+      sargument sall sfirst slast srewind
+39    aboveleft ball belowright botright horizontal leftabove new only resize rightbelow
+      sbuffer sbNext sball sbfirst sblast sbnext sbprevious sbrewind split sunhide sview
+      syncbind topleft unhide vertical vnew vsplit
+41    buffer bNext bdelete bfirst blast brewind buffers bwipeout files ls
+42    bnext bprevious keepalt
+44    case:retab case:sort_u case:sort_n center left retab right sort uniq
+46    qall quitall wall wqall xall
+47    startinsert startreplace startgreplace stopinsert
+48    noswapfile
+49    setlocal setglobal
+50    case:ff_dos case:binary_mode
+58    lmap lnoremap lmapclear
+63    jumps clearjumps
+64    case:format_gq case:format_comment case:open_comment
+#
+# Every removed row: the sweep dispatches the names in the table, so a row that
+# goes is a row whose result goes.  Phase 80's edit reads this list as the rows
+# it must find as stubs (tools/whimdelta.sh --declared 80).
+80    abbreviate abclear aboveleft abstract all amenu anoremenu args argadd argdelete
+      argdo argdedupe argedit argglobal arglocal argument autocmd augroup aunmenu buffer
+      bNext ball badd balt bdelete behave belowright bfirst blast bmodified bnext
+      botright bprevious brewind break breakadd breakdel breaklist browse buffers bufdo
+      bunload bwipeout cNext cNfile cabbrev cabclear cabove caddbuffer caddexpr caddfile
+      cafter call catch cbuffer cbefore cbelow cbottom cc cclose cd cdo center cexpr
+      cfile cfdo cfirst cgetfile cgetbuffer cgetexpr chdir checkpath checktime chistory
+      clist clipreset clast class close clearjumps cmenu cnext cnewer cnfile cnoreabbrev
+      cnoremenu colder colorscheme command comclear compiler continue confirm const
+      copen cprevious cpfile crewind cscope cstag cunabbrev cunmenu cwindow debug
+      debuggreedy def defcompile defer delcommand delfunction diffupdate diffget diffoff
+      diffpatch diffput diffsplit diffthis digraphs disassemble djump dlist doautocmd
+      doautoall drop dsearch dsplit echo echoerr echohl echomsg echoconsole echon
+      echowindow else elseif emenu endif endinterface endclass enddef endenum
+      endfunction endfor endtry endwhile enum eval execute export exusage files filetype
+      find final finally finish first fold foldclose folddoopen folddoclosed foldopen
+      for function goto grep grepadd gui gvim help helpclose helpfind helpgrep helptags
+      hardcopy hide horizontal iabbrev iabclear if ijump ilist imenu import inoreabbrev
+      inoremenu intro interface isearch isplit iunabbrev iunmenu jumps keepalt lNext
+      lNfile last labove language laddexpr laddbuffer laddfile lafter lbuffer lbefore
+      lbelow lbottom lcd lchdir lclose lcscope ldo left leftabove let lexpr legacy lfile
+      lfdo lfirst lgetfile lgetbuffer lgetexpr lgrep lgrepadd lhelpgrep lhistory ll
+      llast llist lmap lmapclear lmake lnoremap lnext lnewer lnfile loadview loadkeymap
+      lockvar lolder lopen lprevious lpfile lrewind ltag lunmap lua luado luafile
+      lvimgrep lvimgrepadd lwindow ls make menu menutranslate mkexrc mksession mkspell
+      mkvimrc mkview mode mzscheme mzfile next nbkey nbclose nbstart new nmenu nnoremenu
+      noautocmd noreabbrev noremenu noswapfile nunmenu open oldfiles omenu only
+      onoremenu options ounmenu ownsyntax packadd packloadall pbuffer pclose perl perldo
+      pedit pop popup ppop preserve previous promptfind promptrepl profile profdel
+      psearch ptag ptNext ptfirst ptjump ptlast ptnext ptprevious ptrewind ptselect
+      public pwd python pydo pyfile py3 py3do python3 py3file pyx pyxdo pythonx pyxfile
+      quitall qall recover redir redrawtabline redrawtabpanel resize retab return rewind
+      right rightbelow runtime ruby rubydo rubyfile rundo rviminfo sNext sargument sall
+      sandbox sbuffer sbNext sball sbfirst sblast sbmodified sbnext sbprevious sbrewind
+      scriptnames scriptencoding scriptversion scscope setfiletype setglobal setlocal
+      sfind sfirst shell simalt sign sleep slast smenu snext snoremenu source sort split
+      spellgood spelldump spellinfo spellrepall spellrare spellundo spellwrong sprevious
+      srewind stag startinsert startgreplace startreplace static stopinsert stjump
+      stselect sunhide sunmenu sview swapname syntax syntime syncbind smile tNext tag
+      tags tab tabclose tabdo tabedit tabfind tabfirst tabmove tablast tabnext tabnew
+      tabonly tabprevious tabNext tabrewind tabs tcd tchdir tcl tcldo tclfile tearoff
+      terminal tfirst throw this tjump tlast tlmenu tlnoremenu tlunmenu tmenu tmap
+      tmapclear tnext tnoremap topleft tprevious trewind try tselect tunmenu tunmap type
+      unabbreviate unhide uniq unlet unlockvar unmenu var version vertical vimgrep
+      vimgrepadd vim9cmd vim9script viusage vmenu vnew vnoremenu vsplit vunmenu wNext
+      wall while wincmd windo winpos wlrestore wnext wprevious wqall wundo wviminfo xall
+      xmenu xnoremenu xrestore xunmenu ! { } Next X ++ --

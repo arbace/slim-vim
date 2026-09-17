@@ -42,8 +42,3 @@ if [ "$t" != "one two " ]; then
     exit 1
 fi
 echo "  fnamemod     \`:w %\` still writes the file being edited"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime command comclear

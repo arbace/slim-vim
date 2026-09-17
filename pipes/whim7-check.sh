@@ -17,7 +17,3 @@ before_lines=$(cat "$state/input-lines")
 tools/phasecheck.sh "$work" "$f" "$state/symbols"
 
 tools/phasebuild.sh "$work" "$before_lines"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd recover

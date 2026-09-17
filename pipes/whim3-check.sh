@@ -38,14 +38,6 @@ tools/phasebuild.sh "$work" "$before_lines"
 own_checks() {
     python3 tools/clicheck.py "$work/whim-vim"
 }
-# The phase's own check needs only the binary, and so does the delta: they run
-# side by side, and this one's verdict is read after the delta has finished.
-checks=$(mktemp)
-trap 'rm -f "$checks"' EXIT
-own_checks > "$checks" 2>&1 &
-pid_checks=$!
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" helpclose intro version
-
-if wait $pid_checks; then cat "$checks"; else cat "$checks"; exit 1; fi
+# The declared delta is not checked here: tools/phaserun.sh checks the stage's, once,
+# after every check in the stage has passed.
+own_checks

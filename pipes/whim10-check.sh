@@ -20,13 +20,3 @@ before_lines=$(cat "$state/input-lines")
 tools/phasecheck.sh "$work" "$f" "$state/symbols"
 
 tools/phasebuild.sh "$work" "$before_lines"
-
-# --- the delta, cumulative --------------------------------------------------
-# ONE row moves, not fifteen.  Retiring a command only shows up in the sweep if
-# the command used to SUCCEED: :tag, :tjump and the rest already failed with no
-# tags file to read, and ex_ni fails too, so their recorded exit is unchanged.
-# :tags listed an empty tag stack and exited 0, and now reports instead.  The
-# declared list is what moved, not what was cut.
-tools/whimdelta.sh "$work/whim-vim" "$f" --cases filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd recover '!' language \
-    tags

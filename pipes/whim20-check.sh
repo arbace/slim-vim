@@ -56,11 +56,3 @@ done
 echo "  symbols      getenv, setenv, unsetenv and environ are gone from nm -u"
 
 tools/phasebuild.sh "$work" "$before_lines"
-
-# --- the delta, cumulative --------------------------------------------------
-# --term-moved is CUMULATIVE, like the command list: the comparison is always
-# against the slim baseline, and phase 19 collapsed that table for good.  Every
-# phase after it declares the same thing.
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime

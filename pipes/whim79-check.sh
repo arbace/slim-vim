@@ -139,26 +139,3 @@ printf 'r1\nr2\nr3\n' > "$d/u.txt"
 (cd "$d" && HOME="$d" ./vim -e -s '+2' '+normal! dd' '+normal! u' '+wq' u.txt </dev/null >/dev/null 2>&1) || true
 [ "$(tr '\n' '|' < "$d/u.txt")" = 'r1|r2|r3|' ] || { echo "  noconstfn    undo broke: '$(tr '\n' '|' < "$d/u.txt")'"; exit 1; }
 echo "  noconstfn    ranges, :g, :set, writing, marks and undo all work"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime command comclear colorscheme \
-    abbreviate noreabbrev abclear iabbrev inoreabbrev iabclear cabbrev cnoreabbrev cabclear \
-    sleep smile vim9script autocmd augroup doautocmd doautoall noautocmd sandbox filetype \
-    tab tabedit tabfirst tabmove tablast tabnext tabnew tabonly tabprevious tabNext tabrewind tabs redrawtabline \
-    browse confirm mode open tmap tmapclear tnoremap \
-    all args argadd argdelete argdedupe argglobal arglocal argument first last rewind \
-    sargument sall sfirst slast srewind \
-    aboveleft ball belowright botright horizontal leftabove new only resize rightbelow \
-    sbuffer sbNext sball sbfirst sblast sbnext sbprevious sbrewind split sunhide sview \
-    syncbind topleft unhide vertical vnew vsplit \
-    buffer bNext bdelete bfirst blast brewind buffers bwipeout files ls \
-    bnext bprevious keepalt \
-    center left retab right sort uniq \
-    qall quitall wall wqall xall \
-    startinsert startreplace startgreplace stopinsert \
-    noswapfile \
-    setlocal setglobal \
-    lmap lnoremap lmapclear \
-    jumps clearjumps

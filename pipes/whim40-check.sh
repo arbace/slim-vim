@@ -47,17 +47,3 @@ for o in winheight winminheight winwidth winminwidth helpheight splitbelow split
     fi
 done
 echo "  options      the twelve sizing options are refused, :set ignorecase still taken"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime command comclear colorscheme \
-    abbreviate noreabbrev abclear iabbrev inoreabbrev iabclear cabbrev cnoreabbrev cabclear \
-    sleep smile vim9script autocmd augroup doautocmd doautoall noautocmd sandbox filetype \
-    tab tabedit tabfirst tabmove tablast tabnext tabnew tabonly tabprevious tabNext tabrewind tabs redrawtabline \
-    browse confirm mode open tmap tmapclear tnoremap \
-    all args argadd argdelete argdedupe argglobal arglocal argument first last rewind \
-    sargument sall sfirst slast srewind \
-    aboveleft ball belowright botright horizontal leftabove new only resize rightbelow \
-    sbuffer sbNext sball sbfirst sblast sbnext sbprevious sbrewind split sunhide sview \
-    syncbind topleft unhide vertical vnew vsplit

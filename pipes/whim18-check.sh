@@ -61,8 +61,3 @@ case "$out" in
     *) echo "  cli          -u is not refused as unknown (exit $rc): $out"; exit 1 ;;
 esac
 echo "  cli          -u is an unknown option"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime

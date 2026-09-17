@@ -28,7 +28,3 @@ if [ "$enc" != "encoding=utf-8" ]; then
     exit 1
 fi
 echo "  encoding     utf-8 by compiled default, with no locale asked"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --cases filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd recover '!' language

@@ -53,8 +53,3 @@ if [ "$alpha" != "#1# " ]; then
     exit 1
 fi
 echo "  equiclass    [[=a=]] is literal now, and [[:alpha:]] still classifies"
-
-# --- the delta, cumulative --------------------------------------------------
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime

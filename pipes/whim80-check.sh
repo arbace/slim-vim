@@ -13,7 +13,7 @@ work=${1:?usage: whim80-check.sh <work-dir> <state-dir>}
 state=${2:?usage: whim80-check.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 before_lines=$(cat "$state/input-lines")
-REMOVED=$(sed -n "/^REMOVED='$/,/^'$/p" pipes/whim80-edit.sh | sed '1d;$d')
+REMOVED=$(tools/whimdelta.sh --declared 80)
 
 # Nothing the rows took with them may be named any more.
 for g in cmd_namelen cmdidxs1 cmdidxs2 command_count e_command_table_needs_to_be_updated_run_make_cmdidxs \
@@ -121,29 +121,3 @@ for c in ('buffer|%s/a/X/|w', 'n|%s/a/X/|w'):
 print('  cmdtable     %d words and %d command lines through both binaries: identical but for %s'
       % (len(words), len(LINES), ', '.join('%s (%s)' % kv for kv in sorted(DIFFER.items()))))
 PY
-
-# --- the delta, cumulative --------------------------------------------------
-# Phase 79's list, and every removed row: the sweep dispatches the names in the
-# table, so a row that goes is a row whose result goes.
-tools/whimdelta.sh "$work/whim-vim" "$f" --term-moved --cases bomb_on,filter,read_cmd,retab,sort_u,sort_n,ff_dos,binary_mode,format_gq,format_comment,open_comment \
-    helpclose intro version cd chdir lcd lchdir tcd tchdir pwd '!' language \
-    tags preserve swapname mkvimrc mkexrc checktime command comclear colorscheme \
-    abbreviate noreabbrev abclear iabbrev inoreabbrev iabclear cabbrev cnoreabbrev cabclear \
-    sleep smile vim9script autocmd augroup doautocmd doautoall noautocmd sandbox filetype \
-    tab tabedit tabfirst tabmove tablast tabnext tabnew tabonly tabprevious tabNext tabrewind tabs redrawtabline \
-    browse confirm mode open tmap tmapclear tnoremap \
-    all args argadd argdelete argdedupe argglobal arglocal argument first last rewind \
-    sargument sall sfirst slast srewind \
-    aboveleft ball belowright botright horizontal leftabove new only resize rightbelow \
-    sbuffer sbNext sball sbfirst sblast sbnext sbprevious sbrewind split sunhide sview \
-    syncbind topleft unhide vertical vnew vsplit \
-    buffer bNext bdelete bfirst blast brewind buffers bwipeout files ls \
-    bnext bprevious keepalt \
-    center left retab right sort uniq \
-    qall quitall wall wqall xall \
-    startinsert startreplace startgreplace stopinsert \
-    noswapfile \
-    setlocal setglobal \
-    lmap lnoremap lmapclear \
-    jumps clearjumps \
-    $REMOVED
