@@ -13,6 +13,15 @@
 # The second is what caught the one silent case (54 after 53 without its inner
 # sweep), and it is why the comparison at a stage end is never optional.
 #
+# It also carries a second view of the same 83 phases, which changes nothing about
+# how they run: PACKAGES (at the end).  `package NAME P...` puts phases in a concept,
+# and `uses A:P B:Q why` says phase P of package A relies on phase Q of package B
+# having run.  Those two kinds are read by tools/packages.sh and by nothing that
+# runs a phase: tools/stages.sh reads only `stage`, `need` and `apart`, and this file
+# is not part of any implementation digest.  The packages checker is a tool of its
+# own rather than a mode of tools/stages.sh because tools/phaserun.sh names
+# stages.sh, so every byte of stages.sh is in every stage's cache key.
+#
 # --- the schedule ---------------------------------------------------------
 # The lab's fastest schedule was seven stages -- 1-12 13-41 42-71 72-78 79 80-81 82
 # (e12), with the nine inner sweeps of section 2c removed (12 15 17 25 35 36 39 55
@@ -98,3 +107,92 @@ need  81    compiles           the same; 80's unswept output compiles (measured)
 #                              apart for their checks, below, so 81 starts a stage anyway
 need  82    silent             the edit refuses input that does not compile silently; 80-81 unswept
 #                              does not (measured)
+#
+# --- packages: the same phases, by concept ---------------------------------
+#   package NAME P...   the phases, in pipeline order, that remove one concept.  Every
+#                       phase is in exactly one package.
+#   uses A:P B:Q why    phase P (package A) relies on phase Q (package B) having run:
+#                       what P cuts, folds, asserts or declares is only right, or only
+#                       safe, because Q removed something first.  Only dependencies
+#                       ACROSS packages are listed, only with a reason a phase program
+#                       or WHIM-GOAL.md states, and Q always runs before P.
+#
+# A package is a VIEW: it moves no phase and no boundary.  The order is still the
+# order the work was done in (WHIM-PLAN.md section 5), and a package's phases are
+# spread across stages.  Assigned from what each phase's program does, not from its
+# title; the ones that do two things are in the package of the larger cut.
+# tools/packages.sh whim --check refuses a phase in no package or in two, an unknown
+# phase or package, a `uses` inside one package, and a `uses` whose dependency runs
+# after its dependent.
+#
+#        name         phases
+package  seed         0
+package  environment  1 9 20 23 26
+package  options      2 16 49 54 55 56 60 62
+package  startup      3 4 18 43
+package  regexp       5 27 76
+package  files        6 7 8 13 14 22 25 31
+package  tags         10 30 63 74
+package  swap         11 21 48
+package  encodings    12 15 17 50 51 52 53
+package  terminal     19 24 61 67
+package  text         28 44 57 64 65 66
+package  scripts      29 35 75
+package  completion   32 59
+package  commands     33 37 47 80 81
+package  mappings     34 58
+package  windows      36 39 40 68 72 73
+package  buffers      38 41 42 45 46 69 70 71 77
+package  tidy         78 79 82
+#
+#     dependent       dependency      why
+uses  encodings:12    environment:9   mb_init() refuses all but utf-8; the compiled default is utf-8 only since 9
+uses  options:16      tags:10         'tags' and 'tagcase' have decided nothing since the tag stack went
+uses  options:16      swap:11         'swapfile': ml_open() says no swap file whatever it is set to, since 11
+uses  options:16      files:13        'autoread': ex_drop() saved and restored it around a check 13 removed
+uses  options:16      files:14        'path' and 'suffixesadd' have decided nothing since the file finder went
+uses  encodings:17    swap:11         add_b0_fenc() wrote into a swap file's block zero, and 11 left none
+uses  environment:20  startup:18      vimrc_found()'s callers are dead: every do_source() passes DOSO_NONE since 18
+uses  swap:21         environment:20  :undolist's clock time goes because 20 took every way of being told the zone
+uses  files:25        environment:20  get_user_name() is `return FAIL;` since 20, so its caller's test folds
+uses  environment:26  swap:11         SIGPWR's handler called ml_sync_all(), empty since 11 (tools/noswap.py)
+uses  environment:26  swap:21         deathtrap() cannot preserve: 21 removed preserve_exit()'s loop (tools/nomemfile.py)
+uses  tags:30         files:8         K ran 'keywordprg' through :!, which has had no process since 8
+uses  files:31        environment:20  :~ shortened a name under $HOME, a notion 20 removed
+uses  completion:32   tags:10         the tag source of CTRL-X completion was already gone
+uses  completion:32   files:7         file-name completion went through the globbing 7 removed
+uses  commands:33     files:8         :shell's row goes because it has answered E319 since 8
+uses  scripts:35      startup:18      a script has nowhere to come from: nothing is read at startup since 18
+uses  text:44         files:8         :r !cmd and :w !cmd keep reaching do_bang() for 8's refusal
+uses  buffers:45      windows:39      with one window :drop was :args plus :first
+uses  buffers:46      windows:39      with one window :qall is :q, which is what exsweep.py falls back to
+uses  options:54      encodings:53    its row set is COMPUTED, and holds 'arabic' only once 53's second cut is swept
+uses  options:56      files:8         'shell', 'shellquote', 'shellredir': no shell is run since 8
+uses  options:56      tags:30         'keywordprg': K went in 30
+uses  options:60      files:7         'suffixes' ordered wildcard matches, and nothing has expanded since 7
+uses  options:60      text:44         'formatprg', 'equalprg' only built a :{range}! line, ex_ni since 44
+uses  options:62      swap:11         'updatetime': the idle sync reached ml_sync_all(), empty since 11
+uses  options:62      scripts:35      'buflisted', 'filetype': their readers chose events, and 35 made dispatch FALSE
+uses  text:64         options:60      = only re-applied the existing indent once 'equalprg' went in 60
+uses  text:65         options:55      g@ had no 'operatorfunc' to call after 55
+uses  text:65         completion:32   ins_ctrl_x() is empty since 32 (tools/nocomplkeys.py), so its call goes
+uses  windows:68      scripts:35      the autocommand window ran autocommands, and dispatch is FALSE since 35
+uses  buffers:70      swap:11         ml_open_file() is only `b_may_swap = FALSE` since 11
+uses  buffers:70      swap:21         findswapname, swapfile_info and ml_recover went with recovery in 21
+uses  tags:74         buffers:70      fname2fnum() is an empty body since 70, left for the file-mark cut
+uses  buffers:77      swap:11         it asserts every EX_BUFNAME row is ex_ni; :checktime went in 11
+uses  buffers:77      windows:39      the same assertion; :sbuffer went in 39
+uses  tidy:78         scripts:75      autocmd_blocked and prevwin lost their last readers in 75
+uses  tidy:78         windows:68      w_id is a constant only because 68 left one window
+uses  tidy:79         files:13        asserts check_timestamps() is `return 0;`, which 13 made it
+uses  tidy:79         encodings:17    asserts bomb_size() is `return 0;`, which 17 made it
+uses  tidy:79         completion:32   asserts pum_visible(), ins_compl_active() and four more are constant (32)
+uses  tidy:79         scripts:35      asserts in_vim9script() and the has_*() event tests are FALSE (35)
+uses  tidy:79         completion:59   asserts wc_use_keyname() is `return FALSE;`, which 59 made it
+uses  tidy:79         windows:36      asserts tabline_height() is `return 0;`, which 36 made it
+uses  tidy:79         windows:39      asserts check_can_set_curbuf_forceit/_disabled() are TRUE (39)
+uses  tidy:79         windows:68      asserts only_one_window() is `return TRUE;`, which 68 made it
+uses  tidy:79         windows:72      asserts current_win_nr() and current_tab_nr() are `return 1;` (72)
+uses  tidy:79         windows:73      asserts stl_connected() is `return FALSE;`, which 73 made it
+uses  tidy:79         buffers:69      asserts check_more() is OK and append_arg_number() is 0 (69)
+uses  commands:80     tidy:79         the length field's one reader, the Vim9 whole-name check, is dead since 79
