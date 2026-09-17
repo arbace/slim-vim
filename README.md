@@ -31,7 +31,7 @@ zero-vim.c = H(whim-vim.c)            ZERO-GOAL.md
 | --- | --- |
 | **`slim-vim.c`** | The whole editor as **one translation unit** — what were dozens of `.c`, `.h` and `proto/*.pro` files, with no preprocessor left in it and no feature taken out. `make` builds it. |
 | **`whim-vim.c`** | The same editor with **no runtime to install**: one static binary that reads nothing from disk that was not compiled into it. Capability is removed here *on purpose*, so every phase declares what it removes before it runs. `make whim-vim`. |
-| **`zero-vim.c`** | An **embeddable editor core**, three phases in and growing one phase at a time: heading for no filesystem, no streams, `main()` demoted to a host launcher, and eventually nothing from libc that the host cannot supply. The screen and all visual editing stay. `make zero-vim`. |
+| **`zero-vim.c`** | An **embeddable editor core**, growing one phase at a time: heading for no filesystem, no streams, `main()` demoted to a host launcher, and eventually nothing from libc that the host cannot supply. The screen and all visual editing stay. `make zero-vim`. |
 
 The three pipelines — `slim.mk`, `whim.mk`, `zero.mk` — are the same construct and
 differ only in what their phases do. The driver, the boundaries, the oracle and
