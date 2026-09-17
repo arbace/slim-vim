@@ -8,8 +8,13 @@
 # A PACKAGE is a view over pipes/<pipeline>.stages and nothing runs it: no phase,
 # stage, boundary or cache key moves when a package does.  The manifest's
 # `package NAME P...` lines put every phase in one concept, and its
-# `uses A:P B:Q why` lines record that phase P, in package A, relies on phase Q, in
-# package B, having run.  tools/stages.sh reads neither kind.
+# `uses A:P B:Q KIND why` lines record that phase P, in package A, relies on phase
+# Q, in package B, having run -- KIND `mechanical` when P would fail or cut wrongly
+# without Q, `rationale` when Q is only the stated reason P's cut is right.
+# tools/stages.sh reads neither kind.
+#
+# Nothing that runs a phase calls this.  `make whim-verify` and `make whim-tip` run
+# --check before they start, from whim.mk, which no implementation digest reads.
 #
 # This is not a mode of tools/stages.sh on purpose.  tools/phaserun.sh names
 # stages.sh, so tools/implhash.sh hashes every byte of it into every stage's key:
@@ -24,7 +29,7 @@
 #   a `uses` naming an unknown package, or a phase that is not in the package named
 #   a `uses` inside one package, which is the order of the package, not a dependency
 #   a `uses` whose dependency runs AFTER its dependent, which cannot be relied on
-#   a `uses` with no reason
+#   a `uses` whose KIND is not `mechanical` or `rationale`, or with no reason
 #
 # What it cannot check is that a reason is true: that is the phase programs and
 # WHIM-GOAL.md, which every `uses` line is written from.
@@ -81,7 +86,9 @@ check() {
                 if (!((ph[i] + 0) in owner)) bad("phase " ph[i] " is in no package")
             for (k = 1; k <= nuses; k++) {
                 nf = split(u[k], f, " ")
-                if (nf < 4) { bad("line " line[k] ": a uses line needs a dependent, a dependency and a reason"); continue }
+                if (nf < 5) { bad("line " line[k] ": a uses line needs a dependent, a dependency, a kind and a reason"); continue }
+                if (f[4] != "mechanical" && f[4] != "rationale") {
+                    bad("uses " f[2] " " f[3] ": kind \"" f[4] "\" is not mechanical or rationale"); continue }
                 if (!ref(f[2], "uses") || !ref(f[3], "uses")) continue
                 split(f[2], a, ":"); split(f[3], b, ":")
                 if (a[1] == b[1]) { bad("uses " f[2] " " f[3] ": one package, not a cross-package dependency"); continue }
@@ -97,7 +104,7 @@ check() {
 }
 
 # Every package, in manifest order: its phases, the stages they fall in, and what
-# its phases rely on in other packages.
+# its phases rely on in other packages, with the kind of each.
 show() {
     units=$(tools/stages.sh "$PIPE" | tr '\n' ' ')
     awk -v units="$units" '
@@ -119,8 +126,8 @@ show() {
         }
         $1 == "uses" {
             split($2, a, ":")
-            why = $0; sub(/^[ \t]*uses[ \t]+[^ \t]+[ \t]+[^ \t]+[ \t]+/, "", why)
-            dep[a[1]] = dep[a[1]] sprintf("\n             %-3s after %-16s %s", a[2], $3, why)
+            why = $0; sub(/^[ \t]*uses[ \t]+[^ \t]+[ \t]+[^ \t]+[ \t]+[^ \t]+[ \t]+/, "", why)
+            dep[a[1]] = dep[a[1]] sprintf("\n             %-3s after %-16s %-10s %s", a[2], $3, $4, why)
             next
         }
         END { for (k = 1; k <= npk; k++) print row[order[k]] dep[order[k]] }' "$manifest"

@@ -230,8 +230,8 @@ line of it points down into one of them.
 **A package is a view, and nothing runs it.** No phase moved, no boundary moved, and
 no cache key moved: the schedule is still `pipes/whim.stages`' `stage` lines, and a
 package's phases are spread across stages. The data is two more kinds of line in the
-same file — `package NAME P...`, and `uses A:P B:Q why` for a phase that relies on a
-phase of another package having run — which `tools/stages.sh` ignores and
+same file — `package NAME P...`, and `uses A:P B:Q KIND why` for a phase that relies
+on a phase of another package having run — which `tools/stages.sh` ignores and
 `tools/packages.sh whim` prints. `tools/packages.sh whim --check` refuses a phase in
 no package or in two, an unknown phase or package, a `uses` inside one package and a
 `uses` whose dependency runs later. It is a tool of its own because
@@ -243,6 +243,15 @@ and a phase that does two things is in the package of the larger cut: phase 6 cu
 the shell's wildcard expander and the wildmenu and is in `files`; phase 44 retires
 `:!` and six text commands and is in `text`; phase 70 makes `:e` reuse the one
 buffer and removes swap-file detection and is in `buffers`.
+
+**Each dependency is tagged with its kind.** *Mechanical*: without the earlier
+phase the later one fails or cuts wrongly — an anchor or assertion refuses, a tool
+refuses to drop an option something still reads, a computed set comes out
+different, or what it removes as dead or constant would still be live. *Rationale*:
+the later phase would still run and cut the same thing, and the earlier one is the
+reason given that the cut costs nothing or is the right call. Of the 50, 37 are
+mechanical and 13 are rationale. `tools/packages.sh whim --check` refuses any other
+kind, and `make whim-verify` and `make whim-tip` run that check before they start.
 
 **A `uses` line is only written where a phase program or a section here says so**,
 and each was checked against the program that did the work — which is how four
@@ -296,9 +305,9 @@ What the host would have to provide: an installed runtime, a locale, a home dire
 
 Relies on:
 
-- **20** after **18** (`startup`) — vimrc_found()'s callers are dead: every do_source() passes DOSO_NONE since 18
-- **26** after **11** (`swap`) — SIGPWR's handler called ml_sync_all(), empty since 11 (tools/noswap.py)
-- **26** after **21** (`swap`) — deathtrap() cannot preserve: 21 removed preserve_exit()'s loop (tools/nomemfile.py)
+- **20** after **18** (`startup`), *mechanical* — vimrc_found()'s callers are dead: every do_source() passes DOSO_NONE since 18
+- **26** after **11** (`swap`), *rationale* — SIGPWR's handler called ml_sync_all(), empty since 11 (tools/noswap.py)
+- **26** after **21** (`swap`), *rationale* — deathtrap() cannot preserve: 21 removed preserve_exit()'s loop (tools/nomemfile.py)
 
 Relied on by: 12 (`encodings`), 21 (`swap`), 25 (`files`), 31 (`files`).
 
@@ -319,17 +328,17 @@ Options as a table: the rows no feature reads any more, and every way to make tw
 
 Relies on:
 
-- **16** after **10** (`tags`) — 'tags' and 'tagcase' have decided nothing since the tag stack went
-- **16** after **11** (`swap`) — 'swapfile': ml_open() says no swap file whatever it is set to, since 11
-- **16** after **13** (`files`) — 'autoread': ex_drop() saved and restored it around a check 13 removed
-- **16** after **14** (`files`) — 'path' and 'suffixesadd' have decided nothing since the file finder went
-- **54** after **53** (`encodings`) — its row set is COMPUTED, and holds 'arabic' only once 53's second cut is swept
-- **56** after **8** (`files`) — 'shell', 'shellquote', 'shellredir': no shell is run since 8
-- **56** after **30** (`tags`) — 'keywordprg': K went in 30
-- **60** after **7** (`files`) — 'suffixes' ordered wildcard matches, and nothing has expanded since 7
-- **60** after **44** (`text`) — 'formatprg', 'equalprg' only built a :{range}! line, ex_ni since 44
-- **62** after **11** (`swap`) — 'updatetime': the idle sync reached ml_sync_all(), empty since 11
-- **62** after **35** (`scripts`) — 'buflisted', 'filetype': their readers chose events, and 35 made dispatch FALSE
+- **16** after **10** (`tags`), *mechanical* — 'tags' and 'tagcase' have decided nothing since the tag stack went
+- **16** after **11** (`swap`), *mechanical* — 'swapfile': ml_open() says no swap file whatever it is set to, since 11
+- **16** after **13** (`files`), *mechanical* — 'autoread': ex_drop() saved and restored it around a check 13 removed
+- **16** after **14** (`files`), *mechanical* — 'path' and 'suffixesadd' have decided nothing since the file finder went
+- **54** after **53** (`encodings`), *mechanical* — its row set is COMPUTED, and holds 'arabic' only once 53's second cut is swept
+- **56** after **8** (`files`), *mechanical* — 'shell', 'shellquote', 'shellredir': no shell is run since 8
+- **56** after **30** (`tags`), *mechanical* — 'keywordprg': K went in 30
+- **60** after **7** (`files`), *mechanical* — 'suffixes' ordered wildcard matches, and nothing has expanded since 7
+- **60** after **44** (`text`), *mechanical* — 'formatprg', 'equalprg' only built a :{range}! line, ex_ni since 44
+- **62** after **11** (`swap`), *mechanical* — 'updatetime': the idle sync reached ml_sync_all(), empty since 11
+- **62** after **35** (`scripts`), *mechanical* — 'buflisted', 'filetype': their readers chose events, and 35 made dispatch FALSE
 
 Relied on by: 64 (`text`), 65 (`text`).
 
@@ -373,8 +382,8 @@ The editor reaching the filesystem on its own account: globbing, directories, `p
 
 Relies on:
 
-- **25** after **20** (`environment`) — get_user_name() is `return FAIL;` since 20, so its caller's test folds
-- **31** after **20** (`environment`) — :~ shortened a name under $HOME, a notion 20 removed
+- **25** after **20** (`environment`), *mechanical* — get_user_name() is `return FAIL;` since 20, so its caller's test folds
+- **31** after **20** (`environment`), *rationale* — :~ shortened a name under $HOME, a notion 20 removed
 
 Relied on by: 16 (`options`), 30 (`tags`), 32 (`completion`), 33 (`commands`), 44 (`text`), 56 (`options`), 60 (`options`), 79 (`tidy`).
 
@@ -391,8 +400,8 @@ Finding a place by name: the tag stack and tag keys, the jump list, file marks. 
 
 Relies on:
 
-- **30** after **8** (`files`) — K ran 'keywordprg' through :!, which has had no process since 8
-- **74** after **70** (`buffers`) — fname2fnum() is an empty body since 70, left for the file-mark cut
+- **30** after **8** (`files`), *rationale* — K ran 'keywordprg' through :!, which has had no process since 8
+- **74** after **70** (`buffers`), *rationale* — fname2fnum() is an empty body since 70, left for the file-mark cut
 
 Relied on by: 16 (`options`), 32 (`completion`), 56 (`options`).
 
@@ -408,7 +417,7 @@ The swap file, recovery, and the memfile as a disk format. Stages `1-12`, `13-41
 
 Relies on:
 
-- **21** after **20** (`environment`) — :undolist's clock time goes because 20 took every way of being told the zone
+- **21** after **20** (`environment`), *rationale* — :undolist's clock time goes because 20 took every way of being told the zone
 
 Relied on by: 16 (`options`), 17 (`encodings`), 26 (`environment`), 62 (`options`), 70 (`buffers`), 77 (`buffers`).
 
@@ -428,8 +437,8 @@ One encoding and one line ending: UTF-8, LF, and the conversion layer behind the
 
 Relies on:
 
-- **12** after **9** (`environment`) — mb_init() refuses all but utf-8; the compiled default is utf-8 only since 9
-- **17** after **11** (`swap`) — add_b0_fenc() wrote into a swap file's block zero, and 11 left none
+- **12** after **9** (`environment`), *mechanical* — mb_init() refuses all but utf-8; the compiled default is utf-8 only since 9
+- **17** after **11** (`swap`), *mechanical* — add_b0_fenc() wrote into a swap file's block zero, and 11 left none
 
 Relied on by: 54 (`options`), 79 (`tidy`).
 
@@ -459,10 +468,10 @@ Operations on text that go: C and lisp indenting, filters and alignment, formatt
 
 Relies on:
 
-- **44** after **8** (`files`) — :r !cmd and :w !cmd keep reaching do_bang() for 8's refusal
-- **64** after **60** (`options`) — = only re-applied the existing indent once 'equalprg' went in 60
-- **65** after **55** (`options`) — g@ had no 'operatorfunc' to call after 55
-- **65** after **32** (`completion`) — ins_ctrl_x() is empty since 32 (tools/nocomplkeys.py), so its call goes
+- **44** after **8** (`files`), *rationale* — :r !cmd and :w !cmd keep reaching do_bang() for 8's refusal
+- **64** after **60** (`options`), *mechanical* — = only re-applied the existing indent once 'equalprg' went in 60
+- **65** after **55** (`options`), *rationale* — g@ had no 'operatorfunc' to call after 55
+- **65** after **32** (`completion`), *mechanical* — ins_ctrl_x() is empty since 32 (tools/nocomplkeys.py), so its call goes
 
 Relied on by: 60 (`options`).
 
@@ -478,7 +487,7 @@ Anything that runs later or from a file: user commands, scripts and sessions, au
 
 Relies on:
 
-- **35** after **18** (`startup`) — a script has nowhere to come from: nothing is read at startup since 18
+- **35** after **18** (`startup`), *rationale* — a script has nowhere to come from: nothing is read at startup since 18
 
 Relied on by: 62 (`options`), 68 (`windows`), 78 (`tidy`), 79 (`tidy`).
 
@@ -493,8 +502,8 @@ Insert-mode and command-line completion. Stages `13-41`, `42-63`.
 
 Relies on:
 
-- **32** after **10** (`tags`) — the tag source of CTRL-X completion was already gone
-- **32** after **7** (`files`) — file-name completion went through the globbing 7 removed
+- **32** after **10** (`tags`), *rationale* — the tag source of CTRL-X completion was already gone
+- **32** after **7** (`files`), *rationale* — file-name completion went through the globbing 7 removed
 
 Relied on by: 65 (`text`), 79 (`tidy`).
 
@@ -512,8 +521,8 @@ The Ex command layer itself: rows that only refuse, rows that duplicate a key, t
 
 Relies on:
 
-- **33** after **8** (`files`) — :shell's row goes because it has answered E319 since 8
-- **80** after **79** (`tidy`) — the length field's one reader, the Vim9 whole-name check, is dead since 79
+- **33** after **8** (`files`), *rationale* — :shell's row goes because it has answered E319 since 8
+- **80** after **79** (`tidy`), *mechanical* — the length field's one reader, the Vim9 whole-name check, is dead since 79
 
 ### mappings
 
@@ -539,7 +548,7 @@ One tab page, one window, one frame — first the commands, then the structure. 
 
 Relies on:
 
-- **68** after **35** (`scripts`) — the autocommand window ran autocommands, and dispatch is FALSE since 35
+- **68** after **35** (`scripts`), *mechanical* — the autocommand window ran autocommands, and dispatch is FALSE since 35
 
 Relied on by: 45 (`buffers`), 46 (`buffers`), 77 (`buffers`), 78 (`tidy`), 79 (`tidy`).
 
@@ -561,12 +570,12 @@ One buffer and no argument list — first the commands, then the structure. Stag
 
 Relies on:
 
-- **45** after **39** (`windows`) — with one window :drop was :args plus :first
-- **46** after **39** (`windows`) — with one window :qall is :q, which is what exsweep.py falls back to
-- **70** after **11** (`swap`) — ml_open_file() is only `b_may_swap = FALSE` since 11
-- **70** after **21** (`swap`) — findswapname, swapfile_info and ml_recover went with recovery in 21
-- **77** after **11** (`swap`) — it asserts every EX_BUFNAME row is ex_ni; :checktime went in 11
-- **77** after **39** (`windows`) — the same assertion; :sbuffer went in 39
+- **45** after **39** (`windows`), *rationale* — with one window :drop was :args plus :first
+- **46** after **39** (`windows`), *mechanical* — with one window :qall is :q, which is what exsweep.py falls back to
+- **70** after **11** (`swap`), *mechanical* — ml_open_file() is only `b_may_swap = FALSE` since 11
+- **70** after **21** (`swap`), *mechanical* — findswapname, swapfile_info and ml_recover went with recovery in 21
+- **77** after **11** (`swap`), *mechanical* — it asserts every EX_BUFNAME row is ex_ni; :checktime went in 11
+- **77** after **39** (`windows`), *mechanical* — the same assertion; :sbuffer went in 39
 
 Relied on by: 74 (`tags`), 79 (`tidy`).
 
@@ -582,19 +591,19 @@ What no package owns: empty functions, write-only counters, constant predicates,
 
 Relies on:
 
-- **78** after **75** (`scripts`) — autocmd_blocked and prevwin lost their last readers in 75
-- **78** after **68** (`windows`) — w_id is a constant only because 68 left one window
-- **79** after **13** (`files`) — asserts check_timestamps() is `return 0;`, which 13 made it
-- **79** after **17** (`encodings`) — asserts bomb_size() is `return 0;`, which 17 made it
-- **79** after **32** (`completion`) — asserts pum_visible(), ins_compl_active() and five more are constant (32)
-- **79** after **35** (`scripts`) — asserts in_vim9script() and the `has_*()` event tests are FALSE (35)
-- **79** after **59** (`completion`) — asserts wc_use_keyname() is `return FALSE;`, which 59 made it
-- **79** after **36** (`windows`) — asserts tabline_height() is `return 0;`, which 36 made it
-- **79** after **39** (`windows`) — asserts check_can_set_curbuf_forceit/_disabled() are TRUE (39)
-- **79** after **68** (`windows`) — asserts only_one_window() is `return TRUE;`, which 68 made it
-- **79** after **72** (`windows`) — asserts current_win_nr() and current_tab_nr() are `return 1;` (72)
-- **79** after **73** (`windows`) — asserts stl_connected() is `return FALSE;`, which 73 made it
-- **79** after **69** (`buffers`) — asserts check_more() is OK and append_arg_number() is 0 (69)
+- **78** after **75** (`scripts`), *mechanical* — autocmd_blocked and prevwin lost their last readers in 75
+- **78** after **68** (`windows`), *mechanical* — w_id is a constant only because 68 left one window
+- **79** after **13** (`files`), *mechanical* — asserts check_timestamps() is `return 0;`, which 13 made it
+- **79** after **17** (`encodings`), *mechanical* — asserts bomb_size() is `return 0;`, which 17 made it
+- **79** after **32** (`completion`), *mechanical* — asserts pum_visible(), ins_compl_active() and five more are constant (32)
+- **79** after **35** (`scripts`), *mechanical* — asserts in_vim9script() and the `has_*()` event tests are FALSE (35)
+- **79** after **59** (`completion`), *mechanical* — asserts wc_use_keyname() is `return FALSE;`, which 59 made it
+- **79** after **36** (`windows`), *mechanical* — asserts tabline_height() is `return 0;`, which 36 made it
+- **79** after **39** (`windows`), *mechanical* — asserts check_can_set_curbuf_forceit/_disabled() are TRUE (39)
+- **79** after **68** (`windows`), *mechanical* — asserts only_one_window() is `return TRUE;`, which 68 made it
+- **79** after **72** (`windows`), *mechanical* — asserts current_win_nr() and current_tab_nr() are `return 1;` (72)
+- **79** after **73** (`windows`), *mechanical* — asserts stl_connected() is `return FALSE;`, which 73 made it
+- **79** after **69** (`buffers`), *mechanical* — asserts check_more() is OK and append_arg_number() is 0 (69)
 
 Relied on by: 80 (`commands`).
 
