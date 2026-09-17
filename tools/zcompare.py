@@ -13,7 +13,7 @@ THE GRAMMAR, which `pipes/zero.delta` states and this reads:
     word            an Ex command name: its block in ref-excmds.txt may differ
     case:NAME       a screen case (tools/zcases.py) whose record may differ
     argv:NAME       an invocation (tools/zargv.py); spaces are written as `_`
-    term-moved      the terminal table (tools/termcheck.py) differs
+    term-moved      the terminal table (tools/ztermcheck.py) differs
     pty-moved       the pty scenarios (tools/zpty.py) differ
     screen-moved    what the editor DRAWS differs everywhere: the snapshots and
                     the stream digest in every case, the text and message lines

@@ -379,7 +379,7 @@ Three recordings, replacing today's `behaviour/`, `ref-exsweep.txt` and
     screen/            102 keystroke cases, one file each     (166 KB)
     ref-excmds.txt     111 Ex commands, by the message        (27 KB)
     ref-argv.txt       27 invocations                         (2 KB)
-    ref-term.txt       the terminal table, unchanged          (pty)
+    ref-term.txt       the terminal table                     (pty)
     ptycheck.txt       the five pty scenarios that stay       (pty)
 ```
 
@@ -394,7 +394,9 @@ emulator), `tools/zstream.py` (the driver), `tools/zcases.py` (the corpus),
 `tools/zexcmds.py` (the command sweep) and `tools/zargv.py` (the invocations) —
 which is `ZERO-GOAL.md` rule 9's requirement and the precedent `zerodelta.sh` set.
 The shared `behaviour.py`, `exsweep.py` and `termcheck.py` are not touched, so no
-whim or slim key moves.
+whim or slim key moves. (`termcheck.py` is still untouched, and from phase 5 it is
+no longer *run*: zero records the terminal table with `tools/ztermcheck.py`, which
+imports it and replaces the one call that passes a file argument.)
 
 **This is a change to phase 0's program**, not a new phase: `pipes/zero0.sh` is
 what records the baselines and what refuses when they differ. It moves phase 0's
@@ -502,7 +504,7 @@ permutation — §2g's fifth break is what happens otherwise.
 | --- | --- | --- | --- | --- |
 | 2 | nothing asks whether this is a terminal | the two warnings, `ui_delay(2005)`, `tty_fail`/`--ttyfail`, `stdout_isatty`, `mch_check_win`, `mch_input_isatty`, the four `isatty()` calls, `check_tty` | **`isatty`** | every record's stderr line (`stderr-moved`); measured on a patched build: 102 of 102 records move, each by one line, and the corpus goes 6.4 s → **0.53 s** |
 | 3 | no streaming Ex | `-e -E -s -v`, `Q`, `gQ`, `do_exmode` (95 lines), `getexmodeline` (262), `silent_mode` (23 mentions), `exmode_active` (49 mentions, constant `FALSE`), `pending_exmode_active`, `s_vbuf`, `main_loop`'s `noexmode` | **`setvbuf`** (and the `stdout` reference) | `key_Q`, `key_gQ`; argv rows `-e -E -s -v` |
-| 4 | argv is `+{command}` and `-T {term}` | the file argument and `buflist_add`, bare `-`/`EDIT_STDIN`, `--`, `ME_TOO_MANY_ARGS`, `had_minmin`, `read_cmd_fd`'s reassignment | — | argv rows `-` (from `TIMEOUT` to an error), `--`, `f.txt`, `f.txt g.txt`, `-- +q!` |
+| 4 | argv is `+{command}` and `-T {term}` — **built, as zero phase 5** | the file argument and `buflist_add`, bare `-`/`EDIT_STDIN`, `--`, `ME_TOO_MANY_ARGS`, `had_minmin`, `read_cmd_fd`'s reassignment, and `params.edit_type` with `read_stdin()` | — | **as listed, plus `+q! f.txt`**: 79 lines, six argv rows, nothing else |
 | 5 | no write | `:write :wq :xit :exit :update :saveas` rows, `do_write`, `buf_write` (622), `buf_write_bytes`, `check_overwrite`, `check_writable`, `check_mtime`, `not_writing`, `write_eintr`, `mch_setperm`, `mch_fsetperm`, `mch_nodetype`, `vim_fexists` — **17 functions, 905 lines** | `chmod fchmod fstat ftruncate lstat unlink` | `cmd_write`; sweep rows `write wq xit exit update saveas` (E32/E471 → E492) |
 | 6 | no read | `:read`, and with it `do_bang`, `do_shell`, `do_filter`, `check_secure`, `prevcmd_is_set` — **+6 functions, +194 lines** | — | `cmd_read`, `read_cmd_gone`, `filter_gone`; sweep row `read` |
 | 7 | no `:edit`, and no `gf` | `:edit :enew :ex :visual :view` rows (the Ex-mode escape has nothing to escape from after P3), `do_ecmd` (331), `do_exedit`, `ex_edit`, `grab_file_name`, `otherfile`, `nv_gotofile` and the `gf gF [f ]f` rows, `text_or_buf_locked`, `check_lnums*`, `prepare_help_buffer` — **+16 functions, +618 lines** | — | `cmd_edit`, `key_gf`; sweep rows `edit enew ex visual view` |
@@ -512,10 +514,10 @@ permutation — §2g's fifth break is what happens otherwise.
 | 11 | the options nothing reads | `'fsync'`, `'write'`, `'writeany'`, `'undoreload'`, and `'readonly'` by decision; `'shortmess'` and `'cpoptions'` letters that lost their readers. **`'paste'` is exempt and the phase says so** | — | none (`:set` is not swept); `tools/dropoptions.py --strict` refuses while a reader exists, which is the check |
 | 12 | no `FILE *` that is never opened | `scriptin[]` (3739, never assigned), `redir_fd` (3777, never assigned), `ui_write`'s `console` (its only caller passes `FALSE`) | `fclose getc fputs putc` | none |
 
-**Two rows are built, and the numbering is not the table's.** Row 2 ran as zero
-phase 2 and row 3 as zero **phase 4**, because the harness switch of §2 landed
-between them as phase 3. `ZERO-GOAL.md` is what each one did; where this table
-turned out to be wrong is said at the row.
+**Three rows are built, and the numbering is not the table's.** Row 2 ran as zero
+phase 2, row 3 as zero **phase 4** and row 4 as zero **phase 5**, because the
+harness switch of §2 landed between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what
+each one did; where this table turned out to be wrong is said at the row.
 
 #### P2 — nothing asks whether this is a terminal
 
@@ -597,6 +599,24 @@ indexed by `ME_*`, so the row and the enumerator go together, in the order
 `deadenums.py` requires: pin the survivors, dump DWARF before and after
 (`tools/enumvals.sh`), and require no survivor to have moved.
 
+**As built (zero phase 5), three things this section did not foresee.** *No
+survivor can be pinned*: the enumerator **is** the row index, so the three after
+the deleted one must move, and the check is that exactly they moved, by one, out of
+1,327 — not that nothing moved. *The file-argument arm is replaced by
+`mainerr(ME_UNKNOWN_OPTION)` and not deleted*, because a bare word that matches no
+arm never advances the `while` and the parser loops for ever. And *`+q! f.txt`
+moves too*, which this row's delta column missed: the option scan reads the whole
+command line before anything runs, so a file argument after a `+cmd` is refused
+before the `+cmd` is executed.
+
+**And it breaks `tools/termcheck.py`**, which is whim's and asks its question with
+a file argument: from this boundary all nineteen of its rows read `(none)`.
+§2e/§2k's "the terminal table, unchanged" was wrong by one argument.
+`tools/ztermcheck.py` — `termcheck.py` with its `ask()` replaced and nothing else —
+records the same nineteen rows, proven from the binary the phase was handed and
+from `whim-vim.c` in phase 0; `tools/termcheck.py` itself is untouched, so no whim
+or slim key moves.
+
 #### P5–P9 — the filesystem
 
 The order is forced and the reason is `b_ffname`: `do_write`, `check_readonly` and
@@ -670,6 +690,11 @@ need 11  swept      the option set is computed from the readers that remain
 need 12  swept      "nothing assigns this" is a count, and dead code assigns things
 
 apart 4  9          P4's check asserts the one buffer is still named by buflist_add
+                   -- WRONG, as built: P4 (zero phase 5) removes buflist_add itself, and
+                   what was measured instead is `apart 4 5` in zero's numbering, i.e.
+                   the Ex-mode phase's check against the argv phase, which names
+                   EDIT_STDIN, had_minmin, buflist_add and ME_TOO_MANY_ARGS as things
+                   the argv phase is still to take
 apart 7  9          P7's check asserts `:file` still reports a name
 apart 9  10         P9's check asserts `:q` still refuses on a modified buffer
 

@@ -45,7 +45,12 @@ actually happened was an import crash.
   line the parser may see, and the four pty scenarios for what only a terminal
   shows (the window size from `TIOCGWINSZ`, raw mode, the arrow keys in Normal
   mode). **`zrecord.sh <binary> <source> <outdir>`** runs all four and
-  `termcheck.py` at once, in 5 s, and that is one *recording*.
+  `ztermcheck.py` at once, in 5 s, and that is one *recording*.
+- **`ztermcheck.py`** — `termcheck.py` with one difference: it asks without a file
+  argument, because from zero phase 5 a file argument is an unknown option and the
+  original's nineteen rows all read `(none)`. It imports `termcheck.py` and replaces
+  its `ask()`, so the terminal list, the isolation and the format cannot drift;
+  `termcheck.py` is left alone because whim's and slim's keys read its bytes.
 - **`zcompare.py`** — a recording against the baselines, under what
   `pipes/zero.delta` declares: a record by name, or a whole *dimension* through
   `screen-moved` and `stderr-moved`. A dimension declared that did not move is a
