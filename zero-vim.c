@@ -447,14 +447,11 @@ enum { FORWARD = 1 };
 
 enum { OK = 1 };
 enum { FAIL = 0 };
-enum { NOTDONE = 2 };
-
 enum { BF_RECOVERED = 0x01 };
 enum { BF_CHECK_RO = 0x02 };
 enum { BF_NEVERLOADED = 0x04 };
 enum { BF_NOTEDITED = 0x08 };
 enum { BF_NEW = 0x10 };
-enum { BF_NEW_W = 0x20 };
 enum { BF_READERR = 0x40 };
 enum { BF_DUMMY = 0x80 };
 enum { BF_PRESERVED = 0x100 };
@@ -530,15 +527,6 @@ enum { MAPTYPE_NOREMAP = 2 };
 enum { MAPTYPE_UNMAP_LHS = 3 };
 
 enum { REMAP_YES = 0 };
-
-enum { READ_NEW = 0x01 };
-enum { READ_FILTER = 0x02 };
-enum { READ_STDIN = 0x04 };
-enum { READ_BUFFER = 0x08 };
-enum { READ_DUMMY = 0x10 };
-enum { READ_KEEP_UNDO = 0x20 };
-enum { READ_FIFO = 0x40 };
-enum { READ_NOFILE = 0x100 };
 
 enum { INDENT_SET = 1 };
 enum { INDENT_INC = 2 };
@@ -683,8 +671,6 @@ enum { MSG_BUF_LEN = 480 };
 
 enum { MAXMAPLEN = 50 };
 
-enum { O_EXTRA = 0 };
-
 typedef long    linenr_T;
 typedef int     colnr_T;
 enum { MAXCOL = 0x7fffffffL };
@@ -738,7 +724,6 @@ enum { CPO_BSLASH = 'B' };
 enum { CPO_SEARCH = 'c' };
 enum { CPO_EXECBUF = 'e' };
 enum { CPO_EMPTYREGION = 'E' };
-enum { CPO_FNAMER = 'f' };
 enum { CPO_INSEND = 'H' };
 enum { CPO_INTMOD = 'i' };
 enum { CPO_INDENT = 'I' };
@@ -775,13 +760,9 @@ enum { CPO_BACKSL = '\\' };
 enum { CPO_SCOLON = ';' };
 enum { SHM_RO = 'r' };
 enum { SHM_MOD = 'm' };
-enum { SHM_LAST = 'i' };
-enum { SHM_LINES = 'l' };
 enum { SHM_NEW = 'n' };
 enum { SHM_TRUNC = 't' };
 enum { SHM_TRUNCALL = 'T' };
-enum { SHM_OVER = 'o' };
-enum { SHM_OVERALL = 'O' };
 enum { SHM_SEARCH = 's' };
 enum { SHM_COMPLETIONMENU = 'c' };
 enum { SHM_RECORDING = 'q' };
@@ -2141,8 +2122,6 @@ typedef struct
     int         sa_wrapped;
 } searchit_arg_T;
 
-enum { CONV_RESTLEN = 30 };
-
 typedef enum {
     OPTION_MAGIC_NOT_SET,
     OPTION_MAGIC_ON,
@@ -2435,7 +2414,6 @@ static int mch_dirname(char_u *buf, int len);
 static int mch_FullName(char_u *fname, char_u *buf, int len, int force);
 static int mch_isFullName(char_u *fname);
 static long mch_getperm(char_u *name);
-static int mch_isdir(char_u *name);
 static void mch_exit(int r);
 static int get_tty_info(int fd, ttyinfo_T *info);
 static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
@@ -2614,27 +2592,18 @@ static cmdline_info_T *get_cmdline_info(void);
 static int get_cmdline_firstc(void);
 static int get_list_range(char_u **str, int *num1, int *num2);
 
-static void filemess(buf_T *buf, char_u *name, char_u *s, int attr);
-static int readfile(char_u *fname, char_u *sfname, linenr_T from, linenr_T lines_to_skip, linenr_T lines_to_read, exarg_T *eap, int flags);
 static int vim_fsync(int fd);
-static int set_rw_fname(char_u *fname, char_u *sfname);
-static void msg_add_fname(buf_T *buf, char_u *fname);
-static void msg_add_lines(int insert_space, long lnum, off_T nchars);
-static void msg_add_eol(void);
 static char_u *shorten_fname1(char_u *full_path);
 static char_u *shorten_fname(char_u *full_path, char_u *dir_name);
 static void shorten_fnames(int force);
 static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
-static long read_eintr(int fd, void *buf, size_t bufsize);
 
 static size_t home_replace(buf_T *buf, char_u *src, char_u *dst, int dstlen, int one);
 static char_u *home_replace_save(buf_T *buf, char_u *src);
 static char_u *gettail(char_u *fname);
-static char_u *gettail_sep(char_u *fname);
 static char_u *get_past_head(char_u *path);
 static int vim_ispathsep(int c);
 static int vim_ispathsep_nocolon(int c);
-static int dir_of_file_exists(char_u *fname);
 static int vim_fnamecmp(char_u *x, char_u *y);
 static int vim_fnamencmp(char_u *x, char_u *y, size_t len);
 static char_u *FullName_save(char_u *fname, int force);
@@ -2685,7 +2654,6 @@ static int hash_add_item(hashtab_T *ht, hashitem_T *hi, char_u *key, hash_T hash
 static int hash_remove(hashtab_T *ht, hashitem_T *hi, char *command);
 static hash_T hash_hash(char_u *key);
 
-static void fix_help_buffer(void);
 static void do_highlight(char_u *line, int forceit, int init);
 static void restore_cterm_colors(void);
 static void clear_hl_tables(void);
@@ -2890,7 +2858,6 @@ static int extract_modifiers(int key, int *modp, int simplify, int *did_simplify
 static int find_special_key_in_table(int c);
 static int get_special_key_code(char_u *name);
 static int get_real_state(void);
-static int after_pathsep(char_u *b, char_u *p);
 static int cmp_keyvalue_value_n(const void *a, const void *b);
 static int cmp_keyvalue_value_i(const void *a, const void *b);
 static int cmp_keyvalue_value_ni(const void *a, const void *b);
@@ -2945,7 +2912,6 @@ static int mb_ptr2char_adv(char_u **pp);
 static int mb_cptr2char_adv(char_u **pp);
 static int utfc_ptr2char(char_u *p, int *pcc);
 static int utf_ptr2len(char_u *p);
-static int utf_ptr2len_len(char_u *p, int size);
 static int utfc_ptr2len(char_u *p);
 static int utfc_ptr2len_len(char_u *p, int size);
 static int utf_char2len(int c);
@@ -3302,7 +3268,6 @@ static void u_undo(int count);
 static void u_redo(int count);
 static void undo_time(long step, int sec, int file, int absolute);
 static void u_sync(int force);
-static void u_find_first_changed(void);
 static void u_clearallandblockfree(buf_T *buf);
 static void u_clearline(void);
 static void u_undoline(void);
@@ -3782,8 +3747,6 @@ static char e_command_too_recursive[]  =  "E169: Command too recursive"  ;
 static char e_argument_must_be_letter_or_forward_backward_quote[]  =  "E191: Argument must be a letter or forward/backward quote"  ;
 static char e_recursive_use_of_normal_too_deep[]  =  "E192: Recursive use of :normal too deep"  ;
 static char e_no_alternate_file_name_to_substitute_for_hash[]  =  "E194: No alternate file name to substitute for '#'"  ;
-static char e_readpre_autocommands_made_file_unreadable[]  =  "E200: *ReadPre autocommands made the file unreadable"  ;
-static char e_readpre_autocommands_must_not_change_current_buffer[]  =  "E201: *ReadPre autocommands must not change current buffer"  ;
 static char e_add_to_internal_buffer_that_was_already_read_from[]  = "E222: Add to internal buffer that was already read from" ;
 static char e_recursive_mapping[]  =  "E223: Recursive mapping"  ;
 static char e_global_abbreviation_already_exists_for_str[]  =  "E224: Global abbreviation already exists for %s"  ;
@@ -3900,7 +3863,6 @@ static char e_invalid_id_nr_must_be_greater_than_or_equal_to_one_2[]  =  "E802: 
 static char e_id_not_found_nr[]  =  "E803: ID not found: %d"  ;
 static char e_hashsmall_is_not_available_without_the_eval_feature[]  =  "E809: #< is not available without the +eval feature"  ;
 static char e_not_allowed_to_change_buffer_information_now[]  =  "E811: Not allowed to change buffer information now"  ;
-static char e_autocommands_changed_buffer_or_buffer_name[]  =  "E812: Autocommands changed buffer or buffer name"  ;
 static char e_undo_number_nr_not_found[]  =  "E830: Undo number %ld not found"  ;
 static char e_conflicts_with_value_of_listchars[]  =  "E834: Conflicts with value of 'listchars'"  ;
 static char e_conflicts_with_value_of_fillchars[]  =  "E835: Conflicts with value of 'fillchars'"  ;
@@ -4238,55 +4200,10 @@ calc_percentage(long part, long whole)
 }
 
     static int
-read_buffer(int         read_stdin, exarg_T     *eap, int         flags)
+open_buffer(void)
 {
-    int         retval = OK;
-    linenr_T    line_count;
-
-    line_count = curbuf->b_ml.ml_line_count;
-    retval = readfile(read_stdin ? NULL : curbuf->b_ffname, read_stdin ? NULL : curbuf->b_fname, line_count, (linenr_T)0, (linenr_T) LONG_MAX , eap, flags | READ_BUFFER);
-    if (retval == OK)
-    {
-        while (--line_count >= 0)
-        {
-            ml_delete((linenr_T)1);
-        }
-    }
-    else
-    {
-        while (curbuf->b_ml.ml_line_count > line_count)
-        {
-            ml_delete(line_count);
-        }
-    }
-    curwin->w_cursor.lnum = 1;
-    curwin->w_cursor.col = 0;
-
-    if (read_stdin)
-    {
-        if (!readonlymode && ! (curbuf->b_ml.ml_line_count == 1 && *ml_get((linenr_T)1) == NUL) )
-        {
-            changed();
-        }
-        else if (retval == OK)
-        {
-            unchanged(curbuf, FALSE, TRUE);
-        }
-
-        if (retval == OK)
-        {
-        }
-    }
-    return retval;
-}
-
-    static int
-open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
-{
-    int         flags = flags_arg;
     int         retval = OK;
     bufref_T    old_curbuf;
-    int         read_fifo = FALSE;
 
     if (readonlymode && curbuf->b_ffname != NULL && (curbuf->b_flags & BF_NEVERLOADED))
     {
@@ -4312,42 +4229,6 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
 
     curwin->w_valid = 0;
 
-    if (curbuf->b_ffname != NULL)
-    {
-        int old_msg_silent = msg_silent;
-        int perm;
-        perm = mch_getperm(curbuf->b_ffname);
-        if (perm >= 0 && (S_ISFIFO(perm) || S_ISSOCK(perm)))
-        {
-                read_fifo = TRUE;
-        }
-        if (shortmess(SHM_FILEINFO))
-        {
-            msg_silent = 1;
-        }
-        retval = readfile(curbuf->b_ffname, curbuf->b_fname, (linenr_T)0, (linenr_T)0, (linenr_T) LONG_MAX , eap, flags | READ_NEW | (read_fifo ? READ_FIFO : 0));
-        if (read_fifo)
-        {
-            if (retval == OK)
-            {
-                retval = read_buffer(FALSE, eap, flags);
-            }
-        }
-        msg_silent = old_msg_silent;
-        if (bt_help(curbuf))
-        {
-            fix_help_buffer();
-        }
-    }
-    else if (read_stdin)
-    {
-        retval = readfile(NULL, NULL, (linenr_T)0, (linenr_T)0, (linenr_T) LONG_MAX , NULL, flags | (READ_NEW + READ_STDIN));
-        if (retval == OK)
-        {
-            retval = read_buffer(TRUE, eap, flags);
-        }
-    }
-
     if (curbuf->b_ml.ml_mfp != NULL && curbuf->b_ml.ml_mfp->mf_dirty == MF_DIRTY_YES_NOSYNC)
     {
         curbuf->b_ml.ml_mfp->mf_dirty = MF_DIRTY_YES;
@@ -4362,7 +4243,7 @@ open_buffer(int         read_stdin, exarg_T     *eap, int         flags_arg)
     {
         changed();
     }
-    else if (retval == OK && !read_stdin && !read_fifo)
+    else if (retval == OK)
     {
         unchanged(curbuf, FALSE, TRUE);
     }
@@ -4713,7 +4594,7 @@ enter_buffer(buf_T *buf)
 
     if (curbuf->b_ml.ml_mfp == NULL)
     {
-        open_buffer(FALSE, NULL, 0);
+        open_buffer();
     }
     else
     {
@@ -22487,852 +22368,6 @@ get_list_range(char_u **str, int *num1, int *num2)
     return OK;
 }
 
-static linenr_T readfile_linenr(linenr_T linecnt, char_u *p, char_u *endp);
-
-    static void
-filemess(buf_T       *buf, char_u      *name, char_u      *s, int         attr)
-{
-    int         msg_scroll_save;
-    int         prev_msg_col = msg_col;
-    size_t      len;
-
-    if (msg_silent != 0)
-    {
-        return;
-    }
-    msg_add_fname(buf, name);
-
-    len =  strlen((char *)(IObuff)) ;
-    if (len >  (1024+1)  - 100)
-    {
-        len =  (1024+1)  - 100;
-        IObuff[len] = NUL;
-    }
-
-    if (*s != NUL)
-    {
-         strncpy((char *)(IObuff + len), (char *)(s), (99)) ;
-    }
-
-    msg_scroll_save = msg_scroll;
-    if (shortmess(SHM_OVERALL) && !exiting && p_verbose == 0)
-    {
-        msg_scroll = FALSE;
-    }
-    if (!msg_scroll)
-    {
-        check_for_delay(FALSE);
-    }
-    msg_start();
-    if (prev_msg_col != 0 && msg_col == 0)
-    {
-        msg_putchar('\r');
-    }
-    msg_scroll = msg_scroll_save;
-    msg_scrolled_ign = TRUE;
-    msg_outtrans_attr(msg_may_trunc(FALSE, IObuff), attr);
-    msg_clr_eos();
-    out_flush();
-    msg_scrolled_ign = FALSE;
-}
-
-    static int
-readfile(char_u      *fname, char_u      *sfname, linenr_T    from, linenr_T    lines_to_skip, linenr_T    lines_to_read, exarg_T     *eap, int         flags)
-{
-    int         retval = FAIL;
-    int         fd = 0;
-    int         newfile = (flags & READ_NEW);
-    int         check_readonly;
-    int         filtering = (flags & READ_FILTER);
-    int         read_stdin = (flags & READ_STDIN);
-    int         read_buffer = (flags & READ_BUFFER);
-    int         read_fifo = (flags & READ_FIFO);
-    linenr_T    read_buf_lnum = 1;
-    colnr_T     read_buf_col = 0;
-    char_u      c;
-    linenr_T    lnum = from;
-    char_u      *ptr = NULL;
-    char_u      *buffer = NULL;
-    char_u      *new_buffer = NULL;
-    char_u      *line_start = NULL;
-    int         wasempty;
-    colnr_T     len;
-    long        size = 0;
-    char_u      *p;
-    off_T       filesize = 0;
-    int         skip_read = FALSE;
-    int         split = 0;
-    linenr_T    linecnt;
-    int         error = FALSE;
-    long        linerest = 0;
-    int         perm = 0;
-    stat_T      st;
-    int         file_readonly;
-    linenr_T    skip_count = 0;
-    linenr_T    read_count = 0;
-    int         msg_save = msg_scroll;
-    linenr_T    read_no_eol_lnum = 0;
-    linenr_T    illegal_byte = 0;
-    char_u      conv_rest[CONV_RESTLEN];
-    int         conv_restlen = 0;
-    pos_T       orig_start;
-    buf_T       *old_curbuf;
-    char_u      *old_b_ffname;
-    char_u      *old_b_fname;
-    int         using_b_ffname;
-    int         using_b_fname;
-    static char *msg_is_a_directory =  "is a directory" ;
-    size_t      fnamelen = 0;
-
-    if (curbuf->b_ffname == NULL && !filtering && fname != NULL && vim_strchr(p_cpo, CPO_FNAMER) != NULL && !(flags & READ_DUMMY))
-    {
-        if (set_rw_fname(fname, sfname) == FAIL)
-        {
-            goto theend;
-        }
-    }
-
-    old_curbuf = curbuf;
-    old_b_ffname = curbuf->b_ffname;
-    old_b_fname = curbuf->b_fname;
-    using_b_ffname = (fname == curbuf->b_ffname)
-                                              || (sfname == curbuf->b_ffname);
-    using_b_fname = (fname == curbuf->b_fname) || (sfname == curbuf->b_fname);
-
-    need_fileinfo = FALSE;
-
-    if (sfname == NULL)
-    {
-        sfname = fname;
-    }
-    fname = sfname;
-
-    if (!filtering && !read_stdin && !read_buffer)
-    {
-        orig_start = curbuf->b_op_start;
-
-        curbuf->b_op_start.lnum = ((from == 0) ? 1 : from);
-        curbuf->b_op_start.col = 0;
-
-        if (newfile)
-        {
-        }
-
-        curbuf->b_op_start = orig_start;
-
-        if (flags & READ_NOFILE)
-        {
-            retval = NOTDONE;
-            goto theend;
-        }
-    }
-
-    if ((shortmess(SHM_OVER) || curbuf->b_help) && p_verbose == 0)
-    {
-        msg_scroll = FALSE;
-    }
-    else
-    {
-        msg_scroll = TRUE;
-    }
-
-    if (fname != NULL && *fname != NUL)
-    {
-        fnamelen =  strlen((char *)(fname)) ;
-
-        if (fnamelen >=  PATH_MAX )
-        {
-            filemess(curbuf, fname, (char_u *)_("Illegal file name"), 0);
-            msg_end();
-            msg_scroll = msg_save;
-            goto theend;
-        }
-
-        if (after_pathsep(fname, fname + fnamelen))
-        {
-            filemess(curbuf, fname, (char_u *)_(msg_is_a_directory), 0);
-            msg_end();
-            msg_scroll = msg_save;
-            retval = NOTDONE;
-            goto theend;
-        }
-    }
-    if (!read_stdin && fname != NULL)
-    {
-        perm = mch_getperm(fname);
-    }
-
-    if (!read_stdin && !read_buffer && !read_fifo)
-    {
-        if (perm >= 0 && !S_ISREG(perm) && !S_ISFIFO(perm) && !S_ISSOCK(perm))
-        {
-            if (S_ISDIR(perm))
-            {
-                filemess(curbuf, fname, (char_u *)_(msg_is_a_directory), 0);
-                retval = NOTDONE;
-            }
-            else
-            {
-                filemess(curbuf, fname, (char_u *)_("is not a file"), 0);
-            }
-            msg_end();
-            msg_scroll = msg_save;
-            goto theend;
-        }
-    }
-
-    check_readonly = (newfile && (curbuf->b_flags & BF_CHECK_RO));
-    if (check_readonly && !readonlymode)
-    {
-        curbuf->b_p_ro = FALSE;
-    }
-
-    if (newfile && !read_stdin && !read_buffer && !read_fifo)
-    {
-        if ( stat(((char *)fname), (&st))  >= 0)
-        {
-            buf_store_time(curbuf, &st, fname);
-            curbuf->b_mtime_read = curbuf->b_mtime;
-            curbuf->b_mtime_read_ns = curbuf->b_mtime_ns;
-        }
-        else
-        {
-            curbuf->b_mtime = 0;
-            curbuf->b_mtime_ns = 0;
-            curbuf->b_mtime_read = 0;
-            curbuf->b_mtime_read_ns = 0;
-            curbuf->b_orig_size = 0;
-            curbuf->b_orig_mode = 0;
-        }
-
-        curbuf->b_flags &= ~(BF_NEW | BF_NEW_W);
-    }
-
-    file_readonly = FALSE;
-    if (read_stdin)
-    {
-    }
-    else if (!read_buffer)
-    {
-        if (!(perm & 0222) ||  access(((char *)fname), (W_OK)) )
-        {
-            file_readonly = TRUE;
-        }
-        fd =  open(((char *)fname), (O_RDONLY | O_EXTRA), (0)) ;
-    }
-
-    if (fd < 0)
-    {
-        msg_scroll = msg_save;
-            if (newfile)
-            {
-                if (perm < 0 && errno == ENOENT)
-                {
-                    curbuf->b_flags |= BF_NEW;
-
-                    if (curbuf != old_curbuf || (using_b_ffname && (old_b_ffname != curbuf->b_ffname)) || (using_b_fname && (old_b_fname != curbuf->b_fname)))
-                    {
-                        emsg(_(e_autocommands_changed_buffer_or_buffer_name));
-                        goto theend;
-                    }
-                    if (dir_of_file_exists(fname))
-                    {
-                        filemess(curbuf, sfname, (char_u *)new_file_message(), 0);
-                    }
-                    else
-                    {
-                        filemess(curbuf, sfname, (char_u *)_("[New DIRECTORY]"), 0);
-                    }
-
-                        retval = OK;
-                    goto theend;
-                }
-                else
-                {
-                    filemess(curbuf, sfname, (char_u *)((errno == EFBIG) ? _("[File too big]") : (errno == EOVERFLOW) ? _("[File too big]") : _("[Permission Denied]")), 0);
-                    curbuf->b_p_ro = TRUE;
-                }
-            }
-
-        goto theend;
-    }
-
-    if ((check_readonly && file_readonly) || curbuf->b_help)
-    {
-        curbuf->b_p_ro = TRUE;
-    }
-
-    if (!read_stdin && (curbuf != old_curbuf || (using_b_ffname && (old_b_ffname != curbuf->b_ffname)) || (using_b_fname && (old_b_fname != curbuf->b_fname))))
-    {
-        emsg(_(e_autocommands_changed_buffer_or_buffer_name));
-        if (!read_buffer)
-        {
-            close(fd);
-        }
-        goto theend;
-    }
-
-    ++no_wait_return;
-
-    orig_start = curbuf->b_op_start;
-    curbuf->b_op_start.lnum = ((from == 0) ? 1 : from);
-    curbuf->b_op_start.col = 0;
-
-    if (!read_buffer)
-    {
-        int     m = msg_scroll;
-        int     n = msg_scrolled;
-
-        if (!read_stdin)
-        {
-            close(fd);
-        }
-
-        msg_scroll = TRUE;
-        if (filtering)
-        {
-        }
-        else if (read_stdin)
-        {
-        }
-        else if (newfile)
-        {
-        }
-        else
-        {
-        }
-        curbuf->b_op_start = orig_start;
-
-        if (msg_scrolled == n)
-        {
-            msg_scroll = m;
-        }
-
-        if (!read_stdin && (curbuf != old_curbuf || (using_b_ffname && (old_b_ffname != curbuf->b_ffname)) || (using_b_fname && (old_b_fname != curbuf->b_fname)) || (fd =  open(((char *)fname), (O_RDONLY | O_EXTRA), (0)) ) < 0))
-        {
-            --no_wait_return;
-            msg_scroll = msg_save;
-            if (fd < 0)
-            {
-                emsg(_(e_readpre_autocommands_made_file_unreadable));
-            }
-            else
-            {
-                emsg(_(e_readpre_autocommands_must_not_change_current_buffer));
-            }
-            curbuf->b_p_ro = TRUE;
-            goto theend;
-        }
-    }
-
-    wasempty = (curbuf->b_ml.ml_flags & ML_EMPTY);
-
-    if (!filtering && !(flags & READ_DUMMY))
-    {
-        if (read_stdin)
-        {
-                 printf("%s", (_("Vim: Reading from stdin...\n"))) ;
-        }
-        else if (!read_buffer)
-        {
-            filemess(curbuf, sfname, (char_u *)"", 0);
-        }
-    }
-
-    msg_scroll = FALSE;
-
-    linecnt = curbuf->b_ml.ml_line_count;
-
-    if (!skip_read)
-    {
-        linerest = 0;
-        filesize = 0;
-        skip_count = lines_to_skip;
-        read_count = lines_to_read;
-        conv_restlen = 0;
-    }
-
-    while (!error && !got_int)
-    {
-        if (!skip_read)
-        {
-                size = 0x10000L + linerest;
-                if (size > 0x100000L)
-                {
-                    size = 0x100000L;
-                }
-        }
-
-        if (size < 0 || size + linerest + 1 < 0 || linerest >= MAXCOL - size)
-        {
-            ++split;
-            *ptr = NL;
-            size = 1;
-        }
-        else
-        {
-            if (!skip_read)
-            {
-                for ( ; size >= 10; size = (long)((long_u)size >> 1))
-                {
-                    if ((new_buffer = lalloc(size + linerest + 1, FALSE)) != NULL)
-                    {
-                        break;
-                    }
-                }
-                if (new_buffer == NULL)
-                {
-                    do_outofmem_msg((long_u)(size * 2 + linerest + 1));
-                    error = TRUE;
-                    break;
-                }
-                if (linerest)
-                {
-                     memmove((char *)(new_buffer), (char *)(ptr - linerest), (size_t)linerest) ;
-                }
-                vim_free(buffer);
-                buffer = new_buffer;
-                ptr = buffer + linerest;
-                line_start = buffer;
-
-                if (conv_restlen > 0)
-                {
-                     memmove((char *)(ptr), (char *)(conv_rest), conv_restlen) ;
-                    ptr += conv_restlen;
-                    size -= conv_restlen;
-                }
-
-                if (read_buffer)
-                {
-                    if (read_buf_lnum > from)
-                    {
-                        size = 0;
-                    }
-                    else
-                    {
-                        int n;
-                        int ni;
-                        long    tlen;
-
-                        tlen = 0;
-                        for (;;)
-                        {
-                            p = ml_get(read_buf_lnum) + read_buf_col;
-                            n = ml_get_len(read_buf_lnum) - read_buf_col;
-                            if ((int)tlen + n + 1 > size)
-                            {
-                                n = (int)(size - tlen);
-                                for (ni = 0; ni < n; ++ni)
-                                {
-                                    if (p[ni] == NL)
-                                    {
-                                        ptr[tlen++] = NUL;
-                                    }
-                                    else
-                                    {
-                                        ptr[tlen++] = p[ni];
-                                    }
-                                }
-                                read_buf_col += n;
-                                break;
-                            }
-
-                            for (ni = 0; ni < n; ++ni)
-                            {
-                                if (p[ni] == NL)
-                                {
-                                    ptr[tlen++] = NUL;
-                                }
-                                else
-                                {
-                                    ptr[tlen++] = p[ni];
-                                }
-                            }
-                            ptr[tlen++] = NL;
-                            read_buf_col = 0;
-                            if (++read_buf_lnum > from)
-                            {
-                                size = tlen;
-                                break;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    long read_size = size;
-                    size = read_eintr(fd, ptr, read_size);
-                }
-
-                if (size <= 0)
-                {
-                    if (size < 0)
-                    {
-                        error = TRUE;
-                    }
-                    else if (conv_restlen > 0)
-                    {
-                        if (illegal_byte == 0)
-                        {
-                            illegal_byte = curbuf->b_ml.ml_line_count
-                                                                - linecnt + 1;
-                        }
-                    }
-                }
-            }
-            skip_read = FALSE;
-
-            ptr -= conv_restlen;
-            size += conv_restlen;
-            conv_restlen = 0;
-            if (size <= 0)
-            {
-                break;
-            }
-
-            int  incomplete_tail = FALSE;
-
-            for (p = ptr; ; )
-            {
-                int  todo;
-                int  l;
-
-                {
-                    char_u *ascii_end = ptr + size;
-                    while (ascii_end - p >= (long)sizeof(long_u))
-                    {
-                        long_u word;
-                        memcpy(&word, p, sizeof(long_u));
-                        if (word &  (((long_u)-1 / 0xFF) * 0x80) )
-                        {
-                            break;
-                        }
-                        p += sizeof(long_u);
-                    }
-                    while (p < ascii_end && *p < 0x80)
-                    {
-                        ++p;
-                    }
-                }
-
-                todo = (int)((ptr + size) - p);
-                if (todo <= 0)
-                {
-                    break;
-                }
-                if (*p >= 0x80)
-                {
-                    l = utf_ptr2len_len(p, todo);
-                    if (l > todo && !incomplete_tail)
-                    {
-                        if (p > ptr || filesize > 0)
-                        {
-                            incomplete_tail = TRUE;
-                        }
-                        if (p > ptr)
-                        {
-                            conv_restlen = todo;
-                             memmove((char *)(conv_rest), (char *)(p), conv_restlen) ;
-                            size -= conv_restlen;
-                            break;
-                        }
-                    }
-                    if (l == 1 || l > todo)
-                    {
-                        if (illegal_byte == 0)
-                        {
-                            illegal_byte = readfile_linenr(linecnt, ptr, p);
-                        }
-
-                        ++p;
-                    }
-                    else
-                    {
-                        p += l;
-                    }
-                }
-            }
-            filesize += size;
-
-        }
-
-        char_u *end = ptr + size;
-
-        while (ptr < end)
-        {
-            char_u *nl = (char_u *)memchr(ptr, NL, end - ptr);
-            char_u *nul_scan;
-
-            if (nl == NULL)
-            {
-                while ((nul_scan = (char_u *)memchr(ptr, NUL, end - ptr)) != NULL)
-                {
-                    *nul_scan = NL;
-                    ptr = nul_scan + 1;
-                }
-                ptr = end;
-                break;
-            }
-
-            {
-                char_u *scan = ptr;
-                while ((nul_scan = (char_u *)memchr(scan, NUL, nl - scan)) != NULL)
-                {
-                    *nul_scan = NL;
-                    scan = nul_scan + 1;
-                }
-            }
-
-            ptr = nl;
-            if (skip_count == 0)
-            {
-                *ptr = NUL;
-                len = (colnr_T)(ptr - line_start + 1);
-                if (ml_append(lnum, line_start, len, newfile) == FAIL)
-                {
-                    error = TRUE;
-                    break;
-                }
-                ++lnum;
-                if (--read_count == 0)
-                {
-                    error = TRUE;
-                    line_start = ptr;
-                    break;
-                }
-            }
-            else
-            {
-                --skip_count;
-            }
-            line_start = ptr + 1;
-            ++ptr;
-        }
-        size = -1;
-        linerest = (long)(ptr - line_start);
-        ui_breakcheck();
-    }
-
-    if (error && read_count == 0)
-    {
-        error = FALSE;
-    }
-
-    if (!error && !got_int && linerest != 0)
-    {
-        *ptr = NUL;
-        len = (colnr_T)(ptr - line_start + 1);
-        if (ml_append(lnum, line_start, len, newfile) == FAIL)
-        {
-            error = TRUE;
-        }
-        else
-        {
-            read_no_eol_lnum = ++lnum;
-        }
-    }
-
-    if (!read_buffer && !read_stdin)
-    {
-        close(fd);
-    }
-    else
-    {
-        int fdflags = fcntl(fd, F_GETFD);
-
-        if (fdflags >= 0 && (fdflags & FD_CLOEXEC) == 0)
-        {
-            (void)fcntl(fd, F_SETFD, fdflags | FD_CLOEXEC);
-        }
-    }
-    vim_free(buffer);
-
-    if (read_stdin)
-    {
-        close(0);
-        vim_ignored = dup(2);
-    }
-
-    --no_wait_return;
-
-    if (newfile && wasempty && !(curbuf->b_ml.ml_flags & ML_EMPTY))
-    {
-        ml_delete(curbuf->b_ml.ml_line_count);
-        --linecnt;
-    }
-    linecnt = curbuf->b_ml.ml_line_count - linecnt;
-    if (filesize == 0)
-    {
-        linecnt = 0;
-    }
-    if (newfile || read_buffer)
-    {
-        redraw_curbuf_later(UPD_NOT_VALID);
-    }
-    else if (linecnt)
-    {
-        appended_lines_mark(from, linecnt);
-    }
-
-    if (read_stdin)
-    {
-        settmode(TMODE_RAW);
-        starttermcap();
-        screenclear();
-    }
-
-    if (got_int)
-    {
-        if (!(flags & READ_DUMMY))
-        {
-            filemess(curbuf, sfname, (char_u *)_(e_interrupted), 0);
-            if (newfile)
-            {
-                curbuf->b_p_ro = TRUE;
-            }
-        }
-        msg_scroll = msg_save;
-        retval = OK;
-        goto theend;
-    }
-
-    if (!filtering && !(flags & READ_DUMMY))
-    {
-        int buflen;
-
-        msg_add_fname(curbuf, sfname);
-        c = FALSE;
-
-        buflen = (int) strlen((char *)(IObuff)) ;
-        if (S_ISFIFO(perm))
-        {
-            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[fifo]"));
-            c = TRUE;
-        }
-        if (S_ISSOCK(perm))
-        {
-            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[socket]"));
-            c = TRUE;
-        }
-        if (curbuf->b_p_ro)
-        {
-            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, "%s", shortmess(SHM_RO) ? _("[RO]") : _("[readonly]"));
-            c = TRUE;
-        }
-        if (read_no_eol_lnum)
-        {
-            msg_add_eol();
-            c = TRUE;
-        }
-        if (split)
-        {
-            buflen += vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[long lines split]"));
-            c = TRUE;
-        }
-        if (illegal_byte > 0)
-        {
-            vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[ILLEGAL BYTE in line %ld]"), (long)illegal_byte);
-            c = TRUE;
-        }
-        else if (error)
-        {
-            vim_snprintf((char *)IObuff + buflen,  (1024+1)  - buflen, _("[READ ERRORS]"));
-            c = TRUE;
-        }
-            msg_add_lines(c, (long)linecnt, filesize);
-
-         vim_free(keep_msg);
-         (keep_msg) = NULL;
-        msg_scrolled_ign = TRUE;
-        {
-            if (msg_col > 0)
-            {
-                msg_putchar('\r');
-            }
-            p = (char_u *)msg_trunc_attr((char *)IObuff, FALSE, 0);
-        }
-        if (read_stdin || read_buffer || restart_edit != 0 || (msg_scrolled != 0 && !need_wait_return))
-        {
-            set_keep_msg(p, 0);
-        }
-        msg_scrolled_ign = FALSE;
-    }
-
-    if (newfile && error)
-    {
-        curbuf->b_p_ro = TRUE;
-    }
-
-    u_clearline();
-
-    curwin->w_cursor.lnum = from + 1;
-    check_cursor_lnum();
-    beginline(BL_WHITE | BL_FIX);
-
-    if ((cmdmod.cmod_flags & CMOD_LOCKMARKS) == 0)
-    {
-        curbuf->b_op_start.lnum = from + 1;
-        curbuf->b_op_start.col = 0;
-        curbuf->b_op_end.lnum = from + linecnt;
-        curbuf->b_op_end.col = 0;
-    }
-
-    msg_scroll = msg_save;
-
-    if (flags & READ_KEEP_UNDO)
-    {
-        u_find_first_changed();
-    }
-
-    if (!read_stdin && !read_fifo && (!read_buffer || sfname != NULL))
-    {
-        int m = msg_scroll;
-        int n = msg_scrolled;
-
-        msg_scroll = TRUE;
-        if (filtering)
-        {
-        }
-        else if (newfile || (read_buffer && sfname != NULL))
-        {
-        }
-        else
-        {
-        }
-        if (msg_scrolled == n)
-        {
-            msg_scroll = m;
-        }
-    }
-
-    retval = OK;
-
-theend:
-    if (curbuf->b_ml.ml_mfp != NULL && curbuf->b_ml.ml_mfp->mf_dirty == MF_DIRTY_YES_NOSYNC)
-    {
-        curbuf->b_ml.ml_mfp->mf_dirty = MF_DIRTY_YES;
-    }
-
-    return retval;
-}
-
-    static linenr_T
-readfile_linenr(linenr_T    linecnt, char_u      *p, char_u      *endp)
-{
-    char_u      *s;
-    linenr_T    lnum;
-
-    lnum = curbuf->b_ml.ml_line_count - linecnt + 1;
-    for (s = p; s < endp; ++s)
-    {
-        if (*s == '\n')
-        {
-            ++lnum;
-        }
-    }
-    return lnum;
-}
-
     static int
 vim_fsync(int fd)
 {
@@ -23340,61 +22375,6 @@ vim_fsync(int fd)
 
         r = fsync(fd);
     return r;
-}
-
-    static int
-set_rw_fname(char_u *fname, char_u *sfname)
-{
-    buf_T       *buf = curbuf;
-
-    if (curbuf != buf)
-    {
-        emsg(_(e_autocommands_changed_buffer_or_buffer_name));
-        return FAIL;
-    }
-
-    if (setfname(curbuf, fname, sfname, FALSE) == OK)
-    {
-        curbuf->b_flags |= BF_NOTEDITED;
-    }
-
-    return OK;
-}
-
-    static void
-msg_add_fname(buf_T *buf, char_u *fname)
-{
-    size_t  IObufflen = 0;
-
-    if (fname == NULL)
-    {
-        fname = (char_u *)"-stdin-";
-    }
-    IObuff[IObufflen++] = '"';
-    IObufflen += home_replace(buf, fname, IObuff + IObufflen,  (1024+1)  - 4, TRUE);
-     strcpy((char *)(IObuff + IObufflen), (char *)("\" ")) ;
-}
-
-    static void
-msg_add_lines(int     insert_space, long    lnum, off_T   nchars)
-{
-    int  len = (int) strlen((char *)(IObuff)) ;
-
-    if (shortmess(SHM_LINES))
-    {
-        vim_snprintf((char *)IObuff + len,  (1024+1)  - (size_t)len, _("%s%ldL, %lldB"), insert_space ? " " : "", lnum, (varnumber_T)nchars);
-    }
-    else
-    {
-        len += vim_snprintf((char *)IObuff + len,  (1024+1)  - (size_t)len, NGETTEXT("%s%ld line, ", "%s%ld lines, ", lnum), insert_space ? " " : "", lnum);
-        vim_snprintf((char *)IObuff + len,  (1024+1)  - (size_t)len, NGETTEXT("%lld byte", "%lld bytes", nchars), (varnumber_T)nchars);
-    }
-}
-
-    static void
-msg_add_eol(void)
-{
-     strcat((char *)(IObuff), (char *)(shortmess(SHM_LAST) ? _("[noeol]") : _("[Incomplete last line]"))) ;
 }
 
     static char_u *
@@ -23503,22 +22483,6 @@ buf_store_time(buf_T *buf, stat_T *st, char_u *fname  __attribute__((unused)) )
     buf->b_mtime_ns = (long)st-> st_mtim.tv_nsec ;
     buf->b_orig_size = st->st_size;
     buf->b_orig_mode = (int)st->st_mode;
-}
-
-    static long
-read_eintr(int fd, void *buf, size_t bufsize)
-{
-    long ret;
-
-    for (;;)
-    {
-        ret =  read((fd), (char *)(buf), (bufsize)) ;
-        if (ret >= 0 || errno != EINTR)
-        {
-            break;
-        }
-    }
-    return ret;
 }
 
     static void
@@ -23638,21 +22602,6 @@ gettail(char_u *fname)
 }
 
     static char_u *
-gettail_sep(char_u *fname)
-{
-    char_u      *p;
-    char_u      *t;
-
-    p = get_past_head(fname);
-    t = gettail(fname);
-    while (t > p && after_pathsep(fname, t))
-    {
-        --t;
-    }
-    return t;
-}
-
-    static char_u *
 get_past_head(char_u *path)
 {
     char_u  *retval;
@@ -23678,25 +22627,6 @@ vim_ispathsep_nocolon(int c)
 {
     return vim_ispathsep(c)
         ;
-}
-
-    static int
-dir_of_file_exists(char_u *fname)
-{
-    char_u      *p;
-    int         c;
-    int         retval;
-
-    p = gettail_sep(fname);
-    if (p == fname)
-    {
-        return TRUE;
-    }
-    c = *p;
-    *p = NUL;
-    retval = mch_isdir(fname);
-    *p = c;
-    return retval;
 }
 
     static int
@@ -27105,47 +26035,6 @@ hash_hash(char_u *key)
     }
 
     return hash;
-}
-
-    static void
-fix_help_buffer(void)
-{
-    linenr_T    lnum;
-    char_u      *line;
-    int         in_example = FALSE;
-    int         len;
-
-    {
-        for (lnum = 1; lnum <= curbuf->b_ml.ml_line_count; ++lnum)
-        {
-            line = ml_get_buf(curbuf, lnum, FALSE);
-            len = ml_get_buf_len(curbuf, lnum);
-            if (in_example && len > 0 && ! ((line[0]) == ' ' || (line[0]) == '\t') )
-            {
-                if (line[0] == '<')
-                {
-                    line = ml_get_buf(curbuf, lnum, TRUE);
-                    line[0] = ' ';
-                }
-                in_example = FALSE;
-            }
-            if (!in_example && len > 0)
-            {
-                if (line[len - 1] == '>' && (len == 1 || line[len - 2] == ' '))
-                {
-                    line = ml_get_buf(curbuf, lnum, TRUE);
-                    line[len - 1] = ' ';
-                    in_example = TRUE;
-                }
-                else if (line[len - 1] == '~')
-                {
-                    line = ml_get_buf(curbuf, lnum, TRUE);
-                    line[len - 1] = ' ';
-                }
-            }
-        }
-    }
-
 }
 
 enum { SG_TERM = 1 };
@@ -34185,15 +33074,6 @@ utf_ptr2len(char_u *p)
 }
 
     static int
-utf_ptr2len_len(char_u *p, int size)
-{
-    int         len;
-
-    utf_ptr2char_and_len_len(p, size, &len);
-    return len;
-}
-
-    static int
 utfc_ptr2len(char_u *p)
 {
     int         len;
@@ -37583,7 +36463,7 @@ ml_append(linenr_T    lnum, char_u      *line, colnr_T     len, int         newf
     static int
 ml_append_flags(linenr_T    lnum, char_u      *line, colnr_T     len, int         flags)
 {
-    if (curbuf->b_ml.ml_mfp == NULL && open_buffer(FALSE, NULL, 0) == FAIL)
+    if (curbuf->b_ml.ml_mfp == NULL && open_buffer() == FAIL)
     {
         return FAIL;
     }
@@ -37613,7 +36493,7 @@ ml_replace_len(linenr_T    lnum, char_u      *line_arg, colnr_T     len_arg, int
         return FAIL;
     }
 
-    if (curbuf->b_ml.ml_mfp == NULL && open_buffer(FALSE, NULL, 0) == FAIL)
+    if (curbuf->b_ml.ml_mfp == NULL && open_buffer() == FAIL)
     {
         return FAIL;
     }
@@ -43024,13 +41904,6 @@ get_real_state(void)
         }
     }
     return State;
-}
-
-    static int
-after_pathsep(char_u *b, char_u *p)
-{
-    return p > b && vim_ispathsep(p[-1])
-                             && (utf_head_off(b, p - 1) == 0);
 }
 
     static long
@@ -59127,22 +58000,6 @@ mch_getperm(char_u *name)
         return -1;
     }
     return statb.st_mode;
-}
-
-    static int
-mch_isdir(char_u *name)
-{
-    struct stat statb;
-
-    if (*name == NUL)
-    {
-        return FALSE;
-    }
-    if (stat((char *)name, &statb))
-    {
-        return FALSE;
-    }
-    return (S_ISDIR(statb.st_mode) ? TRUE : FALSE);
 }
 
     static void
@@ -81707,46 +80564,6 @@ ex_undojoin(exarg_T *eap  __attribute__((unused)) )
     }
 }
 
-    static void
-u_find_first_changed(void)
-{
-    u_header_T  *uhp = curbuf->b_u_newhead;
-    u_entry_T   *uep;
-    linenr_T    lnum;
-
-    if (curbuf->b_u_curhead != NULL || uhp == NULL)
-    {
-        return;
-    }
-
-    uep = uhp->uh_entry;
-    if (uep->ue_top != 0 || uep->ue_bot != 0)
-    {
-        return;
-    }
-
-    for (lnum = 1; lnum < curbuf->b_ml.ml_line_count && lnum <= uep->ue_size; ++lnum)
-    {
-        char_u *p = ml_get_buf(curbuf, lnum, FALSE);
-
-        if (uep->ue_array[lnum - 1].ul_len != curbuf->b_ml.ml_line_len || memcmp(p, uep->ue_array[lnum - 1].ul_line, uep->ue_array[lnum - 1].ul_len) != 0)
-        {
-             (&(uhp->uh_cursor))->lnum = 0;
-             (&(uhp->uh_cursor))->col = 0;
-             (&(uhp->uh_cursor))->coladd = 0;
-            uhp->uh_cursor.lnum = lnum;
-            return;
-        }
-    }
-    if (curbuf->b_ml.ml_line_count != uep->ue_size)
-    {
-         (&(uhp->uh_cursor))->lnum = 0;
-         (&(uhp->uh_cursor))->col = 0;
-         (&(uhp->uh_cursor))->coladd = 0;
-        uhp->uh_cursor.lnum = lnum;
-    }
-}
-
     static u_entry_T *
 u_get_headentry(void)
 {
@@ -83642,7 +82459,7 @@ create_windows(mparm_T *parmp  __attribute__((unused)) )
     curbuf = curwin->w_buffer;
     if (curbuf->b_ml.ml_mfp == NULL)
     {
-        (void)open_buffer(FALSE, NULL, 0);
+        (void)open_buffer();
     }
     ui_breakcheck();
     if (got_int)
