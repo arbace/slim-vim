@@ -512,6 +512,11 @@ permutation — §2g's fifth break is what happens otherwise.
 | 11 | the options nothing reads | `'fsync'`, `'write'`, `'writeany'`, `'undoreload'`, and `'readonly'` by decision; `'shortmess'` and `'cpoptions'` letters that lost their readers. **`'paste'` is exempt and the phase says so** | — | none (`:set` is not swept); `tools/dropoptions.py --strict` refuses while a reader exists, which is the check |
 | 12 | no `FILE *` that is never opened | `scriptin[]` (3739, never assigned), `redir_fd` (3777, never assigned), `ui_write`'s `console` (its only caller passes `FALSE`) | `fclose getc fputs putc` | none |
 
+**Two rows are built, and the numbering is not the table's.** Row 2 ran as zero
+phase 2 and row 3 as zero **phase 4**, because the harness switch of §2 landed
+between them as phase 3. `ZERO-GOAL.md` is what each one did; where this table
+turned out to be wrong is said at the row.
+
 #### P2 — nothing asks whether this is a terminal
 
 Decision 7. `check_tty()` (86432) is the whole of it: it prints
@@ -565,6 +570,20 @@ through it, not through the Ex-mode reader, and measured they still work
 interactively. `print_line`'s `silent_mode` save/restore (16326) folds, and
 `msg_puts_printf` stays — `msg_use_printf()` asks whether the *screen* is usable,
 not whether the editor is silent, so `printf` survives this phase.
+
+**As built, in zero phase 4**, and three things in the row above are wrong.
+`-s` **alone does not move**: `case 's'` set silent mode only `if (exmode_active)`
+and called `mainerr()` otherwise, so a bare `-s` was already an unknown option and
+its record is byte-identical — the declared delta is `key_Q`, `key_gQ` and the argv
+rows `-e`, `-E`, `-e -s`, `-v`. **`isatty` is freed here, not by P2**: phase 2 kept
+`check_tty()`'s `if (exmode_active)` branch deliberately, so all five calls survived
+it, and folding that branch here empties the function — which the sweep then cannot
+take, because what is left is a local that is set and never read, a warning
+`tools/deadsweep.py` does not act on. `check_tty()` and its call go by name and
+`mch_input_isatty()` with the fifth `isatty()` follows. And `exe_commands()` did not
+need special handling beyond folding its last statement. Measured: 86,586 → 85,813
+lines, five functions, `nm -u` 80 → 78 (`setvbuf`, `stdout`), the binary 869,512 →
+861,288 bytes, the phase 81 s.
 
 #### P4 — argv is `+{command}` and `-T {term}`
 
