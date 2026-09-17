@@ -19,9 +19,19 @@
 # `agent`: tier 1 is not cacheable, because it is not a function.
 set -eu
 
-phase=${1:?usage: implhash.sh <unit> [pipeline]}
-. tools/pipeline.sh "${2:-slim}"
-progs=$(tools/phaserun.sh --parts "$PIPE" "$phase")
+# --edit N: the identity of phase N's EDIT part alone, and what it names -- the key
+# tools/phaserun.sh caches that edit's result under inside a stage.
+if [ "${1:-}" = "--edit" ]; then
+    phase=${2:?usage: implhash.sh --edit <phase> [pipeline]}
+    . tools/pipeline.sh "${3:-slim}"
+    progs=$(tools/phaserun.sh --parts "$PIPE" "$phase" | grep -- '-edit\.sh$' || true)
+    [ -n "$progs" ] || { echo "implhash: phase $phase has no edit part" >&2; exit 1; }
+    edit_only=1
+else
+    phase=${1:?usage: implhash.sh <unit> [pipeline]}
+    . tools/pipeline.sh "${2:-slim}"
+    progs=$(tools/phaserun.sh --parts "$PIPE" "$phase")
+fi
 
 [ -n "$progs" ] || { echo agent; exit 0; }
 
@@ -35,6 +45,7 @@ deps() {
 # program named tools/sweep.sh itself, so the sweep's own tools are still hashed.
 # A whole program hashes exactly as it always did.
 driven() {
+    [ -z "${edit_only:-}" ] || return 0
     case $progs in *-edit.sh*) ;; *) return 0 ;; esac
     echo tools/phaserun.sh
     echo tools/sweep.sh

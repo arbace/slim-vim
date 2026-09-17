@@ -105,13 +105,42 @@ tools/symbols.sh "$f" "$stage_state/symbols"
 # The edits, in order, on text no sweep has touched since the stage began.  Each
 # phase's state directory is made fresh, gets the line count of the text ITS edit
 # is handed, and keeps whatever that edit leaves for its check.
+#
+# EACH EDIT'S RESULT IS CACHED, keyed like any boundary: the phase, the digest of
+# the tree its edit is handed, and the implementation digest of the edit part alone
+# (tools/implhash.sh --edit).  Its value is the tree the edit leaves and its state
+# directory.  So editing phase K's program re-runs K's edit, and after it only the
+# edits whose input really moved -- then the one sweep and the checks, which always
+# run -- instead of every edit in the stage.  It is the same construct as tier 3,
+# one level down, and it is as safe: a cached edit answers exactly one input and
+# one implementation.  A scratch root with a .cache of its own (verifypass.sh)
+# recomputes every edit.
+tree_digest() {
+    ( cd "$work" && find . -type f -print0 | sort -z | xargs -0 sha256sum ) \
+        | grep -Ev '/objects/|\.(o|d)$|/(whim-)?vim$' | sha256sum | cut -c1-32
+}
 for p in $phases; do
     state=.cache/state/$TAG$p
     rm -rf "$state"
     mkdir -p "$state"
     grep -c '' "$f" > "$state/input-lines"
-    [ "$first" = "$last" ] || printf '  %-12s %s\n' "edit $p" "$(tools/phasename.sh "$p" "$PIPE" 2>/dev/null || true)"
+    name=$(tools/phasename.sh "$p" "$PIPE" 2>/dev/null || true)
+    ekey=$(printf '%s\n%s\n%s\n' "$p" "$(tree_digest)" "$(tools/implhash.sh --edit "$p" "$PIPE")" \
+           | sha256sum | cut -c1-32)
+    ecache=.cache/edit/$TAG$p/$ekey
+    if [ -f "$ecache.tree.tar" ] && [ -f "$ecache.state.tar" ]; then
+        tools/restore.sh "$ecache.tree.tar" "$work"
+        tar --extract --file "$ecache.state.tar" -C "$state"
+        printf '  %-12s %s  (edit cached for this input)\n' "edit $p" "$name"
+        continue
+    fi
+    [ "$first" = "$last" ] || printf '  %-12s %s\n' "edit $p" "$name"
     "pipes/$IMPL$p-edit.sh" "$work" "$state"
+    mkdir -p ".cache/edit/$TAG$p"
+    tar --create --file "$ecache.state.part" -C "$state" --exclude=./input-lines .
+    tar --create --file "$ecache.tree.part" -C "$work" .
+    mv "$ecache.state.part" "$ecache.state.tar"
+    mv "$ecache.tree.part" "$ecache.tree.tar"
 done
 
 tools/sweep.sh "$f"
