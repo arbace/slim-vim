@@ -19,11 +19,11 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are eight phases.  Phases are added one at a time, each on its own request
+# There are nine phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7
+phases      0 1 2 3 4 5 6 7 8
 
 #   stage   phases
 stage       0
@@ -34,6 +34,7 @@ stage       4
 stage       5
 stage       6
 stage       7
+stage       8
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -78,6 +79,19 @@ apart       5 6
 # the file back with `:r out.txt` and would fail too, but the source assertions come
 # first.
 apart       6 7
+# Phase 7's check requires `check_fname` at 4 mentions, `open_buffer` at 6 and
+# `read_edit` at 2, names `do_ecmd` and `otherfile` as a later phase's, and requires
+# cmdnames[] to hold 104 rows with `:edit` among them.  This phase takes all of it.
+# Measured by running phase 7's check on the tree phase 8 leaves: seven complaints,
+# `:edit went, and it is not this phase's` and `do_ecmd went, and it is a later
+# phase's` among them, exit 1.
+#
+# THERE IS DELIBERATELY NO `apart 6 8`, and it is the shape of the missing
+# `apart 2 6` above.  Phase 6's check DOES fail on a phase 8 tree -- measured:
+# `do_bang went`, `otherfile went`, `cmdnames[] has 99 rows ... both must be 105`,
+# exit 1 -- but a stage holding 6 and 8 holds 7, and `apart 6 7` forbids that
+# already.
+apart       7 8
 
 # What phase 7's edit needs of the text it is handed (pipes/whim.stages defines the
 # word).  Every zero phase is its own stage today, so this is a statement rather
@@ -92,6 +106,16 @@ apart       6 7
 #                  which is true of every zero edit that builds one and is not
 #                  declared here for that reason.
 need        7 swept
+#   need 8 swept   anchor: `readfile` has exactly 5 mentions -- its prototype, its
+#                  definition and the three calls in read_buffer() and open_buffer().
+#                  On the text phase 7's edit leaves it has SEVEN, ex_read still
+#                  being there to make two of them, and the counted anchor refuses:
+#                  measured with `tools/phaserun.sh zero 7-8`, which says `readfile
+#                  has 7 mentions, expected 5`.  The same run shows the edit's build
+#                  of the input binary failing on phase 7's non-compiling
+#                  intermediate, which is true of every zero edit that builds one and
+#                  is not declared here for that reason.
+need        8 swept
 
 #        name         phases
 package  seed         0
@@ -99,7 +123,7 @@ package  build        1
 package  terminal     2
 package  harness      3
 package  streams      4 5
-package  files        6 7
+package  files        6 7 8
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -114,3 +138,5 @@ uses  files:6     seed:0   mechanical  tools/zerodelta.sh compares its two scree
 uses  files:6     harness:3  mechanical  the old file-based sweep recorded an exit status, and :write went from E32 to E492 without changing it; phase 3's message-level record is what can see this phase at all
 uses  files:7     seed:0   mechanical  tools/zerodelta.sh compares its two screen cases and one command row with the baselines phase 0 records
 uses  files:7     harness:3  mechanical  the old file-based sweep recorded an exit status, and :read goes from E32 to E492 without changing it; phase 3's message-level record is what can see this phase at all
+uses  files:8     seed:0   mechanical  tools/zerodelta.sh compares its two screen cases and five command rows with the baselines phase 0 records
+uses  files:8     harness:3  mechanical  the old file-based sweep recorded an exit status, and :edit went from E37 to E492 without changing it; phase 3's message-level record is what can see this phase at all
