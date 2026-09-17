@@ -506,7 +506,7 @@ permutation — §2g's fifth break is what happens otherwise.
 | 3 | no streaming Ex | `-e -E -s -v`, `Q`, `gQ`, `do_exmode` (95 lines), `getexmodeline` (262), `silent_mode` (23 mentions), `exmode_active` (49 mentions, constant `FALSE`), `pending_exmode_active`, `s_vbuf`, `main_loop`'s `noexmode` | **`setvbuf`** (and the `stdout` reference) | `key_Q`, `key_gQ`; argv rows `-e -E -s -v` |
 | 4 | argv is `+{command}` and `-T {term}` — **built, as zero phase 5** | the file argument and `buflist_add`, bare `-`/`EDIT_STDIN`, `--`, `ME_TOO_MANY_ARGS`, `had_minmin`, `read_cmd_fd`'s reassignment, and `params.edit_type` with `read_stdin()` | — | **as listed, plus `+q! f.txt`**: 79 lines, six argv rows, nothing else |
 | 5 | no write — **built, as zero phase 6** | the six rows and their enumerators, `nv_Zet`'s `ZZ`, `do_one_cmd`'s `:w>>`/`:w!` parse; the sweep then takes `do_write`, `buf_write`, `buf_write_bytes`, `check_overwrite`, `check_writable`, `check_mtime`, `not_writing`, `write_eintr`, `mch_setperm`, `mch_fsetperm`, `mch_nodetype`, `vim_fexists` and seven more — **19 functions; the file 85,734 → 84,675** | `chmod fchmod fstat ftruncate lstat unlink`, exactly | **`cmd_write` and `zz_key`; the six sweep rows CEASE TO EXIST, they do not change message** |
-| 6 | no read | `:read`, and with it `do_bang`, `do_shell`, `do_filter`, `check_secure`, `prevcmd_is_set` — **+6 functions, +194 lines** | — | `cmd_read`, `read_cmd_gone`, `filter_gone`; sweep row `read` |
+| 6 | no read — **built, as zero phase 7** | the `CMD_read` row and enumerator and `do_one_cmd`'s `:r!`/`:r !cmd` parse; the sweep then takes `ex_read`, `do_bang`, `do_shell`, `do_filter`, `check_secure` and `prevcmd_is_set` — **6 functions exact; the file 84,675 → 84,453**, which is 222 lines and not 194, the extra being the `usefilter` fold below | — | **`cmd_read` and `read_cmd_gone`; the sweep row `read` CEASES TO EXIST — but NOT `filter_gone`**, which was E492 on the input binary already |
 | 7 | no `:edit`, and no `gf` | `:edit :enew :ex :visual :view` rows (the Ex-mode escape has nothing to escape from after P3), `do_ecmd` (331), `do_exedit`, `ex_edit`, `grab_file_name`, `otherfile`, `nv_gotofile` and the `gf gF [f ]f` rows, `text_or_buf_locked`, `check_lnums*`, `prepare_help_buffer` — **+16 functions, +618 lines** | — | `cmd_edit`, `key_gf`; sweep rows `edit enew ex visual view` |
 | 8 | nothing reads a byte | `readfile` (787), `read_buffer`, `read_stdin`, `read_eintr`, `readfile_linenr`, `filemess`, `msg_add_fname`, `msg_add_lines`, `msg_add_eol`, and `open_buffer`'s read arms | `open access fcntl` | none measured; probed by the argv record and by `startup` |
 | 9 | the buffer has no name | `b_ffname`/`b_sfname`/`b_fname` (58/30/42 mentions), `setfname`, `buflist_new`'s naming, `otherfile_buf`, `buf_setino`, `buf_spname`, `shorten_*`, `home_replace*`, `fix_fname`, `vim_FullName`, `mch_FullName`, `mch_dirname`, `mch_isdir`, `mch_getperm`, `eval_vars` (242), `expand_filename` (132), `find_cmdline_var`, `get_spec_reg`'s `%`/`#`/CTRL-F/CTRL-P, `:file`, `get_trans_bufname`, `set_b0_fname`, `ml_upd_block0`, `ml_timestamp`, `check_changed_any`, the wildcard remnants | `stat getcwd strerror fsync` | `cmd_file`, `reg_percent`, `ctrl_g` (the name in the info line), `startup`/`ruler_move` if the status line changes; sweep row `file` |
@@ -514,10 +514,10 @@ permutation — §2g's fifth break is what happens otherwise.
 | 11 | the options nothing reads | `'fsync'`, `'write'`, `'writeany'`, `'undoreload'`, and `'readonly'` by decision; `'shortmess'` and `'cpoptions'` letters that lost their readers. **`'paste'` is exempt and the phase says so** | — | none (`:set` is not swept); `tools/dropoptions.py --strict` refuses while a reader exists, which is the check |
 | 12 | no `FILE *` that is never opened | `scriptin[]` (3739, never assigned), `redir_fd` (3777, never assigned), `ui_write`'s `console` (its only caller passes `FALSE`) | `fclose getc fputs putc` | none |
 
-**Four rows are built, and the numbering is not the table's.** Row 2 ran as zero
-phase 2, row 3 as zero **phase 4**, row 4 as zero **phase 5** and row 5 as zero
-**phase 6**, because the harness switch of §2 landed between rows 2 and 3 as phase
-3. `ZERO-GOAL.md` is what each one did; where this table turned out to be wrong is
+**Five rows are built, and the numbering is not the table's.** Row 2 ran as zero
+phase 2, row 3 as zero **phase 4**, row 4 as zero **phase 5**, row 5 as zero
+**phase 6** and row 6 as zero **phase 7**, because the harness switch of §2 landed
+between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what each one did; where this table turned out to be wrong is
 said at the row.
 
 #### P2 — nothing asks whether this is a terminal
@@ -643,9 +643,24 @@ file, measured against an edit that also deletes the eight handlers, so the phas
 program names none of them.
 
 **And the row floor is now live.** §3a's warning — `create_cmdidxs.names()` refuses
-a table of fewer than 100 rows, and it is what the command sweep enumerates — has
-five rows of margin after this phase, not eleven. P7 is where it is spent, and P7
-is the phase that must lower the floor.
+a table of fewer than 100 rows, and it is what the command sweep enumerates — had
+five rows of margin after P5 and has **four** after P6, not eleven. P7 is where the
+rest is spent, and P7 is the phase that must lower the floor.
+
+**As built (zero phase 7), four things the P6 row did not foresee.** *`filter_gone`
+is not this phase's delta*: `:!` has not existed since whim, so `:%!sort` already
+answered E492 on the input binary and its record is byte-identical — what the phase
+removes is the code behind a command that was already gone, and the check asserts
+E492 on both binaries rather than declaring the case. *The line count is 222, not
+194*: the function count is exact at six, and the difference is the prototypes, the
+five file-scope variables, the blank lines and the `usefilter` fold. *`do_bang`'s
+other caller was `ex_write`'s `:w !cmd`*, which zero phase 6 swept — so the
+ordering this section states (the write side before the read side, because the two
+share `do_bang`) is what made the read side a three-anchor phase. And *one fold is
+a judgement no tool could make*: `exarg_T.usefilter` is written by nothing once
+both `:w !` and `:r !` are gone, and a struct member that is only read draws no
+warning and is not what `tools/deadfields.py` removes, so the six surviving tests
+and the field go by hand — measured byte-identical in the recording.
 
 Two things P9 must decide rather than compute, both already measured:
 
