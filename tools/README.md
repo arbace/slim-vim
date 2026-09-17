@@ -228,7 +228,10 @@ mentions, survivors pinned to their DWARF values, `--verify` afterwards) ·
 `ml_recover()` exists, because a struct layout is then a disk format)
 
 Slim's Phase 8 runs all of them but `funcreach.py`, in one loop; whim's
-`sweep.sh` runs all six in every phase.
+`sweep.sh` runs all six in every phase, and `canon.sh --once` after them, in
+rounds until one changes nothing — skipping a tool in a round when it has
+already run without changing exactly the current bytes, so the round that ends
+the sweep is still one in which every tool has passed the final text.
 
 ## The passes a run needs
 
