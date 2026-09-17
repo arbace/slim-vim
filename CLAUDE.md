@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Three hundred and seventy-eight tracked files once all three pipelines have run
-(`git ls-files`): nineteen at the root, 194 under `pipes/` — the phase programs,
-twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and thirteen for
-`zero.mk`'s eight, and each staged pipeline's stage manifest and declared delta — and
+Three hundred and eighty tracked files once all three pipelines have run
+(`git ls-files`): nineteen at the root, 196 under `pipes/` — the phase programs,
+twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and fifteen for
+`zero.mk`'s nine, and each staged pipeline's stage manifest and declared delta — and
 165 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
 phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Four of the nineteen are products
@@ -84,7 +84,7 @@ phase in `pipes/` is either one file, `<pipeline><N>.sh`, or two,
 `<pipeline><N>-edit.sh` and `<pipeline><N>-check.sh`, and is run by the memoize
 driver as phase N of that pipeline and by nothing else; everything a phase calls
 lives in `tools/`. Every slim phase, whim phase 0 and zero phases 0, 1 and 3 are one file;
-whim phases 1–82 and zero phases 2 and 4–7 are split.
+whim phases 1–82 and zero phases 2 and 4–8 are split.
 
 **A split phase is an edit and a check, and the sweep is the driver's.** The
 programs' last sweep used to be the line between the two, and 70–90% of every
@@ -142,10 +142,10 @@ Both run from the repository root, so a path in either names the other directly.
 scratch roots of `whim-verify` and `whim-specpass` link both in.
 
 **The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed, a flag,
-five cuts and an instrument.**
+six cuts and an instrument.**
 `ZERO-GOAL.md` states what it is for — an embeddable editor core that keeps the
 screen and all visual editing and loses the filesystem, with `main()` demoted to a
-host launcher and the text later held as a tree — and has eight phases:
+host launcher and the text later held as a tree — and has nine phases:
 `pipes/zero0.sh`, the seed; `pipes/zero1.sh`, which adds `-fno-stack-protector`;
 `pipes/zero2-edit.sh` with `pipes/zero2-check.sh`, the first source cut — the two
 "not to a terminal" warnings, the two-second pause after them and `--ttyfail`;
@@ -161,24 +161,32 @@ sweep finds, `ZZ` becoming `q!`; and `pipes/zero7-edit.sh` with
 `pipes/zero7-check.sh`, which takes the way to read one — `:read` and its `:r !cmd`
 arm, three anchors, six functions the sweep finds and one fold no tool could make,
 the `exarg_T.usefilter` field that nothing writes once both `:w !` and `:r !` are
-gone — so `zero-vim.c` is now 84,453 lines
+gone; and `pipes/zero8-edit.sh` with `pipes/zero8-check.sh`, which takes every way to
+name another file to edit — the five Ex commands `:edit :enew :ex :visual :view`,
+which are one handler, and the `gf gF [f ]f` keys, which are **arms** inside two
+surviving handlers and not `nv_cmds[]` rows, six anchors and seventeen functions the
+sweep finds — so `zero-vim.c` is now 83,755 lines
 against `whim-vim.c`'s 86,614, and the six libc symbols phase 6 freed are still the
-only ones: phase 7 frees none, and says so as an equality.
+only ones: phases 7 and 8 free none, and each says so as an equality.
 Phases are added one at a time, on request. Its input is the **committed**
 `whim-vim.c`, immutable, and `whim.sha` records the one a committed `zero-vim.c` was
 produced from, exactly as `slim.sha` does for whim. It is born staged:
 `pipes/zero.stages` (a stage per phase and six packages: `seed 0`, `build 1`,
-`terminal 2`, `harness 3`, `streams 4 5`, `files 6 7`, with `apart 2 4` — phase 2's
+`terminal 2`, `harness 3`, `streams 4 5`, `files 6 7 8`, with `apart 2 4` — phase 2's
 check runs both its binaries with `-e -s`, which phase 4 removes — `apart 4 5`,
 because phase 4's check names `EDIT_STDIN`, `had_minmin`, `buflist_add` and
 `ME_TOO_MANY_ARGS` as things the argv phase is still to take, `apart 5 6`,
 because phase 5's check states that *it* frees no libc symbol and phase 6 frees
 six, `apart 6 7`, because phase 6's check names `do_bang` as a later phase's and
-requires 105 rows, and the manifest's first `need`, `need 7 swept`, because phase
-7's `usefilter` anchor counts eleven mentions on the text phase 6's edit leaves and
-ten on the swept one) and `pipes/zero.delta`
+requires 105 rows, `apart 7 8`, because phase 7's check names `do_ecmd` and
+`otherfile` as a later phase's and requires 104 rows with `:edit` among them, and
+two `need`s, `need 7 swept` — phase 7's `usefilter` anchor counts eleven mentions on
+the text phase 6's edit leaves and ten on the swept one — and `need 8 swept`, phase
+8's `readfile` anchor counting seven where it wants five, `ex_read` still being there
+to make two of them) and `pipes/zero.delta`
 (`2 stderr-moved`, phase 4's six records, phase 5's six command lines, phase 6's
-two cases and six command rows and phase 7's two cases and one), checked
+two cases and six command rows, phase 7's two cases and one, and phase 8's two cases
+and five), checked
 by `tools/stages.sh zero` and `tools/packages.sh zero` as whim's are.
 
 **A phase can break a harness rather than change behaviour, and the two must not be
@@ -265,7 +273,7 @@ zero-vim.c     whim-vim.c, on its way to an embeddable core
 Makefile       the seed: builds all three, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
-zero.mk        zero-vim.c = H(whim-vim.c), the same construct, eight phases so far
+zero.mk        zero-vim.c = H(whim-vim.c), the same construct, nine phases so far
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
 whim.sha       the whim-vim.c zero-vim.c was produced from
@@ -753,7 +761,7 @@ differ and nothing else. A test suite that cannot fail is not evidence.
 `create_cmdidxs.vim`, which needs a vim with `+eval` and this build has none.
 `python3 tools/create_cmdidxs.py slim-vim.c --check` verifies the table in place, between
 the `begin`/`end ex_cmdidxs.h` banners; `--update` rewrites it. It refuses to
-generate anything from a parse that finds fewer than 100 command names, because
+generate anything from a parse that finds fewer than **80** command names, because
 a regex that stops matching otherwise yields a plausible-looking all-zero index.
 Treat it as a canary: a pass that reshapes the command table, or merely
 re-indents a line of it, shows up here rather than as a wrong answer later.
@@ -762,9 +770,18 @@ re-indents a line of it, shows up here rather than as a wrong answer later.
 constraint. `zero-vim.c` has no `ex_cmdidxs.h` banners left — whim's Phase 80 took
 the derived index with the 489 stub rows — so what zero uses is `names()`, and
 `tools/zexcmds.py` enumerates the whole command sweep through it. Zero phase 6
-deleted six rows and phase 7 a seventh, 111 → 104, so there are **four rows of
-margin**: the phase that crosses the floor has to lower it deliberately, and
-`ZERO-PLAN.md` 3a says which one that is.
+deleted six rows, phase 7 a seventh and phase 8 five more, 111 → 99 — **which is
+why the floor is 80 and was 100**. It was lowered in phase 8's own commit, which is
+the phase that crosses it (`ZERO-PLAN.md` decision 8), never silently and with the
+reason in the tool's docstring; the margin is **19 rows** and the next row the plan
+removes is `:file`'s. Two things that edit taught, both measured. The failure is not
+the one the name suggests — `names()` tries both parsers with `check=False`, so a
+99-row table came back as `no command table found in either shape` rather than as a
+count. And **it moved 28 of the 115 implementation keys**: 6 whim stages, 15 whim
+edits, 2 slim phases and 5 zero phases, the last five only because their programs
+name the tool's path in a comment and `implhash.sh` greps for paths. `make
+slim-verify` (12 of 12) and `make whim-verify` (13 of 13) are the gate rule 9 asks
+for, and both were green after it.
 
 ### Four things a harness here has to get right
 
@@ -1330,7 +1347,12 @@ Two traps if you ever remove a command:
   nothing. That is an argument, and zero phase 6 turned it into a measurement:
   having removed `:write :wq :xit :exit :update :saveas`, it types `:w :x :wq :up
   :sav a :w! :w >>f :w !cat` and requires every one to answer E492 — and requires
-  none of them to have answered E492 before.
+  none of them to have answered E492 before. **The rule has a second half, and
+  zero phase 8 measured that too**: a word SHORTER than a row's own shortest
+  abbreviation matched nothing before the row went either, so `:en` was E492 on
+  both binaries while the other ten spellings of `:edit`/`:enew`/`:ex`/`:view`/
+  `:visual` all moved. A spelling that was already E492 proves nothing about the
+  phase, so it belongs in the must-*not*-differ half, with the reason.
 - **Related commands do not sort together.** `:lhelpgrep` survives a sweep of
   everything starting with `help`, because it sorts under `l`. Grep for the
   *handler* name (`ex_helpgrep`), not the command name.
