@@ -1,7 +1,7 @@
 #!/bin/sh
 # The identity of a phase's tier-2 implementation.
 #
-# Usage: tools/implhash.sh <phase>
+# Usage: tools/implhash.sh <unit> [pipeline]      a phase N, or a stage A-B
 #
 # Half of a memoize key.  The other half is the input boundary; together they
 # say "this implementation, applied to this input", which is the only thing a
@@ -19,7 +19,7 @@
 # `agent`: tier 1 is not cacheable, because it is not a function.
 set -eu
 
-phase=${1:?usage: implhash.sh <phase> [pipeline]}
+phase=${1:?usage: implhash.sh <unit> [pipeline]}
 . tools/pipeline.sh "${2:-slim}"
 progs=$(tools/phaserun.sh --parts "$PIPE" "$phase")
 
@@ -35,8 +35,7 @@ deps() {
 # program named tools/sweep.sh itself, so the sweep's own tools are still hashed.
 # A whole program hashes exactly as it always did.
 driven() {
-    set -- $progs
-    [ $# = 2 ] || return 0
+    case $progs in *-edit.sh*) ;; *) return 0 ;; esac
     echo tools/phaserun.sh
     echo tools/sweep.sh
     echo tools/symbols.sh

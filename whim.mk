@@ -21,93 +21,23 @@ WHIMORACLE = .reference/whim-phases
 WHIMPHASES = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82
 
 # --- the chain ------------------------------------------------------------
-$(WHIMBUILD)/q0.sha256: $(WHIMBUILD)/input.sha256
-$(WHIMBUILD)/q1.sha256: $(WHIMBUILD)/q0.sha256
-$(WHIMBUILD)/q2.sha256: $(WHIMBUILD)/q1.sha256
-$(WHIMBUILD)/q3.sha256: $(WHIMBUILD)/q2.sha256
-$(WHIMBUILD)/q4.sha256: $(WHIMBUILD)/q3.sha256
-$(WHIMBUILD)/q5.sha256: $(WHIMBUILD)/q4.sha256
-$(WHIMBUILD)/q6.sha256: $(WHIMBUILD)/q5.sha256
-$(WHIMBUILD)/q7.sha256: $(WHIMBUILD)/q6.sha256
-$(WHIMBUILD)/q8.sha256: $(WHIMBUILD)/q7.sha256
-$(WHIMBUILD)/q9.sha256: $(WHIMBUILD)/q8.sha256
-$(WHIMBUILD)/q10.sha256: $(WHIMBUILD)/q9.sha256
-$(WHIMBUILD)/q11.sha256: $(WHIMBUILD)/q10.sha256
-$(WHIMBUILD)/q12.sha256: $(WHIMBUILD)/q11.sha256
-$(WHIMBUILD)/q13.sha256: $(WHIMBUILD)/q12.sha256
-$(WHIMBUILD)/q14.sha256: $(WHIMBUILD)/q13.sha256
-$(WHIMBUILD)/q15.sha256: $(WHIMBUILD)/q14.sha256
-$(WHIMBUILD)/q16.sha256: $(WHIMBUILD)/q15.sha256
-$(WHIMBUILD)/q17.sha256: $(WHIMBUILD)/q16.sha256
-$(WHIMBUILD)/q18.sha256: $(WHIMBUILD)/q17.sha256
-$(WHIMBUILD)/q19.sha256: $(WHIMBUILD)/q18.sha256
-$(WHIMBUILD)/q20.sha256: $(WHIMBUILD)/q19.sha256
-$(WHIMBUILD)/q21.sha256: $(WHIMBUILD)/q20.sha256
-$(WHIMBUILD)/q22.sha256: $(WHIMBUILD)/q21.sha256
-$(WHIMBUILD)/q23.sha256: $(WHIMBUILD)/q22.sha256
-$(WHIMBUILD)/q24.sha256: $(WHIMBUILD)/q23.sha256
-$(WHIMBUILD)/q25.sha256: $(WHIMBUILD)/q24.sha256
-$(WHIMBUILD)/q26.sha256: $(WHIMBUILD)/q25.sha256
-$(WHIMBUILD)/q27.sha256: $(WHIMBUILD)/q26.sha256
-$(WHIMBUILD)/q28.sha256: $(WHIMBUILD)/q27.sha256
-$(WHIMBUILD)/q29.sha256: $(WHIMBUILD)/q28.sha256
-$(WHIMBUILD)/q30.sha256: $(WHIMBUILD)/q29.sha256
-$(WHIMBUILD)/q31.sha256: $(WHIMBUILD)/q30.sha256
-$(WHIMBUILD)/q32.sha256: $(WHIMBUILD)/q31.sha256
-$(WHIMBUILD)/q33.sha256: $(WHIMBUILD)/q32.sha256
-$(WHIMBUILD)/q34.sha256: $(WHIMBUILD)/q33.sha256
-$(WHIMBUILD)/q35.sha256: $(WHIMBUILD)/q34.sha256
-$(WHIMBUILD)/q36.sha256: $(WHIMBUILD)/q35.sha256
-$(WHIMBUILD)/q37.sha256: $(WHIMBUILD)/q36.sha256
-$(WHIMBUILD)/q38.sha256: $(WHIMBUILD)/q37.sha256
-$(WHIMBUILD)/q39.sha256: $(WHIMBUILD)/q38.sha256
-$(WHIMBUILD)/q40.sha256: $(WHIMBUILD)/q39.sha256
-$(WHIMBUILD)/q41.sha256: $(WHIMBUILD)/q40.sha256
-$(WHIMBUILD)/q42.sha256: $(WHIMBUILD)/q41.sha256
-$(WHIMBUILD)/q43.sha256: $(WHIMBUILD)/q42.sha256
-$(WHIMBUILD)/q44.sha256: $(WHIMBUILD)/q43.sha256
-$(WHIMBUILD)/q45.sha256: $(WHIMBUILD)/q44.sha256
-$(WHIMBUILD)/q46.sha256: $(WHIMBUILD)/q45.sha256
-$(WHIMBUILD)/q47.sha256: $(WHIMBUILD)/q46.sha256
-$(WHIMBUILD)/q48.sha256: $(WHIMBUILD)/q47.sha256
-$(WHIMBUILD)/q49.sha256: $(WHIMBUILD)/q48.sha256
-$(WHIMBUILD)/q50.sha256: $(WHIMBUILD)/q49.sha256
-$(WHIMBUILD)/q51.sha256: $(WHIMBUILD)/q50.sha256
-$(WHIMBUILD)/q52.sha256: $(WHIMBUILD)/q51.sha256
-$(WHIMBUILD)/q53.sha256: $(WHIMBUILD)/q52.sha256
-$(WHIMBUILD)/q54.sha256: $(WHIMBUILD)/q53.sha256
-$(WHIMBUILD)/q55.sha256: $(WHIMBUILD)/q54.sha256
-$(WHIMBUILD)/q56.sha256: $(WHIMBUILD)/q55.sha256
-$(WHIMBUILD)/q57.sha256: $(WHIMBUILD)/q56.sha256
-$(WHIMBUILD)/q58.sha256: $(WHIMBUILD)/q57.sha256
-$(WHIMBUILD)/q59.sha256: $(WHIMBUILD)/q58.sha256
-$(WHIMBUILD)/q60.sha256: $(WHIMBUILD)/q59.sha256
-$(WHIMBUILD)/q61.sha256: $(WHIMBUILD)/q60.sha256
-$(WHIMBUILD)/q62.sha256: $(WHIMBUILD)/q61.sha256
-$(WHIMBUILD)/q63.sha256: $(WHIMBUILD)/q62.sha256
-$(WHIMBUILD)/q64.sha256: $(WHIMBUILD)/q63.sha256
-$(WHIMBUILD)/q65.sha256: $(WHIMBUILD)/q64.sha256
-$(WHIMBUILD)/q66.sha256: $(WHIMBUILD)/q65.sha256
-$(WHIMBUILD)/q67.sha256: $(WHIMBUILD)/q66.sha256
-$(WHIMBUILD)/q68.sha256: $(WHIMBUILD)/q67.sha256
-$(WHIMBUILD)/q69.sha256: $(WHIMBUILD)/q68.sha256
-$(WHIMBUILD)/q70.sha256: $(WHIMBUILD)/q69.sha256
-$(WHIMBUILD)/q71.sha256: $(WHIMBUILD)/q70.sha256
-$(WHIMBUILD)/q72.sha256: $(WHIMBUILD)/q71.sha256
-$(WHIMBUILD)/q73.sha256: $(WHIMBUILD)/q72.sha256
-$(WHIMBUILD)/q74.sha256: $(WHIMBUILD)/q73.sha256
-$(WHIMBUILD)/q75.sha256: $(WHIMBUILD)/q74.sha256
-$(WHIMBUILD)/q76.sha256: $(WHIMBUILD)/q75.sha256
-$(WHIMBUILD)/q77.sha256: $(WHIMBUILD)/q76.sha256
-$(WHIMBUILD)/q78.sha256: $(WHIMBUILD)/q77.sha256
-$(WHIMBUILD)/q79.sha256: $(WHIMBUILD)/q78.sha256
-$(WHIMBUILD)/q80.sha256: $(WHIMBUILD)/q79.sha256
-$(WHIMBUILD)/q81.sha256: $(WHIMBUILD)/q80.sha256
-$(WHIMBUILD)/q82.sha256: $(WHIMBUILD)/q81.sha256
+# The chain is of STAGES, read from pipes/whim.stages by tools/stages.sh: a stage
+# is a run of phases whose edits share one sweep, and only a stage's end is a
+# boundary -- q41 is the boundary of stage 13-41, and nothing between q12 and q41
+# exists.  Each boundary depends on the one before it, as each phase's did.
+WHIMSTAGES := $(shell tools/stages.sh whim)
+ifeq ($(WHIMSTAGES),)
+$(error pipes/whim.stages does not hold -- tools/stages.sh whim --check says why)
+endif
+WHIMENDS   := $(foreach u,$(WHIMSTAGES),$(lastword $(subst -, ,$(u))))
+WHIMSTARTS := input.sha256 $(patsubst %,q%.sha256,$(filter-out $(lastword $(WHIMENDS)),$(WHIMENDS)))
+WHIMLAST   := $(lastword $(WHIMENDS))
+$(foreach i,$(shell seq 1 $(words $(WHIMENDS))),$(eval \
+    $(WHIMBUILD)/q$(word $(i),$(WHIMENDS)).sha256: $(WHIMBUILD)/$(word $(i),$(WHIMSTARTS))))
 
 $(WHIMBUILD)/q%.sha256:
 	@tools/restore.sh $(patsubst %.sha256,%.tar,$<) $(WHIMWORK)
-	@tools/memo.sh $* $(WHIMWORK) $(WHIMBUILD) whim
+	@tools/memo.sh $$(tools/stages.sh whim --of $*) $(WHIMWORK) $(WHIMBUILD) whim
 	@tools/oracle.sh $* $(WHIMBUILD) $(WHIMORACLE) whim | sed 's/^  /      /'
 
 # --- the input ------------------------------------------------------------
@@ -148,31 +78,38 @@ whim-vim.c: force
 
 # --- what a whim pass is --------------------------------------------------
 .PHONY: whim-pass
-whim-pass: $(WHIMBUILD)/q82.sha256
+whim-pass: $(WHIMBUILD)/q$(WHIMLAST).sha256
 	@cp $(WHIMWORK)/whim-vim.c whim-vim.c
 	@echo
 	@printf '  %-12s %s lines, from slim-vim.c\n' "whim-vim.c" \
 	    "`grep -c '' whim-vim.c | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"
 
-# The same per-phase handles slim.mk has: re-run one, or put the work directory
-# back to what a phase receives.  Their absence was an asymmetry rather than a
-# decision -- the boundaries were always there, with nothing to reach them by.
+# The same per-phase handles slim.mk has, and one semantic change: a phase is run
+# by running THE STAGE THAT CONTAINS IT, because only a stage's end is a boundary
+# and nothing else has an input to start from.  `make whim-phase-50` re-runs stage
+# 42-63; within it, the edits before 50 come from the edit cache when nothing they
+# read has changed (tools/phaserun.sh).
 .PHONY: $(WHIMPHASES:%=whim-phase-%)
 $(WHIMPHASES:%=whim-phase-%): whim-phase-%:
-	@rm -f $(WHIMBUILD)/q$*.sha256
-	@$(MAKE) --no-print-directory $(WHIMBUILD)/q$*.sha256
+	@u=$$(tools/stages.sh whim --of $*) && last=$${u#*-} && \
+	 rm -f $(WHIMBUILD)/q$$last.sha256 && \
+	 $(MAKE) --no-print-directory $(WHIMBUILD)/q$$last.sha256
 
+# Only a stage's end can be replayed: nothing else was ever a tree on disk.
 .PHONY: $(WHIMPHASES:%=whim-replay-%)
 $(WHIMPHASES:%=whim-replay-%): whim-replay-%:
+	@if [ ! -f $(WHIMBUILD)/q$*.tar ]; then \
+	     echo "  replay       q$* is not a boundary: phase $* is inside stage $$(tools/stages.sh whim --of $*)," \
+	          "and only a stage's end is kept"; exit 1; fi
 	@tools/restore.sh $(WHIMBUILD)/q$*.tar $(WHIMWORK)
 	@echo "  replay       $(WHIMWORK)/ is the tree after whim phase $*"
 
 .PHONY: whim-times
 whim-times:
-	@total=0; for q in $(WHIMPHASES); do \
+	@total=0; for u in $(WHIMSTAGES); do q=$${u#*-}; \
 	    [ -f $(WHIMBUILD)/q$$q.seconds ] || continue; \
 	    s=$$(cat $(WHIMBUILD)/q$$q.seconds); total=$$((total + s)); \
-	    printf '  whim %-6s %4s s  by %s\n' "$$q" "$$s" "$$(cat $(WHIMBUILD)/q$$q.kind)"; \
+	    printf '  whim %-6s %4s s  by %s\n' "$$u" "$$s" "$$(cat $(WHIMBUILD)/q$$q.kind)"; \
 	done; \
 	printf '  %-12s %4s s\n' "total" "$$total"
 
@@ -209,8 +146,7 @@ whim-repass:
 # anyway.
 .PHONY: whim-tip
 whim-tip:
-	@last=$$(for q in $(WHIMPHASES); do echo $$q; done | tail -1); \
-	 $(MAKE) --no-print-directory whim-phase-$$last && \
+	@$(MAKE) --no-print-directory whim-phase-$(WHIMLAST) && \
 	 $(MAKE) --no-print-directory whim-record | tail -1
 
 # Every recorded boundary, checked at once.  Each phase is run on the recorded
@@ -237,7 +173,7 @@ whim-specpass:
 .PHONY: whim-record
 whim-record:
 	@mkdir -p $(WHIMORACLE)
-	@for q in $(WHIMPHASES); do \
+	@for q in $(WHIMENDS); do \
 	    [ -f $(WHIMBUILD)/q$$q.sha256 ] || continue; \
 	    cp $(WHIMBUILD)/q$$q.sha256 $(WHIMORACLE)/q$$q.sha256; \
 	    cp $(WHIMBUILD)/q$$q.sha256.files $(WHIMORACLE)/q$$q.sha256.files; \

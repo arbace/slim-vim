@@ -22,6 +22,9 @@
 # the lookup is a hit; from the first phase whose input really changed, the key
 # is different, nothing is found, and the phase runs as it always did.
 #
+# The unit speculated on is the pipeline's stage (tools/stages.sh): a phase for
+# slim, a run of phases sharing one sweep for whim, keyed exactly as memo.sh keys it.
+#
 # NOTHING HERE IS A CHECK AND NOTHING CAN BE WRONG.  A cached result answers
 # only the input and implementation it was keyed by, so a wrong guess costs CPU
 # and never correctness.  There is no separate "did the boundary change" step:
@@ -39,9 +42,10 @@ set -eu
 if [ "${1:-}" = "--one" ]; then
     pipe=$2; n=$3; scratch=$4; root=$(pwd)
     . tools/pipeline.sh "$pipe"
+    first=${n%-*}
     res=$scratch/$TAG$n.result
-    if [ "$n" = 0 ]; then in_tar=$PBUILD/input.tar; in_sha=$PBUILD/input.sha256
-    else in_tar=$PBUILD/$TAG$((n - 1)).tar; in_sha=$PBUILD/$TAG$((n - 1)).sha256; fi
+    if [ "$first" = 0 ]; then in_tar=$PBUILD/input.tar; in_sha=$PBUILD/input.sha256
+    else in_tar=$PBUILD/$TAG$((first - 1)).tar; in_sha=$PBUILD/$TAG$((first - 1)).sha256; fi
     if [ ! -f "$in_tar" ] || [ ! -f "$in_sha" ]; then
         echo "$TAG$n no-input" > "$res"; exit 0
     fi
@@ -50,7 +54,8 @@ if [ "${1:-}" = "--one" ]; then
     if [ "$impl" = agent ]; then
         echo "$TAG$n agent" > "$res"; exit 0
     fi
-    # The same three lines, in the same order, as tools/memo.sh.
+    # The same three lines, in the same order, as tools/memo.sh -- where $n is the
+    # unit: a phase, or a stage A-B.
     key=$(printf '%s\n%s\n%s\n' "$n" "$in_digest" "$impl" | sha256sum | cut -c1-32)
     cache=$root/.cache/$TAG$n
     if [ -f "$cache/$key.tar" ] && [ -f "$cache/$key.sha256" ]; then
@@ -95,14 +100,15 @@ jobs=${JOBS:-$(nproc)}
 . tools/pipeline.sh "$pipe"
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/specpass-$PIPE.XXXXXX")
 start=$(date +%s)
-n=0; for _p in $PHASE_LIST; do n=$((n + 1)); done
-printf '  %-12s %d phases of %s speculated on the last pass'"'"'s boundaries, %d at a time\n' \
+UNITS=$(tools/stages.sh "$PIPE")
+n=0; for _p in $UNITS; do n=$((n + 1)); done
+printf '  %-12s %d units of %s speculated on the last pass'"'"'s boundaries, %d at a time\n' \
     "specpass" "$n" "$PIPE" "$jobs"
 
-printf '%s\n' $PHASE_LIST | xargs -P "$jobs" -I{} sh tools/specpass.sh --one "$PIPE" {} "$scratch"
+printf '%s\n' $UNITS | xargs -P "$jobs" -I{} sh tools/specpass.sh --one "$PIPE" {} "$scratch"
 
 ran=0; cached=0; other=0
-for p in $PHASE_LIST; do
+for p in $UNITS; do
     r=$(cat "$scratch/$TAG$p.result" 2>/dev/null || echo "$TAG$p no-result")
     case "$r" in
         *" ran "*) ran=$((ran + 1)) ;;

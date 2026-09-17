@@ -1,7 +1,11 @@
 #!/bin/sh
 # The three-tier memoize, for one phase.
 #
-# Usage: tools/memo.sh <phase> <work-dir> <build-dir>
+# Usage: tools/memo.sh <unit> <work-dir> <build-dir> [pipeline]
+#
+# A unit is a phase N, or a stage A-B of the whim pipeline (tools/stages.sh): its
+# input is the boundary before A, its result the boundary of B, and nothing in
+# between is a boundary.  A single phase is keyed exactly as it always was.
 #
 # A phase is a function of the tree handed to it, so it can be memoized -- and
 # there are three different things worth memoizing, at three different costs:
@@ -31,18 +35,20 @@
 set -eu
 set -o pipefail          # the tier-2 run is piped through an indenter
 
-phase=${1:?usage: memo.sh <phase> <work-dir> <build-dir> [pipeline]}
+unit=${1:?usage: memo.sh <unit> <work-dir> <build-dir> [pipeline]}
 work=${2:?}
 build=${3:?}
 . tools/pipeline.sh "${4:-slim}"
+first=${unit%-*}
+phase=${unit#*-}          # the boundary a unit ends at is its last phase's
 
-cache=.cache/$TAG$phase
+cache=.cache/$TAG$unit
 mkdir -p "$cache"
 
-in_digest=$(cat "$build/$TAG$(($phase - 1)).sha256" 2>/dev/null \
+in_digest=$(cat "$build/$TAG$(($first - 1)).sha256" 2>/dev/null \
             || cat "$build/input.sha256")
-impl=$(tools/implhash.sh "$phase" "$PIPE")
-key=$(printf '%s\n%s\n%s\n' "$phase" "$in_digest" "$impl" | sha256sum | cut -c1-32)
+impl=$(tools/implhash.sh "$unit" "$PIPE")
+key=$(printf '%s\n%s\n%s\n' "$unit" "$in_digest" "$impl" | sha256sum | cut -c1-32)
 
 start=$(date +%s)
 
@@ -50,12 +56,20 @@ start=$(date +%s)
 # is starting before it starts: which phase, what it is called, and how far
 # through the ten we are.  A phase that prints nothing for six minutes looks
 # indistinguishable from a hung one otherwise.
-name=$(tools/phasename.sh "$phase" "$PIPE" 2>/dev/null || true)
+if [ "$first" = "$phase" ]; then
+    name=$(tools/phasename.sh "$phase" "$PIPE" 2>/dev/null || true)
+else
+    name="$((phase - first + 1)) phases, one sweep: $(tools/phasename.sh "$first" "$PIPE" 2>/dev/null || true) ... $(tools/phasename.sh "$phase" "$PIPE" 2>/dev/null || true)"
+fi
 # Bold only for a terminal.  This output is piped as often as it is watched,
 # and an escape sequence in a log file is noise rather than emphasis.
 if [ -t 1 ]; then b=$(printf '\033[1m'); r=$(printf '\033[0m'); else b=; r=; fi
-n=0; for _p in $PHASE_LIST; do n=$((n + 1)); done
-printf '\n  %s[%d/%d] phase %s%s  %s\n' "$b" "$((phase + 1))" "$n" "$phase" "$r" "$name"
+units=$(tools/stages.sh "$PIPE" 2>/dev/null || true)
+n=0; i=0
+for _u in $units; do n=$((n + 1)); [ "$_u" = "$unit" ] && i=$n; done
+[ "$first" = "$phase" ] && what=phase || what=stage
+if [ "$i" = 0 ]; then of="[of $(tools/stages.sh "$PIPE" --of "$phase")]"; else of="[$i/$n]"; fi
+printf '\n  %s%s %s %s%s  %s\n' "$b" "$of" "$what" "$unit" "$r" "$name"
 
 # Cumulative elapsed, so the clock is visible without waiting for the summary.
 since() {
@@ -79,22 +93,43 @@ fi
 
 # --- tier 2: the code -----------------------------------------------------
 tier=
-if [ -n "$(tools/phaserun.sh --parts "$PIPE" "$phase")" ]; then
+if [ "$(tools/phaserun.sh --parts "$PIPE" "$unit" | grep -c '')" -ge "$((phase - first + 1))" ]; then
     # Keep the input, so that a failure can still be handed to tier 1 from the
     # state the phase was actually given.
-    cp "$build/$TAG$(($phase - 1)).tar" "$build/.memo-in.tar" 2>/dev/null \
+    cp "$build/$TAG$(($first - 1)).tar" "$build/.memo-in.tar" 2>/dev/null \
         || cp "$build/input.tar" "$build/.memo-in.tar"
     # Indented, so the tools' own reports read as subordinate to the phase
     # lines rather than competing with them.
     # tools/phaserun.sh runs a whole program as it is, and a split one as its
     # edit, the sweep and its check.
-    if tools/phaserun.sh "$PIPE" "$phase" "$work" 2>&1 | sed 's/^/      /'; then
+    if tools/phaserun.sh "$PIPE" "$unit" "$work" 2>&1 | sed 's/^/      /'; then
         tier=program
     else
-        echo "  tier 2       $TAG$phase FAILED -- falling through to the agent"
+        if [ "$first" = "$phase" ]; then
+            echo "  tier 2       $TAG$phase FAILED -- falling through to the agent"
+        else
+            echo "  tier 2       stage $unit FAILED -- running its phases one at a time"
+        fi
         tools/restore.sh "$build/.memo-in.tar" "$work"
     fi
     rm -f "$build/.memo-in.tar"
+fi
+
+# --- a stage that failed: one phase at a time ----------------------------
+# A stage is several phases sharing a sweep, and its failure does not say which
+# phase is at fault -- or whether any is: a schedule can fail where each phase on
+# its own does not.  So each phase runs as a unit of its own, through this same
+# memoize, from the stage's input: each gets its own sweep, its own boundary and
+# its own tier 1 if its program fails, exactly as before stages existed.  The
+# boundaries written in between are real ones, and the stage's result is the
+# last of them.
+if [ -z "$tier" ] && [ "$first" != "$phase" ]; then
+    for p in $(seq "$first" "$phase"); do
+        tools/restore.sh "$build/$TAG$(($p - 1)).tar" "$work" 2>/dev/null \
+            || tools/restore.sh "$build/input.tar" "$work"
+        tools/memo.sh "$p" "$work" "$build" "$PIPE"
+    done
+    tier=phases
 fi
 
 # --- tier 1: the agent ----------------------------------------------------
@@ -107,7 +142,7 @@ now=$(date +%s)
 echo "$tier" > "$build/$TAG$phase.kind"
 echo "$((now - start))" > "$build/$TAG$phase.seconds"
 printf '      %-12s %s, %dm%02ds%s\n' \
-    "tier $([ "$tier" = agent ] && echo 1 || echo 2)" "$tier" \
+    "tier $(case $tier in agent) echo 1 ;; phases) echo '1/2' ;; *) echo 2 ;; esac)" "$tier" \
     "$(((now - start) / 60))" "$(((now - start) % 60))" "$(since)"
 
 # --- memoize the result ---------------------------------------------------
