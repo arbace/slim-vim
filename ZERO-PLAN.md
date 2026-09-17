@@ -736,18 +736,21 @@ left in the core after that is the fifth and sixth rows of §4a's table — stri
 memory and arithmetic — plus `printf` for the messages that appear before there is a
 screen, which is itself a question for the host.
 
-## 5. Decision points still open
+## 5. Decision points
 
-1. **What the corpus records: the screen, or a digest of it?** Recommendation:
-   **both, as it does now** — the per-redraw screens for reading and diffing, and
+**Four are settled** (the user, 2026-09-17), and they are marked SETTLED below: 1 and 2
+(record the per-redraw screens *and* the stream digest), 3 (add the `screen-moved` and
+`stderr-moved` tokens), 5 and 6 (drop `'readonly'` with `W10` and `[RO]`, and delete the
+`:file` row, keeping `CTRL-G`), and 8 (lower the row floor deliberately, in the phase
+that crosses it). The rest stand as recommendations.
+
+1. **SETTLED — what the corpus records.** Both the per-redraw screens, for reading and diffing, and
    the stream's sha256 as a tripwire beside them. The screens are what a human
    reads in a failure; the digest catches a redraw that draws the same result
    differently, which a phase should have to declare.
-2. **Per-redraw snapshots, or only the last screen?** Recommendation: **per
-   redraw.** It is what makes the message line recordable at all (§2c), it costs
+2. **SETTLED — per-redraw snapshots**, not only the last screen. It is what makes the message line recordable at all (§2c), it costs
    166 KB for 102 cases, and it localises a failure to a keystroke.
-3. **Does `pipes/zero.delta` need tokens for "everything moved"?**
-   Recommendation: **yes** — `screen-moved` and `stderr-moved`, in the shape of
+3. **SETTLED — `pipes/zero.delta` gains tokens for "everything moved"**: `screen-moved` and `stderr-moved`, in the shape of
    whim's `term-moved`. Measured: P2 moves all 102 records by one stderr line, and
    a `'ruler'` change would move all 102 screens. Listing 102 case names to say
    "the status line changed" is a list, not a check.
@@ -756,19 +759,18 @@ screen, which is itself a question for the host.
    records the *message* where the file sweep recorded only an exit status (§2i).
    It is also the only instrument that would notice a command silently changing
    which error it gives.
-5. **`'readonly'`.** Recommendation: **drop the row** in P11 with its `W10`
+5. **SETTLED — `'readonly'` goes.** Drop the row in P11 with its `W10`
    warning and `[RO]` indicator: after P5 nothing can be written, and nothing but
    `:set ro` can set it. `'modifiable'` (a real protection) and `'modified'` (state
    a host wants) stay.
-6. **`:file` and `CTRL-G`.** Recommendation: **keep `CTRL-G`** as buffer info
+6. **SETTLED — `:file` goes, `CTRL-G` stays.** Keep `CTRL-G` as buffer info
    (`[No Name]`, the line count, the percentage) and **delete the `:file` row**,
    which exists to rename. `fileinfo()` shrinks rather than going.
 7. **`--More--` and the Press-ENTER prompt.** Recommendation: **keep both** and
    record them (`hit_enter`, `:highlight`). They are how the editor behaves when a
    message does not fit, and a phase that removed them would be removing screen
    behaviour, which decision 3 protects.
-8. **Row deletion crosses `create_cmdidxs.py`'s 100-row floor** (111 − 12 = 99).
-   Recommendation: **lower the floor to 80 in the phase that crosses it**, in the
+8. **SETTLED — row deletion crosses `create_cmdidxs.py`'s 100-row floor** (111 − 12 = 99), and the floor is lowered **to 80 in the phase that crosses it**, in the
    same commit, with the reason in the tool's docstring — and never silently.
 9. **`ME_TOO_MANY_ARGS` and the parallel `main_errors[]` table.**
    Recommendation: delete the row and the enumerator together in P4, with the
