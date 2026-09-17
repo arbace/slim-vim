@@ -1,0 +1,20 @@
+# The zero pipeline's declared delta: what each phase changes, in advance.
+#
+# Read by tools/zerodelta.sh --phase N, which takes every line up to phase N and
+# checks the binary moved in exactly that way -- and nothing else (ZERO-GOAL.md,
+# rule 2).  The grammar is pipes/whim.delta's, one line per phase that changes the
+# list, continuation lines indented:
+#
+#   word          an Ex command whose exit, or what it leaves behind, now differs
+#   case:NAME     a behaviour case (tools/behaviour.py) whose recording now differs
+#   term-moved    the terminal table (tools/termcheck.py) now differs
+#   drop:word     a command declared earlier that no longer differs
+#
+# THE DIFFERENCE IS FROM WHIM-VIM, not from slim-vim.  The baselines it is measured
+# against are .reference/zero-baselines, which zero phase 0 records from the
+# committed whim-vim.c built with whim's own compile line.  So everything whim
+# removed is already in them, and the list below starts empty: each zero phase
+# declares only what it changes relative to whim.
+#
+# 0 declares nothing: the seed is whim-vim.c byte for byte, built -no-pie, and the
+# harnesses must see no difference at all.
