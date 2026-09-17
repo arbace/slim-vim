@@ -198,12 +198,26 @@ Measured (`e6`, the same 82 sweeps at the same parallelism as `e4`): **all 82 ou
 identical**; `deadsweep` 1,212 → 520 s; total 2,907 → 2,196 s. Two small edits: a flag
 list in `deadsweep.py`, a file name in `phasecheck.sh`.
 
+**Done, on branch `whim-sweep`** (`phasecheck.sh` requires both `build.sha` and
+`last.sha` to match, else compiles as before). Re-measured back to back with the
+unchanged tools, the same 82 sweeps at 12: 2,864 → 2,228 s (−22%), `deadsweep`
+1,186 → 528 s, 265 → 214 s wall; all 82 identical and all 83 boundaries reproduce
+under `make whim-verify`, as do slim's 12 (Phase 8 calls `deadsweep.py` too).
+
 ### 3b. Do not re-run a tool on text it has already passed — simulated, −13%
 
 Replaying the `e4` trace: skipping a tool whose last run was clean on the identical text
 saves 9%; treating `canon.sh`'s changes as invisible to the six analyses (it only moves
 layout, they only read tokens) saves 13%. It overlaps with 3a and cannot touch
 `deadsweep`, which runs first in every round. Not yet run.
+
+**Done with the plain rule only, on branch `whim-sweep`.** The canon rule was not
+taken: `brace.py`, `onedecl.py` and `forcomma.py` change tokens, and the textual
+tools read lines, so a sweep ending on it would end on text some tool never saw.
+Measured after 3a, back to back: 182 of 1,428 tool runs skipped, 2,228 → 1,935 s
+(−13%), 214 → 196 s wall; 2,864 → 1,935 s (−32%) for 3a and 3b together. All 82
+identical, all 83 boundaries reproduce. The `blank()`/`depths()` cache of 3c is in
+too: ten `find_definition` calls on one 127,000-line text, 6.2 → 0.6 s.
 
 ### 3c. Smaller, and not worth doing first
 
