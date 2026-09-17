@@ -12,10 +12,10 @@
 #   2. it builds with zero's compile line, gcc -O0 -static -no-pie -s, into a binary
 #      that is absolutely static: readelf -h says EXEC, there is no INTERP, no
 #      dynamic section and not one relocation;
-#   3. the zero baselines, .reference/zero-baselines, are what WHIM-VIM does: the
-#      three harnesses whim's delta reads -- behaviour, exsweep, termcheck -- run on
-#      whim-vim.c built with whim's own compile line (tools/templates/whim.mk), three
-#      times, identical each time.  An existing set is compared, never overwritten;
+#   3. the zero baselines, .reference/zero-baselines, are what WHIM-VIM does: one
+#      tools/zrecord.sh of whim-vim.c built with whim's own compile line
+#      (tools/templates/whim.mk), three times, identical each time.  An existing set
+#      is compared, never overwritten;
 #   4. zero-vim, built -no-pie from the identical source, shows NO difference from
 #      those baselines (tools/zerodelta.sh --phase 0, with pipes/zero.delta empty), and
 #      whim's own cumulative delta still holds of it against slim-vim's baselines
@@ -75,31 +75,37 @@ fi
 wbin="$tmp/whim/whim-vim"
 echo "  whim-vim     $(stat -c%s "$wbin") bytes, $(readelf -h "$wbin" | awk -F: '$1 ~ /^ *Type$/ { split($2, t, " "); print t[1] }'), the frozen input's binary"
 
-# Three runs, the three harnesses of each at once, and every run must be the same
-# bytes -- a nondeterministic baseline is worse than none (SLIM-GOAL.md).
+# Three runs, and every run must be the same bytes -- a nondeterministic baseline
+# is worse than none (SLIM-GOAL.md).  A recording is tools/zrecord.sh's five parts:
+# the 102 keystroke cases, every Ex command typed at `:`, every command line the
+# parser may see, the pty scenarios and the terminal table.  ZERO PHASE 3 is where
+# the instrument became this; before it, the recording was the file-based
+# behaviour.py and exsweep.py, which an editor with no file to write cannot use.
 for r in 1 2 3; do
-    o="$tmp/run$r"
-    mkdir -p "$o"
-    python3 tools/behaviour.py "$wbin" "$o/behaviour" >/dev/null &
-    pb=$!
-    python3 tools/termcheck.py "$wbin" "$o/ref-term.txt" >/dev/null &
-    pm=$!
-    python3 tools/exsweep.py "$wbin" "$tmp/whim/whim-vim.c" "$o/ref-exsweep.txt" >/dev/null &
-    ps=$!
-    wait $pb $pm $ps
-    [ -d "$o/behaviour" ] && [ -f "$o/ref-term.txt" ] && [ -f "$o/ref-exsweep.txt" ] || {
-        echo "  baselines    run $r left a recording missing"
-        exit 1
-    }
-    if [ "$r" != 1 ] && ! diff -r "$tmp/run1" "$o" >/dev/null; then
+    tools/zrecord.sh "$wbin" "$tmp/whim/whim-vim.c" "$tmp/run$r"
+    if [ "$r" != 1 ] && ! diff -r "$tmp/run1" "$tmp/run$r" >/dev/null; then
         echo "  baselines    run $r differs from run 1 -- not deterministic, not a baseline:"
-        diff -rq "$tmp/run1" "$o" | head -10 | sed 's/^/                 /'
+        diff -rq "$tmp/run1" "$tmp/run$r" | head -10 | sed 's/^/                 /'
         exit 1
     fi
 done
-cases=$(ls "$tmp/run1/behaviour" | grep -c '')
-cmds=$(grep -c '' "$tmp/run1/ref-exsweep.txt")
+cases=$(ls "$tmp/run1/screen" | grep -c '')
+cmds=$(grep -c '^=== ' "$tmp/run1/ref-excmds.txt")
+argvs=$(grep -c '^=== ' "$tmp/run1/ref-argv.txt")
+ptys=$(grep -c '^=== ' "$tmp/run1/ref-pty.txt")
 terms=$(grep -c '' "$tmp/run1/ref-term.txt")
+
+# An existing recording of the OLD shape is named rather than diffed: the two have
+# no file in common, so a diff would print every line of both and say nothing.
+if [ -d "$base" ] && [ ! -d "$base/screen" ]; then
+    echo "  baselines    $base is the old file-based recording (behaviour/, ref-exsweep.txt)."
+    echo "               Zero phase 3 replaced the instrument: a recording is now"
+    echo "               screen/, ref-excmds.txt, ref-argv.txt, ref-pty.txt and"
+    echo "               ref-term.txt (tools/zrecord.sh).  Remove it once, by hand,"
+    echo "               and this phase records the new one from whim-vim:"
+    echo "                 rm -rf $base && rm -rf .cache/r0 && make zero-phase-0"
+    exit 1
+fi
 
 if [ -d "$base" ]; then
     if ! diff -r "$base" "$tmp/run1" >/dev/null; then
@@ -110,13 +116,13 @@ if [ -d "$base" ]; then
         echo "               whim-vim.c did.  Name which before removing $base."
         exit 1
     fi
-    echo "  baselines    match $base: $cases cases, $cmds Ex commands, $terms terminals, 3 identical runs"
+    echo "  baselines    match $base: $cases cases, $cmds commands, $argvs command lines, $ptys pty scenarios, $terms terminals, 3 identical runs"
 else
     mkdir -p .reference
     rm -rf "$base.part"
     cp -r "$tmp/run1" "$base.part"
     mv "$base.part" "$base"
-    echo "  baselines    recorded $base from whim-vim: $cases cases, $cmds Ex commands, $terms terminals, 3 identical runs"
+    echo "  baselines    recorded $base from whim-vim: $cases cases, $cmds commands, $argvs command lines, $ptys pty scenarios, $terms terminals, 3 identical runs"
 fi
 
 # --- 4. zero-vim against them, and whim's delta against slim ----------------
