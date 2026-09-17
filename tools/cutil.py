@@ -3,7 +3,9 @@
 A previous run lost a whole pass because a helper module's top level read
 sys.argv and rewrote the source; the pass imported it, the import crashed, and
 the pass reported "0 changed" instead of failing.  So: no argv, no I/O, no
-prints at import time.  Everything here is a pure function.
+prints at import time.  Everything here is a pure function -- blank() and
+depths() remember their last large answers, which changes when they compute and
+never what they return.
 
 The rule these exist to enforce: never parse C with a regex over the whole
 file.  Extract the construct by brace or paren matching, operate on it, write
@@ -11,6 +13,32 @@ it back.
 """
 
 # ---------------------------------------------------------------- literals
+
+# THE LAST FEW LARGE ANSWERS ARE REMEMBERED.  A phase program finds, folds and
+# finds again in one text, and every find_definition, drop_if and fold blanked
+# the whole file from scratch -- a third of a second each on a large file, for
+# a string it had blanked a moment before.  The key is the string itself,
+# compared by content: an id() is reused as soon as its string is freed, so a
+# cache keyed on one hands an old text's answer to a new text.  Holding the key
+# keeps it alive, so an identity match is a content match, and anything else is
+# compared the ordinary way.  Small strings -- a line, a condition -- are not
+# kept: they are cheap to blank and would push the file out.
+_KEEP_FROM = 1 << 16
+_blanked = []
+_depths = []
+
+
+def _remember(cache, key, compute, size):
+    for i, (k, v) in enumerate(cache):
+        if k is key or k == key:
+            if i:
+                cache.insert(0, cache.pop(i))
+            return v
+    v = compute(key)
+    cache.insert(0, (key, v))
+    del cache[size:]
+    return v
+
 
 def blank(s):
     """Return a string of the same length with the *contents* of string
@@ -25,6 +53,12 @@ def blank(s):
     real characters must walk the original string.  Deciding whitespace from
     blanked text is what turned '\\n' into '' and produced 630 compile errors.
     """
+    if len(s) >= _KEEP_FROM:
+        return _remember(_blanked, s, _blank, 2)
+    return _blank(s)
+
+
+def _blank(s):
     out = []
     i, n = 0, len(s)
     while i < n:
@@ -162,7 +196,16 @@ def depths(b):
 
     depth[i] is the depth *before* consuming b[i], so an opener sits at the
     depth of its enclosing context and its closer sits one deeper.
+
+    A large answer is remembered like blank()'s and returned again, so it must
+    be read and never modified.
     """
+    if len(b) >= _KEEP_FROM:
+        return _remember(_depths, b, _depths_of, 1)
+    return _depths_of(b)
+
+
+def _depths_of(b):
     out = []
     d = 0
     for ch in b:
