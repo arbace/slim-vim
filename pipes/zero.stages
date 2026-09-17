@@ -1,0 +1,32 @@
+# The zero pipeline's manifest: its phases, its stages and its packages.
+#
+# Three kinds of line are read here, by three readers, and nothing else is:
+#
+#   phases P...         the phase list, read by tools/pipeline.sh as PHASE_LIST.
+#                       It is here and not in tools/pipeline.sh because that file is
+#                       hashed into every whim stage's key and every whim edit's: a
+#                       zero phase added there would re-key all of whim.  Nothing
+#                       hashes this file.
+#   stage, need, apart  the schedule, read by tools/stages.sh exactly as for whim
+#                       (pipes/whim.stages says what each means).  A stage is a run
+#                       of split phases sharing one sweep; only a stage's end is a
+#                       boundary.
+#   package, uses       the concept view, read by tools/packages.sh and by nothing
+#                       that runs a phase.  `uses A:P B:Q KIND why`, KIND being
+#                       `mechanical` or `rationale`, as pipes/whim.stages defines.
+#
+# tools/stages.sh zero --check requires the stages to cover the `phases` line
+# exactly once and in order; tools/packages.sh zero --check requires every phase in
+# exactly one package.  `make zero-verify` and `make zero-tip` run the second.
+#
+# There is one phase.  Phases are added one at a time, each on its own request
+# (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
+# to `phases`, place it in a stage and a package.
+
+phases      0
+
+#   stage   phases
+stage       0
+
+#        name         phases
+package  seed         0

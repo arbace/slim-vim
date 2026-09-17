@@ -1,6 +1,7 @@
-# The two products' binaries.
+# The three products' binaries.
 slim-vim
 whim-vim
+zero-vim
 
 # The frozen snapshot of this tree, plus the harness baselines.  Data, and a
 # copy of what git already has -- not source.  See CLAUDE.md.
@@ -23,10 +24,12 @@ upstream-ref/
 # comparing the next -- but it is data, not source, and a new pass discards it.
 .build-slim/
 .build-whim/
+.build-zero/
 
 # The whim pipeline's work directory: one file and a makefile, rebuilt from
-# slim-vim.c on demand and deleted with the build.
+# slim-vim.c on demand and deleted with the build.  zero/ is the same, from whim-vim.c.
 whim/
+zero/
 
 # Tier 3 of the memoize: phase results, keyed by input digest and
 # implementation digest together.  Pure cache -- content-keyed, so it cannot go

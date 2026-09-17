@@ -56,7 +56,8 @@ driven() {
 # edit reads its table cut from it.  What is hashed is the lines of
 # pipes/<pipeline>.delta for the unit's phases and every phase before them (for
 # --edit, the phase's own lines) -- not the whole file, so declaring a new phase's
-# delta at the end moves no earlier key -- and, for a unit, tools/whimdelta.sh.
+# delta at the end moves no earlier key -- and, for a unit, the pipeline's checker
+# (PDELTA, tools/whimdelta.sh or tools/zerodelta.sh) with what it names.
 delta_lines() {
     [ -f "pipes/$IMPL.delta" ] || return 0
     case $progs in *-edit.sh*) ;; *) return 0 ;; esac
@@ -65,8 +66,8 @@ delta_lines() {
         /^[0-9]/ { p = $1 + 0 }
         p <= N && (ONLY == "" || p == N) { print }' "pipes/$IMPL.delta"
     if [ -z "${edit_only:-}" ]; then
-        cat tools/whimdelta.sh
-        for e in $(deps tools/whimdelta.sh | sort -u); do [ -f "$e" ] && cat "$e"; done
+        cat "$PDELTA"
+        for e in $(deps "$PDELTA" | sort -u); do [ -f "$e" ] && cat "$e"; done
     fi
 }
 

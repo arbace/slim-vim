@@ -34,7 +34,7 @@ mkdir -p "$(dirname "$tar_out")"
 # their content is part of the answer.
 #
 # The built binary is excluded wherever it is -- ./src/vim before Phase 2
-# flattens the tree, ./vim after it, and ./whim-vim in the other pipeline --
+# flattens the tree, ./vim after it, ./whim-vim and ./zero-vim in the others --
 # and not merely because it is derived.  version.c embeds __DATE__ and
 # __TIME__, so two builds of identical sources are different files, and a
 # boundary counting the binary is never equal to itself twice.  (The pass
@@ -51,7 +51,7 @@ mkdir -p "$(dirname "$tar_out")"
 # was true, which nothing caught: a phase replayed from the tier 3 cache
 # reproduces a recorded digest exactly, and only a genuine re-run of the
 # program disagrees with it.  `make whim-repass` is what finally asked the question.
-exclude='/objects/|/auto/config\.(log|status|cache)$|\.(o|d)$|/(whim-)?vim$|/xxd/xxd$'
+exclude='/objects/|/auto/config\.(log|status|cache)$|\.(o|d)$|/(whim-|zero-)?vim$|/xxd/xxd$'
 
 # find | sort makes the order the tree's, not the filesystem's.
 ( cd "$dir" && find . -type f ! -path './.git/*' -print0 \

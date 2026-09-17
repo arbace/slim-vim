@@ -45,6 +45,7 @@ UPSTREAM_BRANCH = regexp-delimiter-atoms
 
 include slim.mk
 include whim.mk
+include zero.mk
 
 # The default goal is the first target make sees, and `include` is where make
 # sees slim.mk's -- so without this line a bare `make` builds the first phase
@@ -103,13 +104,13 @@ slim-vim.c: force
 	rm -rf $(SLIMWORK); \
 	echo "$$live" > upstream.sha
 
-# Both products, because there are two.  The per-pipeline targets that remove a
-# pass's working state are slim-clean and whim-clean.
+# Every product, because there are three.  The per-pipeline targets that remove a
+# pass's working state are slim-clean, whim-clean and zero-clean.
 clean:
-	rm -f slim-vim whim-vim
+	rm -f slim-vim whim-vim zero-vim
 
-# Bytes to store and symbols to provide, for both pipelines side by side.  It
-# reports on the pair, so it is not either one's target.
+# Bytes to store and symbols to provide, for every pipeline side by side.  It
+# reports on all of them, so it is not any one's target.
 .PHONY: score
 score:
 	@tools/score.sh

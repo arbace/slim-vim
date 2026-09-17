@@ -1,7 +1,7 @@
 #!/bin/sh
 # Check every recorded boundary of a pipeline at once, on as many CPUs as there are.
 #
-# Usage: tools/verifypass.sh slim|whim [unit...]      (run from the repository root)
+# Usage: tools/verifypass.sh slim|whim|zero [unit...]      (run from the repository root)
 #        JOBS=n to run fewer at once than there are CPUs
 #        KEEP=1 to keep every phase's work and log even when all reproduce
 #
@@ -62,8 +62,15 @@ if [ "${1:-}" = "--one" ]; then
     ln -s "$root/pipes" "$d/pipes"
     ln -s "$root/.reference/baselines" "$d/.reference/baselines"
     # The whim pipeline's declared input, which its phase 0 compares the seed
-    # against by name.  Read-only, like everything else linked in.
+    # against by name, and, for zero only, zero's.  Read-only, like everything else
+    # linked in.  Zero's baselines are linked only where they exist: zero phase 0
+    # compares a recording with them and never writes over them, and records into
+    # the scratch root's own .reference/ when there are none.
     if [ -f "$root/slim-vim.c" ]; then ln -s "$root/slim-vim.c" "$d/slim-vim.c"; fi
+    if [ "$PIPE" = zero ]; then
+        if [ -f "$root/whim-vim.c" ]; then ln -s "$root/whim-vim.c" "$d/whim-vim.c"; fi
+        if [ -d "$root/.reference/zero-baselines" ]; then ln -s "$root/.reference/zero-baselines" "$d/.reference/zero-baselines"; fi
+    fi
     [ -n "$want" ] || { echo "$TAG$u UNRECORDED" > "$res"; exit 0; }
     start=$(date +%s)
     (
@@ -91,7 +98,7 @@ if [ "${1:-}" = "--one" ]; then
     exit 0
 fi
 
-pipe=${1:?usage: verifypass.sh slim|whim [unit...]}
+pipe=${1:?usage: verifypass.sh slim|whim|zero [unit...]}
 shift
 jobs=${JOBS:-$(nproc)}
 . tools/pipeline.sh "$pipe"

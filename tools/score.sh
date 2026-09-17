@@ -1,5 +1,5 @@
 #!/bin/sh
-# What whim-vim costs a target: bytes to store, and symbols to provide.
+# What each product costs a target: bytes to store, and symbols to provide.
 #
 # Usage: tools/score.sh
 #
@@ -13,11 +13,11 @@
 set -eu
 
 row() {
-    name=$1; src=$2; bin=$3
+    name=$1; src=$2; bin=$3; ldflags=${4:--static -s}
     [ -f "$src" ] || { printf '  %-10s %s\n' "$name" "absent"; return; }
     if [ ! -f "$bin" ]; then
         ( cd "$(dirname "$src")" >/dev/null 2>&1 || true
-          gcc -O0 -static -s -o "$bin" "$src" 2>/dev/null ) || true
+          gcc -O0 $ldflags -o "$bin" "$src" 2>/dev/null ) || true
     fi
     lines=$(grep -c '' "$src")
     bytes=$([ -f "$bin" ] && stat -c%s "$bin" || echo 0)
@@ -37,3 +37,5 @@ row() {
 
 row slim-vim slim-vim.c slim-vim
 row whim-vim whim-vim.c whim-vim
+# zero's compile line is whim's with -no-pie (tools/templates/zero.mk).
+row zero-vim zero-vim.c zero-vim "-static -no-pie -s"

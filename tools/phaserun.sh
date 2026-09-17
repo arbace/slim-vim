@@ -47,8 +47,9 @@
 #
 # THE DELTA IS THE STAGE'S, and no check part states one.  pipes/<pipeline>.delta
 # declares what each phase changes; the lines up to a phase are the whole difference
-# from slim at that phase, so the stage's last phase's contains every earlier one's,
-# and this driver runs tools/whimdelta.sh --phase <last> once, after the checks.
+# from the pipeline's baselines at that phase, so the stage's last phase's contains
+# every earlier one's, and this driver runs the pipeline's checker (PDELTA) with
+# --phase <last> once, after the checks.
 #
 # The state directories are .cache/state/<tag><N>, and the stage's own
 # .cache/state/<tag><unit>.stage, relative to where the unit runs -- never inside
@@ -118,7 +119,7 @@ tools/symbols.sh "$f" "$stage_state/symbols"
 # recomputes every edit.
 tree_digest() {
     ( cd "$work" && find . -type f -print0 | sort -z | xargs -0 sha256sum ) \
-        | grep -Ev '/objects/|\.(o|d)$|/(whim-)?vim$' | sha256sum | cut -c1-32
+        | grep -Ev '/objects/|\.(o|d)$|/(whim-|zero-)?vim$' | sha256sum | cut -c1-32
 }
 for p in $phases; do
     state=.cache/state/$TAG$p
@@ -157,9 +158,13 @@ for p in $phases; do
 done
 
 # The declared delta, once: pipes/<pipeline>.delta up to the stage's last phase is
-# the whole difference from slim there, and so holds every earlier phase's.
+# the whole difference from the pipeline's baselines there, and so holds every
+# earlier phase's.  The checker is the pipeline's (PDELTA in tools/pipeline.sh):
+# tools/whimdelta.sh against slim-vim's baselines, zero's own against whim-vim's.
+# Never name a zero tool's path in this file: every whim edit's key reads what
+# this file names, so the name would put that tool in all of them.
 if [ -f "pipes/$IMPL.delta" ]; then
-    tools/whimdelta.sh "$work/${PSOURCE%.c}" "$f" --phase "$last"
+    "$PDELTA" "$work/${PSOURCE%.c}" "$f" --phase "$last"
 fi
 
 for p in $phases; do rm -rf ".cache/state/$TAG$p"; done
