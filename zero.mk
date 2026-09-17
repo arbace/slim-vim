@@ -54,7 +54,7 @@ $(foreach i,$(shell seq 1 $(words $(ZEROENDS))),$(eval \
 
 $(ZEROBUILD)/r%.sha256:
 	@tools/restore.sh $(patsubst %.sha256,%.tar,$<) $(ZEROWORK)
-	@tools/memo.sh $$(tools/stages.sh zero --of $*) $(ZEROWORK) $(ZEROBUILD) zero
+	@NO_AGENT=1 tools/memo.sh $$(tools/stages.sh zero --of $*) $(ZEROWORK) $(ZEROBUILD) zero
 	@tools/oracle.sh $* $(ZEROBUILD) $(ZEROORACLE) zero | sed 's/^  /      /'
 
 # --- the input ------------------------------------------------------------

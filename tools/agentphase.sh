@@ -27,6 +27,26 @@ phase=${1:?usage: agentphase.sh <phase> <workdir> [pipeline]}
 work=${2:?}
 . tools/pipeline.sh "${3:-slim}"
 
+# THE AGENT IS A FALLBACK, AND A FALLBACK THAT COSTS MONEY.  tools/memo.sh treats
+# any tier-2 failure as the signal to come here, so a phase program that refuses
+# -- an assertion doing its job, a half-written edit, a probe calibrated against
+# the wrong boundary -- spends a `claude -p` run before anyone can stop it.  That
+# happened while zero phase 3 was being written: a deliberate refusal, meant to
+# prove a check, cost four minutes of agent instead.
+#
+# NO_AGENT=1 refuses instead.  It is for a pipeline whose phases are all programs
+# and are meant to stay that way -- zero.mk sets it for every unit it runs, so a
+# zero phase that fails fails LOUDLY.  Unset, nothing changes: slim's phases still
+# fall through here, which is what the three tiers are for.
+if [ -n "${NO_AGENT:-}" ]; then
+    echo "  tier 1       REFUSED: $PIPE phase $phase failed and NO_AGENT is set." >&2
+    echo "               The program is meant to be the answer here, so its failure" >&2
+    echo "               is the report: read it above, fix the program, and re-run" >&2
+    echo "               tools/phaserun.sh $PIPE $phase <work-dir> by hand." >&2
+    echo "               Unset NO_AGENT to let the agent tier run." >&2
+    exit 1
+fi
+
 goal=$DOC
 [ -f "$goal" ] || { echo "agentphase: no $goal here"; exit 1; }
 
