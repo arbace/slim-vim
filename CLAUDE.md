@@ -608,6 +608,13 @@ its error and the agent's account to an agent whose job is to fix the
 a change genuinely needs judgement, in which case that one phase reverts to an
 agent and the other nine do not.
 
+**`NO_AGENT=1` refuses instead of falling through**, and `zero.mk` sets it for
+every unit it runs. The fallback costs a `claude -p` run, and a phase program
+that refuses on purpose — an assertion doing its job, a probe calibrated against
+the wrong boundary — is a failure to read, not a question to hand to an agent. It
+cost four minutes once, while zero phase 3 was being written. Slim is unguarded,
+because its phases are where the agent tier still earns its place.
+
 **The top level is already an instance of this.** `upstream.sha` is tier 3 of
 `F` itself: when the branch head matches, the cached `slim-vim.c` is returned and
 nothing runs at all.
