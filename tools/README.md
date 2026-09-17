@@ -30,6 +30,26 @@ actually happened was an import crash.
   answer is retried at a longer settle before it is believed: under the load of
   a full `verify.sh` the screen is sometimes not drawn yet, and that is a slow
   terminal, not a missing one.
+- **`zscreen.py`**, **`zstream.py`**, **`zrec.py`** — zero's instrument, which is
+  the screen. `zstream.py` runs the editor with a keystroke FILE on stdin and keeps
+  its stdout; `zscreen.py` replays those escape sequences into a 24x80 matrix and
+  snapshots it at every `\x1b[?25h`, which is where a redraw ends and is the only
+  reason a message line is recordable; `zrec.py` is the sectioned record shape and
+  the two scrubs a recording needs (undo's "1 second ago" and the version banner's
+  build timestamp, each padded to the width it replaces, because a screen is
+  columns). A CJK glyph is two cells and a combining mark none — counting
+  characters got two cases of 102 wrong against an independent emulator.
+- **`zcases.py`**, **`zexcmds.py`**, **`zargv.py`**, **`zpty.py`** — the four
+  corpora: 102 keystroke cases that type their own text under `'paste'`, every Ex
+  command name typed at `:` and recorded by the message it prints, every command
+  line the parser may see, and the four pty scenarios for what only a terminal
+  shows (the window size from `TIOCGWINSZ`, raw mode, the arrow keys in Normal
+  mode). **`zrecord.sh <binary> <source> <outdir>`** runs all four and
+  `termcheck.py` at once, in 5 s, and that is one *recording*.
+- **`zcompare.py`** — a recording against the baselines, under what
+  `pipes/zero.delta` declares: a record by name, or a whole *dimension* through
+  `screen-moved` and `stderr-moved`. A dimension declared that did not move is a
+  failure, as is a record that moved and was not declared.
 - **`create_cmdidxs.py`** — regenerate the command lookup table; `--check`
   verifies it in place. Also the canary for anything that reshapes the table.
 - **`verify.sh <baselines-dir>`** — every check above, run concurrently, one
@@ -37,12 +57,13 @@ actually happened was an import crash.
   and a disturbed command table. The baselines live in `.reference/baselines`,
   which is gitignored: `tools/verify.sh .reference/baselines --enums`.
 - **`whimdelta.sh <binary> <source> --phase N`**, **`zerodelta.sh`** the same — a
-  pipeline's declared delta as a check: exactly the Ex commands, behaviour cases and
-  terminal table that `pipes/<pipeline>.delta` lists up to phase N moved, and nothing
-  else. `whimdelta.sh` compares with slim-vim's `.reference/baselines`;
-  `zerodelta.sh` with `.reference/zero-baselines`, which zero phase 0 records from
-  whim-vim, so zero's delta is from whim and starts empty. Two tools rather than one
-  with a mode, because `whimdelta.sh` is in every whim stage's key.
+  pipeline's declared delta as a check: exactly what `pipes/<pipeline>.delta` lists
+  up to phase N moved, and nothing else. `whimdelta.sh` compares the file-based
+  harnesses with slim-vim's `.reference/baselines`; `zerodelta.sh` records with
+  `zrecord.sh` and compares with `zcompare.py` against `.reference/zero-baselines`,
+  which zero phase 0 records from whim-vim — so zero's delta is from whim, is
+  cumulative, and starts empty. Two tools rather than one with a mode, because
+  `whimdelta.sh` is in every whim stage's key.
 - **`build.sh`** — the reproducible build tier 1 needs: no `-g`, pinned
   `SOURCE_DATE_EPOCH`, and a clean first.
 - **`refcheck.sh [reference-dir]`** — the end-of-pass comparison against

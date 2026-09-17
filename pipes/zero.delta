@@ -5,10 +5,24 @@
 # rule 2).  The grammar is pipes/whim.delta's, one line per phase that changes the
 # list, continuation lines indented:
 #
-#   word          an Ex command whose exit, or what it leaves behind, now differs
-#   case:NAME     a behaviour case (tools/behaviour.py) whose recording now differs
-#   term-moved    the terminal table (tools/termcheck.py) now differs
-#   drop:word     a command declared earlier that no longer differs
+#   word             an Ex command name: its block in ref-excmds.txt now differs
+#   case:NAME        a screen case (tools/zcases.py) whose record now differs
+#   argv:NAME        an invocation (tools/zargv.py); spaces are written as `_`
+#   term-moved       the terminal table (tools/termcheck.py) now differs
+#   pty-moved        the pty scenarios (tools/zpty.py) now differ
+#   screen-moved     what the editor DRAWS differs everywhere -- the snapshots and
+#                    the stream digest of every case, the text and message lines of
+#                    every command row.  Exit status, bells and stderr must still
+#                    match, case by case
+#   stderr-moved     what the editor writes to STDERR differs everywhere, and
+#                    nothing else does
+#   drop:X           X was declared earlier and no longer differs
+#
+# The two `-moved` dimensions are not a way of saying "some things changed".  Each
+# excludes ONE dimension from every comparison and must itself have moved
+# somewhere: a phase that declares `screen-moved` and draws the same screens fails
+# (proven, by declaring it here and watching tools/zcompare.py refuse).  Everything
+# outside the declared dimension is still checked record by record.
 #
 # THE DIFFERENCE IS FROM WHIM-VIM, not from slim-vim.  The baselines it is measured
 # against are .reference/zero-baselines, which zero phase 0 records from the
@@ -22,14 +36,19 @@
 # 1 declares nothing: -fno-stack-protector changes the code gcc emits around a
 # function's locals, not what the editor does.
 #
-# 2 declares nothing, AND EVERY HARNESS HERE IS BLIND TO IT, which is a different
-# thing and is why the phase carries probes of its own.  It removes the two
-# warnings check_tty() printed when stdin or stdout was not a terminal, the two
-# seconds it then paused, and --ttyfail.  behaviour.py and exsweep.py run the
-# editor `-e -s`: exmode_active is set before check_tty(), which takes its first
-# branch, so no recorded stderr ever held the warnings (grepped: the only
-# baseline line mentioning a terminal is exsweep's "SKIPPED (hands over the
-# terminal)" for :shell and friends).  termcheck.py drives a real pty, where both
-# streams ARE terminals.  So "none" here is true and proves little, and
-# pipes/zero2-check.sh measures the removed warning, the removed pause and the
-# now-unknown option against the binary the phase was handed.
+# 2 removes the two warnings check_tty() printed when stdin or stdout was not a
+# terminal, the two seconds it then paused, and --ttyfail.  IT DECLARED NOTHING
+# UNTIL PHASE 3, and that was true of the old instrument rather than of the
+# editor: behaviour.py and exsweep.py ran it `-e -s`, where exmode_active is set
+# before check_tty() and its other branch is taken, so no recorded stderr ever
+# held the warnings, and termcheck.py drives a pty where both streams ARE
+# terminals.  The instrument phase 3 installs runs the editor on a pipe, which is
+# exactly where those warnings were printed, so the difference is visible now and
+# is declared where it happened: every one of the 102 cases, 109 of the 111 command
+# rows (:stop and :suspend are skipped and run nothing) and 13 of the 30 command
+# lines differ in their stderr and in nothing else -- measured with
+# tools/zcompare.py, which is what "and in nothing else" means here.
+2     stderr-moved
+#
+# 3 declares nothing of its own.  It changes no source: it replaces the
+# instrument, and the line above is the difference that instrument can now see.

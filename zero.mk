@@ -102,12 +102,15 @@ ZEROBASELINES = .reference/zero-baselines
 .PHONY: zero-baselines-check
 zero-baselines-check:
 	@b=$(ZEROBASELINES); \
-	 if [ -d $$b/behaviour ] && [ -n "$$(ls -A $$b/behaviour 2>/dev/null)" ] \
-	    && [ -s $$b/ref-exsweep.txt ] && [ -s $$b/ref-term.txt ]; then exit 0; fi; \
+	 if [ -d $$b/screen ] && [ -n "$$(ls -A $$b/screen 2>/dev/null)" ] \
+	    && [ -s $$b/ref-excmds.txt ] && [ -s $$b/ref-argv.txt ] \
+	    && [ -s $$b/ref-pty.txt ] && [ -s $$b/ref-term.txt ]; then exit 0; fi; \
 	 echo; \
-	 echo "  baselines    MISSING: $$b does not hold behaviour/, ref-exsweep.txt and ref-term.txt"; \
-	 echo "               zero phase 0 records them only when it runs, and r0 came from the"; \
-	 echo "               tier 3 cache.  Every later zero delta compares with them.  Fix:"; \
+	 echo "  baselines    MISSING or of the old shape: $$b does not hold screen/,"; \
+	 echo "               ref-excmds.txt, ref-argv.txt, ref-pty.txt and ref-term.txt"; \
+	 echo "               (tools/zrecord.sh).  Zero phase 0 records them only when it"; \
+	 echo "               runs, and r0 came from the tier 3 cache.  Every later zero"; \
+	 echo "               delta compares with them.  Fix:"; \
 	 echo "                 rm -rf .cache/r0 && make zero-phase-0"; \
 	 exit 1
 

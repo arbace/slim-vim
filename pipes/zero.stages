@@ -19,22 +19,26 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are three phases.  Phases are added one at a time, each on its own request
+# There are four phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2
+phases      0 1 2 3
 
 #   stage   phases
 stage       0
 stage       1
 stage       2
+stage       3
 
 #        name         phases
 package  seed         0
 package  build        1
 package  terminal     2
+package  harness      3
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
-uses  terminal:2  seed:0   mechanical  the same: its declared delta is none, and none is checked against those baselines
+uses  terminal:2  seed:0   mechanical  the same: its declared delta is checked against those baselines
+uses  harness:3   seed:0   mechanical  it is measured against the baselines phase 0 records, in the shape phase 0 now records them
+uses  harness:3   terminal:2  rationale   the delta it proves is phase 2's: the warnings it removed are what the new instrument sees
