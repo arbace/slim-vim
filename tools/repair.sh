@@ -26,7 +26,7 @@ proceed, never ask.
 
 What is in front of you:
 
-- slim.mk runs ten phases.  A phase is a program if pipes/<pipeline><N>.sh exists
+- slim.mk runs twelve phases.  A phase is a program if pipes/<pipeline><N>.sh exists
   and an agent otherwise.  One of the programs failed; its output says which
   and why.
 - .build-slim/p*.sha256 are the boundaries the fast path reached before it stopped.

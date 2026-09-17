@@ -71,7 +71,7 @@ slim-clone:
 	@rm -rf $(SLIMWORK) $(SLIMBUILD)
 	@mkdir -p $(SLIMBUILD)
 	@date +%s > $(SLIMBUILD)/pass-start
-	@printf '\n\033[1m  slim-vim\033[0m  a pass: ten phases, upstream to slim-vim.c\n'
+	@printf '\n\033[1m  slim-vim\033[0m  a pass: twelve phases, upstream to slim-vim.c\n'
 	@printf '  %-12s %s\n' "started" "`date -Is`"
 	@git clone --quiet --branch $(UPSTREAM_BRANCH) --depth 1 $(UPSTREAM_URL) $(SLIMWORK)
 	@rm -rf $(SLIMWORK)/.git

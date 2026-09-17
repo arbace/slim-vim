@@ -13,7 +13,7 @@
 # pass has succeeded, so a failed pass leaves the record alone and the next
 # make retries.
 #
-# The pass itself is in slim.mk: ten phases, each a make target whose
+# The pass itself is in slim.mk: twelve phases, each a make target whose
 # prerequisite is the previous phase's boundary.  A phase is run by a program
 # if pipes/<pipeline><N>.sh exists and by an agent if it does not, so converting a
 # phase to a deterministic one is adding a file rather than editing anything

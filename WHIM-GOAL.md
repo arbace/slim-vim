@@ -5,7 +5,7 @@
 expecting a filesystem to have been installed for it.**
 
 ```
-slim-vim.c = F(upstream@sha)          SLIM-GOAL.md, ten phases
+slim-vim.c = F(upstream@sha)          SLIM-GOAL.md, twelve phases
 whim-vim.c = G(slim-vim.c)            this document
 ```
 
