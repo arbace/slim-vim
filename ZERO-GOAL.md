@@ -146,6 +146,10 @@ before:
    against slim-vim's baselines, shows whim's whole declared delta still holds: the
    frozen whim behaviour is intact under the new compile line.
 
-A tier-3 hit on this phase records nothing, because the phase does not run. A tree
-with the cache and no `.reference/zero-baselines` gets them back with
-`rm -rf .cache/r0 && make zero-phase-0`.
+A tier-3 hit on this phase records nothing, because the phase does not run. So
+`zero.mk` checks afterwards: `zero-pass`, and `zero-phase-N` — and through them
+`zero-repass`, `zero-specpass`, `zero-tip` and the `zero-vim.c` rule — run
+`zero-baselines-check` once the chain has reached its boundary, and it refuses unless
+`.reference/zero-baselines` holds a non-empty `behaviour/`, `ref-exsweep.txt` and
+`ref-term.txt`, naming the fix: `rm -rf .cache/r0 && make zero-phase-0`. The check
+lives in `zero.mk`, which no implementation digest reads, so it moves no key.

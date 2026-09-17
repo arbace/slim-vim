@@ -80,9 +80,31 @@ zero-vim.c: force
 	$(MAKE) --no-print-directory zero-pass; \
 	echo "$$live" > whim.sha
 
+# --- the baselines, which a tier 3 hit does not record ---------------------
+# Zero phase 0 records .reference/zero-baselines as a side effect of running, so a
+# pass that replays r0 from the cache records nothing -- and a tree with a warm
+# cache and no baselines would end its pass looking fine, leaving every later zero
+# phase's delta with nothing to compare against.  So every target that can end a
+# pass on a cached r0 asks afterwards, and refuses with the fix.  It is here, in a
+# makefile no implementation digest reads, so it moves no key.
+ZEROBASELINES = .reference/zero-baselines
+
+.PHONY: zero-baselines-check
+zero-baselines-check:
+	@b=$(ZEROBASELINES); \
+	 if [ -d $$b/behaviour ] && [ -n "$$(ls -A $$b/behaviour 2>/dev/null)" ] \
+	    && [ -s $$b/ref-exsweep.txt ] && [ -s $$b/ref-term.txt ]; then exit 0; fi; \
+	 echo; \
+	 echo "  baselines    MISSING: $$b does not hold behaviour/, ref-exsweep.txt and ref-term.txt"; \
+	 echo "               zero phase 0 records them only when it runs, and r0 came from the"; \
+	 echo "               tier 3 cache.  Every later zero delta compares with them.  Fix:"; \
+	 echo "                 rm -rf .cache/r0 && make zero-phase-0"; \
+	 exit 1
+
 # --- what a zero pass is --------------------------------------------------
 .PHONY: zero-pass
 zero-pass: $(ZEROBUILD)/r$(ZEROLAST).sha256
+	@$(MAKE) --no-print-directory zero-baselines-check
 	@cp $(ZEROWORK)/zero-vim.c zero-vim.c
 	@echo
 	@printf '  %-12s %s lines, from whim-vim.c\n' "zero-vim.c" \
@@ -93,7 +115,8 @@ zero-pass: $(ZEROBUILD)/r$(ZEROLAST).sha256
 $(ZEROPHASES:%=zero-phase-%): zero-phase-%:
 	@u=$$(tools/stages.sh zero --of $*) && last=$${u#*-} && \
 	 rm -f $(ZEROBUILD)/r$$last.sha256 && \
-	 $(MAKE) --no-print-directory $(ZEROBUILD)/r$$last.sha256
+	 $(MAKE) --no-print-directory $(ZEROBUILD)/r$$last.sha256 && \
+	 $(MAKE) --no-print-directory zero-baselines-check
 
 # Only a stage's end can be replayed: nothing else was ever a tree on disk.
 .PHONY: $(ZEROPHASES:%=zero-replay-%)

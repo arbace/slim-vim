@@ -613,8 +613,11 @@ mistake is a pipeline re-recording from its *own* current binary, which then agr
 by construction. Zero phase 0 records from the pipeline's immutable input —
 `whim-vim.c`, built with whim's compile line — three runs that must be identical;
 an existing set is compared and never overwritten; and the zero binary is then held
-to it. A tier-3 hit on phase 0 records nothing, so a tree with a warm cache and no
-`zero-baselines/` gets them back with `rm -rf .cache/r0 && make zero-phase-0`.
+to it. A tier-3 hit on phase 0 records nothing, so `zero-pass` and `zero-phase-N`
+(and every zero target that goes through them) end with `zero-baselines-check`,
+which **refuses** when `zero-baselines/` lacks `behaviour/`, `ref-exsweep.txt` or
+`ref-term.txt` and names the fix, `rm -rf .cache/r0 && make zero-phase-0`. It is in
+`zero.mk`, which no key reads.
 
 `slim-vim` there is built with `SOURCE_DATE_EPOCH=0`, so it is reproducible
 byte for byte and usable as the left-hand side of a tier 1 check:
