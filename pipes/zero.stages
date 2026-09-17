@@ -19,26 +19,39 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are four phases.  Phases are added one at a time, each on its own request
+# There are five phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3
+phases      0 1 2 3 4
 
 #   stage   phases
 stage       0
 stage       1
 stage       2
 stage       3
+stage       4
+
+# What the schedule must respect (pipes/whim.stages defines the two words).
+#   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
+#               with `-e -s` and requires both to exit 0 -- which is how it proves
+#               `--`, `+cmd` and `-T` still work.  Phase 4 removes `-e`, so that
+#               check cannot run on a tree phase 4 has touched.  Every zero phase
+#               is its own stage today, so this is a statement rather than a
+#               constraint; it becomes one the moment two of them share a sweep.
+apart       2 4
 
 #        name         phases
 package  seed         0
 package  build        1
 package  terminal     2
 package  harness      3
+package  streams      4
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
 uses  terminal:2  seed:0   mechanical  the same: its declared delta is checked against those baselines
 uses  harness:3   seed:0   mechanical  it is measured against the baselines phase 0 records, in the shape phase 0 now records them
 uses  harness:3   terminal:2  rationale   the delta it proves is phase 2's: the warnings it removed are what the new instrument sees
+uses  streams:4   seed:0   mechanical  tools/zerodelta.sh compares its six declared records with the baselines phase 0 records
+uses  streams:4   terminal:2  mechanical  check_tty() has nothing left to ask only because phase 2 took its other branch, so isatty goes from five calls to four here
