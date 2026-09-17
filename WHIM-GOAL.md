@@ -92,6 +92,18 @@ phase:**
 | struct fields | `deadfields.py` | no — a mention outside every type definition |
 | enumerators | `deadenums.py` | no — a mention anywhere |
 
+**The sweep is not written into a phase program; the driver runs it.** Phases 1–82
+are each two files: `pipes/whim<N>-edit.sh` makes the cut (and may sweep part way
+through, where a second cut needs the first one swept), and `pipes/whim<N>-check.sh`
+asserts, builds, probes and checks the delta. `tools/phaserun.sh` runs the edit, the
+final sweep and the check, and the check shares nothing with the edit but the work
+tree and a state directory — the input's line count and symbol snapshot, and
+whatever file the edit names for it. That is so that several phases' edits can one
+day share a sweep: `pipes/whim.stages` records which, and what each edit needs of
+the text it is handed. **A phase whose cut is computed from the text must see it
+swept** — phase 54 after 53 without its inner sweep cut one option row too few and
+did not refuse — so that requirement is declared there, not discovered.
+
 **The last two are covered by no warning at all**, and for a while they were
 covered by no sweep either. A phase of its own asserted them, part way through
 the pipeline and then again at the tip, because the first assertion had been
