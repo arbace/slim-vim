@@ -7,6 +7,22 @@ that quietly reshapes the table -- or merely re-indents a line of it -- shows
 up as a diff instead of as a wrong answer months later.
 
 Importing does nothing.  Call names_from() then generate().
+
+THE ROW FLOOR IS 80, AND IT WAS 100.  A regex that stops matching after an edit
+to the table's shape returns an empty list, and from an empty list this file
+generates a plausible-looking all-zero index -- so both names() and _check()
+refuse a table they parse too few rows out of, and the floor is a deliberate
+number rather than a guard against zero.  It was 100 while the smallest table in
+play was slim's and whim's 600 and 489.  The zero pipeline deletes rows: its
+phase 6 took the table 111 -> 105, phase 7 to 104, and phase 8 -- `:edit`,
+`:enew`, `:ex`, `:visual`, `:view` -- to 99, which the old floor refused with
+`no command table found in either shape` (names() tries both parsers with
+check=False, so the message is the lookup's and not the count's).  tools/zexcmds.py
+enumerates zero's whole Ex sweep through names(), so crossing the floor stops the
+sweep and every check under it rather than giving a wrong answer.  Lowered here,
+in that phase's own commit, per ZERO-PLAN.md decision 8 -- never silently, and to
+a number with room in it: 80 leaves 19 rows of margin below zero's 99, and the
+next row the plan removes is `:file`'s.
 """
 import re
 import sys
@@ -26,7 +42,7 @@ def names(path):
     """
     for fn in (names_from_cmdnames, names_from_ex_cmds_h):
         got = fn(path, check=False)
-        if len(got) >= 100:
+        if len(got) >= 80:
             if fn is names_from_ex_cmds_h and len(got) > 600:
                 got = got[:len(got) // 2]
             return got
@@ -55,7 +71,7 @@ def names_from_cmdnames(path, check=True):
 def _check(names, path):
     # A regex that stops matching after an edit to the table's shape yields an
     # empty list, and from it a plausible-looking all-zero index.  Refuse.
-    if len(names) < 100:
+    if len(names) < 80:
         raise SystemExit('%s: parsed only %d command names; the table does '
                          'not have the expected shape' % (path, len(names)))
 

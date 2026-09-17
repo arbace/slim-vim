@@ -489,10 +489,15 @@ is safe now and was not before, for three reasons, each of which has to hold:
   `static_assert(sizeof(cmdnames)/sizeof(cmdnames[0]) == CMD_SIZE)` catches a
   dropped one either way — measured: deleting six rows without their enumerators
   fails the assertion at compile time;
-* `tools/create_cmdidxs.py`'s `names()` **refuses a table with fewer than 100
+* `tools/create_cmdidxs.py`'s `names()` **refused a table with fewer than 100
   rows**, and it is what the command sweep enumerates. 111 − 12 = 99. **The floor
-  has to be lowered deliberately, in the phase that crosses it**, or the sweep
-  stops working with a message about a parse that cannot be right.
+  had to be lowered deliberately, in the phase that crosses it**, or the sweep
+  stops working with a message about a parse that cannot be right. *Done, as
+  zero phase 8*, which took the table 104 → 99: the floor is **80** and the
+  message the old one gave was not the one this line predicts — `no command table
+  found in either shape`, because `names()` tries both parsers with `check=False`.
+  Twenty-eight implementation keys moved with it, gated on `slim-verify` and
+  `whim-verify`.
 
 `nv_cmds[]` rows are the opposite: they are **pointed at `nv_error`, never
 deleted**, and `tools/nvidxcheck.py` requires the precomputed index to stay a
@@ -507,17 +512,17 @@ permutation — §2g's fifth break is what happens otherwise.
 | 4 | argv is `+{command}` and `-T {term}` — **built, as zero phase 5** | the file argument and `buflist_add`, bare `-`/`EDIT_STDIN`, `--`, `ME_TOO_MANY_ARGS`, `had_minmin`, `read_cmd_fd`'s reassignment, and `params.edit_type` with `read_stdin()` | — | **as listed, plus `+q! f.txt`**: 79 lines, six argv rows, nothing else |
 | 5 | no write — **built, as zero phase 6** | the six rows and their enumerators, `nv_Zet`'s `ZZ`, `do_one_cmd`'s `:w>>`/`:w!` parse; the sweep then takes `do_write`, `buf_write`, `buf_write_bytes`, `check_overwrite`, `check_writable`, `check_mtime`, `not_writing`, `write_eintr`, `mch_setperm`, `mch_fsetperm`, `mch_nodetype`, `vim_fexists` and seven more — **19 functions; the file 85,734 → 84,675** | `chmod fchmod fstat ftruncate lstat unlink`, exactly | **`cmd_write` and `zz_key`; the six sweep rows CEASE TO EXIST, they do not change message** |
 | 6 | no read — **built, as zero phase 7** | the `CMD_read` row and enumerator and `do_one_cmd`'s `:r!`/`:r !cmd` parse; the sweep then takes `ex_read`, `do_bang`, `do_shell`, `do_filter`, `check_secure` and `prevcmd_is_set` — **6 functions exact; the file 84,675 → 84,453**, which is 222 lines and not 194, the extra being the `usefilter` fold below | — | **`cmd_read` and `read_cmd_gone`; the sweep row `read` CEASES TO EXIST — but NOT `filter_gone`**, which was E492 on the input binary already |
-| 7 | no `:edit`, and no `gf` | `:edit :enew :ex :visual :view` rows (the Ex-mode escape has nothing to escape from after P3), `do_ecmd` (331), `do_exedit`, `ex_edit`, `grab_file_name`, `otherfile`, `nv_gotofile` and the `gf gF [f ]f` rows, `text_or_buf_locked`, `check_lnums*`, `prepare_help_buffer` — **+16 functions, +618 lines** | — | `cmd_edit`, `key_gf`; sweep rows `edit enew ex visual view` |
+| 7 | no `:edit`, and no `gf` — **built, as zero phase 8** | the five rows and enumerators, `do_one_cmd`'s `curbuf_locked()` exemption for `:edit` and its `++opt` parse, and the `gf`/`gF` and `[f`/`]f` **arms** — there are no `nv_cmds[]` rows for them; the sweep then takes `do_ecmd` (328), `do_exedit`, `ex_edit`, `grab_file_name`, `otherfile`, `nv_gotofile`, `text_or_buf_locked`, `check_lnums*`, `prepare_help_buffer`, `getargopt` and six more — **17 functions; the file 84,453 → 83,755** | — | **`cmd_edit` and `key_gf`; the five sweep rows CEASE TO EXIST** |
 | 8 | nothing reads a byte | `readfile` (787), `read_buffer`, `read_stdin`, `read_eintr`, `readfile_linenr`, `filemess`, `msg_add_fname`, `msg_add_lines`, `msg_add_eol`, and `open_buffer`'s read arms | `open access fcntl` | none measured; probed by the argv record and by `startup` |
 | 9 | the buffer has no name | `b_ffname`/`b_sfname`/`b_fname` (58/30/42 mentions), `setfname`, `buflist_new`'s naming, `otherfile_buf`, `buf_setino`, `buf_spname`, `shorten_*`, `home_replace*`, `fix_fname`, `vim_FullName`, `mch_FullName`, `mch_dirname`, `mch_isdir`, `mch_getperm`, `eval_vars` (242), `expand_filename` (132), `find_cmdline_var`, `get_spec_reg`'s `%`/`#`/CTRL-F/CTRL-P, `:file`, `get_trans_bufname`, `set_b0_fname`, `ml_upd_block0`, `ml_timestamp`, `check_changed_any`, the wildcard remnants | `stat getcwd strerror fsync` | `cmd_file`, `reg_percent`, `ctrl_g` (the name in the info line), `startup`/`ruler_move` if the status line changes; sweep row `file` |
-| 10 | `:q` quits, `ZZ` is `ZQ` | `check_changed`, `no_write_message`, `no_write_message_nobang`; **`nv_Zet`'s `:x` is not here — zero phase 6 took it** | — | measured: **`quit_modified`, `cmd_edit`, and sweep rows `edit enew ex quit view visual`**; `zz_key` moved at phase 6 |
+| 10 | `:q` quits, `ZZ` is `ZQ` | `check_changed`, `no_write_message`, `no_write_message_nobang`; **`nv_Zet`'s `:x` is not here — zero phase 6 took it** | — | **`quit_modified` and the sweep row `quit`, and nothing else**: the measurement below was taken before zero phase 8, which has since moved `cmd_edit` and removed the rows `edit enew ex view visual` |
 | 11 | the options nothing reads | `'fsync'`, `'write'`, `'writeany'`, `'undoreload'`, and `'readonly'` by decision; `'shortmess'` and `'cpoptions'` letters that lost their readers. **`'paste'` is exempt and the phase says so** | — | none (`:set` is not swept); `tools/dropoptions.py --strict` refuses while a reader exists, which is the check |
 | 12 | no `FILE *` that is never opened | `scriptin[]` (3739, never assigned), `redir_fd` (3777, never assigned), `ui_write`'s `console` (its only caller passes `FALSE`) | `fclose getc fputs putc` | none |
 
-**Five rows are built, and the numbering is not the table's.** Row 2 ran as zero
+**Six rows are built, and the numbering is not the table's.** Row 2 ran as zero
 phase 2, row 3 as zero **phase 4**, row 4 as zero **phase 5**, row 5 as zero
-**phase 6** and row 6 as zero **phase 7**, because the harness switch of §2 landed
-between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what each one did; where this table turned out to be wrong is
+**phase 6**, row 6 as zero **phase 7** and row 7 as zero **phase 8**, because the
+harness switch of §2 landed between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what each one did; where this table turned out to be wrong is
 said at the row.
 
 #### P2 — nothing asks whether this is a terminal
@@ -623,7 +628,9 @@ or slim key moves.
 The order is forced and the reason is `b_ffname`: `do_write`, `check_readonly` and
 `do_ecmd` are its largest readers, so the **name goes last** (P9). Within that, the
 write side goes before the read side because `:w !cmd` and `:r !cmd` share
-`do_bang`, and `:edit` goes before `readfile` because `do_ecmd` is its caller.
+`do_bang`, and `:edit` goes before `readfile` because `do_ecmd` is a caller of
+`open_buffer`, which is `readfile`'s caller — one link further out than this line
+said, measured as zero phase 8.
 
 **As built (zero phase 6), four things this row did not foresee.** *`ZZ` moves
 here, not at P10*: `nv_Zet` runs the command string `"x"`, so `case:zz_key` moves
@@ -644,8 +651,9 @@ program names none of them.
 
 **And the row floor is now live.** §3a's warning — `create_cmdidxs.names()` refuses
 a table of fewer than 100 rows, and it is what the command sweep enumerates — had
-five rows of margin after P5 and has **four** after P6, not eleven. P7 is where the
-rest is spent, and P7 is the phase that must lower the floor.
+five rows of margin after P5 and **four** after P6, not eleven. P7 spent the rest
+(104 → 99) and lowered the floor to **80** in its own commit, as decision 8 says.
+The margin is 19 rows and the next row this plan removes is P9's `:file`.
 
 **As built (zero phase 7), four things the P6 row did not foresee.** *`filter_gone`
 is not this phase's delta*: `:!` has not existed since whim, so `:%!sort` already
@@ -662,6 +670,24 @@ both `:w !` and `:r !` are gone, and a struct member that is only read draws no
 warning and is not what `tools/deadfields.py` removes, so the six surviving tests
 and the field go by hand — measured byte-identical in the recording.
 
+**As built (zero phase 8), five things the P7 row did not foresee.** *There are no
+`gf`/`gF`/`[f`/`]f` rows to remove*: the four keys are **arms** inside `nv_g_cmd()`
+and `nv_brackets()`, whose `g`, `[` and `]` rows dispatch dozens of other keys, so
+this phase deletes no `nv_cmds[]` row at all and the usual hazard does not apply —
+fifty of those keys were pressed on both binaries and exactly four moved. *There is
+a sixth anchor the row does not list and it pays for itself*: `EX_ARGOPT` reaches
+zero rows here, so `do_one_cmd`'s `++opt` block, `getargopt()` and
+`exarg_T.read_edit` all go, for 30 lines and a **byte-identical** recording. *There
+is one anchor outside the table and the keys*, `do_one_cmd`'s `curbuf_locked()`
+exemption, which names `CMD_edit` in a conjunct and keeps `CMD_file`; an edit shaped
+like the table forgets it and the build catches that. *The function count is 17, not
+16, and the line count 698, not 618* — the seventeenth is `getargopt` and the
+difference is prototypes, enumerators, blank lines and two struct fields. And *the
+`:edit` row is `:ex` and `:visual` too*: `do_exedit` is thirty lines, so `:ex! f` and
+`:visual! f` load a file exactly as `:e! f` does, `:view! f` loads it with
+`'readonly'` and `:enew!` empties the buffer — measured on the input binary, because
+no recording here can see a file being opened.
+
 Two things P9 must decide rather than compute, both already measured:
 
 * **`[No Name]` is already the answer.** `buf_get_fname()` (5617) returns
@@ -676,11 +702,14 @@ Two things P9 must decide rather than compute, both already measured:
 
 #### P10 — `:q` quits, `ZZ` is `ZQ`
 
-Decision 5, and the phase whose delta is already measured (§2g): 2 corpus cases and
-6 sweep rows. `check_changed()` is folded away rather than deleted first, because
-`ex_quit`, `do_ecmd` and `check_changed_any` all call it; the sweep rows move
-because `:edit`, `:enew`, `:ex`, `:view` and `:visual` all answered E37 before
-reaching their own refusal.
+Decision 5. §2g measured this delta as 2 corpus cases and 6 sweep rows, and **five
+sixths of it has already happened**: `:edit`, `:enew`, `:ex`, `:view` and `:visual`
+all answered E37 before reaching their own refusal, and zero phase 8 removed all
+five — so `cmd_edit` moved there, and their sweep rows do not exist to move. What is
+left for this phase is **`quit_modified` and the sweep row `quit`**; `zz_key` moved
+at zero phase 6. `check_changed()` is folded away rather than deleted first, because
+`ex_quit` and `check_changed_any` call it — `do_ecmd` was the third caller and went
+with phase 8.
 
 #### P11 — the options nothing reads
 
@@ -754,13 +783,21 @@ package  tidy        12
 
 uses  streams:3   terminal:2   mechanical  silent_mode's last readers are the warnings 2 removes
 uses  streams:4   streams:3    mechanical  -e/-E/-s leave the parser with 3; 4 removes what is left
-uses  files:8     files:7      mechanical  readfile's last caller is do_ecmd, removed by 7
+uses  files:8     files:7      mechanical  open_buffer loses one of its four callers with do_ecmd, removed by 7
+                                 -- WRONG as written, and corrected by measurement: it said
+                                 readfile's last caller is do_ecmd.  do_ecmd called
+                                 open_buffer, not readfile; after zero phase 8 readfile
+                                 still has three call sites and open_buffer three callers.
+                                 The two phases are in one package, so the line is a
+                                 statement rather than a `uses` -- tools/packages.sh
+                                 refuses a `uses` inside one package
 uses  files:8     streams:4    mechanical  read_stdin's entry point is the bare `-`, removed by 4
 uses  files:9     files:5      mechanical  b_ffname's largest readers are do_write and check_readonly
 uses  files:9     files:7      mechanical  and do_ecmd, which 7 removes
 uses  buffers:10  files:5      rationale   the protection has no remedy once nothing can be written
 uses  options:11  files:5      mechanical  dropoptions --strict refuses 'fsync'/'write'/'writeany' before 5
-uses  options:11  files:7      mechanical  'undoreload' is read by do_ecmd
+uses  options:11  files:8      mechanical  'undoreload' is read by do_ecmd, removed by 8 (zero's
+                                 numbering); asserted there at exactly 2 mentions with its row
 uses  tidy:12     terminal:2   rationale   ui_write's console is FALSE at its one call site either way
 ```
 
@@ -784,8 +821,10 @@ with each phase's entry points removed:
 | + P3, Ex mode | **155** | **5,636** | — |
 
 The rows are the order the *measurement* was taken in, not the order the phases
-run in: P8's own cut is what is left of `readfile` once P7 has taken its caller,
-and P9's is the largest of them whichever side of P8 it falls. `stat` is not in any
+run in: P8's own cut is what is left of `readfile` once P7 has taken a caller of
+`open_buffer` — **not of `readfile`**, which is the same correction the `uses` line
+above carries, measured as zero phase 8 — and P9's is the largest of them whichever
+side of P8 it falls. `stat` is not in any
 row because its last call site is `buflist_new`'s naming branch, which P9 folds
 rather than deletes.
 
@@ -891,8 +930,13 @@ that crosses it). The rest stand as recommendations.
    record them (`hit_enter`, `:highlight`). They are how the editor behaves when a
    message does not fit, and a phase that removed them would be removing screen
    behaviour, which decision 3 protects.
-8. **SETTLED — row deletion crosses `create_cmdidxs.py`'s 100-row floor** (111 − 12 = 99), and the floor is lowered **to 80 in the phase that crosses it**, in the
+8. **SETTLED, AND DONE — row deletion crosses `create_cmdidxs.py`'s 100-row floor** (111 − 12 = 99), and the floor is lowered **to 80 in the phase that crosses it**, in the
    same commit, with the reason in the tool's docstring — and never silently.
+   *Done as zero phase 8*, which took the table 104 → 99. Measured: the old floor
+   failed with `no command table found in either shape` rather than a count, and the
+   edit moved **28** implementation keys — 6 whim stages, 15 whim edits, 2 slim
+   phases and 5 zero phases — every one of which still reproduces its boundary under
+   `make whim-verify` and `make slim-verify`.
 9. **`ME_TOO_MANY_ARGS` and the parallel `main_errors[]` table.**
    Recommendation: delete the row and the enumerator together in P4, with the
    DWARF before/after check (§P4). The alternative — leaving an unreachable row —
