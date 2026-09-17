@@ -19,11 +19,11 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are six phases.  Phases are added one at a time, each on its own request
+# There are seven phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5
+phases      0 1 2 3 4 5 6
 
 #   stage   phases
 stage       0
@@ -32,6 +32,7 @@ stage       2
 stage       3
 stage       4
 stage       5
+stage       6
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -50,6 +51,24 @@ apart       2 4
 # `apart 2 4` already forbids it; it fails on a phase 4 tree first, which is what
 # that line records.
 apart       4 5
+# NO `apart 2 6`, AND THE MEASUREMENT IS WHY.  Phase 2's check drives a pty with
+# `GA-typed<Esc>:set term?<CR>:wq<CR>` and reads the file back, requiring
+# `alpha one\nbeta two-typed\n` -- so `:wq` not writing would break it.  Measured on
+# a phase 6 tree: it fails, and it fails IDENTICALLY on a phase 5 tree (status 256,
+# the file unchanged), because the session opens `f.txt` as a file ARGUMENT and
+# phase 5 made that an unknown option.  The editor never reaches the `:wq`.  So the
+# failure at 6 is phase 5's, a stage holding 2 and 6 holds 4, and `apart 2 4`
+# forbids it already -- exactly as for `apart 2 5` above.
+# Phase 5's check states that this phase frees no libc symbol -- `cmp` of the
+# stage's starting undefined set against the one it made, "nothing this cut removed
+# was libc's last caller".  Phase 6 removes six.  Measured by running the two as one
+# stage, `tools/phaserun.sh zero 5-6`: phase 5's check fails with `the libc surface
+# moved, and this phase frees nothing` and names chmod, fchmod, fstat, ftruncate,
+# lstat and unlink.  Inside a stage every check compares with the STAGE's start, so
+# the two cannot share a sweep.  Phase 4's check fails on a phase 6 tree too, but
+# only for the reasons `apart 4 5` already records -- it names EDIT_STDIN and four
+# others as the argv phase's, and phase 5 took them.
+apart       5 6
 
 #        name         phases
 package  seed         0
@@ -57,6 +76,7 @@ package  build        1
 package  terminal     2
 package  harness      3
 package  streams      4 5
+package  files        6
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -67,3 +87,5 @@ uses  streams:4   seed:0   mechanical  tools/zerodelta.sh compares its six decla
 uses  streams:4   terminal:2  mechanical  check_tty() has nothing left to ask only because phase 2 took its other branch, so isatty goes from five calls to four here
 uses  streams:5   seed:0   mechanical  tools/zerodelta.sh compares its six declared command lines with the baselines phase 0 records
 uses  streams:5   harness:3  mechanical  the six records that move are tools/zargv.py's, and phase 3 is what put an argv record in a zero recording at all
+uses  files:6     seed:0   mechanical  tools/zerodelta.sh compares its two screen cases and six command rows with the baselines phase 0 records
+uses  files:6     harness:3  mechanical  the old file-based sweep recorded an exit status, and :write went from E32 to E492 without changing it; phase 3's message-level record is what can see this phase at all

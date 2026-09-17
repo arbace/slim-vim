@@ -505,19 +505,20 @@ permutation — §2g's fifth break is what happens otherwise.
 | 2 | nothing asks whether this is a terminal | the two warnings, `ui_delay(2005)`, `tty_fail`/`--ttyfail`, `stdout_isatty`, `mch_check_win`, `mch_input_isatty`, the four `isatty()` calls, `check_tty` | **`isatty`** | every record's stderr line (`stderr-moved`); measured on a patched build: 102 of 102 records move, each by one line, and the corpus goes 6.4 s → **0.53 s** |
 | 3 | no streaming Ex | `-e -E -s -v`, `Q`, `gQ`, `do_exmode` (95 lines), `getexmodeline` (262), `silent_mode` (23 mentions), `exmode_active` (49 mentions, constant `FALSE`), `pending_exmode_active`, `s_vbuf`, `main_loop`'s `noexmode` | **`setvbuf`** (and the `stdout` reference) | `key_Q`, `key_gQ`; argv rows `-e -E -s -v` |
 | 4 | argv is `+{command}` and `-T {term}` — **built, as zero phase 5** | the file argument and `buflist_add`, bare `-`/`EDIT_STDIN`, `--`, `ME_TOO_MANY_ARGS`, `had_minmin`, `read_cmd_fd`'s reassignment, and `params.edit_type` with `read_stdin()` | — | **as listed, plus `+q! f.txt`**: 79 lines, six argv rows, nothing else |
-| 5 | no write | `:write :wq :xit :exit :update :saveas` rows, `do_write`, `buf_write` (622), `buf_write_bytes`, `check_overwrite`, `check_writable`, `check_mtime`, `not_writing`, `write_eintr`, `mch_setperm`, `mch_fsetperm`, `mch_nodetype`, `vim_fexists` — **17 functions, 905 lines** | `chmod fchmod fstat ftruncate lstat unlink` | `cmd_write`; sweep rows `write wq xit exit update saveas` (E32/E471 → E492) |
+| 5 | no write — **built, as zero phase 6** | the six rows and their enumerators, `nv_Zet`'s `ZZ`, `do_one_cmd`'s `:w>>`/`:w!` parse; the sweep then takes `do_write`, `buf_write`, `buf_write_bytes`, `check_overwrite`, `check_writable`, `check_mtime`, `not_writing`, `write_eintr`, `mch_setperm`, `mch_fsetperm`, `mch_nodetype`, `vim_fexists` and seven more — **19 functions; the file 85,734 → 84,675** | `chmod fchmod fstat ftruncate lstat unlink`, exactly | **`cmd_write` and `zz_key`; the six sweep rows CEASE TO EXIST, they do not change message** |
 | 6 | no read | `:read`, and with it `do_bang`, `do_shell`, `do_filter`, `check_secure`, `prevcmd_is_set` — **+6 functions, +194 lines** | — | `cmd_read`, `read_cmd_gone`, `filter_gone`; sweep row `read` |
 | 7 | no `:edit`, and no `gf` | `:edit :enew :ex :visual :view` rows (the Ex-mode escape has nothing to escape from after P3), `do_ecmd` (331), `do_exedit`, `ex_edit`, `grab_file_name`, `otherfile`, `nv_gotofile` and the `gf gF [f ]f` rows, `text_or_buf_locked`, `check_lnums*`, `prepare_help_buffer` — **+16 functions, +618 lines** | — | `cmd_edit`, `key_gf`; sweep rows `edit enew ex visual view` |
 | 8 | nothing reads a byte | `readfile` (787), `read_buffer`, `read_stdin`, `read_eintr`, `readfile_linenr`, `filemess`, `msg_add_fname`, `msg_add_lines`, `msg_add_eol`, and `open_buffer`'s read arms | `open access fcntl` | none measured; probed by the argv record and by `startup` |
 | 9 | the buffer has no name | `b_ffname`/`b_sfname`/`b_fname` (58/30/42 mentions), `setfname`, `buflist_new`'s naming, `otherfile_buf`, `buf_setino`, `buf_spname`, `shorten_*`, `home_replace*`, `fix_fname`, `vim_FullName`, `mch_FullName`, `mch_dirname`, `mch_isdir`, `mch_getperm`, `eval_vars` (242), `expand_filename` (132), `find_cmdline_var`, `get_spec_reg`'s `%`/`#`/CTRL-F/CTRL-P, `:file`, `get_trans_bufname`, `set_b0_fname`, `ml_upd_block0`, `ml_timestamp`, `check_changed_any`, the wildcard remnants | `stat getcwd strerror fsync` | `cmd_file`, `reg_percent`, `ctrl_g` (the name in the info line), `startup`/`ruler_move` if the status line changes; sweep row `file` |
-| 10 | `:q` quits, `ZZ` is `ZQ` | `check_changed`, `no_write_message`, `no_write_message_nobang`, `nv_Zet`'s `:x` | — | measured: **`quit_modified`, `cmd_edit`, `zz_key`, and sweep rows `edit enew ex quit view visual`** |
+| 10 | `:q` quits, `ZZ` is `ZQ` | `check_changed`, `no_write_message`, `no_write_message_nobang`; **`nv_Zet`'s `:x` is not here — zero phase 6 took it** | — | measured: **`quit_modified`, `cmd_edit`, and sweep rows `edit enew ex quit view visual`**; `zz_key` moved at phase 6 |
 | 11 | the options nothing reads | `'fsync'`, `'write'`, `'writeany'`, `'undoreload'`, and `'readonly'` by decision; `'shortmess'` and `'cpoptions'` letters that lost their readers. **`'paste'` is exempt and the phase says so** | — | none (`:set` is not swept); `tools/dropoptions.py --strict` refuses while a reader exists, which is the check |
 | 12 | no `FILE *` that is never opened | `scriptin[]` (3739, never assigned), `redir_fd` (3777, never assigned), `ui_write`'s `console` (its only caller passes `FALSE`) | `fclose getc fputs putc` | none |
 
-**Three rows are built, and the numbering is not the table's.** Row 2 ran as zero
-phase 2, row 3 as zero **phase 4** and row 4 as zero **phase 5**, because the
-harness switch of §2 landed between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what
-each one did; where this table turned out to be wrong is said at the row.
+**Four rows are built, and the numbering is not the table's.** Row 2 ran as zero
+phase 2, row 3 as zero **phase 4**, row 4 as zero **phase 5** and row 5 as zero
+**phase 6**, because the harness switch of §2 landed between rows 2 and 3 as phase
+3. `ZERO-GOAL.md` is what each one did; where this table turned out to be wrong is
+said at the row.
 
 #### P2 — nothing asks whether this is a terminal
 
@@ -624,6 +625,28 @@ The order is forced and the reason is `b_ffname`: `do_write`, `check_readonly` a
 write side goes before the read side because `:w !cmd` and `:r !cmd` share
 `do_bang`, and `:edit` goes before `readfile` because `do_ecmd` is its caller.
 
+**As built (zero phase 6), four things this row did not foresee.** *`ZZ` moves
+here, not at P10*: `nv_Zet` runs the command string `"x"`, so `case:zz_key` moves
+whichever way it is left, and the phase that removes `:x` is the phase that owns
+it — it is `"q!"` from zero phase 6, which is decision 5 arriving early. *The six
+sweep rows do not change message, they cease to exist*: whim's Phase 80 removed
+`ex_ni`, so a zero phase deletes the row and the enumerator (§3a) and
+`tools/zexcmds.py` enumerates 105 names where it enumerated 111 — the column's
+`E32/E471 → E492` describes the two screen cases and not the sweep. *The count was 17
+functions and is **19***: `check_file_readonly` and `u_update_save_nr` are the two
+the reachability simulation of §3d missed. Its 905 lines are function bodies and
+are not comparable with the 1,059 the file actually lost, which includes the
+prototypes, enumerators, blank lines and one struct field the sweep took with
+them. And *no
+handler is deleted by name*: the four anchors alone produce a byte-identical swept
+file, measured against an edit that also deletes the eight handlers, so the phase
+program names none of them.
+
+**And the row floor is now live.** §3a's warning — `create_cmdidxs.names()` refuses
+a table of fewer than 100 rows, and it is what the command sweep enumerates — has
+five rows of margin after this phase, not eleven. P7 is where it is spent, and P7
+is the phase that must lower the floor.
+
 Two things P9 must decide rather than compute, both already measured:
 
 * **`[No Name]` is already the answer.** `buf_get_fname()` (5617) returns
@@ -697,6 +720,13 @@ apart 4  9          P4's check asserts the one buffer is still named by buflist_
                    the argv phase is still to take
 apart 7  9          P7's check asserts `:file` still reports a name
 apart 9  10         P9's check asserts `:q` still refuses on a modified buffer
+apart 4  5          NOT PREDICTED, and measured as built: `apart 5 6` in zero's
+                   numbering.  P4's check (zero phase 5) states that IT frees no
+                   libc symbol, as a cmp against the stage's starting undefined
+                   set, and P5 (zero phase 6) frees six -- so the two cannot share
+                   a sweep.  A check that asserts a NEGATIVE about the libc
+                   surface is apart from every later phase that frees anything,
+                   which is a shape the three predictions above all missed.
 
 package  seed        0
 package  build       1

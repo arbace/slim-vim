@@ -31,7 +31,6 @@ enum { ML_LINE_DIRTY = 0x02 };
 enum { ML_LOCKED_DIRTY = 0x04 };
 enum { ML_LOCKED_POS = 0x08 };
 enum { ML_ALLOCATED = 0x10 };
-enum { TRUNC_ON_OPEN = 0 };
 enum { RULER_BUF_LEN = 70 };
 enum { INPUT_BUFLEN = 100 };
 enum { MAX_SEARCH_COUNT = 9999 };
@@ -535,10 +534,6 @@ enum { MAPTYPE_UNMAP_LHS = 3 };
 
 enum { REMAP_YES = 0 };
 
-enum { NODE_NORMAL = 0 };
-enum { NODE_WRITABLE = 1 };
-enum { NODE_OTHER = 2 };
-
 enum { READ_NEW = 0x01 };
 enum { READ_FILTER = 0x02 };
 enum { READ_STDIN = 0x04 };
@@ -756,7 +751,6 @@ enum { CPO_SEARCH = 'c' };
 enum { CPO_EXECBUF = 'e' };
 enum { CPO_EMPTYREGION = 'E' };
 enum { CPO_FNAMER = 'f' };
-enum { CPO_FNAMEW = 'F' };
 enum { CPO_GOTO1 = 'g' };
 enum { CPO_INSEND = 'H' };
 enum { CPO_INTMOD = 'i' };
@@ -770,8 +764,6 @@ enum { CPO_SHOWMATCH = 'm' };
 enum { CPO_MATCHBSL = 'M' };
 enum { CPO_NUMCOL = 'n' };
 enum { CPO_LINEOFF = 'o' };
-enum { CPO_OVERNEW = 'O' };
-enum { CPO_FNAMEAPP = 'P' };
 enum { CPO_JOINCOL = 'q' };
 enum { CPO_REDO = 'r' };
 enum { CPO_BUFOPT = 's' };
@@ -779,16 +771,13 @@ enum { CPO_BUFOPTGLOB = 'S' };
 enum { CPO_UNDO = 'u' };
 enum { CPO_BACKSPACE = 'v' };
 enum { CPO_CW = 'w' };
-enum { CPO_FWRITE = 'W' };
 enum { CPO_ESC = 'x' };
 enum { CPO_REPLCNT = 'X' };
 enum { CPO_YANK = 'y' };
-enum { CPO_KEEPRO = 'Z' };
 enum { CPO_WORD = 'z' };
 enum { CPO_DOLLAR = '$' };
 enum { CPO_MATCH = '%' };
 enum { CPO_STAR = '*' };
-enum { CPO_PLUS = '+' };
 enum { CPO_MINUS = '-' };
 enum { CPO_SPECI = '<' };
 enum { CPO_REGAPPEND = '>' };
@@ -802,8 +791,6 @@ enum { SHM_MOD = 'm' };
 enum { SHM_LAST = 'i' };
 enum { SHM_LINES = 'l' };
 enum { SHM_NEW = 'n' };
-enum { SHM_WRI = 'w' };
-enum { SHM_WRITE = 'W' };
 enum { SHM_TRUNC = 't' };
 enum { SHM_TRUNCALL = 'T' };
 enum { SHM_OVER = 'o' };
@@ -2176,8 +2163,6 @@ typedef struct
     int         sa_wrapped;
 } searchit_arg_T;
 
-enum { WRITEBUFSIZE = 8192 };
-
 enum { CONV_RESTLEN = 30 };
 
 typedef enum {
@@ -2348,7 +2333,6 @@ enum CMD_index
     CMD_earlier,
     CMD_enew,
     CMD_ex,
-    CMD_exit,
     CMD_file,
     CMD_filter,
     CMD_fixdel,
@@ -2397,7 +2381,6 @@ enum CMD_index
     CMD_redrawstatus,
     CMD_registers,
     CMD_substitute,
-    CMD_saveas,
     CMD_set,
     CMD_silent,
     CMD_smagic,
@@ -2414,7 +2397,6 @@ enum CMD_index
     CMD_undolist,
     CMD_unmap,
     CMD_unsilent,
-    CMD_update,
     CMD_vglobal,
     CMD_verbose,
     CMD_visual,
@@ -2423,10 +2405,7 @@ enum CMD_index
     CMD_vmapclear,
     CMD_vnoremap,
     CMD_vunmap,
-    CMD_write,
     CMD_winsize,
-    CMD_wq,
-    CMD_xit,
     CMD_xmap,
     CMD_xmapclear,
     CMD_xnoremap,
@@ -2466,7 +2445,6 @@ struct exarg
     int         flags;
     char_u      *do_ecmd_cmd;
     linenr_T    do_ecmd_lnum;
-    int         append;
     int         usefilter;
     int         amount;
     int         regname;
@@ -2488,10 +2466,7 @@ static int mch_dirname(char_u *buf, int len);
 static int mch_FullName(char_u *fname, char_u *buf, int len, int force);
 static int mch_isFullName(char_u *fname);
 static long mch_getperm(char_u *name);
-static int mch_setperm(char_u *name, long perm);
-static int mch_fsetperm(int fd, long perm);
 static int mch_isdir(char_u *name);
-static int mch_nodetype(char_u *name);
 static void mch_exit(int r);
 static int get_tty_info(int fd, ttyinfo_T *info);
 static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
@@ -2612,8 +2587,6 @@ static int ins_eol(int c);
 static colnr_T get_nolist_virtcol(void);
 
 static void do_shell(char_u *cmd, int flags);
-static int do_write(exarg_T *eap);
-static int check_overwrite(exarg_T *eap, buf_T *buf, char_u *fname, char_u *ffname, int other);
 static int do_ecmd(int fnum, char_u *ffname, char_u *sfname, exarg_T *eap, linenr_T newlnum, int flags, win_T *oldwin);
 static int check_secure(void);
 static int do_sub_msg(int count_only);
@@ -2680,19 +2653,16 @@ static int get_list_range(char_u **str, int *num1, int *num2);
 
 static void filemess(buf_T *buf, char_u *name, char_u *s, int attr);
 static int readfile(char_u *fname, char_u *sfname, linenr_T from, linenr_T lines_to_skip, linenr_T lines_to_read, exarg_T *eap, int flags);
-static int check_file_readonly(char_u *fname, int perm);
 static int vim_fsync(int fd);
 static int set_rw_fname(char_u *fname, char_u *sfname);
 static void msg_add_fname(buf_T *buf, char_u *fname);
 static void msg_add_lines(int insert_space, long lnum, off_T nchars);
 static void msg_add_eol(void);
-static int time_differs(stat_T *st, long mtime, long mtime_ns);
 static char_u *shorten_fname1(char_u *full_path);
 static char_u *shorten_fname(char_u *full_path, char_u *dir_name);
 static void shorten_fnames(int force);
 static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
 static long read_eintr(int fd, void *buf, size_t bufsize);
-static long write_eintr(int fd, void *buf, size_t bufsize);
 
 static size_t home_replace(buf_T *buf, char_u *src, char_u *dst, int dstlen, int one);
 static char_u *home_replace_save(buf_T *buf, char_u *src);
@@ -2705,7 +2675,6 @@ static int dir_of_file_exists(char_u *fname);
 static int vim_fnamecmp(char_u *x, char_u *y);
 static int vim_fnamencmp(char_u *x, char_u *y, size_t len);
 static char_u *FullName_save(char_u *fname, int force);
-static int vim_fexists(char_u *fname);
 static int expand_wildcards_eval(char_u **pat, int *num_file, char_u ***file, int flags);
 static int expand_wildcards(int num_pat, char_u **pat, int *num_files, char_u ***files, int flags);
 static int gen_expand_wildcards(int num_pat, char_u **pat, int *num_file, char_u ***file, int flags);
@@ -3376,7 +3345,6 @@ static void undo_time(long step, int sec, int file, int absolute);
 static void u_sync(int force);
 static void u_unchanged(buf_T *buf);
 static void u_find_first_changed(void);
-static void u_update_save_nr(buf_T *buf);
 static void u_clearallandblockfree(buf_T *buf);
 static void u_clearline(void);
 static void u_undoline(void);
@@ -3809,9 +3777,7 @@ static char e_interrupted[]  =  "Interrupted"  ;
 
 static char e_backslash_should_be_followed_by[]  =  "E10: \\ should be followed by /, ? or &"  ;
 static char e_command_not_allowed_from_vimrc_in_current_dir_or_tag_search[]  =  "E12: Command not allowed from exrc/vimrc in current dir or tag search"  ;
-static char e_file_exists[]  =  "E13: File exists (add ! to override)"  ;
 static char e_invalid_range[]  =  "E16: Invalid range"  ;
-static char e_str_is_directory[]  =  "E17: \"%s\" is a directory"  ;
 static char e_mark_has_invalid_line_number[]  =  "E19: Mark has invalid line number"  ;
 static char e_mark_not_set[]  =  "E20: Mark not set"  ;
 static char e_cannot_make_changes_modifiable_is_off[]  =  "E21: Cannot make changes, 'modifiable' is off"  ;
@@ -3832,7 +3798,6 @@ static char e_null_argument[]  = "E38: Null argument" ;
 static char e_out_of_memory[]  =  "E41: Out of memory!"  ;
 static char e_damaged_match_string[]  = "E43: Damaged match string" ;
 static char e_corrupted_regexp_program[]  = "E44: Corrupted regexp program" ;
-static char e_readonly_option_is_set_add_bang_to_override[]  =  "E45: 'readonly' option is set (add ! to override)"  ;
 static char e_invalid_scroll_size[]  =  "E49: Invalid scroll size"  ;
 static char e_too_many_str_open[]  =  "E51: Too many %s("  ;
 static char e_unmatched_str_percent_open[]  =  "E53: Unmatched %s%%("  ;
@@ -3850,22 +3815,18 @@ static char e_missing_sb_after_str[]  =  "E69: Missing ] after %s%%["  ;
 static char e_empty_str_brackets[]  =  "E70: Empty %s%%[]"  ;
 static char e_invalid_character_after_str[]  =  "E71: Invalid character after %s%%"  ;
 static char e_command_too_complex[]  =  "E74: Command too complex"  ;
-static char e_name_too_long[]  =  "E75: Name too long"  ;
 static char e_too_many_brackets[]  =  "E76: Too many ["  ;
 static char e_too_many_file_names[]  =  "E77: Too many file names"  ;
 static char e_unknown_mark[]  =  "E78: Unknown mark"  ;
 static char e_cannot_allocate_any_buffer_exiting[]  =  "E82: Cannot allocate any buffer, exiting..."  ;
 static char e_buffer_with_this_name_already_exists[]  =  "E95: Buffer with this name already exists"  ;
 static char e_cannot_move_range_of_lines_into_itself[]  =  "E134: Cannot move a range of lines into itself"  ;
-static char e_use_bang_to_write_partial_buffer[]  =  "E140: Use ! to write partial buffer"  ;
-static char e_file_not_written_writing_is_disabled_by_write_option[]  =  "E142: File not written: Writing is disabled by 'write' option"  ;
 static char e_autocommands_unexpectedly_deleted_new_buffer_str[]  =  "E143: Autocommands unexpectedly deleted new buffer %s"  ;
 static char e_non_numeric_argument_to_z[]  =  "E144: Non-numeric argument to :z"  ;
 static char e_regular_expressions_cant_be_delimited_by_letters[]  =  "E146: Regular expressions can't be delimited by letters"  ;
 static char e_cannot_do_global_recursive_with_range[]  =  "E147: Cannot do :global recursive with a range"  ;
 static char e_regular_expression_missing_from_global[]  =  "E148: Regular expression missing from :global"  ;
 static char e_no_write_since_last_change_for_buffer_str[]  =  "E162: No write since last change for buffer \"%s\""  ;
-static char e_cant_open_linked_file_for_writing[]  =  "E166: Can't open linked file for writing"  ;
 static char e_command_too_recursive[]  =  "E169: Command too recursive"  ;
 
 static char e_argument_must_be_letter_or_forward_backward_quote[]  =  "E191: Argument must be a letter or forward/backward quote"  ;
@@ -3873,9 +3834,6 @@ static char e_recursive_use_of_normal_too_deep[]  =  "E192: Recursive use of :no
 static char e_no_alternate_file_name_to_substitute_for_hash[]  =  "E194: No alternate file name to substitute for '#'"  ;
 static char e_readpre_autocommands_made_file_unreadable[]  =  "E200: *ReadPre autocommands made the file unreadable"  ;
 static char e_readpre_autocommands_must_not_change_current_buffer[]  =  "E201: *ReadPre autocommands must not change current buffer"  ;
-static char e_autocommands_deleted_or_unloaded_buffer_to_be_written[]  =  "E203: Autocommands deleted or unloaded buffer to be written"  ;
-static char e_autocommands_changed_number_of_lines_in_unexpected_way[]  =  "E204: Autocommand changed number of lines in unexpected way"  ;
-static char e_cant_open_file_for_writing[]  =  "E212: Can't open file for writing"  ;
 static char e_add_to_internal_buffer_that_was_already_read_from[]  = "E222: Add to internal buffer that was already read from" ;
 static char e_recursive_mapping[]  =  "E223: Recursive mapping"  ;
 static char e_global_abbreviation_already_exists_for_str[]  =  "E224: Global abbreviation already exists for %s"  ;
@@ -3958,21 +3916,12 @@ static char e_trailing_characters_str[]  =  "E488: Trailing characters: %s"  ;
 static char e_no_call_stack_to_substitute_for_stack[]  =  "E489: No call stack to substitute for \"<stack>\""  ;
 static char e_not_an_editor_command[]  =  "E492: Not an editor command"  ;
 static char e_backwards_range_given[]  =  "E493: Backwards range given"  ;
-static char e_use_w_or_w_gt_gt[]  =  "E494: Use w or w>>"  ;
 static char e_no_autocommand_file_name_to_substitute_for_afile[]  =  "E495: No autocommand file name to substitute for \"<afile>\""  ;
 static char e_no_autocommand_buffer_number_to_substitute_for_abuf[]  =  "E496: No autocommand buffer number to substitute for \"<abuf>\""  ;
 static char e_no_autocommand_match_name_to_substitute_for_amatch[]  =  "E497: No autocommand match name to substitute for \"<amatch>\""  ;
 static char e_no_source_file_name_to_substitute_for_sfile[]  =  "E498: No :source file name to substitute for \"<sfile>\""  ;
 static char e_empty_file_name_for_percent_or_hash_only_works_with_ph[]  =  "E499: Empty file name for '%' or '#', only works with \":p:h\""  ;
 static char e_evaluates_to_an_empty_string[]  =  "E500: Evaluates to an empty string"  ;
-static char e_is_a_directory[]  =  "is a directory"  ;
-static char e_is_not_file_or_writable_device[]  =  "is not a file or writable device"  ;
-static char e_str_is_not_file_or_writable_device[]  =  "E503: \"%s\" is not a file or writable device"  ;
-static char e_is_read_only_cannot_override_W_in_cpoptions[]  =  "is read-only (cannot override: \"W\" in 'cpoptions')"  ;
-static char e_is_read_only_add_bang_to_override[]  =  "is read-only (add ! to override)"  ;
-static char e_str_is_read_only_add_bang_to_override[]  =  "E505: \"%s\" is read-only (add ! to override)"  ;
-static char e_close_failed[]  =  "E512: Close failed"  ;
-static char e_write_error_file_system_full[]  =  "E514: Write error (file system full?)"  ;
 static char e_unknown_option[]  =  "E518: Unknown option"  ;
 static char e_option_not_supported[]  =  "E519: Option not supported"  ;
 static char e_number_required_after_equal[]  =  "E521: Number required after ="  ;
@@ -3988,7 +3937,6 @@ static char e_need_at_least_nr_columns[]  =  "E594: Need at least %d columns"  ;
 static char e_at_start_of_changelist[]  =  "E662: At start of changelist"  ;
 static char e_at_end_of_changelist[]  =  "E663: At end of changelist"  ;
 static char e_changelist_is_empty[]  =  "E664: Changelist is empty"  ;
-static char e_fsync_failed[]  =  "E667: Fsync failed"  ;
 static char e_unprintable_character_in_group_name[]  =  "E669: Unprintable character in group name"  ;
 static char e_invalid_character_after_str_2[]  =  "E678: Invalid character after %s%%[dxouU]"  ;
 static char e_internal_error_str[]  =  "E685: Internal error: %s"  ;
@@ -4020,7 +3968,6 @@ static char e_attempt_to_delete_buffer_that_is_in_use_str[]  =  "E937: Attempt t
 static char e_positive_count_required[]  =  "E939: Positive count required"  ;
 static char e_reverse_range_in_character_class[]  =  "E944: Reverse range in character class"  ;
 static char e_range_too_large_in_character_class[]  =  "E945: Range too large in character class"  ;
-static char e_file_changed_while_writing[]  =  "E949: File changed while writing"  ;
 static char e_cannot_use_pattern_recursively[]  =  "E956: Cannot use pattern recursively"  ;
 static char e_yank_register_changed_while_using_it[]  =  "E1064: Yank register changed while using it"  ;
 static char e_cmd_mapping_must_end_with_cr_before_second_cmd[]  =  "E1136: <Cmd> mapping must end with <CR> before second <Cmd>"  ;
@@ -5590,680 +5537,10 @@ buf_get_fname(buf_T *buf)
     return buf->b_fname;
 }
 
-enum { SMALLBUFSIZE = 256 };
-
-struct bw_info
-{
-    int         bw_fd;
-    char_u      *bw_buf;
-    int         bw_len;
-    int         bw_flags;
-    int         bw_restlen;
-    int         bw_conv_error;
-    linenr_T    bw_conv_error_lnum;
-    linenr_T    bw_start_lnum;
-    iconv_t     bw_iconv_fd;
-};
-
-    static int
-buf_write_bytes(struct bw_info *ip)
-{
-    int         wlen;
-    char_u      *buf = ip->bw_buf;
-    int         len = ip->bw_len;
-
-    if (ip->bw_fd < 0)
-    {
-        return OK;
-    }
-
-    wlen = write_eintr(ip->bw_fd, buf, len);
-    return (wlen < len) ? FAIL : OK;
-}
-
-    static int
-check_mtime(buf_T *buf, stat_T *st)
-{
-    if (buf->b_mtime_read != 0 && time_differs(st, buf->b_mtime_read, buf->b_mtime_read_ns))
-    {
-        msg_scroll = TRUE;
-        msg_silent = 0;
-        msg_attr(_("WARNING: The file has been changed since reading it!!!"),  highlight_attr[(int)(HLF_E)] );
-        if (ask_yesno((char_u *)_("Do you really want to write to it"), TRUE) == 'n')
-        {
-            return FAIL;
-        }
-        msg_scroll = FALSE;
-    }
-    return OK;
-}
-
     static char *
 new_file_message(void)
 {
     return shortmess(SHM_NEW) ? _("[New]") : _("[New File]");
-}
-
-    static int
-buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname, linenr_T        start, linenr_T        end, exarg_T         *eap, int             append, int             forceit, int             reset_changed, int             filtering)
-{
-    int             fd;
-    char_u          *ffname;
-    char_u          *wfname = NULL;
-    char_u          *s;
-    char_u          *ptr;
-    char_u          c;
-    int             len;
-    linenr_T        lnum;
-    long            nchars;
-    char_u          *errmsg = NULL;
-    int             errmsg_allocated = FALSE;
-    char_u          *errnum = NULL;
-    char_u          *buffer;
-    char_u          smallbuf[SMALLBUFSIZE];
-    int             bufsize;
-    long            perm;
-    int             retval = OK;
-    int             newfile = FALSE;
-    int             msg_save = msg_scroll;
-    int             overwriting;
-    int             no_eol = FALSE;
-    int             device = FALSE;
-    stat_T          st_old;
-    int             prev_got_int = got_int;
-    int             checking_conversion;
-    int             file_readonly = FALSE;
-    int             made_writable = FALSE;
-    int             whole = (start == 1 && end == buf->b_ml.ml_line_count);
-    linenr_T        old_line_count = buf->b_ml.ml_line_count;
-    int             attr;
-    struct bw_info  write_info;
-    int             wb_flags = 0;
-    pos_T           orig_start = buf->b_op_start;
-    pos_T           orig_end = buf->b_op_end;
-
-    if (fname == NULL || *fname == NUL)
-    {
-        return FAIL;
-    }
-    if (buf->b_ml.ml_mfp == NULL)
-    {
-        emsg(_(e_empty_buffer));
-        return FAIL;
-    }
-
-    if (check_secure())
-    {
-        return FAIL;
-    }
-
-    if ( strlen((char *)(fname))  >=  PATH_MAX )
-    {
-        emsg(_(e_name_too_long));
-        return FAIL;
-    }
-
-    write_info.bw_conv_error = FALSE;
-    write_info.bw_conv_error_lnum = 0;
-    write_info.bw_restlen = 0;
-    write_info.bw_iconv_fd = (iconv_t)-1;
-
-    if (buf->b_ffname == NULL && reset_changed && whole && buf == curbuf && !filtering && (!append || vim_strchr(p_cpo, CPO_FNAMEAPP) != NULL) && vim_strchr(p_cpo, CPO_FNAMEW) != NULL)
-    {
-        if (set_rw_fname(fname, sfname) == FAIL)
-        {
-            return FAIL;
-        }
-        buf = curbuf;
-    }
-
-    if (sfname == NULL)
-    {
-        sfname = fname;
-    }
-    ffname = fname;
-    fname = sfname;
-
-    if (buf->b_ffname != NULL &&  vim_fnamecmp((char_u *)(ffname), (char_u *)(buf->b_ffname))  == 0)
-    {
-        overwriting = TRUE;
-    }
-    else
-    {
-        overwriting = FALSE;
-    }
-
-    if (exiting)
-    {
-        settmode(TMODE_COOK);
-    }
-
-    ++no_wait_return;
-
-    buf->b_op_start.lnum = start;
-    buf->b_op_start.col = 0;
-    buf->b_op_end.lnum = end;
-    buf->b_op_end.col = 0;
-
-    {
-        int             buf_ffname = FALSE;
-        int             buf_sfname = FALSE;
-        int             buf_fname_f = FALSE;
-        int             buf_fname_s = FALSE;
-        int             empty_memline = (buf->b_ml.ml_mfp == NULL);
-
-        if (ffname == buf->b_ffname)
-        {
-            buf_ffname = TRUE;
-        }
-        if (sfname == buf->b_sfname)
-        {
-            buf_sfname = TRUE;
-        }
-        if (fname == buf->b_ffname)
-        {
-            buf_fname_f = TRUE;
-        }
-        if (fname == buf->b_sfname)
-        {
-            buf_fname_s = TRUE;
-        }
-
-        if (buf == NULL || (buf->b_ml.ml_mfp == NULL && !empty_memline))
-        {
-            if (buf != NULL && (cmdmod.cmod_flags & CMOD_LOCKMARKS))
-            {
-                buf->b_op_start = orig_start;
-                buf->b_op_end = orig_end;
-            }
-
-            --no_wait_return;
-            msg_scroll = msg_save;
-
-                emsg(_(e_autocommands_deleted_or_unloaded_buffer_to_be_written));
-            return FAIL;
-        }
-
-        if (buf->b_ml.ml_line_count != old_line_count)
-        {
-            if (whole)
-            {
-                end = buf->b_ml.ml_line_count;
-            }
-            else if (buf->b_ml.ml_line_count > old_line_count)
-            {
-                end += buf->b_ml.ml_line_count - old_line_count;
-            }
-            else
-            {
-                end -= old_line_count - buf->b_ml.ml_line_count;
-                if (end < start)
-                {
-                    --no_wait_return;
-                    msg_scroll = msg_save;
-                    emsg(_(e_autocommands_changed_number_of_lines_in_unexpected_way));
-                    return FAIL;
-                }
-            }
-        }
-
-        if (buf_ffname)
-        {
-            ffname = buf->b_ffname;
-        }
-        if (buf_sfname)
-        {
-            sfname = buf->b_sfname;
-        }
-        if (buf_fname_f)
-        {
-            fname = buf->b_ffname;
-        }
-        if (buf_fname_s)
-        {
-            fname = buf->b_sfname;
-        }
-    }
-
-    if (cmdmod.cmod_flags & CMOD_LOCKMARKS)
-    {
-        buf->b_op_start = orig_start;
-        buf->b_op_end = orig_end;
-    }
-
-    if (shortmess(SHM_OVER) && !exiting)
-    {
-        msg_scroll = FALSE;
-    }
-    else
-    {
-        msg_scroll = TRUE;
-    }
-    if (!filtering)
-    {
-        filemess(buf, fname, (char_u *)"", 0);
-    }
-    msg_scroll = FALSE;
-
-    buffer = alloc(WRITEBUFSIZE);
-    if (buffer == NULL)
-    {
-        buffer = smallbuf;
-        bufsize = SMALLBUFSIZE;
-    }
-    else
-    {
-        bufsize = WRITEBUFSIZE;
-    }
-
-    st_old.st_dev = 0;
-    st_old.st_ino = 0;
-    perm = -1;
-    if ( stat(((char *)fname), (&st_old))  < 0)
-    {
-        newfile = TRUE;
-    }
-    else
-    {
-        perm = st_old.st_mode;
-        if (!S_ISREG(st_old.st_mode))
-        {
-            if (S_ISDIR(st_old.st_mode))
-            {
-                errnum = (char_u *)"E502: ";
-                errmsg = (char_u *)_(e_is_a_directory);
-                goto fail;
-            }
-            if (mch_nodetype(fname) != NODE_WRITABLE)
-            {
-                errnum = (char_u *)"E503: ";
-                errmsg = (char_u *)_(e_is_not_file_or_writable_device);
-                goto fail;
-            }
-            device = TRUE;
-            newfile = TRUE;
-            perm = -1;
-        }
-    }
-
-    if (!device && !newfile)
-    {
-        file_readonly = check_file_readonly(fname, (int)perm);
-
-        if (!forceit && file_readonly)
-        {
-            if (vim_strchr(p_cpo, CPO_FWRITE) != NULL)
-            {
-                errnum = (char_u *)"E504: ";
-                errmsg = (char_u *)_(e_is_read_only_cannot_override_W_in_cpoptions);
-            }
-            else
-            {
-                errnum = (char_u *)"E505: ";
-                errmsg = (char_u *)_(e_is_read_only_add_bang_to_override);
-            }
-            goto fail;
-        }
-
-        if (overwriting)
-        {
-            retval = check_mtime(buf, &st_old);
-            if (retval == FAIL)
-            {
-                goto fail;
-            }
-        }
-    }
-
-    if (!newfile)
-    {
-
-    prev_got_int = got_int;
-    }
-    got_int = FALSE;
-
-    buf->b_saving = true;
-
-    if (forceit && perm >= 0 && !(perm & 0200) && vim_strchr(p_cpo, CPO_FWRITE) == NULL)
-    {
-        perm |= 0200;
-        (void)mch_setperm(fname, perm);
-        made_writable = TRUE;
-    }
-
-    if (forceit && overwriting && vim_strchr(p_cpo, CPO_KEEPRO) == NULL)
-    {
-        buf->b_p_ro = FALSE;
-        status_redraw_all();
-    }
-
-    if (end > buf->b_ml.ml_line_count)
-    {
-        end = buf->b_ml.ml_line_count;
-    }
-    if (buf->b_ml.ml_flags & ML_EMPTY)
-    {
-        start = end + 1;
-    }
-
-    if (reset_changed && !newfile && overwriting)
-    {
-        if (got_int)
-        {
-            errmsg = (char_u *)_(e_interrupted);
-            goto restore_backup;
-        }
-    }
-
-    wfname = fname;
-
-    for (checking_conversion = TRUE; ; checking_conversion = FALSE)
-    {
-        checking_conversion = FALSE;
-
-        while ((fd =  open(((char *)wfname), (O_WRONLY | O_EXTRA | (append ? (forceit ? (O_APPEND | O_CREAT) : O_APPEND) : (O_CREAT | TRUNC_ON_OPEN))), (perm < 0 ? 0666 : (perm & 0777))) ) < 0)
-        {
-            if (errmsg == NULL)
-            {
-                stat_T      st;
-
-                if ((!newfile && st_old.st_nlink > 1) || ( lstat(((char *)fname), (&st))  == 0 && (st.st_dev != st_old.st_dev || st.st_ino != st_old.st_ino)))
-                {
-                    errmsg =
-                          (char_u *)_(e_cant_open_linked_file_for_writing);
-                }
-                else
-                {
-                    errmsg = (char_u *)_(e_cant_open_file_for_writing);
-                    if (forceit && vim_strchr(p_cpo, CPO_FWRITE) == NULL && perm >= 0)
-                    {
-                        if (!(perm & 0200))
-                        {
-                            made_writable = TRUE;
-                        }
-                        perm |= 0200;
-                        perm &= 0777;
-                        if (!append)
-                        {
-                             unlink((char *)(wfname)) ;
-                        }
-                        continue;
-                    }
-                }
-            }
-
-restore_backup:
-            {
-                stat_T      st;
-
-                if (!newfile &&  stat(((char *)fname), (&st))  < 0)
-                {
-                    end = 0;
-                }
-            }
-
-            if (wfname != fname)
-            {
-                vim_free(wfname);
-            }
-            goto fail;
-        }
-        write_info.bw_fd = fd;
-
-        {
-            stat_T  st;
-
-            if (overwriting && fname == wfname && perm >= 0 &&  fstat((fd), (&st))  == 0 && st.st_ino != st_old.st_ino)
-            {
-                close(fd);
-                errmsg = (char_u *)_(e_file_changed_while_writing);
-                goto fail;
-            }
-        }
-        if (!append)
-        {
-            vim_ignored = ftruncate(fd, (off_t)0);
-        }
-
-        errmsg = NULL;
-
-        write_info.bw_buf = buffer;
-        nchars = 0;
-
-        write_info.bw_start_lnum = start;
-
-        write_info.bw_len = bufsize;
-        write_info.bw_flags = wb_flags;
-        s = buffer;
-        len = 0;
-        for (lnum = start; lnum <= end; ++lnum)
-        {
-            ptr = ml_get_buf(buf, lnum, FALSE) - 1;
-            while ((c = *++ptr) != NUL)
-            {
-                if (c == NL)
-                {
-                    *s = NUL;
-                }
-                else
-                {
-                    *s = c;
-                }
-                ++s;
-                if (++len != bufsize)
-                {
-                    continue;
-                }
-                if (buf_write_bytes(&write_info) == FAIL)
-                {
-                    end = 0;
-                    break;
-                }
-                nchars += bufsize;
-                s = buffer;
-                len = 0;
-                write_info.bw_start_lnum = lnum;
-            }
-            if (end == 0)
-            {
-                ++lnum;
-                no_eol = TRUE;
-                break;
-            }
-            *s++ = NL;
-            if (++len == bufsize && end)
-            {
-                if (buf_write_bytes(&write_info) == FAIL)
-                {
-                    end = 0;
-                    break;
-                }
-                nchars += bufsize;
-                s = buffer;
-                len = 0;
-
-                ui_breakcheck();
-                if (got_int)
-                {
-                    end = 0;
-                    break;
-                }
-            }
-        }
-        if (len > 0 && end > 0)
-        {
-            write_info.bw_len = len;
-            if (buf_write_bytes(&write_info) == FAIL)
-            {
-                end = 0;
-            }
-            nchars += len;
-        }
-
-        if (!checking_conversion || end == 0)
-        {
-            break;
-        }
-
-    }
-
-    if ((buf->b_p_fs >= 0 ? buf->b_p_fs : p_fs) && vim_fsync(fd) != 0 && !device)
-    {
-        errmsg = (char_u *)_(e_fsync_failed);
-        end = 0;
-    }
-
-    {
-        buf_setino(buf);
-    }
-
-    if (made_writable)
-    {
-        perm &= ~0200;
-    }
-    if (perm >= 0)
-    {
-        (void)mch_fsetperm(fd, perm);
-    }
-    if (close(fd) != 0)
-    {
-        errmsg = (char_u *)_(e_close_failed);
-        end = 0;
-    }
-
-    if (end == 0)
-    {
-        if (errmsg == NULL)
-        {
-            if (got_int)
-            {
-                errmsg = (char_u *)_(e_interrupted);
-            }
-            else
-            {
-                errmsg = (char_u *)_(e_write_error_file_system_full);
-            }
-        }
-
-        goto fail;
-    }
-
-    lnum -= start;
-    --no_wait_return;
-
-    if (!filtering)
-    {
-        msg_add_fname(buf, fname);
-        c = FALSE;
-        if (device)
-        {
-             strcat((char *)(IObuff), (char *)(_("[Device]"))) ;
-            c = TRUE;
-        }
-        else if (newfile)
-        {
-             strcat((char *)(IObuff), (char *)(new_file_message())) ;
-            c = TRUE;
-        }
-        if (no_eol)
-        {
-            msg_add_eol();
-            c = TRUE;
-        }
-        msg_add_lines(c, (long)lnum, nchars);
-        if (!shortmess(SHM_WRITE))
-        {
-            if (append)
-            {
-                 strcat((char *)(IObuff), (char *)(shortmess(SHM_WRI) ? _(" [a]") : _(" appended"))) ;
-            }
-            else
-            {
-                 strcat((char *)(IObuff), (char *)(shortmess(SHM_WRI) ? _(" [w]") : _(" written"))) ;
-            }
-        }
-
-        set_keep_msg((char_u *)msg_trunc_attr((char *)IObuff, FALSE, 0), 0);
-    }
-
-    if (reset_changed && whole && !append && (overwriting || vim_strchr(p_cpo, CPO_PLUS) != NULL))
-    {
-        unchanged(buf, TRUE, FALSE);
-        if (buf->b_last_changedtick + 1 ==  ((buf)->b_ct_di.di_tv.vval.v_number) )
-        {
-            buf->b_last_changedtick =  ((buf)->b_ct_di.di_tv.vval.v_number) ;
-        }
-        u_unchanged(buf);
-        u_update_save_nr(buf);
-    }
-
-    if (overwriting)
-    {
-        ml_timestamp(buf);
-        if (append)
-        {
-            buf->b_flags &= ~BF_NEW;
-        }
-        else
-        {
-            buf->b_flags &= ~ (BF_NOTEDITED + BF_NEW + BF_READERR) ;
-        }
-    }
-
-    goto nofail;
-
-fail:
-    --no_wait_return;
-nofail:
-
-    buf->b_saving = false;
-
-    if (buffer != smallbuf)
-    {
-        vim_free(buffer);
-    }
-
-    if (errmsg != NULL)
-    {
-        int numlen = errnum != NULL ? (int) strlen((char *)(errnum))  : 0;
-
-        attr =  highlight_attr[(int)(HLF_E)] ;
-        msg_add_fname(buf, fname);
-        if ( strlen((char *)(IObuff))  +  strlen((char *)(errmsg))  + numlen >=  (1024+1) )
-        {
-            IObuff[ (1024+1)  -  strlen((char *)(errmsg))  - numlen - 1] = NUL;
-        }
-        if (errnum != NULL)
-        {
-              memmove((char *)((IObuff + numlen)), (char *)((IObuff)),  strlen((char *)(IObuff))  + 1)  ;
-             memmove((char *)(IObuff), (char *)(errnum), (size_t)numlen) ;
-        }
-         strcat((char *)(IObuff), (char *)(errmsg)) ;
-        emsg((char *)IObuff);
-        if (errmsg_allocated)
-        {
-            vim_free(errmsg);
-        }
-
-        retval = FAIL;
-        if (end == 0)
-        {
-            msg_puts_attr(_("\nWARNING: Original file may be lost or damaged\n"), attr | MSG_HIST);
-            msg_puts_attr(_("don't quit the editor until the file is successfully written!"), attr | MSG_HIST);
-
-            if ( stat(((char *)fname), (&st_old))  >= 0)
-            {
-                buf_store_time(buf, &st_old, fname);
-                buf->b_mtime_read = buf->b_mtime;
-                buf->b_mtime_read_ns = buf->b_mtime_ns;
-            }
-        }
-    }
-    msg_scroll = msg_save;
-
-    got_int |= prev_got_int;
-
-    return retval;
 }
 
     static void
@@ -15883,8 +15160,6 @@ get_nolist_virtcol(void)
 }
 
 static void do_filter(linenr_T line1, linenr_T line2, exarg_T *eap, char_u *cmd, int do_in, int do_out);
-static int not_writing(void);
-static int check_readonly(int *forceit, buf_T *buf);
 static void delbuf_msg(char_u *name);
 
     static void
@@ -16353,187 +15628,6 @@ ex_file(exarg_T *eap)
     {
         fileinfo(FALSE, FALSE, eap->forceit);
     }
-}
-
-    static void
-ex_update(exarg_T *eap)
-{
-    if (curbufIsChanged())
-    {
-        (void)do_write(eap);
-    }
-}
-
-    static void
-ex_write(exarg_T *eap)
-{
-    if (eap->cmdidx == CMD_saveas)
-    {
-        eap->line1 = 1;
-        eap->line2 = curbuf->b_ml.ml_line_count;
-    }
-
-    if (eap->usefilter)
-    {
-        do_bang(1, eap, FALSE, TRUE, FALSE);
-    }
-    else
-    {
-        (void)do_write(eap);
-    }
-}
-
-    static int
-check_writable(char_u *fname)
-{
-    if (mch_nodetype(fname) == NODE_OTHER)
-    {
-        semsg(_(e_str_is_not_file_or_writable_device), fname);
-        return FAIL;
-    }
-    return OK;
-}
-
-    static int
-do_write(exarg_T *eap)
-{
-    int         other;
-    char_u      *fname = NULL;
-    char_u      *ffname;
-    int         retval = FAIL;
-    char_u      *free_fname = NULL;
-    int         name_was_missing;
-
-    if (not_writing())
-    {
-        return FAIL;
-    }
-
-    ffname = eap->arg;
-    if (*ffname == NUL)
-    {
-        if (eap->cmdidx == CMD_saveas)
-        {
-            emsg(_(e_argument_required));
-            goto theend;
-        }
-        other = FALSE;
-    }
-    else
-    {
-        fname = ffname;
-        free_fname = fix_fname(ffname);
-        if (free_fname != NULL)
-        {
-            ffname = free_fname;
-        }
-        other = otherfile(ffname);
-    }
-
-    if (!other && (check_fname() == FAIL || check_writable(curbuf->b_ffname) == FAIL || check_readonly(&eap->forceit, curbuf)))
-    {
-        goto theend;
-    }
-
-    if (!other)
-    {
-        ffname = curbuf->b_ffname;
-        fname = curbuf->b_fname;
-        if (       (eap->line1 != 1 || eap->line2 != curbuf->b_ml.ml_line_count) && !eap->forceit && !eap->append && !p_wa)
-        {
-            {
-                emsg(_(e_use_bang_to_write_partial_buffer));
-                goto theend;
-            }
-        }
-    }
-
-    if (check_overwrite(eap, curbuf, fname, ffname, other) == OK)
-    {
-        if (eap->cmdidx == CMD_saveas)
-        {
-            if (setfname(curbuf, ffname, fname, TRUE) == FAIL)
-            {
-                goto theend;
-            }
-            fname = curbuf->b_sfname;
-        }
-
-        name_was_missing = curbuf->b_ffname == NULL;
-
-        retval = buf_write(curbuf, ffname, fname, eap->line1, eap->line2, eap, eap->append, eap->forceit, TRUE, FALSE);
-
-        if (eap->cmdidx == CMD_saveas)
-        {
-            if (retval == OK)
-            {
-                curbuf->b_p_ro = FALSE;
-                redraw_tabline = TRUE;
-            }
-        }
-
-        if (eap->cmdidx == CMD_saveas || name_was_missing)
-        {
-        }
-    }
-
-theend:
-    vim_free(free_fname);
-    return retval;
-}
-
-    static int
-check_overwrite(exarg_T     *eap, buf_T       *buf, char_u      *fname, char_u      *ffname, int         other)
-{
-    if (       (other || (((buf->b_flags & BF_NOTEDITED) || ((buf->b_flags & BF_NEW) && vim_strchr(p_cpo, CPO_OVERNEW) == NULL) || (buf->b_flags & BF_READERR)))) && !p_wa && vim_fexists(ffname))
-    {
-        if (!eap->forceit && !eap->append)
-        {
-            if (mch_isdir(ffname))
-            {
-                semsg(_(e_str_is_directory), ffname);
-                return FAIL;
-            }
-            {
-                emsg(_(e_file_exists));
-                return FAIL;
-            }
-        }
-
-    }
-    return OK;
-}
-
-    static int
-not_writing(void)
-{
-    if (p_write)
-    {
-        return FALSE;
-    }
-    emsg(_(e_file_not_written_writing_is_disabled_by_write_option));
-    return TRUE;
-}
-
-    static int
-check_readonly(int *forceit, buf_T *buf)
-{
-    stat_T      st;
-
-    if (!*forceit && (buf->b_p_ro || ( stat(((char *)buf->b_ffname), (&st))  >= 0 && check_file_readonly(buf->b_ffname, 0777))))
-    {
-        if (buf->b_p_ro)
-        {
-            emsg(_(e_readonly_option_is_set_add_bang_to_override));
-        }
-        else
-        {
-            semsg(_(e_str_is_read_only_add_bang_to_override), buf->b_fname);
-        }
-        return TRUE;
-    }
-
-    return FALSE;
 }
 
     static int
@@ -19120,25 +18214,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         }
     }
 
-    if (ea.cmdidx == CMD_write || ea.cmdidx == CMD_update)
-    {
-        if (*ea.arg == '>')
-        {
-            if (*++ea.arg != '>')
-            {
-                errormsg = _(e_use_w_or_w_gt_gt);
-                goto doend;
-            }
-            ea.arg = skipwhite(ea.arg + 1);
-            ea.append = TRUE;
-        }
-        else if (*ea.arg == '!' && ea.cmdidx == CMD_write)
-        {
-            ++ea.arg;
-            ea.usefilter = TRUE;
-        }
-    }
-
     if (ea.cmdidx == CMD_read)
     {
         if (ea.forceit)
@@ -20795,29 +19870,6 @@ ex_stop(exarg_T *eap)
     scroll_start();
     redraw_later_clear();
     shell_resized();
-}
-
-    static void
-ex_exit(exarg_T *eap)
-{
-    if (text_locked())
-    {
-        text_locked_msg();
-        return;
-    }
-
-    int save_exiting = exiting;
-    exiting = TRUE;
-
-    if (((eap->cmdidx == CMD_wq || curbufIsChanged()) && do_write(eap) == FAIL) || before_quit_autocmds(curwin, FALSE, eap->forceit) || (check_changed_any(eap->forceit, FALSE)))
-    {
-        not_exiting(save_exiting);
-    }
-    else
-    {
-        getout(0);
-        not_exiting(save_exiting);
-    }
 }
 
     static void
@@ -24971,12 +24023,6 @@ readfile_linenr(linenr_T    linecnt, char_u      *p, char_u      *endp)
 }
 
     static int
-check_file_readonly(char_u      *fname, int         perm  __attribute__((unused)) )
-{
-    return ((perm & 0222) == 0 ||  access(((char *)fname), (W_OK)) );
-}
-
-    static int
 vim_fsync(int fd)
 {
     int r;
@@ -25038,15 +24084,6 @@ msg_add_lines(int     insert_space, long    lnum, off_T   nchars)
 msg_add_eol(void)
 {
      strcat((char *)(IObuff), (char *)(shortmess(SHM_LAST) ? _("[noeol]") : _("[Incomplete last line]"))) ;
-}
-
-    static int
-time_differs(stat_T *st, long mtime, long mtime_ns  __attribute__((unused)) )
-{
-    return
-        (long)st-> st_mtim.tv_nsec  != mtime_ns ||
-        (long)st->st_mtime - mtime > 1 || mtime - (long)st->st_mtime > 1
-        ;
 }
 
     static char_u *
@@ -25168,30 +24205,6 @@ read_eintr(int fd, void *buf, size_t bufsize)
         if (ret >= 0 || errno != EINTR)
         {
             break;
-        }
-    }
-    return ret;
-}
-
-    static long
-write_eintr(int fd, void *buf, size_t bufsize)
-{
-    long    ret = 0;
-    long    wlen;
-
-    while (ret < (long)bufsize)
-    {
-        wlen =  write((fd), (char *)((char *)buf + ret), (bufsize - ret)) ;
-        if (wlen < 0)
-        {
-            if (errno != EINTR)
-            {
-                break;
-            }
-        }
-        else
-        {
-            ret += wlen;
         }
     }
     return ret;
@@ -25414,18 +24427,6 @@ FullName_save(char_u      *fname, int         force)
     }
     vim_free(buf);
     return new_fname;
-}
-
-    static int
-vim_fexists(char_u *fname)
-{
-    stat_T st;
-
-    if ( stat(((char *)fname), (&st)) )
-    {
-        return FALSE;
-    }
-    return TRUE;
 }
 
     static int
@@ -49374,7 +48375,7 @@ nv_Zet(cmdarg_T *cap)
     switch (cap->nchar)
     {
         case 'Z':
-            do_cmdline_cmd((char_u *)"x");
+            do_cmdline_cmd((char_u *)"q!");
                         break;
 
         case 'Q':
@@ -60976,18 +59977,6 @@ mch_getperm(char_u *name)
 }
 
     static int
-mch_setperm(char_u *name, long perm)
-{
-    return (chmod((char *) name, (mode_t)perm) == 0 ? OK : FAIL);
-}
-
-    static int
-mch_fsetperm(int fd, long perm)
-{
-    return (fchmod(fd, (mode_t)perm) == 0 ? OK : FAIL);
-}
-
-    static int
 mch_isdir(char_u *name)
 {
     struct stat statb;
@@ -61001,26 +59990,6 @@ mch_isdir(char_u *name)
         return FALSE;
     }
     return (S_ISDIR(statb.st_mode) ? TRUE : FALSE);
-}
-
-    static int
-mch_nodetype(char_u *name)
-{
-    struct stat st;
-
-    if (stat((char *)name, &st))
-    {
-        return NODE_NORMAL;
-    }
-    if (S_ISREG(st.st_mode) || S_ISDIR(st.st_mode))
-    {
-        return NODE_NORMAL;
-    }
-    if (S_ISBLK(st.st_mode))
-    {
-        return NODE_OTHER;
-    }
-    return NODE_WRITABLE;
 }
 
     static void
@@ -83634,28 +82603,6 @@ u_find_first_changed(void)
 }
 
     static void
-u_update_save_nr(buf_T *buf)
-{
-    u_header_T  *uhp;
-
-    ++buf->b_u_save_nr_last;
-    buf->b_u_save_nr_cur = buf->b_u_save_nr_last;
-    uhp = buf->b_u_curhead;
-    if (uhp != NULL)
-    {
-        uhp = uhp->uh_next.ptr;
-    }
-    else
-    {
-        uhp = buf->b_u_newhead;
-    }
-    if (uhp != NULL)
-    {
-        uhp->uh_save_nr = buf->b_u_save_nr_last;
-    }
-}
-
-    static void
 u_unch_branch(u_header_T *uhp)
 {
     u_header_T  *uh;
@@ -84023,7 +82970,6 @@ static struct cmdname cmdnames[] =
     [CMD_earlier] = {(char_u *)"earlier", 2, ex_later, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NOSPC|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_enew] = {(char_u *)"enew", 3, ex_edit, (long_u)(EX_BANG|EX_TRLBAR), ADDR_NONE},
     [CMD_ex] = {(char_u *)"ex", 2, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
-    [CMD_exit] = {(char_u *)"exit", 3, ex_exit, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_file] = {(char_u *)"file", 1, ex_file, (long_u)(EX_RANGE|EX_ZEROR|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_OTHER},
     [CMD_filter] = {(char_u *)"filter", 4, ex_wrongmodifier, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_fixdel] = {(char_u *)"fixdel", 3, do_fixdel, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
@@ -84072,7 +83018,6 @@ static struct cmdname cmdnames[] =
     [CMD_redrawstatus] = {(char_u *)"redrawstatus", 7, ex_redrawstatus, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_registers] = {(char_u *)"registers", 3, ex_display, (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_substitute] = {(char_u *)"substitute", 1, ex_substitute, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
-    [CMD_saveas] = {(char_u *)"saveas", 3, ex_write, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_CMDWIN|EX_LOCK_OK|EX_TRLBAR), ADDR_NONE},
     [CMD_set] = {(char_u *)"set", 2, ex_set, (long_u)(EX_BANG|EX_TRLBAR|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_NONE},
     [CMD_silent] = {(char_u *)"silent", 3, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_BANG|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_smagic] = {(char_u *)"smagic", 2, ex_submagic, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
@@ -84089,7 +83034,6 @@ static struct cmdname cmdnames[] =
     [CMD_undolist] = {(char_u *)"undolist", 5, ex_undolist, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_unmap] = {(char_u *)"unmap", 3, ex_unmap, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_unsilent] = {(char_u *)"unsilent", 3, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_update] = {(char_u *)"update", 2, ex_update, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR), ADDR_LINES},
     [CMD_vglobal] = {(char_u *)"vglobal", 1, ex_global, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_EXTRA|EX_DFLALL|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
     [CMD_verbose] = {(char_u *)"verbose", 4, ex_wrongmodifier, (long_u)(EX_NEEDARG|EX_RANGE|EX_EXTRA|EX_NOTRLCOM|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_OTHER},
     [CMD_visual] = {(char_u *)"visual", 2, ex_edit, (long_u)(EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_CMDARG|EX_ARGOPT|EX_TRLBAR), ADDR_NONE},
@@ -84098,10 +83042,7 @@ static struct cmdname cmdnames[] =
     [CMD_vmapclear] = {(char_u *)"vmapclear", 5, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_vnoremap] = {(char_u *)"vnoremap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_vunmap] = {(char_u *)"vunmap", 2, ex_unmap, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_write] = {(char_u *)"write", 1, ex_write, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_winsize] = {(char_u *)"winsize", 2, ex_winsize, (long_u)(EX_EXTRA|EX_NEEDARG|EX_TRLBAR), ADDR_NONE},
-    [CMD_wq] = {(char_u *)"wq", 2, ex_exit, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR), ADDR_LINES},
-    [CMD_xit] = {(char_u *)"xit", 1, ex_exit, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_DFLALL|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_LINES},
     [CMD_xmap] = {(char_u *)"xmap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_xmapclear] = {(char_u *)"xmapclear", 5, ex_mapclear, (long_u)(EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_xnoremap] = {(char_u *)"xnoremap", 2, ex_map, (long_u)(EX_EXTRA|EX_TRLBAR|EX_NOTRLCOM|EX_CTRLV|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},

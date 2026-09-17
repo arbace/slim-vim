@@ -104,3 +104,30 @@
 # four pty scenarios and the terminal table are identical, as are the other 24
 # command lines -- including every `+{command}` form and all three `-T` spellings.
 5     argv:- argv:-- argv:f.txt argv:f.txt_g.txt argv:+q!_f.txt argv:--_+q!
+#
+# 6 removes every way to write a file: the six Ex commands `:write :wq :xit :exit
+# :update :saveas`, and with them the nineteen functions the sweep finds unreachable
+# once their rows are gone.  TWO SCREEN CASES AND SIX COMMAND ROWS MOVE, and the two
+# kinds of movement are different:
+#
+#   `cmd_write` types `:write` WITH NO FILE NAME, so what the baselines hold is an
+#   editor that FAILED to write, `E32: No file name`.  It is `E492: Not an editor
+#   command: write` now.  That is the whole of what the corpus can see of this
+#   phase, which is why pipes/zero6-check.sh runs both binaries in a directory it
+#   keeps and requires the old one to leave a file on the disk.
+#   `zz_key` moves because `nv_Zet` ran the command string `"x"`.  ZZ IS ZQ NOW, by
+#   the user's decision, so the string is `"q!"`: one bell becomes none, E32 goes,
+#   and the record loses two snapshots.  It moves whatever is done here -- left
+#   alone, `ZZ` would answer E492 for a command that no longer exists -- so this
+#   phase owns it.  ZERO-PLAN.md gives it to the `:q` phase; that row is annotated.
+#   the six ref-excmds.txt rows do not change message: they CEASE TO EXIST.
+#   tools/zexcmds.py enumerates the table through create_cmdidxs.names(), which
+#   reads 105 names where it read 111, so there is no row to compare.
+#
+# Nothing else moves.  Measured with tools/zcompare.py: the other 100 screen cases,
+# the other 105 command rows, all 30 command lines, the four pty scenarios and the
+# terminal table are identical -- which includes `:q` on a modified buffer (E37,
+# byte-identical: `check_changed` stays and is the `:q` phase's), `:read`, `:edit`,
+# `:file` and CTRL-G.
+6     case:cmd_write case:zz_key
+      write wq xit exit update saveas
