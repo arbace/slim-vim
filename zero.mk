@@ -115,11 +115,13 @@ zero-baselines-check:
 .PHONY: zero-pass
 zero-pass: $(ZEROBUILD)/r$(ZEROLAST).sha256
 	@$(MAKE) --no-print-directory zero-baselines-check
-	@c=$$(sed -n 's/^CFLAGS  *= *//p' $(ZEROWORK)/Makefile); \
-	 l=$$(sed -n 's/^LDFLAGS  *= *//p' $(ZEROWORK)/Makefile); \
+	@m=$$(tar -xOf $(ZEROBUILD)/r$(ZEROLAST).tar ./Makefile 2>/dev/null \
+	      || tar -xOf $(ZEROBUILD)/r$(ZEROLAST).tar Makefile); \
+	 c=$$(printf '%s\n' "$$m" | sed -n 's/^CFLAGS  *= *//p'); \
+	 l=$$(printf '%s\n' "$$m" | sed -n 's/^LDFLAGS  *= *//p'); \
 	 if [ "$$c" != "$(ZEROCFLAGS)" ] || [ "$$l" != "$(ZEROLDFLAGS)" ]; then \
 	     echo "  flags        zero.mk builds zero-vim with '$(ZEROCFLAGS)' '$(ZEROLDFLAGS)',"; \
-	     echo "               but the last phase left $(ZEROWORK)/Makefile with '$$c' '$$l'."; \
+	     echo "               but the last boundary's makefile says '$$c' '$$l'."; \
 	     echo "               ZEROCFLAGS and ZEROLDFLAGS must state the boundary's flags."; \
 	     exit 1; \
 	 fi
