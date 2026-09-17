@@ -125,7 +125,8 @@ zero-pass: $(ZEROBUILD)/r$(ZEROLAST).sha256
 	     echo "               ZEROCFLAGS and ZEROLDFLAGS must state the boundary's flags."; \
 	     exit 1; \
 	 fi
-	@cp $(ZEROWORK)/zero-vim.c zero-vim.c
+	@tar -xOf $(ZEROBUILD)/r$(ZEROLAST).tar ./zero-vim.c > zero-vim.c 2>/dev/null \
+	 || tar -xOf $(ZEROBUILD)/r$(ZEROLAST).tar zero-vim.c > zero-vim.c
 	@echo
 	@printf '  %-12s %s lines, from whim-vim.c\n' "zero-vim.c" \
 	    "`grep -c '' zero-vim.c | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"

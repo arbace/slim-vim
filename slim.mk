@@ -156,8 +156,10 @@ slim-compare:
 # --- what a pass is -------------------------------------------------------
 .PHONY: slim-pass
 slim-pass: $(SLIMBUILD)/p11.sha256
-	@cp $(SLIMWORK)/vim.c slim-vim.c
-	@cp $(SLIMWORK)/LICENSE LICENSE
+	@tar -xOf $(SLIMBUILD)/p11.tar ./vim.c > slim-vim.c 2>/dev/null \
+	 || tar -xOf $(SLIMBUILD)/p11.tar vim.c > slim-vim.c
+	@tar -xOf $(SLIMBUILD)/p11.tar ./LICENSE > LICENSE 2>/dev/null \
+	 || tar -xOf $(SLIMBUILD)/p11.tar LICENSE > LICENSE
 	@echo
 	@printf '  %-12s %s lines, and LICENSE beside it\n' "slim-vim.c" \
 	    "`grep -c '' slim-vim.c | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"

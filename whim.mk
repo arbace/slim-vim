@@ -79,7 +79,8 @@ whim-vim.c: force
 # --- what a whim pass is --------------------------------------------------
 .PHONY: whim-pass
 whim-pass: $(WHIMBUILD)/q$(WHIMLAST).sha256
-	@cp $(WHIMWORK)/whim-vim.c whim-vim.c
+	@tar -xOf $(WHIMBUILD)/q$(WHIMLAST).tar ./whim-vim.c > whim-vim.c 2>/dev/null \
+	 || tar -xOf $(WHIMBUILD)/q$(WHIMLAST).tar whim-vim.c > whim-vim.c
 	@echo
 	@printf '  %-12s %s lines, from slim-vim.c\n' "whim-vim.c" \
 	    "`grep -c '' whim-vim.c | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"
