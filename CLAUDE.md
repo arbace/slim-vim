@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Three hundred and fifty-five tracked files once all three pipelines have run
-(`git ls-files`): eighteen at the root, 182 under `pipes/` — the phase programs,
-twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and one for
-`zero.mk`'s one, and each staged pipeline's stage manifest and declared delta — and
+Three hundred and fifty-six tracked files once all three pipelines have run
+(`git ls-files`): eighteen at the root, 183 under `pipes/` — the phase programs,
+twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and two for
+`zero.mk`'s two, and each staged pipeline's stage manifest and declared delta — and
 155 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
 phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Four of the eighteen are products
@@ -83,7 +83,7 @@ among them — `tools/` and `pipes/` are the seed.
 phase in `pipes/` is either one file, `<pipeline><N>.sh`, or two,
 `<pipeline><N>-edit.sh` and `<pipeline><N>-check.sh`, and is run by the memoize
 driver as phase N of that pipeline and by nothing else; everything a phase calls
-lives in `tools/`. Every slim phase, whim phase 0 and zero phase 0 are one file;
+lives in `tools/`. Every slim phase, whim phase 0 and zero phases 0 and 1 are one file;
 whim phases 1–82 are split.
 
 **A split phase is an edit and a check, and the sweep is the driver's.** The
@@ -141,23 +141,31 @@ Both run from the repository root, so a path in either names the other directly.
 `tools/implhash.sh` follows paths into both when it hashes a phase, and the
 scratch roots of `whim-verify` and `whim-specpass` link both in.
 
-**The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed.**
+**The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed and a flag.**
 `ZERO-GOAL.md` states what it is for — an embeddable editor core that keeps the
 screen and all visual editing and loses the filesystem, with `main()` demoted to a
-host launcher and the text later held as a tree — and has one phase, `pipes/zero0.sh`.
+host launcher and the text later held as a tree — and has two phases, `pipes/zero0.sh`
+and `pipes/zero1.sh`, which adds `-fno-stack-protector`.
 Phases are added one at a time, on request. Its input is the **committed**
 `whim-vim.c`, immutable, and `whim.sha` records the one a committed `zero-vim.c` was
 produced from, exactly as `slim.sha` does for whim; `zero-vim.c` is byte-identical to
-`whim-vim.c` today. It is born staged: `pipes/zero.stages` (`stage 0`, `package seed
-0`) and `pipes/zero.delta` (empty), checked by `tools/stages.sh zero` and
+`whim-vim.c` today. It is born staged: `pipes/zero.stages` (`stage 0`, `stage 1`,
+`package seed 0`, `package build 1`) and `pipes/zero.delta` (empty — neither phase
+changes behaviour), checked by `tools/stages.sh zero` and
 `tools/packages.sh zero` as whim's are.
 
 **Three things differ from whim, and each was decided rather than inherited:**
 
-- **The compile line is `gcc -O0 -static -no-pie -s`** (`tools/templates/zero.mk`,
-  and `ZEROLDFLAGS` for the product). It is the only difference the seed makes to
-  what gets built, and it is why `readelf -h zero-vim` says `EXEC` where whim-vim
-  and slim-vim say `DYN`: see *The binary is standalone*.
+- **The compile line is `gcc -O0 -fno-stack-protector -static -no-pie -s`.** The
+  seed adds `-no-pie` (`tools/templates/zero.mk`), which is why `readelf -h zero-vim`
+  says `EXEC` where whim-vim and slim-vim say `DYN`: see *The binary is standalone*.
+  Phase 1 adds `-fno-stack-protector` by editing the boundary's `zero/Makefile` —
+  never the template, which is the pipeline's input and in r0's digest. The product
+  rule cannot read `zero/`, so `zero.mk` states the flags once more, as `ZEROCFLAGS`
+  and `ZEROLDFLAGS`, and `zero-pass` refuses to copy `zero-vim.c` out when they
+  differ from the last boundary makefile's `CFLAGS` and `LDFLAGS` (proven to refuse).
+  `make score` passes both to `tools/score.sh`, so zero's symbol count is taken with
+  zero's flags.
 - **Zero's behaviour is measured against its own baselines**,
   `.reference/zero-baselines`, which zero phase 0 records from `whim-vim.c` built
   with whim's compile line. So `pipes/zero.delta` starts empty and each zero phase
@@ -186,11 +194,11 @@ edit's key reads what that file names.
 ```
 slim-vim.c     the editor, headers and forward declarations included
 whim-vim.c     the same editor with no runtime to install
-zero-vim.c     whim-vim.c, on its way to an embeddable core (so far identical)
+zero-vim.c     whim-vim.c, on its way to an embeddable core (so far identical source)
 Makefile       the seed: builds all three, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
-zero.mk        zero-vim.c = H(whim-vim.c), the same construct, one phase so far
+zero.mk        zero-vim.c = H(whim-vim.c), the same construct, two phases so far
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
 whim.sha       the whim-vim.c zero-vim.c was produced from
@@ -427,6 +435,14 @@ says `EXEC`, `readelf -l` shows no `INTERP`, `readelf -d` finds no dynamic secti
 `readelf -r` no relocation — and the image is 894,088 bytes against 955,976 for the
 same source. Zero phase 0 requires all four facts. What it gives up is ASLR of the
 image; what it gains is a core a host can place without a loader.
+
+**`zero-vim` also compiles with `-fno-stack-protector`** (zero phase 1). gcc here
+enables `-fstack-protector-strong` by default, which puts a canary in every function
+with a local array and a call to `__stack_chk_fail` in the object — a symbol the
+core would need from libc for nothing the editor does. Without it the object's
+undefined symbols go from 80 to 79, exactly that one, and the binary from 894,088
+bytes to 869,512; the harnesses see no difference. Phase 1 requires all four readelf
+facts again.
 
 **`ldd` is not the check.** On a static-PIE it prints a musl line that looks
 like a dependency and is not one. `readelf -l` for `INTERP` and `readelf -d`

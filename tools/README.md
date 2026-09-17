@@ -136,8 +136,8 @@ themselves.
   The prompt is assembled invariant-first, phase-text-last, so the phase agents of a
   pipeline share one cached prefix. The orientation is the pipeline's: a whim agent
   is told `WHIM-GOAL.md`, `whim/`, the edit/check shape and `whimdelta.sh --phase N`,
-  not slim's tree and build; a zero agent `ZERO-GOAL.md`, `zero/`, the `-no-pie`
-  build and `zerodelta.sh`.
+  not slim's tree and build; a zero agent `ZERO-GOAL.md`, `zero/`, the `-no-pie
+  -fno-stack-protector` build and `zerodelta.sh`.
 - **`agentdocs.sh`** — the document update, run only when `slim-vim.c` actually
   changed. A pass that reproduced the previous one made no sentence wrong.
 - **`snapshot.sh`**, **`restore.sh`** — a boundary is a tar (the restore point,
@@ -184,10 +184,12 @@ themselves.
 ## Phases that are programs
 
 They live in `pipes/`, not here: `pipes/slim<N>.sh`, `pipes/whim0.sh` and
-`pipes/zero0.sh`, one file per phase, and `pipes/whim<N>-edit.sh` with
+`pipes/zero0.sh` and `pipes/zero1.sh`, one file per phase, and `pipes/whim<N>-edit.sh` with
 `pipes/whim<N>-check.sh` for whim phases 1–82, run in stages by `phaserun.sh`.
 `pipes/zero.stages` and `pipes/zero.delta` are zero's manifest and declared delta,
-and `templates/zero.mk` is zero's work makefile, whim's with `-no-pie`. Everything below them in this directory
+and `templates/zero.mk` is zero's work makefile as it enters the pipeline, whim's with
+`-no-pie` (zero phase 1 adds `-fno-stack-protector` to the boundary's copy, not to
+the template). Everything below them in this directory
 is what they call. `pipes/whim.stages` is the stage manifest — the schedule, what
 each edit needs of its input, and which checks need a boundary before a later
 phase, and the packages, a concept-by-concept view of the same phases that runs

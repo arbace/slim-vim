@@ -13,7 +13,16 @@
 # The one difference the seed introduces is the compile line: gcc -O0 -static
 # -no-pie -s, where whim and slim keep -O0 -static -s.  The result is an ordinary
 # static executable -- readelf -h says EXEC -- with no dynamic section and not one
-# relocation, where whim-vim is a static-PIE.
+# relocation, where whim-vim is a static-PIE.  Phase 1 adds -fno-stack-protector,
+# so the line is now gcc -O0 -fno-stack-protector -static -no-pie -s.
+#
+# THE FLAGS ARE THE BOUNDARY'S.  A phase changes them by editing zero/Makefile, the
+# makefile the last phase leaves -- never tools/templates/zero.mk, which is the
+# pipeline's input and whose every byte is in r0's input digest.  The product rule
+# below cannot read zero/, which does not exist in a checkout that only builds the
+# committed zero-vim.c, so it states them once, as ZEROCFLAGS and ZEROLDFLAGS, and
+# zero-pass refuses to copy zero-vim.c out when they differ from that makefile's
+# CFLAGS and LDFLAGS.  The two statements cannot drift without a pass saying so.
 #
 # Zero's behaviour is measured against its own baselines, .reference/zero-baselines,
 # which zero phase 0 records from whim-vim.c built with whim's compile line.  So
@@ -23,6 +32,7 @@
 ZEROWORK    = zero
 ZEROBUILD   = .build-zero
 ZEROORACLE  = .reference/zero-phases
+ZEROCFLAGS  = -O0 -fno-stack-protector
 ZEROLDFLAGS = -static -no-pie -s
 
 # The phase list is the `phases` line of pipes/zero.stages, read through
@@ -63,8 +73,8 @@ $(ZEROBUILD)/input.sha256: whim-vim.c tools/templates/zero.mk
 # zero-vim.c was produced from, and a fresh clone's arbitrary checkout order can
 # never fire a pass on a tree that is exactly right.
 zero-vim: zero-vim.c
-	@printf '  %-12s %s\n' "compiling" "$(CC) $(CFLAGS) $(ZEROLDFLAGS) -o $@ $<"
-	@t0=`date +%s`; $(CC) $(CFLAGS) $(ZEROLDFLAGS) -o $@ $<; \
+	@printf '  %-12s %s\n' "compiling" "$(CC) $(ZEROCFLAGS) $(ZEROLDFLAGS) -o $@ $<"
+	@t0=`date +%s`; $(CC) $(ZEROCFLAGS) $(ZEROLDFLAGS) -o $@ $<; \
 	 printf '  %-12s %s bytes, static, not PIE, %ss\n' "$@" \
 	     "`stat -c%s $@ | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`" \
 	     "$$((`date +%s` - t0))"
@@ -105,6 +115,14 @@ zero-baselines-check:
 .PHONY: zero-pass
 zero-pass: $(ZEROBUILD)/r$(ZEROLAST).sha256
 	@$(MAKE) --no-print-directory zero-baselines-check
+	@c=$$(sed -n 's/^CFLAGS  *= *//p' $(ZEROWORK)/Makefile); \
+	 l=$$(sed -n 's/^LDFLAGS  *= *//p' $(ZEROWORK)/Makefile); \
+	 if [ "$$c" != "$(ZEROCFLAGS)" ] || [ "$$l" != "$(ZEROLDFLAGS)" ]; then \
+	     echo "  flags        zero.mk builds zero-vim with '$(ZEROCFLAGS)' '$(ZEROLDFLAGS)',"; \
+	     echo "               but the last phase left $(ZEROWORK)/Makefile with '$$c' '$$l'."; \
+	     echo "               ZEROCFLAGS and ZEROLDFLAGS must state the boundary's flags."; \
+	     exit 1; \
+	 fi
 	@cp $(ZEROWORK)/zero-vim.c zero-vim.c
 	@echo
 	@printf '  %-12s %s lines, from whim-vim.c\n' "zero-vim.c" \

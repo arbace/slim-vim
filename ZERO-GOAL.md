@@ -15,8 +15,8 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has one phase.** Phase 0 is the seed.
-No other phase exists yet; phases are added one at a time, each on the user's own
+**This document is iterative, and so far it has two phases.** Phase 0 is the seed and
+phase 1 is a compiler flag; nothing of the charter below is done yet. Phases are added one at a time, each on the user's own
 request, and each is written into this document, into `pipes/` and into
 `pipes/zero.delta` and `pipes/zero.stages` when it is added — never in advance.
 
@@ -88,12 +88,15 @@ reaching the set the launcher, and not the core, supplies.
    `make zero-tip` run `tools/packages.sh zero --check` first.
 7. **`zero-vim.c` carries no comments.** It starts with none, because `whim-vim.c`
    has none, and no phase writes one.
-8. **The compile line is `gcc -O0 -static -no-pie -s`.** This is the one difference
-   the seed introduces. whim and slim keep `-O0 -static -s`, a static-PIE; zero's
-   binary is an ordinary static executable — `readelf -h` says `EXEC`, with no
-   `INTERP`, no dynamic section and no relocations — because a core with nothing left
-   to relocate is one a host can place without a loader. Any further flag, such as
-   `-fno-stack-protector`, is a phase of its own.
+8. **The compile line is `gcc -O0 -fno-stack-protector -static -no-pie -s`.**
+   `-no-pie` is the one difference the seed introduces: whim and slim keep `-O0
+   -static -s`, a static-PIE, and zero's binary is an ordinary static executable —
+   `readelf -h` says `EXEC`, with no `INTERP`, no dynamic section and no relocations
+   — because a core with nothing left to relocate is one a host can place without a
+   loader. Every further flag is **a phase of its own**, and a phase changes the
+   flags by editing the boundary's `zero/Makefile`, never `tools/templates/zero.mk`,
+   which is the pipeline's input and part of r0's input digest.
+   `-fno-stack-protector` is phase 1.
 9. **`tools/` is shared, and gated.** A change to a tool a whim or slim phase names
    must leave `make whim-verify` (every stage boundary reproduces) and `make
    slim-verify` (12 of 12) passing, and should move no whim or slim cache key.
@@ -153,3 +156,50 @@ A tier-3 hit on this phase records nothing, because the phase does not run. So
 `.reference/zero-baselines` holds a non-empty `behaviour/`, `ref-exsweep.txt` and
 `ref-term.txt`, naming the fix: `rm -rf .cache/r0 && make zero-phase-0`. The check
 lives in `zero.mk`, which no implementation digest reads, so it moves no key.
+
+## Phase 1 — the stack protector goes
+
+`pipes/zero1.sh`, one whole program: there is no source edit, so there is nothing
+for a sweep to do and a split phase would pay for one. `zero-vim.c` comes out of it
+byte for byte as it went in, and what changes is one line of `zero/Makefile`:
+
+```make
+CFLAGS  = -O0                       ->  CFLAGS  = -O0 -fno-stack-protector
+```
+
+**Why.** gcc 15 on this machine enables `-fstack-protector-strong` by default, so
+every function with a local array or an address-taken local gets a canary and the
+object calls `__stack_chk_fail`. That is a symbol the core would have to be given by
+its host, for a check the editor does not ask for — and *what it must be given* is
+the number `ZERO-GOAL.md` measures. Measured on this input: the undefined symbols of
+`gcc -c` on `zero-vim.c` go from **80 to 79**, the one that goes is
+`__stack_chk_fail` and nothing comes, and the binary goes from **894,088 to 869,512
+bytes**.
+
+**Where the flag lives.** In the boundary — the tree a phase transforms — and not in
+`tools/templates/zero.mk`, which is the pipeline's *input*: the input rule copies it
+into `zero/Makefile`, and editing it would move r0's input digest and invalidate
+phase 0's recording. The product rule in `zero.mk` cannot read `zero/`, which does
+not exist in a checkout that only builds the committed `zero-vim.c`, so it states the
+same flags once as `ZEROCFLAGS` and `ZEROLDFLAGS` — and `zero-pass` refuses to copy
+`zero-vim.c` out when they differ from the `CFLAGS` and `LDFLAGS` of the makefile the
+last phase left. The two statements cannot drift without a pass saying so; proven by
+running `make zero-pass ZEROCFLAGS=-O0`, which refuses and names both. `make score`
+passes both variables to `tools/score.sh`, which applies them to the object it counts
+symbols in as well as to the binary — the count is otherwise taken with the default
+CFLAGS, and would still show `__stack_chk_fail`.
+
+**What the phase proves, in order:** the makefile has exactly one `CFLAGS` line and
+it does not already carry the flag; the **old** flags do reference
+`__stack_chk_fail` and the new ones do not — both measured with `nm -u` on unstripped
+objects of the same source, so the check is one that can fail, and a compiler whose
+default changed is reported rather than silently passing; `zero-vim.c` is unchanged;
+the binary is still absolutely static (`EXEC`, no `INTERP`, no dynamic section, no
+relocation); and `tools/zerodelta.sh --phase 1` sees no behaviour case, no Ex command
+and no terminal-table row move against whim-vim's baselines. `pipes/zero.delta`
+declares nothing for it, because a canary is code around the locals and not
+behaviour.
+
+It is `stage 1` and `package build` in `pipes/zero.stages`, with one `uses`:
+`build:1 seed:0 mechanical`, because `zerodelta.sh` refuses without the
+`.reference/zero-baselines` phase 0 records. It runs in 9 seconds.

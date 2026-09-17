@@ -19,14 +19,19 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There is one phase.  Phases are added one at a time, each on its own request
+# There are two phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0
+phases      0 1
 
 #   stage   phases
 stage       0
+stage       1
 
 #        name         phases
 package  seed         0
+package  build        1
+
+#     phase     needs    kind        why
+uses  build:1   seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records

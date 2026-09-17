@@ -18,3 +18,6 @@
 #
 # 0 declares nothing: the seed is whim-vim.c byte for byte, built -no-pie, and the
 # harnesses must see no difference at all.
+#
+# 1 declares nothing: -fno-stack-protector changes the code gcc emits around a
+# function's locals, not what the editor does.

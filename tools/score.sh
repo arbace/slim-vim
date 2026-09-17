@@ -13,11 +13,11 @@
 set -eu
 
 row() {
-    name=$1; src=$2; bin=$3; ldflags=${4:--static -s}
+    name=$1; src=$2; bin=$3; ldflags=${4:--static -s}; cflags=${5:--O0}
     [ -f "$src" ] || { printf '  %-10s %s\n' "$name" "absent"; return; }
     if [ ! -f "$bin" ]; then
         ( cd "$(dirname "$src")" >/dev/null 2>&1 || true
-          gcc -O0 $ldflags -o "$bin" "$src" 2>/dev/null ) || true
+          gcc $cflags $ldflags -o "$bin" "$src" 2>/dev/null ) || true
     fi
     lines=$(grep -c '' "$src")
     bytes=$([ -f "$bin" ] && stat -c%s "$bin" || echo 0)
@@ -25,7 +25,7 @@ row() {
     # the honest question.  A static binary has resolved them all already, so
     # asking the binary would answer "none" and mean nothing.
     obj=$(mktemp).o
-    gcc -c -O0 -o "$obj" "$src" 2>/dev/null || true
+    gcc -c $cflags -o "$obj" "$src" 2>/dev/null || true
     syms=$(nm -u "$obj" 2>/dev/null | awk '{print $NF}' | sort -u | grep -c . || true)
     rm -f "$obj"
     printf '  %-10s %9s lines  %11s bytes  %4s libc symbols\n' \
@@ -37,5 +37,9 @@ row() {
 
 row slim-vim slim-vim.c slim-vim
 row whim-vim whim-vim.c whim-vim
-# zero's compile line is whim's with -no-pie (tools/templates/zero.mk).
-row zero-vim zero-vim.c zero-vim "-static -no-pie -s"
+# zero's compile line is its own: -no-pie from the seed, -fno-stack-protector from
+# phase 1.  zero.mk states it once, as ZEROCFLAGS and ZEROLDFLAGS, and `make score`
+# passes both; the defaults here are for a run by hand.  The flags are applied to the
+# object as well as the binary, because __stack_chk_fail is a symbol the default
+# CFLAGS put there.
+row zero-vim zero-vim.c zero-vim "${ZEROLDFLAGS:--static -no-pie -s}" "${ZEROCFLAGS:--O0 -fno-stack-protector}"

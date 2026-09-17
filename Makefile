@@ -113,7 +113,7 @@ clean:
 # reports on all of them, so it is not any one's target.
 .PHONY: score
 score:
-	@tools/score.sh
+	@ZEROCFLAGS='$(ZEROCFLAGS)' ZEROLDFLAGS='$(ZEROLDFLAGS)' tools/score.sh
 
 force: ;
 

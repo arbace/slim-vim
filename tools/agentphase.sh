@@ -172,8 +172,9 @@ WHERE THINGS ARE.  This is the orientation; do not go and rediscover it.
   $work/               the tree you transform: zero-vim.c, the whole editor as one
                        translation unit, and a Makefile.  It is exactly the tree
                        phase $phase is handed.
-  building it          make -C $work        (gcc -O0 -static -no-pie -s, a few
-                       seconds).  The -no-pie is zero's and is deliberate.
+  building it          make -C $work        (gcc -O0 -fno-stack-protector -static
+                       -no-pie -s, a few seconds).  Both flags are zero's and
+                       deliberate, and $work/Makefile is where zero's flags live.
                        NEVER cd into it and run make: the repository root has a
                        makefile too, and a cd that does not stick builds THAT.
   whim-vim.c           the pipeline's input, committed and immutable.  Never edit it.
