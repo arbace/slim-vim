@@ -19,11 +19,11 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are five phases.  Phases are added one at a time, each on its own request
+# There are six phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4
+phases      0 1 2 3 4 5
 
 #   stage   phases
 stage       0
@@ -31,6 +31,7 @@ stage       1
 stage       2
 stage       3
 stage       4
+stage       5
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -40,13 +41,22 @@ stage       4
 #               is its own stage today, so this is a statement rather than a
 #               constraint; it becomes one the moment two of them share a sweep.
 apart       2 4
+# Phase 4's check names EDIT_STDIN, read_cmd_fd = 2, had_minmin, buflist_add and
+# ME_TOO_MANY_ARGS one by one and requires each to be THERE -- "it is the argv
+# phase's to take" -- and phase 5 takes all five.  Measured on a phase 5 tree:
+# `'EDIT_STDIN' went, and it is the argv phase's to take`, exit 1.  Phase 2's check
+# would fail on a phase 5 tree too (it asserts `had_minmin = TRUE;` once, and runs
+# both its binaries on `./vim f.txt`), but a stage holding 2 and 5 holds 4, so
+# `apart 2 4` already forbids it; it fails on a phase 4 tree first, which is what
+# that line records.
+apart       4 5
 
 #        name         phases
 package  seed         0
 package  build        1
 package  terminal     2
 package  harness      3
-package  streams      4
+package  streams      4 5
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -55,3 +65,5 @@ uses  harness:3   seed:0   mechanical  it is measured against the baselines phas
 uses  harness:3   terminal:2  rationale   the delta it proves is phase 2's: the warnings it removed are what the new instrument sees
 uses  streams:4   seed:0   mechanical  tools/zerodelta.sh compares its six declared records with the baselines phase 0 records
 uses  streams:4   terminal:2  mechanical  check_tty() has nothing left to ask only because phase 2 took its other branch, so isatty goes from five calls to four here
+uses  streams:5   seed:0   mechanical  tools/zerodelta.sh compares its six declared command lines with the baselines phase 0 records
+uses  streams:5   harness:3  mechanical  the six records that move are tools/zargv.py's, and phase 3 is what put an argv record in a zero recording at all

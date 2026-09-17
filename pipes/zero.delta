@@ -8,7 +8,7 @@
 #   word             an Ex command name: its block in ref-excmds.txt now differs
 #   case:NAME        a screen case (tools/zcases.py) whose record now differs
 #   argv:NAME        an invocation (tools/zargv.py); spaces are written as `_`
-#   term-moved       the terminal table (tools/termcheck.py) now differs
+#   term-moved       the terminal table (tools/ztermcheck.py) now differs
 #   pty-moved        the pty scenarios (tools/zpty.py) now differ
 #   screen-moved     what the editor DRAWS differs everywhere -- the snapshots and
 #                    the stream digest of every case, the text and message lines of
@@ -76,3 +76,31 @@
 # later phase ever drops `stderr-moved`, these two are already declared.
 4     case:key_Q case:key_gQ
       argv:-e argv:-E argv:-e_-s argv:-v
+#
+# 5 leaves the command line as `+{command}` and `-T {term}`.  Three ways of naming
+# something to edit go -- a file argument, a bare `-` and the `--` that made every
+# word after it a file name -- and each becomes what every other unknown word
+# already was, mainerr(ME_UNKNOWN_OPTION).  Six of the 30 command lines move and
+# every one of them names a file or a stream:
+#
+#   `-` was the one row that BLOCKED: the editor read the keystroke file as buffer
+#   text, closed fd 0 and waited on fd 2 for keys that never came (tools/zargv.py
+#   says so).  It is now `Unknown option argument: "-"`, exit 1, and the row costs
+#   the timeout no longer.
+#   `f.txt` and `+q! f.txt` opened a buffer and drew a screen; both are exit 1 with
+#   an empty stream now.
+#   `--` and `-- +q!` ended the options, so `+q!` after `--` was a FILE NAME and not
+#   a command -- which is why the two rows differ from each other in the baselines
+#   and agree now.
+#   `f.txt g.txt` is declared although `stderr-moved` would absorb it: it exited 1
+#   with an empty stream before, for `Too many edit arguments: "g.txt"`, and exits 1
+#   with an empty stream now for `Unknown option argument: "f.txt"`.  It is the
+#   two-file-argument row and this is the phase that removes file arguments, so the
+#   list says so rather than letting a dimension cover it.
+#
+# Nothing else moves, and the screen corpus is the reason it cannot: every case
+# seeds itself by TYPING under `'paste'` (ZERO-PLAN.md 2d), so not one of the 102
+# passes a file argument.  Measured: all 102 cases, all 111 Ex-command rows, the
+# four pty scenarios and the terminal table are identical, as are the other 24
+# command lines -- including every `+{command}` form and all three `-T` spellings.
+5     argv:- argv:-- argv:f.txt argv:f.txt_g.txt argv:+q!_f.txt argv:--_+q!
