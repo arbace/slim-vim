@@ -49,7 +49,9 @@ python3 tools/dropoptions.py "$f" --local --strict \
     backup backupcopy backupdir backupext backupskip patchmode writebackup
 python3 tools/noowner.py "$f"
 
-tools/sweep.sh "$f"
+# No sweep here.  One stood here, and the lines after it were written for swept text,
+# but this phase and every stage it has run in reproduce their boundaries without
+# it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
 python3 tools/droplocal.py "$f" b_p_bkc
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim25-check.sh.

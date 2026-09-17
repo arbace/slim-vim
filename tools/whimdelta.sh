@@ -16,6 +16,18 @@ bin=${1:?usage: whimdelta.sh <binary> <source> [--cases c1,c2] [commands...]}
 src=${2:?}
 shift 2
 
+# INSIDE A STAGE, only the last phase's delta is checked.  tools/phaserun.sh runs
+# every phase's check after the stage's one sweep, on the stage's one binary, and
+# a delta list is cumulative -- each phase states the whole difference from slim
+# -- so the last phase's list is every earlier phase's list plus what came after
+# it, and an earlier list checked against the stage's binary would fail on
+# exactly the commands a later phase in the stage removed.  The driver says so
+# by setting WHIMDELTA_SKIP to the phase whose list will be checked.
+if [ -n "${WHIMDELTA_SKIP:-}" ]; then
+    echo "  delta        left to phase $WHIMDELTA_SKIP, whose list includes this one"
+    exit 0
+fi
+
 # A phase may change an editing BEHAVIOUR as well as an Ex command's exit, and
 # until Phase 8 none had, so this tool asserted "behaviour: none" outright.
 # That is the right default -- most of what is removed here is a command, not a

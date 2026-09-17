@@ -34,7 +34,9 @@ python3 tools/nowindows.py "$f"
 python3 tools/dropoptions.py "$f" switchbuf scrollopt cmdwinheight cedit
 python3 tools/dropoptions.py "$f" --local scrollbind cursorbind winfixbuf
 
-tools/sweep.sh "$f"
+# No sweep here.  One stood here, and the lines after it were written for swept text,
+# but this phase and every stage it has run in reproduce their boundaries without
+# it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
 python3 tools/dropoptions.py "$f" --strict previewheight
 python3 tools/dropoptions.py "$f" --strict --local previewwindow
 

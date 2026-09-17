@@ -109,7 +109,9 @@ PY
 python3 tools/dropoptions.py "$f" shell shellquote shellredir runtimepath packpath
 python3 tools/dropoptions.py "$f" --local keywordprg
 
-tools/sweep.sh "$f"
+# No sweep here.  One stood here, and the lines after it were written for swept text,
+# but this phase and every stage it has run in reproduce their boundaries without
+# it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
 # get_varp()'s "local if set" case for 'keywordprg' is written &curbuf->b_p_kp,
 # without the parentheses droplocal.py's pattern expects, so its two mentions
 # would read as readers.  It is plumbing, and goes by hand first.

@@ -50,7 +50,9 @@ python3 tools/dropoptions.py "$f" autocompletetimeout cdhome cdpath completetime
     t_8b t_8f t_EC t_EI t_GP t_RB t_RC t_RF t_RS t_SC t_SH t_SI t_SR t_WP t_XM t_u7
 python3 tools/dropoptions.py "$f" --local shortname commentstring lispoptions
 
-tools/sweep.sh "$f"
+# No sweep here.  One stood here, and the lines after it were written for swept text,
+# but this phase and every stage it has run in reproduce their boundaries without
+# it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
 python3 tools/droplocal.py "$f" b_p_sn b_p_cms b_p_lop
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim55-check.sh.

@@ -34,14 +34,14 @@ tools/phasebuild.sh "$work" "$before_lines"
 run() {
     out=$(cd "$work" && ./whim-vim "$@" </dev/null 2>&1) && rc=0 || rc=$?
 }
-run -e -s '+qa!'
+run -e -s '+q!'
 if [ "$rc" != 0 ]; then
-    echo "  cli          the control failed: +qa! exits $rc"
+    echo "  cli          the control failed: +q! exits $rc"
     exit 1
 fi
 for o in "-c qa!" "-cqa!" "--cmd qa!" -R -m -M -w7; do
     # shellcheck disable=SC2086
-    run $o -e -s '+qa!'
+    run $o -e -s '+q!'
     case "$out" in
         *"Unknown option argument"*) ;;
         *) echo "  cli          $o is not refused as unknown (exit $rc): $out"; exit 1 ;;

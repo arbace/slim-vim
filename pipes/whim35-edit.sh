@@ -46,7 +46,9 @@ python3 tools/nosession.py "$f"
 python3 tools/dropoptions.py "$f" eventignore
 python3 tools/dropoptions.py "$f" --local eventignorewin
 
-tools/sweep.sh "$f"
+# No sweep here.  One stood here, and the lines after it were written for swept text,
+# but this phase and every stage it has run in reproduce their boundaries without
+# it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
 # The other rows go once their readers have: a row is what initialises its
 # global.
 python3 tools/dropoptions.py "$f" --strict sessionoptions viewoptions viewdir loadplugins

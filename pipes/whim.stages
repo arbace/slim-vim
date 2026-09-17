@@ -1,32 +1,65 @@
-# The whim pipeline's stage manifest.  Documentation today: nothing reads it.
+# The whim pipeline's stage manifest, read by tools/stages.sh.
 #
 # A STAGE is a run of phases between two sweeps: every phase's edit part in order,
-# ONE tools/sweep.sh, then every phase's check part (tools/phaserun.sh has the
-# contract that makes the checks runnable there).  The driver still runs one stage
-# per phase, so every boundary q0..q82 is what it was; this file records the
-# schedule a staged driver would run and, per phase, what the text handed to its
-# EDIT part must already be.
+# ONE tools/sweep.sh, then every phase's check part -- tools/phaserun.sh runs it,
+# memo.sh caches it, whim.mk sequences it, and its boundary is the boundary of its
+# last phase.  Only stage ends are boundaries.
 #
-# Every number and edge below was measured, in WHIM-PLAN.md's lab (sections 2a-2c)
-# or against the split programs themselves, and every stage below ended on the
-# recorded boundary of its last phase.  It is CHECKED, not trusted: a stage whose
-# end does not reproduce the recording is a failure, and that comparison is what
-# caught the one silent case (54 after 53 without its inner sweep).
+# Every edge below was measured, in WHIM-PLAN.md's lab (sections 2a-2c) or against
+# the split programs themselves, and every stage ends on the recorded boundary of
+# its last phase.  The manifest is CHECKED, not trusted, twice over:
+# tools/stages.sh refuses a schedule that breaks a declared requirement, and a
+# stage whose end does not reproduce its recording is a failure (tools/oracle.sh).
+# The second is what caught the one silent case (54 after 53 without its inner
+# sweep), and it is why the comparison at a stage end is never optional.
 #
 # --- the schedule ---------------------------------------------------------
-# Seven stages, 1,635 s sequential against 4,992 (WHIM-PLAN.md e12).  It needs the
-# nine inner sweeps of section 2c removed (12 15 17 25 35 36 39 55 56); with every
-# inner sweep kept, as the programs are today, 12 needs no boundary and the
-# schedule is six stages (e8): 1-41 42-71 72-78 79 80-81 82.
+# The lab's fastest schedule was seven stages -- 1-12 13-41 42-71 72-78 79 80-81 82
+# (e12), with the nine inner sweeps of section 2c removed (12 15 17 25 35 36 39 55
+# 56; 53's stays).  That measured edits and sweeps only.  Running every CHECK at the
+# end of its stage then failed in six places (the `apart` lines below), each a
+# check that asserts something a later phase in the same stage removes on purpose;
+# each forces a boundary between the two, which splits 42-71 in three, 72-78 in
+# three and 80-81 in two.  Phase 0 is one whole program and a unit of its own.
 #
 #   stage   phases
+stage       0
 stage       1-12
 stage       13-41
-stage       42-71
-stage       72-78
+stage       42-63
+stage       64-65
+stage       66-71
+stage       72
+stage       73-77
+stage       78
 stage       79
-stage       80-81
+stage       80
+stage       81
 stage       82
+#
+# --- checks that must see a boundary before a later phase ------------------
+#   apart P K   P's check fails once K has run, so P and K are in different stages.
+#
+# Measured by running every check on the recorded boundary at the end of each
+# candidate stage (and at each boundary in between, to find K): these six fail,
+# every other check of every stage passes.  Each asserts something that is true
+# after P and deliberately untrue after K, so it cannot be rewritten to hold at
+# both without ceasing to say what it says.  Two more failed for a reason that
+# could be fixed and were: 42 and 43 drove their probes with -c and :qall, which 43
+# and 46 remove -- they use +{command} and :q! now, which hold before and after.
+#
+#   P    K      what P's check asserts, and what K does to it
+apart 42  70    a mark does not survive :e to another file and back; 70 makes :e reload
+#               in place, so after it the mark survives.  (With -c, which 43 removes,
+#               this probe used to pass vacuously on any later binary: -c was refused
+#               and the file untouched.  With +{command} it fails loudly instead.)
+apart 60  64    gqq with 'textwidth' 4 still formats; 64 removes formatting (format_gq)
+apart 64  66    startPS and findpar are not the formatter's and stay; 66 removes them
+apart 72  73    the frame layer (topframe, fr_next, ...) stays; 73 is one frame
+apart 75  78    autocmd_blocked survives, write-only, with exactly 3 mentions; 78
+#               removes write-only counters
+apart 80  81    old and new binaries agree on every command line but four; 81 makes a
+#               bar argument text, so '|' lines differ after it
 #
 # --- what a phase needs of its input --------------------------------------
 #   swept     the edit counts anchors against, or computes its cut from, swept
@@ -37,6 +70,8 @@ stage       82
 #             runs): the text before it must be valid C, swept or not.
 #   silent    the edit requires its input to compile with no warning at all,
 #             which only a sweep provides: it must start a stage.
+#   swept-inner:K  as swept, or phase K runs just before it and K's edit keeps its
+#             inner sweep.
 #   -         none known.  Every phase listed '-' has run inside a stage, on
 #             unswept text, and the stage reproduced its boundary.  That is a
 #             measurement of this input, not a guarantee for the next one.
@@ -59,6 +94,7 @@ need  79    swept              anchor: 'five window heights with no tab line' oc
 #                              72-78 are swept
 need  80    swept              anchor: refuses while a live row still uses ADDR_BUFFERS (79's dead rows)
 need  80    compiles           the edit builds the old binary from its input for the prefix probe
-need  81    compiles           the same; 80's unswept output compiles (measured), so 80-81 is a stage
+need  81    compiles           the same; 80's unswept output compiles (measured) -- but 80 and 81 are
+#                              apart for their checks, below, so 81 starts a stage anyway
 need  82    silent             the edit refuses input that does not compile silently; 80-81 unswept
 #                              does not (measured)

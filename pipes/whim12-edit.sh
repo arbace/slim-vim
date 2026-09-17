@@ -47,7 +47,9 @@ f="$work/whim-vim.c"
 # --- cut the entry points -------------------------------------------------
 python3 tools/noenc.py "$f"
 
-tools/sweep.sh "$f"
+# No sweep here.  One stood here, and the lines after it were written for swept text,
+# but this phase and every stage it has run in reproduce their boundaries without
+# it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
 python3 tools/dropoptions.py "$f" --strict charconvert
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim12-check.sh.

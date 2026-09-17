@@ -31,7 +31,9 @@ python3 tools/notabs.py "$f"
 # sweep nothing names p_tcl or tcl_flags.
 python3 tools/dropoptions.py "$f" tabclose
 
-tools/sweep.sh "$f"
+# No sweep here.  One stood here, and the lines after it were written for swept text,
+# but this phase and every stage it has run in reproduce their boundaries without
+# it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
 python3 tools/dropoptions.py "$f" --strict showtabline tabline tabpagemax
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim36-check.sh.

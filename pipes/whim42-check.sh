@@ -50,19 +50,19 @@ trap 'rm -rf "$d"' EXIT
 cp "$work/whim-vim" "$d/vim"
 printf 'one\ntwo\nthree\n' > "$d/a"
 printf 'other\n' > "$d/b"
-(cd "$d" && ./vim -e -s -c '2' -c 'mark a' -c 'e b' -c 'e a' -c "'ad" -c 'w' -c 'qa!' a </dev/null >/dev/null 2>&1) || true
+(cd "$d" && ./vim -e -s '+2' '+mark a' '+e b' '+e a' "+'ad" '+w' '+q!' a </dev/null >/dev/null 2>&1) || true
 if [ "$(cat "$d/a")" != "$(printf 'one\ntwo\nthree')" ]; then
     echo "  onebuffer    a mark survived leaving its file -- the buffer was kept, not wiped"
     cat "$d/a" | sed 's/^/               /'
     exit 1
 fi
-(cd "$d" && ./vim -e -s -c 'e b' -c 'e #' -c 'qa!' a </dev/null >/dev/null 2>&1) && rc=0 || rc=$?
+(cd "$d" && ./vim -e -s '+e b' '+e #' '+q!' a </dev/null >/dev/null 2>&1) && rc=0 || rc=$?
 if [ "$rc" = 0 ]; then
     echo "  onebuffer    :e # succeeded, so there is still an alternate file"
     exit 1
 fi
 printf 'one\n' > "$d/a"
-(cd "$d" && ./vim -e -s -c 'saveas c' -c 's/$/X/' -c 'w' -c 'qa!' a </dev/null >/dev/null 2>&1) || true
+(cd "$d" && ./vim -e -s '+saveas c' '+s/$/X/' '+w' '+q!' a </dev/null >/dev/null 2>&1) || true
 if [ "$(cat "$d/a")" != one ] || [ "$(cat "$d/c" 2>/dev/null)" != oneX ]; then
     echo "  onebuffer    :saveas did not rename the buffer: a=$(cat "$d/a") c=$(cat "$d/c" 2>/dev/null)"
     exit 1
