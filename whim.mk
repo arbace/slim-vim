@@ -123,11 +123,14 @@ whim-repass:
 # it produced is reproducible by construction -- there is no advisory stage to
 # pass through.  Recorded only after a run that built, swept to silence and
 # showed exactly the declared delta.
-# ADDING A PHASE DOES NOT COST A PASS, and this target is the proof rather than
-# a promise.  tools/implhash.sh reads a phase's own program and the tools that
-# program NAMES -- not whim.mk, not pipeline.sh -- so putting a new phase on the
-# end invalidates nothing before it.  A cached phase replays in 0.6 s and a warm
-# pass in one.
+# ADDING A PHASE DOES NOT RE-RUN THE STAGES BEFORE IT: their boundary files are
+# older than nothing that changed, so make skips them, and this target runs only
+# the last stage.  Their tier 3 entries are a different matter.  tools/implhash.sh
+# reads a phase's own program, the tools it names and the tools those name -- not
+# whim.mk, but tools/pipeline.sh, named by tools/phaserun.sh, which holds whim's
+# phase list.  Measured: one byte there moves all 12 split stage keys and all 82
+# edit keys, so the next whim-repass recomputes everything (whim-specpass is the
+# cheap way back).
 #
 # So the loop while you are trying ideas out is: write pipes/whimN-edit.sh and
 # pipes/whimN-check.sh, declare its delta in pipes/whim.delta, add N here and in

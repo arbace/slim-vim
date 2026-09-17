@@ -36,6 +36,13 @@ actually happened was an import crash.
   verdict, about 18 s. Proven to fail on a broken build, a behaviour change
   and a disturbed command table. The baselines live in `.reference/baselines`,
   which is gitignored: `tools/verify.sh .reference/baselines --enums`.
+- **`whimdelta.sh <binary> <source> --phase N`**, **`zerodelta.sh`** the same — a
+  pipeline's declared delta as a check: exactly the Ex commands, behaviour cases and
+  terminal table that `pipes/<pipeline>.delta` lists up to phase N moved, and nothing
+  else. `whimdelta.sh` compares with slim-vim's `.reference/baselines`;
+  `zerodelta.sh` with `.reference/zero-baselines`, which zero phase 0 records from
+  whim-vim, so zero's delta is from whim and starts empty. Two tools rather than one
+  with a mode, because `whimdelta.sh` is in every whim stage's key.
 - **`build.sh`** — the reproducible build tier 1 needs: no `-g`, pinned
   `SOURCE_DATE_EPOCH`, and a clean first.
 - **`refcheck.sh [reference-dir]`** — the end-of-pass comparison against
@@ -91,7 +98,8 @@ themselves.
 - **`phaserun.sh <pipeline> <unit> <work>`** — runs a unit's program. A whole
   `pipes/<pipeline><n>.sh` runs as it is. A stage runs every phase's
   `pipes/<pipeline><n>-edit.sh` in order on unswept text, one `sweep.sh`, every
-  `-check.sh` in order, and then `whimdelta.sh --phase <last>` once. The parts share
+  `-check.sh` in order, and then the pipeline's delta checker — `PDELTA` in
+  `pipeline.sh`, `whimdelta.sh` or `zerodelta.sh` — with `--phase <last>` once. The parts share
   no shell: each phase gets a state directory, `.cache/state/<tag><n>`, with the
   line count of the text its edit was handed and the stage's symbol snapshot, and
   anything else the check needs the edit writes there by name. Each edit's result
@@ -103,7 +111,8 @@ themselves.
 - **`implhash.sh <unit> [pipeline]`**, **`implhash.sh --edit <n> whim`** — half the
   cache key: the unit's programs (for a stage, both parts of every phase, the
   `phaserun.sh`, `sweep.sh` and `symbols.sh` run around them, and the lines of
-  `pipes/whim.delta` up to its last phase with `whimdelta.sh`) plus every tool,
+  `pipes/<pipeline>.delta` up to its last phase with the pipeline's delta checker)
+  plus every tool,
   patch, table and template they name, one level of indirection deep. Narrow on
   purpose, so editing `resolve.py` re-runs phase 5 and not all twelve, and
   declaring a new phase's delta moves no earlier key. `--edit` is one edit part and
@@ -127,7 +136,8 @@ themselves.
   The prompt is assembled invariant-first, phase-text-last, so the phase agents of a
   pipeline share one cached prefix. The orientation is the pipeline's: a whim agent
   is told `WHIM-GOAL.md`, `whim/`, the edit/check shape and `whimdelta.sh --phase N`,
-  not slim's tree and build.
+  not slim's tree and build; a zero agent `ZERO-GOAL.md`, `zero/`, the `-no-pie`
+  build and `zerodelta.sh`.
 - **`agentdocs.sh`** — the document update, run only when `slim-vim.c` actually
   changed. A pass that reproduced the previous one made no sentence wrong.
 - **`snapshot.sh`**, **`restore.sh`** — a boundary is a tar (the restore point,
@@ -138,14 +148,20 @@ themselves.
   agent-recorded boundary is *advisory* and a mismatch is a report; a boundary
   promoted after an end-to-end verified run is a *check* and a mismatch is a
   failure.
-- **`verifypass.sh slim|whim [unit...]`** — every recorded boundary checked at
+- **`pipeline.sh slim|whim|zero`** — sourced, never run: the only place the
+  pipelines differ (tag, work and build directories, source, document, delta
+  checker, phase list). **Every whim split key contains it**, one name deep through
+  `phaserun.sh`: one byte changed here moves all 12 whim stage keys and all 82 edit
+  keys. Zero's phase list is therefore read from the `phases` line of
+  `pipes/zero.stages`, which nothing hashes.
+- **`verifypass.sh slim|whim|zero [unit...]`** — every recorded boundary checked at
   once. Each unit — a slim phase, a whim stage — runs on the recorded boundary before it, in a scratch root of
   its own with `tools/` and `pipes/` linked in and a `.cache/` nobody else writes, and must
   reproduce the boundary it recorded: by induction the same proof as a repass
   from an empty cache, in the wall time of the slowest unit (whim: 597 s, stage
   42-63). `make slim-verify`,
   `make whim-verify`; `JOBS=n` to run fewer at once.
-- **`specpass.sh slim|whim`** — a speculative repass: every unit at once on the
+- **`specpass.sh slim|whim|zero`** — a speculative repass: every unit at once on the
   previous pass's boundary before it, stored in the tier 3 cache under the key
   `memo.sh` looks up, so the sequential pass that follows is a hit wherever its
   input did not change. Advisory by construction — a wrong guess costs CPU, not
@@ -167,9 +183,11 @@ themselves.
 
 ## Phases that are programs
 
-They live in `pipes/`, not here: `pipes/slim<N>.sh` and `pipes/whim0.sh`, one file
-per phase, and `pipes/whim<N>-edit.sh` with `pipes/whim<N>-check.sh` for whim
-phases 1–82, run in stages by `phaserun.sh`. Everything below them in this directory
+They live in `pipes/`, not here: `pipes/slim<N>.sh`, `pipes/whim0.sh` and
+`pipes/zero0.sh`, one file per phase, and `pipes/whim<N>-edit.sh` with
+`pipes/whim<N>-check.sh` for whim phases 1–82, run in stages by `phaserun.sh`.
+`pipes/zero.stages` and `pipes/zero.delta` are zero's manifest and declared delta,
+and `templates/zero.mk` is zero's work makefile, whim's with `-no-pie`. Everything below them in this directory
 is what they call. `pipes/whim.stages` is the stage manifest — the schedule, what
 each edit needs of its input, and which checks need a boundary before a later
 phase, and the packages, a concept-by-concept view of the same phases that runs

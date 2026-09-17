@@ -68,22 +68,23 @@ it is the only one.
 
 ## Layout
 
-Three hundred and forty-six tracked files once both pipelines have run:
-fourteen at the root, 179 under `pipes/` — the phase programs, twelve for
-`slim.mk` and 165 files for `whim.mk`'s eighty-three phases, the whim stage
-manifest and the whim declared delta — and 153 under
-`tools/` — the passes, the harnesses, the canonicalisers and cutters the phases
-call, the memoize driver, a `README.md`, and the data a pass cannot derive:
-`renames.txt`, `patches/` and `templates/`. Three of the fourteen are products
-(`slim-vim.c`, `whim-vim.c`, `LICENSE`), two are records (`upstream.sha`,
-`slim.sha`), and the other nine — `WHIM-PLAN.md` among them — `tools/` and `pipes/` are the seed.
+Three hundred and fifty-five tracked files once all three pipelines have run
+(`git ls-files`): eighteen at the root, 182 under `pipes/` — the phase programs,
+twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and one for
+`zero.mk`'s one, and each staged pipeline's stage manifest and declared delta — and
+155 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
+phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
+`renames.txt`, `patches/` and `templates/`. Four of the eighteen are products
+(`slim-vim.c`, `whim-vim.c`, `zero-vim.c`, `LICENSE`), three are records
+(`upstream.sha`, `slim.sha`, `whim.sha`), and the other eleven — `WHIM-PLAN.md`
+among them — `tools/` and `pipes/` are the seed.
 
 **`pipes/` is the pipeline steps and `tools/` is what they are built from.** A
 phase in `pipes/` is either one file, `<pipeline><N>.sh`, or two,
 `<pipeline><N>-edit.sh` and `<pipeline><N>-check.sh`, and is run by the memoize
 driver as phase N of that pipeline and by nothing else; everything a phase calls
-lives in `tools/`. Every slim phase and whim phase 0 are one file; whim phases
-1–82 are split.
+lives in `tools/`. Every slim phase, whim phase 0 and zero phase 0 are one file;
+whim phases 1–82 are split.
 
 **A split phase is an edit and a check, and the sweep is the driver's.** The
 programs' last sweep used to be the line between the two, and 70–90% of every
@@ -140,40 +141,88 @@ Both run from the repository root, so a path in either names the other directly.
 `tools/implhash.sh` follows paths into both when it hashes a phase, and the
 scratch roots of `whim-verify` and `whim-specpass` link both in.
 
+**The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed.**
+`ZERO-GOAL.md` states what it is for — an embeddable editor core that keeps the
+screen and all visual editing and loses the filesystem, with `main()` demoted to a
+host launcher and the text later held as a tree — and has one phase, `pipes/zero0.sh`.
+Phases are added one at a time, on request. Its input is the **committed**
+`whim-vim.c`, immutable, and `whim.sha` records the one a committed `zero-vim.c` was
+produced from, exactly as `slim.sha` does for whim; `zero-vim.c` is byte-identical to
+`whim-vim.c` today. It is born staged: `pipes/zero.stages` (`stage 0`, `package seed
+0`) and `pipes/zero.delta` (empty), checked by `tools/stages.sh zero` and
+`tools/packages.sh zero` as whim's are.
+
+**Three things differ from whim, and each was decided rather than inherited:**
+
+- **The compile line is `gcc -O0 -static -no-pie -s`** (`tools/templates/zero.mk`,
+  and `ZEROLDFLAGS` for the product). It is the only difference the seed makes to
+  what gets built, and it is why `readelf -h zero-vim` says `EXEC` where whim-vim
+  and slim-vim say `DYN`: see *The binary is standalone*.
+- **Zero's behaviour is measured against its own baselines**,
+  `.reference/zero-baselines`, which zero phase 0 records from `whim-vim.c` built
+  with whim's compile line. So `pipes/zero.delta` starts empty and each zero phase
+  declares only what it changes relative to whim, checked by `tools/zerodelta.sh`
+  — `whimdelta.sh`'s rule and grammar against those baselines. Phase 0 also runs
+  the harnesses on the `-no-pie` binary and requires no difference at all, and
+  runs `tools/whimdelta.sh --phase 82` on it against slim-vim's baselines, which
+  still holds: 489 commands and 11 cases, exactly whim's declared delta.
+- **Zero's phase list is the `phases` line of `pipes/zero.stages`**, not a
+  `PHASE_LIST` written into `tools/pipeline.sh`, because `pipeline.sh` is in every
+  whim split key (above) and a zero phase added there would re-key all of whim.
+
+**`tools/` is shared, and a change to it is gated.** A tool a whim or slim phase
+names must leave `make whim-verify` and `make slim-verify` passing, and should move
+no whim or slim key: compare `tools/implhash.sh` for every whim unit, every whim
+edit (`--edit N`) and every slim phase before and after. Adding zero *did* move keys,
+once and unavoidably — every driver sources `tools/pipeline.sh` by path, and it is
+in every whim split key — so the change that added the `zero` case also made
+`tools/phaserun.sh` and `tools/implhash.sh` take the delta checker from
+`pipeline.sh`'s `PDELTA` rather than naming `whimdelta.sh`: measured, the moved set is
+exactly the 12 whim stage keys and 82 edit keys that a one-byte change to
+`pipeline.sh` alone moves, and nothing else; whim phase 0 and all 12 slim keys are
+unchanged. **Never write a zero tool's path into `tools/phaserun.sh`**: every whim
+edit's key reads what that file names.
+
 ```
 slim-vim.c     the editor, headers and forward declarations included
 whim-vim.c     the same editor with no runtime to install
-Makefile       the seed: builds both, and produces them when their input moves
+zero-vim.c     whim-vim.c, on its way to an embeddable core (so far identical)
+Makefile       the seed: builds all three, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
+zero.mk        zero-vim.c = H(whim-vim.c), the same construct, one phase so far
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
+whim.sha       the whim-vim.c zero-vim.c was produced from
 pipes/         the phases that are programs: one file, or an edit and a check
 tools/         the harnesses, the passes, and what the phases call
-README.md  CLAUDE.md  SLIM-GOAL.md  WHIM-GOAL.md  WHIM-PLAN.md  LICENSE  .gitignore
+README.md  CLAUDE.md  SLIM-GOAL.md  WHIM-GOAL.md  WHIM-PLAN.md  ZERO-GOAL.md  LICENSE  .gitignore
 ```
 
-**There are two pipelines, and they are the same construct.** `slim.mk` and
-`whim.mk` differ only in what their phases do; the driver, the boundaries, the
-oracle and the synthesiser are shared, and `tools/pipeline.sh` is the whole of
-the parameterisation.
+**There are three pipelines, and they are the same construct.** `slim.mk`,
+`whim.mk` and `zero.mk` differ only in what their phases do; the driver, the
+boundaries, the oracle and the synthesiser are shared, and `tools/pipeline.sh` is
+the whole of the parameterisation — with one exception, below: zero's phase list.
 
 **Their names are symmetric, and that is maintained deliberately.** Every
-variable is `SLIM*`/`WHIM*` and every target is `slim-*`/`whim-*`, so a target
-that exists on one side and not the other is a question rather than an accident:
+variable is `SLIM*`/`WHIM*`/`ZERO*` and every target is `slim-*`/`whim-*`/`zero-*`,
+so a target that exists on one side and not another is a question rather than an
+accident:
 
-| | slim | whim |
-| --- | --- | --- |
-| run a pass | `slim-pass` | `whim-pass` |
-| force one | `slim-repass` | `whim-repass` |
-| one phase, replay | `slim-phase-N` `slim-replay-N` | `whim-phase-N` `whim-replay-N` |
-| add a phase at the end | `slim-tip` | `whim-tip` |
-| record, time, score | `slim-record` `slim-times` `slim-residue` | `whim-record` `whim-times` `whim-residue` |
-| check every boundary at once | `slim-verify` | `whim-verify` |
-| speculate every phase, then pass | — | `whim-specpass` |
-| throw away the work | `slim-clean` | `whim-clean` |
+| | slim | whim | zero |
+| --- | --- | --- | --- |
+| run a pass | `slim-pass` | `whim-pass` | `zero-pass` |
+| force one | `slim-repass` | `whim-repass` | `zero-repass` |
+| one phase, replay | `slim-phase-N` `slim-replay-N` | `whim-phase-N` `whim-replay-N` | `zero-phase-N` `zero-replay-N` |
+| add a phase at the end | `slim-tip` | `whim-tip` | `zero-tip` |
+| record, time, score | `slim-record` `slim-times` `slim-residue` | `whim-record` `whim-times` `whim-residue` | `zero-record` `zero-times` `zero-residue` |
+| check every boundary at once | `slim-verify` | `whim-verify` | `zero-verify` |
+| speculate every phase, then pass | — | `whim-specpass` | `zero-specpass` |
+| throw away the work | `slim-clean` | `whim-clean` | `zero-clean` |
 
-Four targets are one-sided and each says why. `whim-specpass` has no slim
+**zero is whim's twin target for target**, and its boundary tag is `r` (`r0`,
+`.cache/r0`, `.reference/zero-phases`) as whim's is `q`. Four targets are one-sided
+and each says why. `whim-specpass` and `zero-specpass` have no slim
 twin yet: it was built for the pipeline where every phase is a program, and a
 slim phase can still fall through to an agent, which is not a function and
 cannot be speculated on. `slim-promote-N` has
@@ -181,20 +230,27 @@ no twin because promotion exists to turn an *agent*-recorded boundary into a
 check, and every whim phase is a program. `slim-clone`, `slim-preflight`,
 `slim-refpass`, `slim-compare` and `slim-passorref` have none because only the
 slim pipeline has a remote to clone, a network to check for, and a reference
-path run by one agent. And two targets belong to neither: `clean-cache` empties
-the tier-3 cache both share, and `score` reports the pair side by side — bytes
+path run by one agent. And two targets belong to none: `clean-cache` empties
+the tier-3 cache all three share, and `score` reports them side by side — bytes
 to store and symbols to provide — which is why it is not `whim-score`. The distinction that matters is in the *rules*:
 `SLIM-GOAL.md` changes nothing about what the editor can do and any behavioural
 change is a bug, while `WHIM-GOAL.md` removes capability on purpose — so every
 phase there declares its delta in advance and the harness proves it caused that
 and nothing else.
 
-**Adding a phase does not cost a pass.** A unit's key is the unit (`13-41`), the
-boundary before it and `tools/implhash.sh` of every phase in it — both parts of each,
-the `phaserun.sh`, `sweep.sh` and `symbols.sh` the driver runs around them, the tools
-those programs *name*, and the lines of `pipes/whim.delta` up to the unit's last
-phase — not `whim.mk`, not `pipeline.sh`, not the whole delta file — so putting a new
-phase on the end invalidates nothing before it. A cached stage replays in a second.
+**Adding a whim phase does not re-run the stages before it — `make` sees to that,
+and the cache does not.** A unit's key is the unit (`13-41`), the boundary before it
+and `tools/implhash.sh` of every phase in it — both parts of each, the `phaserun.sh`,
+`sweep.sh` and `symbols.sh` the driver runs around them, the tools those programs
+*name* and the tools *those* name, and the lines of `pipes/whim.delta` up to the
+unit's last phase — not `whim.mk` and not the whole delta file. **But
+`tools/pipeline.sh` is in it**, one name deep through `phaserun.sh`, and whim's phase
+list is written there. Measured: one byte changed in `pipeline.sh` moves all 12 split
+stage keys and all 82 edit keys (whim phase 0 and every slim phase keep theirs). So
+adding N to whim's `PHASE_LIST` leaves every earlier boundary *file* in place, and
+`make whim-tip` still runs only the last stage — but every earlier tier-3 entry is
+stale, and the next `whim-repass` recomputes them all (`whim-specpass` is the cheap
+way back). Zero's phase list is kept out of `pipeline.sh` for exactly this reason.
 A new phase either starts a stage of its own — `stage 83` in the manifest, and it
 must if its edit needs swept input — or joins the last one, which re-runs that
 stage's edits from the edit cache (below) and its one sweep. `make whim-tip` runs
@@ -280,12 +336,13 @@ the staging tree.
 Nothing in it is part of the build; the build reads `slim-vim.c` and nothing else.
 
 Six things a pass produces appear untracked, and `.gitignore` names them:
-`vim`, which the build adds and `clean` removes; `.reference/`, the recorded
+`vim`, which the build adds and `clean` removes (and `slim-vim`, `whim-vim` and
+`zero-vim`, the same way); `.reference/`, the recorded
 baselines and phase digests beside the previous `slim-vim.c` (see below);
 `TRANSCRIPT.md`, which `/export` writes when the user asks it to;
 `upstream/`, the pristine vim tree a pass clones in, works on and deletes —
 8,581 files that must never reach a commit, and which do not exist between
-passes; `.build-slim/`, the phase boundaries a pass leaves behind — a tar and a
+passes; `.build-slim/` (and `.build-whim/`, `.build-zero/`), the phase boundaries a pass leaves behind — a tar and a
 content digest per phase, plus each phase agent's stream and its elapsed
 seconds; and `PROGRESS.md`, the transient insight log whose contents are folded
 into `SLIM-GOAL.md` and this file and then deleted. `upstream.sha` is deliberately
@@ -309,8 +366,8 @@ maintained here, so it is byte-identical to upstream's by construction.
 make                 # from the repository root
 ```
 
-Two targets you would type, `slim-vim` and `clean` — and `clean` removes both
-products, because there are two. Everything upstream had —
+The targets you would type are the products, `slim-vim`, `whim-vim` and
+`zero-vim`, and `clean`, which removes all three binaries. Everything upstream had —
 `all`, `install`, `test`, `proto`, `tags`, `depend`, `lint`, `shadow`,
 `distclean` — is gone, along with the second makefile that recursed into
 `src/`. `all` went with them: it is a convention for builds with more than one
@@ -361,6 +418,15 @@ being true.
 `-static -s`: nothing to resolve at run time, no symbol table. gcc defaults to
 PIE here, so the result is a **static-PIE** — `readelf -h` still says `DYN` and
 ASLR still applies.
+
+**`zero-vim` adds `-no-pie`, and is an ordinary static executable instead.** A
+static-PIE is position-independent code that relocates itself at startup: whim-vim
+carries a dynamic section and 1,986 `R_X86_64_RELATIVE` relocations for its own
+start-up code to apply. Without PIE the linker fixes every address, so `readelf -h`
+says `EXEC`, `readelf -l` shows no `INTERP`, `readelf -d` finds no dynamic section and
+`readelf -r` no relocation — and the image is 894,088 bytes against 955,976 for the
+same source. Zero phase 0 requires all four facts. What it gives up is ASLR of the
+image; what it gains is a core a host can place without a loader.
 
 **`ldd` is not the check.** On a static-PIE it prints a musl line that looks
 like a dependency and is not one. `readelf -l` for `INTERP` and `readelf -d`
@@ -514,9 +580,10 @@ command table.
 
 ### `.reference/` is the frozen state, gitignored, and optional
 
-Five things, each with a reader: `baselines/`, which `verify.sh` compares
-against; `slim-phases/` and `whim-phases/`, the recorded boundary digests
-`oracle.sh` checks each phase against; and `slim-vim.c` with the `slim-vim`
+Seven things, each with a reader: `baselines/`, which `verify.sh` and
+`whimdelta.sh` compare against; `zero-baselines/`, which `zerodelta.sh` compares
+against; `slim-phases/`, `whim-phases/` and `zero-phases/`, the recorded boundary
+digests `oracle.sh` checks each phase against; and `slim-vim.c` with the `slim-vim`
 built from it, the left-hand side of `refcheck.sh`. **It is not tracked and it
 is not a precondition**: a pass produces it, so a checkout that has never run
 one has no `.reference/` at all and everything here describes what exists
@@ -540,6 +607,14 @@ proves something when there is an older one to compare it against first: the
 first pass in a fresh checkout is self-certifying on behaviour, and every pass
 after it is not. That is the whole reason to keep this directory across passes,
 and the reason it is the one thing worth copying if this tree is ever moved.
+
+**`zero-baselines/` is recorded from a binary, and that is not this mistake.** The
+mistake is a pipeline re-recording from its *own* current binary, which then agrees
+by construction. Zero phase 0 records from the pipeline's immutable input —
+`whim-vim.c`, built with whim's compile line — three runs that must be identical;
+an existing set is compared and never overwritten; and the zero binary is then held
+to it. A tier-3 hit on phase 0 records nothing, so a tree with a warm cache and no
+`zero-baselines/` gets them back with `rm -rf .cache/r0 && make zero-phase-0`.
 
 `slim-vim` there is built with `SOURCE_DATE_EPOCH=0`, so it is reproducible
 byte for byte and usable as the left-hand side of a tier 1 check:
