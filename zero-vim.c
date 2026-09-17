@@ -48,10 +48,9 @@ enum { INC3 = 27 };
 enum { INC2 = 40 };
 enum { TERMCODE_GAP = 2 };
 enum { ME_UNKNOWN_OPTION = 0 };
-enum { ME_TOO_MANY_ARGS = 1 };
-enum { ME_ARG_MISSING = 2 };
-enum { ME_GARBAGE = 3 };
-enum { ME_EXTRA_CMD = 4 };
+enum { ME_ARG_MISSING = 1 };
+enum { ME_GARBAGE = 2 };
+enum { ME_EXTRA_CMD = 3 };
 
 enum { VIM_SIZEOF_INT = 4 };
 
@@ -2105,8 +2104,6 @@ typedef struct
     char_u      *commands[MAX_ARG_CMDS];
     char_u      cmds_tofree[MAX_ARG_CMDS];
 
-    int         edit_type;
-
     int         want_full_screen;
     char_u      *term;
 
@@ -2523,7 +2520,6 @@ static void buflist_setfpos(buf_T *buf, win_T *win, linenr_T lnum, colnr_T col, 
 static void get_winopts(buf_T *buf);
 static pos_T *buflist_findfpos(buf_T *buf);
 static void buf_name_changed(buf_T *buf);
-static int buflist_add(char_u *fname, int flags);
 static int otherfile(char_u *ffname);
 static void buf_setino(buf_T *buf);
 static int col_print(char_u *buf, size_t buflen, int col, int vcol);
@@ -5358,19 +5354,6 @@ getaltfname(int         errmsg)
         return NULL;
     }
     return fname;
-}
-
-    static int
-buflist_add(char_u *fname, int flags)
-{
-    buf_T       *buf;
-
-    buf = buflist_new(fname, NULL, (linenr_T)0, flags);
-    if (buf != NULL)
-    {
-        return buf->b_fnum;
-    }
-    return 0;
 }
 
     static int
@@ -85213,18 +85196,13 @@ frame_check_width(frame_T *topfrp, int width)
     return topfrp->fr_width == width;
 }
 
-enum { EDIT_NONE = 0 };
-enum { EDIT_FILE = 1 };
-enum { EDIT_STDIN = 2 };
 static void mainerr(int, char_u *);
-static void read_stdin(void);
 static void create_windows(mparm_T *parmp);
 static void exe_commands(mparm_T *parmp);
 
 static char *(main_errors[]) =
 {
      "Unknown option argument" ,
-     "Too many edit arguments" ,
      "Argument missing after" ,
      "Garbage after option argument" ,
      "Too many \"+command\", \"-c command\" or \"--cmd command\" arguments" ,
@@ -85241,12 +85219,7 @@ vim_main2(void)
     no_wait_return = FALSE;
     msg_scroll = FALSE;
 
-    if (params.edit_type == EDIT_STDIN)
-    {
-        read_stdin();
-    }
-
-    if ((did_emsg || msg_didout) && * ( term_strings[(int)(KS_TI)] )  != NUL && params.edit_type != EDIT_STDIN)
+    if ((did_emsg || msg_didout) && * ( term_strings[(int)(KS_TI)] )  != NUL)
     {
         newline_on_exit = TRUE;
     }
@@ -85562,17 +85535,15 @@ command_line_scan(mparm_T *parmp)
     int         argc = parmp->argc;
     char        **argv = parmp->argv;
     int         argv_idx;
-    int         had_minmin = FALSE;
     int         want_argument;
     int         c;
-    char_u      *p = NULL;
 
     --argc;
     ++argv;
     argv_idx = 1;
     while (argc > 0)
     {
-        if (argv[0][0] == '+' && !had_minmin)
+        if (argv[0][0] == '+')
         {
             if (parmp->n_commands >= MAX_ARG_CMDS)
             {
@@ -85589,31 +85560,12 @@ command_line_scan(mparm_T *parmp)
             }
         }
 
-        else if (argv[0][0] == '-' && !had_minmin)
+        else if (argv[0][0] == '-')
         {
             want_argument = FALSE;
             c = argv[0][argv_idx++];
             switch (c)
             {
-            case NUL:
-                if (parmp->edit_type != EDIT_NONE)
-                {
-                    mainerr(ME_TOO_MANY_ARGS, (char_u *)argv[0]);
-                }
-                parmp->edit_type = EDIT_STDIN;
-                read_cmd_fd = 2;
-                argv_idx = -1;
-                break;
-
-            case '-':
-                if (argv[0][argv_idx])
-                {
-                    mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
-                }
-                had_minmin = TRUE;
-                argv_idx = -1;
-                break;
-
             case 'T':
                 want_argument = TRUE;
                 break;
@@ -85649,21 +85601,7 @@ command_line_scan(mparm_T *parmp)
 
         else
         {
-            argv_idx = -1;
-
-            if (parmp->edit_type != EDIT_NONE)
-            {
-                mainerr(ME_TOO_MANY_ARGS, (char_u *)argv[0]);
-            }
-            parmp->edit_type = EDIT_FILE;
-
-            if ((p = vim_strsave((char_u *)argv[0])) == NULL)
-            {
-                mch_exit(2);
-            }
-
-            (void)buflist_add(p, BLN_CURBUF | BLN_LISTED);
-
+            mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
         }
 
         if (argv_idx <= 0 || argv[0][argv_idx] == NUL)
@@ -85674,23 +85612,6 @@ command_line_scan(mparm_T *parmp)
         }
     }
 
-}
-
-    static void
-read_stdin(void)
-{
-    int     i;
-
-    no_wait_return = TRUE;
-    i = msg_didany;
-
-    (void)open_buffer(TRUE, NULL, 0);
-
-    no_wait_return = FALSE;
-    msg_didany = i;
-
-    close(0);
-    vim_ignored = dup(2);
 }
 
     static void
