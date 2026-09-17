@@ -15,9 +15,10 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has three phases.** Phase 0 is the seed,
-phase 1 is a compiler flag, and phase 2 is the first cut in the source: the first
-piece of *a component, not a program*. Phases are added one at a time, each on the user's own
+**This document is iterative, and so far it has four phases.** Phase 0 is the seed,
+phase 1 is a compiler flag, phase 2 is the first cut in the source — the first
+piece of *a component, not a program* — and phase 3 changes no source at all: it
+replaces the instrument every later phase is measured with. Phases are added one at a time, each on the user's own
 request, and each is written into this document, into `pipes/` and into
 `pipes/zero.delta` and `pipes/zero.stages` when it is added — never in advance.
 
@@ -60,14 +61,20 @@ reaching the set the launcher, and not the core, supplies.
    what becomes unreachable (`WHIM-GOAL.md`, *The sweep*). The same six kinds, the
    same tools.
 2. **Every phase states its delta, in advance, as a check.** `pipes/zero.delta` is
-   the list — Ex commands, `case:` behaviour cases, `term-moved` — in
-   `pipes/whim.delta`'s grammar, and `tools/zerodelta.sh --phase N` shows exactly
-   that set moved and no more. "Some cases differ" is not a check.
-3. **The delta is from whim-vim, not from slim-vim.** Zero's behaviour is compared
-   with `.reference/zero-baselines`, which phase 0 records from the committed
-   `whim-vim.c` built with whim's own compile line. Everything whim removed is
-   therefore already in them, `pipes/zero.delta` starts empty, and a zero phase
-   declares only what *it* changes. Recording them from the pipeline's input is
+   the list — an Ex command by name, `case:` for a screen case, `argv:` for a
+   command line, `term-moved`, `pty-moved`, and the two dimensions `screen-moved`
+   and `stderr-moved` — in `pipes/whim.delta`'s grammar, and
+   `tools/zerodelta.sh --phase N` shows exactly that set moved and no more. "Some
+   cases differ" is not a check, and neither is a dimension declared that nothing
+   touched: `tools/zcompare.py` refuses a `-moved` token whose dimension did not
+   move.
+3. **The delta is from whim-vim, not from slim-vim, and it is cumulative.** Zero's
+   behaviour is compared with `.reference/zero-baselines`, which phase 0 records
+   from the committed `whim-vim.c` built with whim's own compile line — the
+   **input's** behaviour, frozen. Everything whim removed is therefore already in
+   them, `pipes/zero.delta` starts empty, and the lines up to phase N are the whole
+   difference from the input at N, as whim's are from slim. A phase declares what
+   *it* changes, and every phase after it is held to that line too. Recording them from the pipeline's input is
    legitimate, and is not the mistake `CLAUDE.md` warns about: that is a pipeline
    re-recording its baselines from its own current binary, which agrees by
    construction. `whim-vim.c` is immutable to this pipeline, and phase 0 also proves
@@ -295,3 +302,124 @@ It does not run `tools/create_cmdidxs.py --check`, which every whim edit of the
 command table ends with: the derived first-two-letters index went with the table whim
 reduced, there are no `ex_cmdidxs.h` banners left in `whim-vim.c`, and the tool
 raises rather than reporting nothing.
+
+## Phase 3 — the instrument becomes the screen
+
+**No source change at all**: `r3`'s `zero-vim.c` is `r2`'s byte for byte, and the
+phase asserts it — the two boundaries have the same digest, `74ca3e1ffeb8`. What
+changes is how every later phase is measured, and it had to change before those
+phases are written rather than after.
+
+### Why the old instrument stops working
+
+`tools/behaviour.py` ends every case with `+w! <file>` and reads the file back;
+`tools/exsweep.py` runs a command on a file and records the exit status and the
+files left in the directory. Zero's editor is on its way to having **no file to
+write, no file to read and no stream to print on** (`ZERO-PLAN.md`), so both stop
+being instruments the moment the phases they exist to measure land. Waiting until
+then would mean removing the filesystem and the means of noticing it in one step.
+
+### What replaces it
+
+`tools/zrecord.sh`: **keystrokes in on stdin, escape sequences out on stdout, and
+a screen rebuilt from them**. No pty, no settle time, no ANSI stripping and no
+Press-ENTER hazard; the terminal is 80x24 by construction because the window-size
+ioctl fails on a pipe. Five parts, and a recording is all five:
+
+| | what it is | how big |
+| --- | --- | --- |
+| `screen/` | `tools/zcases.py`: 102 keystroke cases, one record each | 141 KB |
+| `ref-excmds.txt` | `tools/zexcmds.py`: every Ex command name typed at `:` | 111 rows |
+| `ref-argv.txt` | `tools/zargv.py`: every command line the parser may see | 30 rows |
+| `ref-pty.txt` | `tools/zpty.py`: what only a real terminal shows | 4 scenarios |
+| `ref-term.txt` | `tools/termcheck.py`, whim's own, unchanged | 19 terminals |
+
+**One screen per redraw, taken from the bytes.** The editor hides the cursor while
+it draws and shows it when the screen is settled, so `\x1b[?25h` is a step boundary
+visible in the stream. That is what makes the message line recordable: the keys
+that quit the editor wipe it, and with only the final screen every row of the
+command sweep read `~`. It is also why the sweep is now a *message-level* record
+where the file-based one was an exit status — retiring `:write` will move
+`E32: No file name` to `E492`, which the old sweep could not have seen, both being
+exit 1.
+
+**A case types its own text under `'paste'`.** Nothing can load a file, so the seed
+is typed — and typing is subject to the compiled-in `ai si et sts=4` and the four
+mappings. `+set paste` (on the command line, before the first screen) turns exactly
+those off, and a typed `:set nopaste` puts them back before the case's real editing,
+which happens under the real defaults. `'paste'` and `+{command}` therefore survive
+every zero phase by decision, and are named as such wherever a later phase might
+take them.
+
+**Two things are scrubbed, padded to the width they replace**: undo's
+"1 second ago", which comes from `time()`, and `mainerr()`'s version banner, which
+carries `__DATE__`. The padding is not cosmetic — the screen is columns, and a
+shorter replacement moved the ruler into a different one.
+
+### The delta grammar grows two dimensions
+
+`case:NAME`, a command name, `argv:NAME`, `term-moved` and `pty-moved` name one
+record each. `screen-moved` and `stderr-moved` name a **dimension** of every
+record: what the editor drew, and what it wrote to stderr. A dimension token
+excludes that dimension from every comparison and is itself checked — a phase that
+declares `screen-moved` and draws the same screens fails, which was proven by
+declaring it here and watching `tools/zcompare.py` refuse. Everything outside the
+declared dimension is still compared record by record.
+
+### The baselines are the input's behaviour, and the delta is cumulative
+
+`.reference/zero-baselines` is recorded by **phase 0** from `whim-vim.c` built with
+whim's own compile line — three recordings that must be identical — and is compared,
+never silently overwritten. So the difference a phase declares is the difference
+from the **input**, and the lines up to phase N are the whole of it, exactly as
+whim's are against slim's baselines.
+
+That is why phase 3 makes phase 2's delta visible. Phase 2 removed the two "not to
+a terminal" warnings and the two-second pause, and declared nothing, because every
+old harness ran the editor `-e -s` or on a pty and could not see them. The new
+instrument runs it on a pipe, which is precisely where they were printed:
+**`2   stderr-moved`** is the line, and it is checked at r2 and at every boundary
+after it. Measured: all 102 cases, 109 of the 111 command rows (`:stop` and
+`:suspend` are skipped) and 13 of the 30 command lines differ in their stderr **and
+in nothing else** — the screens, the stream digests, the exit statuses, the bells,
+the pty scenarios and the terminal table are identical.
+
+### What the phase proves
+
+1. the tree is untouched — `zero-vim.c` in, `zero-vim.c` out, same sha;
+2. it builds with the boundary's flags and is still `EXEC`, no `INTERP`, no
+   dynamic section, no relocation;
+3. **the instrument is deterministic**: three recordings of that binary, identical,
+   *including the sha256 of every stdout stream* — stronger than "the screens
+   agree", since a redraw that draws the same result differently moves the digest;
+4. **the instrument can fail**: a scratch copy of the source with `do_addsub()`
+   returning `FAIL` — `CLAUDE.md`'s canonical break — moves **exactly 11 of the 102
+   cases**, the ten that increment or decrement plus `mb_incr`, and nothing else.
+   A corpus that cannot fail is not evidence;
+5. the declared delta holds (`tools/zerodelta.sh --phase 3`);
+6. **the bridge still stands**: `tools/whimdelta.sh` on the same binary against
+   slim-vim's baselines gives whim's whole declared delta, 489 commands and 11
+   cases. The file-based harnesses are kept untouched — they are whim's and slim's,
+   and they are the only recording the two pipelines share. Nothing zero does from
+   here reads them.
+
+### Measured
+
+One recording is **5.1 s** (its parts run at once; the 102 cases alone are 0.5 s
+against a binary with no startup pause and 2.4 s against whim-vim, which still has
+one). The phase runs in **30 s**, phase 0 in **33 s** with its three recordings and
+the baseline write, and the whole four-phase pass cold in **1 m 45 s**;
+`make zero-verify` reproduces all four boundaries in **36 s** of wall time over
+109 s of phases. The recording is 180 KB on disk. No whim or slim cache key moved:
+all 107 — 13 whim stages, 82 whim edits, 12 slim phases — are identical to `main`'s.
+
+It is `stage 3` and `package harness` in `pipes/zero.stages`, with two `uses`
+lines: `harness:3 seed:0 mechanical`, because it is measured against the baselines
+phase 0 records *in the shape phase 0 now records them*, and `harness:3 terminal:2
+rationale`, because the delta it proves is phase 2's.
+
+**The old recording had to be removed once, by hand.** The two shapes have no file
+in common, so phase 0 names the old one rather than printing a diff of everything
+against everything: `rm -rf .reference/zero-baselines && rm -rf .cache/r0 && make
+zero-phase-0`. It refuses rather than overwriting, which is the property that makes
+the baselines a reference at all.

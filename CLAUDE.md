@@ -68,11 +68,11 @@ it is the only one.
 
 ## Layout
 
-Three hundred and fifty-eight tracked files once all three pipelines have run
-(`git ls-files`): eighteen at the root, 185 under `pipes/` — the phase programs,
-twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and four for
-`zero.mk`'s three, and each staged pipeline's stage manifest and declared delta — and
-155 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
+Three hundred and sixty-nine tracked files once all three pipelines have run
+(`git ls-files`): nineteen at the root, 186 under `pipes/` — the phase programs,
+twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and five for
+`zero.mk`'s four, and each staged pipeline's stage manifest and declared delta — and
+164 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
 phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Four of the eighteen are products
 (`slim-vim.c`, `whim-vim.c`, `zero-vim.c`, `LICENSE`), three are records
@@ -83,7 +83,7 @@ among them — `tools/` and `pipes/` are the seed.
 phase in `pipes/` is either one file, `<pipeline><N>.sh`, or two,
 `<pipeline><N>-edit.sh` and `<pipeline><N>-check.sh`, and is run by the memoize
 driver as phase N of that pipeline and by nothing else; everything a phase calls
-lives in `tools/`. Every slim phase, whim phase 0 and zero phases 0 and 1 are one file;
+lives in `tools/`. Every slim phase, whim phase 0 and zero phases 0, 1 and 3 are one file;
 whim phases 1–82 and zero phase 2 are split.
 
 **A split phase is an edit and a check, and the sweep is the driver's.** The
@@ -141,32 +141,50 @@ Both run from the repository root, so a path in either names the other directly.
 `tools/implhash.sh` follows paths into both when it hashes a phase, and the
 scratch roots of `whim-verify` and `whim-specpass` link both in.
 
-**The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed, a flag
-and a cut.**
+**The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed, a flag,
+a cut and an instrument.**
 `ZERO-GOAL.md` states what it is for — an embeddable editor core that keeps the
 screen and all visual editing and loses the filesystem, with `main()` demoted to a
-host launcher and the text later held as a tree — and has three phases:
-`pipes/zero0.sh`, the seed; `pipes/zero1.sh`, which adds `-fno-stack-protector`; and
+host launcher and the text later held as a tree — and has four phases:
+`pipes/zero0.sh`, the seed; `pipes/zero1.sh`, which adds `-fno-stack-protector`;
 `pipes/zero2-edit.sh` with `pipes/zero2-check.sh`, the first source cut — the two
 "not to a terminal" warnings, the two-second pause after them and `--ttyfail` go, so
-`zero-vim.c` is now 86,586 lines against `whim-vim.c`'s 86,614.
+`zero-vim.c` is now 86,586 lines against `whim-vim.c`'s 86,614 — and `pipes/zero3.sh`,
+which changes no source at all and replaces the instrument (below), so r3's tree and
+r2's have the same digest.
 Phases are added one at a time, on request. Its input is the **committed**
 `whim-vim.c`, immutable, and `whim.sha` records the one a committed `zero-vim.c` was
 produced from, exactly as `slim.sha` does for whim. It is born staged:
-`pipes/zero.stages` (`stage 0`, `stage 1`, `stage 2`; `package seed 0`, `package
-build 1`, `package terminal 2`) and `pipes/zero.delta` (empty — no phase yet changes
-behaviour any harness records), checked by `tools/stages.sh zero` and
-`tools/packages.sh zero` as whim's are.
+`pipes/zero.stages` (a stage and a package per phase: `seed 0`, `build 1`,
+`terminal 2`, `harness 3`) and `pipes/zero.delta` (`2 stderr-moved`, and nothing
+else), checked by `tools/stages.sh zero` and `tools/packages.sh zero` as whim's are.
 
 **A declared delta of none can be a harness that cannot see the phase**, and zero
-phase 2 is the case: `behaviour.py` and `exsweep.py` run the editor `-e -s`, where
+phase 2 was the case: `behaviour.py` and `exsweep.py` run the editor `-e -s`, where
 Ex mode takes `check_tty()`'s other branch, and `termcheck.py` drives a real pty
 where both streams *are* terminals — so nothing recorded ever held those warnings.
 Its check therefore builds the binary the phase was **handed** and requires the old
 one to warn and pause (85 bytes of stderr, 2,010 ms) and the new one not to (0 bytes,
 5 ms), with the 2,108-byte escape stream byte-identical. **When a phase's delta is
 none because the harnesses are blind rather than because nothing moved, the phase
-owes probes of its own.**
+owes probes of its own** — and when a later phase gives the pipeline an instrument
+that *can* see it, the delta is declared where it happened: phase 3 made
+`2 stderr-moved` true and checkable, at r2 and at every boundary after it.
+
+**Zero's instrument is the screen, and it is zero's own** (phase 3, `ZERO-PLAN.md`).
+A recording is `tools/zrecord.sh`: keystrokes in a file on stdin, escape sequences
+out on stdout, and a 24x80 screen rebuilt from them by `tools/zscreen.py` — snapshot
+at every `\x1b[?25h`, which is where a redraw ends, and which is the only reason the
+message line is recordable at all. Five parts: 102 keystroke cases that type their
+own text under `'paste'` (`zcases.py`), every Ex command typed at `:` and recorded by
+the message it prints (`zexcmds.py`), every command line the parser may see
+(`zargv.py`), four pty scenarios for the window size and raw mode (`zpty.py`), and
+whim's own terminal table (`termcheck.py`). It is deterministic — three recordings
+per phase 0 and phase 3 run, identical, *including the sha256 of every stdout
+stream* — and it is proven able to fail: `do_addsub()` returning `FAIL` moves exactly
+11 of the 102 cases. The file-based `behaviour.py` and `exsweep.py` are untouched:
+they are whim's and slim's, and phase 3 keeps `whimdelta.sh` as the one bridge
+between the two pipelines' recordings.
 
 **Three things differ from whim, and each was decided rather than inherited:**
 
@@ -212,7 +230,7 @@ zero-vim.c     whim-vim.c, on its way to an embeddable core
 Makefile       the seed: builds all three, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
-zero.mk        zero-vim.c = H(whim-vim.c), the same construct, three phases so far
+zero.mk        zero-vim.c = H(whim-vim.c), the same construct, four phases so far
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
 whim.sha       the whim-vim.c zero-vim.c was produced from

@@ -433,6 +433,38 @@ Measured, all of them:
 6. **The bell is part of the record** and the corpus's own quit keystroke
    (`ESC` in Normal mode) rings it. That is deterministic and left in.
 
+### 2m. As implemented, in zero phase 3
+
+The instrument in this section is built: `tools/zscreen.py`, `zstream.py`,
+`zrec.py`, `zcases.py`, `zexcmds.py`, `zargv.py`, `zpty.py`, `zrecord.sh` and
+`zcompare.py`, 1,144 lines, named by nothing whim or slim runs. `ZERO-GOAL.md`'s
+*Phase 3* is what it does and what it proved. **Five things differ from the design
+above**, each because building it said so:
+
+1. **A case's options and `'paste'` go on the command line**, as `+set paste`
+   rather than a typed `:set paste` — §5.11's recommendation, taken. It removes two
+   snapshots per case, and it exercises `+{command}` in all 102.
+2. **The corpus is 102 cases, not 92**: the eight "one case per thing a later phase
+   removes" (`key_Q`, `cmd_write`, `key_gf`, …) and the two CTRL-C cases were
+   written in, so every planned phase has something that can see it.
+3. **The record is sectioned** — `--- exit`, `--- bells`, `--- stream`,
+   `--- stderr`, `--- snap N` — because `screen-moved` and `stderr-moved` have to
+   drop a *dimension* of every record and compare the rest. The design said
+   "record both"; the sections are how a comparator is told which is which.
+4. **A `-moved` token is itself checked.** Declaring a dimension that did not move
+   fails, which the design did not ask for and which the first version accepted:
+   with both tokens declared, a difference explained by one of them counted as
+   evidence for both.
+5. **The pty corpus is four scenarios, not five**, and none of them records a
+   screen: `tools/ptycheck.py`'s lesson is that a pty screen dump is a recording of
+   the machine's load, so each scenario is an extraction — the size, the term name,
+   the line the editing left.
+
+One number in §2f moved: the corpus is **0.5 s** here against the phase-2 binary
+(the 6.4 s measurement was the phase-1 binary, which still had the two-second
+pause), and a whole recording — four corpora and the terminal table, run at once —
+is **5.1 s**.
+
 ## 3. The phases
 
 ### 3a. First, a thing the sweep can no longer do: `ex_ni` is gone
