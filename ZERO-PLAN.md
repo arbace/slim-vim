@@ -513,16 +513,17 @@ permutation — §2g's fifth break is what happens otherwise.
 | 5 | no write — **built, as zero phase 6** | the six rows and their enumerators, `nv_Zet`'s `ZZ`, `do_one_cmd`'s `:w>>`/`:w!` parse; the sweep then takes `do_write`, `buf_write`, `buf_write_bytes`, `check_overwrite`, `check_writable`, `check_mtime`, `not_writing`, `write_eintr`, `mch_setperm`, `mch_fsetperm`, `mch_nodetype`, `vim_fexists` and seven more — **19 functions; the file 85,734 → 84,675** | `chmod fchmod fstat ftruncate lstat unlink`, exactly | **`cmd_write` and `zz_key`; the six sweep rows CEASE TO EXIST, they do not change message** |
 | 6 | no read — **built, as zero phase 7** | the `CMD_read` row and enumerator and `do_one_cmd`'s `:r!`/`:r !cmd` parse; the sweep then takes `ex_read`, `do_bang`, `do_shell`, `do_filter`, `check_secure` and `prevcmd_is_set` — **6 functions exact; the file 84,675 → 84,453**, which is 222 lines and not 194, the extra being the `usefilter` fold below | — | **`cmd_read` and `read_cmd_gone`; the sweep row `read` CEASES TO EXIST — but NOT `filter_gone`**, which was E492 on the input binary already |
 | 7 | no `:edit`, and no `gf` — **built, as zero phase 8** | the five rows and enumerators, `do_one_cmd`'s `curbuf_locked()` exemption for `:edit` and its `++opt` parse, and the `gf`/`gF` and `[f`/`]f` **arms** — there are no `nv_cmds[]` rows for them; the sweep then takes `do_ecmd` (328), `do_exedit`, `ex_edit`, `grab_file_name`, `otherfile`, `nv_gotofile`, `text_or_buf_locked`, `check_lnums*`, `prepare_help_buffer`, `getargopt` and six more — **17 functions; the file 84,453 → 83,755** | — | **`cmd_edit` and `key_gf`; the five sweep rows CEASE TO EXIST** |
-| 8 | nothing reads a byte | `readfile` (787), `read_buffer`, `read_stdin`, `read_eintr`, `readfile_linenr`, `filemess`, `msg_add_fname`, `msg_add_lines`, `msg_add_eol`, and `open_buffer`'s read arms | `open access fcntl` | none measured; probed by the argv record and by `startup` |
-| 9 | the buffer has no name | `b_ffname`/`b_sfname`/`b_fname` (58/30/42 mentions), `setfname`, `buflist_new`'s naming, `otherfile_buf`, `buf_setino`, `buf_spname`, `shorten_*`, `home_replace*`, `fix_fname`, `vim_FullName`, `mch_FullName`, `mch_dirname`, `mch_isdir`, `mch_getperm`, `eval_vars` (242), `expand_filename` (132), `find_cmdline_var`, `get_spec_reg`'s `%`/`#`/CTRL-F/CTRL-P, `:file`, `get_trans_bufname`, `set_b0_fname`, `ml_upd_block0`, `ml_timestamp`, `check_changed_any`, the wildcard remnants | `stat getcwd strerror fsync` | `cmd_file`, `reg_percent`, `ctrl_g` (the name in the info line), `startup`/`ruler_move` if the status line changes; sweep row `file` |
+| 8 | nothing reads a byte — **built, as zero phase 9** | `open_buffer`'s two read arms, its `read_fifo` local and its signature; the sweep then takes `readfile` (787), `read_buffer`, `read_eintr`, `readfile_linenr`, `filemess`, `msg_add_fname`, `msg_add_lines`, `msg_add_eol` and eight more — **16 functions; the file 83,755 → 82,572**. `read_stdin` here is the ARGUMENT, not the function: `read_stdin()` was argv's and went with zero phase 5. `mch_isdir` and `set_rw_fname` land here and not in row 9 | `open access fcntl`, exactly | **nothing at all**: two full recordings byte-identical. The evidence is an instrumented build, not a record — see below |
+| 9 | the buffer has no name | `b_ffname`/`b_sfname`/`b_fname` (58/30/42 mentions), `setfname`, `buflist_new`'s naming, `otherfile_buf`, `buf_setino`, `buf_spname`, `shorten_*`, `home_replace*`, `fix_fname`, `vim_FullName`, `mch_FullName`, `mch_dirname`, `mch_isdir`, `mch_getperm`, `eval_vars` (242), `expand_filename` (132), `find_cmdline_var`, `get_spec_reg`'s `%`/`#`/CTRL-F/CTRL-P, `:file`, `get_trans_bufname`, `set_b0_fname`, `ml_upd_block0`, `ml_timestamp`, `check_changed_any`, the wildcard remnants; **`mch_isdir` and `set_rw_fname` are not here — zero phase 9 took both**, and `setfname` has one caller left because of it | `stat getcwd strerror`; **not `fsync`**, whose only caller is `ui_write` and which is row 12's | `cmd_file`, `reg_percent`, `ctrl_g` (the name in the info line), `startup`/`ruler_move` if the status line changes; sweep row `file` |
 | 10 | `:q` quits, `ZZ` is `ZQ` | `check_changed`, `no_write_message`, `no_write_message_nobang`; **`nv_Zet`'s `:x` is not here — zero phase 6 took it** | — | **`quit_modified` and the sweep row `quit`, and nothing else**: the measurement below was taken before zero phase 8, which has since moved `cmd_edit` and removed the rows `edit enew ex view visual` |
 | 11 | the options nothing reads | `'fsync'`, `'write'`, `'writeany'`, `'undoreload'`, and `'readonly'` by decision; `'shortmess'` and `'cpoptions'` letters that lost their readers. **`'paste'` is exempt and the phase says so** | — | none (`:set` is not swept); `tools/dropoptions.py --strict` refuses while a reader exists, which is the check |
 | 12 | no `FILE *` that is never opened | `scriptin[]` (3739, never assigned), `redir_fd` (3777, never assigned), `ui_write`'s `console` (its only caller passes `FALSE`) | `fclose getc fputs putc` | none |
 
-**Six rows are built, and the numbering is not the table's.** Row 2 ran as zero
+**Seven rows are built, and the numbering is not the table's.** Row 2 ran as zero
 phase 2, row 3 as zero **phase 4**, row 4 as zero **phase 5**, row 5 as zero
-**phase 6**, row 6 as zero **phase 7** and row 7 as zero **phase 8**, because the
-harness switch of §2 landed between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what each one did; where this table turned out to be wrong is
+**phase 6**, row 6 as zero **phase 7**, row 7 as zero **phase 8** and row 8 as zero
+**phase 9**, because the harness switch of §2 landed between rows 2 and 3 as
+phase 3. `ZERO-GOAL.md` is what each one did; where this table turned out to be wrong is
 said at the row.
 
 #### P2 — nothing asks whether this is a terminal
@@ -687,6 +688,26 @@ difference is prototypes, enumerators, blank lines and two struct fields. And *t
 `:visual! f` load a file exactly as `:e! f` does, `:view! f` loads it with
 `'readonly'` and `:enew!` empties the buffer — measured on the input binary, because
 no recording here can see a file being opened.
+
+**As built (zero phase 9), five things the P8 row did not foresee.** *`read_stdin`
+in the row is the ARGUMENT and not the function*: `read_stdin()` was argv's and went
+with zero phase 5, and what this phase removes is the parameter of `open_buffer()`
+and `read_buffer()` — which needs the signature fold, because `-Wno-unused-parameter`
+makes an unused parameter invisible to the sweep where an unused local is not.
+*`mch_isdir` and `set_rw_fname` land here, not in the name row*, and `set_rw_fname`
+being `setfname`'s second caller is what makes P9 possible at all. *`fsync` is not
+row 9's*: its only caller is `ui_write`, so it belongs to row 12 — the row above is
+corrected. *The count is 16 functions and 1,183 lines*, against the nine names the
+row listed; the difference is eleven the sweep found under them, fifteen prototypes,
+three file-scope strings, seventeen enumerators and 24 string literals — the whole
+message layer that reported what had been read. And *the delta is nothing at all,
+which is a statement rather than an omission*: the read path stopped being reachable
+at zero phase 8, so the phase removes code that could not run, two full recordings
+are byte-identical, and the evidence is an instrumented build — the input source
+compiled twice, with `write(2, …)` first in `readfile()` (0 of 106 records marked)
+and then in `open_buffer()` (104 of 106, the identical instrument). The row's
+"probed by the argv record and by `startup`" could not have worked: those records do
+not move.
 
 Two things P9 must decide rather than compute, both already measured:
 

@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Three hundred and eighty tracked files once all three pipelines have run
-(`git ls-files`): nineteen at the root, 196 under `pipes/` — the phase programs,
-twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and fifteen for
-`zero.mk`'s nine, and each staged pipeline's stage manifest and declared delta — and
+Three hundred and eighty-two tracked files once all three pipelines have run
+(`git ls-files`): nineteen at the root, 198 under `pipes/` — the phase programs,
+twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and seventeen for
+`zero.mk`'s ten, and each staged pipeline's stage manifest and declared delta — and
 165 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
 phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Four of the nineteen are products
@@ -84,7 +84,7 @@ phase in `pipes/` is either one file, `<pipeline><N>.sh`, or two,
 `<pipeline><N>-edit.sh` and `<pipeline><N>-check.sh`, and is run by the memoize
 driver as phase N of that pipeline and by nothing else; everything a phase calls
 lives in `tools/`. Every slim phase, whim phase 0 and zero phases 0, 1 and 3 are one file;
-whim phases 1–82 and zero phases 2 and 4–8 are split.
+whim phases 1–82 and zero phases 2 and 4–9 are split.
 
 **A split phase is an edit and a check, and the sweep is the driver's.** The
 programs' last sweep used to be the line between the two, and 70–90% of every
@@ -142,10 +142,10 @@ Both run from the repository root, so a path in either names the other directly.
 scratch roots of `whim-verify` and `whim-specpass` link both in.
 
 **The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed, a flag,
-six cuts and an instrument.**
+seven cuts and an instrument.**
 `ZERO-GOAL.md` states what it is for — an embeddable editor core that keeps the
 screen and all visual editing and loses the filesystem, with `main()` demoted to a
-host launcher and the text later held as a tree — and has nine phases:
+host launcher and the text later held as a tree — and has ten phases:
 `pipes/zero0.sh`, the seed; `pipes/zero1.sh`, which adds `-fno-stack-protector`;
 `pipes/zero2-edit.sh` with `pipes/zero2-check.sh`, the first source cut — the two
 "not to a terminal" warnings, the two-second pause after them and `--ttyfail`;
@@ -165,28 +165,47 @@ gone; and `pipes/zero8-edit.sh` with `pipes/zero8-check.sh`, which takes every w
 name another file to edit — the five Ex commands `:edit :enew :ex :visual :view`,
 which are one handler, and the `gf gF [f ]f` keys, which are **arms** inside two
 surviving handlers and not `nv_cmds[]` rows, six anchors and seventeen functions the
-sweep finds — so `zero-vim.c` is now 83,755 lines
-against `whim-vim.c`'s 86,614, and the six libc symbols phase 6 freed are still the
-only ones: phases 7 and 8 free none, and each says so as an equality.
+sweep finds; and `pipes/zero9-edit.sh` with `pipes/zero9-check.sh`, which takes the
+machinery under all of those — `readfile()`, `read_buffer()` and the message layer
+that reported what had been read, four anchors all inside `open_buffer()` and sixteen
+functions the sweep finds — so `zero-vim.c` is now 82,572 lines
+against `whim-vim.c`'s 86,614, and `access`, `fcntl` and `open` join the six libc
+symbols phase 6 freed: phases 7 and 8 free none and say so as an equality, and
+phase 9 names the set it frees rather than the count.
+
+**Phase 9 is the one zero phase no recording can see, and it says so.** `readfile()`
+was already unreachable when it ran — phases 5 to 8 had taken every way to name a
+file — so its declared delta is *nothing at all*, two full recordings are
+byte-identical, and the evidence is an instrumented pair: the input source built
+twice, with `write(2, "READFILE-ENTERED\n", 17)` first in `readfile()` (**0 of 106
+records** carry it) and then in `open_buffer()` (**104 of 106**, the identical
+instrument), plus eight adversarial sessions that name the buffer after a real file
+and are required to reach `open_buffer()` and not `readfile()`. An empty declaration
+is a statement here rather than an omission: the phase removes code that could not
+run.
 Phases are added one at a time, on request. Its input is the **committed**
 `whim-vim.c`, immutable, and `whim.sha` records the one a committed `zero-vim.c` was
 produced from, exactly as `slim.sha` does for whim. It is born staged:
 `pipes/zero.stages` (a stage per phase and six packages: `seed 0`, `build 1`,
-`terminal 2`, `harness 3`, `streams 4 5`, `files 6 7 8`, with `apart 2 4` — phase 2's
+`terminal 2`, `harness 3`, `streams 4 5`, `files 6 7 8 9`, with `apart 2 4` — phase 2's
 check runs both its binaries with `-e -s`, which phase 4 removes — `apart 4 5`,
 because phase 4's check names `EDIT_STDIN`, `had_minmin`, `buflist_add` and
 `ME_TOO_MANY_ARGS` as things the argv phase is still to take, `apart 5 6`,
 because phase 5's check states that *it* frees no libc symbol and phase 6 frees
 six, `apart 6 7`, because phase 6's check names `do_bang` as a later phase's and
 requires 105 rows, `apart 7 8`, because phase 7's check names `do_ecmd` and
-`otherfile` as a later phase's and requires 104 rows with `:edit` among them, and
-two `need`s, `need 7 swept` — phase 7's `usefilter` anchor counts eleven mentions on
-the text phase 6's edit leaves and ten on the swept one — and `need 8 swept`, phase
+`otherfile` as a later phase's and requires 104 rows with `:edit` among them,
+`apart 8 9`, because phase 8's check requires `readfile` at 5 mentions and
+`read_buffer` at 17 and phase 9 takes both to 0, and
+three `need`s, `need 7 swept` — phase 7's `usefilter` anchor counts eleven mentions on
+the text phase 6's edit leaves and ten on the swept one — `need 8 swept`, phase
 8's `readfile` anchor counting seven where it wants five, `ex_read` still being there
-to make two of them) and `pipes/zero.delta`
+to make two of them, and `need 9 swept`, phase 9's `open_buffer` anchor counting six
+where it wants five, `do_ecmd` still being there to make the one call site its
+signature fold would not rewrite) and `pipes/zero.delta`
 (`2 stderr-moved`, phase 4's six records, phase 5's six command lines, phase 6's
-two cases and six command rows, phase 7's two cases and one, and phase 8's two cases
-and five), checked
+two cases and six command rows, phase 7's two cases and one, phase 8's two cases
+and five, and **nothing at all for phase 9**), checked
 by `tools/stages.sh zero` and `tools/packages.sh zero` as whim's are.
 
 **A phase can break a harness rather than change behaviour, and the two must not be
@@ -273,7 +292,7 @@ zero-vim.c     whim-vim.c, on its way to an embeddable core
 Makefile       the seed: builds all three, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
-zero.mk        zero-vim.c = H(whim-vim.c), the same construct, nine phases so far
+zero.mk        zero-vim.c = H(whim-vim.c), the same construct, ten phases so far
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
 whim.sha       the whim-vim.c zero-vim.c was produced from
