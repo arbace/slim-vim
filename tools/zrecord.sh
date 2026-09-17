@@ -10,7 +10,8 @@
 #   ref-excmds.txt   tools/zexcmds.py  every Ex command name typed at `:`
 #   ref-argv.txt     tools/zargv.py    every command line the parser may see
 #   ref-pty.txt      tools/zpty.py     the window size and raw mode, on a real pty
-#   ref-term.txt     tools/termcheck.py  the terminal table, unchanged from whim
+#   ref-term.txt     tools/ztermcheck.py the terminal table, whim's termcheck.py
+#                                      asked with no file argument (see below)
 #
 # The five are independent and run at once.  A recording is the unit both the
 # baselines and a phase's comparison are made of, so it is made here once and
@@ -32,7 +33,11 @@ python3 tools/zargv.py "$bin" "$out/ref-argv.txt" >/dev/null &
 p3=$!
 python3 tools/zpty.py "$bin" "$out/ref-pty.txt" >/dev/null &
 p4=$!
-python3 tools/termcheck.py "$bin" "$out/ref-term.txt" >/dev/null &
+# NOT tools/termcheck.py, and the difference is one argument: it opens a file to
+# put something on the screen, and from zero phase 5 a file argument is an unknown
+# option, so every row would read `(none)`.  tools/ztermcheck.py is that tool with
+# its ask() replaced and nothing else, proven to record the same nineteen rows.
+python3 tools/ztermcheck.py "$bin" "$out/ref-term.txt" >/dev/null &
 p5=$!
 rc=0
 wait $p1 || rc=1
