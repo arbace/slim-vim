@@ -19,11 +19,11 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are seven phases.  Phases are added one at a time, each on its own request
+# There are eight phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6
+phases      0 1 2 3 4 5 6 7
 
 #   stage   phases
 stage       0
@@ -33,6 +33,7 @@ stage       3
 stage       4
 stage       5
 stage       6
+stage       7
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -69,6 +70,28 @@ apart       4 5
 # only for the reasons `apart 4 5` already records -- it names EDIT_STDIN and four
 # others as the argv phase's, and phase 5 took them.
 apart       5 6
+# Phase 6's check names `do_bang` as one of the things a later phase takes -- "it is
+# a later phase's" -- and requires cmdnames[] to hold 105 rows.  This phase takes
+# do_bang and the 105th row.  Measured by running phase 6's check on the tree phase
+# 7 leaves: `do_bang went, and it is a later phase's`, `cmdnames[] has 104 rows and
+# names() reads 104; both must be 105`, exit 1.  Its `write_roundtrip` probe reads
+# the file back with `:r out.txt` and would fail too, but the source assertions come
+# first.
+apart       6 7
+
+# What phase 7's edit needs of the text it is handed (pipes/whim.stages defines the
+# word).  Every zero phase is its own stage today, so this is a statement rather
+# than a constraint; it becomes one the moment two of them share a sweep.
+#   need 7 swept   anchor: `usefilter` has exactly 10 mentions -- the field, the two
+#                  writes anchor 3 removes and seven reads.  On the text phase 6's
+#                  edit leaves it has ELEVEN, ex_write still being there to read it,
+#                  and the counted anchor refuses: measured with
+#                  `tools/phaserun.sh zero 6-7`, which says `usefilter has 11
+#                  mentions, expected 10`.  The same run shows the edit's build of
+#                  the input binary failing on phase 6's non-compiling intermediate,
+#                  which is true of every zero edit that builds one and is not
+#                  declared here for that reason.
+need        7 swept
 
 #        name         phases
 package  seed         0
@@ -76,7 +99,7 @@ package  build        1
 package  terminal     2
 package  harness      3
 package  streams      4 5
-package  files        6
+package  files        6 7
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -89,3 +112,5 @@ uses  streams:5   seed:0   mechanical  tools/zerodelta.sh compares its six decla
 uses  streams:5   harness:3  mechanical  the six records that move are tools/zargv.py's, and phase 3 is what put an argv record in a zero recording at all
 uses  files:6     seed:0   mechanical  tools/zerodelta.sh compares its two screen cases and six command rows with the baselines phase 0 records
 uses  files:6     harness:3  mechanical  the old file-based sweep recorded an exit status, and :write went from E32 to E492 without changing it; phase 3's message-level record is what can see this phase at all
+uses  files:7     seed:0   mechanical  tools/zerodelta.sh compares its two screen cases and one command row with the baselines phase 0 records
+uses  files:7     harness:3  mechanical  the old file-based sweep recorded an exit status, and :read goes from E32 to E492 without changing it; phase 3's message-level record is what can see this phase at all

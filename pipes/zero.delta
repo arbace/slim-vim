@@ -131,3 +131,31 @@
 # `:file` and CTRL-G.
 6     case:cmd_write case:zz_key
       write wq xit exit update saveas
+#
+# 7 removes the way to read one: the Ex command `:read`, with the `:r !cmd` arm
+# that was the last caller of the filter and shell plumbing whim left as stubs.
+# TWO SCREEN CASES AND ONE COMMAND ROW MOVE:
+#
+#   `cmd_read` types `:read` WITH NO FILE NAME, so what the baselines hold is an
+#   editor that FAILED to read, `E32: No file name` -- the shape phase 6 left
+#   `:write` in.  It is `E492: Not an editor command: read` now.
+#   `read_cmd_gone` types `:r !echo piped`, which whim's stub answered with
+#   `E319: Sorry, the command is not available in this version`.  It is E492 now:
+#   one snapshot fewer and the same single bell either side.
+#   the ref-excmds.txt row `read` does not change message: it CEASES TO EXIST,
+#   because tools/zexcmds.py enumerates the table and there are 104 names where
+#   there were 105.
+#
+# `filter_gone` IS NOT DECLARED, and the plan's P6 row over-declares it: `:!` has
+# not existed since whim, so `:%!sort` already answered E492 on the input binary
+# and its record is byte-identical.  What this phase removes is the code behind a
+# command that was already gone.
+#
+# Nothing else moves, and the corpus is the reason it cannot: every one of the 102
+# cases types its own text and names no file, so not one of them can read one.
+# Measured with tools/zcompare.py: the other 100 screen cases, the other 103
+# command rows, all 30 command lines, the four pty scenarios and the terminal table
+# are identical -- `:redo`, `:redraw`, `:registers` and `:reg` among them, which is
+# the inheritance check a removed name asks for.
+7     case:cmd_read case:read_cmd_gone
+      read
