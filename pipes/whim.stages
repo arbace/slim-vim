@@ -1,0 +1,64 @@
+# The whim pipeline's stage manifest.  Documentation today: nothing reads it.
+#
+# A STAGE is a run of phases between two sweeps: every phase's edit part in order,
+# ONE tools/sweep.sh, then every phase's check part (tools/phaserun.sh has the
+# contract that makes the checks runnable there).  The driver still runs one stage
+# per phase, so every boundary q0..q82 is what it was; this file records the
+# schedule a staged driver would run and, per phase, what the text handed to its
+# EDIT part must already be.
+#
+# Every number and edge below was measured, in WHIM-PLAN.md's lab (sections 2a-2c)
+# or against the split programs themselves, and every stage below ended on the
+# recorded boundary of its last phase.  It is CHECKED, not trusted: a stage whose
+# end does not reproduce the recording is a failure, and that comparison is what
+# caught the one silent case (54 after 53 without its inner sweep).
+#
+# --- the schedule ---------------------------------------------------------
+# Seven stages, 1,635 s sequential against 4,992 (WHIM-PLAN.md e12).  It needs the
+# nine inner sweeps of section 2c removed (12 15 17 25 35 36 39 55 56); with every
+# inner sweep kept, as the programs are today, 12 needs no boundary and the
+# schedule is six stages (e8): 1-41 42-71 72-78 79 80-81 82.
+#
+#   stage   phases
+stage       1-12
+stage       13-41
+stage       42-71
+stage       72-78
+stage       79
+stage       80-81
+stage       82
+#
+# --- what a phase needs of its input --------------------------------------
+#   swept     the edit counts anchors against, or computes its cut from, swept
+#             text: it must start a stage, or follow an inner sweep.  A counted
+#             anchor refuses loudly on unswept text; a COMPUTED set shrinks
+#             silently -- which is why this is declared, not discovered.
+#   compiles  the edit compiles its input (the old binary a before/after probe
+#             runs): the text before it must be valid C, swept or not.
+#   silent    the edit requires its input to compile with no warning at all,
+#             which only a sweep provides: it must start a stage.
+#   -         none known.  Every phase listed '-' has run inside a stage, on
+#             unswept text, and the stage reproduced its boundary.  That is a
+#             measurement of this input, not a guarantee for the next one.
+#
+# The symbol snapshot is not a requirement any more.  Every phase program used to
+# start by compiling its input for it, which made five edges (29|30, 68|69, 69|70,
+# 72|73, 74|75) look like requirements; tools/phaserun.sh now takes it at the
+# start of the stage, where the text always compiles.
+#
+#   phase   needs              why
+need  13    swept              anchor: one buf_check_timestamp call in enter_buffer; 2 until 12 is
+#                              swept -- satisfied by 12's inner sweep while it stays (e8), a stage
+#                              boundary once it goes (e12)
+need  42    swept              anchor: buf_hide has exactly two mentions; 41's dead callers hold a third
+need  54    swept-inner:53     COMPUTED: the rows to cut come from the option table as found; without
+#                              53's inner sweep it found one row fewer, 'arabic' survived, and it did
+#                              not refuse (e10, e11).  53's inner sweep must stay.
+need  72    swept              anchor: ONE_WINDOW expanded in place occurs 3 times; 9 until 68-71 are swept
+need  79    swept              anchor: 'five window heights with no tab line' occurs 5 times; 7 until
+#                              72-78 are swept
+need  80    swept              anchor: refuses while a live row still uses ADDR_BUFFERS (79's dead rows)
+need  80    compiles           the edit builds the old binary from its input for the prefix probe
+need  81    compiles           the same; 80's unswept output compiles (measured), so 80-81 is a stage
+need  82    silent             the edit refuses input that does not compile silently; 80-81 unswept
+#                              does not (measured)

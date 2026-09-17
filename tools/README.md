@@ -68,10 +68,21 @@ it refuses outright if any multi-line comment has code on both sides.
 themselves.
 
 - **`memo.sh <n> <work> <build>`** — the driver. Tier 3 (a cached result for
-  this exact input and implementation), else tier 2 (`pipes/slim<n>.sh`), else
+  this exact input and implementation), else tier 2 (`pipes/slim<n>.sh`, run
+  through `phaserun.sh`), else
   tier 1 (an agent) — and an agent run always leaves a tier 2 behind, so the
   same input never costs an agent twice.
-- **`implhash.sh <n>`** — half the cache key: the phase's program plus every
+- **`phaserun.sh <pipeline> <n> <work>`** — runs one phase's program. A whole
+  `pipes/<pipeline><n>.sh` runs as it is; a split phase runs as
+  `pipes/<pipeline><n>-edit.sh`, then `sweep.sh`, then `-check.sh`. The two parts
+  share no shell: the driver makes a state directory, `.cache/state/<tag><n>`,
+  writes the input's line count and symbol snapshot into it, and passes it to
+  both; anything else the check needs the edit writes there by name. That is the
+  contract a staged driver needs to run several edits before one sweep.
+  `--parts` lists a phase's program files, and is how `memo.sh`, `implhash.sh`,
+  `residue.sh` and `synth.sh` ask whether a phase is a program.
+- **`implhash.sh <n>`** — half the cache key: the phase's program (both parts of a
+  split phase, and the `phaserun.sh`, `sweep.sh` and `symbols.sh` run around them) plus every
   tool, patch, table and template it names, one level of indirection deep.
   Narrow on purpose, so editing `resolve.py` re-runs phase 5 and not all twelve.
 - **`synth.sh <n> <build>`** — memoize an agent's *behaviour* as code: diff the
@@ -130,8 +141,12 @@ themselves.
 
 ## Phases that are programs
 
-They live in `pipes/`, not here: `pipes/slim<N>.sh` and `pipes/whim<N>.sh`, one
-file per phase, and everything below them in this directory is what they call.
+They live in `pipes/`, not here: `pipes/slim<N>.sh` and `pipes/whim0.sh`, one file
+per phase, and `pipes/whim<N>-edit.sh` with `pipes/whim<N>-check.sh` for whim
+phases 1–82, whose final sweep `phaserun.sh` runs between the two. Everything
+below them in this directory is what they call. `pipes/whim.stages` is the stage
+manifest: which runs of phases can share one sweep, and what each phase's edit
+needs of its input — documentation, read by nothing yet.
 The slim ones that replaced an agent are described here. Each was written by diffing the two boundaries the agent left — `p2.tar`
 against `p3.tar` says exactly what Phase 3 did, with no prose in between — and
 each reproduces that boundary byte for byte.
@@ -231,7 +246,9 @@ Slim's Phase 8 runs all of them but `funcreach.py`, in one loop; whim's
 `sweep.sh` runs all six in every phase, and `canon.sh --once` after them, in
 rounds until one changes nothing — skipping a tool in a round when it has
 already run without changing exactly the current bytes, so the round that ends
-the sweep is still one in which every tool has passed the final text.
+the sweep is still one in which every tool has passed the final text. It runs
+between a phase's edit and its check, called by `phaserun.sh`, and wherever an
+edit part sweeps part way through.
 
 ## The passes a run needs
 

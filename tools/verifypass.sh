@@ -32,10 +32,9 @@
 # work tree.  No memo, no tier 3 and no agent: the program is run directly,
 # because the question is what the PROGRAM produces.
 #
-# One thing a sequential pass hands a phase that this has to hand it instead:
-# .cache/symbols/before, which several whim phases read without writing.  It
-# only feeds their symbol-count report, and it is written here from the phase's
-# own input, which is what that report means.
+# The program is run through tools/phaserun.sh, exactly as memo.sh runs it, so a
+# split phase gets its sweep and its state directory -- including the symbol
+# snapshot of its own input, which this script used to write for it.
 set -eu
 
 if [ "${1:-}" = "--one" ]; then
@@ -70,10 +69,7 @@ if [ "${1:-}" = "--one" ]; then
             exit 0
         fi
         rm -f in.tar
-        if [ -f "$PWORK/whim-vim.c" ]; then
-            tools/symbols.sh "$PWORK/whim-vim.c" .cache/symbols/before
-        fi
-        if ! "pipes/$IMPL$n.sh" "$PWORK" > log 2>&1; then
+        if ! tools/phaserun.sh "$PIPE" "$n" "$PWORK" > log 2>&1; then
             echo "$TAG$n FAILED $(( $(date +%s) - start ))s -- $d/log" > "$res"
             exit 0
         fi

@@ -19,11 +19,11 @@ printf '  %-6s %-10s %10s  %s\n' phase tier residue notes
 printf '  %-6s %-10s %10s  %s\n' ----- ---------- ---------- -----
 total=0
 for p in $PHASE_LIST; do
-    prog="pipes/$IMPL$p.sh"
+    prog=$(tools/phaserun.sh --parts "$PIPE" "$p" | head -1)
     res="tools/patches/$IMPL$p-residue.patch"
     fixed="tools/patches/$IMPL$p.patch"
 
-    if [ ! -f "$prog" ]; then
+    if [ -z "$prog" ]; then
         printf '  %-6s %-10s %10s  %s\n' "$p" "agent" "-" \
             "no program yet; one tier-1 run synthesises one"
         continue

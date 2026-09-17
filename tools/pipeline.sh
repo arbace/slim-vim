@@ -14,13 +14,16 @@
 # The boundary tag differs (p0..p9 against q0..) so that one .cache/ can hold
 # both without a key collision, and so that a stray p3 in a whim build is
 # obviously wrong rather than plausibly right.
+#
+# PSOURCE is the one file a sweep runs on, which is what lets tools/phaserun.sh
+# run a split phase's sweep itself.  slim has none: its phases work on a tree.
 
 case ${1:-slim} in
     slim) PIPE=slim; TAG=p; IMPL=slim ; DOC=SLIM-GOAL.md
-          PWORK=upstream; PBUILD=.build-slim
+          PWORK=upstream; PBUILD=.build-slim; PSOURCE=
           PHASE_LIST="0 1 2 3 4 5 6 7 8 9 10 11" ;;
     whim) PIPE=whim; TAG=q; IMPL=whim;  DOC=WHIM-GOAL.md
-          PWORK=whim;     PBUILD=.build-whim
+          PWORK=whim;     PBUILD=.build-whim; PSOURCE=whim-vim.c
           PHASE_LIST="0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82" ;;
     *)    echo "pipeline: no such pipeline: $1" >&2; return 1 2>/dev/null || exit 1 ;;
 esac

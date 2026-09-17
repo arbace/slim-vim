@@ -170,6 +170,25 @@ sweeps.
    are cumulative — and each phase's own assertions and probes run there. A probe that
    must see an intermediate binary forces a stage boundary and says so in the manifest.
 
+**As implemented (step 1 and the groundwork for 2–5).** Every `pipes/whimN.sh`, N = 1–82,
+is now `pipes/whimN-edit.sh` and `pipes/whimN-check.sh`, split at its last sweep; phase 0
+and every slim phase stay one file. `tools/phaserun.sh` runs a phase — edit, sweep,
+check — and `memo.sh`, `verifypass.sh` and `specpass.sh` all call it; `implhash.sh`
+hashes both parts plus `phaserun.sh`, `sweep.sh` and `symbols.sh`. The contract: the
+check shares no shell state with the edit. A fresh state directory,
+`.cache/state/qN`, carries the input's line count and **the symbol snapshot, which
+the driver now takes** (item 2, at what is for now the start of a one-phase stage),
+plus what an edit leaves by name: 80's prefix table `words`, 80's and 81's `old`
+binary (built in the background and waited for before the edit exits), 82's include
+count, removed lines and input text. The head-variable dependencies the survey found
+were exactly those — `before_lines` and the snapshot in all 82, `$d`/`$pid_old` in
+80–82, `REMOVED` in 80 (now read from `whim80-edit.sh`, as 81 and 82 already did),
+and `silent`/`CC_CHECK`/`total` in 82, which its check redefines or reads back.
+`pipes/whim.stages` is item 3's manifest, seeded from §2b–2c and from edit-only runs of
+the split programs on the recorded boundaries, which named each refusal: 13
+(`buf_check_timestamp` after an unswept 12), 42, 72, 79, 80 (anchors), 82 (silent). Nothing
+reads it yet; boundaries are still per phase and `make whim-verify` reproduces all 83.
+
 **What it costs.** `whim-tip` re-runs a stage's edits instead of one phase's — seconds,
 and the same one sweep. When a stage fails, the phase at fault is found by bisecting
 the stage, which is `whim-verify` run on sub-stages. The tier-3 cache holds 7 entries

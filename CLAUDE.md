@@ -68,18 +68,37 @@ it is the only one.
 
 ## Layout
 
-Two hundred and fifty-eight tracked files once both pipelines have run:
-thirteen at the root, 95 under `pipes/` — the phase programs, twelve for
-`slim.mk` and eighty-three for `whim.mk`, and nothing else — and 150 under
+Three hundred and forty-three tracked files once both pipelines have run:
+fourteen at the root, 178 under `pipes/` — the phase programs, twelve for
+`slim.mk` and 165 files for `whim.mk`'s eighty-three phases, and the whim stage
+manifest — and 151 under
 `tools/` — the passes, the harnesses, the canonicalisers and cutters the phases
 call, the memoize driver, a `README.md`, and the data a pass cannot derive:
-`renames.txt`, `patches/` and `templates/`. Three of the thirteen are products
+`renames.txt`, `patches/` and `templates/`. Three of the fourteen are products
 (`slim-vim.c`, `whim-vim.c`, `LICENSE`), two are records (`upstream.sha`,
-`slim.sha`), and the other eight, `tools/` and `pipes/` are the seed.
+`slim.sha`), and the other nine — `WHIM-PLAN.md` among them — `tools/` and `pipes/` are the seed.
 
 **`pipes/` is the pipeline steps and `tools/` is what they are built from.** A
-file in `pipes/` is `<pipeline><N>.sh`, run by the memoize driver as phase N of
-that pipeline and by nothing else; everything a phase calls lives in `tools/`.
+phase in `pipes/` is either one file, `<pipeline><N>.sh`, or two,
+`<pipeline><N>-edit.sh` and `<pipeline><N>-check.sh`, and is run by the memoize
+driver as phase N of that pipeline and by nothing else; everything a phase calls
+lives in `tools/`. Every slim phase and whim phase 0 are one file; whim phases
+1–82 are split.
+
+**A split phase is an edit, a sweep and a check, and the sweep is the driver's.**
+`tools/phaserun.sh` runs the edit part, then `tools/sweep.sh`, then the check
+part — the programs' last sweep used to be the line between the two, and 70–90% of
+every phase's time. The check reads nothing from the edit's shell: what passes
+between them is files in a state directory, `.cache/state/q<N>`, which the driver
+makes fresh and seeds with the input's line count and the symbol snapshot of the
+input (it used to be the first line of nearly every program); an edit that needs
+to hand its check more names the file (phase 80's `words`, 80's and 81's `old`
+binary, 82's `keep`). That contract is what lets a later driver run several
+phases' edits before one sweep and their checks after it — a *stage*.
+`pipes/whim.stages` is the manifest for that: the measured schedule, and what each
+phase needs of the text its edit is handed (`swept`, `compiles`, `silent`).
+Nothing reads it yet; the driver still runs one stage per phase, so every boundary
+is the one it was.
 Both run from the repository root, so a path in either names the other directly.
 `tools/implhash.sh` follows paths into both when it hashes a phase, and the
 scratch roots of `whim-verify` and `whim-specpass` link both in.
@@ -92,9 +111,9 @@ slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
-pipes/         the phases that are programs, one file per phase
+pipes/         the phases that are programs: one file, or an edit and a check
 tools/         the harnesses, the passes, and what the phases call
-README.md  CLAUDE.md  SLIM-GOAL.md  WHIM-GOAL.md  LICENSE  .gitignore
+README.md  CLAUDE.md  SLIM-GOAL.md  WHIM-GOAL.md  WHIM-PLAN.md  LICENSE  .gitignore
 ```
 
 **There are two pipelines, and they are the same construct.** `slim.mk` and
@@ -134,7 +153,8 @@ phase there declares its delta in advance and the harness proves it caused that
 and nothing else.
 
 **Adding a phase does not cost a pass.** `tools/implhash.sh` reads a phase's own
-program and the tools that program *names* — not `whim.mk`, not `pipeline.sh` —
+program — both parts of a split one, plus the `phaserun.sh`, `sweep.sh` and
+`symbols.sh` the driver runs around them — and the tools that program *names* — not `whim.mk`, not `pipeline.sh` —
 so putting a new phase on the end invalidates nothing before it. A cached phase
 replays in 0.6 s and a warm pass in one. `make whim-tip` runs the last phase and
 records it, and that is the whole loop while an idea is being tried out.
@@ -144,7 +164,7 @@ will not tell you so.** The content-keyed tier-3 check lives *inside* the
 recipe, and make never gets there: a phase's prerequisite is the previous
 boundary *file*, so an existing `q27.sha256` that is newer than `q26.sha256` is
 "up to date" and the recipe is skipped whatever the implementation digest now
-says. Measured: with `pipes/whim33.sh` edited so `implhash.sh` returns a
+says. Measured: with `pipes/whim33.sh` (now `whim33-edit.sh`) edited so `implhash.sh` returns a
 different key, `make -n whim-pass` plans **no phase recipes at all**. A rewrite
 of the unreachability phase's program silently did not execute this way, and the
 pass reported success.
@@ -325,12 +345,13 @@ through them in order:
 | tier | what it is | cost | what it can do |
 | --- | --- | --- | --- |
 | **3** | the **result** — the boundary itself | 0.17 s | nothing; it is an answer |
-| **2** | the **code** — `pipes/<pipeline><N>.sh` | 1–380 s | exactly what it was written for |
+| **2** | the **code** — `pipes/<pipeline><N>.sh`, or its `-edit.sh` and `-check.sh` | 1–380 s | exactly what it was written for |
 | **1** | the **agent** — `claude -p`, one phase | 5–17 min | cope with something it has not seen |
 
 **Tier 3 is keyed by content, not by time.** The key is the input boundary's
 digest and the implementation's digest together — `tools/implhash.sh` hashes
-the phase's program plus every tool, patch, table and template it names — so a
+the phase's program (both parts, and the sweep between them, for a split phase)
+plus every tool, patch, table and template it names — so a
 cached result answers exactly one question: *this implementation, applied to
 this input*. Measured: Phase 4 costs 63 s cold and **0.17 s** cached; editing
 its program changes the key and it runs again; reverting the edit restores the
@@ -1091,8 +1112,9 @@ make                 # ls-remote, compare against upstream.sha, and if they
 
 **The pass is `slim.mk`, and it is twelve make targets, not one agent.** A phase's
 prerequisite is the previous phase's boundary, so `make` sequences them — and a
-phase is run by a **program** if `pipes/<pipeline><N>.sh` exists and by an **agent**
-if it does not. Converting a phase is therefore adding a file; nothing else
+phase is run by a **program** if `pipes/<pipeline><N>.sh` exists — or, for a split
+phase, its `-edit.sh` and `-check.sh`, which `tools/phaserun.sh` runs with the sweep
+between them — and by an **agent** if it does not. Converting a phase is therefore adding a file; nothing else
 changes, and the pass runs end to end at every point in between.
 
 Each phase is a pure function of its input: the recipe restores the previous
