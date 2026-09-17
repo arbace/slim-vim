@@ -92,17 +92,57 @@ phase:**
 | struct fields | `deadfields.py` | no — a mention outside every type definition |
 | enumerators | `deadenums.py` | no — a mention anywhere |
 
-**The sweep is not written into a phase program; the driver runs it.** Phases 1–82
-are each two files: `pipes/whim<N>-edit.sh` makes the cut (and may sweep part way
-through, where a second cut needs the first one swept), and `pipes/whim<N>-check.sh`
-asserts, builds, probes and checks the delta. `tools/phaserun.sh` runs the edit, the
-final sweep and the check, and the check shares nothing with the edit but the work
-tree and a state directory — the input's line count and symbol snapshot, and
-whatever file the edit names for it. That is so that several phases' edits can one
-day share a sweep: `pipes/whim.stages` records which, and what each edit needs of
-the text it is handed. **A phase whose cut is computed from the text must see it
-swept** — phase 54 after 53 without its inner sweep cut one option row too few and
-did not refuse — so that requirement is declared there, not discovered.
+**The sweep is not written into a phase program; the driver runs it, once per
+stage.** Phases 1–82 are each two files: `pipes/whim<N>-edit.sh` makes the cut (and
+may sweep part way through, where a second cut needs the first one swept), and
+`pipes/whim<N>-check.sh` asserts, builds and probes. A **stage** is a run of phases
+whose edits share one sweep: `tools/phaserun.sh` runs every edit in order on text no
+sweep has touched since the stage began, one `tools/sweep.sh`, every check in order
+on the swept text and its binary, and then the declared delta once. The check shares
+nothing with the edit but the work tree and a state directory — the line count of
+the text its edit was handed, the stage's symbol snapshot, and whatever file the
+edit names for it. Only a stage's end is a boundary.
+
+`pipes/whim.stages` is the schedule — 0 | 1-12 | 13-41 | 42-63 | 64-65 | 66-71 | 72 |
+73-77 | 78 | 79 | 80 | 81 | 82 — and two kinds of fact that decide it, both measured
+and both checked by `tools/stages.sh`:
+
+- **what an edit needs of its input** (`need P swept|silent|swept-inner:K`). **A
+  phase whose cut is computed from the text must see it swept** — phase 54 after 53
+  without its inner sweep cut one option row too few and did not refuse — so that
+  requirement is declared, not discovered. A counted anchor refuses on unswept text;
+  a computed set shrinks silently.
+- **which checks must see a boundary before a later phase** (`apart P K`). Inside a
+  stage every check runs on the stage's end, so a check that asserts something a
+  later phase removes on purpose — 64's "startPS stays", which 66 takes — fails
+  there, and the two phases go in different stages.
+
+And a stage whose end does not reproduce its recording is a failure, which is the
+check behind both: without it the silent under-cut would have shipped.
+
+`pipes/whim.delta` is rule 2's list, **written once**: for each phase, the Ex
+commands, behaviour cases (`case:`) and terminal table (`term-moved`) it changes,
+and `drop:` for a command that stops differing. The lines up to a phase are the
+whole difference from slim at that phase; `tools/whimdelta.sh --phase N` checks a
+binary against exactly that, and a stage checks its last phase's.
+
+### Adding a phase
+
+1. Write `pipes/whim<N>-edit.sh <work> <state>` — the cut — and
+   `pipes/whim<N>-check.sh <work> <state>` — the assertions, `tools/phasecheck.sh`,
+   `tools/phasebuild.sh` and the probes. Neither sweeps at its end and neither checks
+   the delta; anything the check needs from the edit goes in `$state` by name.
+2. **Declare its delta** in `pipes/whim.delta`: a line `N  command… case:name…`, or
+   none if the harness sees nothing new — before running it.
+3. **Place it in the schedule.** Add N to `WHIMPHASES` in `whim.mk` and to the whim
+   `PHASE_LIST` in `tools/pipeline.sh`, then add `stage N` to `pipes/whim.stages` as a
+   stage of its own, or widen the last stage to end at N. It must start a stage if its edit counts anchors against,
+   or computes its cut from, swept text (declare `need N swept`), or needs a silent
+   compile (`need N silent`). It must not share a stage with an earlier phase whose
+   check it breaks (declare `apart P N`) — run the earlier checks on its result to
+   find out.
+4. `make whim-tip` runs the last stage and records its boundary; `make whim-verify`
+   then proves every stage from the recorded one before it.
 
 **The last two are covered by no warning at all**, and for a while they were
 covered by no sweep either. A phase of its own asserted them, part way through

@@ -67,24 +67,38 @@ it refuses outright if any multi-line comment has code on both sides.
 `CLAUDE.md` and `README.md`. None of them knows anything about the phases
 themselves.
 
-- **`memo.sh <n> <work> <build>`** — the driver. Tier 3 (a cached result for
-  this exact input and implementation), else tier 2 (`pipes/slim<n>.sh`, run
-  through `phaserun.sh`), else
-  tier 1 (an agent) — and an agent run always leaves a tier 2 behind, so the
-  same input never costs an agent twice.
-- **`phaserun.sh <pipeline> <n> <work>`** — runs one phase's program. A whole
-  `pipes/<pipeline><n>.sh` runs as it is; a split phase runs as
-  `pipes/<pipeline><n>-edit.sh`, then `sweep.sh`, then `-check.sh`. The two parts
-  share no shell: the driver makes a state directory, `.cache/state/<tag><n>`,
-  writes the input's line count and symbol snapshot into it, and passes it to
-  both; anything else the check needs the edit writes there by name. That is the
-  contract a staged driver needs to run several edits before one sweep.
-  `--parts` lists a phase's program files, and is how `memo.sh`, `implhash.sh`,
-  `residue.sh` and `synth.sh` ask whether a phase is a program.
-- **`implhash.sh <n>`** — half the cache key: the phase's program (both parts of a
-  split phase, and the `phaserun.sh`, `sweep.sh` and `symbols.sh` run around them) plus every
-  tool, patch, table and template it names, one level of indirection deep.
-  Narrow on purpose, so editing `resolve.py` re-runs phase 5 and not all twelve.
+- **`memo.sh <unit> <work> <build> [pipeline]`** — the driver. A unit is a phase
+  `N` or a whim stage `A-B`. Tier 3 (a cached result for this exact unit, input and
+  implementation), else tier 2 (the unit's programs, run through `phaserun.sh`),
+  else tier 1 (an agent) — and an agent run always leaves a tier 2 behind, so the
+  same input never costs an agent twice. A stage whose program fails is never handed
+  to an agent: its phases run one at a time through `memo.sh` itself, each with its
+  own sweep, boundary and tier 1.
+- **`stages.sh <pipeline> [--of N | --check]`** — the units a pipeline runs in, read
+  from `pipes/<pipeline>.stages` (slim has none: one unit per phase), and the check
+  that the schedule covers every phase once, in order, and keeps every `need` and
+  `apart` the manifest declares. `whim.mk` builds its chain from it; `phaserun.sh`
+  runs the check before every stage.
+- **`phaserun.sh <pipeline> <unit> <work>`** — runs a unit's program. A whole
+  `pipes/<pipeline><n>.sh` runs as it is. A stage runs every phase's
+  `pipes/<pipeline><n>-edit.sh` in order on unswept text, one `sweep.sh`, every
+  `-check.sh` in order, and then `whimdelta.sh --phase <last>` once. The parts share
+  no shell: each phase gets a state directory, `.cache/state/<tag><n>`, with the
+  line count of the text its edit was handed and the stage's symbol snapshot, and
+  anything else the check needs the edit writes there by name. Each edit's result
+  is cached under `.cache/edit/`, keyed by the tree it was handed and `implhash.sh
+  --edit`, so editing one phase re-runs that edit and the ones whose input moved,
+  then the sweep and the checks. `--parts` lists a unit's program files, and is how
+  `memo.sh`, `implhash.sh`, `residue.sh` and `stages.sh` ask whether a phase is a
+  program.
+- **`implhash.sh <unit> [pipeline]`**, **`implhash.sh --edit <n> whim`** — half the
+  cache key: the unit's programs (for a stage, both parts of every phase, the
+  `phaserun.sh`, `sweep.sh` and `symbols.sh` run around them, and the lines of
+  `pipes/whim.delta` up to its last phase with `whimdelta.sh`) plus every tool,
+  patch, table and template they name, one level of indirection deep. Narrow on
+  purpose, so editing `resolve.py` re-runs phase 5 and not all twelve, and
+  declaring a new phase's delta moves no earlier key. `--edit` is one edit part and
+  what it names: the key of that edit's cached result inside a stage.
 - **`synth.sh <n> <build>`** — memoize an agent's *behaviour* as code: diff the
   two boundaries, write `patches/p<n>-residue.patch`, and write a
   `phase<n>.sh` that applies it if the phase had none.
@@ -99,10 +113,12 @@ themselves.
   clone rather than ten minutes in: the GNU userland the phase programs assume
   (`sed -i`, `mv -t`, `nm --defined-only`), the toolchain, and — only if some
   phase still lacks a program — a `claude` that can actually authenticate.
-- **`agentphase.sh <n> <work>`** — one `claude -p` scoped to a single phase,
-  handed the tree at that phase's input and forbidden everything outside it.
-  The prompt is assembled invariant-first, phase-text-last, so the twelve phase
-  agents share one cached prefix instead of making twelve.
+- **`agentphase.sh <n> <work> [pipeline]`** — one `claude -p` scoped to a single
+  phase, handed the tree at that phase's input and forbidden everything outside it.
+  The prompt is assembled invariant-first, phase-text-last, so the phase agents of a
+  pipeline share one cached prefix. The orientation is the pipeline's: a whim agent
+  is told `WHIM-GOAL.md`, `whim/`, the edit/check shape and `whimdelta.sh --phase N`,
+  not slim's tree and build.
 - **`agentdocs.sh`** — the document update, run only when `slim-vim.c` actually
   changed. A pass that reproduced the previous one made no sentence wrong.
 - **`snapshot.sh`**, **`restore.sh`** — a boundary is a tar (the restore point,
@@ -113,13 +129,14 @@ themselves.
   agent-recorded boundary is *advisory* and a mismatch is a report; a boundary
   promoted after an end-to-end verified run is a *check* and a mismatch is a
   failure.
-- **`verifypass.sh slim|whim [phase...]`** — every recorded boundary checked at
-  once. Each phase runs on the recorded boundary before it, in a scratch root of
+- **`verifypass.sh slim|whim [unit...]`** — every recorded boundary checked at
+  once. Each unit — a slim phase, a whim stage — runs on the recorded boundary before it, in a scratch root of
   its own with `tools/` and `pipes/` linked in and a `.cache/` nobody else writes, and must
   reproduce the boundary it recorded: by induction the same proof as a repass
-  from an empty cache, in the wall time of the slowest phase. `make slim-verify`,
+  from an empty cache, in the wall time of the slowest unit (whim: 597 s, stage
+  42-63). `make slim-verify`,
   `make whim-verify`; `JOBS=n` to run fewer at once.
-- **`specpass.sh slim|whim`** — a speculative repass: every phase at once on the
+- **`specpass.sh slim|whim`** — a speculative repass: every unit at once on the
   previous pass's boundary before it, stored in the tier 3 cache under the key
   `memo.sh` looks up, so the sequential pass that follows is a hit wherever its
   input did not change. Advisory by construction — a wrong guess costs CPU, not
@@ -143,10 +160,11 @@ themselves.
 
 They live in `pipes/`, not here: `pipes/slim<N>.sh` and `pipes/whim0.sh`, one file
 per phase, and `pipes/whim<N>-edit.sh` with `pipes/whim<N>-check.sh` for whim
-phases 1–82, whose final sweep `phaserun.sh` runs between the two. Everything
-below them in this directory is what they call. `pipes/whim.stages` is the stage
-manifest: which runs of phases can share one sweep, and what each phase's edit
-needs of its input — documentation, read by nothing yet.
+phases 1–82, run in stages by `phaserun.sh`. Everything below them in this directory
+is what they call. `pipes/whim.stages` is the stage manifest — the schedule, what
+each edit needs of its input, and which checks need a boundary before a later
+phase — and `pipes/whim.delta` is every phase's declared delta, read by
+`whimdelta.sh --phase N` and by phase 80's edit.
 The slim ones that replaced an agent are described here. Each was written by diffing the two boundaries the agent left — `p2.tar`
 against `p3.tar` says exactly what Phase 3 did, with no prose in between — and
 each reproduces that boundary byte for byte.
@@ -247,8 +265,9 @@ Slim's Phase 8 runs all of them but `funcreach.py`, in one loop; whim's
 rounds until one changes nothing — skipping a tool in a round when it has
 already run without changing exactly the current bytes, so the round that ends
 the sweep is still one in which every tool has passed the final text. It runs
-between a phase's edit and its check, called by `phaserun.sh`, and wherever an
-edit part sweeps part way through.
+once per stage, between its edits and its checks, called by `phaserun.sh`, and
+wherever an edit part sweeps part way through (14 of them, where a later cut in the
+same phase needs the first one swept).
 
 ## The passes a run needs
 

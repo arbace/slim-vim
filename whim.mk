@@ -130,8 +130,10 @@ whim-repass:
 # pass in one.
 #
 # So the loop while you are trying ideas out is: write pipes/whimN-edit.sh and
-# pipes/whimN-check.sh (tools/phaserun.sh runs the sweep between them), add N
-# here, and `make whim-tip`.  Only the new phase runs.
+# pipes/whimN-check.sh, declare its delta in pipes/whim.delta, add N here and in
+# tools/pipeline.sh, put it in the last stage or a new one in pipes/whim.stages
+# (WHIM-GOAL.md, "Adding a phase"), and `make whim-tip`.  Only the last stage runs,
+# and its earlier edits come from the edit cache.
 #
 # WHAT THIS DOES NOT DO, and must not be mistaken for: falsify the boundaries
 # before it.  A tier 3 replay COPIES the recorded digest rather than recomputing
@@ -149,15 +151,15 @@ whim-tip:
 	@$(MAKE) --no-print-directory whim-phase-$(WHIMLAST) && \
 	 $(MAKE) --no-print-directory whim-record | tail -1
 
-# Every recorded boundary, checked at once.  Each phase is run on the recorded
+# Every recorded boundary, checked at once.  Each stage is run on the recorded
 # boundary before it, in a scratch root of its own, and must reproduce the one it
 # recorded -- by induction the same proof as a repass from an empty cache, in the
-# wall time of the slowest phase instead of the sum of them all.
+# wall time of the slowest stage instead of the sum of them all.
 .PHONY: whim-verify
 whim-verify:
 	@tools/verifypass.sh whim
 
-# A repass that waits only where it has to.  Every phase first runs at once on
+# A repass that waits only where it has to.  Every stage first runs at once on
 # the previous pass's boundary before it, and its result goes into the tier 3
 # cache under the key memo.sh will look up; then the ordinary sequential pass
 # runs, and is a cache hit wherever that guess about its input was right.  A

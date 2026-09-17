@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Three hundred and forty-three tracked files once both pipelines have run:
-fourteen at the root, 178 under `pipes/` — the phase programs, twelve for
-`slim.mk` and 165 files for `whim.mk`'s eighty-three phases, and the whim stage
-manifest — and 151 under
+Three hundred and forty-five tracked files once both pipelines have run:
+fourteen at the root, 179 under `pipes/` — the phase programs, twelve for
+`slim.mk` and 165 files for `whim.mk`'s eighty-three phases, the whim stage
+manifest and the whim declared delta — and 152 under
 `tools/` — the passes, the harnesses, the canonicalisers and cutters the phases
 call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Three of the fourteen are products
@@ -85,20 +85,37 @@ driver as phase N of that pipeline and by nothing else; everything a phase calls
 lives in `tools/`. Every slim phase and whim phase 0 are one file; whim phases
 1–82 are split.
 
-**A split phase is an edit, a sweep and a check, and the sweep is the driver's.**
-`tools/phaserun.sh` runs the edit part, then `tools/sweep.sh`, then the check
-part — the programs' last sweep used to be the line between the two, and 70–90% of
-every phase's time. The check reads nothing from the edit's shell: what passes
-between them is files in a state directory, `.cache/state/q<N>`, which the driver
-makes fresh and seeds with the input's line count and the symbol snapshot of the
-input (it used to be the first line of nearly every program); an edit that needs
-to hand its check more names the file (phase 80's `words`, 80's and 81's `old`
-binary, 82's `keep`). That contract is what lets a later driver run several
-phases' edits before one sweep and their checks after it — a *stage*.
-`pipes/whim.stages` is the manifest for that: the measured schedule, and what each
-phase needs of the text its edit is handed (`swept`, `compiles`, `silent`).
-Nothing reads it yet; the driver still runs one stage per phase, so every boundary
-is the one it was.
+**A split phase is an edit and a check, and the sweep is the driver's.** The
+programs' last sweep used to be the line between the two, and 70–90% of every
+phase's time. **The whim pass runs in *stages*:** a run of phases whose edits share
+one sweep. `tools/phaserun.sh` takes the stage's symbol snapshot once, runs every
+edit part in order on text no sweep has touched since the stage began, runs
+`tools/sweep.sh` once, runs every check part in order on the one swept text and its
+one binary, and then checks the declared delta once, for the stage's last phase. A
+single split phase is a stage of one. The check reads nothing from the edit's
+shell: what passes between them is files in a state directory, `.cache/state/q<N>`,
+which the driver makes fresh and seeds with the line count of the text the edit is
+handed and the stage's symbol snapshot; an edit that needs to hand its check more
+names the file (phase 80's `words`, 80's and 81's `old` binary, 82's `keep`).
+
+`pipes/whim.stages` is the schedule, and **it is checked, not trusted**, twice:
+`tools/stages.sh` refuses a schedule that breaks what the manifest declares, and
+every stage must end on its recorded boundary. Two kinds of declaration. `need P
+swept|silent|swept-inner:K` is what phase P's edit needs of its input — a counted
+anchor refuses loudly on unswept text, but a *computed* cut shrinks silently (54
+after 53 without its inner sweep cut one option row too few and did not refuse),
+which is why it is declared rather than discovered. `apart P K` says P's check was
+measured to fail once K has run — it asserts something K removes on purpose — so
+they must be in different stages. The schedule is **0 | 1-12 | 13-41 | 42-63 |
+64-65 | 66-71 | 72 | 73-77 | 78 | 79 | 80 | 81 | 82**: twelve sweeps where there
+were 105. **Only a stage's end is a boundary** — nothing between q12 and q41 exists
+on disk.
+
+`pipes/whim.delta` is the declared delta, **stated once**: per phase, the Ex
+commands, behaviour cases and terminal table it changes. The lines up to a phase
+are the whole difference from slim-vim at that phase, which is why a stage checks
+only its last phase's (`tools/whimdelta.sh --phase N`). It used to be written out
+at the end of every check, 82 growing copies.
 Both run from the repository root, so a path in either names the other directly.
 `tools/implhash.sh` follows paths into both when it hashes a phase, and the
 scratch roots of `whim-verify` and `whim-specpass` link both in.
@@ -152,12 +169,17 @@ change is a bug, while `WHIM-GOAL.md` removes capability on purpose — so every
 phase there declares its delta in advance and the harness proves it caused that
 and nothing else.
 
-**Adding a phase does not cost a pass.** `tools/implhash.sh` reads a phase's own
-program — both parts of a split one, plus the `phaserun.sh`, `sweep.sh` and
-`symbols.sh` the driver runs around them — and the tools that program *names* — not `whim.mk`, not `pipeline.sh` —
-so putting a new phase on the end invalidates nothing before it. A cached phase
-replays in 0.6 s and a warm pass in one. `make whim-tip` runs the last phase and
-records it, and that is the whole loop while an idea is being tried out.
+**Adding a phase does not cost a pass.** A unit's key is the unit (`13-41`), the
+boundary before it and `tools/implhash.sh` of every phase in it — both parts of each,
+the `phaserun.sh`, `sweep.sh` and `symbols.sh` the driver runs around them, the tools
+those programs *name*, and the lines of `pipes/whim.delta` up to the unit's last
+phase — not `whim.mk`, not `pipeline.sh`, not the whole delta file — so putting a new
+phase on the end invalidates nothing before it. A cached stage replays in a second.
+A new phase either starts a stage of its own — `stage 83` in the manifest, and it
+must if its edit needs swept input — or joins the last one, which re-runs that
+stage's edits from the edit cache (below) and its one sweep. `make whim-tip` runs
+the last stage and records it, and that is the whole loop while an idea is being
+tried out.
 
 **Editing an existing phase's program does not re-run it, and `make whim-pass`
 will not tell you so.** The content-keyed tier-3 check lives *inside* the
@@ -172,21 +194,35 @@ pass reported success.
 Three targets do force it, and one of them is the one to reach for: `make
 whim-phase-N` and `make whim-tip` are `.PHONY`, so their recipes always run and
 the tier-3 key then decides; `make whim-repass` removes `.build-whim` outright.
-**After editing a phase that is not the last one, use `whim-repass`.**
+**`make whim-phase-N` runs the stage that contains N** — nothing else has an input
+to start from — and the stages after it still do not run. **After editing a phase
+that is not in the last stage, use `whim-repass`.**
+
+**Inside a stage, each edit is cached by its input.** `tools/phaserun.sh` keys an
+edit's result by the phase, the digest of the tree it is handed and `implhash.sh
+--edit N` — the edit part and what it names — and stores the tree it leaves and its
+state directory under `.cache/edit/`. Editing phase K's program re-runs K's edit and
+then only the edits whose input really moved, then the one sweep and every check.
+Measured on stage 42-63, which is 587 s cold and almost all edits: with a harmless
+line added to `whim50-edit.sh`, 21 of its 22 edits came from the cache and the stage
+took **94 s**, q63 as recorded. On 73-77: 57 s with every edit run, 45 s with one,
+1.6 s from tier 3 once the line was taken out again. A stage that fails is not handed to an agent: `memo.sh` runs
+its phases one at a time, each with its own sweep, boundary and tier 1 — tried with
+80 and 81 put back in one stage, where 80's check fails, and q81 came out as recorded.
 
 **`make whim-specpass` is the same pass, and it waits only where it has to.**
 A pass is sequential because phase N reads boundary N-1, but a repass has the
 previous pass's boundaries lying in `.build-whim`. `tools/specpass.sh` runs every
-phase at once on those, in scratch roots of its own, and stores each result in
-the tier 3 cache under exactly the key `memo.sh` will look up — the phase, the
+stage at once on those, in scratch roots of its own, and stores each result in
+the tier 3 cache under exactly the key `memo.sh` will look up — the unit, the
 input digest, the implementation digest — and then `whim-repass` runs. Wherever
 a phase's real input is the one speculated on, its lookup is a hit; from the
 first phase whose input really changed, nothing matches and it runs as before.
 The lookup *is* the "did the boundary change" check, so a wrong guess costs CPU
-and never correctness. Measured from an empty whim cache: **209 seconds**, all 44
-phases speculated in 201 s of wall time and then 44 of 44 hits, every boundary
-matching its recording — where the cold sequential repass of the same tree took
-3,026. That is the case of a change to tools that moves no output. A change to
+and never correctness. Measured from an empty whim cache, with stages: **610
+seconds**, all 13 units speculated in 599 s of wall time and then 13 of 13 hits,
+every boundary matching its recording — where the cold sequential repass of the
+same tree took 1,587. That is the case of a change to tools that moves no output. A change to
 phase K's output still runs K onwards in sequence; only the phases before it are
 free.
 
@@ -195,10 +231,10 @@ distinction matters more than the minutes it saves. A tier 3 replay **copies**
 the recorded digest rather than recomputing it, so a warm pass agrees with the
 oracle whatever the oracle says — which is how a wrong boundary went unnoticed
 for eleven phases. Only a run that recomputes every digest can catch that, and
-there are two. **`make whim-verify`** runs every phase at once, each on the
+there are two. **`make whim-verify`** runs every stage at once, each on the
 recorded boundary before it in a scratch root of its own, and requires each
-recorded boundary back — by induction the same proof, in about two and a half
-minutes on 64 CPUs where the sequential pass is 2,489 seconds. `make clean-cache
+recorded boundary back — by induction the same proof, in **597 s** on 64 CPUs, the
+length of its longest stage (42-63), against 1,653 s of stages in sequence. `make clean-cache
 && make whim-repass` is the sequential run, and the one that *produces*
 boundaries rather than checks them: record from a cold pass, then verify. Do it
 before a push, and whenever a
@@ -345,13 +381,14 @@ through them in order:
 | tier | what it is | cost | what it can do |
 | --- | --- | --- | --- |
 | **3** | the **result** — the boundary itself | 0.17 s | nothing; it is an answer |
-| **2** | the **code** — `pipes/<pipeline><N>.sh`, or its `-edit.sh` and `-check.sh` | 1–380 s | exactly what it was written for |
+| **2** | the **code** — `pipes/<pipeline><N>.sh`, or a stage of `-edit.sh` and `-check.sh` parts | 1–600 s | exactly what it was written for |
 | **1** | the **agent** — `claude -p`, one phase | 5–17 min | cope with something it has not seen |
 
 **Tier 3 is keyed by content, not by time.** The key is the input boundary's
 digest and the implementation's digest together — `tools/implhash.sh` hashes
-the phase's program (both parts, and the sweep between them, for a split phase)
-plus every tool, patch, table and template it names — so a
+the phase's program (for a whim stage, both parts of every phase in it, the sweep
+between, and the declared delta up to its end) plus every tool, patch, table and
+template it names — so a
 cached result answers exactly one question: *this implementation, applied to
 this input*. Measured: Phase 4 costs 63 s cold and **0.17 s** cached; editing
 its program changes the key and it runs again; reverting the edit restores the
@@ -1135,7 +1172,7 @@ recomputing it, so a cached pass agrees with the oracle whatever the oracle
 says. **Only a run that recomputes a digest can falsify a boundary.** `make
 whim-verify` is the fast one and `make whim-repass` after `make clean-cache` the
 sequential one, and one of them is the check to make before trusting a recording
-— every whim boundary reproduces under both, each phase a program.
+— every whim stage boundary reproduces under both, each stage a program.
 
 `src/xxd/xxd`, upstream's other built binary, is excluded for a reason of the same
 kind: its debug info records the directory it was built in, so slim's first two

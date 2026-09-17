@@ -1,8 +1,9 @@
 # WHIM-PLAN.md — how the whim pipeline could be better formed
 
-A plan, not a change. Nothing in `pipes/`, `tools/`, the makefiles or the two
-products was touched to write it. Every number below was measured in a separate git
-worktree (`/root/whim-lab`) and a scratch directory (`/root/whim-lab-exp`), against
+It began as a plan, and nothing in `pipes/`, `tools/`, the makefiles or the two
+products was touched to write it; sections 2d, 3 and 7 now also say what was built
+from it and what that measured. Every number below was measured in a separate git
+worktree (`/root/slim-vim/.claude/worktrees/whim-lab`) and a scratch directory (`/root/slim-vim/.claude/worktrees/whim-lab-exp`), against
 the recorded boundaries of the current pipeline, and says what it was measured on.
 
 **The fixed points.** `slim-vim.c` goes in and `whim-vim.c` comes out, byte for byte
@@ -19,6 +20,7 @@ reorganisation that moves intermediate boundaries is still held to the last one.
 | stages: sweep only when the next phase refuses unswept text | 10 + 23 inner | 46 min 18 s |
 | … and the symbol snapshot per stage, and warnings without codegen | 6 + 23 inner | 32 min 25 s |
 | … and the nine inner sweeps that are not needed | 7 + 14 inner | **27 min 15 s** |
+| **as built** (§2d): 12 stages, the checks forcing 5 more boundaries, every check and delta run, cold `make whim-repass` | 12 + 14 inner | **26 min 27 s** |
 | **all 82 phases merged into one program** (§8), with that sweep schedule and phase 82's checks | 7 + 14 inner, one phase | 29 min 41 s |
 
 Every row ends at the committed `whim-vim.c`, and in every row **each stage boundary
@@ -189,6 +191,57 @@ the split programs on the recorded boundaries, which named each refusal: 13
 (`buf_check_timestamp` after an unswept 12), 42, 72, 79, 80 (anchors), 82 (silent). Nothing
 reads it yet; boundaries are still per phase and `make whim-verify` reproduces all 83.
 
+**As implemented (steps 3b–3e).** On branch `whim-stages`:
+
+- *The runner.* `tools/phaserun.sh <pipeline> A-B <work>` runs a stage: the symbol
+  snapshot once, every edit in order, one sweep, every check in order, then
+  `whimdelta.sh --phase B` once. `tools/stages.sh` reads and checks the manifest.
+  The nine inner sweeps of 2c are gone and 53's stays; 12's went too, which costs the
+  boundary before 13 and nothing else, since a sweep there is a sweep either way and
+  a boundary also serves caching and verification.
+- *The checks.* Every non-last check was run on the recorded boundary at the end of
+  e12's stages: of 75, 68 passed and 7 failed. 42 and 43 drove probes with `-c` and
+  `:qall`, which 43 and 46 remove, and now use `+{command}` and `:q!` — 42's first
+  two probes had been passing *vacuously* on every later binary, `-c` refused and
+  the file untouched. The other five, and 80 against 81, assert what a later phase
+  removes on purpose; bisected over the recorded boundaries they are `apart 42 70`,
+  `60 64`, `64 66`, `72 73`, `75 78` and `80 81`, and each forces a boundary. The
+  schedule became **0 | 1-12 | 13-41 | 42-63 | 64-65 | 66-71 | 72 | 73-77 | 78 | 79 |
+  80 | 81 | 82** — five sweeps more than e12, and every check passes at its stage end.
+- *What a check proves now, and where it moved.* The delta was checked 82 times,
+  each phase its own list; it is checked at the 12 stage ends, the last phase's list,
+  and `orphanopts.py` with it — so a transient difference inside a stage (`:recover`
+  differed at 7–10 and not at 11) is no longer observed, though it is still declared
+  in `pipes/whim.delta`. Symbols are compared with the stage's start, so "this phase
+  must lower the count" (8, 12) means the stage must. Every other assertion, build and
+  probe of a non-last phase runs unchanged on the stage's end: it proves the property
+  of the stage's result rather than of that phase's, and the attribution to one phase
+  inside a stage is what is given up. The six `apart` checks run on a boundary before
+  the phase that invalidates them, as they must.
+- *Boundaries and targets.* `memo.sh` keys a unit by (unit, the boundary before it,
+  `implhash.sh` of every phase in it) — for a single phase the key it always had, so
+  slim is untouched. `whim.mk` builds its chain from the manifest; `whim-phase-N`
+  re-runs the stage containing N, `whim-replay-N` refuses a phase that is not a stage
+  end, `whim-tip`, `whim-times` and `whim-record` work per stage, `whim-verify` and
+  `whim-specpass` run stages in parallel. A failed stage runs its phases one at a time
+  through `memo.sh` before anything reaches tier 1.
+- *The edit cache (3d).* Each edit's result inside a stage is cached by the tree it is
+  handed and its own implementation digest; on stage 42-63 (587 s cold) a harmless
+  change to 50's edit ran one edit of 22 and the stage took 94 s; on 73-77, 45 s
+  against 57.
+- *The delta (3e).* `pipes/whim.delta`, one line per phase that changes the list;
+  the computed lists equal the 82 written-out ones exactly (the three strings
+  `whimdelta.sh` compares, for every phase), and phase 80's 489-word table cut is read
+  from there instead of being a second copy.
+
+Measured: `make whim-verify` reproduces all 13 units in 597 s wall (1,653 s of
+stages); a cold `make whim-repass` from an empty cache takes **26 min 27 s** — against 83 min 12 s
+per phase before any of this and 61 min 33 s after steps 1–2 — and every one of the 13
+boundaries matches its recording, `whim-vim.c` `5c481861f7f0`. Stages 42-63 (587 s) and
+13-41 (477 s) are two thirds of it, almost all edits.  After it, `make whim-verify` again: 13 of 13 in
+600 s; and from an empty cache `make whim-specpass`: 13 units speculated in 599 s, then
+13 of 13 tier-3 hits, 610 s in all.
+
 **What it costs.** `whim-tip` re-runs a stage's edits instead of one phase's — seconds,
 and the same one sweep. When a stage fails, the phase at fault is found by bisecting
 the stage, which is `whim-verify` run on sub-stages. The tier-3 cache holds 7 entries
@@ -256,7 +309,8 @@ five minutes across a pass. At stage ends, the delta runs seven times instead of
 maintenance fixes belong here too: the cumulative delta argument list is copied into
 all 83 programs and grows by a phase each time (one `pipes/whim.delta` would replace
 it), and the before/after probes rebuild the input binary each time, which a stage
-boundary can provide once.
+boundary can provide once. **The first is done:** `pipes/whim.delta`, checked once per
+stage (§2d); the second is not.
 
 ## 4. Lever three: less text per sweep — reordering
 
@@ -380,6 +434,9 @@ In order, each verified before the next:
 2. **Stages (§2d).** Edit/check split, the snapshot per stage, a manifest with declared
    requirements, boundaries at stage ends. Measured at 27 min against 83, with every
    stage boundary one of today's recordings — so nothing already recorded is lost.
+   **Done** (§2d, *As implemented*): twelve stages once the checks were counted,
+   a cold pass of 26 min 27 s with every check run, and every stage boundary one of
+   the recordings.
 3. **§3b and the `blank()` cache**, measured the same way.
 4. **Packages (§5), separately, and only for modularity.** If done, one package at a
    time: move its phases, require the recorded endpoint and the stage boundaries it
@@ -394,7 +451,7 @@ suffice — and that can be fixed without moving a single phase.
 
 ### The construction
 
-`/root/whim-lab-exp/mono.sh` is the whole whim pipeline as **one phase program**: one
+`/root/slim-vim/.claude/worktrees/whim-lab-exp/mono.sh` is the whole whim pipeline as **one phase program**: one
 symbol snapshot, the heads of phases 1–81 in order — each in a subshell of its own,
 so their variables and traps cannot meet — a sweep only where the staged schedule of
 §2c needs one (after 12, 41, 71, 78, 79 and 81), and then phase 82 whole, so its
@@ -501,10 +558,10 @@ each phase was one idea small enough to understand. Merged, "the residue" is the
 
 Outside the repository:
 
-- `/root/whim-lab` — `git worktree add --detach` at `4683ba3`, `.reference/baselines`
+- `/root/slim-vim/.claude/worktrees/whim-lab` — `git worktree add --detach` at `4683ba3`, `.reference/baselines`
   linked and `.reference/whim-phases` copied; `make whim-repass` there is the 83 min
   12 s baseline (`baseline.log`).
-- `/root/whim-lab-exp/heads.py` — splits every `pipes/whimN.sh` at its last sweep into
+- `/root/slim-vim/.claude/worktrees/whim-lab-exp/heads.py` — splits every `pipes/whimN.sh` at its last sweep into
   `heads/`. `heads2/` drops the per-phase symbol snapshot; `heads3/` also drops every
   inner sweep; `heads4/` drops only the nine that are safe.
 - `trial.sh`, `trial2.sh`, `trial3.sh`, `trial5.sh` `<out> <phase...>` — heads in
@@ -517,7 +574,7 @@ Outside the repository:
 - `greedy.sh`, `greedy2.sh`, `greedy3.sh` `<out>` — the staged passes. `e5`, `e8`,
   `e10` (the divergent one), `e12`.
 - `mono.sh` — every phase as one program; installed as `pipes/whim1.sh` in
-  `/root/whim-lab` (with `WHIMPHASES = 0 1`), `mono.log` is its cold pass.
+  `/root/slim-vim/.claude/worktrees/whim-lab` (with `WHIMPHASES = 0 1`), `mono.log` is its cold pass.
 - `agent/` — q0…q82 extracted, `mono.patch` (plain diff), `mono-histogram.patch`,
   `mono-minimal.patch`, `p<N>.patch` per phase, `per.txt` sizes; the origin-tracing
   simulation is inline in the session that produced this section.
