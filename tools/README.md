@@ -81,10 +81,11 @@ themselves.
   runs the check before every stage.
 - **`packages.sh <pipeline> [--of N | --check]`** — the same phases read by concept:
   each `package` in `pipes/<pipeline>.stages` with its phases and the stages they
-  fall in, and each `uses` line, one phase relying on a phase of another package.
-  The check refuses a phase in no package or in two, an unknown phase or package,
-  a `uses` inside one package and a `uses` whose dependency runs later. Nothing that
-  runs a phase reads it, and it is a tool of its own rather than a mode of
+  fall in, and each `uses` line, one phase relying on a phase of another package,
+  `mechanical` or `rationale`. The check refuses a phase in no package or in two, an
+  unknown phase, package or kind, a `uses` inside one package and a `uses` whose
+  dependency runs later. `make whim-verify` and `make whim-tip` run it first; nothing
+  that runs a phase reads it, and it is a tool of its own rather than a mode of
   `stages.sh` because `phaserun.sh` names `stages.sh`, which puts every byte of it
   in every whim stage's cache key.
 - **`phaserun.sh <pipeline> <unit> <work>`** — runs a unit's program. A whole

@@ -410,10 +410,13 @@ This is derived from phase titles and the dependencies above. It has not been ru
 
 **Built as a view, not a reordering.** `pipes/whim.stages` now carries 18 `package`
 lines covering phases 0–82 once each, and **50 `uses` lines**, each a phase relying on
-a phase of another package having run, with the reason a phase program or
+a phase of another package having run — 37 *mechanical* (without it the later phase
+fails or cuts wrongly) and 13 *rationale* (it is the stated reason the cut is right)
+— with the reason a phase program or
 `WHIM-GOAL.md` states — checked against the program that did the work, not taken from
 titles. `tools/packages.sh whim` prints them and `--check` refuses a phase in no
-package or two and a dependency that runs after its dependent; `WHIM-GOAL.md`'s
+package or two, an unknown kind and a dependency that runs after its dependent, and
+`make whim-verify` and `make whim-tip` run it first; `WHIM-GOAL.md`'s
 *Concept index* lists every package with its phases, titles, stages and dependencies.
 No phase, boundary or cache key moved: the tool is separate from `tools/stages.sh`
 because `tools/phaserun.sh` names that script, which puts it in every stage's key.

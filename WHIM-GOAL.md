@@ -1004,7 +1004,7 @@ process with a filesystem; an embedded editor handed a buffer has neither.
 `readdir_core()` — which exists so `:%!sort` has somewhere to put a file.
 `vim_tempname()` has exactly two callers, `do_filter()` and `get_cmd_output()`,
 both of them shell users, so the directory layer dies with shell-out in Phase
-12 and not with globbing here. That was measured rather than reasoned about,
+8 and not with globbing here. That was measured rather than reasoned about,
 after reasoning about it gave the wrong answer twice.
 
 **`getcwd` does not go either.** It is `mch_dirname()`, and `:cd`/`:pwd` are two
@@ -2339,7 +2339,7 @@ time, four earn their keep.
 | `SIGHUP`, `SIGTERM` | reaching `deathtrap()`, so that a killed editor **puts the terminal back**. |
 
 Sixteen entries and three handlers go: `SIGPWR`, whose handler called
-`ml_sync_all()` — **an empty function** since Phase 21; `SIGUSR1`, whose flag
+`ml_sync_all()` — **an empty function** since Phase 11; `SIGUSR1`, whose flag
 **nothing reads** (assigned and never examined, so `-Wunused-variable` never
 fires and the sweep would never have found it); and `SIGQUIT`, `SIGILL`,
 `SIGTRAP`, `SIGABRT`, `SIGFPE`, `SIGBUS`, `SIGSEGV`, `SIGSYS`, `SIGALRM`,
@@ -2540,7 +2540,7 @@ the first step — read the identifier under the cursor:
 
 `*` and `#` are among the most used keys in vim and are pure search, so this
 phase **rewrites** the function rather than deleting it. `K` runs `'keywordprg'`
-through a shell and Phase 6 took the shell; the tag jumps build `ta `, `tj `,
+through `:!` and Phase 8 took the process behind it; the tag jumps build `ta `, `tj `,
 `ts ` or `he! ` and hand them to `do_cmdline_cmd()`, and Phase 10 made every one
 of those `ex_ni`. Both arms have been building commands that fail.
 
@@ -4027,7 +4027,7 @@ Three cuts, and only the first changes what the editor can do.
   `motion_force` test and `op_function()` itself go, and
   `e_eval_feature_not_available` falls to the sweep with its only reader.
 - **An empty call.** `ins_ctrl_x()` had an empty body — CTRL-X in Insert mode
-  began a completion, and completion went in phase 6. The key stays inert, but
+  began a completion, and completion went in phase 32. The key stays inert, but
   it no longer calls a function in order to do nothing.
 
 **Three things are kept deliberately, because "does nothing" and "should be

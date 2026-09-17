@@ -113,12 +113,18 @@ on disk.
 
 The same manifest also reads the phases **by concept**, and that view runs nothing.
 `package NAME P...` puts every phase in one of eighteen packages (`windows` is 36 39
-40 68 72 73), and `uses A:P B:Q why` records a phase relying on a phase of another
-package — 50 of them, each with the reason a phase program or `WHIM-GOAL.md` states
-(`options:54 encodings:53`: 54's computed cut needs 53's second cut swept).
-`tools/stages.sh` ignores both kinds; `tools/packages.sh whim` prints them with the
-stages each package falls in, and `--check` refuses a phase in no package or in two,
-an unknown phase or package, and a `uses` whose dependency runs later.
+40 68 72 73), and `uses A:P B:Q KIND why` records a phase relying on a phase of
+another package — 50 of them, each with the reason a phase program or `WHIM-GOAL.md`
+states (`options:54 encodings:53 mechanical`: 54's computed cut needs 53's second
+cut swept). KIND is `mechanical` (37: without the earlier phase the later one fails
+or cuts wrongly) or `rationale` (13: the earlier phase is only the stated reason the
+cut is right). `tools/stages.sh` ignores both kinds; `tools/packages.sh whim` prints
+them with the stages each package falls in, and `--check` refuses a phase in no
+package or in two, an unknown phase or package, an unknown kind, and a `uses` whose
+dependency runs later. **`make whim-verify` and `make whim-tip` run that check
+first** and stop on its message; it is wired into `whim.mk` and nowhere a phase
+runs, since `whim.mk` is in no implementation digest (`implhash.sh` only follows
+`tools/` and `pipes/` paths).
 `WHIM-GOAL.md`'s *Concept index* is the same data as prose. **It is a separate tool,
 not a mode of `stages.sh`, because `tools/phaserun.sh` names `stages.sh` and
 `implhash.sh` therefore hashes every byte of it into every whim stage's key**:
