@@ -2375,7 +2375,6 @@ enum CMD_index
     CMD_print,
     CMD_put,
     CMD_quit,
-    CMD_read,
     CMD_redo,
     CMD_redraw,
     CMD_redrawstatus,
@@ -2445,7 +2444,6 @@ struct exarg
     int         flags;
     char_u      *do_ecmd_cmd;
     linenr_T    do_ecmd_lnum;
-    int         usefilter;
     int         amount;
     int         regname;
     int         read_edit;
@@ -2586,9 +2584,7 @@ static int bracketed_paste(paste_mode_T mode, int drop, garray_T *gap);
 static int ins_eol(int c);
 static colnr_T get_nolist_virtcol(void);
 
-static void do_shell(char_u *cmd, int flags);
 static int do_ecmd(int fnum, char_u *ffname, char_u *sfname, exarg_T *eap, linenr_T newlnum, int flags, win_T *oldwin);
-static int check_secure(void);
 static int do_sub_msg(int count_only);
 static void global_exe(char_u *cmd);
 static char_u *skip_vimgrep_pat(char_u *p, char_u **s, int *flags);
@@ -3776,7 +3772,6 @@ static int silence_w23_w24_msg  = 0 ;
 static char e_interrupted[]  =  "Interrupted"  ;
 
 static char e_backslash_should_be_followed_by[]  =  "E10: \\ should be followed by /, ? or &"  ;
-static char e_command_not_allowed_from_vimrc_in_current_dir_or_tag_search[]  =  "E12: Command not allowed from exrc/vimrc in current dir or tag search"  ;
 static char e_invalid_range[]  =  "E16: Invalid range"  ;
 static char e_mark_has_invalid_line_number[]  =  "E19: Mark has invalid line number"  ;
 static char e_mark_not_set[]  =  "E20: Mark not set"  ;
@@ -3789,7 +3784,6 @@ static char e_no_previous_command_line[]  =  "E30: No previous command line"  ;
 static char e_no_such_mapping[]  =  "E31: No such mapping"  ;
 static char e_no_file_name[]  =  "E32: No file name"  ;
 static char e_no_previous_substitute_regular_expression[]  =  "E33: No previous substitute regular expression"  ;
-static char e_no_previous_command[]  =  "E34: No previous command"  ;
 static char e_no_previous_regular_expression[]  =  "E35: No previous regular expression"  ;
 static char e_not_enough_room[]  =  "E36: Not enough room"  ;
 static char e_no_write_since_last_change[]  =  "E37: No write since last change"  ;
@@ -3854,7 +3848,6 @@ static char e_pointer_block_id_wrong_two[]  = "E317: Pointer block id wrong 2" ;
 static char e_pointer_block_id_wrong_three[]  = "E317: Pointer block id wrong 3" ;
 static char e_pointer_block_id_wrong_four[]  = "E317: Pointer block id wrong 4" ;
 static char e_updated_too_many_blocks[]  = "E318: Updated too many blocks?" ;
-static char e_sorry_command_is_not_available_in_this_version[]  =  "E319: Sorry, the command is not available in this version"  ;
 static char e_cannot_find_line_nr[]  = "E320: Cannot find line %ld" ;
 static char e_line_number_out_of_range_nr_past_the_end[]  = "E322: Line number out of range: %ld past the end" ;
 static char e_line_count_wrong_in_block_nr[]  = "E323: Line count wrong in block %ld" ;
@@ -3908,7 +3901,6 @@ static char e_invalid_command_str[]  =  "E476: Invalid command: %s"  ;
 static char e_no_bang_allowed[]  =  "E477: No ! allowed"  ;
 static char e_no_match_str_2[]  =  "E480: No match: %s"  ;
 static char e_no_range_allowed[]  =  "E481: No range allowed"  ;
-static char e_cant_open_file_str[]  =  "E484: Can't open file %s"  ;
 static char e_pattern_not_found_str[]  =  "E486: Pattern not found: %s"  ;
 static char e_argument_must_be_positive[]  =  "E487: Argument must be positive"  ;
 static char e_trailing_characters[]  =  "E488: Trailing characters"  ;
@@ -15159,7 +15151,6 @@ get_nolist_virtcol(void)
     return curwin->w_virtcol;
 }
 
-static void do_filter(linenr_T line1, linenr_T line2, exarg_T *eap, char_u *cmd, int do_in, int do_out);
 static void delbuf_msg(char_u *name);
 
     static void
@@ -15403,141 +15394,6 @@ ex_copy(linenr_T line1, linenr_T line2, linenr_T n)
     }
 
     msgmore((long)count);
-}
-
-static char_u   *prevcmd = NULL;
-
-    static int
-prevcmd_is_set(void)
-{
-    if (prevcmd == NULL)
-    {
-        emsg(_(e_no_previous_command));
-        return FALSE;
-    }
-    return TRUE;
-}
-
-    static void
-do_bang(int         addr_count, exarg_T     *eap, int         forceit, int         do_in, int         do_out)
-{
-    char_u              *arg = eap->arg;
-    linenr_T            line1 = eap->line1;
-    linenr_T            line2 = eap->line2;
-    char_u              *newcmd = NULL;
-    int                 free_newcmd = FALSE;
-    int                 ins_prevcmd;
-    char_u              *t;
-    char_u              *p;
-    char_u              *trailarg;
-    int                 len;
-
-    if (check_secure())
-    {
-        return;
-    }
-
-    ins_prevcmd = forceit;
-
-    trailarg = skipwhite(arg);
-    do
-    {
-        len = (int) strlen((char *)(trailarg))  + 1;
-        if (newcmd != NULL)
-        {
-            len += (int) strlen((char *)(newcmd)) ;
-        }
-        if (ins_prevcmd)
-        {
-            if (!prevcmd_is_set())
-            {
-                vim_free(newcmd);
-                return;
-            }
-            len += (int) strlen((char *)(prevcmd)) ;
-        }
-        if ((t = alloc(len)) == NULL)
-        {
-            vim_free(newcmd);
-            return;
-        }
-        *t = NUL;
-        if (newcmd != NULL)
-        {
-             strcat((char *)(t), (char *)(newcmd)) ;
-        }
-        if (ins_prevcmd)
-        {
-             strcat((char *)(t), (char *)(prevcmd)) ;
-        }
-        p = t +  strlen((char *)(t)) ;
-         strcat((char *)(t), (char *)(trailarg)) ;
-        vim_free(newcmd);
-        newcmd = t;
-
-        trailarg = NULL;
-        while (*p)
-        {
-            if (*p == '!')
-            {
-                if (p > newcmd && p[-1] == '\\')
-                {
-                      memmove((char *)((p - 1)), (char *)((p)),  strlen((char *)(p))  + 1)  ;
-                }
-                else
-                {
-                    trailarg = p;
-                    *trailarg++ = NUL;
-                    ins_prevcmd = TRUE;
-                    break;
-                }
-            }
-            ++p;
-        }
-    } while (trailarg != NULL);
-
-    if ( strlen((char *)(newcmd))  > 0)
-    {
-        vim_free(prevcmd);
-        prevcmd = newcmd;
-    }
-    else
-    {
-        free_newcmd = TRUE;
-    }
-
-    if (addr_count == 0)
-    {
-        msg_start();
-        msg_putchar(':');
-        msg_putchar('!');
-        msg_outtrans(newcmd);
-        msg_clr_eos();
-        windgoto(msg_row, cmdline_col_off + msg_col);
-
-        do_shell(newcmd, 0);
-    }
-    else
-    {
-        do_filter(line1, line2, eap, newcmd, do_in, do_out);
-    }
-
-    if (free_newcmd)
-    {
-        vim_free(newcmd);
-    }
-}
-
-    static void
-do_filter(linenr_T    line1, linenr_T    line2, exarg_T     *eap, char_u      *cmd, int         do_in, int         do_out)
-{
-    emsg(_(e_sorry_command_is_not_available_in_this_version));
-}
-
-    static void
-do_shell(char_u      *cmd, int         flags)
-{
-    emsg(_(e_sorry_command_is_not_available_in_this_version));
 }
 
     static void
@@ -16329,18 +16185,6 @@ ex_z(exarg_T *eap)
         curwin->w_cursor.lnum = curs;
         curwin->w_cursor.col = 0;
     }
-}
-
-    static int
-check_secure(void)
-{
-    if (secure)
-    {
-        secure = 2;
-        emsg(_(e_command_not_allowed_from_vimrc_in_current_dir_or_tag_search));
-        return TRUE;
-    }
-    return FALSE;
 }
 
 static char_u   *old_sub = NULL;
@@ -18214,20 +18058,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         }
     }
 
-    if (ea.cmdidx == CMD_read)
-    {
-        if (ea.forceit)
-        {
-            ea.usefilter = TRUE;
-            ea.forceit = FALSE;
-        }
-        else if (*ea.arg == '!')
-        {
-            ++ea.arg;
-            ea.usefilter = TRUE;
-        }
-    }
-
     if (ea.cmdidx == CMD_lshift || ea.cmdidx == CMD_rshift)
     {
         ea.amount = 1;
@@ -18239,16 +18069,16 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         ea.arg = skipwhite(ea.arg);
     }
 
-    if ((ea.argt & EX_CMDARG) && !ea.usefilter)
+    if (ea.argt & EX_CMDARG)
     {
         ea.do_ecmd_cmd = getargcmd(&ea.arg);
     }
 
-    if ((ea.argt & EX_TRLBAR) && !ea.usefilter)
+    if (ea.argt & EX_TRLBAR)
     {
         separate_nextcmd(&ea, FALSE);
     }
-    else if (ea.cmdidx == CMD_global || ea.cmdidx == CMD_vglobal || ea.usefilter)
+    else if (ea.cmdidx == CMD_global || ea.cmdidx == CMD_vglobal)
     {
         for (p = ea.arg; *p; ++p)
         {
@@ -19469,7 +19299,7 @@ expand_filename(exarg_T     *eap, char_u      **cmdlinep, char        **errormsg
             vim_free(l);
         }
 
-        if (!eap->usefilter && !escaped)
+        if (!escaped)
         {
             char_u      *l;
 
@@ -19488,18 +19318,6 @@ expand_filename(exarg_T     *eap, char_u      **cmdlinep, char        **errormsg
             }
         }
 
-        if (eap->usefilter &&  (char_u *)strpbrk((char *)(repl), (char *)((char_u *)"!"))  != NULL)
-        {
-            char_u      *l;
-
-            l = vim_strsave_escaped(repl, (char_u *)"!");
-            if (l != NULL)
-            {
-                vim_free(repl);
-                repl = l;
-            }
-        }
-
         p = repl_cmdline(eap, p, srclen, repl, cmdlinep);
         vim_free(repl);
         if (p == NULL)
@@ -19508,7 +19326,7 @@ expand_filename(exarg_T     *eap, char_u      **cmdlinep, char        **errormsg
         }
     }
 
-    if ((eap->argt & EX_NOSPC) && !eap->usefilter)
+    if (eap->argt & EX_NOSPC)
     {
         for (n = 1; n <= 2; ++n)
         {
@@ -19939,45 +19757,6 @@ do_exedit(exarg_T     *eap, win_T       *old_curwin)
     }
     readonlymode = n;
 
-}
-
-    static void
-ex_read(exarg_T *eap)
-{
-    int         i;
-
-    if (eap->usefilter)
-    {
-        do_bang(1, eap, FALSE, FALSE, TRUE);
-        return;
-    }
-
-    if (u_save(eap->line2, (linenr_T)(eap->line2 + 1)) == FAIL)
-    {
-        return;
-    }
-
-        if (*eap->arg == NUL)
-        {
-            if (check_fname() == FAIL)
-            {
-                return;
-            }
-            i = readfile(curbuf->b_ffname, curbuf->b_fname, eap->line2, (linenr_T)0, (linenr_T) LONG_MAX , eap, 0);
-        }
-        else
-        {
-            i = readfile(eap->arg, NULL, eap->line2, (linenr_T)0, (linenr_T) LONG_MAX , eap, 0);
-
-        }
-    if (i != OK)
-    {
-            semsg(_(e_cant_open_file_str), eap->arg);
-    }
-    else
-    {
-        redraw_curbuf_later(UPD_VALID);
-    }
 }
 
     static void
@@ -83012,7 +82791,6 @@ static struct cmdname cmdnames[] =
     [CMD_print] = {(char_u *)"print", 1, ex_print, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_COUNT|EX_FLAGS|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_SBOXOK), ADDR_LINES},
     [CMD_put] = {(char_u *)"put", 2, ex_put, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_REGSTR|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_quit] = {(char_u *)"quit", 1, ex_quit, (long_u)(EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_WINDOWS},
-    [CMD_read] = {(char_u *)"read", 1, ex_read, (long_u)(EX_BANG|EX_RANGE|EX_WHOLEFOLD| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_ARGOPT|EX_TRLBAR|EX_ZEROR|EX_CMDWIN|EX_LOCK_OK|EX_MODIFY), ADDR_LINES},
     [CMD_redo] = {(char_u *)"redo", 3, ex_redo, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_redraw] = {(char_u *)"redraw", 4, ex_redraw, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_redrawstatus] = {(char_u *)"redrawstatus", 7, ex_redrawstatus, (long_u)(EX_BANG|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
