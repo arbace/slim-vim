@@ -79,6 +79,14 @@ themselves.
   that the schedule covers every phase once, in order, and keeps every `need` and
   `apart` the manifest declares. `whim.mk` builds its chain from it; `phaserun.sh`
   runs the check before every stage.
+- **`packages.sh <pipeline> [--of N | --check]`** — the same phases read by concept:
+  each `package` in `pipes/<pipeline>.stages` with its phases and the stages they
+  fall in, and each `uses` line, one phase relying on a phase of another package.
+  The check refuses a phase in no package or in two, an unknown phase or package,
+  a `uses` inside one package and a `uses` whose dependency runs later. Nothing that
+  runs a phase reads it, and it is a tool of its own rather than a mode of
+  `stages.sh` because `phaserun.sh` names `stages.sh`, which puts every byte of it
+  in every whim stage's cache key.
 - **`phaserun.sh <pipeline> <unit> <work>`** — runs a unit's program. A whole
   `pipes/<pipeline><n>.sh` runs as it is. A stage runs every phase's
   `pipes/<pipeline><n>-edit.sh` in order on unswept text, one `sweep.sh`, every
@@ -163,7 +171,8 @@ per phase, and `pipes/whim<N>-edit.sh` with `pipes/whim<N>-check.sh` for whim
 phases 1–82, run in stages by `phaserun.sh`. Everything below them in this directory
 is what they call. `pipes/whim.stages` is the stage manifest — the schedule, what
 each edit needs of its input, and which checks need a boundary before a later
-phase — and `pipes/whim.delta` is every phase's declared delta, read by
+phase, and the packages, a concept-by-concept view of the same phases that runs
+nothing — and `pipes/whim.delta` is every phase's declared delta, read by
 `whimdelta.sh --phase N` and by phase 80's edit.
 The slim ones that replaced an agent are described here. Each was written by diffing the two boundaries the agent left — `p2.tar`
 against `p3.tar` says exactly what Phase 3 did, with no prose in between — and
