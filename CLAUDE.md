@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Three hundred and fifty-six tracked files once all three pipelines have run
-(`git ls-files`): eighteen at the root, 183 under `pipes/` — the phase programs,
-twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and two for
-`zero.mk`'s two, and each staged pipeline's stage manifest and declared delta — and
+Three hundred and fifty-eight tracked files once all three pipelines have run
+(`git ls-files`): eighteen at the root, 185 under `pipes/` — the phase programs,
+twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and four for
+`zero.mk`'s three, and each staged pipeline's stage manifest and declared delta — and
 155 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
 phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Four of the eighteen are products
@@ -84,7 +84,7 @@ phase in `pipes/` is either one file, `<pipeline><N>.sh`, or two,
 `<pipeline><N>-edit.sh` and `<pipeline><N>-check.sh`, and is run by the memoize
 driver as phase N of that pipeline and by nothing else; everything a phase calls
 lives in `tools/`. Every slim phase, whim phase 0 and zero phases 0 and 1 are one file;
-whim phases 1–82 are split.
+whim phases 1–82 and zero phase 2 are split.
 
 **A split phase is an edit and a check, and the sweep is the driver's.** The
 programs' last sweep used to be the line between the two, and 70–90% of every
@@ -141,18 +141,32 @@ Both run from the repository root, so a path in either names the other directly.
 `tools/implhash.sh` follows paths into both when it hashes a phase, and the
 scratch roots of `whim-verify` and `whim-specpass` link both in.
 
-**The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed and a flag.**
+**The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed, a flag
+and a cut.**
 `ZERO-GOAL.md` states what it is for — an embeddable editor core that keeps the
 screen and all visual editing and loses the filesystem, with `main()` demoted to a
-host launcher and the text later held as a tree — and has two phases, `pipes/zero0.sh`
-and `pipes/zero1.sh`, which adds `-fno-stack-protector`.
+host launcher and the text later held as a tree — and has three phases:
+`pipes/zero0.sh`, the seed; `pipes/zero1.sh`, which adds `-fno-stack-protector`; and
+`pipes/zero2-edit.sh` with `pipes/zero2-check.sh`, the first source cut — the two
+"not to a terminal" warnings, the two-second pause after them and `--ttyfail` go, so
+`zero-vim.c` is now 86,586 lines against `whim-vim.c`'s 86,614.
 Phases are added one at a time, on request. Its input is the **committed**
 `whim-vim.c`, immutable, and `whim.sha` records the one a committed `zero-vim.c` was
-produced from, exactly as `slim.sha` does for whim; `zero-vim.c` is byte-identical to
-`whim-vim.c` today. It is born staged: `pipes/zero.stages` (`stage 0`, `stage 1`,
-`package seed 0`, `package build 1`) and `pipes/zero.delta` (empty — neither phase
-changes behaviour), checked by `tools/stages.sh zero` and
+produced from, exactly as `slim.sha` does for whim. It is born staged:
+`pipes/zero.stages` (`stage 0`, `stage 1`, `stage 2`; `package seed 0`, `package
+build 1`, `package terminal 2`) and `pipes/zero.delta` (empty — no phase yet changes
+behaviour any harness records), checked by `tools/stages.sh zero` and
 `tools/packages.sh zero` as whim's are.
+
+**A declared delta of none can be a harness that cannot see the phase**, and zero
+phase 2 is the case: `behaviour.py` and `exsweep.py` run the editor `-e -s`, where
+Ex mode takes `check_tty()`'s other branch, and `termcheck.py` drives a real pty
+where both streams *are* terminals — so nothing recorded ever held those warnings.
+Its check therefore builds the binary the phase was **handed** and requires the old
+one to warn and pause (85 bytes of stderr, 2,010 ms) and the new one not to (0 bytes,
+5 ms), with the 2,108-byte escape stream byte-identical. **When a phase's delta is
+none because the harnesses are blind rather than because nothing moved, the phase
+owes probes of its own.**
 
 **Three things differ from whim, and each was decided rather than inherited:**
 
@@ -194,11 +208,11 @@ edit's key reads what that file names.
 ```
 slim-vim.c     the editor, headers and forward declarations included
 whim-vim.c     the same editor with no runtime to install
-zero-vim.c     whim-vim.c, on its way to an embeddable core (so far identical source)
+zero-vim.c     whim-vim.c, on its way to an embeddable core
 Makefile       the seed: builds all three, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
-zero.mk        zero-vim.c = H(whim-vim.c), the same construct, two phases so far
+zero.mk        zero-vim.c = H(whim-vim.c), the same construct, three phases so far
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
 whim.sha       the whim-vim.c zero-vim.c was produced from

@@ -21,3 +21,15 @@
 #
 # 1 declares nothing: -fno-stack-protector changes the code gcc emits around a
 # function's locals, not what the editor does.
+#
+# 2 declares nothing, AND EVERY HARNESS HERE IS BLIND TO IT, which is a different
+# thing and is why the phase carries probes of its own.  It removes the two
+# warnings check_tty() printed when stdin or stdout was not a terminal, the two
+# seconds it then paused, and --ttyfail.  behaviour.py and exsweep.py run the
+# editor `-e -s`: exmode_active is set before check_tty(), which takes its first
+# branch, so no recorded stderr ever held the warnings (grepped: the only
+# baseline line mentioning a terminal is exsweep's "SKIPPED (hands over the
+# terminal)" for :shell and friends).  termcheck.py drives a real pty, where both
+# streams ARE terminals.  So "none" here is true and proves little, and
+# pipes/zero2-check.sh measures the removed warning, the removed pause and the
+# now-unknown option against the binary the phase was handed.

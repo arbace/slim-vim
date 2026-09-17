@@ -2112,7 +2112,6 @@ typedef struct
     int         edit_type;
 
     int         want_full_screen;
-    int         tty_fail;
     char_u      *term;
 
 } mparm_T;
@@ -86328,18 +86327,11 @@ command_line_scan(mparm_T *parmp)
                 break;
 
             case '-':
-                if ( strncasecmp((char *)(argv[0] + argv_idx), (char *)("ttyfail"), (7))  == 0)
+                if (argv[0][argv_idx])
                 {
-                    parmp->tty_fail = TRUE;
+                    mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
                 }
-                else
-                {
-                    if (argv[0][argv_idx])
-                    {
-                        mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
-                    }
-                    had_minmin = TRUE;
-                }
+                had_minmin = TRUE;
                 argv_idx = -1;
                 break;
 
@@ -86429,7 +86421,7 @@ command_line_scan(mparm_T *parmp)
 }
 
     static void
-check_tty(mparm_T *parmp)
+check_tty(void)
 {
     int         input_isatty;
 
@@ -86439,26 +86431,6 @@ check_tty(mparm_T *parmp)
         if (!input_isatty)
         {
             silent_mode = TRUE;
-        }
-    }
-    else if (parmp->want_full_screen && (!stdout_isatty || !input_isatty))
-    {
-        if (!stdout_isatty)
-        {
-             fprintf(stderr, "%s", (_("Vim: Warning: Output is not to a terminal\n"))) ;
-        }
-        if (!input_isatty)
-        {
-             fprintf(stderr, "%s", (_("Vim: Warning: Input is not from a terminal\n"))) ;
-        }
-        out_flush();
-        if (parmp->tty_fail && (!stdout_isatty || !input_isatty))
-        {
-            exit(1);
-        }
-        if (scriptin[0] == NULL)
-        {
-            ui_delay(2005L, TRUE);
         }
     }
 }
@@ -86575,7 +86547,7 @@ main
 
     mch_init();
 
-    check_tty(&params);
+    check_tty();
 
     if (silent_mode)
     {

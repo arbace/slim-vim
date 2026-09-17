@@ -185,7 +185,8 @@ themselves.
 
 They live in `pipes/`, not here: `pipes/slim<N>.sh`, `pipes/whim0.sh` and
 `pipes/zero0.sh` and `pipes/zero1.sh`, one file per phase, and `pipes/whim<N>-edit.sh` with
-`pipes/whim<N>-check.sh` for whim phases 1–82, run in stages by `phaserun.sh`.
+`pipes/whim<N>-check.sh` for whim phases 1–82 and `pipes/zero2-edit.sh` with
+`pipes/zero2-check.sh`, run in stages by `phaserun.sh`.
 `pipes/zero.stages` and `pipes/zero.delta` are zero's manifest and declared delta,
 and `templates/zero.mk` is zero's work makefile as it enters the pipeline, whim's with
 `-no-pie` (zero phase 1 adds `-fno-stack-protector` to the boundary's copy, not to
