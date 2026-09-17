@@ -146,9 +146,17 @@ whim-repass:
 # funcreach.py, deadfields.py, deadenums.py, phasecheck.sh, whimdelta.sh,
 # cutil.py) -- those are in every phase's implhash, so everything re-runs then
 # anyway.
+#
+# Both whim-tip and whim-verify first run tools/packages.sh whim --check: a new
+# phase must be placed in a package, and a `uses` line must still point backwards.
+# It is here and nowhere a phase runs -- whim.mk is in no implementation digest,
+# while phaserun.sh, memo.sh and stages.sh are -- and it reads only the manifest,
+# so it costs nothing and moves no key.  whim-pass and whim-repass do not run it:
+# a package mistake is a documentation mistake and must not stop a build.
 .PHONY: whim-tip
 whim-tip:
-	@$(MAKE) --no-print-directory whim-phase-$(WHIMLAST) && \
+	@tools/packages.sh whim --check && \
+	 $(MAKE) --no-print-directory whim-phase-$(WHIMLAST) && \
 	 $(MAKE) --no-print-directory whim-record | tail -1
 
 # Every recorded boundary, checked at once.  Each stage is run on the recorded
@@ -157,7 +165,8 @@ whim-tip:
 # wall time of the slowest stage instead of the sum of them all.
 .PHONY: whim-verify
 whim-verify:
-	@tools/verifypass.sh whim
+	@tools/packages.sh whim --check && \
+	 tools/verifypass.sh whim
 
 # A repass that waits only where it has to.  Every stage first runs at once on
 # the previous pass's boundary before it, and its result goes into the tier 3
