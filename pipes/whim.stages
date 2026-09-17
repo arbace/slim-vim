@@ -186,7 +186,7 @@ uses  tidy:78         scripts:75      autocmd_blocked and prevwin lost their las
 uses  tidy:78         windows:68      w_id is a constant only because 68 left one window
 uses  tidy:79         files:13        asserts check_timestamps() is `return 0;`, which 13 made it
 uses  tidy:79         encodings:17    asserts bomb_size() is `return 0;`, which 17 made it
-uses  tidy:79         completion:32   asserts pum_visible(), ins_compl_active() and four more are constant (32)
+uses  tidy:79         completion:32   asserts pum_visible(), ins_compl_active() and five more are constant (32)
 uses  tidy:79         scripts:35      asserts in_vim9script() and the has_*() event tests are FALSE (35)
 uses  tidy:79         completion:59   asserts wc_use_keyname() is `return FALSE;`, which 59 made it
 uses  tidy:79         windows:36      asserts tabline_height() is `return 0;`, which 36 made it

@@ -406,6 +406,49 @@ A proposed order that respects the known ones:
 
 This is derived from phase titles and the dependencies above. It has not been run.
 
+### 5d. Implemented as virtual packages
+
+**Built as a view, not a reordering.** `pipes/whim.stages` now carries 18 `package`
+lines covering phases 0–82 once each, and **50 `uses` lines**, each a phase relying on
+a phase of another package having run, with the reason a phase program or
+`WHIM-GOAL.md` states — checked against the program that did the work, not taken from
+titles. `tools/packages.sh whim` prints them and `--check` refuses a phase in no
+package or two and a dependency that runs after its dependent; `WHIM-GOAL.md`'s
+*Concept index* lists every package with its phases, titles, stages and dependencies.
+No phase, boundary or cache key moved: the tool is separate from `tools/stages.sh`
+because `tools/phaserun.sh` names that script, which puts it in every stage's key.
+
+The assignment differs from the table above where the programs say so: 44 (six of
+seven rows are `:sort`, `:retab` and alignment) is `text`; 70 (`:e` reuses the one
+buffer) is `buffers`; 19, 24, 61 and 67 are one `terminal` package; 33, 37, 47, 80 and
+81 are `commands`; 78, 79 and 82 are `tidy`; 34 and 58 are `mappings`. Two dependencies
+that looked likely did not survive reading: 76's orphan `p_re` comes from
+phase 5 inside `regexp`, and nothing shows 27 relying on the UTF-8-only phases.
+
+What the recorded dependencies say about the order proposed in §5c:
+
+- **Two pairs of packages depend on each other**, so neither pair can run as two whole
+  packages in either order without splitting one: `environment` and `swap` (26's
+  signal handlers relied on 11 and 21 emptying `ml_sync_all()` and `preserve_exit()`;
+  21 dropped the clock time because 20 took the zone), and `options` and `text` (60's
+  `'formatprg'` went because 44 made `:!` `ex_ni`; 64's `=` operator went because 60
+  took `'equalprg'`, 65's `g@` because 55 took `'operatorfunc'`).
+- **Three steps of the proposed order are contradicted**: consolidation first (80's
+  length field was freed by 79's fold, and its anchor needs 79's dead rows swept);
+  completion before files and tags (32 relied on 7 and 10 having taken its sources);
+  and text before options (64 and 65, above).
+- **Two are confirmed**: scripts before windows (68's autocommand window went because
+  35 made dispatch `return FALSE`), and windows before buffers (45, 46 and 77 rely on
+  39).
+- **`regexp`, `terminal`, `mappings` and `seed` rely on no other package**, and `tidy`
+  relies on six — phase 79's step 1 asserts 28 constant bodies, eleven phases' work among them.
+- **The computed cut is the one to watch**: `options` 54 relies on `encodings` 53's
+  second cut being swept, and without it cut one row too few and did not refuse. A
+  reordering would move exactly that kind of edge silently.
+
+The `uses` lines are the dependencies a program or section *states*. They are not all
+of them: every counted anchor also depends on the text every earlier phase left.
+
 ## 6. The honest cost of regrouping
 
 Stages keep every program's anchors valid, because no program sees a text it was not
@@ -441,6 +484,10 @@ In order, each verified before the next:
 4. **Packages (§5), separately, and only for modularity.** If done, one package at a
    time: move its phases, require the recorded endpoint and the stage boundaries it
    still shares with today, bisect on failure. Never as a rewrite.
+   **Done as a view only** (§5d): 18 packages and 50 substantiated cross-package
+   dependencies in the manifest, checked by `tools/packages.sh`, indexed in
+   `WHIM-GOAL.md`, with no phase moved. Moving phases is still not done, and two
+   package pairs now known to depend on each other say it would take splitting first.
 
 **Keeping the current phase programs is the right call for now.** They are ad hoc in
 their order, but they are proven, and nearly all of them refuse loudly when their

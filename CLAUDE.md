@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Three hundred and forty-five tracked files once both pipelines have run:
+Three hundred and forty-six tracked files once both pipelines have run:
 fourteen at the root, 179 under `pipes/` — the phase programs, twelve for
 `slim.mk` and 165 files for `whim.mk`'s eighty-three phases, the whim stage
-manifest and the whim declared delta — and 152 under
+manifest and the whim declared delta — and 153 under
 `tools/` — the passes, the harnesses, the canonicalisers and cutters the phases
 call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Three of the fourteen are products
@@ -110,6 +110,20 @@ they must be in different stages. The schedule is **0 | 1-12 | 13-41 | 42-63 |
 64-65 | 66-71 | 72 | 73-77 | 78 | 79 | 80 | 81 | 82**: twelve sweeps where there
 were 105. **Only a stage's end is a boundary** — nothing between q12 and q41 exists
 on disk.
+
+The same manifest also reads the phases **by concept**, and that view runs nothing.
+`package NAME P...` puts every phase in one of eighteen packages (`windows` is 36 39
+40 68 72 73), and `uses A:P B:Q why` records a phase relying on a phase of another
+package — 50 of them, each with the reason a phase program or `WHIM-GOAL.md` states
+(`options:54 encodings:53`: 54's computed cut needs 53's second cut swept).
+`tools/stages.sh` ignores both kinds; `tools/packages.sh whim` prints them with the
+stages each package falls in, and `--check` refuses a phase in no package or in two,
+an unknown phase or package, and a `uses` whose dependency runs later.
+`WHIM-GOAL.md`'s *Concept index* is the same data as prose. **It is a separate tool,
+not a mode of `stages.sh`, because `tools/phaserun.sh` names `stages.sh` and
+`implhash.sh` therefore hashes every byte of it into every whim stage's key**:
+measured, one appended comment line moved 13-41's key and 72's. The manifest itself
+is named by no program, so a package edit moves no key.
 
 `pipes/whim.delta` is the declared delta, **stated once**: per phase, the Ex
 commands, behaviour cases and terminal table it changes. The lines up to a phase

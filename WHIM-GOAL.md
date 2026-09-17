@@ -141,6 +141,10 @@ binary against exactly that, and a stage checks its last phase's.
    compile (`need N silent`). It must not share a stage with an earlier phase whose
    check it breaks (declare `apart P N`) — run the earlier checks on its result to
    find out.
+   Then put N in the `package` line of its concept (or a new one), declare a `uses`
+   line for each phase of another package it relies on, and run
+   `tools/packages.sh whim --check`, which refuses a phase in no package. Nothing
+   runs the packages, so this moves no key.
 4. `make whim-tip` runs the last stage and records its boundary; `make whim-verify`
    then proves every stage from the recorded one before it.
 
@@ -212,6 +216,387 @@ Recognising the form took two goes, and both failures are the same shape as the
 
 Fixed, it removes **378 lines** on its own, and it made every sweep stronger.
 
+
+## Concept index: the phases as packages
+
+The phase sections below are in the order the work was done, and it shows: windows
+are cut in six places, buffers in nine, options in eight. This index reads the same
+83 phases **by concept** — eighteen *packages* — so that "everything this editor
+lost about windows" is one list. It is placed here, after the rules and the sweep
+that every phase shares and before the first phase section, because it is a table of
+contents for those sections: it introduces nothing a phase depends on, and every
+line of it points down into one of them.
+
+**A package is a view, and nothing runs it.** No phase moved, no boundary moved, and
+no cache key moved: the schedule is still `pipes/whim.stages`' `stage` lines, and a
+package's phases are spread across stages. The data is two more kinds of line in the
+same file — `package NAME P...`, and `uses A:P B:Q why` for a phase that relies on a
+phase of another package having run — which `tools/stages.sh` ignores and
+`tools/packages.sh whim` prints. `tools/packages.sh whim --check` refuses a phase in
+no package or in two, an unknown phase or package, a `uses` inside one package and a
+`uses` whose dependency runs later. It is a tool of its own because
+`tools/phaserun.sh` names `tools/stages.sh`, which puts every byte of that script in
+every stage's cache key.
+
+**Packages were assigned from what each phase's program does, not from its title**,
+and a phase that does two things is in the package of the larger cut: phase 6 cuts
+the shell's wildcard expander and the wildmenu and is in `files`; phase 44 retires
+`:!` and six text commands and is in `text`; phase 70 makes `:e` reuse the one
+buffer and removes swap-file detection and is in `buffers`.
+
+**A `uses` line is only written where a phase program or a section here says so**,
+and each was checked against the program that did the work — which is how four
+phase numbers in the prose were found stale (26's `ml_sync_all()` was emptied by 11,
+its `preserve_exit()` loop by 21; `K`'s `:!` lost its process in 8; `ins_ctrl_x()`
+was emptied by 32). Dependencies inside a package are its order and are not listed.
+Where the reason is a constant a later phase asserts or folds, the dependency is
+real: phase 79's step 1 requires each of 28 bodies to be `return <constant>;`, and
+refuses if the phase that made it so had not run.
+
+| package | phases |
+| --- | --- |
+| [`seed`](#seed) | 0 |
+| [`environment`](#environment) | 1 9 20 23 26 |
+| [`options`](#options) | 2 16 49 54 55 56 60 62 |
+| [`startup`](#startup) | 3 4 18 43 |
+| [`regexp`](#regexp) | 5 27 76 |
+| [`files`](#files) | 6 7 8 13 14 22 25 31 |
+| [`tags`](#tags) | 10 30 63 74 |
+| [`swap`](#swap) | 11 21 48 |
+| [`encodings`](#encodings) | 12 15 17 50 51 52 53 |
+| [`terminal`](#terminal) | 19 24 61 67 |
+| [`text`](#text) | 28 44 57 64 65 66 |
+| [`scripts`](#scripts) | 29 35 75 |
+| [`completion`](#completion) | 32 59 |
+| [`commands`](#commands) | 33 37 47 80 81 |
+| [`mappings`](#mappings) | 34 58 |
+| [`windows`](#windows) | 36 39 40 68 72 73 |
+| [`buffers`](#buffers) | 38 41 42 45 46 69 70 71 77 |
+| [`tidy`](#tidy) | 78 79 82 |
+
+### seed
+
+The copy that every later phase is measured against. Stage `0`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 0 | seed, and prove the copy is a copy | `0` |
+
+### environment
+
+What the host would have to provide: an installed runtime, a locale, a home directory and environment variables, a maths library, signals. Stages `1-12`, `13-41`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 1 | no `$VIMRUNTIME` | `1-12` |
+| 9 | the editor stops asking the environment what language it is in | `1-12` |
+| 20 | nothing outside the process is consulted | `13-41` |
+| 23 | no floating-point library | `13-41` |
+| 26 | five signals, not twenty-one | `13-41` |
+
+Relies on:
+
+- **20** after **18** (`startup`) — vimrc_found()'s callers are dead: every do_source() passes DOSO_NONE since 18
+- **26** after **11** (`swap`) — SIGPWR's handler called ml_sync_all(), empty since 11 (tools/noswap.py)
+- **26** after **21** (`swap`) — deathtrap() cannot preserve: 21 removed preserve_exit()'s loop (tools/nomemfile.py)
+
+Relied on by: 12 (`encodings`), 21 (`swap`), 25 (`files`), 31 (`files`).
+
+### options
+
+Options as a table: the rows no feature reads any more, and every way to make two copies of one differ. Stages `1-12`, `13-41`, `42-63`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 2 | the options for features that are not here | `1-12` |
+| 16 | six options that no longer decide anything | `13-41` |
+| 49 | one set of options | `42-63` |
+| 54 | no option without a variable | `42-63` |
+| 55 | no option nothing reads | `42-63` |
+| 56 | no shell, runtime or keyword-program options | `42-63` |
+| 60 | no suffix, case, delay, verbose-file, debug or filter-program options | `42-63` |
+| 62 | no buffer-type, file-type, listing, jump, update-time or autowrite options | `42-63` |
+
+Relies on:
+
+- **16** after **10** (`tags`) — 'tags' and 'tagcase' have decided nothing since the tag stack went
+- **16** after **11** (`swap`) — 'swapfile': ml_open() says no swap file whatever it is set to, since 11
+- **16** after **13** (`files`) — 'autoread': ex_drop() saved and restored it around a check 13 removed
+- **16** after **14** (`files`) — 'path' and 'suffixesadd' have decided nothing since the file finder went
+- **54** after **53** (`encodings`) — its row set is COMPUTED, and holds 'arabic' only once 53's second cut is swept
+- **56** after **8** (`files`) — 'shell', 'shellquote', 'shellredir': no shell is run since 8
+- **56** after **30** (`tags`) — 'keywordprg': K went in 30
+- **60** after **7** (`files`) — 'suffixes' ordered wildcard matches, and nothing has expanded since 7
+- **60** after **44** (`text`) — 'formatprg', 'equalprg' only built a :{range}! line, ex_ni since 44
+- **62** after **11** (`swap`) — 'updatetime': the idle sync reached ml_sync_all(), empty since 11
+- **62** after **35** (`scripts`) — 'buflisted', 'filetype': their readers chose events, and 35 made dispatch FALSE
+
+Relied on by: 64 (`text`), 65 (`text`).
+
+### startup
+
+What an invocation may say: the binary's name, the command-line flags, and the files read before the first command. Stages `1-12`, `13-41`, `42-63`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 3 | no introduction, and the command line says only what the editor still decides | `1-12` |
+| 4 | the binary's name stops choosing what it does | `1-12` |
+| 18 | nothing is read at startup, and nothing on the command line decides anything | `13-41` |
+| 43 | no -c, --cmd, -R, -m, -M or -w | `42-63` |
+
+Relied on by: 20 (`environment`), 35 (`scripts`).
+
+### regexp
+
+One engine, and the parts of a pattern nothing here writes. Stages `1-12`, `13-41`, `73-77`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 5 | one regexp engine, not two | `1-12` |
+| 27 | `[[=a=]]` stops meaning "a with any accent" | `13-41` |
+| 76 | one regexp engine, so no retry | `73-77` |
+
+### files
+
+The editor reaching the filesystem on its own account: globbing, directories, `path` search, timestamps, backups, the shell and file-name modifiers. Stages `1-12`, `13-41`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 6 | the editor stops writing shell scripts, and stops drawing a menu | `1-12` |
+| 7 | the editor stops looking for files it was not given | `1-12` |
+| 8 | `:!` keeps its name and loses its process | `1-12` |
+| 13 | the editor stops re-reading a file it has already read | `13-41` |
+| 14 | a file name means the file of that name | `13-41` |
+| 22 | the working directory is where it started | `13-41` |
+| 25 | a write is a write, and nobody owns it | `13-41` |
+| 31 | file-name modifiers | `13-41` |
+
+Relies on:
+
+- **25** after **20** (`environment`) — get_user_name() is `return FAIL;` since 20, so its caller's test folds
+- **31** after **20** (`environment`) — :~ shortened a name under $HOME, a notion 20 removed
+
+Relied on by: 16 (`options`), 30 (`tags`), 32 (`completion`), 33 (`commands`), 44 (`text`), 56 (`options`), 60 (`options`), 79 (`tidy`).
+
+### tags
+
+Finding a place by name: the tag stack and tag keys, the jump list, file marks. Stages `1-12`, `13-41`, `42-63`, `73-77`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 10 | no tag stack | `1-12` |
+| 30 | `K` and the tag jumps, keeping `*` and `#` | `13-41` |
+| 63 | no jump list | `42-63` |
+| 74 | no file marks | `73-77` |
+
+Relies on:
+
+- **30** after **8** (`files`) — K ran 'keywordprg' through :!, which has had no process since 8
+- **74** after **70** (`buffers`) — fname2fnum() is an empty body since 70, left for the file-mark cut
+
+Relied on by: 16 (`options`), 32 (`completion`), 56 (`options`).
+
+### swap
+
+The swap file, recovery, and the memfile as a disk format. Stages `1-12`, `13-41`, `42-63`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 11 | nothing is written that was not asked for | `1-12` |
+| 21 | there is nothing to recover, and the memfile is memory | `13-41` |
+| 48 | no `:noswapfile` | `42-63` |
+
+Relies on:
+
+- **21** after **20** (`environment`) — :undolist's clock time goes because 20 took every way of being told the zone
+
+Relied on by: 16 (`options`), 17 (`encodings`), 26 (`environment`), 62 (`options`), 70 (`buffers`), 77 (`buffers`).
+
+### encodings
+
+One encoding and one line ending: UTF-8, LF, and the conversion layer behind them. Stages `1-12`, `13-41`, `42-63`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 12 | UTF-8, and no other encoding, ever | `1-12` |
+| 15 | the last two encoding options | `13-41` |
+| 17 | the last two per-buffer encoding options | `13-41` |
+| 50 | only LF text files | `42-63` |
+| 51 | a byte that is not UTF-8 is kept as it is | `42-63` |
+| 52 | UTF-8 is not a question | `42-63` |
+| 53 | no conversion layer, no 'encoding' | `42-63` |
+
+Relies on:
+
+- **12** after **9** (`environment`) — mb_init() refuses all but utf-8; the compiled default is utf-8 only since 9
+- **17** after **11** (`swap`) — add_b0_fenc() wrote into a swap file's block zero, and 11 left none
+
+Relied on by: 54 (`options`), 79 (`tidy`).
+
+### terminal
+
+What the terminal is told and asked beyond drawing: its type from the environment, the mouse protocol, the window title. Stages `13-41`, `42-63`, `66-71`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 19 | the terminal is what the build says | `13-41` |
+| 24 | there is no mouse | `13-41` |
+| 61 | no window title | `42-63` |
+| 67 | no mouse, no spell plumbing, no write-only flags | `66-71` |
+
+### text
+
+Operations on text that go: C and lisp indenting, filters and alignment, formatting, rot13 and the operator function, sentence and paragraph motions. Stages `13-41`, `42-63`, `64-65`, `66-71`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 28 | C indenting | `13-41` |
+| 44 | no filters, sorting or alignment | `42-63` |
+| 57 | no lisp | `42-63` |
+| 64 | no formatting, comment or nroff-macro options | `64-65` |
+| 65 | no rot13, no operator function, no empty key handler | `64-65` |
+| 66 | no sentences, paragraphs, sections, methods, #if blocks or comment blocks | `66-71` |
+
+Relies on:
+
+- **44** after **8** (`files`) — :r !cmd and :w !cmd keep reaching do_bang() for 8's refusal
+- **64** after **60** (`options`) — = only re-applied the existing indent once 'equalprg' went in 60
+- **65** after **55** (`options`) — g@ had no 'operatorfunc' to call after 55
+- **65** after **32** (`completion`) — ins_ctrl_x() is empty since 32 (tools/nocomplkeys.py), so its call goes
+
+Relied on by: 60 (`options`).
+
+### scripts
+
+Anything that runs later or from a file: user commands, scripts and sessions, autocommands. Stages `13-41`, `73-77`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 29 | `:command`, user-defined commands | `13-41` |
+| 35 | no scripts, no session, no autocommands | `13-41` |
+| 75 | no autocommands | `73-77` |
+
+Relies on:
+
+- **35** after **18** (`startup`) — a script has nowhere to come from: nothing is read at startup since 18
+
+Relied on by: 62 (`options`), 68 (`windows`), 78 (`tidy`), 79 (`tidy`).
+
+### completion
+
+Insert-mode and command-line completion. Stages `13-41`, `42-63`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 32 | insert completion, the popup menu, and the keys that reached them | `13-41` |
+| 59 | no command-line completion | `42-63` |
+
+Relies on:
+
+- **32** after **10** (`tags`) — the tag source of CTRL-X completion was already gone
+- **32** after **7** (`files`) — file-name completion went through the globbing 7 removed
+
+Relied on by: 65 (`text`), 79 (`tidy`).
+
+### commands
+
+The Ex command layer itself: rows that only refuse, rows that duplicate a key, the table, and the bar. Stages `13-41`, `42-63`, `80`, `81`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 33 | commands whose machinery has already gone | `13-41` |
+| 37 | no command that does nothing | `13-41` |
+| 47 | no `:startinsert`, `:startreplace`, `:startgreplace` or `:stopinsert` | `42-63` |
+| 80 | the Ex command table, cut to the commands that exist | `80` |
+| 81 | one line, one command | `81` |
+
+Relies on:
+
+- **33** after **8** (`files`) — :shell's row goes because it has answered E319 since 8
+- **80** after **79** (`tidy`) — the length field's one reader, the Vim9 whole-name check, is dead since 79
+
+### mappings
+
+Keys the editor rewrites as they are typed: abbreviations and language mappings. Stages `13-41`, `42-63`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 34 | no abbreviations | `13-41` |
+| 58 | no language mappings | `42-63` |
+
+### windows
+
+One tab page, one window, one frame — first the commands, then the structure. Stages `13-41`, `66-71`, `72`, `73-77`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 36 | one tab page, always | `13-41` |
+| 39 | one window, always | `13-41` |
+| 40 | no window sizes to set | `13-41` |
+| 68 | one window, structurally | `66-71` |
+| 72 | one window, one tabpage, structurally | `72` |
+| 73 | one frame | `73-77` |
+
+Relies on:
+
+- **68** after **35** (`scripts`) — the autocommand window ran autocommands, and dispatch is FALSE since 35
+
+Relied on by: 45 (`buffers`), 46 (`buffers`), 77 (`buffers`), 78 (`tidy`), 79 (`tidy`).
+
+### buffers
+
+One buffer and no argument list — first the commands, then the structure. Stages `13-41`, `42-63`, `66-71`, `73-77`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 38 | the argument list is walked by `:next` and `:previous` alone | `13-41` |
+| 41 | the buffer list is walked by `:bnext` and `:bprevious` alone | `13-41` |
+| 42 | one buffer, always | `42-63` |
+| 45 | no `:drop` | `42-63` |
+| 46 | no `:wall`, `:qall`, `:quitall`, `:wqall` or `:xall` | `42-63` |
+| 69 | one file argument, and no argument list | `66-71` |
+| 70 | :e reloads in place, and there is no swap file | `66-71` |
+| 71 | one buffer, structurally | `66-71` |
+| 77 | no buffer-name argument matching | `73-77` |
+
+Relies on:
+
+- **45** after **39** (`windows`) — with one window :drop was :args plus :first
+- **46** after **39** (`windows`) — with one window :qall is :q, which is what exsweep.py falls back to
+- **70** after **11** (`swap`) — ml_open_file() is only `b_may_swap = FALSE` since 11
+- **70** after **21** (`swap`) — findswapname, swapfile_info and ml_recover went with recovery in 21
+- **77** after **11** (`swap`) — it asserts every EX_BUFNAME row is ex_ni; :checktime went in 11
+- **77** after **39** (`windows`) — the same assertion; :sbuffer went in 39
+
+Relied on by: 74 (`tags`), 79 (`tidy`).
+
+### tidy
+
+What no package owns: empty functions, write-only counters, constant predicates, headers and comments. Stages `78`, `79`, `82`.
+
+| phase | title | stage |
+| --- | --- | --- |
+| 78 | empty functions, write-only counters, and the window id | `78` |
+| 79 | the constant-return predicates | `79` |
+| 82 | the system headers nothing needs, and every comment | `82` |
+
+Relies on:
+
+- **78** after **75** (`scripts`) — autocmd_blocked and prevwin lost their last readers in 75
+- **78** after **68** (`windows`) — w_id is a constant only because 68 left one window
+- **79** after **13** (`files`) — asserts check_timestamps() is `return 0;`, which 13 made it
+- **79** after **17** (`encodings`) — asserts bomb_size() is `return 0;`, which 17 made it
+- **79** after **32** (`completion`) — asserts pum_visible(), ins_compl_active() and five more are constant (32)
+- **79** after **35** (`scripts`) — asserts in_vim9script() and the `has_*()` event tests are FALSE (35)
+- **79** after **59** (`completion`) — asserts wc_use_keyname() is `return FALSE;`, which 59 made it
+- **79** after **36** (`windows`) — asserts tabline_height() is `return 0;`, which 36 made it
+- **79** after **39** (`windows`) — asserts check_can_set_curbuf_forceit/_disabled() are TRUE (39)
+- **79** after **68** (`windows`) — asserts only_one_window() is `return TRUE;`, which 68 made it
+- **79** after **72** (`windows`) — asserts current_win_nr() and current_tab_nr() are `return 1;` (72)
+- **79** after **73** (`windows`) — asserts stl_connected() is `return FALSE;`, which 73 made it
+- **79** after **69** (`buffers`) — asserts check_more() is OK and append_arg_number() is 0 (69)
+
+Relied on by: 80 (`commands`).
 
 ## Phase 0 — seed, and prove the copy is a copy
 
