@@ -1,11 +1,19 @@
 #!/bin/sh
-# Run ONE phase of SLIM-GOAL.md with an agent, and nothing else.
+# Run ONE phase of a pipeline's goal document with an agent, and nothing else.
 #
-# Usage: tools/agentphase.sh <phase> <workdir>
+# Usage: tools/agentphase.sh <phase> <workdir> [slim|whim]
 #
-# This is the fallback for a phase that has no pipes/<pipeline><N>.sh yet.  Every
+# This is the fallback for a phase whose program is missing or failed.  Every
 # phase that grows one stops coming through here, and the day none of them does
 # is the day the pass is deterministic.
+#
+# THE ORIENTATION IS THE PIPELINE'S.  It used to describe slim whatever called it
+# -- SLIM-GOAL.md, upstream/, make -C upstream -- so a whim agent would have been
+# told the wrong document, the wrong tree and the wrong build before it read its
+# phase (WHIM-PLAN.md, section 8).  The rules are shared; where things are, how a
+# result is checked and what shape a phase has are not, and come from the case
+# below.  The phase is always ONE phase, never a stage: memo.sh runs a failed
+# stage's phases one at a time before any of them reaches here.
 #
 # The prompt is assembled invariant-part-first, phase-part-last, deliberately.
 # The prompt cache is content-addressed on a prefix: ten phase agents whose
@@ -31,32 +39,9 @@ section=$(awk -v p="^## Phase $phase " '
 
 [ -n "$section" ] || { echo "agentphase: no '## Phase $phase' in $goal"; exit 1; }
 
-PROMPT=$(cat <<PREAMBLE
-You are running exactly one phase of the process in SLIM-GOAL.md, unattended.
-Nobody is watching: never ask a question, never wait for input, never stop to
-propose a plan.  Decide and proceed.
-
-The repository root is the working directory.  The tree being transformed is
-in $work/ and is the only thing you may modify.
-
-Rules, all of them absolute:
-
-- Do THIS PHASE ONLY.  Do not start the next one, do not finish the previous
-  one, and do not "while I am here" anything.  A harness runs the phases; you
-  are one step of it.
-- Do not modify anything outside $work/.  Not the root Makefile, not tools/,
-  not SLIM-GOAL.md, not CLAUDE.md, not .reference/, not .build-slim/.  They are the
-  harness that invoked you.
-- Do not commit, and do not run git at all outside $work/.  The harness records
-  this phase's boundary as a content digest, which is a better record than an
-  empty commit and is what the next run is checked against.
-- Do not delete $work/ or clone anything.  It is handed to you at exactly the
-  state this phase's input should be.
-- If the phase cannot be completed, stop and say precisely what blocked it.  Do
-  not work around it and do not leave the tree half-transformed on purpose --
-  the harness can restore the input and retry, and a clean failure is worth
-  more than a partial success it cannot tell apart from a whole one.
-
+# --- what differs between the two pipelines -------------------------------
+case $PIPE in
+slim) ORIENT=$(cat <<ORIENT_SLIM
 WHERE THINGS ARE.  This is the orientation; do not go and rediscover it.  The
 first pass to run phases separately spent four to five minutes per phase on
 exactly that -- ls, the first 120 lines of SLIM-GOAL.md, cat slim.mk, cat
@@ -78,7 +63,7 @@ a 47-second phase into seven minutes.
                        file lists on the command line and do nothing at import.
   .reference/baselines what the Phase 1 binary did, recorded.  behaviour.py,
                        exsweep.py, ptycheck.py and termcheck.py compare to it.
-  .build-slim/pN.tar        the tree each earlier phase left, if you need to look.
+  .build-slim/pN.tar   the tree each earlier phase left, if you need to look.
 
 THE TOOLS.  All of them exist.  Do not read their source before running them,
 and do not write your own version of one:
@@ -118,6 +103,97 @@ describing ten phases, nine of which are not yours -- open it only if the phase
 text names a section you actually need, and never read it front to back.  Its
 numbers are measurements from previous passes: reproduce them where they are
 stated, and say so when yours differ.
+ORIENT_SLIM
+) ;;
+whim) ORIENT=$(cat <<ORIENT_WHIM
+WHERE THINGS ARE.  This is the orientation; do not go and rediscover it.
+
+  cwd                  the repository root.  Stay in it; use paths.
+  $work/               the tree you transform: whim-vim.c, the whole editor as one
+                       translation unit, and a Makefile.  It is exactly the tree
+                       phase $phase is handed.
+  building it          make -C $work        (gcc -O0 -static -s, a few seconds).
+                       NEVER cd into it and run make: the repository root has a
+                       makefile too, and a cd that does not stick builds THAT.
+  pipes/whimN-edit.sh  how every other phase does its cut, and
+  pipes/whimN-check.sh how it proves it.  A phase program is those two parts;
+                       tools/phaserun.sh runs a STAGE of them -- every edit in
+                       order, one tools/sweep.sh, every check -- as
+                       pipes/whim.stages lists.  Yours is one phase, alone.
+  pipes/whim.delta     what each phase declares it changes; the lines up to
+                       phase $phase are the whole difference from slim-vim that
+                       this phase's result must show.  Phase $phase's own line,
+                       if it has one, is the delta the phase text states.
+  tools/               run from the root, with paths into $work/.  They take file
+                       lists on the command line and do nothing at import.
+  .reference/baselines what slim-vim did, recorded.  tools/whimdelta.sh compares
+                       a binary with it.
+  $PBUILD/qN.tar       the tree at the end of each STAGE -- only stage ends are
+                       kept -- if you need to look.
+
+THE TOOLS.  All of them exist.  Do not read their source before running them,
+and do not write your own version of one:
+
+  sweep.sh <file.c>   delete what the cut left unreachable, all six kinds, to a
+                      fixpoint.  Your result must be swept: run it last.
+  cutil.py            blank literals, match braces, find_definition, and the
+                      fold_never / fold_always helpers every phase edit uses
+  dropoptions.py      remove option rows, --local, --strict
+  droplocal.py        remove a buffer- or window-local option's field
+  phasecheck.sh <work> <file.c> <symbols-before-dir>
+                      compiles silently, only main external, libc symbols
+  symbols.sh <file.c> <dir>   the libc symbol snapshot phasecheck compares with
+  whimdelta.sh <binary> <file.c> --phase N
+                      exactly the declared delta up to phase N moved, no more
+  behaviour.py exsweep.py termcheck.py   the three harnesses whimdelta runs
+
+VERIFICATION.  Rule 2 of WHIM-GOAL.md: the phase states its delta in advance and
+the harness shows exactly that set.  Before you finish, $work/whim-vim.c must be
+swept (tools/sweep.sh), compile with no warning, keep main as its only external
+symbol, and \`make -C $work\` must build $work/whim-vim, for which
+\`tools/whimdelta.sh $work/whim-vim $work/whim-vim.c --phase $phase\` passes.  If
+the phase text states a delta pipes/whim.delta does not have, say so in your
+final output rather than editing pipes/whim.delta.
+
+whim-vim.c carries no comments (rule 5): never write one into it.
+
+If you need a program that does not exist, write it into $PBUILD/newtools/ and say
+so in your final output, so it can be kept.
+
+The phase text below is complete and authoritative.  WHIM-GOAL.md describes every
+phase -- open it only for The rules or a section the phase text names, and never
+read it front to back.
+ORIENT_WHIM
+) ;;
+esac
+
+PROMPT=$(cat <<PREAMBLE
+You are running exactly one phase of the process in $DOC, unattended.
+Nobody is watching: never ask a question, never wait for input, never stop to
+propose a plan.  Decide and proceed.
+
+The repository root is the working directory.  The tree being transformed is
+in $work/ and is the only thing you may modify.
+
+Rules, all of them absolute:
+
+- Do THIS PHASE ONLY.  Do not start the next one, do not finish the previous
+  one, and do not "while I am here" anything.  A harness runs the phases; you
+  are one step of it.
+- Do not modify anything outside $work/.  Not the root Makefile, not tools/,
+  not pipes/, not $DOC, not CLAUDE.md, not .reference/, not $PBUILD/.  They are
+  the harness that invoked you.
+- Do not commit, and do not run git at all outside $work/.  The harness records
+  this phase's boundary as a content digest, which is a better record than an
+  empty commit and is what the next run is checked against.
+- Do not delete $work/ or clone anything.  It is handed to you at exactly the
+  state this phase's input should be.
+- If the phase cannot be completed, stop and say precisely what blocked it.  Do
+  not work around it and do not leave the tree half-transformed on purpose --
+  the harness can restore the input and retry, and a clean failure is worth
+  more than a partial success it cannot tell apart from a whole one.
+
+$ORIENT
 
 When you are done, print one line per thing you changed and the measurements
 the phase text asks for.  Nothing else.
