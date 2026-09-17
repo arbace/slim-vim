@@ -3,7 +3,7 @@
 It began as a plan, and nothing in `pipes/`, `tools/`, the makefiles or the two
 products was touched to write it; sections 2d, 3 and 7 now also say what was built
 from it and what that measured. Every number below was measured in a separate git
-worktree (`/root/slim-vim/.claude/worktrees/whim-lab`) and a scratch directory (`/root/slim-vim/.claude/worktrees/whim-lab-exp`), against
+worktree and a scratch directory (a lab since deleted; see the appendix), against
 the recorded boundaries of the current pipeline, and says what it was measured on.
 
 **The fixed points.** `slim-vim.c` goes in and `whim-vim.c` comes out, byte for byte
@@ -451,7 +451,7 @@ suffice — and that can be fixed without moving a single phase.
 
 ### The construction
 
-`/root/slim-vim/.claude/worktrees/whim-lab-exp/mono.sh` is the whole whim pipeline as **one phase program**: one
+The lab's `mono.sh` was the whole whim pipeline as **one phase program**: one
 symbol snapshot, the heads of phases 1–81 in order — each in a subshell of its own,
 so their variables and traps cannot meet — a sweep only where the staged schedule of
 §2c needs one (after 12, 41, 71, 78, 79 and 81), and then phase 82 whole, so its
@@ -554,27 +554,28 @@ each phase was one idea small enough to understand. Merged, "the residue" is the
    is true at today's granularity, and the merged experiment only made it impossible to
    miss.
 
-## Appendix: reproducing the measurements
+## Appendix: how the measurements were taken
 
-Outside the repository:
+The lab no longer exists: it was deleted once the staged pipeline merged, and it was
+never tracked. What it was, so a measurement can be repeated from scratch:
 
-- `/root/slim-vim/.claude/worktrees/whim-lab` — `git worktree add --detach` at `4683ba3`, `.reference/baselines`
-  linked and `.reference/whim-phases` copied; `make whim-repass` there is the 83 min
-  12 s baseline (`baseline.log`).
-- `/root/slim-vim/.claude/worktrees/whim-lab-exp/heads.py` — splits every `pipes/whimN.sh` at its last sweep into
-  `heads/`. `heads2/` drops the per-phase symbol snapshot; `heads3/` also drops every
-  inner sweep; `heads4/` drops only the nine that are safe.
-- `trial.sh`, `trial2.sh`, `trial3.sh`, `trial5.sh` `<out> <phase...>` — heads in
-  order on the boundary before the first, one sweep, compare with the boundary after
-  the last. `e2` singles and pairs, `e3` runs, `e7` runs without the snapshot, `e9`
-  inner sweeps one at a time, `e11` the `'arabic'` isolation.
-- `classify.sh` — whether the text after one head compiles.
-- `sweepprof.sh`, `sweepprof2.sh` — one final sweep on its saved pre-sweep text, with
-  per-tool timing; `ltools` instrumented, `ltools2` plus §3a. `e4`, `e6`.
-- `greedy.sh`, `greedy2.sh`, `greedy3.sh` `<out>` — the staged passes. `e5`, `e8`,
-  `e10` (the divergent one), `e12`.
-- `mono.sh` — every phase as one program; installed as `pipes/whim1.sh` in
-  `/root/slim-vim/.claude/worktrees/whim-lab` (with `WHIMPHASES = 0 1`), `mono.log` is its cold pass.
-- `agent/` — q0…q82 extracted, `mono.patch` (plain diff), `mono-histogram.patch`,
-  `mono-minimal.patch`, `p<N>.patch` per phase, `per.txt` sizes; the origin-tracing
-  simulation is inline in the session that produced this section.
+- **A baseline worktree** — `git worktree add --detach` at `4683ba3`, with
+  `.reference/baselines` linked and `.reference/whim-phases` copied. `make
+  whim-repass` there was the 83 min 12 s baseline.
+- **Heads** — every `pipes/whimN.sh` of `4683ba3` cut at its last `tools/sweep.sh`
+  line. Variants: without the per-phase `tools/symbols.sh` snapshot; without every
+  inner sweep; without only the nine inner sweeps that proved safe. The staged
+  pipeline's `pipes/whimN-edit.sh` are the committed descendants of the first variant.
+- **Trials** — heads of a run of phases applied in order to the recorded boundary
+  before the first, one sweep, and a byte comparison with the recorded boundary after
+  the last: singles and pairs (`e2`), runs (`e3`), runs without the snapshot (`e7`),
+  inner sweeps one at a time (`e9`), the `'arabic'` isolation (`e11`).
+- **Sweep profiles** — each phase's final sweep re-run on its saved pre-sweep text
+  with every tool timed (`e4`), and again with §3a (`e6`).
+- **Greedy staged passes** — heads applied to unswept text, sweeping only when the
+  next head refuses (`e5`, `e8`, `e10` the divergent one, `e12`).
+- **The one-phase experiment** — every head concatenated into one program installed
+  as the only whim phase of the baseline worktree (`WHIMPHASES = 0 1`); and the
+  per-phase and whole-pass patches with the origin-tracing simulation (§8).
+
+The session that produced this document holds the scripts in full.
