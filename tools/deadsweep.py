@@ -43,22 +43,33 @@ def warnings(path, keep=None):
     the object to run `nm` over.  Five compiles of a 145,000-line file per phase,
     and two of them were the same compile.
 
-    So when `keep` is given the object is written there instead of thrown away,
-    beside the stderr and the sha256 of the source it came from.  phasecheck.sh
-    uses them only if that sha still matches, which is the same content key as
-    the tier-3 cache: a different file has a different key, so nothing goes
-    stale.  It costs one 5 MB write per round and saves a whole compile.
+    So when `keep` is given the stderr is written there, beside the sha256 of
+    the source it came from.  phasecheck.sh uses it only if that sha still
+    matches, which is the same content key as the tier-3 cache: a different
+    file has a different key, so nothing goes stale.
 
     It goes in .cache/ and NOT in the work tree.  A file left in the work tree
     is a file the boundary digest counts -- the mistake that changed twenty-one
     boundaries when the symbol cache first landed.
+
+    AND IT GENERATES NO MACHINE CODE.  The two warnings this reads,
+    -Wunused-function and file-scope -Wunused-variable, come from gcc's call
+    graph, which -fsyntax-only never builds -- it reports neither, measured.
+    -flto -fno-fat-lto-objects does build it, warns, and then writes GIMPLE
+    instead of compiling it: the same warnings byte for byte, in 2.4 seconds
+    instead of 6.0 on a 129,000-line file.  So no object is kept any more --
+    an LTO object has no symbols for `nm` to read -- and phasecheck.sh takes
+    the plain object sweep.sh compiles in the background instead, whose symbols
+    do not depend on warning flags.  What is kept is the stderr and its sha.
     """
-    obj = '/dev/null'
     if keep:
         os.makedirs(keep, exist_ok=True)
-        obj = os.path.join(keep, 'last.o')
-    r = subprocess.run(['gcc', '-c', '-O0', '-Wall', '-Wextra',
-                        '-Wno-unused-parameter', '-o', obj, path],
+        stale = os.path.join(keep, 'last.o')
+        if os.path.exists(stale):
+            os.remove(stale)
+    r = subprocess.run(['gcc', '-c', '-O0', '-flto', '-fno-fat-lto-objects',
+                        '-Wall', '-Wextra', '-Wno-unused-parameter',
+                        '-o', '/dev/null', path],
                        capture_output=True, text=True)
     if keep:
         with open(os.path.join(keep, 'last.txt'), 'w') as fh:

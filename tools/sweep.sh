@@ -44,11 +44,12 @@
 # argument assumes.  The obvious shape was worth measuring and not worth
 # keeping.
 #
-# THE LAST ROUND'S COMPILE IS KEPT, in .cache/compile, because the round that
-# ends a sweep is by definition a compile of a file that then does not change --
-# and phasecheck.sh wanted exactly that compile, for exactly the same two
-# answers.  It reuses it when the sha still matches, saving one compile of a
-# 145,000-line file in every phase.
+# THE LAST ROUND'S COMPILES ARE KEPT, in .cache/compile, because the round that
+# ends a sweep is by definition a round on a file that then does not change --
+# and phasecheck.sh wanted exactly those, for exactly the same two answers: the
+# warnings deadsweep.py asked for, and an object to run `nm` over, which is the
+# plain one the build rides along on (below).  It reuses them when both shas
+# still match, saving one compile of a 145,000-line file in every phase.
 #
 # THAT IS WHY canon.sh RUNS IN THE ROUND and not after the loop.  It was after
 # the loop, and the obvious move -- run it before instead, so the terminating
@@ -96,18 +97,57 @@ spec() {
 trap 'rm -f "$vals"; [ -n "$spec_pid" ] && kill "$spec_pid" 2>/dev/null; rm -f .cache/compile/spec.*' EXIT
 rm -f .cache/compile/build.o .cache/compile/build.sha
 
+# A TOOL IS NOT RUN AGAIN ON TEXT IT HAS ALREADY PASSED.  Every tool here is a
+# function of the file's bytes -- deadenums.py's values file too, which is
+# written once, on first need, and never changes after -- so a
+# tool that ran and changed nothing on exactly these bytes would change nothing
+# again.  The commonest round is one where deadsweep.py deletes something and
+# the other six had nothing to do: the next round's deadsweep sees new text, and
+# the six after it see the text they just passed.  Each tool remembers the
+# sha256 it last passed, and forgets it the moment it changes the file.
+#
+# The fixpoint is untouched: a round that changes nothing is still a round in
+# which every tool either ran on the final text or had already passed it, byte
+# for byte.  deadsweep.py does not skip in practice -- it runs first, and a round
+# only follows one that changed the file -- so its warnings in .cache/compile
+# are of the final text; were it ever to skip, their sha would be stale and
+# phasecheck.sh would compile for itself.
+#
+# SIMULATED AND NOT TAKEN: treating canon.sh's changes as invisible to the other
+# six, on the argument that canon moves layout and they read tokens.  It does
+# not only move layout -- brace.py adds braces, onedecl.py splits declarators,
+# forcomma.py hoists comma expressions -- and the five textual tools read lines,
+# so a file canon has reshaped is one they have not seen.  A sweep that ended on
+# that argument would end on a text some tool never ran on.
+pass() {
+    name=$1
+    shift
+    now=$(sha256sum "$f" | cut -d' ' -f1)
+    eval "seen=\${passed_$name:-}"
+    if [ "$now" = "$seen" ]; then
+        said=$(printf '  %-12s passed this text already' "$name")
+        return 0
+    fi
+    said=$("$@" | tail -1)
+    if [ "$(sha256sum "$f" | cut -d' ' -f1)" = "$now" ]; then
+        eval "passed_$name=$now"
+    else
+        eval "passed_$name="
+    fi
+}
+
 round=0
 while :; do
     round=$((round + 1))
     was=$(sha256sum "$f" | cut -d' ' -f1)
     spec
-    a=$(python3 tools/deadsweep.py "$f" --keep .cache/compile | tail -1)
-    c=$(python3 tools/deadprotos.py "$f" | tail -1)
-    b=$(python3 tools/typereach.py "$f" --delete | tail -1)
-    d=$(python3 tools/funcreach.py "$f" --delete | tail -1)
-    g=$(python3 tools/deadfields.py "$f" --delete | tail -1)
-    h=$(python3 tools/deadenums.py "$f" "$vals" --delete | tail -1)
-    e=$(tools/canon.sh "$f" --once)
+    pass deadsweep python3 tools/deadsweep.py "$f" --keep .cache/compile; a=$said
+    pass deadprotos python3 tools/deadprotos.py "$f"; c=$said
+    pass typereach python3 tools/typereach.py "$f" --delete; b=$said
+    pass funcreach python3 tools/funcreach.py "$f" --delete; d=$said
+    pass deadfields python3 tools/deadfields.py "$f" --delete; g=$said
+    pass deadenums python3 tools/deadenums.py "$f" "$vals" --delete; h=$said
+    pass canon tools/canon.sh "$f" --once; e=$said
     echo "  sweep $round      $a; $c; $b; $d; $g; $h;   $e"
     [ "$(sha256sum "$f" | cut -d' ' -f1)" = "$was" ] && break
     [ "$round" -ge 15 ] && { echo "  sweep        not converging"; exit 1; }

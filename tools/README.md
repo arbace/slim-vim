@@ -117,9 +117,16 @@ themselves.
   compiles a plain object of each round's starting text in the background, and
   the round that changes nothing started from the final text, so this links that
   object with the work makefile's own flags instead of compiling again: 0.06 s
-  against 5.5, and byte-identical to `make`. Not the sweep's `-Wall -Wextra`
-  object — those flags move the code, 64 bytes of `.text`. Anything whose text no
+  against 5.5, and byte-identical to `make`. Not an object compiled with
+  `-Wall -Wextra` — those flags move the code, 64 bytes of `.text`, and the
+  sweep's own warning compile generates no code at all. Anything whose text no
   longer matches the object's recorded sha builds the ordinary way.
+- **`phasecheck.sh <work> <source> <before-dir>`** — a whim phase's checks from
+  one compile: it built, no warnings but the fall-throughs, `nm` prints only
+  `main`, and the libc symbols it needs. When the sweep's last round saw this
+  exact text it compiles nothing: the warnings are `deadsweep.py`'s stderr
+  (`.cache/compile/last.txt`) and the object is `build.o`, each used only when
+  its recorded sha is the source's.
 
 ## Phases that are programs
 
@@ -208,7 +215,8 @@ each reproduces that boundary byte for byte.
 
 ## Auditing
 
-`deadsweep.py` (delete what `-Wall -Wextra` names, once — it keys on the
+`deadsweep.py` (delete what `-Wall -Wextra` names, once, from a compile with
+`-flto -fno-fat-lto-objects` that warns and generates no code — it keys on the
 warning *option*, never the sentence, and deletes a variable's whole
 declaration rather than its first line, because 39 file-scope tables put the
 initialiser on the next one) · `typereach.py`
@@ -220,7 +228,10 @@ mentions, survivors pinned to their DWARF values, `--verify` afterwards) ·
 `ml_recover()` exists, because a struct layout is then a disk format)
 
 Slim's Phase 8 runs all of them but `funcreach.py`, in one loop; whim's
-`sweep.sh` runs all six in every phase.
+`sweep.sh` runs all six in every phase, and `canon.sh --once` after them, in
+rounds until one changes nothing — skipping a tool in a round when it has
+already run without changing exactly the current bytes, so the round that ends
+the sweep is still one in which every tool has passed the final text.
 
 ## The passes a run needs
 
