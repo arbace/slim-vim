@@ -7,7 +7,8 @@
 # say "this implementation, applied to this input", which is the only thing a
 # cached result is an answer to.
 #
-# What counts as the implementation is the phase's own program plus everything
+# What counts as the implementation is the phase's own program -- or its edit and
+# check parts, see tools/phaserun.sh -- plus everything
 # it names: the tools it calls, the patches it applies, the tables it reads,
 # the templates it installs.  Extracting that by grepping the script for paths
 # under tools/ and pipes/ is exact enough and keeps the invalidation narrow -- editing
@@ -20,17 +21,30 @@ set -eu
 
 phase=${1:?usage: implhash.sh <phase> [pipeline]}
 . tools/pipeline.sh "${2:-slim}"
-prog="pipes/$IMPL$phase.sh"
+progs=$(tools/phaserun.sh --parts "$PIPE" "$phase")
 
-[ -f "$prog" ] || { echo agent; exit 0; }
+[ -n "$progs" ] || { echo agent; exit 0; }
 
 deps() {
     grep -oE '(tools|pipes)/[A-Za-z0-9_/-]+\.(py|sh|txt|mk|patch)' "$1" 2>/dev/null || true
 }
 
+# A split phase's implementation is both parts and what tools/phaserun.sh runs
+# between and before them -- the sweep and the symbol snapshot -- which the
+# programs no longer name.  Those are level-one names, as they were when every
+# program named tools/sweep.sh itself, so the sweep's own tools are still hashed.
+# A whole program hashes exactly as it always did.
+driven() {
+    set -- $progs
+    [ $# = 2 ] || return 0
+    echo tools/phaserun.sh
+    echo tools/sweep.sh
+    echo tools/symbols.sh
+}
+
 {
-    cat "$prog"
-    for d in $(deps "$prog" | sort -u); do
+    for p in $progs; do cat "$p"; done
+    for d in $( { for p in $progs; do deps "$p"; done; driven; } | sort -u); do
         [ -f "$d" ] || continue
         cat "$d"
         for e in $(deps "$d" | sort -u); do

@@ -65,8 +65,8 @@ fi
 mv "$tmp/patch" "$residue"
 echo "  synth        $TAG$phase residue: $lines lines, $(grep -c '^--- ' "$residue") files"
 
-if [ -f "$prog" ]; then
-    echo "               $prog exists -- its residue is what to attack next"
+if [ -n "$(tools/phaserun.sh --parts "$PIPE" "$phase")" ]; then
+    echo "               $(tools/phaserun.sh --parts "$PIPE" "$phase" | head -1) exists -- its residue is what to attack next"
     exit 0
 fi
 

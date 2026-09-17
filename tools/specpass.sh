@@ -72,10 +72,7 @@ if [ "${1:-}" = "--one" ]; then
             exit 0
         fi
         rm -f in.tar
-        if [ -f "$PWORK/whim-vim.c" ]; then
-            tools/symbols.sh "$PWORK/whim-vim.c" .cache/symbols/before
-        fi
-        if ! "pipes/$IMPL$n.sh" "$PWORK" > log 2>&1; then
+        if ! tools/phaserun.sh "$PIPE" "$n" "$PWORK" > log 2>&1; then
             echo "$TAG$n failed $(( $(date +%s) - start ))s -- $d/log" > "$res"
             exit 0
         fi
