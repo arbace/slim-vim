@@ -5344,7 +5344,7 @@ changed_bytes(linenr_T lnum, colnr_T col)
 }
 
     static void
-inserted_bytes(linenr_T lnum, colnr_T col, int added  __attribute__((unused)) )
+inserted_bytes(linenr_T lnum, colnr_T col, int added)
 {
     changed_bytes(lnum, col);
 }
@@ -5638,7 +5638,7 @@ del_chars(long count, int fixpos)
 }
 
     static int
-del_bytes(long        count, int         fixpos_arg, int         use_delcombine  __attribute__((unused)) )
+del_bytes(long        count, int         fixpos_arg, int         use_delcombine)
 {
     char_u *oldp;
     char_u *newp;
@@ -5735,7 +5735,7 @@ del_bytes(long        count, int         fixpos_arg, int         use_delcombine 
 }
 
     static int
-open_line(int         dir, int         flags, int         second_line_indent, int         *did_do_comment  __attribute__((unused)) )
+open_line(int         dir, int         flags, int         second_line_indent, int         *did_do_comment)
 {
     char_u      *saved_line;
     char_u      *next_line = nullptr;
@@ -6758,7 +6758,7 @@ vim_isprintc_strict(int c)
 }
 
     static void
-init_chartabsize_arg(chartabsize_T   *cts, win_T           *wp, linenr_T        lnum  __attribute__((unused)) , colnr_T         col, char_u          *line, char_u          *ptr)
+init_chartabsize_arg(chartabsize_T   *cts, win_T           *wp, linenr_T        lnum, colnr_T         col, char_u          *line, char_u          *ptr)
 {
       musl_memset(((cts)), (0), (sizeof(*(cts))))  ;
     cts->cts_win = wp;
@@ -6789,7 +6789,7 @@ lbr_chartabsize_adv(chartabsize_T *cts)
 }
 
     static int
-win_lbr_chartabsize(chartabsize_T   *cts, int             *headp  __attribute__((unused)) , int             *tailp  __attribute__((unused)) )
+win_lbr_chartabsize(chartabsize_T   *cts, int             *headp, int             *tailp)
 {
     win_T       *wp = cts->cts_win;
     char_u      *s = cts->cts_ptr;
@@ -8245,7 +8245,7 @@ typedef struct {
 enum { WL_START = 0 };
 
     static void
-handle_lnum_col(win_T           *wp, winlinevars_T   *wlv, int             sign_present  __attribute__((unused)) , int             num_attr  __attribute__((unused)) )
+handle_lnum_col(win_T           *wp, winlinevars_T   *wlv, int             sign_present, int             num_attr)
 {
     int has_cpo_n = vim_strchr(p_cpo, CPO_NUMCOL) != nullptr;
     int lnum_row = wlv->startrow + wlv->filler_lines
@@ -8349,7 +8349,7 @@ draw_screen_line(win_T *wp, winlinevars_T *wlv)
 }
 
     static void
-win_line_start(win_T *wp  __attribute__((unused)) , winlinevars_T *wlv, int save_extra)
+win_line_start(win_T *wp, winlinevars_T *wlv, int save_extra)
 {
     wlv->col = 0;
     wlv->off = (unsigned)(current_ScreenLine - ScreenLines);
@@ -9712,7 +9712,7 @@ statusline_row(win_T *wp)
 }
 
     static void
-win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
+win_redr_status(win_T *wp, int ignore_pum)
 {
     int         row;
     int         fillchar;
@@ -9967,7 +9967,7 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 }
 
     static void
-after_updating_screen(int may_resize_shell  __attribute__((unused)) )
+after_updating_screen(int may_resize_shell)
 {
     updating_screen = FALSE;
 
@@ -11477,7 +11477,7 @@ edit(int         cmdchar, int         startln, long        count)
         {
         case ESC:
 
-        __attribute__((fallthrough));
+        [[fallthrough]];
         case Ctrl_C:
 
 do_intr:
@@ -11728,7 +11728,7 @@ doESCkey:
         case   (-(('k') + ((int)('B') << 8)))  :
             c = TAB;
 
-        __attribute__((fallthrough));
+        [[fallthrough]];
         case TAB:
             inserted_space = FALSE;
             if (ins_tab())
@@ -11739,7 +11739,7 @@ doESCkey:
 
         case   (-(('K') + ((int)('A') << 8)))  :
             c = CAR;
-        __attribute__((fallthrough));
+        [[fallthrough]];
         case CAR:
         case NL:
             if (ins_eol(c) == FAIL && !p_im)
@@ -12058,7 +12058,7 @@ backspace_until_column(int col)
 }
 
     static int
-del_char_after_col(int limit_col  __attribute__((unused)) )
+del_char_after_col(int limit_col)
 {
     if (limit_col >= 0)
     {
@@ -13299,7 +13299,7 @@ ins_start_select(int c)
             {
                 break;
             }
-        __attribute__((fallthrough));
+        [[fallthrough]];
         case   (-(('#') + ((int)('4') << 8)))  :
         case   (-(('%') + ((int)('i') << 8)))  :
         case   (-((KS_EXTRA) + ((int)(KE_S_UP) << 8)))  :
@@ -14384,7 +14384,7 @@ get_nolist_virtcol(void)
 }
 
     static void
-do_ascii(exarg_T *eap  __attribute__((unused)) )
+do_ascii(exarg_T *eap)
 {
     int         c;
     int         cval;
@@ -14628,7 +14628,7 @@ ex_copy(linenr_T line1, linenr_T line2, linenr_T n)
 }
 
     static void
-do_fixdel(exarg_T *eap  __attribute__((unused)) )
+do_fixdel(exarg_T *eap)
 {
     char_u  *p;
 
@@ -16540,7 +16540,7 @@ do_cmdline(char_u      *cmdline, char_u      *(*fgetline)(int, void *, int, getl
 }
 
     static int
-getline_equal(char_u      *(*fgetline)(int, void *, int, getline_opt_T), void        *cookie  __attribute__((unused)) , char_u      *(*func)(int, void *, int, getline_opt_T))
+getline_equal(char_u      *(*fgetline)(int, void *, int, getline_opt_T), void        *cookie, char_u      *(*func)(int, void *, int, getline_opt_T))
 {
     return fgetline == func;
 }
@@ -17352,7 +17352,7 @@ one_letter_cmd(char_u *p, cmdidx_T *idx)
 }
 
     static char_u *
-find_ex_command(exarg_T *eap, int     *full  __attribute__((unused)) , int     (*lookup)(char_u *, usize, int cmd, cctx_T *)  __attribute__((unused)) , cctx_T  *cctx  __attribute__((unused)) )
+find_ex_command(exarg_T *eap, int     *full, int     (*lookup)(char_u *, usize, int cmd, cctx_T *), cctx_T  *cctx)
 {
     int         len;
     char_u      *p;
@@ -17549,7 +17549,7 @@ default_address(exarg_T *eap)
 }
 
     static linenr_T
-get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_addr_T  addr_type, int         skip, int         silent, int         to_other_file, int         address_count  __attribute__((unused)) )
+get_address(exarg_T     *eap, char_u      **ptr, cmd_addr_T  addr_type, int         skip, int         silent, int         to_other_file, int         address_count)
 {
     int         c;
     int         i;
@@ -18023,7 +18023,7 @@ ends_excmd(int c)
 }
 
     static int
-ends_excmd2(char_u *cmd_start  __attribute__((unused)) , char_u *cmd)
+ends_excmd2(char_u *cmd_start, char_u *cmd)
 {
     int c = *cmd;
 
@@ -18130,7 +18130,7 @@ ex_quit(exarg_T *eap)
 }
 
     static void
-ex_cquit(exarg_T *eap  __attribute__((unused)) )
+ex_cquit(exarg_T *eap)
 {
     getout(eap->addr_count > 0 ? (int)eap->line2 : EXIT_FAILURE);
 }
@@ -18458,7 +18458,7 @@ ex_undo(exarg_T *eap)
 }
 
     static void
-ex_redo(exarg_T *eap  __attribute__((unused)) )
+ex_redo(exarg_T *eap)
 {
     u_redo(1);
 }
@@ -18558,7 +18558,7 @@ redraw_cmd(int clear)
 }
 
     static void
-ex_redrawstatus(exarg_T *eap  __attribute__((unused)) )
+ex_redrawstatus(exarg_T *eap)
 {
     if (eap->forceit)
     {
@@ -18763,7 +18763,7 @@ exec_normal_cmd(char_u *cmd, int remap, int silent)
 }
 
     static void
-exec_normal(int was_typed, int use_vpeekc, int may_use_terminal_loop  __attribute__((unused)) )
+exec_normal(int was_typed, int use_vpeekc, int may_use_terminal_loop)
 {
     oparg_T     oa;
     int         c;
@@ -18784,7 +18784,7 @@ set_no_hlsearch(int flag)
 }
 
     static void
-ex_nohlsearch(exarg_T *eap  __attribute__((unused)) )
+ex_nohlsearch(exarg_T *eap)
 {
     set_no_hlsearch(TRUE);
     redraw_all_later(UPD_SOME_VALID);
@@ -19594,7 +19594,7 @@ cmdline_erase_chars(int c, int indent, incsearch_state_T *isp)
 }
 
     static int
-cmdline_insert_reg(int *gotesc  __attribute__((unused)) )
+cmdline_insert_reg(int *gotesc)
 {
     int         i;
     int         c;
@@ -19832,13 +19832,13 @@ init_ccline(int firstc, int indent)
 }
 
     static char_u *
-getcmdline(int           firstc, long          count, int           indent, getline_opt_T do_concat  __attribute__((unused)) )
+getcmdline(int           firstc, long          count, int           indent, getline_opt_T do_concat)
 {
     return getcmdline_int(firstc, count, indent, TRUE);
 }
 
     static char_u *
-getcmdline_int(int         firstc, long        count  __attribute__((unused)) , int         indent, int         clear_ccline)
+getcmdline_int(int         firstc, long        count, int         indent, int         clear_ccline)
 {
     static int  depth = 0;
     int         c = 0;
@@ -20178,7 +20178,7 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
 
         case Ctrl_N:
         case Ctrl_P:
-        __attribute__((fallthrough));
+        [[fallthrough]];
         case   (-(('k') + ((int)('u') << 8)))  :
         case   (-(('k') + ((int)('d') << 8)))  :
         case   (-((KS_EXTRA) + ((int)(KE_S_UP) << 8)))  :
@@ -20447,7 +20447,7 @@ correct_cmdspos(int idx, int cells)
 }
 
     static char_u *
-getexline(int         c, void        *cookie  __attribute__((unused)) , int         indent, getline_opt_T options)
+getexline(int         c, void        *cookie, int         indent, getline_opt_T options)
 {
     if (exec_from_reg && vpeekc() == ':')
     {
@@ -22442,7 +22442,7 @@ save_typeahead(tasave_T *tp)
 }
 
     static void
-restore_typeahead(tasave_T *tp, int overwrite  __attribute__((unused)) )
+restore_typeahead(tasave_T *tp, int overwrite)
 {
     if (tp->typebuf_valid)
     {
@@ -23728,7 +23728,7 @@ input_available(void)
 }
 
     static char_u *
-getcmdkeycmd(int             promptc  __attribute__((unused)) , void            *cookie  __attribute__((unused)) , int             indent  __attribute__((unused)) , getline_opt_T   do_concat  __attribute__((unused)) )
+getcmdkeycmd(int             promptc, void            *cookie, int             indent, getline_opt_T   do_concat)
 {
     garray_T    line_ga;
     int         c1 = -1;
@@ -23831,7 +23831,7 @@ getcmdkeycmd(int             promptc  __attribute__((unused)) , void            
 }
 
     static int
-do_cmdkey_command(int key  __attribute__((unused)) , int flags)
+do_cmdkey_command(int key, int flags)
 {
     int     res;
 
@@ -25572,7 +25572,7 @@ rgb_to_cterm_idx(int r, int g, int b)
 }
 
     static bool
-resolve_color_to_rgb(int cterm_c,  long  rgb  __attribute__((unused)) , int *r, int *g, int *b)
+resolve_color_to_rgb(int cterm_c,  long  rgb, int *r, int *g, int *b)
 {
     if (cterm_c > 0)
     {
@@ -25654,7 +25654,7 @@ blend_cterm_colors(int popup_c,  long  popup_rgb, int under_c,  long  under_rgb,
 }
 
     static int
-hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg  __attribute__((unused)) )
+hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg)
 {
     attrentry_T *char_aep = nullptr;
     attrentry_T *popup_aep;
@@ -25763,7 +25763,7 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg  __attribut
 }
 
     static int
-hl_pum_blend_attr(int char_attr, int popup_attr, int blend  __attribute__((unused)) )
+hl_pum_blend_attr(int char_attr, int popup_attr, int blend)
 {
     attrentry_T *char_aep = nullptr;
     attrentry_T *popup_aep;
@@ -26843,7 +26843,7 @@ get_sw_value_indent(buf_T *buf, int left)
 }
 
     static long
-get_sw_value_col(buf_T *buf, colnr_T col  __attribute__((unused)) , int left  __attribute__((unused)) )
+get_sw_value_col(buf_T *buf, colnr_T col, int left)
 {
     return buf->b_p_sw ? buf->b_p_sw :
         buf->b_p_ts;
@@ -29305,7 +29305,7 @@ ex_delmarks(exarg_T *eap)
 }
 
     static void
-ex_changes(exarg_T *eap  __attribute__((unused)) )
+ex_changes(exarg_T *eap)
 {
     int         i;
     char_u      *name;
@@ -29353,7 +29353,7 @@ mark_adjust_nofold(linenr_T    line1, linenr_T    line2, long        amount, lon
 }
 
     static void
-mark_adjust_internal(linenr_T    line1, linenr_T    line2, long        amount, long        amount_after, int         adjust_folds  __attribute__((unused)) )
+mark_adjust_internal(linenr_T    line1, linenr_T    line2, long        amount, long        amount_after, int         adjust_folds)
 {
     int         i;
     int         fnum = curbuf->b_fnum;
@@ -29521,7 +29521,7 @@ set_last_cursor(win_T *win)
 enum { SEARCH_HL_PRIORITY = 0 };
 
     static int
-match_add(win_T       *wp, char_u      *grp, char_u      *pat, int         prio, int         id, list_T      *pos_list, char_u      *conceal_char  __attribute__((unused)) )
+match_add(win_T       *wp, char_u      *grp, char_u      *pat, int         prio, int         id, list_T      *pos_list, char_u      *conceal_char)
 {
     matchitem_T *cur;
     matchitem_T *prev;
@@ -30014,7 +30014,7 @@ prepare_search_hl_line(win_T       *wp, linenr_T    lnum, colnr_T     mincol, ch
 }
 
     static int
-update_search_hl(win_T       *wp, linenr_T    lnum, colnr_T     col, char_u      **line, match_T     *search_hl, int         *has_match_conc  __attribute__((unused)) , int         *match_conc  __attribute__((unused)) , int         did_line_attr, int         lcs_eol_one, int         *on_last_col)
+update_search_hl(win_T       *wp, linenr_T    lnum, colnr_T     col, char_u      **line, match_T     *search_hl, int         *has_match_conc, int         *match_conc, int         did_line_attr, int         lcs_eol_one, int         *on_last_col)
 {
     matchitem_T *cur;
     match_T     *shl;
@@ -37799,7 +37799,7 @@ do_more_prompt(int typed_char)
                 skip_redraw = TRUE;
                 need_wait_return = FALSE;
             }
-        __attribute__((fallthrough));
+        [[fallthrough]];
         case 'q':
         case Ctrl_C:
         case ESC:
@@ -41293,7 +41293,7 @@ scroll_redraw(int up, long count)
 }
 
     static void
-scrolldown(long        line_count, int         byfold  __attribute__((unused)) )
+scrolldown(long        line_count, int         byfold)
 {
     long        done = 0;
     int         wrow;
@@ -41387,7 +41387,7 @@ scrolldown(long        line_count, int         byfold  __attribute__((unused)) )
 }
 
     static void
-scrollup(long        line_count, int         byfold  __attribute__((unused)) )
+scrollup(long        line_count, int         byfold)
 {
     int         do_sms = curwin-> w_onebuf_opt.wo_wrap  && curwin-> w_onebuf_opt.wo_sms ;
 
@@ -43011,7 +43011,7 @@ check_text_or_curbuf_locked(oparg_T *oap)
 }
 
     static int
-normal_cmd_get_count(cmdarg_T        *cap, int             c, int             toplevel  __attribute__((unused)) , int             set_prevcount  __attribute__((unused)) , int             *ctrl_w, int             *need_flushbuf  __attribute__((unused)) )
+normal_cmd_get_count(cmdarg_T        *cap, int             c, int             toplevel, int             set_prevcount, int             *ctrl_w, int             *need_flushbuf)
 {
 getcount:
     if (!(VIsual_active && VIsual_select))
@@ -43101,7 +43101,7 @@ normal_cmd_needs_more_chars(cmdarg_T *cap, short_u cmd_flags)
 }
 
     static int
-normal_cmd_get_more_chars(int         idx_arg, cmdarg_T    *cap, int         *need_flushbuf  __attribute__((unused)) )
+normal_cmd_get_more_chars(int         idx_arg, cmdarg_T    *cap, int         *need_flushbuf)
 {
     int         idx = idx_arg;
     int         c;
@@ -43292,7 +43292,7 @@ normal_cmd_wait_for_msg(void)
 }
 
     static void
-normal_cmd(oparg_T     *oap, int         toplevel  __attribute__((unused)) )
+normal_cmd(oparg_T     *oap, int         toplevel)
 {
     cmdarg_T    ca;
     int         c;
@@ -44146,7 +44146,7 @@ nv_ignore(cmdarg_T *cap)
 }
 
     static void
-nv_nop(cmdarg_T *cap  __attribute__((unused)) )
+nv_nop(cmdarg_T *cap)
 {
 }
 
@@ -44470,13 +44470,13 @@ nv_zet(cmdarg_T *cap)
                         curwin->w_cursor.lnum = curwin->w_botline;
                     }
                 }
-    __attribute__((fallthrough));
+    [[fallthrough]];
     case NL:
     case CAR:
     case   (-(('K') + ((int)('A') << 8)))  :
                 beginline(BL_WHITE | BL_FIX);
 
-    __attribute__((fallthrough));
+    [[fallthrough]];
     case 't':
         scroll_cursor_top(0, TRUE);
                 redraw_later(UPD_VALID);
@@ -44486,7 +44486,7 @@ nv_zet(cmdarg_T *cap)
     case '.':
         beginline(BL_WHITE | BL_FIX);
 
-    __attribute__((fallthrough));
+    [[fallthrough]];
     case 'z':
         scroll_cursor_halfway(TRUE, FALSE);
                 redraw_later(UPD_VALID);
@@ -44507,11 +44507,11 @@ nv_zet(cmdarg_T *cap)
                 {
                     curwin->w_cursor.lnum = curwin->w_topline - 1;
                 }
-    __attribute__((fallthrough));
+    [[fallthrough]];
     case '-':
                 beginline(BL_WHITE | BL_FIX);
 
-    __attribute__((fallthrough));
+    [[fallthrough]];
     case 'b':
         scroll_cursor_bot(0, TRUE);
                 redraw_later(UPD_VALID);
@@ -44521,7 +44521,7 @@ nv_zet(cmdarg_T *cap)
     case 'H':
                 cap->count1 *= curwin->w_width / 2;
 
-    __attribute__((fallthrough));
+    [[fallthrough]];
     case 'h':
     case   (-(('k') + ((int)('l') << 8)))  :
                 if (!curwin-> w_onebuf_opt.wo_wrap )
@@ -44533,7 +44533,7 @@ nv_zet(cmdarg_T *cap)
     case 'L':
         cap->count1 *= curwin->w_width / 2;
 
-    __attribute__((fallthrough));
+    [[fallthrough]];
     case 'l':
     case   (-(('k') + ((int)('r') << 8)))  :
                 if (!curwin-> w_onebuf_opt.wo_wrap )
@@ -46440,7 +46440,7 @@ nv_g_cmd(cmdarg_T *cap)
 
     case   (-(('k') + ((int)('b') << 8)))  :
         cap->nchar = Ctrl_H;
-    __attribute__((fallthrough));
+    [[fallthrough]];
     case 'h':
     case 'H':
     case Ctrl_H:
@@ -46565,7 +46565,7 @@ nv_g_cmd(cmdarg_T *cap)
 
     case '\'':
         cap->arg = TRUE;
-    __attribute__((fallthrough));
+    [[fallthrough]];
     case '`':
         nv_gomark(cap);
         break;
@@ -47232,7 +47232,7 @@ nv_edit(cmdarg_T *cap)
                     break;
                 }
 
-            __attribute__((fallthrough));
+            [[fallthrough]];
             case 'a':
                 if (virtual_active() && (curwin->w_cursor.coladd > 0 || *ml_get_cursor() == NUL || *ml_get_cursor() == TAB))
                 {
@@ -49237,7 +49237,7 @@ adjust_cursor_eol(void)
 }
 
     static int
-do_join(long    count, int     insert_space, int     save_undo, int     use_formatoptions  __attribute__((unused)) , int     setmark)
+do_join(long    count, int     insert_space, int     save_undo, int     use_formatoptions, int     setmark)
 {
     char_u      *curr = nullptr;
     char_u      *curr_start = nullptr;
@@ -52037,7 +52037,7 @@ opt_whichwrap_nr2str(char_u **argp, char_u *whichwrap)
 }
 
     static char_u *
-stropt_copy_value(char_u      *origval, char_u      **argp, set_op_T    op, int         flags  __attribute__((unused)) )
+stropt_copy_value(char_u      *origval, char_u      **argp, set_op_T    op, int         flags)
 {
     char_u      *arg = *argp;
     unsigned    newlen;
@@ -52253,7 +52253,7 @@ prepend_item(char_u *str, char_u *item, int item_len)
 }
 
     static bool
-stropt_handle_keymatch(char_u      *origval, char_u      *newval, set_op_T    op, int         flags  __attribute__((unused)) )
+stropt_handle_keymatch(char_u      *origval, char_u      *newval, set_op_T    op, int         flags)
 {
     char_u  *p;
     char_u  *item_start;
@@ -53160,21 +53160,21 @@ did_set_cmdheight(optset_T *args)
 }
 
     static char *
-did_set_compatible(optset_T *args  __attribute__((unused)) )
+did_set_compatible(optset_T *args)
 {
     compatible_set();
     return nullptr;
 }
 
     static char *
-did_set_hlsearch(optset_T *args  __attribute__((unused)) )
+did_set_hlsearch(optset_T *args)
 {
     set_no_hlsearch(FALSE);
     return nullptr;
 }
 
     static char *
-did_set_ignorecase(optset_T *args  __attribute__((unused)) )
+did_set_ignorecase(optset_T *args)
 {
     if (p_hls)
     {
@@ -53209,14 +53209,14 @@ did_set_insertmode(optset_T *args)
 }
 
     static char *
-did_set_laststatus(optset_T *args  __attribute__((unused)) )
+did_set_laststatus(optset_T *args)
 {
     last_status(FALSE);
     return nullptr;
 }
 
     static char *
-did_set_maxcombine(optset_T *args  __attribute__((unused)) )
+did_set_maxcombine(optset_T *args)
 {
     if (p_mco > MAX_MCO)
     {
@@ -53231,7 +53231,7 @@ did_set_maxcombine(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_modifiable(optset_T *args  __attribute__((unused)) )
+did_set_modifiable(optset_T *args)
 {
     redraw_titles();
 
@@ -53247,7 +53247,7 @@ did_set_modified(optset_T *args)
 }
 
     static char *
-did_set_number_relativenumber(optset_T *args  __attribute__((unused)) )
+did_set_number_relativenumber(optset_T *args)
 {
     return nullptr;
 }
@@ -53265,7 +53265,7 @@ did_set_osctimeoutlen(optset_T *args)
 }
 
     static char *
-did_set_paste(optset_T *args  __attribute__((unused)) )
+did_set_paste(optset_T *args)
 {
     static int  old_p_paste = FALSE;
     static int  save_sm = 0;
@@ -53344,7 +53344,7 @@ did_set_paste(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_maxsearchcount(optset_T *args  __attribute__((unused)) )
+did_set_maxsearchcount(optset_T *args)
 {
     char        *errmsg = nullptr;
 
@@ -53411,7 +53411,7 @@ did_set_shiftwidth_tabstop(optset_T *args)
 }
 
     static char *
-did_set_smoothscroll(optset_T *args  __attribute__((unused)) )
+did_set_smoothscroll(optset_T *args)
 {
     if (!curwin-> w_onebuf_opt.wo_sms )
     {
@@ -53422,7 +53422,7 @@ did_set_smoothscroll(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_termsync(optset_T *args  __attribute__((unused)) )
+did_set_termsync(optset_T *args)
 {
     if (!p_tsy)
     {
@@ -53432,7 +53432,7 @@ did_set_termsync(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_terse(optset_T *args  __attribute__((unused)) )
+did_set_terse(optset_T *args)
 {
     char_u      *p;
 
@@ -53452,7 +53452,7 @@ did_set_terse(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_textwidth(optset_T *args  __attribute__((unused)) )
+did_set_textwidth(optset_T *args)
 {
     char *errmsg = nullptr;
 
@@ -53520,7 +53520,7 @@ did_set_weirdinvert(optset_T *args)
 }
 
     static char *
-did_set_window(optset_T *args  __attribute__((unused)) )
+did_set_window(optset_T *args)
 {
     if (p_window < 1)
     {
@@ -53534,7 +53534,7 @@ did_set_window(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_wrap(optset_T *args  __attribute__((unused)) )
+did_set_wrap(optset_T *args)
 {
     if (curwin-> w_onebuf_opt.wo_wrap )
     {
@@ -54552,7 +54552,7 @@ check_win_options(win_T *win)
 }
 
     static void
-check_winopt(winopt_T *wop  __attribute__((unused)) )
+check_winopt(winopt_T *wop)
 {
     check_string_option(&wop->wo_wcr);
     check_string_option(&wop->wo_lcs);
@@ -54562,7 +54562,7 @@ check_winopt(winopt_T *wop  __attribute__((unused)) )
 }
 
     static void
-clear_winopt(winopt_T *wop  __attribute__((unused)) )
+clear_winopt(winopt_T *wop)
 {
     clear_string_option(&wop->wo_wcr);
     clear_string_option(&wop->wo_lcs);
@@ -54937,7 +54937,7 @@ set_string_option_global(int         opt_idx, char_u      **varp)
 }
 
     static void
-set_string_option_direct(char_u      *name, int         opt_idx, char_u      *val, int         opt_flags, int         set_sid  __attribute__((unused)) )
+set_string_option_direct(char_u      *name, int         opt_idx, char_u      *val, int         opt_flags, int         set_sid)
 {
     char_u      *s;
     char_u      **varp;
@@ -55075,7 +55075,7 @@ did_set_option_listflag(char_u *val, char_u *flags, char *errbuf, usize errbufle
 }
 
     static char *
-did_set_ambiwidth(optset_T *args  __attribute__((unused)) )
+did_set_ambiwidth(optset_T *args)
 {
     if (check_opt_strings(p_ambw, p_ambw_values, FALSE) != OK)
     {
@@ -55104,7 +55104,7 @@ did_set_background(optset_T *args)
 }
 
     static char *
-did_set_backspace(optset_T *args  __attribute__((unused)) )
+did_set_backspace(optset_T *args)
 {
     if ( ((unsigned)(*p_bs) - '0' < 10) )
     {
@@ -55122,13 +55122,13 @@ did_set_backspace(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_belloff(optset_T *args  __attribute__((unused)) )
+did_set_belloff(optset_T *args)
 {
     return did_set_opt_flags(p_bo, p_bo_values, &bo_flags, TRUE);
 }
 
     static char *
-did_set_casemap(optset_T *args  __attribute__((unused)) )
+did_set_casemap(optset_T *args)
 {
     return did_set_opt_flags(p_cmp, p_cmp_values, &cmp_flags, TRUE);
 }
@@ -55210,7 +55210,7 @@ did_set_cpoptions(optset_T *args)
 }
 
     static char *
-did_set_display(optset_T *args  __attribute__((unused)) )
+did_set_display(optset_T *args)
 {
     if (opt_strings_flags(p_dy, p_dy_values, &dy_flags, TRUE) != OK)
     {
@@ -55222,7 +55222,7 @@ did_set_display(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_highlight(optset_T *args  __attribute__((unused)) )
+did_set_highlight(optset_T *args)
 {
     if (highlight_changed() == FAIL)
     {
@@ -55265,7 +55265,7 @@ did_set_isopt(optset_T *args)
 }
 
     static char *
-did_set_keymodel(optset_T *args  __attribute__((unused)) )
+did_set_keymodel(optset_T *args)
 {
     if (check_opt_strings(p_km, p_km_values, TRUE) != OK)
     {
@@ -55278,7 +55278,7 @@ did_set_keymodel(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_keyprotocol(optset_T *args  __attribute__((unused)) )
+did_set_keyprotocol(optset_T *args)
 {
     char_u *term =  ( term_strings[(int)(KS_NAME)] ) ;
     keyprot_T kpc = match_keyprotocol(term);
@@ -55327,7 +55327,7 @@ did_set_matchpairs(optset_T *args)
 }
 
     static char *
-did_set_messagesopt(optset_T *args  __attribute__((unused)) )
+did_set_messagesopt(optset_T *args)
 {
     if (messagesopt_changed() == FAIL)
     {
@@ -55346,7 +55346,7 @@ did_set_nrformats(optset_T *args)
 }
 
     static char *
-did_set_pastetoggle(optset_T *args  __attribute__((unused)) )
+did_set_pastetoggle(optset_T *args)
 {
     char_u      *p;
 
@@ -55364,7 +55364,7 @@ did_set_pastetoggle(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_selection(optset_T *args  __attribute__((unused)) )
+did_set_selection(optset_T *args)
 {
     if (*p_sel == NUL || check_opt_strings(p_sel, p_sel_values, FALSE) != OK)
     {
@@ -55375,7 +55375,7 @@ did_set_selection(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_selectmode(optset_T *args  __attribute__((unused)) )
+did_set_selectmode(optset_T *args)
 {
     return did_set_opt_strings(p_slm, p_slm_values, TRUE);
 }
@@ -55389,7 +55389,7 @@ did_set_shortmess(optset_T *args)
 }
 
     static char *
-did_set_showcmdloc(optset_T *args  __attribute__((unused)) )
+did_set_showcmdloc(optset_T *args)
 {
     char        *errmsg = did_set_opt_strings(p_sloc, p_sloc_values, FALSE);
 
@@ -55402,7 +55402,7 @@ did_set_showcmdloc(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_term(optset_T *args  __attribute__((unused)) )
+did_set_term(optset_T *args)
 {
     if ( ( term_strings[(int)(KS_NAME)] ) [0] == NUL)
     {
@@ -55512,7 +55512,7 @@ did_set_whichwrap(optset_T *args)
 }
 
     static char *
-did_set_wincolor(optset_T *args  __attribute__((unused)) )
+did_set_wincolor(optset_T *args)
 {
     update_wincolor(curwin, args->os_newval.string);
     return nullptr;
@@ -55701,7 +55701,7 @@ mch_delay(long msec, int flags)
 }
 
     static void
-deathtrap  (int sigarg  __attribute__((unused)) ) 
+deathtrap  (int sigarg) 
 {
     static int  entered = 0;
     int         i;
@@ -55952,7 +55952,7 @@ WaitForChar(long msec, int *interrupted, int ignore_input)
 }
 
     static int
-RealWaitForChar(int fd  __attribute__((unused)) , long msec, int *check_for_gpm  __attribute__((unused)) , int *interrupted  __attribute__((unused)) )
+RealWaitForChar(int fd, long msec, int *check_for_gpm, int *interrupted)
 {
     return musl_wait_for_input(msec);
 }
@@ -58328,7 +58328,7 @@ regatom(int *flagp)
             goto collection;
         }
 
-      __attribute__((fallthrough));
+      [[fallthrough]];
       case  ((int)('.') - 256) :
       case  ((int)('i') - 256) :
       case  ((int)('I') - 256) :
@@ -58717,7 +58717,7 @@ delimiter_atom:
                     {
                         goto delimiter_atom;
                     }
-                __attribute__((fallthrough));
+                [[fallthrough]];
                 default:
                           if ( ((unsigned)(c) - '0' < 10)  || c == '<' || c == '>' || c == '\'' || c == '.')
                           {
@@ -59128,7 +59128,7 @@ collection:
             }
         }
 
-      __attribute__((fallthrough));
+      [[fallthrough]];
       default:
         {
             int         len;
@@ -60312,7 +60312,7 @@ restore_subexpr(regbehind_T *bp)
 }
 
     static int
-regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
+regmatch(char_u      *scan, int         *timed_out)
 {
   char_u        *next;
   int           op;
@@ -64295,7 +64295,7 @@ reset_screen_attr(void)
 }
 
     static void
-screen_line(win_T   *wp, int     row, int     coloff, int     endcol, int     clear_width, colnr_T last_vcol, int     flags  __attribute__((unused)) )
+screen_line(win_T   *wp, int     row, int     coloff, int     endcol, int     clear_width, colnr_T last_vcol, int     flags)
 {
     unsigned        off_from;
     unsigned        off_to;
@@ -67307,7 +67307,7 @@ estack_pop(void)
 }
 
     static char_u *
-estack_sfile(estack_arg_T which  __attribute__((unused)) )
+estack_sfile(estack_arg_T which)
 {
     estack_T    *entry;
 
@@ -69266,7 +69266,7 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
                 }
             }
 
-        __attribute__((fallthrough));
+        [[fallthrough]];
         default:
             if (skip_comments && (in_block_comment || (comment_col != MAXCOL && (int)pos.col >= comment_col)))
             {
@@ -69659,7 +69659,7 @@ cmdline_search_stat(int         dirc, pos_T       *pos, pos_T       *cursor_pos,
 }
 
     static void
-update_search_stat(int                 dirc, pos_T               *pos, pos_T               *cursor_pos, searchstat_T        *stat, int                 recompute, int                 maxcount, long                timeout  __attribute__((unused)) )
+update_search_stat(int                 dirc, pos_T               *pos, pos_T               *cursor_pos, searchstat_T        *stat, int                 recompute, int                 maxcount, long                timeout)
 {
     int             save_ws = p_ws;
     int             wraparound = FALSE;
@@ -70363,7 +70363,7 @@ get_unsigned_int(const char *pstart, const char **p, unsigned int *uj, int overf
 }
 
     static int
-parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *fmt, typval_T    *tvs  __attribute__((unused)) )
+parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *fmt, typval_T    *tvs)
 {
     const char  *p = fmt;
     const char  *arg = nullptr;
@@ -72590,7 +72590,7 @@ out_flush(void)
 }
 
     static void
-out_flush_cursor(int     force  __attribute__((unused)) , int     clear_selection  __attribute__((unused)) )
+out_flush_cursor(int     force, int     clear_selection)
 {
       ;
     out_flush();
@@ -73671,7 +73671,7 @@ modifiers2keycode(int modifiers, int *key, char_u *string)
 }
 
     static void
-handle_u7_response(int *arg, char_u *tp  __attribute__((unused)) , int csi_len  __attribute__((unused)) )
+handle_u7_response(int *arg, char_u *tp, int csi_len)
 {
     if (arg[0] == 2 && arg[1] >= 2)
     {
@@ -74737,7 +74737,7 @@ handle_osc:
 }
 
     static char_u *
-replace_termcodes(char_u      *from, char_u      **bufp, scid_T      sid_arg  __attribute__((unused)) , int         flags, int         *did_simplify)
+replace_termcodes(char_u      *from, char_u      **bufp, scid_T      sid_arg, int         flags, int         *did_simplify)
 {
     int         i;
     int         slen;
@@ -76430,7 +76430,7 @@ ui_get_shellsize(void)
 }
 
     static void
-ui_set_shellsize(int         mustset  __attribute__((unused)) )
+ui_set_shellsize(int         mustset)
 {
         mch_set_shellsize();
 }
@@ -76568,7 +76568,7 @@ read_from_input_buf(char_u *buf, long maxlen)
 }
 
     static void
-fill_input_buf(int exit_on_error  __attribute__((unused)) )
+fill_input_buf(int exit_on_error)
 {
     int         len;
     int         try;
@@ -77909,7 +77909,7 @@ u_sync(int     force)
 }
 
     static void
-ex_undolist(exarg_T *eap  __attribute__((unused)) )
+ex_undolist(exarg_T *eap)
 {
     garray_T    ga;
     u_header_T  *uhp;
@@ -78006,7 +78006,7 @@ ex_undolist(exarg_T *eap  __attribute__((unused)) )
 }
 
     static void
-ex_undojoin(exarg_T *eap  __attribute__((unused)) )
+ex_undojoin(exarg_T *eap)
 {
     if (curbuf->b_u_newhead == nullptr)
     {
@@ -79310,7 +79310,7 @@ last_status_rec(frame_T *fr, int statusline)
 }
 
     static int
-statusline_height(win_T *wp  __attribute__((unused)) )
+statusline_height(win_T *wp)
 {
     int stl_height = 1;
 
@@ -79786,7 +79786,7 @@ command_line_scan(mparm_T *parmp)
 }
 
     static void
-create_windows(mparm_T *parmp  __attribute__((unused)) )
+create_windows(mparm_T *parmp)
 {
 
     curbuf = curwin->w_buffer;
@@ -79925,19 +79925,19 @@ host_catch(int sig, void (*f)(int))
 }
 
     static void
-host_on_winch(int sigarg  __attribute__((unused)) )
+host_on_winch(int sigarg)
 {
     host_winch_pending = TRUE;
 }
 
     static void
-host_on_tstp(int sigarg  __attribute__((unused)) )
+host_on_tstp(int sigarg)
 {
     host_tstp_pending = TRUE;
 }
 
     static void
-host_on_int(int sigarg  __attribute__((unused)) )
+host_on_int(int sigarg)
 {
     host_int_pending = TRUE;
 }
