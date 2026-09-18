@@ -335,7 +335,8 @@ say('610 identifiers renamed to musl_*, none of them inside a literal -- 606 of 
 # Everything they name is already available: size_t and NULL from <stddef.h>,
 # uintptr_t from <stdint.h>.  `tolower` is NOT used; see the header of this file.
 DEFS = r'''
-static void *musl_memcpy(void *dest, const void *src, size_t n)
+    static void *
+musl_memcpy(void *dest, const void *src, size_t n)
 {
     unsigned char *d = dest;
     const unsigned char *s = src;
@@ -346,7 +347,8 @@ static void *musl_memcpy(void *dest, const void *src, size_t n)
     return dest;
 }
 
-static void *musl_memmove(void *dest, const void *src, size_t n)
+    static void *
+musl_memmove(void *dest, const void *src, size_t n)
 {
     unsigned char *d = dest;
     const unsigned char *s = src;
@@ -372,7 +374,8 @@ static void *musl_memmove(void *dest, const void *src, size_t n)
     return dest;
 }
 
-static void *musl_memset(void *dest, int c, size_t n)
+    static void *
+musl_memset(void *dest, int c, size_t n)
 {
     unsigned char *s = dest;
     for (; n; n--)
@@ -382,7 +385,8 @@ static void *musl_memset(void *dest, int c, size_t n)
     return dest;
 }
 
-static int musl_memcmp(const void *vl, const void *vr, size_t n)
+    static int
+musl_memcmp(const void *vl, const void *vr, size_t n)
 {
     const unsigned char *l = vl;
     const unsigned char *r = vr;
@@ -392,7 +396,8 @@ static int musl_memcmp(const void *vl, const void *vr, size_t n)
     return n ? *l - *r : 0;
 }
 
-static void *musl_memchr(const void *src, int c, size_t n)
+    static void *
+musl_memchr(const void *src, int c, size_t n)
 {
     const unsigned char *s = src;
     unsigned char ch = (unsigned char)c;
@@ -402,7 +407,8 @@ static void *musl_memchr(const void *src, int c, size_t n)
     return n ? (void *)s : NULL;
 }
 
-static size_t musl_strlen(const char *s)
+    static size_t
+musl_strlen(const char *s)
 {
     const char *a = s;
     for (; *s; s++)
@@ -411,7 +417,8 @@ static size_t musl_strlen(const char *s)
     return (size_t)(s - a);
 }
 
-static char *musl_strcpy(char *dest, const char *src)
+    static char *
+musl_strcpy(char *dest, const char *src)
 {
     char *d = dest;
     while ((*d = *src) != 0)
@@ -422,7 +429,8 @@ static char *musl_strcpy(char *dest, const char *src)
     return dest;
 }
 
-static char *musl_strncpy(char *dest, const char *src, size_t n)
+    static char *
+musl_strncpy(char *dest, const char *src, size_t n)
 {
     char *d = dest;
     for (; n && *src; n--)
@@ -436,13 +444,15 @@ static char *musl_strncpy(char *dest, const char *src, size_t n)
     return dest;
 }
 
-static char *musl_strcat(char *dest, const char *src)
+    static char *
+musl_strcat(char *dest, const char *src)
 {
     musl_strcpy(dest + musl_strlen(dest), src);
     return dest;
 }
 
-static int musl_strcmp(const char *l, const char *r)
+    static int
+musl_strcmp(const char *l, const char *r)
 {
     for (; *l == *r && *l; l++, r++)
     {
@@ -450,7 +460,8 @@ static int musl_strcmp(const char *l, const char *r)
     return *(const unsigned char *)l - *(const unsigned char *)r;
 }
 
-static int musl_strncmp(const char *ls, const char *rs, size_t n)
+    static int
+musl_strncmp(const char *ls, const char *rs, size_t n)
 {
     const unsigned char *l = (const unsigned char *)ls;
     const unsigned char *r = (const unsigned char *)rs;
@@ -464,7 +475,8 @@ static int musl_strncmp(const char *ls, const char *rs, size_t n)
     return *l - *r;
 }
 
-static int musl_strcasecmp(const char *ls, const char *rs)
+    static int
+musl_strcasecmp(const char *ls, const char *rs)
 {
     const unsigned char *l = (const unsigned char *)ls;
     const unsigned char *r = (const unsigned char *)rs;
@@ -474,7 +486,8 @@ static int musl_strcasecmp(const char *ls, const char *rs)
     return ((unsigned)*l - 'A' < 26 ? *l | 32 : *l) - ((unsigned)*r - 'A' < 26 ? *r | 32 : *r);
 }
 
-static int musl_strncasecmp(const char *ls, const char *rs, size_t n)
+    static int
+musl_strncasecmp(const char *ls, const char *rs, size_t n)
 {
     const unsigned char *l = (const unsigned char *)ls;
     const unsigned char *r = (const unsigned char *)rs;
@@ -488,7 +501,8 @@ static int musl_strncasecmp(const char *ls, const char *rs, size_t n)
     return ((unsigned)*l - 'A' < 26 ? *l | 32 : *l) - ((unsigned)*r - 'A' < 26 ? *r | 32 : *r);
 }
 
-static char *musl_strchr(const char *s, int c)
+    static char *
+musl_strchr(const char *s, int c)
 {
     unsigned char ch = (unsigned char)c;
     for (; *s && *(const unsigned char *)s != ch; s++)
@@ -501,7 +515,8 @@ static char *musl_strchr(const char *s, int c)
     return NULL;
 }
 
-static char *musl_strstr(const char *h, const char *n)
+    static char *
+musl_strstr(const char *h, const char *n)
 {
     size_t i;
     if (!n[0])
@@ -521,7 +536,8 @@ static char *musl_strstr(const char *h, const char *n)
     return NULL;
 }
 
-static char *musl_strpbrk(const char *s, const char *b)
+    static char *
+musl_strpbrk(const char *s, const char *b)
 {
     const char *c;
     for (; *s; s++)
@@ -537,7 +553,8 @@ static char *musl_strpbrk(const char *s, const char *b)
     return NULL;
 }
 
-static int musl_fmtbase(char spec)
+    static int
+musl_fmtbase(char spec)
 {
     if (spec == 'o')
     {
@@ -550,7 +567,8 @@ static int musl_fmtbase(char spec)
     return 10;
 }
 
-static int musl_fmtnum(char *dest, unsigned long long v, int base, int upper, int isneg)
+    static int
+musl_fmtnum(char *dest, unsigned long long v, int base, int upper, int isneg)
 {
     char digits[24];
     int n = 0;
@@ -593,7 +611,8 @@ static int musl_fmtnum(char *dest, unsigned long long v, int base, int upper, in
     return out;
 }
 
-static int musl_fmtptr(char *dest, void *p)
+    static int
+musl_fmtptr(char *dest, void *p)
 {
     unsigned long long v = (unsigned long long)(uintptr_t)p;
     int i;

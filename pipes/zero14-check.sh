@@ -32,7 +32,7 @@
 #    So the count is pinned at 2 -- the definition and the one call -- for ever.
 #
 #    AND THE CHARTER: eighteen lines starting with `#`, every one an `#include <...>`,
-#    and not one comment or tab added.  This phase writes 282 lines of C into
+#    and not one comment or tab added.  This phase writes 301 lines of C into
 #    zero-vim.c and none of it is a directive and none of it is a comment.
 #
 # 2. THE LIBC SURFACE, NAMED AS A SET AND NOT AS A COUNT -- `memchr memcmp memcpy
@@ -104,6 +104,7 @@ python3 - "$f" "$state/old.c" <<'PY'
 import re, sys
 sys.path.insert(0, 'tools')
 import create_cmdidxs
+import cutil
 TAG = 'strings'
 new = open(sys.argv[1], errors='surrogateescape').read()
 old = open(sys.argv[2], errors='surrogateescape').read()
@@ -191,9 +192,13 @@ for what, needle in [
                     'really has' % what)
 
 # THE CASE FOLD IS INLINED AND IS musl's tolower(), not a simplification of it.
+# The body is found with cutil.find_definition and not by searching for a header
+# spelled out here: zero-vim.c puts the return type on its own line and the NAME at
+# column 0, which is what tools/funcreach.py's definition regex reads, and a locator
+# that knew the header's text would go stale the moment the style did.
 for fn in ('musl_strcasecmp', 'musl_strncasecmp'):
-    i = new.find('static int %s(' % fn)
-    body = new[i:new.index('\n}\n', i)] if i >= 0 else ''
+    span = cutil.find_definition(new, fn)
+    body = new[span[0]:span[1]] if span else ''
     if body.count("(unsigned)*l - 'A' < 26 ? *l | 32 : *l") != 2 \
             or body.count("(unsigned)*r - 'A' < 26 ? *r | 32 : *r") != 2:
         fail.append('%s does not inline the C-locale tolower -- musl tolower.c is '
@@ -208,7 +213,7 @@ if len(directives) != 18 or any(not l.startswith('#include <') for l in directiv
                 'eighteen #includes and nothing else' % len(directives))
 for tok, name in (('/*', 'a block comment'), ('\t', 'a tab')):
     if new.count(tok) != old.count(tok):
-        fail.append('%s count moved %d -> %d, and this phase writes 282 lines of C '
+        fail.append('%s count moved %d -> %d, and this phase writes 301 lines of C '
                     'with neither' % (name, old.count(tok), new.count(tok)))
 if new.count('//') != old.count('//'):
     fail.append('`//` count moved %d -> %d' % (old.count('//'), new.count('//')))
