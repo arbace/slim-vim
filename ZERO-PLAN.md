@@ -516,14 +516,15 @@ permutation — §2g's fifth break is what happens otherwise.
 | 8 | nothing reads a byte — **built, as zero phase 9** | `open_buffer`'s two read arms, its `read_fifo` local and its signature; the sweep then takes `readfile` (787), `read_buffer`, `read_eintr`, `readfile_linenr`, `filemess`, `msg_add_fname`, `msg_add_lines`, `msg_add_eol` and eight more — **16 functions; the file 83,755 → 82,572**. `read_stdin` here is the ARGUMENT, not the function: `read_stdin()` was argv's and went with zero phase 5. `mch_isdir` and `set_rw_fname` land here and not in row 9 | `open access fcntl`, exactly | **nothing at all**: two full recordings byte-identical. The evidence is an instrumented build, not a record — see below |
 | 9 | the buffer has no name — **built, as zero phase 10** | `:file`'s row, enumerator and BOTH of `do_one_cmd`'s `CMD_file` tests; `buflist_new`'s two name parameters and everything it did with them; sixteen folds of `b_ffname`/`b_sfname`/`b_fname` (**32/26/29 mentions, not 58/30/42** — phase 9 had already taken eleven of them); `do_one_cmd`'s `EX_XFILE` call, which reaches zero rows here; `readonlymode` and `b_dev_valid`'s last write; `shorten_fnames`' cwd; and `find_file_name_in_path`'s `FNAME_EXP` arm. The sweep then takes **60 functions** — `setfname`, `ex_file`, `rename_buffer`, `otherfile_buf`, `buf_setino`, `fix_fname`, `ml_upd_block0`, `ml_timestamp`, `eval_vars`, `expand_filename`, `find_cmdline_var`, the whole `ExpandOne`/`gen_expand_wildcards` layer, `vim_FullName`, `mch_FullName`, `mch_dirname`, `mch_getperm`, `shorten_*`, `home_replace_save` and the `ff_*` remnants — with twelve `buf_T` fields and 43 string literals; **the file 82,572 → 80,387**. `buf_spname` and `get_spec_reg` are NOT removed: both survive folded, `[No Name]` being the only answer left. **`mch_isdir` and `set_rw_fname` are not here — zero phase 9 took both**, and `setfname` had one caller left because of it | `stat getcwd strerror`, exactly — and **only with the `shorten_fnames` and `FNAME_EXP` folds**: `stat`'s last caller is `mch_getperm`, `getcwd`'s and `strerror`'s is `mch_dirname`. **Not `fsync`**, whose only caller is `ui_write` and which is row 12's | **`cmd_file` and the sweep row `file`, and nothing else**: `reg_percent` and `ctrl_g` are byte-identical, `b_fname` having been NULL since row 4 and `[No Name]` already what they printed |
 | 10 | `:q` quits, `ZZ` is `ZQ` — **built, as zero phase 11** | ONE fold, of `ex_quit`'s refusal. This row names three functions and **sixteen** go: the five of the refusal — `check_changed`, `check_changed_any`, `no_write_message`, `no_write_message_nobang` and `not_exiting` — and then **eleven nobody foresaw**, `check_changed_any()`'s tail being the last caller of the whole switch-buffer/switch-window island: `add_bufnum`, `set_curbuf`, `enter_buffer`, `win_enter`, `win_enter_ext`, `goto_tabpage_win`, `goto_tabpage_tp`, `get_winopts`, `find_wininfo`, `buflist_findfpos` and `buflist_getfpos`. Two struct fields go by hand — `w_topline_was_set` and `wi_changelistidx`, write-only afterwards and invisible to `deadfields.py` — and `ex_quit`'s dead tail with them, since `getout()` sets `exiting` itself and never returns. **The file 80,387 → 79,866**; twelve enumerators go and nothing renumbers. **`nv_Zet`'s `:x` is not here — zero phase 6 took it** | — | **`quit_modified` and the sweep row `quit`, and nothing else**: the measurement below was taken before zero phase 8, which has since moved `cmd_edit` and removed the rows `edit enew ex view visual`. **`quit` CHANGES MESSAGE rather than ceasing to exist**, unlike every sweep row rows 5 to 9 declared, and the **exit status does not move in the corpus** — every case ends with a trailing `:q!`, so the 1 → 0 is a probe (`q_alone`) and not a record |
-| 11 | the options nothing reads | `'fsync'`, `'write'`, `'writeany'`, `'undoreload'`, and `'readonly'` by decision; `'shortmess'` and `'cpoptions'` letters that lost their readers. **`'paste'` is exempt and the phase says so** | — | none (`:set` is not swept); `tools/dropoptions.py --strict` refuses while a reader exists, which is the check |
+| 11 | the options nothing reads — **built, as zero phase 12** | The set is COMPUTED and it is **seven**, not four: `'fsync'` `'modified'` `'prompt'` `'readonly'` `'undoreload'` `'write'` `'writeany'` have no reader of their own global, and SIX are dropped. **`'prompt'` is missing from this row** — its only reader was `getexmodeline()`'s `if (p_prompt) msg_putchar(':');`, so it is zero phase 4's orphan. **`'modified'` stays** (decision 5, and `dropoptions.py` refuses a PV_BUF row). `'readonly'` is live code and not an inert row: `change_warning()` and its six calls, the `[RO]` in `fileinfo()` with its format string, the `[RO]` on the status line, and `did_set_readonly()`. **The flag letters are NOT touched** — see below. The sweep then takes `SHM_RO`, `BV_FS`, `BV_RO`, `w_readonly`, `b_did_warn` and the six globals; **the file 79,866 → 79,757**, and `options[]` 114 → 108 rows and 102 → 96 globals | — | none, measured: two full recordings byte-identical. `tools/dropoptions.py --strict` is the check for the four `PV_NONE` rows ONLY; `'fsync'` (PV_BOTH) and `'readonly'` (PV_BUF) are refused on the PV_ guard before the reader test is reached, and `tools/droplocal.py` is the tool and the check there |
 | 12 | no `FILE *` that is never opened | `scriptin[]` (3739, never assigned), `redir_fd` (3777, never assigned), `ui_write`'s `console` (its only caller passes `FALSE`) | `fclose getc fputs putc` | none |
 
-**Nine rows are built, and the numbering is not the table's.** Row 2 ran as zero
+**Ten rows are built, and the numbering is not the table's.** Row 2 ran as zero
 phase 2, row 3 as zero **phase 4**, row 4 as zero **phase 5**, row 5 as zero
 **phase 6**, row 6 as zero **phase 7**, row 7 as zero **phase 8**, row 8 as zero
-**phase 9**, row 9 as zero **phase 10** and row 10 as zero **phase 11**, because the
-harness switch of §2 landed between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what each one did; where this
+**phase 9**, row 9 as zero **phase 10**, row 10 as zero **phase 11** and row 11 as
+zero **phase 12**, because the harness switch of §2 landed between rows 2 and 3 as
+phase 3. `ZERO-GOAL.md` is what each one did; where this
 table turned out to be wrong is said at the row.
 
 #### P2 — nothing asks whether this is a terminal
@@ -787,6 +788,28 @@ whim's Phase 11 left `p_dir` NULL and dereferenced before those guards existed.
 **`'paste'` is exempt by decision 8**, and the phase program says so in a comment
 that names this plan, so the next person to compute the set does not "fix" it.
 
+**Built as zero phase 12, and four things here were wrong.** *(1)* The computed set is
+**seven, not four**: `'prompt'` is missing from this section, and its only reader was
+`getexmodeline()` — so it is zero phase 4's orphan, and the phase needs a `uses
+options:12 streams:4` line this plan does not have. `'modified'` is the seventh and
+**stays**, by decision 5. *(2)* *"dropoptions.py --strict refuses while a reader exists,
+which is the check"* is true only for the four `PV_NONE` rows. `'fsync'` (PV_BOTH) and
+`'readonly'` (PV_BUF) are refused on the **PV_ guard**, before the reader test is
+reached and with a message about a segfault at startup rather than about readers;
+`--local` plus `tools/droplocal.py` is the pair, and `droplocal.py` is what refuses
+while a real reader survives — it did, on `did_set_readonly`, which is why that one
+function is removed by name. *(3)* **The `'shortmess'` and `'cpoptions'` letters are
+NOT dropped, deliberately.** Each list is a separate string literal from the value, so
+removing a letter could not move `:set shm?` or `:set cpo?` — but it turns `:set shm=F`
+from silently accepted into `E539`, and nothing in the instrument types `:set shm=`.
+That is the change rule 2 exists to prevent. 23 of `'cpoptions'` 60 letters and 14 of
+`'shortmess'` 23 are inert afterwards, and the phase makes exactly one more so,
+`'shortmess'`'s `r`. *(4)* **`tools/orphanopts.py` has a 100-row floor of its own that
+this phase crosses on its first drop** — 102 → 98 → 96 — which does not fail the phase
+but fails `tools/zerodelta.sh` for every later phase, the same shape as decision 8's
+floor arriving from a different table. It was lowered to 80 in the phase's own commit,
+the same number and the same argument as `create_cmdidxs.py`'s.
+
 #### P12 — no `FILE *` that is never opened
 
 `scriptin[NSCRIPT]` and `redir_fd` are `static FILE *` that **nothing ever
@@ -987,7 +1010,14 @@ that crosses it). The rest stand as recommendations.
 5. **SETTLED — `'readonly'` goes.** Drop the row in P11 with its `W10`
    warning and `[RO]` indicator: after P5 nothing can be written, and nothing but
    `:set ro` can set it. `'modifiable'` (a real protection) and `'modified'` (state
-   a host wants) stay.
+   a host wants) stay. **Done at zero phase 12 and confirmed by measurement**: the
+   premise held — `b_p_ro` had ten mentions and `:set ro` was the only thing that
+   could set it — and `'modified'` stays for a second reason this decision does not
+   give, that `tools/dropoptions.py` refuses a `PV_BUF` row. `'readonly'` turned out
+   to have **two** `[RO]` indicators, `fileinfo()`'s and `win_redr_status()`'s, and
+   the W10 warning ended in a one-second `ui_delay`, which is the probe that shows
+   the phase removing behaviour rather than a row. After it **nothing anywhere can
+   mark a buffer read only**, and `'modifiable'` is the protection that remains.
 6. **SETTLED — `:file` goes, `CTRL-G` stays.** Keep `CTRL-G` as buffer info
    (`[No Name]`, the line count, the percentage) and **delete the `:file` row**,
    which exists to rename. `fileinfo()` shrinks rather than going.
