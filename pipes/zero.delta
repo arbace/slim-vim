@@ -393,3 +393,42 @@
 # required.  The same probe records that a user-set `%f`, `%b`, `%*d` or `%z` now
 # renders as vim's own printf spells it rather than as musl's, while `%d` and `%1$d`
 # are identical -- and that `%s` segfaults on BOTH binaries and is not this phase's.
+
+# 15 DECLARES NOTHING AT ALL, and it is a THIRD KIND of empty declaration.  Phase 9's
+# was code that COULD NOT RUN -- readfile() was already unreachable.  Phase 13's was a
+# POSSIBILITY THAT HAD NEVER EXISTED -- neither `FILE *` had been opened in any build.
+# This one is an EQUALITY.  The code it replaces runs constantly: `towupper` alone is
+# entered 892 times in a trivial session, from `utf_islower()` inside
+# `buf_init_chartab()`, BEFORE 'casemap' has been applied and with arguments in exactly
+# 128..255.  What is claimed is that eleven libc functions and six <ctype.h> macros
+# have been replaced by C that computes the same answer.
+#
+# SO THE EVIDENCE IS EQUIVALENCE, NOT UNREACHABILITY, and pipes/zero15-check.sh says
+# what it is.  tools/muslcase.py re-derives all 1,114,112 codepoints from THIS
+# MACHINE'S libc through ctypes and compares them with the 187 + 171 convertStruct rows
+# the phase shipped; tools/muslctype.py slices the seventeen functions OUT OF THE
+# PRODUCED SOURCE, compiles them with -Wall -Wextra and runs them beside libc's over
+# 1,002,140 int values, 137,560 atoi/atol strings and 1,845 bsearch lookups compared by
+# POINTER.  Both are proven able to fail.
+#
+# AND THE CORPUS CANNOT SEE ANY OF IT, which is why fourteen probe sessions run on both
+# binaries beside the recording.  Every one of the 102 screen cases seeds itself by
+# TYPING ASCII, so nothing in it reaches Unicode case folding, 'casemap', the four
+# bsearch tables or the sort.  The probes do: six over an ASCII, a Latin-1, a Greek, a
+# Cyrillic, a circled Latin and a Coptic letter under every 'casemap' the option can
+# hold -- the first three separate an ASCII fallback and the last two separate vim's
+# own table, and a text with only one group would pass one of the two wrong answers --
+# four for the four bsearch tables, three for atoi and atol, one for the chartab those
+# 892 startup calls build, and :undolist read out of the RAW STREAM, because the
+# Press-ENTER redraw wipes it before the \x1b[?25h that ends a step.
+#
+# Measured: two full recordings, the binary the phase was handed against the one it
+# made, are byte-identical -- all 102 screen cases, all 111 Ex-command rows, all 30
+# command lines, the four pty scenarios and the nineteen terminal rows -- and
+# tools/zerodelta.sh --phase 15 finds the same against whim-vim's frozen baselines.
+#
+# Eleven libc symbols go, `atoi atol bsearch isalnum iscntrl ispunct qsort tolower
+# toupper towlower towupper`, and FIVE MORE identifiers leave the source with no symbol
+# to show for it: musl spells isalpha, isdigit, isgraph, islower and isupper as macros.
+# That is why <ctype.h> could not be removed by counting nm -u, and why this phase's
+# check asserts the header contract itself.

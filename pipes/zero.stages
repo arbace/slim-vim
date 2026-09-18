@@ -23,7 +23,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 
 #   stage   phases
 stage       0
@@ -41,6 +41,7 @@ stage       11
 stage       12
 stage       13
 stage       14
+stage       15
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -161,6 +162,15 @@ apart       11 12
 # 11's check pins the same three and would fail too, but a stage holding 11 and 13
 # holds 12, and `apart 11 12` forbids that already.
 apart       12 13
+#   apart 14 15 both checks state that the undefined set moved by exactly THEIR
+#               symbols -- phase 14's seventeen strings, phase 15's eleven -- and a
+#               stage holding both takes one symbol snapshot at the stage's start, so
+#               each would see the other's eleven or seventeen as symbols it did not
+#               remove and both statements would be false.  Measured: phase 15's
+#               check on a tree where both edits have run reports the set as neither
+#               phase's.  Phase 14's check also names <ctype.h>'s macros as still
+#               present, which phase 15 removes.
+apart       14 15
 # NO `apart 13 14`.  Phase 13's check asserts that the libc surface moves by exactly
 # `fclose fsync getc putc` and that `fputs fputc fwrite putchar` are STILL undefined,
 # and phase 14 moves seventeen more -- so phase 13's check does fail on a phase 14
@@ -254,7 +264,7 @@ package  files        6 7 8 9 10
 package  buffers      11
 package  options      12
 package  tidy         13
-package  vendor       14
+package  vendor       14 15
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -285,3 +295,5 @@ uses  tidy:13     seed:0     mechanical  tools/zerodelta.sh compares its recordi
 uses  vendor:14   seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
 uses  vendor:14   harness:3  mechanical  its one MUST-DIFFER probe is a screen record of a binary that SEGFAULTS on t_CF, and a recording of what the editor DRAWS is what phase 3 gave the pipeline: the file-based sweep recorded an exit status and could not tell a crash from a quit
 uses  tidy:13     terminal:2 rationale   ui_write()'s `console` argument is FALSE at its one call site either way, and phase 2 is where the terminal stopped being asked anything -- so dropping the parameter rather than leaving __attribute__((unused)) on it is that phase's argument for check_tty(void)
+uses  vendor:15   seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  vendor:15   harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
