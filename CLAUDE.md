@@ -995,18 +995,39 @@ Every harness stages the binary under test into a temp directory as `vim`,
 whatever it was called outside — so the recorded baselines always describe
 `argv[0] == "vim"`, and renaming the product could not silently move them.
 
-**In zero that staging is one function, `tools/zstream.py`'s `stage()`, and it is
-one function because of a race.** `shutil.copy2` holds a write fd on its
-destination, and a `fork` in another thread — every zero harness runs its cases in
-a `ThreadPoolExecutor` — hands that thread's child the same fd until it execs;
-`execve` refuses a file any process holds open for writing, so the *copying*
-thread's own exec dies with `Text file busy`. Measured on r1: 0 of 20 runs of
+**That staging is one function per pty layer, and it is one function because of a
+race.** `shutil.copy2` holds a write fd on its destination, and a `fork` in another
+thread — every zero harness runs its cases in a `ThreadPoolExecutor`, and so do
+`termcheck.py` and `ptycheck.py` — hands that thread's child the same fd until it
+execs; `execve` refuses a file any process holds open for writing, so the *copying*
+thread's own exec dies with `Text file busy`. Measured in zero on r1: 0 of 20 runs of
 `zcases.py`/`zargv.py` idle and **8 of 20** under a steady 64-way load, and a
 `make zero-verify` under that load lost **15 of its 18 units**, almost every one of
 them this. `stage()` copies **once per binary, under a lock, in a child process**,
-so the write fd never exists in an address space that is forking. Every zero
-harness and every zero phase check calls it; `tools/ptyrun.py` has its own copy of
-the same three lines and is whim's, so it is the one place left.
+so the write fd never exists in an address space that is forking.
+
+**There are two `stage()`s and the duplication is deliberate.**
+`tools/zstream.py`'s is zero's, called by every zero harness and every zero phase
+check; `tools/ptyrun.py`'s is the pty layer's, called by `termcheck.py`,
+`ptycheck.py`, `ztermcheck.py` and the eight zero checks that drive a terminal. In
+`ptyrun.py` it is **5 exec failures in 100 idle runs** of `termcheck.py` — 1,900 pty
+sessions — against **0 in 100** after, and 1 of 60 against 0 of 60 interleaved in one
+loop; **load does not make it likelier** (0 in 60 under a steady 256-way load, 0 in
+20 under an oscillating 128-way one), because what overlaps is the nineteen threads'
+*startup*, which a loaded machine spreads apart. `ptyrun.py` does not import
+`zstream.py` because `implhash.sh` follows named paths one level and `pipes/slim1.sh`
+names `termcheck.py`, which names `ptyrun.py`: the import would put a zero tool in
+slim's and whim's implementation keys for ever.
+
+**`tools/ptyrun.py` is in no implementation key at all**, and that is a gap rather
+than a design. `implhash.sh` extracts dependencies by grepping a program for
+`tools/…` *paths*, and nothing names this one that way — `termcheck.py` says
+`import ptyrun`. Measured both ways: a one-line change to `termcheck.py` moves 28 of
+the 144 keys (1 slim, 12 whim units, 1 whim edit, 12 zero units, 2 zero edits) and
+the same change to `ptyrun.py` moves **none**. So a change to the pty driver
+invalidates no cache and a repass silently reuses results the old driver produced.
+It is safe only because a harness writes no tree; a change there must be shown
+behaviour-neutral by measurement, because the keys will not force a re-run.
 
 **The product is `slim-vim`, and that name was checked rather than assumed.**
 It matches none of the prefixes above and falls through to plain vim: run side
