@@ -15,7 +15,7 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has eighteen phases.** Phase 0 is the
+**This document is iterative, and so far it has nineteen phases.** Phase 0 is the
 seed, phase 1 is a compiler flag, phase 2 is the first cut in the source — the first
 piece of *a component, not a program* — phase 3 changes no source at all: it
 replaces the instrument every later phase is measured with; phase 4 removes Ex mode,
@@ -3239,12 +3239,12 @@ asked for, and then the six headers that had nothing left to supply. What remain
 `ZERO-PLAN.md` is the host boundary itself: `main()` demoted to a launcher, the
 terminal and the signal set moved out of the core, and the text representation changed
 from lines to a tree. **Its §4c expected strings, memory and arithmetic to be what was
-left in the core after that move; they are already gone, and the launcher has not been
-written.**
+left in the core after that move; they are already gone.** Phase 18 is the demotion
+itself and the launcher exists, at the bottom of the same file.
 
 ## Phase 17 — the deadly ladder that cannot run
 
-`pipes/zero17-edit.sh` and `pipes/zero17-check.sh`, `stage 17`, `package exit`. Nine
+`pipes/zero17-edit.sh` and `pipes/zero17-check.sh`, `stage 17`, `package host`. Nine
 lines, one libc symbol, and the smallest zero phase so far. `deathtrap()` — the handler
 for the deadly signals — opens with a ladder that counts how often it has been entered:
 
@@ -3401,7 +3401,7 @@ padding. This phase's measure is the symbol, not the size.
 
 ### Its placement
 
-`stage 17`, `package exit` — new, and it is where `main()`'s demotion and `mch_exit`'s
+`stage 17`, `package host` — new, and it is where `main()`'s demotion and `mch_exit`'s
 one remaining `exit(r)` will go — with two `uses` lines, `exit:17 seed:0 mechanical` and
 `exit:17 harness:3 mechanical`, which is what every phase declaring "nothing moved" owes.
 
@@ -3450,3 +3450,170 @@ boundary that is not a device:
 **`exit` is now a single call site**, `mch_exit`'s `exit(r);`, and that is what this phase
 was for as much as the symbol: the next phase in this package has one line to replace in
 one function rather than three in two.
+
+## Phase 18 — `main()` is demoted to `vim_main()`
+
+`pipes/zero18-edit.sh` and `pipes/zero18-check.sh`, `stage 18`, `package host`. Five
+lines, no libc symbol, and `ZERO-PLAN.md` §4c's first step. What was
+
+```c
+    int
+main
+(int argc, char **argv)
+{
+    ...
+    return vim_main2();
+}
+```
+
+becomes `static int vim_main(int argc, char **argv)` with the **same body, byte for
+byte**, and a six-line launcher is appended below it:
+
+```c
+    int
+main(int argc, char **argv)
+{
+    return vim_main(argc, argv);
+}
+```
+
+The editor runs one call frame deeper and does exactly what it did. Nothing else moves;
+this is deliberately the only thing the phase does.
+
+### Both stay in `zero-vim.c`, and that is the point rather than a compromise
+
+Two tools hard-code today's invariant: `tools/phasecheck.sh`'s `grep -v '^main$'` and
+`tools/funcreach.py`'s `{'main'}` root. Splitting the launcher into a second translation
+unit is what breaks both, and the cost was measured while `exit` was being reviewed —
+**one appended line to `tools/phasecheck.sh` moves 118 implementation keys**: 12 whim
+stages, 82 whim edits, 12 zero units, 12 zero edits, and no slim key. So every demotion
+that *can* be done inside one file is done inside one file, and the split happens once,
+late, when there is nothing left to do before it.
+
+**`vim_main` is `static` for the same reason.** Nothing outside this file calls it, and
+a non-static one would be the first external symbol any zero phase has ever added.
+`nm --extern-only --defined-only` on the object still prints exactly `main`.
+
+### The name was checked for a collision rather than assumed
+
+`vim_main2()` already exists — it is upstream's, the second half of the old `main()`
+split at the point where the screen is up — and `vim_main` had **zero** mentions as a
+whole word. C has no prefix collision, but a reader greps, so the edit and the check pin
+all three words separately: `main` 1 (the launcher's head, and the only bare `main` in
+80,000 lines), `vim_main` 2 (its definition and the one call — a third would be a
+prototype, and a function defined above its only call needs none), `vim_main2` 2
+(untouched). `\b` does not match inside `main_loop`, `main_errors` or `vim_main2`, and a
+substring grep does.
+
+### A fossil goes with it, and it turns out not to be cosmetic
+
+`main()`'s head was spelled over **three** lines because upstream had an `#ifdef`
+between the name and the argument list, giving MS-Windows a different signature; slim's
+phase 5 took the conditional and left the line break. Every other function in this file
+spells its head over two, so `vim_main` gets the ordinary shape and the new `main` gets
+it too.
+
+**Measured: `tools/funcreach.py`'s definition finder never matched the three-line head.**
+`main` had never been one of the definitions it counts — its `{'main'}` root was a name
+added by hand to a set that did not contain it. So 1,755 definitions become **1,757**
+for one new function, and the second is `main` itself, seen for the first time. All
+1,757 are reachable.
+
+### The evidence is every way the editor can end
+
+The binary is **not** byte-identical and is not asserted to be: at `-O0` an extra call
+frame is real code. Measured, both built `SOURCE_DATE_EPOCH=0` with the boundary's own
+flags: **805,544 bytes either side — the same size, different bytes**, the frame
+absorbed by alignment padding. So phase 16's tier-1 argument is not available here and
+something else has to stand in its place.
+
+What stands in its place is the six routes `ZERO-PLAN.md` maps that a probe can reach
+from outside, run on **both** binaries:
+
+| | how it starts | path | status |
+| --- | --- | --- | --- |
+| `quit` | `+q!` | `ex_quit` → `getout(0)` | **0** |
+| `cquit3` | `+cq 3` | `ex_cquit` → `getout(3)` | **3** |
+| `eof` | stdin at `/dev/null` | `read_error_exit` → `preserve_exit` → `getout(1)` | **1** |
+| `badopt` | `-Z` | `mainerr` → `mch_exit(1)` | **1** |
+| `sigterm` | SIGTERM | `deathtrap` → `preserve_exit` → `getout(1)` | **1** |
+| `sighup` | SIGHUP | the same | **1** |
+
+`return vim_main(argc, argv);` puts a value in the program's path that was not there
+before, and that table is what says it arrives. **The binary the phase was handed is
+required to give the same six**, so an agreement cannot be two wrong answers agreeing.
+
+**And the table is proven able to fail.** The output is built a second time with
+`mch_exit`'s `exit(r)` changed to `exit(r + 1)` — one character — and all six move:
+1, 4, 2, 2, 2, 2. Six statuses that agree prove nothing unless a wrong one would have
+been caught, which is phase 17's `SA_NODEFER` control in this phase's shape.
+
+**`/dev/null` and not a pipe, and that is a measurement.** With stdin a pipe the harness
+closes, the EOF row came back as a twenty-second timeout on four binaries out of five
+and as a clean 1 on the fifth — a race in the *harness*, not in the editor. A file that
+is already at end of file has no race in it, and the four non-signal rows are then
+deterministic over repeated runs.
+
+### The declared delta is nothing at all
+
+`pipes/zero.delta` gets a comment and no line, and this is a **sixth** kind of empty
+declaration. The five before it each removed *something*: **9** code that could not run,
+**12** code that can run and that the instrument cannot see, **13** a possibility, **16**
+no code at all with the binary the same bytes, **14** and **15** code replaced by code
+that computes the same answers. **This one adds a call frame and removes nothing**, so
+there is nothing to declare and nothing for a recording to show. `tools/zerodelta.sh
+--phase 18` finds the corpus unmoved, as it must: 102 of 102 screen cases, 111 of 111
+Ex-command rows, 30 of 30 command lines.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,423 | **80,428** (+5) |
+| functions `funcreach` counts | 1,755 | **1,757** — one new, and `main` seen at last |
+| type definitions | 907 | 907 |
+| `nm -u`, as `phasecheck.sh` counts it | 33 | **33, identical as a `cmp`** |
+| `nm -u` with zero's own flags | 32 | **32** |
+| external symbols | `main` | `main` |
+| `#include` | 12 | 12 |
+| binary | 805,544 | **805,544 — the same size, different bytes** |
+| sweep | | **1 round, a complete no-op** |
+| phase | | **22 s** |
+
+### Its placement
+
+`stage 18`, `package host` beside phase 17, with `uses host:18 seed:0 mechanical` and
+`uses host:18 harness:3 mechanical` — the two every phase declaring "nothing moved"
+owes.
+
+**`need 18 swept` is not required.** Both anchors are exact text at a counted
+occurrence — the three-line head, and the file's last two lines — and neither is text a
+sweep has ever touched.
+
+**`apart 17 18`, measured.** Phase 17's check requires the file to have lost **exactly
+nine** lines and this phase adds five, so on a shared stage the one swept text 17's
+check is handed is four lines shorter than its input rather than nine:
+`tools/phaserun.sh zero 17-18` on r16 reports *"the file lost 4 lines, expected 9"* and
+exits 1. It is `apart 16 17`'s shape in **one** direction only — phase 18's own check
+compares against the text *its* edit was handed, which is 17's output either way, so it
+passes on a 17-18 stage.
+
+### What zero-vim is after eighteen phases
+
+```
+zero-vim.c        80,428 lines          from whim-vim.c's 86,614  (-6,186, 7.1%)
+functions         1,757  (1,755 + vim_main, + main itself, now a shape funcreach sees)
+type definitions  907
+DWARF enumerators 1,181
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    108, 96 distinct globals  (orphanopts floor 80; 16 of margin)
+#include          12, every one a system header; no #define, no conditional
+libc symbols      32 with zero's flags, 33 as tools/symbols.sh counts
+binary            805,544 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    20 records + stderr-moved, from whim-vim
+```
+
+**Nothing in the table moved but the line count and the function count**, which is what
+a phase that renames one function and adds another is entitled to move. `exit` is still
+`mch_exit`'s single call site; the next phase in this package is the one that takes it.
