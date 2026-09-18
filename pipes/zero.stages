@@ -19,12 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are twenty-one phases, 0 to 20.  Phases are added one at a time, each on its
+# There are twenty-two phases, 0 to 21.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21
 
 #   stage   phases
 stage       0
@@ -48,6 +48,7 @@ stage       17
 stage       18
 stage       19
 stage       20
+stage       21
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -244,6 +245,18 @@ apart       18 19
 # shape exactly, and it is reasoning from those two programs rather than a second run,
 # because 19's check refuses first and there is nothing after it to observe.
 apart       19 20
+# Phase 20's check fails on a shared stage with 21, MEASURED rather than predicted with
+# `tools/phaserun.sh zero 20-21` on r19: both edits run, the sweep runs twice, and 20's
+# check stops on ONE message -- `the output does not have exactly the twelve #include
+# directives phase 16 left`.  Phase 21 removes <stdio.h> and takes the count to eleven,
+# and phase 20's check states the twelve as a property it preserves.  There is a second
+# reason the run never reaches, and it is `apart 14 15`'s and `apart 19 20`'s shape:
+# phase 20 states its gone set as one `comm` against the stage's symbol snapshot, a stage
+# takes ONE snapshot at its start, so on a 20-21 stage the gone set would be its seven
+# PLUS the seven phase 21 frees.  ONE DIRECTION ONLY, and that is measured too: the same
+# run shows phase 21's edit succeeding on phase 20's UNSWEPT output, 80,181 -> 80,206
+# lines, every anchor holding.
+apart       20 21
 
 # NO `apart 13 14`.  Phase 13's check asserts that the libc surface moves by exactly
 # `fclose fsync getc putc` and that `fputs fputc fwrite putchar` are STILL undefined,
@@ -337,6 +350,15 @@ need        11 swept
 #                  functions, 0 variables, 0 types, 0 fields, 0 enumerators, canon
 #                  settled, the file not one line shorter than the edit left it.
 #                  Removing a header is not removing code.
+#   NO `need 21`, AND IT WAS MEASURED RATHER THAN ASSUMED, in the same run that
+#                  measured `apart 20 21`.  `tools/phaserun.sh zero 20-21` on r19 runs
+#                  phase 21's edit on the UNSWEPT text phase 20's edit leaves and every
+#                  one of its anchors holds -- the twelve input counts, the twenty
+#                  statements, the eleven output counts and the whole launcher tail --
+#                  80,181 -> 80,206 lines, the same 25 it adds to swept text.  Its cuts
+#                  are exact text in functions no sweep touches and its computed parts
+#                  are counts of words the sweep cannot create, so there is nothing that
+#                  could shrink silently.
 
 #        name         phases
 package  seed         0
@@ -350,7 +372,7 @@ package  options      12
 package  tidy         13
 package  vendor       14 15
 package  includes     16
-package  host         17 18 19 20
+package  host         17 18 19 20 21
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -396,3 +418,7 @@ uses  host:19     harness:3  mechanical  "nothing moved" is a statement about a 
 uses  host:20     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
 uses  host:20     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
 uses  host:20     terminal:2 rationale   the two "not to a terminal" warnings phase 2 removed were the last thing the core said about a terminal it had not been told about, and ZERO-PLAN.md 1's decision 7 -- "do not ask whether stdin or stdout is a terminal, the check goes entirely" -- was only two thirds kept there.  This phase takes all three surviving isatty() calls and finishes it
+uses  host:21     seed:0   mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  host:21     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  host:21     vendor:14  mechanical  report_term_error and mainerr assemble their message with vim_snprintf, which is the only formatter left in the file because phase 14 put sprintf onto it rather than vendoring one
+uses  host:21     includes:16 rationale   <stdio.h> goes with the seven symbols, and a phase may remove a directive only because phase 16 is where the charter's old reading -- a count the pipeline preserves -- was replaced by the rule it states now
