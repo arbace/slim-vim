@@ -80375,9 +80375,8 @@ mainerr_arg_missing(char_u *str)
     mainerr(ME_ARG_MISSING, str);
 }
 
-    int
-main
-(int argc, char **argv)
+    static int
+vim_main(int argc, char **argv)
 {
 
       musl_memset((&(params)), (0), (sizeof(params)))  ;
@@ -80420,4 +80419,10 @@ main
     init_highlight(TRUE, FALSE);
 
     return vim_main2();
+}
+
+    int
+main(int argc, char **argv)
+{
+    return vim_main(argc, argv);
 }

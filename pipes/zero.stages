@@ -19,12 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are eighteen phases, 0 to 17.  Phases are added one at a time, each on its
+# There are nineteen phases, 0 to 18.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18
 
 #   stage   phases
 stage       0
@@ -45,6 +45,7 @@ stage       14
 stage       15
 stage       16
 stage       17
+stage       18
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -204,6 +205,14 @@ apart       15 16
 #               phase takes it: a stage holding 15 and 17 holds 16, and `apart 15 16`
 #               forbids that already.  It is the shape of the missing `apart 2 6`.
 apart       16 17
+# Phase 17's check requires the file to have lost EXACTLY NINE lines -- the ladder --
+# and this phase ADDS five, so on a shared stage the one swept text 17's check is
+# handed is four lines shorter than 17's input rather than nine.  Measured with
+# `tools/phaserun.sh zero 17-18` on r16: `the file lost 4 lines, expected 9`, exit 1.
+# It is `apart 16 17`'s shape in ONE direction only: phase 18's own check compares
+# against the text ITS edit was handed, which is 17's output either way, so it passes
+# on a 17-18 stage.
+apart       17 18
 # NO `apart 13 14`.  Phase 13's check asserts that the libc surface moves by exactly
 # `fclose fsync getc putc` and that `fputs fputc fwrite putchar` are STILL undefined,
 # and phase 14 moves seventeen more -- so phase 13's check does fail on a phase 14
@@ -309,7 +318,7 @@ package  options      12
 package  tidy         13
 package  vendor       14 15
 package  includes     16
-package  host         17
+package  host         17 18
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -348,3 +357,5 @@ uses  includes:16 vendor:14  mechanical  <string.h> is unused only because phase
 uses  includes:16 vendor:15  mechanical  <ctype.h> and <wctype.h> likewise -- and <wctype.h> needed `iswupper` handled as well, a NAME with no libc symbol, sitting on a line gcc never emitted, which phase 15 deleted rather than vendoring a function nothing calls
 uses  host:17     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
 uses  host:17     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  host:18     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  host:18     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
