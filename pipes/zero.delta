@@ -597,8 +597,8 @@
 # ONE THING REALLY CHANGES AND NO INSTRUMENT IN THIS PIPELINE CAN SEE IT: mainerr and
 # report_term_error assemble into a 1024-byte buffer, so a message built from an argv
 # string longer than about 930 characters is now capped.  MEASURED on both binaries: an
-# unknown option of 900 characters is byte-identical and one of 2,000 is 2,069 bytes on
-# the input and 997 here; a `-T` of 2,000 is 2,039 against 1,023.  It is not declared,
+# unknown option of 900 characters is byte-identical and one of 2,000 is 2,095 bytes on
+# the input and 1,023 here; a `-T` of 2,000 is 2,039 against 1,023.  It is not declared,
 # because nothing in the corpus is within 800 characters of it and `pipes/zero.delta` is
 # a list of records that moved; it is pinned as a probe in both directions instead.
 
