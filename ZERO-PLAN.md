@@ -1064,13 +1064,25 @@ Almost nothing, and the residue is nameable:
 ### 4c. Toward the host boundary — a sketch, not a plan
 
 Once argv is two options and nothing is loaded or saved, `main()` is a few lines of
-terminal setup, a size query, and `vim_main2()`. The shape the charter asks for is:
+terminal setup, a size query, and `vim_main2()`.
+
+**THE TWO FILES' ROLES ARE THE OTHER WAY ROUND FROM WHAT THIS SECTION FIRST SAID**,
+settled by the user on 2026-09-18. The editor proper carries on in `editor.c`, and
+`zero-vim.c` becomes the host wrapper — the small file:
 
 ```
-editor.c        main(), the terminal: tcgetattr/tcsetattr, TIOCGWINSZ, the signal
-                handlers, read(0)/write(1), and the loop that hands bytes to the core
-zero-vim.c      vim_main(), and no libc call that is not memory, strings or arithmetic
+editor.c        the vim editor proper: vim_main(), and NO PREPROCESSOR SYNTAX AT
+                ALL -- not one directive, not even an #include.  At the top, an
+                explicit set of musl_-prefixed prototypes, which are the calls
+                back to the host.
+zero-vim.c      the host: main(), which calls vim_main(); the #includes; and the
+                definitions of every musl_ function editor.c declared.
 ```
+
+The executable is still `zero-vim`, so `argv[0]` is unchanged and no harness moves —
+they stage the binary as `vim` whatever it is called outside. What does change is
+that every document here calls `zero-vim.c` the editor, and after the split it is the
+*smaller* of the two files.
 
 The three steps that get there, in the order their measurements suggest: demote
 `main()` to `vim_main(void)` and give the launcher the four calls `common_init_1`,
@@ -1105,6 +1117,58 @@ not musl needs `<limits.h>`, `<sys/time.h>` and `<sys/select.h>` written in. Pha
 recorded it rather than repairing it, because repairing it means adding directives and
 the charter forbids that; the failure it leaves is loud — the build stops — which is
 the acceptable one.
+
+#### What "no preprocessor syntax at all" costs, measured on the file as it stands
+
+The split is not "move `main()` out". A file with no directives has no libc **types**
+and no libc **constants** either, and `zero-vim.c` names a great many of both. Counted
+with `grep -owc` on the 80,413-line file:
+
+| what it is | from | mentions |
+| --- | --- | --- |
+| `va_list` `va_start` `va_arg` `va_end` | `<stdarg.h>`, three of them **macros** | 15, 8, 21, 10 |
+| `offsetof` | `<stddef.h>`, a **macro**, and the only thing holding that header | 9 |
+| `size_t` / `NULL` | `<stddef.h>` | 430 / 2,564 |
+| `MIN` / `MAX` | `<sys/param.h>`, **macros** | 7 / 16 |
+| `SIZE_MAX` / `uintptr_t` | `<stdint.h>` | 1 / 1 |
+| `errno` | `<errno.h>`, a **macro** for `*__errno_location()` | 3 |
+| `EXIT_FAILURE` | `<stdlib.h>` | 1 |
+| `struct termios` `struct winsize` `struct timeval` `struct timespec` | the terminal and the clock | 4, 1, 6, 1 |
+| `sigset_t` `struct sigaction` `sighandler_T` `SIGHUP`… | `<signal.h>` | 1, 3, 5, … |
+| `fd_set` `FD_SET` `FD_ZERO` `FD_ISSET` `TIOCGWINSZ` | `select` and `ioctl`, four of them **macros** | 6, 2, 3, 1, 1 |
+
+So the rule forces a stronger interface than it first appears to ask for: **no libc
+type may cross the boundary, only scalars.** `musl_get_winsize(int *rows, int *cols)`
+rather than `ioctl` with a `struct winsize`; `musl_set_raw(int on)` rather than
+`tcgetattr`/`tcsetattr` with a `struct termios`; `musl_wait_for_input(int ms)` rather
+than `select` with an `fd_set` and a `struct timeval`. That is more work than a rename
+and it is the right shape anyway — **it is also exactly what makes the file
+transpile**, since a JVM target has no `struct termios` either. `size_t` and `NULL`
+become a typedef and a constant `editor.c` declares for itself; `offsetof` becomes
+`__builtin_offsetof`, which phase 16 already measured leaves `<stddef.h>` dead.
+
+**`va_list` is the one with no scalar workaround, and it needs a decision.**
+`vim_vsnprintf_typval` is variadic and vim's whole message layer runs through it. gcc
+spells the type `__builtin_va_list` and the three macros `__builtin_va_start`,
+`__builtin_va_arg` and `__builtin_va_end` — no header and no directive, so the letter
+of the rule is kept — but they are gcc extensions in a file whose point is to be plain
+C. The alternatives are to keep the variadic layer on the host side, or to give the
+editor a fixed-arity formatting interface. Not settled.
+
+**The split necessarily ends "nothing is global but `main()`."** Two translation
+units mean `vim_main()` and every `musl_` the host provides have external linkage by
+construction. Two tools hard-code the old invariant — `tools/phasecheck.sh:64`'s
+`grep -v '^main$'` and `tools/funcreach.py:127`'s `{'main'}` root — and the cost of
+touching the first was measured while reviewing `exit`: **one appended line to
+`phasecheck.sh` moves 118 implementation keys**, 12 whim stages, 82 whim edits, 12
+zero units and 12 zero edits, and no slim key. That is the argument for doing
+everything that can be done *while the launcher still lives at the bottom of the
+single file*, and splitting once, late.
+
+One smaller consequence: each pipeline's product rule extracts **one** file from the
+last boundary's tar (`zero.mk`, and the same shape in `slim.mk` and `whim.mk`). After
+the split zero has two, and `make score`, the file census and `zero-pass`'s flags
+check all assume one product per pipeline.
 
 ## 5. Decision points
 
