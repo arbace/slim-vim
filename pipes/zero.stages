@@ -19,11 +19,11 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are ten phases.  Phases are added one at a time, each on its own request
+# There are eleven phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9
+phases      0 1 2 3 4 5 6 7 8 9 10
 
 #   stage   phases
 stage       0
@@ -36,6 +36,7 @@ stage       6
 stage       7
 stage       8
 stage       9
+stage       10
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -104,6 +105,22 @@ apart       7 8
 # undefined set against a phase that frees three, but the source assertions come
 # first.
 apart       8 9
+# Phase 9's check draws its line against THIS phase as counts -- b_ffname 32,
+# b_sfname 26, b_fname 29, setfname 2, readonlymode 3, eval_vars 4, mch_dirname 5,
+# expand_filename 3, fix_fname 3, vim_FullName 3, mch_FullName 3, buf_store_time 3
+# and the four write-only fields b_mtime_read, b_mtime_read_ns, b_orig_size and
+# b_orig_mode at 3 each -- and it names the four as things this phase takes.  This
+# phase takes every one of them to 0.  Measured by running pipes/zero9-check.sh on
+# the tree phase 10 leaves: eighteen count complaints, `b_ffname has 0 mentions,
+# expected 32` among them, plus `b_mtime_read is no longer a field of buf_T`, and it
+# exits 1.  Its symbol check would fail too, being a cmp of the whole undefined set
+# against a phase that frees three, but the source assertions come first.
+#
+# THERE IS DELIBERATELY NO `apart 8 10`, although phase 8's check DOES fail on a
+# phase 10 tree -- it requires `E447: Can't find file` to SURVIVE, and part G takes
+# the only arm that could say it.  A stage holding 8 and 10 holds 9, and `apart 8 9`
+# forbids that already.  It is the shape of the missing `apart 2 6` and `apart 6 8`.
+apart       9 10
 
 # What phase 7's edit needs of the text it is handed (pipes/whim.stages defines the
 # word).  Every zero phase is its own stage today, so this is a statement rather
@@ -141,6 +158,15 @@ need        8 swept
 #                  is true of every zero edit that builds one and is not declared here
 #                  for that reason.
 need        9 swept
+#   need 10 swept  anchor: `b_ffname` has exactly 32 mentions, and the other two name
+#                  fields 26 and 29.  On the text phase 9's edit leaves there are
+#                  FORTY, readfile() still being there to make eight of them, and the
+#                  counted anchor refuses: measured with `tools/phaserun.sh zero
+#                  9-10`, which says `b_ffname has 40 mentions, expected 32 -- the
+#                  anchors below were counted against a different file`.  Unlike 7, 8
+#                  and 9, the text before it COMPILES -- phase 9's edit left valid C --
+#                  so the refusal is the counted anchor alone and nothing else.
+need        10 swept
 
 #        name         phases
 package  seed         0
@@ -148,7 +174,7 @@ package  build        1
 package  terminal     2
 package  harness      3
 package  streams      4 5
-package  files        6 7 8 9
+package  files        6 7 8 9 10
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -167,3 +193,5 @@ uses  files:8     seed:0   mechanical  tools/zerodelta.sh compares its two scree
 uses  files:8     harness:3  mechanical  the old file-based sweep recorded an exit status, and :edit went from E37 to E492 without changing it; phase 3's message-level record is what can see this phase at all
 uses  files:9     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
 uses  files:9     streams:5  mechanical  read_stdin() the function was argv's, and the `read_stdin` ARGUMENT open_buffer's signature fold removes is FALSE at all four call sites only because phase 5 took the bare `-` and EDIT_STDIN with it
+uses  files:10    seed:0     mechanical  tools/zerodelta.sh compares its one screen case and one command row with the baselines phase 0 records
+uses  files:10    harness:3  mechanical  :file went from the CTRL-G line to E492 with the SAME exit status; the old file-based sweep recorded an exit status, so phase 3's message-level record is what can see this phase at all
