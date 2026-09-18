@@ -23,7 +23,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13
 
 #   stage   phases
 stage       0
@@ -37,6 +37,9 @@ stage       7
 stage       8
 stage       9
 stage       10
+stage       11
+stage       12
+stage       13
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -121,6 +124,42 @@ apart       8 9
 # the only arm that could say it.  A stage holding 8 and 10 holds 9, and `apart 8 9`
 # forbids that already.  It is the shape of the missing `apart 2 6` and `apart 6 8`.
 apart       9 10
+# Phases 6, 7, 8, 9 AND 10 all assert `E37: No write since last change` in the new
+# record of their `quit_modified` probe, and all five name `check_changed` as a thing
+# the `:q` phase takes -- pipes/zero6-check.sh:158 and :422-424 are the first of them.
+# This phase takes it.  Measured by running pipes/zero10-check.sh on the tree phase 11
+# leaves: five complaints -- `check_changed has 0 mentions, expected 4`,
+# `no_write_message has 0 mentions, expected 3`, `buf_spname has 4 mentions, expected
+# 5`, `open_buffer has 4 mentions, expected 5` and `E37 went, and check_changed() is
+# the :q phase's` -- and exit 1.  Its `quit_modified` probe would fail too, requiring
+# E37 in the new record, but the source assertions come first.
+#
+# ONLY `apart 10 11` IS WRITTEN, and the four before it are implied: a stage holding
+# 6 and 11 holds 10, so the line below forbids it already.  It is the shape of the
+# missing `apart 2 6`, `apart 6 8` and `apart 8 10`.
+apart       10 11
+# Phase 11's check pins `p_ro` and `p_ur` at 2 mentions WITH their option rows and
+# says in as many words that removing one is the options phase's.  This phase removes
+# both rows.  Measured by running pipes/zero11-check.sh on the tree phase 12 leaves:
+# six complaints -- `p_ro has 0 mentions, expected 2`, `p_ur has 0 mentions, expected
+# 2`, `'undoreload' lost its option row, and that is the options phase's`, the same
+# for `'readonly'`, `curbufIsChanged has 6 mentions, expected 7` (change_warning's
+# early return read it) and `the function count went 1742 -> 1724, expected 1742 ->
+# 1726` -- and exit 1.  Phase 10's check pins the same two option rows and would fail
+# as well, but a stage holding 10 and 12 holds 11, and `apart 10 11` forbids that
+# already.
+apart       11 12
+# Phase 12's check pins `scriptin` at 8 mentions, `redir_fd` at 6 and `vim_fsync` at
+# 3, and names all three as the FILE* phase's; it also requires `fclose`, `getc`,
+# `putc` and `fsync` to be STILL undefined.  This phase takes every one of them to 0
+# and frees all four symbols.  Measured by running pipes/zero12-check.sh on the tree
+# phase 13 leaves: three complaints -- `redir_fd has 0 mentions, expected 6`,
+# `scriptin has 0 mentions, expected 8` and `vim_fsync has 0 mentions, expected 3` --
+# and exit 1.  Its symbol check would fail as well, being a cmp of the whole undefined
+# set against a phase that frees four, but the source assertions come first.  Phase
+# 11's check pins the same three and would fail too, but a stage holding 11 and 13
+# holds 12, and `apart 11 12` forbids that already.
+apart       12 13
 
 # What phase 7's edit needs of the text it is handed (pipes/whim.stages defines the
 # word).  Every zero phase is its own stage today, so this is a statement rather
@@ -167,6 +206,32 @@ need        9 swept
 #                  and 9, the text before it COMPILES -- phase 9's edit left valid C --
 #                  so the refusal is the counted anchor alone and nothing else.
 need        10 swept
+#   need 11 swept  anchor: `buflist_findfpos` has exactly 3 mentions -- its prototype,
+#                  its definition and the one call inside `buflist_getfpos`, which is
+#                  itself one of the eleven functions of the switch-buffer island.
+#                  THE INVARIANT THE WHOLE PHASE RESTS ON is that every call to any of
+#                  the eleven is inside check_changed_any() or inside another of the
+#                  eleven, so that the island hangs off that one tail and off nothing
+#                  else.  On the text phase 10's edit leaves there are FOUR:
+#                  `buflist_findlnum()` is still there to make `return
+#                  buflist_findfpos(buf)->lnum;`, a call from OUTSIDE the island, and
+#                  phase 10's sweep is what takes it.  The invariant is false on that
+#                  text and the edit refuses.  `SHM_FILEINFO` refuses first, at 3
+#                  mentions where it wants 2, `ex_file()` still being there to read
+#                  the 'shortmess' F letter -- measured with `tools/phaserun.sh zero
+#                  10-11`, which says `SHM_FILEINFO has 3 mentions, expected 2`.
+#                  Unlike 7, 8 and 9 the text before it COMPILES -- phase 10's edit
+#                  left valid C -- so the refusal is the counted anchors alone.
+need        11 swept
+#   NO `need 12` AND NO `need 13`, and both were MEASURED rather than assumed.
+#                  `tools/phaserun.sh zero 11-12` runs phase 12's edit on the unswept
+#                  text phase 11's edit leaves and every counted anchor matches -- the
+#                  same seven rows come back from the computation and the cut ends at
+#                  the same 108 rows and 96 globals.  Phase 13's edit likewise applies
+#                  unchanged to the text phase 12's edit leaves.  In both runs the only
+#                  failure is the edit's build of its own input binary, which is true
+#                  of every zero edit that builds one and is not declared for that
+#                  reason.
 
 #        name         phases
 package  seed         0
@@ -175,6 +240,9 @@ package  terminal     2
 package  harness      3
 package  streams      4 5
 package  files        6 7 8 9 10
+package  buffers      11
+package  options      12
+package  tidy         13
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -195,3 +263,11 @@ uses  files:9     seed:0     mechanical  tools/zerodelta.sh compares its recordi
 uses  files:9     streams:5  mechanical  read_stdin() the function was argv's, and the `read_stdin` ARGUMENT open_buffer's signature fold removes is FALSE at all four call sites only because phase 5 took the bare `-` and EDIT_STDIN with it
 uses  files:10    seed:0     mechanical  tools/zerodelta.sh compares its one screen case and one command row with the baselines phase 0 records
 uses  files:10    harness:3  mechanical  :file went from the CTRL-G line to E492 with the SAME exit status; the old file-based sweep recorded an exit status, so phase 3's message-level record is what can see this phase at all
+uses  buffers:11  seed:0     mechanical  tools/zerodelta.sh compares its one screen case and one command row with the baselines phase 0 records
+uses  buffers:11  files:6    rationale   the refusal has no remedy once nothing can be written: phase 6 took every :write, so E37 asked for a save that the editor no longer had any way to perform
+uses  options:12  seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  options:12  files:6    mechanical  'write', 'writeany' and 'fsync' were do_write's, not_writing's, check_overwrite's and buf_write's, and 'readonly' reached its last setter when phase 6 left :set ro as the only thing that could mark a buffer read only
+uses  options:12  files:8    mechanical  'undoreload' was read by do_ecmd, which went with the :edit family
+uses  options:12  streams:4  mechanical  'prompt' was read by getexmodeline()'s `if (p_prompt) msg_putchar(':');` and by nothing else, so it is phase 4's orphan and is collected here
+uses  tidy:13     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  tidy:13     terminal:2 rationale   ui_write()'s `console` argument is FALSE at its one call site either way, and phase 2 is where the terminal stopped being asked anything -- so dropping the parameter rather than leaving __attribute__((unused)) on it is that phase's argument for check_tty(void)

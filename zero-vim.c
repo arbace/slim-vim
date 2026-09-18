@@ -496,8 +496,6 @@ enum { FM_FORWARD = 0x02 };
 enum { FM_BLOCKSTOP = 0x04 };
 enum { FM_SKIPCOMM = 0x08 };
 
-enum { DOBUF_GOTO = 0 };
-enum { DOBUF_UNLOAD = 2 };
 enum { DOBUF_DEL = 3 };
 enum { DOBUF_WIPE = 4 };
 enum { DOBUF_WIPE_REUSE = 5 };
@@ -548,11 +546,6 @@ enum { HIST_EXPR = 2 };
 enum { HIST_INPUT = 3 };
 enum { HIST_DEBUG = 4 };
 enum { HIST_COUNT = 5 };
-
-enum { CCGD_MULTWIN = 2 };
-enum { CCGD_FORCEIT = 4 };
-enum { CCGD_ALLBUF = 8 };
-enum { CCGD_EXCMD = 16 };
 
 enum { OPT_FREE = 0x01 };
 enum { OPT_GLOBAL = 0x02 };
@@ -717,7 +710,6 @@ enum { CPO_PRESERVE = '&' };
 enum { CPO_SUBPERCENT = '/' };
 enum { CPO_BACKSL = '\\' };
 enum { CPO_SCOLON = ';' };
-enum { SHM_RO = 'r' };
 enum { SHM_MOD = 'm' };
 enum { SHM_NEW = 'n' };
 enum { SHM_TRUNC = 't' };
@@ -725,7 +717,6 @@ enum { SHM_TRUNCALL = 'T' };
 enum { SHM_SEARCH = 's' };
 enum { SHM_COMPLETIONMENU = 'c' };
 enum { SHM_RECORDING = 'q' };
-enum { SHM_FILEINFO = 'F' };
 enum { SHM_SEARCHCOUNT = 'S' };
 enum { SHM_UNDO = 'u' };
 enum { BS_INDENT = 'i' };
@@ -773,9 +764,7 @@ static int      p_eb;
 static int      p_ek;
 static int      p_et;
 static char_u   *p_fcs;
-static int      p_fs;
 static int      p_gd;
-static int      p_prompt;
 static char_u   *p_hl;
 static int      p_hls;
 static long     p_hi;
@@ -810,7 +799,6 @@ static int      p_paste;
 static char_u   *p_pt;
 static int      p_pi;
 static char_u   *p_qe;
-static int      p_ro;
 static int      p_remap;
 static long     p_report;
 static int      p_ru;
@@ -848,7 +836,6 @@ static long     p_ttm;
 static int      p_tf;
 static long     p_ttyscroll;
 static long     p_ul;
-static long     p_ur;
 static int      p_vb;
 static char_u   *p_ve;
 static unsigned ve_flags;
@@ -865,11 +852,8 @@ static char_u   *p_ww;
 static long     p_wh = 1L;
 static long     p_wmh = 1L;
 static long     p_wmw = 1L;
-static long     p_wiw = 20L;
 static long     p_wm;
 static int      p_ws;
-static int      p_write;
-static int      p_wa;
 static long     p_wd;
 
 enum
@@ -877,7 +861,6 @@ enum
     BV_AI = 0
     , BV_CI = 9
     , BV_ET = 26
-    , BV_FS = 32
     , BV_ISK = 38
     , BV_MA = 44
     , BV_MOD = 46
@@ -885,8 +868,7 @@ enum
     , BV_NF
     , BV_PI = 50
     , BV_QE
-    , BV_RO
-    , BV_SI
+    , BV_SI = 53
     , BV_STS = 55
     , BV_SW = 57
     , BV_TS = 61
@@ -1068,7 +1050,6 @@ struct wininfo_S
     pos_T       wi_fpos;
     winopt_T    wi_opt;
     int         wi_optset;
-    int         wi_changelistidx;
 };
 
 typedef struct
@@ -1689,13 +1670,11 @@ struct file_buffer
     int         b_p_et;
     int         b_p_et_nopaste;
     char_u      *b_p_isk;
-    int         b_p_fs;
     char_u      *b_p_mps;
     int         b_p_ma;
     char_u      *b_p_nf;
     int         b_p_pi;
     char_u      *b_p_qe;
-    int         b_p_ro;
     long        b_p_sw;
     int         b_p_si;
     long        b_p_sts;
@@ -1708,8 +1687,6 @@ struct file_buffer
 
     unsigned    b_tc_flags;
     long        b_p_ul;
-
-    bool        b_did_warn;
 
     bool        b_help;
 
@@ -1858,7 +1835,6 @@ struct window_S
     fill_chars_T w_fill_chars;
 
     linenr_T    w_topline;
-    bool        w_topline_was_set;
 
     linenr_T    w_botline;
 
@@ -2357,15 +2333,11 @@ static int close_buffer(win_T *win, buf_T *buf, int action, int abort_if_last, i
 static void buf_clear_file(buf_T *buf);
 static int buf_freeall(buf_T *buf, int flags);
 static void free_wininfo(wininfo_T *wip);
-static void set_curbuf(buf_T *buf, int action);
-static void no_write_message(void);
 static int curbuf_reusable(void);
 static buf_T *buflist_new(linenr_T lnum, int flags);
 static void free_buf_options(buf_T *buf, int free_p_ff);
 static buf_T *buflist_findnr(int nr);
 static void buflist_setfpos(buf_T *buf, win_T *win, linenr_T lnum, colnr_T col, int copy_options);
-static void get_winopts(buf_T *buf);
-static pos_T *buflist_findfpos(buf_T *buf);
 static int col_print(char_u *buf, size_t buflen, int col, int vcol);
 static int bt_help(buf_T *buf);
 static char_u *buf_spname(buf_T *buf);
@@ -2457,7 +2429,6 @@ static void global_exe(char_u *cmd);
 static char_u *skip_vimgrep_pat(char_u *p, char_u **s, int *flags);
 static char_u *skip_vimgrep_pat_ext(char_u *p, char_u **s, int *flags, char_u **nulp, int *cp);
 
-static int check_changed(buf_T *buf, int flags);
 static int check_fname(void);
 static int do_cmdline_cmd(char_u *cmd);
 static int do_cmdline(char_u *cmdline, char_u *(*fgetline)(int, void *, int, getline_opt_T), void *cookie, int flags);
@@ -2478,7 +2449,6 @@ static int ends_excmd2(char_u *cmd_start, char_u *cmd);
 static char_u *find_nextcmd(char_u *p);
 static char_u *check_nextcmd(char_u *p);
 static void set_nextcmd(exarg_T *eap, char_u *arg);
-static void not_exiting(int save_exiting);
 static void do_sleep(long msec, int hide_cursor);
 static void ex_may_print(exarg_T *eap);
 static void redraw_cmd(int clear);
@@ -2507,7 +2477,6 @@ static cmdline_info_T *get_cmdline_info(void);
 static int get_cmdline_firstc(void);
 static int get_list_range(char_u **str, int *num1, int *num2);
 
-static int vim_fsync(int fd);
 static void shorten_fnames(void);
 
 static size_t home_replace(buf_T *buf, char_u *src, char_u *dst, int dstlen, int one);
@@ -2702,7 +2671,6 @@ static void msg_clr_eos_force(void);
 static void msg_clr_cmdline(void);
 static int msg_end(void);
 static void msg_check(void);
-static int redirecting(void);
 static void verbose_enter_scroll(void);
 static void verbose_leave_scroll(void);
 static void give_warning(char_u *message, int hl);
@@ -2887,7 +2855,6 @@ static char *did_set_modified(optset_T *args);
 static char *did_set_number_relativenumber(optset_T *args);
 static char *did_set_osctimeoutlen(optset_T *args);
 static char *did_set_paste(optset_T *args);
-static char *did_set_readonly(optset_T *args);
 static char *did_set_maxsearchcount(optset_T *args);
 static char *did_set_shiftwidth_tabstop(optset_T *args);
 static char *did_set_smoothscroll(optset_T *args);
@@ -3134,7 +3101,7 @@ static void internal_format(int textwidth, int second_indent, int flags, int for
 static int comp_textwidth(void);
 
 static time_T vim_time(void);
-static void ui_write(char_u *s, int len, int console);
+static void ui_write(char_u *s, int len);
 static int ui_inchar(char_u *buf, int maxlen, long wtime, int tb_change_cnt);
 static int inchar_loop(char_u *buf, int maxlen, long wtime, int tb_change_cnt, int (*wait_func)(long wtime, int *interrupted, int ignore_input), int (*resize_func)(int check_only));
 static void ui_delay(long msec_arg, int ignoreinput);
@@ -3180,9 +3147,6 @@ static int win_valid_any_tab(win_T *win);
 static void curwin_init(void);
 static void snapshot_windows_scroll_size(void);
 static void unuse_tabpage(tabpage_T *tp);
-static void goto_tabpage_tp(tabpage_T *tp, int trigger_enter_autocmds, int trigger_leave_autocmds);
-static void goto_tabpage_win(tabpage_T *tp, win_T *wp);
-static void win_enter(win_T *wp, int undo_sync);
 static int win_alloc_lines(win_T *wp);
 static void win_free_lsize(win_T *wp);
 static void shell_new_rows(void);
@@ -3333,8 +3297,6 @@ static int      cterm_normal_bg_color  = 0 ;
 static int      cterm_normal_ul_color  = 0 ;
 static  long  fallback_fg_rgb  =  (( long )0x1ffffff)  ;
 static  long  fallback_bg_rgb  =  (( long )0x1ffffff)  ;
-
-static int      autocmd_busy  = FALSE ;
 
 static int      mouse_dragging  = 0 ;
 
@@ -3499,9 +3461,6 @@ static int      do_redraw  = FALSE ;
 
 static int      need_highlight_changed  = TRUE ;
 
-enum { NSCRIPT = 15 };
-static FILE     *scriptin[NSCRIPT];
-static int      curscript  = 0 ;
 static int      read_cmd_fd  = 0 ;
 
 static volatile sig_atomic_t got_int  = FALSE ;
@@ -3528,9 +3487,6 @@ static pos_T    last_cursormoved
 static int      replace_offset  = 0 ;
 
 static char_u   *empty_option  = (char_u *)"" ;
-
-static int  redir_off  = FALSE ;
-static FILE *redir_fd  = NULL ;
 
 static const char *Version;
 static char *longVersion;
@@ -3597,8 +3553,6 @@ static char e_no_file_name[]  =  "E32: No file name"  ;
 static char e_no_previous_substitute_regular_expression[]  =  "E33: No previous substitute regular expression"  ;
 static char e_no_previous_regular_expression[]  =  "E35: No previous regular expression"  ;
 static char e_not_enough_room[]  =  "E36: Not enough room"  ;
-static char e_no_write_since_last_change[]  =  "E37: No write since last change"  ;
-static char e_no_write_since_last_change_add_bang_to_override[]  =  "E37: No write since last change (add ! to override)"  ;
 static char e_null_argument[]  = "E38: Null argument" ;
 static char e_out_of_memory[]  =  "E41: Out of memory!"  ;
 static char e_damaged_match_string[]  = "E43: Damaged match string" ;
@@ -3628,7 +3582,6 @@ static char e_non_numeric_argument_to_z[]  =  "E144: Non-numeric argument to :z"
 static char e_regular_expressions_cant_be_delimited_by_letters[]  =  "E146: Regular expressions can't be delimited by letters"  ;
 static char e_cannot_do_global_recursive_with_range[]  =  "E147: Cannot do :global recursive with a range"  ;
 static char e_regular_expression_missing_from_global[]  =  "E148: Regular expression missing from :global"  ;
-static char e_no_write_since_last_change_for_buffer_str[]  =  "E162: No write since last change for buffer \"%s\""  ;
 static char e_command_too_recursive[]  =  "E169: Command too recursive"  ;
 
 static char e_argument_must_be_letter_or_forward_backward_quote[]  =  "E191: Argument must be a letter or forward/backward quote"  ;
@@ -4048,8 +4001,6 @@ unblock_autocmds(void)
 
 }
 
-static void     enter_buffer(buf_T *buf);
-static void     buflist_getfpos(void);
 static void     free_buffer(buf_T *);
 static void     free_buffer_stuff(buf_T *buf, int free_options);
 
@@ -4387,106 +4338,6 @@ free_wininfo(wininfo_T *wip)
     vim_free(wip);
 }
 
-    static void
-set_curbuf(buf_T *buf, int action)
-{
-    buf_T       *prevbuf;
-    int         unload = (action == DOBUF_UNLOAD || action == DOBUF_DEL || action == DOBUF_WIPE || action == DOBUF_WIPE_REUSE);
-    bufref_T    newbufref;
-    bufref_T    prevbufref;
-
-    setpcmark();
-
-    VIsual_reselect = FALSE;
-
-    prevbuf = curbuf;
-    set_bufref(&prevbufref, prevbuf);
-    set_bufref(&newbufref, buf);
-
-    if (bufref_valid(&prevbufref))
-    {
-        if (prevbuf == curbuf && ((State & MODE_INSERT) == 0 || curbuf->b_nwindows <= 1))
-        {
-            u_sync(FALSE);
-        }
-        close_buffer(curwin, prevbuf, unload ? action : (action == DOBUF_GOTO && !bufIsChanged(prevbuf)) ? DOBUF_UNLOAD : 0, FALSE, FALSE, TRUE);
-    }
-    if (curwin->w_buffer == NULL)
-    {
-        enter_buffer(buf);
-    }
-}
-
-    static void
-enter_buffer(buf_T *buf)
-{
-    if (VIsual_active)
-    {
-        end_visual_mode();
-    }
-
-    if (curwin->w_buffer != NULL)
-    {
-        --curwin->w_buffer->b_nwindows;
-    }
-
-    curwin->w_buffer = buf;
-    curbuf = buf;
-    ++curbuf->b_nwindows;
-
-    buf_copy_options(buf, BCO_ENTER | BCO_NOHELP);
-    if (!buf->b_help)
-    {
-        get_winopts(buf);
-    }
-
-    curwin->w_cursor.lnum = 1;
-    curwin->w_cursor.col = 0;
-    curwin->w_cursor.coladd = 0;
-    curwin->w_set_curswant = true;
-    curwin->w_topline_was_set = false;
-
-    curwin->w_valid = 0;
-
-    if (curbuf->b_ml.ml_mfp == NULL)
-    {
-        open_buffer();
-    }
-    else
-    {
-        if (!msg_silent && !shortmess(SHM_FILEINFO))
-        {
-            need_fileinfo = TRUE;
-        }
-
-        curwin->w_topline = 1;
-    }
-
-    if (curwin->w_cursor.lnum == 1 && inindent(0))
-    {
-        buflist_getfpos();
-    }
-
-    if (curwin->w_topline == 1 && !curwin->w_topline_was_set)
-    {
-        scroll_cursor_halfway(FALSE, FALSE);
-    }
-
-    redraw_later(UPD_NOT_VALID);
-}
-
-    static void
-no_write_message(void)
-{
-        emsg(_(e_no_write_since_last_change_add_bang_to_override));
-}
-
-    static void
-no_write_message_nobang(buf_T *buf  __attribute__((unused)) )
-{
-        emsg(_(e_no_write_since_last_change));
-}
-
     static int
 curbuf_reusable(void)
 {
@@ -4595,31 +4446,7 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     clear_string_option(&buf->b_p_isk);
     clear_string_option(&buf->b_p_nf);
     clear_string_option(&buf->b_p_qe);
-    buf->b_p_fs = -1;
     buf->b_p_ul =  (-123456) ;
-}
-
-    static void
-buflist_getfpos(void)
-{
-    pos_T       *fpos;
-
-    fpos = buflist_findfpos(curbuf);
-
-    curwin->w_cursor.lnum = fpos->lnum;
-    check_cursor_lnum();
-
-    if (p_sol)
-    {
-        curwin->w_cursor.col = 0;
-    }
-    else
-    {
-        curwin->w_cursor.col = fpos->col;
-        check_cursor_col();
-        curwin->w_cursor.coladd = 0;
-        curwin->w_set_curswant = true;
-    }
 }
 
     static buf_T *
@@ -4689,7 +4516,6 @@ buflist_setfpos(buf_T       *buf, win_T       *win, linenr_T    lnum, colnr_T   
     }
     if (win != NULL)
     {
-        wip->wi_changelistidx = win->w_changelistidx;
     }
     if (copy_options && win != NULL)
     {
@@ -4703,75 +4529,6 @@ buflist_setfpos(buf_T       *buf, win_T       *win, linenr_T    lnum, colnr_T   
     if (wip->wi_next)
     {
         wip->wi_next->wi_prev = wip;
-    }
-}
-
-    static wininfo_T *
-find_wininfo(buf_T       *buf, int         need_options, int         skip_diff_buffer  __attribute__((unused)) )
-{
-    wininfo_T   *wip;
-
-     for ((wip) = (buf)->b_wininfo; (wip) != NULL; (wip) = (wip)->wi_next) 
-     {
-        if (wip->wi_win == curwin && (!need_options || wip->wi_optset))
-        {
-            break;
-        }
-     }
-
-    if (wip != NULL)
-    {
-        return wip;
-    }
-
-        wip = buf->b_wininfo;
-    return wip;
-}
-
-    static void
-get_winopts(buf_T *buf)
-{
-    wininfo_T   *wip;
-
-    clear_winopt(&curwin->w_onebuf_opt);
-
-    wip = find_wininfo(buf, TRUE, TRUE);
-    if (wip != NULL && wip->wi_win != NULL && wip->wi_win != curwin && wip->wi_win->w_buffer == buf)
-    {
-        win_T *wp = wip->wi_win;
-
-        copy_winopt(&wp->w_onebuf_opt, &curwin->w_onebuf_opt);
-    }
-    else if (wip != NULL && wip->wi_optset)
-    {
-        copy_winopt(&wip->wi_opt, &curwin->w_onebuf_opt);
-    }
-    else
-    {
-        copy_winopt(&curwin->w_allbuf_opt, &curwin->w_onebuf_opt);
-    }
-    if (wip != NULL)
-    {
-        curwin->w_changelistidx = wip->wi_changelistidx;
-    }
-
-    after_copy_winopt(curwin);
-}
-
-    static pos_T *
-buflist_findfpos(buf_T *buf)
-{
-    wininfo_T   *wip;
-    static pos_T no_position = {1, 0, 0};
-
-    wip = find_wininfo(buf, FALSE, FALSE);
-    if (wip != NULL)
-    {
-        return &(wip->wi_fpos);
-    }
-    else
-    {
-        return &no_position;
     }
 }
 
@@ -4808,7 +4565,7 @@ fileinfo(int fullname, int shorthelp, int dont_truncate)
     name = buf_spname(curbuf);
     bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "%s", name);
 
-    bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "\"%s%s%s%s%s%s", curbufIsChanged() ? (shortmess(SHM_MOD) ?  " [+]" : _(" [Modified]")) : " ", (curbuf->b_flags & BF_NOTEDITED) ? _("[Not edited]") : "", (curbuf->b_flags & BF_NEW) ? new_file_message() : "", (curbuf->b_flags & BF_READERR) ? _("[Read errors]") : "", curbuf->b_p_ro ? (shortmess(SHM_RO) ? _("[RO]") : _("[readonly]")) : "", (curbufIsChanged() || (curbuf->b_flags &  (BF_NOTEDITED + BF_NEW + BF_READERR) ) || curbuf->b_p_ro) ? " " : "");
+    bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "\"%s%s%s%s%s", curbufIsChanged() ? (shortmess(SHM_MOD) ?  " [+]" : _(" [Modified]")) : " ", (curbuf->b_flags & BF_NOTEDITED) ? _("[Not edited]") : "", (curbuf->b_flags & BF_NEW) ? new_file_message() : "", (curbuf->b_flags & BF_READERR) ? _("[Read errors]") : "", (curbufIsChanged() || (curbuf->b_flags &  (BF_NOTEDITED + BF_NEW + BF_READERR) )) ? " " : "");
 
     if (curbuf->b_ml.ml_flags & ML_EMPTY)
     {
@@ -4919,51 +4676,10 @@ new_file_message(void)
 }
 
     static void
-change_warning(int col)
-{
-    static char *w_readonly =  "W10: Warning: Changing a readonly file" ;
-
-    if (curbuf->b_did_warn || curbufIsChanged() || autocmd_busy || !curbuf->b_p_ro)
-    {
-        return;
-    }
-
-    ++curbuf_lock;
-    --curbuf_lock;
-    if (!curbuf->b_p_ro)
-    {
-        return;
-    }
-
-    msg_start();
-    if (msg_row == Rows - 1)
-    {
-        msg_col = col;
-    }
-    msg_source( highlight_attr[(int)(HLF_W)] );
-    msg_puts_attr(_(w_readonly),  highlight_attr[(int)(HLF_W)]  | MSG_HIST);
-    msg_clr_eos();
-    (void)msg_end();
-    if (msg_silent == 0)
-    {
-        out_flush();
-        ui_delay(1002L, TRUE);
-    }
-    curbuf->b_did_warn = true;
-    redraw_cmdline = FALSE;
-    if (msg_row < Rows - 1)
-    {
-        showmode();
-    }
-}
-
-    static void
 changed(void)
 {
     if (!curbuf->b_changed)
     {
-
-        change_warning(0);
 
         changed_internal();
     }
@@ -9564,7 +9280,7 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
         p = NameBuff;
         plen = (int) strlen((char *)(p)) ;
 
-        if ((bt_help(wp->w_buffer) || bufIsChanged(wp->w_buffer) || wp->w_buffer->b_p_ro) && plen <  PATH_MAX  - 1)
+        if ((bt_help(wp->w_buffer) || bufIsChanged(wp->w_buffer)) && plen <  PATH_MAX  - 1)
         {
             *(p + plen++) = ' ';
             *(p + plen) = NUL;
@@ -9576,10 +9292,6 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
         if (bufIsChanged(wp->w_buffer))
         {
             plen += vim_snprintf((char *)p + plen,  PATH_MAX  - plen, "%s", "[+]");
-        }
-        if (wp->w_buffer->b_p_ro)
-        {
-            plen += vim_snprintf((char *)p + plen,  PATH_MAX  - plen, "%s", _("[RO]"));
         }
 
         this_ru_col = ru_col - (cmdline_width - wp->w_width);
@@ -11121,7 +10833,6 @@ edit(int         cmdchar, int         startln, long        count)
 
     if (!p_im && did_restart_edit == 0)
     {
-        change_warning(i == 0 ? 0 : i + 1);
     }
 
     string_T inserted = get_inserted();
@@ -16135,161 +15846,6 @@ skip_vimgrep_pat_ext(char_u *p, char_u **s, int *flags, char_u **nulp, int *cp)
 }
 
     static int
-check_changed(buf_T *buf, int flags)
-{
-    int         forceit = (flags & CCGD_FORCEIT);
-    bufref_T    bufref;
-
-    set_bufref(&bufref, buf);
-
-    if (       !forceit && bufIsChanged(buf) && ((flags & CCGD_MULTWIN) || buf->b_nwindows <= 1))
-    {
-        if (flags & CCGD_EXCMD)
-        {
-            no_write_message();
-        }
-        else
-        {
-            no_write_message_nobang(curbuf);
-        }
-        return TRUE;
-    }
-    return FALSE;
-}
-
-    static void
-add_bufnum(int *bufnrs, int *bufnump, int nr)
-{
-    int i;
-
-    for (i = 0; i < *bufnump; ++i)
-    {
-        if (bufnrs[i] == nr)
-        {
-            return;
-        }
-    }
-    bufnrs[*bufnump] = nr;
-    *bufnump = *bufnump + 1;
-}
-
-    static int
-check_changed_any(int         hidden, int         unload)
-{
-    int         ret = FALSE;
-    buf_T       *buf;
-    int         save;
-    int         i;
-    int         bufnum = 0;
-    int         bufcount = 0;
-    int         *bufnrs;
-    tabpage_T   *tp;
-    win_T       *wp;
-
-    bufcount = 1;
-
-    if (bufcount == 0)
-    {
-        return FALSE;
-    }
-
-    bufnrs =  (int *)alloc(sizeof(int) * (bufcount)) ;
-    if (bufnrs == NULL)
-    {
-        return FALSE;
-    }
-
-    bufnrs[bufnum++] = curbuf->b_fnum;
-
-     wp = curwin;
-    if (wp->w_buffer != curbuf)
-    {
-        add_bufnum(bufnrs, &bufnum, wp->w_buffer->b_fnum);
-    }
-
-     tp = curtab;
-    if (tp != curtab)
-    {
-         wp = curwin;
-        add_bufnum(bufnrs, &bufnum, wp->w_buffer->b_fnum);
-    }
-
-    bufcount = 1;
-
-    for (i = 0; i < bufnum; ++i)
-    {
-        buf = buflist_findnr(bufnrs[i]);
-        if (buf == NULL)
-        {
-            continue;
-        }
-        if ((!hidden || buf->b_nwindows == 0) && bufIsChanged(buf))
-        {
-            bufref_T bufref;
-
-            set_bufref(&bufref, buf);
-            if (check_changed(buf, CCGD_MULTWIN | CCGD_ALLBUF) && bufref_valid(&bufref))
-            {
-                break;
-            }
-        }
-    }
-
-    if (i >= bufnum)
-    {
-        goto theend;
-    }
-
-    ret = TRUE;
-    exiting = FALSE;
-    {
-        if (vgetc_busy > 0)
-        {
-            msg_row = cmdline_row;
-            msg_col = 0;
-            msg_didout = FALSE;
-        }
-        if (semsg(_(e_no_write_since_last_change_for_buffer_str), buf_spname(buf)))
-        {
-            save = no_wait_return;
-            no_wait_return = FALSE;
-            wait_return(FALSE);
-            no_wait_return = save;
-        }
-    }
-
-    if (buf != curbuf)
-    {
-         tp = curtab;
-         wp = curwin;
-    if (wp->w_buffer == buf)
-    {
-        bufref_T bufref;
-
-        set_bufref(&bufref, buf);
-
-        goto_tabpage_win(tp, wp);
-
-        if (!bufref_valid(&bufref))
-        {
-            goto theend;
-        }
-        goto buf_found;
-    }
-    }
-buf_found:
-
-    if (buf != curbuf)
-    {
-        set_curbuf(buf, unload ? DOBUF_UNLOAD : DOBUF_GOTO);
-    }
-
-theend:
-    vim_free(bufnrs);
-    return ret;
-}
-
-    static int
 check_fname(void)
 {
     emsg(_(e_no_file_name));
@@ -17146,11 +16702,6 @@ undo_cmdmod(cmdmod_T *cmod)
             emsg_silent = 0;
         }
         msg_scroll = cmod->cmod_save_msg_scroll;
-
-        if (redirecting())
-        {
-            msg_col = 0;
-        }
 
         cmod->cmod_save_msg_silent = 0;
         cmod->cmod_did_esilent = 0;
@@ -18056,13 +17607,6 @@ ex_highlight(exarg_T *eap)
     do_highlight(eap->arg, eap->forceit, FALSE);
 }
 
-    static void
-not_exiting(int save_exiting)
-{
-    exiting = save_exiting;
-    settmode(TMODE_RAW);
-}
-
     static int
 before_quit_autocmds(win_T *wp, int quit_all, int forceit)
 {
@@ -18102,17 +17646,7 @@ ex_quit(exarg_T *eap)
         return;
     }
 
-    int save_exiting = exiting;
-    exiting = TRUE;
-    if ((check_changed(wp->w_buffer, (eap->forceit ? CCGD_FORCEIT : 0) | CCGD_EXCMD)) || (check_changed_any(eap->forceit, TRUE)))
-    {
-        not_exiting(save_exiting);
-    }
-    else
-    {
-        getout(0);
-        not_exiting(save_exiting);
-    }
+    getout(0);
 }
 
     static void
@@ -19873,7 +19407,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
     ccline.xpc = &xpc;
     clear_cmdline_orig();
 
-    redir_off = TRUE;
     if (!cmd_silent)
     {
         i = msg_scrolled;
@@ -19912,7 +19445,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
          vim_free(prev_cmdbuff);
          (prev_cmdbuff) = NULL;
 
-        redir_off = TRUE;
         quit_more = FALSE;
 
         did_emsg = FALSE;
@@ -20300,7 +19832,6 @@ returncmd:
 
     msg_check();
     msg_scroll = save_msg_scroll;
-    redir_off = FALSE;
 
     if (some_key_typed)
     {
@@ -20988,15 +20519,6 @@ get_list_range(char_u **str, int *num1, int *num2)
     return OK;
 }
 
-    static int
-vim_fsync(int fd)
-{
-    int r;
-
-        r = fsync(fd);
-    return r;
-}
-
     static void
 shorten_fnames(void)
 {
@@ -21298,7 +20820,6 @@ static int      read_readbuf(buffheader_T *buf, int advance);
 static void     init_typebuf(void);
 static void     may_sync_undo(void);
 static void     free_typebuf(void);
-static void     closescript(void);
 static int      vgetorpeek(int);
 static int      inchar(char_u *buf, int maxlen, long wait_time);
 
@@ -22354,7 +21875,7 @@ ungetchars(int len)
     static void
 may_sync_undo(void)
 {
-    if ((!(State & (MODE_INSERT | MODE_CMDLINE)) || arrow_used) && scriptin[curscript] == NULL)
+    if (!(State & (MODE_INSERT | MODE_CMDLINE)) || arrow_used)
     {
         u_sync(FALSE);
     }
@@ -22406,8 +21927,6 @@ free_typebuf(void)
     }
 }
 
-static typebuf_T saved_typebuf[NSCRIPT];
-
 static int old_char = -1;
 static int old_mod_mask;
 static int old_KeyStuffed;
@@ -22455,26 +21974,6 @@ restore_typeahead(tasave_T *tp, int overwrite  __attribute__((unused)) )
     free_buff(&readbuf2);
     readbuf2 = tp->save_readbuf2;
     set_input_buf(tp->save_inputbuf, overwrite);
-}
-
-    static void
-closescript(void)
-{
-    free_typebuf();
-    typebuf = saved_typebuf[curscript];
-
-    fclose(scriptin[curscript]);
-    scriptin[curscript] = NULL;
-    if (curscript > 0)
-    {
-        --curscript;
-    }
-}
-
-    static int
-using_script(void)
-{
-    return scriptin[curscript] != NULL;
 }
 
     static int
@@ -23667,8 +23166,6 @@ vgetorpeek(int advance)
 inchar(char_u      *buf, int         maxlen, long        wait_time)
 {
     int         len = 0;
-    int         retesc = FALSE;
-    int         script_char;
     int         tb_change_cnt = typebuf.tb_change_cnt;
 
     if (wait_time == -1L || wait_time > 100L)
@@ -23683,52 +23180,27 @@ inchar(char_u      *buf, int         maxlen, long        wait_time)
     }
     undo_off = FALSE;
 
-    script_char = -1;
-    while (scriptin[curscript] != NULL && script_char < 0)
+    if (got_int)
     {
-        if (got_int || (script_char = getc(scriptin[curscript])) < 0)
+        char_u      dum[ (MAXMAPLEN * 3 + 3)  + 1];
+
+        for (;;)
         {
-            closescript();
-            if (got_int)
+            len = ui_inchar(dum,  (MAXMAPLEN * 3 + 3) , 0L, 0);
+            if (len == 0 || (len == 1 && dum[0] == Ctrl_C))
             {
-                retesc = TRUE;
-            }
-            else
-            {
-                return -1;
+                break;
             }
         }
-        else
-        {
-            buf[0] = script_char;
-            len = 1;
-        }
+        return FALSE;
     }
 
-    if (script_char < 0)
+    if (wait_time == -1L || wait_time > 10L)
     {
-        if (got_int)
-        {
-            char_u      dum[ (MAXMAPLEN * 3 + 3)  + 1];
-
-            for (;;)
-            {
-                len = ui_inchar(dum,  (MAXMAPLEN * 3 + 3) , 0L, 0);
-                if (len == 0 || (len == 1 && dum[0] == Ctrl_C))
-                {
-                    break;
-                }
-            }
-            return retesc;
-        }
-
-        if (wait_time == -1L || wait_time > 10L)
-        {
-            out_flush();
-        }
-
-        len = ui_inchar(buf, maxlen / 3, wait_time, tb_change_cnt);
+        out_flush();
     }
+
+    len = ui_inchar(buf, maxlen / 3, wait_time, tb_change_cnt);
 
     if (typebuf_changed(tb_change_cnt))
     {
@@ -35242,7 +34714,6 @@ static int do_more_prompt(int typed_char);
 static void msg_screen_putchar(int c, int attr);
 static void msg_moremsg(int full);
 static int  msg_check_screen(void);
-static void redir_write(char_u *s, int maxlen);
 
 struct msg_hist
 {
@@ -35651,17 +35122,14 @@ emsg_core(const char *s)
                 if (p != NULL)
                 {
                      strcat((char *)(p), (char *)("\n")) ;
-                    redir_write(p, -1);
                     vim_free(p);
                 }
                 p = get_emsg_lnum();
                 if (p != NULL)
                 {
                      strcat((char *)(p), (char *)("\n")) ;
-                    redir_write(p, -1);
                     vim_free(p);
                 }
-                redir_write((char_u *)s, -1);
             }
             return TRUE;
         }
@@ -36065,7 +35533,6 @@ wait_return(int redraw)
         return;
     }
 
-    redir_off = TRUE;
     oldState = State;
     if (quit_more)
     {
@@ -36156,7 +35623,6 @@ wait_return(int redraw)
             do_sleep(msg_wait, TRUE);
         }
     }
-    redir_off = FALSE;
 
     if (c == ':' || c == '?' || c == '/')
     {
@@ -36248,7 +35714,6 @@ set_keep_msg_from_hist(void)
     static void
 msg_start(void)
 {
-    int         did_return = FALSE;
 
     if (msg_row < cmdline_row)
     {
@@ -36271,7 +35736,6 @@ msg_start(void)
     else if (msg_didout || in_echowindow)
     {
         msg_putchar('\n');
-        did_return = TRUE;
         cmdline_row = msg_row;
     }
     if (!msg_didany || lines_left < 0)
@@ -36284,10 +35748,6 @@ msg_start(void)
         cursor_off();
     }
 
-    if (!did_return)
-    {
-        redir_write((char_u *)"\n", -1);
-    }
 }
 
     static void
@@ -36806,7 +36266,6 @@ msg_puts_attr(char *s, int attr)
     static void
 msg_puts_attr_len(char *str, int maxlen, int attr)
 {
-    redir_write((char_u *)str, maxlen);
 
     if (msg_silent != 0)
     {
@@ -37733,65 +37192,6 @@ msg_check(void)
         need_wait_return = TRUE;
         redraw_cmdline = TRUE;
     }
-}
-
-    static void
-redir_write(char_u *str, int maxlen)
-{
-    char_u      *s = str;
-    static int  cur_col = 0;
-
-    if (redir_off)
-    {
-        return;
-    }
-
-    if (redirecting())
-    {
-        if (*s != '\n' && *s != '\r')
-        {
-            while (cur_col < msg_col)
-            {
-                    if (redir_fd != NULL)
-                    {
-                    fputs(" ", redir_fd);
-                    }
-                ++cur_col;
-            }
-        }
-
-        while (*s != NUL && (maxlen < 0 || (int)(s - str) < maxlen))
-        {
-                if (redir_fd != NULL)
-                {
-                    putc(*s, redir_fd);
-                }
-            if (*s == '\r' || *s == '\n')
-            {
-                cur_col = 0;
-            }
-            else if (*s == '\t')
-            {
-                cur_col += (8 - cur_col % 8);
-            }
-            else
-            {
-                ++cur_col;
-            }
-            ++s;
-        }
-
-        if (msg_silent != 0)
-        {
-            msg_col = cur_col;
-        }
-    }
-}
-
-    static int
-redirecting(void)
-{
-    return redir_fd != NULL;
 }
 
     static void
@@ -40413,7 +39813,6 @@ set_topline(win_T *wp, linenr_T lnum)
         wp->w_botline = wp->w_buffer->b_ml.ml_line_count + 1;
     }
     wp->w_topline = lnum;
-    wp->w_topline_was_set = true;
     wp->w_valid &= ~(VALID_WROW|VALID_CROW|VALID_BOTLINE|VALID_TOPLINE);
     redraw_later(UPD_VALID);
 }
@@ -43618,7 +43017,7 @@ clear_showcmd(void)
         return;
     }
 
-    if (VIsual_active && stuff_empty() && typebuf.tb_len == 0 && !using_script())
+    if (VIsual_active && stuff_empty() && typebuf.tb_len == 0)
     {
         int             cursor_bot =  (((VIsual).lnum != (curwin->w_cursor).lnum)               ? (VIsual).lnum < (curwin->w_cursor).lnum                   : (VIsual).col != (curwin->w_cursor).col                        ? (VIsual).col < (curwin->w_cursor).col                     : (VIsual).coladd < (curwin->w_cursor).coladd) ;
         long            lines;
@@ -50884,10 +50283,6 @@ static struct vimoption options[] =
                             {(char_u *)"vert:|,fold:-,eob:~,lastline:@",
                                                                   (char_u *)0L}
                               },
-    {"fsync",       "fs",   P_BOOL|P_SECURE|P_VI_DEF,
-                            (char_u *)&p_fs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  , NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}
-                              },
     {"gdefault",    "gd",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_gd, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -51013,15 +50408,9 @@ static struct vimoption options[] =
     {"preserveindent", "pi", P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_pi,   (idopt_T)(PV_BUF + (int)(BV_PI))  , NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"prompt",      NULL,   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_prompt, PV_NONE, NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
     {"quoteescape", "qe",   P_STRING|P_ALLOCED|P_VI_DEF,
                             (char_u *)&p_qe,   (idopt_T)(PV_BUF + (int)(BV_QE))  , NULL, NULL,
                             {(char_u *)"\\", (char_u *)0L}   },
-    {"readonly",    "ro",   P_BOOL|P_VI_DEF|P_RSTAT|P_NOGLOB,
-                            (char_u *)&p_ro,   (idopt_T)(PV_BUF + (int)(BV_RO))  , did_set_readonly, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
     {"relativenumber", "rnu", P_BOOL|P_VI_DEF|P_RWIN,
                             (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_RNU))  ,
                             did_set_number_relativenumber, NULL,
@@ -51157,9 +50546,6 @@ static struct vimoption options[] =
                             {
                             (char_u *)9999L,
                                 (char_u *)0L}   },
-    {"undoreload",  "ur",   P_NUM|P_VI_DEF,
-                            (char_u *)&p_ur, PV_NONE, NULL, NULL,
-                            { (char_u *)10000L, (char_u *)0L}   },
     {"verbose",     "vbs",  P_NUM|P_VI_DEF,
                             (char_u *)&p_verbose, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
@@ -51196,12 +50582,6 @@ static struct vimoption options[] =
     {"wrapscan",    "ws",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_ws, PV_NONE, NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
-    {"write",       NULL,   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_write, PV_NONE, NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
-    {"writeany",    "wa",   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_wa, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
     {"writedelay",  "wd",   P_NUM|P_VI_DEF,
                             (char_u *)&p_wd, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
@@ -51345,7 +50725,6 @@ set_init_1(void)
     set_options_default(0);
 
     curbuf->b_p_initialized = true;
-    curbuf->b_p_fs = -1;
     curbuf->b_p_ul =  (-123456) ;
     check_buf_options(curbuf);
     check_win_options(curwin);
@@ -53127,19 +52506,6 @@ did_set_paste(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_readonly(optset_T *args)
-{
-    if (curbuf->b_p_ro)
-    {
-        curbuf->b_did_warn = false;
-    }
-
-    redraw_titles();
-
-    return NULL;
-}
-
-    static char *
 did_set_maxsearchcount(optset_T *args  __attribute__((unused)) )
 {
     char        *errmsg = NULL;
@@ -54155,8 +53521,6 @@ get_varp_scope(struct vimoption *p, int scope)
     {
         switch ((int)p->indir)
         {
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  :
-                return (char_u *)&(curbuf->b_p_fs);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SISO)) ))  :
                 return (char_u *)&(curwin-> w_onebuf_opt.wo_siso );
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SO)) ))  :
@@ -54206,9 +53570,6 @@ get_varp(struct vimoption *p)
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SOP)) ))  :
             return curwin-> w_onebuf_opt.wo_sop  != -1
                                     ? (char_u *)&(curwin-> w_onebuf_opt.wo_sop ) : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  :
-            return curbuf->b_p_fs >= 0
-                                    ? (char_u *)&(curbuf->b_p_fs) : p->var;
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_UL)) ))  :
             return curbuf->b_p_ul !=  (-123456) 
                                     ? (char_u *)&(curbuf->b_p_ul) : p->var;
@@ -54258,8 +53619,6 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_pi);
         case   (idopt_T)(PV_BUF + (int)(BV_QE))  :
             return (char_u *)&(curbuf->b_p_qe);
-        case   (idopt_T)(PV_BUF + (int)(BV_RO))  :
-            return (char_u *)&(curbuf->b_p_ro);
         case   (idopt_T)(PV_BUF + (int)(BV_SI))  :
             return (char_u *)&(curbuf->b_p_si);
         case   (idopt_T)(PV_BUF + (int)(BV_STS))  :
@@ -54399,7 +53758,6 @@ buf_copy_options(buf_T *buf, int flags)
             if (!buf->b_p_initialized)
             {
                 free_buf_options(buf, TRUE);
-                buf->b_p_ro = FALSE;
             }
             else
             {
@@ -54458,7 +53816,6 @@ buf_copy_options(buf_T *buf, int flags)
               ;
               ;
 
-            buf->b_p_fs = -1;
             buf->b_p_ul =  (-123456) ;
             buf->b_bkc_flags = 0;
             buf->b_tc_flags = 0;
@@ -66740,7 +66097,7 @@ screen_del_lines(int         off, int         row, int         line_count, int  
     static int
 skip_showmode(void)
 {
-    if (global_busy || msg_silent != 0 || !redrawing() || ((!stuff_empty() || typebuf.tb_len > 0 || using_script()) && !KeyTyped))
+    if (global_busy || msg_silent != 0 || !redrawing() || ((!stuff_empty() || typebuf.tb_len > 0) && !KeyTyped))
     {
         redraw_mode = TRUE;
         return TRUE;
@@ -72898,7 +72255,7 @@ out_flush(void)
 
     len = out_pos;
     out_pos = 0;
-    ui_write(out_buf, len, FALSE);
+    ui_write(out_buf, len);
 }
 
     static void
@@ -76628,15 +75985,9 @@ add_time(char_u *buf, size_t buflen, time_t tt)
 }
 
     static void
-ui_write(char_u *s, int len, int console  __attribute__((unused)) )
+ui_write(char_u *s, int len)
 {
-
     mch_write(s, len);
-    if (console && s[len - 1] == '\n')
-    {
-        vim_fsync(1);
-    }
-
 }
 
     static int
@@ -77154,7 +76505,6 @@ u_savecommon(linenr_T    top, linenr_T    bot, linenr_T    newbot, int         r
             return FAIL;
         }
 
-        change_warning(0);
         if (bot > curbuf->b_ml.ml_line_count + 1)
         {
             emsg(_(e_line_count_changed_unexpectedly));
@@ -77451,7 +76801,6 @@ u_doit(int startcount)
     }
     while (count--)
     {
-        change_warning(0);
 
         if (undo_undoes)
         {
@@ -77751,7 +77100,6 @@ target_zero:
     {
         while (!got_int)
         {
-            change_warning(0);
 
             uhp = curbuf->b_u_curhead;
             if (uhp == NULL)
@@ -77778,7 +77126,6 @@ target_zero:
         {
             while (!got_int)
             {
-                change_warning(0);
 
                 uhp = curbuf->b_u_curhead;
                 if (uhp == NULL)
@@ -78832,7 +78179,6 @@ static int win_alloc_firstwin(win_T *oldwin);
 static void new_frame(win_T *wp);
 static tabpage_T *alloc_tabpage(void);
 static int frame_minheight(frame_T *topfrp, win_T *next_curwin);
-static int win_enter_ext(win_T *wp, int flags);
 static void frame_add_height(frame_T *frp, int n);
 static void last_status_rec(frame_T *fr, int statusline);
 
@@ -78840,12 +78186,6 @@ static int frame_check_height(frame_T *topfrp, int height);
 static int frame_check_width(frame_T *topfrp, int width);
 
 static win_T *win_alloc(win_T *after, int hidden);
-
-enum { WEE_UNDO_SYNC = 0x01 };
-enum { WEE_CURWIN_INVALID = 0x02 };
-enum { WEE_TRIGGER_NEW_AUTOCMDS = 0x04 };
-enum { WEE_TRIGGER_ENTER_AUTOCMDS = 0x08 };
-enum { WEE_TRIGGER_LEAVE_AUTOCMDS = 0x10 };
 
     static int
 win_valid(win_T *win)
@@ -79055,129 +78395,6 @@ alloc_tabpage(void)
     tp->tp_ch_used = p_ch;
 
     return tp;
-}
-
-    static void
-goto_tabpage_tp(tabpage_T   *tp, int         trigger_enter_autocmds, int         trigger_leave_autocmds)
-{
-    set_keep_msg(NULL, 0);
-
-    skip_win_fix_scroll = TRUE;
-    skip_win_fix_scroll = FALSE;
-}
-
-    static void
-goto_tabpage_win(tabpage_T *tp, win_T *wp)
-{
-    goto_tabpage_tp(tp, TRUE, TRUE);
-    if (curtab == tp && win_valid(wp))
-    {
-        win_enter(wp, TRUE);
-    }
-}
-
-    static void
-win_enter(win_T *wp, int undo_sync)
-{
-    (void)win_enter_ext(wp, (undo_sync ? WEE_UNDO_SYNC : 0) | WEE_TRIGGER_ENTER_AUTOCMDS | WEE_TRIGGER_LEAVE_AUTOCMDS);
-}
-
-    static int
-win_enter_ext(win_T *wp, int flags)
-{
-    int         other_buffer = FALSE;
-    int         curwin_invalid = (flags & WEE_CURWIN_INVALID);
-    int         did_decrement = FALSE;
-
-    if (wp == curwin && curwin_invalid == 0)
-    {
-        return FALSE;
-    }
-
-    if (curwin_invalid == 0 && (flags & WEE_TRIGGER_LEAVE_AUTOCMDS))
-    {
-        if (wp->w_buffer != curbuf)
-        {
-            other_buffer = TRUE;
-            if (!win_valid(wp))
-            {
-                return FALSE;
-            }
-        }
-        if (!win_valid(wp))
-        {
-            return FALSE;
-        }
-    }
-
-    if ((flags & WEE_UNDO_SYNC) && curbuf != wp->w_buffer)
-    {
-        u_sync(FALSE);
-    }
-
-    if (*p_spk == 'c' && curwin_invalid == 0)
-    {
-        update_topline();
-    }
-
-    if (wp->w_buffer != curbuf)
-    {
-        buf_copy_options(wp->w_buffer, BCO_ENTER | BCO_NOHELP);
-    }
-    if (curwin_invalid == 0)
-    {
-        curwin->w_redr_status = true;
-    }
-    curwin = wp;
-    curbuf = wp->w_buffer;
-    check_cursor();
-    if (!virtual_active())
-    {
-        curwin->w_cursor.coladd = 0;
-    }
-    if (*p_spk == 'c')
-    {
-        changed_line_abv_curs();
-    }
-    else
-    {
-        win_fix_cursor(get_real_state() & (MODE_NORMAL|MODE_CMDLINE|MODE_TERMINAL));
-    }
-
-    if (flags & WEE_TRIGGER_NEW_AUTOCMDS)
-    {
-    }
-    if (flags & WEE_TRIGGER_ENTER_AUTOCMDS)
-    {
-        if (other_buffer)
-        {
-        }
-    }
-
-    curwin->w_redr_status = true;
-    redraw_tabline = TRUE;
-    redraw_vseps = TRUE;
-    redraw_later(UPD_VALID);
-    if (restart_edit)
-    {
-        redraw_later(UPD_VALID);
-    }
-
-    if (curwin->w_height < p_wh)
-    {
-        win_setheight((int)p_wh);
-    }
-    else if (curwin->w_height == 0)
-    {
-        win_setheight(1);
-    }
-
-    if (curwin->w_width < p_wiw)
-    {
-        win_setwidth((int)p_wiw);
-    }
-
-    return did_decrement;
 }
 
     static win_T *
@@ -79976,7 +79193,6 @@ is_safe_now(void)
 {
     return stuff_empty()
         && typebuf.tb_len == 0
-        && scriptin[curscript] == NULL
         && !global_busy;
 }
 

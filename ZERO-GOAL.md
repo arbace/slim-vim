@@ -15,16 +15,21 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has eleven phases.** Phase 0 is the
+**This document is iterative, and so far it has fourteen phases.** Phase 0 is the
 seed, phase 1 is a compiler flag, phase 2 is the first cut in the source — the first
 piece of *a component, not a program* — phase 3 changes no source at all: it
 replaces the instrument every later phase is measured with; phase 4 removes Ex mode,
-phase 5 leaves the command line as `+{command}` and `-T {term}`, and phases 6 to 10
+phase 5 leaves the command line as `+{command}` and `-T {term}`, and phases 6 to 13
 are *no filesystem* on request: the editor loses every way to write a file, then
 every way to read one, then every way to name another one to edit, then the
-machinery that read the bytes — which by then nothing could reach — and finally the
+machinery that read the bytes — which by then nothing could reach — then the
 buffer's own name, with the last three questions the core asked the filesystem on
-its own initiative. Phases
+its own initiative, then the refusal that asked whether the text had been saved,
+which by then had no remedy to offer, then the option rows that reported settings
+nothing read, and finally the two `FILE *` that had never been opened. After
+thirteen the core has no `open`, no `stat`, no stdio stream and no fourth
+descriptor: it can read, write, close and dup fds 0, 1 and 2 and nothing else.
+Phases
 are added one at a time, each on the user's own
 request, and each is written into this document, into `pipes/` and into
 `pipes/zero.delta` and `pipes/zero.stages` when it is added — never in advance.
@@ -1865,3 +1870,669 @@ expected 32` among them, plus `b_mtime_read is no longer a field of buf_T`, and 
 1. **There is deliberately no `apart 8 10`**, although phase 8's check does fail here
 — it requires E447 to survive — because a stage holding 8 and 10 holds 9, and `apart
 8 9` forbids that already. It is the shape of the missing `apart 2 6` and `apart 6 8`.
+
+## Phase 11 — `:q` quits, and `ZZ` is `ZQ`
+
+`pipes/zero11-edit.sh` and `pipes/zero11-check.sh`, `stage 11`, `package buffers`.
+Phases 6 to 10 took every way to reach a file. What was left of the filesystem in
+this editor was a **refusal**: `:q` on a modified buffer answered `E37: No write
+since last change (add ! to override)` and stayed. The protection has no remedy once
+nothing can be written — there is no `:w` to answer it with and no file the text
+could have come from — so it is a door onto nothing, and this phase takes it. `:q`,
+`:q!`, `ZZ` and `ZQ` are one thing afterwards.
+
+### One anchor, and eleven of the sixteen functions are a surprise
+
+`ex_quit()` is `if ((check_changed(…)) || (check_changed_any(…))) { not_exiting(…); }
+else { getout(0); … }`, and the test *is* the refusal. Folding it **never** keeps
+the `else` — quit — and is the last reference `check_changed()` has. That single
+fold is the phase; the edit names not one function.
+
+**Fifteen functions follow by reachability and eleven of them are not the refusal at
+all.** `check_changed_any()`'s tail is *"go to the buffer that refused"* — it calls
+`set_curbuf()`, which calls `enter_buffer()` and `win_enter_ext()` — and after whim
+removed the buffer list and the window commands, **that tail was the last caller of
+the whole switch-buffer/switch-window island**: `add_bufnum`, `set_curbuf`,
+`enter_buffer`, `win_enter`, `win_enter_ext`, `goto_tabpage_win`, `goto_tabpage_tp`,
+`get_winopts`, `find_wininfo`, `buflist_findfpos` and `buflist_getfpos`. After this
+phase the editor has no code for entering a different buffer or a different window.
+
+**The island is a graph and not a fan, and the edit computes that before it folds
+anything.** Only `add_bufnum`, `set_curbuf` and `goto_tabpage_win` are called by
+`check_changed_any` itself; the other eight hang off those. So what is required is
+that *every* call to any of the eleven is inside `check_changed_any` or inside
+another of the eleven — and a check that asked for the simpler shape would fail on a
+correct phase. Three of the fifteen also have **no prototype**, being defined above
+their first call (`check_changed_any` and `no_write_message_nobang` at two mentions,
+`add_bufnum` at three for having two calls), so a loop that wanted three for all of
+them refuses. Both facts were discovered by the counted anchors refusing.
+
+### Two extras, each measured byte-identical in the recording
+
+**A — two struct fields that become write-only, which no tool can see.** This is
+phase 7's `usefilter` judgement in a smaller shape: `deadfields.py` removes a field
+nothing *names*, and gcc has no warning for a member that is only written.
+`win_T.w_topline_was_set`'s only reader was in `enter_buffer()` and
+`wininfo_S.wi_changelistidx`'s only reader was in `get_winopts()`. The declaration
+and the one surviving write of each go by hand, and **the text the edit leaves does
+not compile** — both readers are still there, inside functions the sweep is about to
+take — which is said in the program rather than discovered, as `pipes/zero7-edit.sh`
+says of its own.
+
+**B — the tail that cannot run.** After the fold `ex_quit()` ended `int save_exiting
+= exiting; exiting = TRUE; getout(0); not_exiting(save_exiting);`. `getout()` sets
+`exiting = TRUE` **itself** and ends in `mch_exit()`, which never returns, so the
+first, second and fourth statements are dead and gcc cannot prove it. Replacing the
+four with `getout(0);` orphans `not_exiting()`, and **`not_exiting()` is the refusal
+machinery** — `exiting = save_exiting; settmode(TMODE_RAW);`, the "we changed our
+mind, put the terminal back" — so it is this phase's and not tidy. The fold is right
+only because `getout()` sets `exiting` for itself; check that before making it on
+another tree.
+
+### What survives, and why a check copied from phases 6 to 10 fails here
+
+* **The buffer still knows it is modified.** `bufIsChanged` goes 10 → 7 and
+  `curbufIsChanged` does not move at all: CTRL-G still prints `[Modified]`, the
+  status line still draws `[+]`, `:set modified?` still answers. What went is the
+  refusal, not the state.
+* **`:q` can still decline.** `text_locked()`, `curbuf_locked()` and
+  `before_quit_autocmds()` all return early **above** the anchor and are untouched.
+* **Phases 6, 7, 8, 9 and 10 each assert `E37: No write since last change` survives**
+  and name `check_changed` as the `:q` phase's. This is the `:q` phase, so the check
+  asserts the opposite in both directions: E37 must be absent here and must have been
+  present in the input. `apart 10 11` records it.
+* **`open_buffer` goes 5 → 4** — `enter_buffer()` was one of its four callers — where
+  phases 9 and 10 both pin it at 5. `buf_spname` goes 5 → 4 and `exiting` 17 → 13.
+* **`p_wh` looks write-only and is not.** It goes 4 → 2, the two reads inside the
+  island having gone, and what is left is its declaration, which carries the
+  initialiser, and one real reader in the frame layer. A naive "uses − writes − 1 ≤ 0"
+  scan reports it; the check's scan excludes the declaration **by position** and then
+  reports nothing but `vim_ignored`, upstream's sink for an ignored return value,
+  which is write-only in the input too. Running it on both texts and requiring the
+  same set is what stops an empty answer being a broken scan rather than a clean phase.
+* **`SHM_FILEINFO` leaves**, and it is the `'shortmess'` `F` letter: its only reader
+  was inside `enter_buffer()`. The letter is accepted and inert afterwards. That is
+  the options phase's and no flag string is touched here.
+* **`ZZ` is already `ZQ` and stays so.** `nv_Zet` has run `do_cmdline_cmd("q!")` for
+  `case 'Z'` and for `case 'Q'` since phase 6. The strings are **not** rewritten to
+  `"q"`: it would move `zz_key` and `zq_key` for no gain, and `case:zz_key` is phase
+  6's declaration.
+* **There are no `'confirm'`-style prompts to worry about**: `grep -cw confirm` on the
+  input is 0, whim having removed the dialog layer. Said out loud so that the next
+  reader does not go looking.
+
+### Twelve enumerators go and nothing renumbers
+
+`typereach.py` takes twelve as whole anonymous definitions — the four `CCGD_`, the
+two `DOBUF_`, `SHM_FILEINFO` and the five `WEE_` — and a whole definition leaving
+takes no survivor's value with it. The check dumps DWARF either side and requires
+exactly that: **1,197 → 1,185, not one survivor renumbered and none arriving.** That
+is the opposite of phase 10, where 85 moved, and it is worth the four seconds either
+side to say rather than assume. **No `cmdnames[]` row and no `nv_cmds[]` row moves**:
+98 rows, `names()` reads 98, the `static_assert` is in place and `nvidxcheck` reports
+194.
+
+### The declared delta: one case and one row, and the row is a third kind
+
+```
+11    case:quit_modified
+      quit
+```
+
+`quit_modified` types text and then `:q`, so what the baselines hold is an editor
+that refused: the E37 line goes, the one bell with it, and the record loses a
+snapshot — 2,342 → 2,213 bytes. **The exit status does not move there, and that is
+the corpus's limit rather than the phase's**: every `zcases.py` case ends with a
+trailing `:q!`, which quits the old binary too.
+
+The `ref-excmds.txt` row `quit` **changes message and does not cease to exist**,
+unlike every row phases 6 to 10 declared: `:quit` is still a command with its row, so
+`tools/zexcmds.py` enumerates the same 98 names and compares the block, whose `msgs`
+go from `:set nopaste / E37… / :q!` to `:set nopaste / :quit`. The `cquit` row does
+not move. Measured with `tools/zcompare.py`: the other 101 screen cases, the other 97
+command rows, all 30 command lines, the four pty scenarios and the terminal table are
+identical.
+
+### The probes, which are the only evidence the refusal went
+
+Seventeen, on both binaries — the one the phase was handed, built by the edit part
+from the boundary's own makefile flags, and the one it made — six required to move
+and eleven not.
+
+* **`q_alone` is the probe.** `ihello<Esc>`, `:set nopaste`, `:q` **and nothing after
+  it**. The old binary draws E37, runs out of stdin, prints `Vim: Finished.` and exits
+  **1**; this one quits on the `:q` and exits **0**. That difference is the whole
+  phase measured from outside and no recording can see it.
+* **Five more spellings of the same refusal** — `:q` with the trailing `:q!` (the
+  declared case), `:1q`, `:qu`, `:quit`, and `x` then `:q` — each required to have
+  refused **before** and not to now, and each to lose the E37 snapshot. `q_modified`'s
+  bells must go 1 → 0.
+* **Eleven that must not move and are required to be *doing* something**: `q_clean`
+  (`:q` on an **unmodified** buffer, status 0 either side and no E37 anywhere — it
+  took the else arm before this phase and takes it now, which makes it `q_alone`'s
+  pair), `q_bang`, `zz_key` and `zq_key` — which must also be identical **to each
+  other** — `cquit` (exit 1 either side), `ctrl_g` (must say `[Modified]`),
+  `cmd_set_ro`, `cmd_set_mod` (`:set modified?` must answer), `reg_list`, `cmd_undo`
+  and an ordinary editing session.
+* **A real terminal**, because every probe above went through a pipe: `ityped<Esc>`,
+  `:q`, `:q!`. On the old binary the `:q` draws E37 and leaves the editor running, so
+  the `:q!` is what ends the session; here the `:q` quits and the `:q!` reaches
+  nothing. An ordinary pty editing session beside it is identical either side.
+
+**Proven able to fail in both directions**: with the new binary on both sides all six
+report *was to move and did not* and add *the input binary did not refuse, so this
+proves nothing about a refusal being removed* and *exited 0, expected 1*; with the old
+binary on both sides they add *this binary still refuses* and *exited 1, expected 0*.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,387 | **79,866** (−521) |
+| functions | 1,742 | **1,726** (−16) |
+| type definitions | 922 | 910 |
+| enumerators (DWARF) | 1,197 | **1,185** |
+| struct fields | | **−2**, by hand |
+| `cmdnames[]` rows | 98 | 98 — untouched |
+| `nm -u`, as `phasecheck.sh` counts it | 66 | **66** |
+| binary | 812,744 | **804,360** |
+
+**Nothing is freed, and the check states it as an equality** — a `cmp` of the whole
+undefined set, so a symbol *arriving* fails too. Sixteen functions go and not one was
+libc's last caller: the refusal printed through `emsg()` and the island moved windows,
+neither of which reaches the C library on its own. `fclose`, `getc`, `putc` and
+`fsync` are required to be **still** undefined and are the `FILE *` phase's; `open`,
+`access`, `fcntl`, `stat`, `getcwd` and `strerror` to be still **absent**.
+
+The sweep is **3 rounds** and the phase **97 s**. Its boundary is `b81ce6372fc4`, and
+`make zero-verify` recomputes all twelve in 107 s of wall time over 629 s of phases.
+
+### Its placement
+
+`stage 11`, `package buffers` — the first phase of a package of its own — and two
+`uses` lines: `buffers:11 seed:0 mechanical`, because the two declared records are
+compared with the baselines phase 0 records, and `buffers:11 files:6 rationale`,
+because the refusal has no remedy once nothing can be written: phase 6 took every
+`:write`, so E37 asked for a save the editor no longer had any way to perform.
+
+**`need 11 swept`, measured, and the brief that specified this phase said there was
+none.** The invariant the whole phase rests on is that every call to any of the eleven
+island functions is inside `check_changed_any` or inside another of the eleven. On the
+text phase 10's *edit* leaves that is **false**: `buflist_findlnum()` is still there to
+make `return buflist_findfpos(buf)->lnum;`, a call from outside the island, and phase
+10's sweep is what takes it — so `buflist_findfpos` has four mentions where the anchor
+wants three. `SHM_FILEINFO` refuses first, at 3 where it wants 2, `ex_file()` still
+being there to read the `'shortmess'` `F` letter: `tools/phaserun.sh zero 10-11` says
+`SHM_FILEINFO has 3 mentions, expected 2`. Unlike 7, 8 and 9 the text before it
+**compiles** — phase 10's edit left valid C — so the refusal is the counted anchors
+alone.
+
+**`apart 10 11`, measured.** Phase 10's check pins `check_changed` at 4,
+`no_write_message` at 3, `buf_spname` at 5 and `open_buffer` at 5, and requires `E37:
+No write since last change` to survive. Run on the tree this phase leaves it gives
+five complaints — `check_changed has 0 mentions, expected 4` among them, and `E37
+went, and check_changed() is the :q phase's` — and exits 1. **Only `apart 10 11` is
+written**, and the four before it are implied: a stage holding 6 and 11 holds 10, so
+that line forbids it already. It is the shape of the missing `apart 2 6`, `apart 6 8`
+and `apart 8 10`.
+
+## Phase 12 — the options nothing reads
+
+`pipes/zero12-edit.sh` and `pipes/zero12-check.sh`, `stage 12`, `package options`.
+Phases 6 to 11 took every way to reach a file and then the refusal that guarded the
+text. What they left behind is a set of **settings**: `options[]` rows whose global
+nothing reads any more, so that `:set fsync?` answers a question about machinery that
+is not there. An option that cannot do anything is a lie, and the same argument that
+removed `:write` removes `'write'`.
+
+### Which rows go is computed, not listed
+
+The edit walks `options[]`, finds each row's `(char_u *)&p_xx` and counts readers of
+that global outside the row, with `tools/dropoptions.py --strict`'s own exclusions —
+another row, the row's `var` field, the variable's declaration (which is what the row
+initialises), and taking the address, which asks which option a pointer refers to and
+never touches the value. **Exactly seven of the 114 rows have no reader**, and the
+program requires that set rather than naming six of them:
+
+| row | var | indir | verdict |
+| --- | --- | --- | --- |
+| `fsync` | `p_fs` | `PV_BOTH` | goes, after `droplocal.py b_p_fs` |
+| `modified` | `p_mod` | `PV_BUF` | **stays** |
+| `prompt` | `p_prompt` | `PV_NONE` | goes |
+| `readonly` | `p_ro` | `PV_BUF` | goes, by `ZERO-PLAN.md` decision 5 |
+| `undoreload` | `p_ur` | `PV_NONE` | goes |
+| `write` | `p_write` | `PV_NONE` | goes |
+| `writeany` | `p_wa` | `PV_NONE` | goes |
+
+**`'modified'` has no reader of `p_mod` either and must not go.** Decision 5 keeps it:
+the state it reports lives in `b_changed`, not in `p_mod`, so `:set modified?` answers
+correctly and the row is not a lie. A computation that took "no reader" as the
+criterion would delete it, which is why the seven are computed and the six are
+*chosen*. `dropoptions.py` refuses it anyway, on the `PV_` guard. It is now the only
+option row with no reader of its own global.
+
+**`'prompt'` is the find, and `ZERO-PLAN.md`'s row 11 computed four.** Its only reader
+was `getexmodeline()`'s `if (p_prompt) msg_putchar(':');`, so it is **zero phase 4's
+orphan**, collected here — which is a `uses` line the plan does not have.
+
+**`'paste'` is exempt for ever**, and that is asserted rather than only written down:
+`p_paste` has 12 mentions before and after, its five save slots `p_ai_nopaste`
+`p_et_nopaste` `p_sts_nopaste` `p_tw_nopaste` `p_wm_nopaste` four each, and the edit
+refuses outright if the computation ever offers `'paste'`. `+{command}` is likewise
+untouched. That is the user's standing promise (`ZERO-PLAN.md` 2d and decision 8), and
+the next person to widen the computation meets the assertion and not just a comment.
+
+### Four parts, and only one of them is live code
+
+**A — four clean rows**, `dropoptions.py --strict prompt undoreload write writeany`.
+The sweep then takes the four globals as `-Wunused-variable`.
+
+**B — `'fsync'`, which `--strict` alone refuses**, and not on a reader: the row is
+`PV_BOTH + PV_BUF + BV_FS`, so the tool stops on the `PV_` guard, because *the row is
+what initialises the global* (`'tagcase'` taught that by segfaulting before the first
+keystroke). `droplocal.py b_p_fs` is the other half and goes first — six plumbing
+sites, including `get_varp()`'s two-line "local if set" form — then `--strict --local
+fsync`.
+
+**C — `'readonly'`, which is live code and not an inert row.** `p_ro` the global has
+had no reader since whim; what survives is the buffer-local `b_p_ro`, at ten mentions,
+and since phase 6 nothing but `:set ro` can set it, which is decision 5's premise.
+Five edits, in this order and for this reason:
+
+1. **the W10 warning.** `change_warning()` and its six call sites, each one statement
+   on a line of its own. There is **no prototype** — it is defined above its first
+   call — so a program that removes one fails loudly. This also takes the
+   `ui_delay(1002L, TRUE)` that phase 2 named as one of the eight other pauses, and
+   the `static char *w_readonly` inside the function.
+2. **the `[RO]` in `fileinfo()`.** The format string and the argument move
+   **together**, `%s%s%s%s%s%s` to `%s%s%s%s%s`, and nothing in the build checks a
+   `vim_snprintf_safelen` count.
+3. **the `[RO]` on the status line**, in `win_redr_status()`: the name-padding
+   disjunct and the block that appends the indicator.
+4. **`did_set_readonly()`, by name and with the reason.** It is the row's callback and
+   the row is its only other reference, so the sweep would take it — but `droplocal.py`
+   runs in the *same edit* and would find it still reading `b_p_ro`. Measured without
+   it: `droplocal: b_p_ro still has 1 mentions after the plumbing went`, which is the
+   tool working. The alternative is an inner sweep; this is cheaper and honest.
+5. the row, then `droplocal.py b_p_ro` — three plumbing sites.
+
+**D — what the sweep then finds**: `SHM_RO`, `BV_FS`, `BV_RO`, `w_readonly`, the six
+globals, and the `b_did_warn` field — which becomes dead **only after both**
+`change_warning` and `did_set_readonly` have gone. Remove one and it is a field with
+one reader and one writer, which no tool reports.
+
+### The flag letters are not touched, and that is a decision
+
+`'cpoptions'` and `'shortmess'` each have a **validity list that is a separate string
+literal from the value**, so removing a letter from a list cannot move `:set cpo?` or
+`:set shm?`. But it *would* turn `:set shm=F`, accepted silently, into `E539: Illegal
+character`, and no corpus case, Ex row, argv row or pty scenario types `:set shm=` —
+which is exactly the kind of change rule 2 exists to prevent. Accepting a letter that
+does nothing is what upstream does for every feature a build lacks.
+
+Measured: **23 of `'cpoptions'` 60 letters and 14 of `'shortmess'` 23 are inert** — in
+a validity list with no enumerator of that value — and **this phase makes exactly one
+more so, `'shortmess'`'s `r`**, whose `SHM_RO` goes with the `[RO]` indicator. Both
+literals are asserted character for character, the inert sets are computed either side
+and required to differ by exactly `{r}`, and four probes require `:set shm=F` and
+`:set cpo=g` to be accepted silently on **both** binaries and `:set shm=y` and `:set
+cpo=h` to answer E539 on both.
+
+### The row floor, which this phase crosses
+
+`tools/orphanopts.py` refused a table it parsed fewer than 100 distinct `&p_xx` out
+of; this phase takes the count **102 → 96**, and its first call crosses it.
+`tools/zerodelta.sh` runs that tool beside its harnesses, so crossing the floor does
+not fail *this* phase — it fails the delta check of **every zero phase after it**, with
+a message about a table that moved. It is the same failure shape as
+`create_cmdidxs.py`'s 100-row floor at phase 8, arriving from a different table.
+
+**The floor is 80 now, lowered in this phase's own commit**, with the reason in the
+tool's docstring — the same number and the same argument as `create_cmdidxs.py`'s, so
+that the two floors stay one idea. 80 leaves 16 globals of margin below 96 and the
+plan removes no further rows. The check proves it **by using it**, not by grepping for
+the number: the tool must not refuse, and its output on this source must be
+byte-identical to its output on the input — five non-pointer orphans, which are
+`'paste'`'s save slots, and every option pointer still with the row that sets it.
+
+**It cost implementation keys, and that is stated rather than hidden.** `tools/whimdelta.sh`
+names `orphanopts.py` and `tools/implhash.sh` hashes what a delta checker names, so
+lowering the number re-keys whim and zero. Measured, before and after, over every
+whim stage, every whim phase-as-unit, every whim edit, every slim phase and every zero
+unit and edit: **12 whim stage keys, 4 whim edit keys, 82 whim phase-as-unit keys, 12
+zero unit keys and 3 zero edit keys move, and not one slim key.** The tool's *verdict*
+is unchanged everywhere — `slim-vim.c`, `whim-vim.c` and every zero boundary are far
+above either floor, and the output is byte-identical — so no boundary can move; the
+cost is CPU in a repass. `make whim-verify` and `make slim-verify` are the gate
+`ZERO-GOAL.md` rule 9 asks for, and both were run.
+
+### The declared delta is nothing at all, and the reason is not phase 9's
+
+Phase 9 removed code that **could not run**. This phase removes code that **can run
+and that the instrument cannot see**. Measured record by record:
+
+* `:set <name>?` goes from an answer to `E518: Unknown option`, and **no recorded case
+  or row asks any of the six.**
+* **bare `:set` does not move**, because none of the six differs from its default, and
+  its listing is wiped by the Press-ENTER redraw before `zscreen.py` takes its picture.
+* **`:set all` does move** — `readonly`, `fsync`, `prompt` and `undoreload` are in the
+  old stream and absent from the new — and `:set all` is in no harness. It is a probe.
+* **the W10 warning and the two indicators move**, and no recorded case sets
+  `'readonly'`: they need `:set ro`, which nothing types.
+* `tools/zexcmds.py` records `exit`, `bells`, `stderr`, `text` and `msgs` for the `set`
+  row and **no stream digest**, so even a change to what `:set` prints in the stream
+  would be invisible there.
+
+So a phase that did nothing and a phase that did everything have the same recording.
+`diff -rq` over two full recordings — the binary the phase was handed against the one
+it made — is **empty**, and `tools/zerodelta.sh --phase 12` finds the nine lines phases
+2 to 11 declared and nothing new. `pipes/zero.delta` gets a comment and no line.
+
+### The probes, which are not a supplement but the check
+
+**Twenty-seven, on both binaries**, thirteen required to move and fourteen not.
+
+* **`ro_w10` is the one that shows behaviour going rather than a row.** `:set ro` on an
+  **unmodified** buffer, then an insert: the old binary prints `W10: Warning: Changing
+  a readonly file` and **pauses a second** — 1,006 ms measured against 2 ms here, the
+  same shape as phase 2's 2,010 ms → 5 ms. The message is never in a snapshot: it is
+  drawn, a Press-ENTER follows and the redraw wipes it, exactly as `zero7-check`'s
+  E319, so the assertion is on the *stream* and on the elapsed time. The buffer must be
+  unmodified when `:set ro` runs — `change_warning()` returned early on `b_did_warn ||
+  curbufIsChanged()` — so a probe that types its seed first shows nothing on either
+  binary.
+* **`ro_ctrlg`** (`[readonly]`, not `[RO]`, because `'shortmess'`'s default has no `r`),
+  **`ro_shm_r`** (`:set shm=r` first, the only probe that reaches `SHM_RO`) and
+  **`ro_statusline`** (`+set laststatus=2`, which `win_redr_status` is reached by
+  nothing else here).
+* **`set_all`**, and the six `:set <name>?` spellings plus `:set readonly` and `:set
+  ro`, each an answer before and `E518: Unknown option` after.
+* **Fourteen that must not move and are required to be *doing* something**:
+  `paste_roundtrip` (the exempt option, which the whole corpus depends on),
+  `mod_query`, `shm_query`, `cpo_query`, `shm_F`, `shm_bad`, `cpo_g`, `cpo_bad`,
+  `nu_query`, `bare_set`, `set_listing`, `ctrl_g` (still `[Modified]`), `undo_case`
+  and an ordinary editing session.
+
+**Proven able to fail in both directions**: with the new binary on both sides all
+thirteen report *was to move and did not* and add *the input binary did not warn* and
+*took 10 ms … under half a second means it never drew it*; with the old binary on both
+sides they add *this binary still warns*, *took 1,006 ms, so something is still
+pausing* and *`:set ro` does not answer E518 now, so something can still mark a buffer
+read only*.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 79,866 | **79,757** (−109) |
+| functions | 1,726 | 1,724 (−2) |
+| type definitions | 910 | 909 |
+| enumerators (DWARF) | 1,185 | **1,182** (−3, nothing renumbers) |
+| struct fields | | **−3** (`b_p_fs`, `b_p_ro`, `b_did_warn`) |
+| `options[]` rows | 114 | **108** |
+| distinct `&p_xx` in `options[]` | 102 | **96** |
+| `cmdnames[]` rows | 98 | 98 — untouched |
+| `nm -u`, as `phasecheck.sh` counts it | 66 | **66** |
+| binary | 804,360 | **803,912** |
+
+**Nothing is freed, and the check states it as an equality** — a `cmp` of the whole
+undefined set. An option row is not a libc call, and `fsync` is still reached from
+`ui_write()` and is the `FILE *` phase's.
+
+**Three enumerators go and nothing renumbers, and `BV_RO` is why it needs saying**: it
+is *unpinned*, so `BV_SI`, the next survivor, would follow it down. `tools/deadenums.py`
+pins `BV_SI = 53` in the sweep and `enumvals.sh --verify` reports it there; the check's
+independent dump either side requires `BV_SI` to hold its value and no other survivor
+to move. `BV_FS` had an explicit value and so does its successor.
+
+The sweep is **2 rounds** and the phase **37 s**. Its boundary is `fbaa6d80884b`.
+
+### Its placement
+
+`stage 12`, `package options`, and four `uses` lines: `options:12 seed:0 mechanical`,
+because the declaration is "none" and "none" is checked against phase 0's baselines;
+`options:12 files:6 mechanical` (`'write'`, `'writeany'` and `'fsync'` were
+`do_write`'s, `not_writing`'s, `check_overwrite`'s and `buf_write`'s, and phase 6 left
+`:set ro` as the only thing that could mark a buffer read only); `options:12 files:8
+mechanical` (`'undoreload'` was read by `do_ecmd`); and **`options:12 streams:4
+mechanical`, which the plan does not have** — `'prompt'`'s only reader was
+`getexmodeline()`.
+
+**`need 12 swept` is not required, and it was measured rather than assumed.**
+`tools/phaserun.sh zero 11-12` runs phase 12's edit on the unswept text phase 11's edit
+leaves, and every counted anchor matches: the same seven rows come back from the
+computation and the cut ends at the same 108 rows and 96 globals. The run fails only
+on the edit's build of its input binary, which is true of every zero edit that builds
+one and is not declared for that reason.
+
+**`apart 11 12`, measured.** Phase 11's check pins `p_ro` and `p_ur` at 2 mentions
+**with their option rows** and says in as many words that removing one is the options
+phase's. Run on the tree this phase leaves it gives six complaints — `p_ro has 0
+mentions, expected 2`, `'readonly' lost its option row, and that is the options
+phase's`, `curbufIsChanged has 6 mentions, expected 7` (`change_warning`'s early return
+read it) and `the function count went 1742 -> 1724, expected 1742 -> 1726` among them —
+and exits 1. Phase 10's check pins the same two rows and would fail too, but a stage
+holding 10 and 12 holds 11 and `apart 10 11` forbids that already.
+
+## Phase 13 — no `FILE *` that is never opened
+
+`pipes/zero13-edit.sh` and `pipes/zero13-check.sh`, `stage 13`, `package tidy`. Two
+`static FILE *` survive in this editor and **nothing has ever opened either of them in
+any build of `zero-vim`**: `scriptin[NSCRIPT]`, which `-s {scriptfile}` filled and for
+which whim removed the option, and `redir_fd`, which `:redir > file` filled and for
+which whim removed the command. So this phase removes the **possibility** rather than
+a behaviour — phase 9's situation and phase 9's answer.
+
+### The counts are the argument, and each is computed before anything is folded
+
+* **`scriptin[]` is assigned in exactly one place in the whole file**, and that place
+  is `scriptin[curscript] = NULL;` inside `closescript()`. So it is NULL for ever.
+* **`redir_fd`'s only assignment is its own declaration**, `= NULL`.
+* **`ui_write()` has three mentions** — a prototype, a definition and one call — and
+  that call passes `FALSE` for `console`.
+
+The edit asserts all three as exact text before it folds anything, because every fold
+rests on them; a fourth assignment anywhere would make every one a guess.
+
+### Six anchors, in three groups
+
+**A — `scriptin[]` is NULL for ever.** `may_sync_undo()` and `is_safe_now()` each lose
+one conjunct and **survive**: `u_sync()` still runs on the same condition, and
+`is_safe_now()` is still `stuff_empty() && typebuf.tb_len == 0 && !global_busy`.
+`using_script()` is FALSE at both call sites — a `&& !using_script()` conjunct and a
+`|| using_script()` disjunct — and the sweep then takes it. And `inchar()`'s script
+reader goes as text with its local, after which `if (script_char < 0)` is always true
+and folds; **that fold is what takes `closescript()`'s only caller**, and `fclose` and
+`getc` with it.
+
+**B — `redir_fd` is NULL for ever**, so `redirecting()` is FALSE always and folds at
+both call sites, in `undo_cmdmod` and inside `redir_write()`. **Their indentation
+differs**, which is what makes two separate one-count patterns honest rather than a
+count of two over one pattern. The second fold takes the whole `fputs`/`putc` block.
+
+**C — `ui_write()`'s `console`** is FALSE at its one call site, so the `vim_fsync(1)`
+it guards can never be entered. **The parameter goes too**, and that is what makes the
+cut honest: leaving it would leave `__attribute__((unused))` on something that will
+never be read again — phase 2's argument for `check_tty(void)` — and `tools/sweep.sh`
+compiles with `-Wno-unused-parameter`, so an unused parameter is invisible where an
+unused local is not. `vim_fsync()` is then uncalled and `fsync` goes.
+
+### Two locals are folded by hand and no tool covers either
+
+**`retesc`** is written only inside the loop anchor A4 deletes and read once.
+Afterwards it is a local that is **read and never written**: gcc has no warning for
+that, `deadsweep.py` acts on warnings, and leaving it would mean `inchar()` returns an
+uninitialised value on a path the compiler thinks exists. `return retesc;` becomes
+`return FALSE;` and the declaration goes. It is folded **after** the two declarations
+and **before** `fold_always`, because the fold dedents the body it keeps and a rewrite
+counted against the original indentation refuses afterwards — which it did, the first
+time this was run.
+
+**`did_return`** is the same shape one level down: the `if (!did_return)` block the
+`redir_write` extra removes is its only reader, and an `if` with an empty body is not
+something any tool here removes either, so the block goes whole with `cutil.drop_if`
+and the variable's two lines with it.
+
+### The recommended extra is taken, and a second is declined
+
+After B, `redir_write()` is `{ char_u *s = str; static int cur_col = 0; if (redir_off)
+return; }` — the sweep takes the two variables and leaves a function with five callers
+that cannot do anything. Leaving it is the "concept the table has and the code does
+not" that whim's Phase 18 argued against, so it goes with its five call sites, and
+`redir_off` — then written **five** times, not four, and read never, a file-scope
+static that no warning covers — goes with them. `msg_puts_attr_len()`'s call was every
+message the editor prints, and that is the one to notice: nothing is printed
+differently, because `redir_write()` returned without doing anything at every one of
+them.
+
+**A second extra is declined and is a question for the user, not an oversight.** After
+this phase `typedef struct stat stat_T;` has no user and `#include <sys/stat.h>` and
+`#include <fcntl.h>` are needed by nothing. Removing all three is free and was
+measured — same binary, byte-identical recording, four fewer lines — but it would be
+**the first time any zero phase changes the directive count**, and the charter above
+says `zero-vim.c` "inherits 18 directives from `whim-vim.c`". That sentence is a
+statement about the pipeline, so the change belongs to whoever decides it, either here
+or as an includes phase of its own. The count stays **18**.
+
+### The honest problem, and the probe that answers it
+
+Nothing this phase removes is reachable, so there is **no behavioural must-differ
+probe** and no dishonest one is offered instead. The check builds the source the phase
+was handed, twice:
+
+- **probe** — `(void)write(2, "FILESTAR-ENTERED\n", 17);` at **five** places: the top
+  of `closescript()`, inside `inchar()`'s `getc(scriptin[curscript])` loop, inside
+  `redir_write()`'s `redirecting()` block, inside `undo_cmdmod`'s, and the top of
+  `vim_fsync()`. **0 of the 106 records** carry the marker.
+- **ctl** — the *identical* instrument at the top of `ui_write()`, which every byte
+  the editor draws goes through. **105 of the same 106** carry it.
+
+The zero is the claim; the 105 is what makes it a probe that can fail. **Proven able
+to fail, by measurement**: with the instrument moved to `ui_write()` in the probe
+build, the recording carries the marker in 105 of 106 records and the check reports
+*105 of 106 records ENTERED one of the five sites on the binary this phase was handed*
+and exits 1.
+
+**Eighteen adversarial sessions** run on both instrumented binaries, and every one of
+them is a way of making the editor **print**, which is where `redir_write()` sat —
+`msg_puts_attr_len()` called it for every message. `:messages`, `:verbose set ai?`,
+`:silent echo`, `:history`, `:registers`, `:display`, `ga`, an unknown command, `:set
+all`, `:marks`, `:undolist`, `:changes`, `:map`, `:highlight`, `:normal ihi`,
+`:g/a/p`, a recorded-and-replayed register and `:set verbose=9`. **Each reached
+`ui_write()` and not one reached any of the five** — and the first half is checked
+too, because a session that draws nothing is not an adversary.
+
+### The declared delta is nothing at all, measured twice over
+
+`diff -rq` over two full recordings — the binary the phase was handed against the one
+it made — is **empty**: all 102 screen cases, all 111 Ex-command rows, all 30 command
+lines, the four pty scenarios and the nineteen terminal rows. `tools/zerodelta.sh
+--phase 13` then finds the same against whim-vim's frozen baselines, with the nine
+lines phases 2 to 11 declared and nothing new. `pipes/zero.delta` gets a comment and
+no line. Nine ordinary sessions run directly between the two binaries and each is
+required to be identical **and** to be doing something.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 79,757 | **79,603** (−154) |
+| functions | 1,724 | 1,719 (−5) |
+| type definitions | 909 | 908 |
+| enumerators (DWARF) | 1,182 | 1,181 (`NSCRIPT`, nothing renumbers) |
+| `FILE` mentions | 2 | **0** |
+| `#include` | 18 | 18 — untouched |
+| `nm -u`, as `phasecheck.sh` counts it | 66 | **62** |
+| `nm -u` with zero's own flags | 65 | **61** |
+| binary | 803,912 | **799,816** |
+
+**Four symbols go and the check names the set, not the count**: `fclose` and `getc`
+were `closescript()`'s and `inchar()`'s script loop's, `putc` was `redir_write()`'s,
+and `fsync` was `vim_fsync()`'s — whose only caller was `ui_write()`'s `console`
+branch, which is why **`fsync` is this phase's and not the buffer-name phase's**.
+
+**`fputs` does not go, and `ZERO-PLAN.md` row 12 says it does.** After this phase the
+source names it nowhere and `nm -u` still lists it: gcc lowers `fprintf(stderr, "…")`
+to it, exactly as it lowers `printf` to `fputc`, `fwrite` and `putchar`. The check
+asserts the freed set as exactly `fclose fsync getc putc`, with `fputs fputc fwrite
+putchar __errno_location` named as gcc's own and required to be **still** undefined.
+
+**`ZERO-PLAN.md` §4b's invariant is assertable in its strongest form now**, and the
+check states it: `open creat openat stat access fcntl getcwd strerror fopen fdopen
+opendir` are absent from **both** the source and the undefined set. The core has no
+`open`, no `stat`, no stdio stream and no fourth descriptor — it can read, write,
+close and dup fds 0, 1 and 2 and nothing else.
+
+The sweep is **3 rounds** and the phase **37 s**. Its boundary is `f995296f2536`.
+
+### Its placement
+
+`stage 13`, `package tidy`, and two `uses` lines: `tidy:13 seed:0 mechanical`, because
+the "none" is checked against phase 0's baselines, and `tidy:13 terminal:2 rationale`,
+because `ui_write()`'s `console` argument is FALSE at its one call site either way and
+phase 2 is where the terminal stopped being asked anything — so dropping the parameter
+rather than leaving `__attribute__((unused))` on it is that phase's argument for
+`check_tty(void)`.
+
+**`need 13 swept` is not required, and it was measured**: phase 13's edit applies
+unchanged to the *unswept* text phase 12's edit leaves, every counted anchor at the
+same number. The run fails only on the edit's build of its input binary, which is true
+of every zero edit that builds one.
+
+**`apart 12 13`, measured.** Phase 12's check pins `scriptin` at 8 mentions, `redir_fd`
+at 6 and `vim_fsync` at 3 and names all three as the `FILE *` phase's; it also requires
+`fclose`, `getc`, `putc` and `fsync` to be **still** undefined. Run on the tree this
+phase leaves it gives three complaints — `redir_fd has 0 mentions, expected 6`,
+`scriptin has 0 mentions, expected 8`, `vim_fsync has 0 mentions, expected 3` — and
+exits 1. Its symbol check would fail too, being a `cmp` of the whole undefined set
+against a phase that frees four, but the source assertions come first. Phase 11's check
+pins the same three and would fail as well, but a stage holding 11 and 13 holds 12 and
+`apart 11 12` forbids that already.
+
+### What zero-vim is after thirteen phases
+
+```
+zero-vim.c        79,603 lines          from whim-vim.c's 86,614  (-7,011, 8.1%)
+functions         1,719
+type definitions  908
+DWARF enumerators 1,181
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    108, 96 distinct globals  (orphanopts floor 80; 16 of margin)
+#include          18, every one a system header; no #define, no conditional
+libc symbols      61 with zero's flags, 62 as tools/symbols.sh counts
+binary            799,816 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    20 records + stderr-moved, from whim-vim
+```
+
+**The 61, attributed.** The whole host boundary that is left is a terminal, a message
+line, memory and the C library's own text handling:
+
+| why | symbols |
+| --- | --- |
+| **the terminal** | `read` `write` `close` `dup` `ioctl` `select` `tcgetattr` `tcsetattr` `nanosleep` `isatty` (10) |
+| **messages before and after the screen** | `printf` `fflush` `stderr` (3) |
+| **memory** | `malloc` `free` `realloc` (3) |
+| **strings and memory blocks** | `memchr` `memcmp` `memcpy` `memmove` `memset` `strcasecmp` `strcat` `strchr` `strcmp` `strcpy` `strlen` `strncasecmp` `strncmp` `strncpy` `strpbrk` `strstr` `sprintf` (17) |
+| **character classes** | `isalnum` `iscntrl` `ispunct` `tolower` `toupper` `towlower` `towupper` (7) |
+| **numbers** | `atoi` `atol` (2) |
+| **sorting and searching** | `qsort` `bsearch` (2) |
+| **time** | `time` `gettimeofday` (2) |
+| **signals and exit** | `sigaction` `sigaddset` `sigemptyset` `sigismember` `sigprocmask` `kill` `raise` `getpid` `exit` `_exit` (10) |
+| **gcc's own**, named nowhere in the source | `__errno_location` `fputc` `fputs` `fwrite` `putchar` (5) |
+
+`tools/symbols.sh` counts 62 because it compiles plain `-O0` and so adds
+`__stack_chk_fail`, which zero's `-fno-stack-protector` removes. **`isatty` survives
+with three call sites** and belongs to the terminal, not the filesystem —
+`mch_check_win`'s `isatty(1)`, `mch_get_shellsize`'s `!isatty(fd) &&
+isatty(read_cmd_fd)` and `fill_input_buf`'s `!did_read_something &&
+!isatty(read_cmd_fd)`.
+
+**The filesystem work is finished.** Phases 6 to 13 took, in order: every way to write
+a file, every way to read one, every way to name another one to edit, the machinery
+that read the bytes, the buffer's own name with the last three questions the core
+asked a disk on its own initiative, the refusal that asked whether the text had been
+saved, the option rows that reported settings nothing read, and the two `FILE *` that
+were never opened. What remains of `ZERO-PLAN.md` is the host boundary itself: `main()`
+demoted to a launcher, the terminal and the signal set moved out of the core, and the
+text representation changed from lines to a tree.

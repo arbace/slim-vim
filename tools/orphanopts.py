@@ -31,6 +31,22 @@ is a pointer is a crash waiting for the right command.
 Exit 1 names them.  A non-pointer orphan is reported and tolerated -- the
 `p_ai_nopaste` and `p_tw_nobin` save slots are exactly that shape on purpose,
 and `int` and `long` orphans read as 0 rather than trapping.
+
+THE ROW FLOOR IS 80, AND IT WAS 100.  The parse below is a regex over options[],
+and a regex that stops matching after an edit to the table's shape returns an
+empty set -- from which every global looks orphaned, or none does, depending on
+which way the comparison falls.  So the floor is a deliberate number rather than
+a guard against zero, and it is the same number and the same argument as
+tools/create_cmdidxs.py's, so that the two floors stay one idea.  It was 100
+while the smallest table in play was slim's and whim's 116 distinct option
+globals.  The zero pipeline deletes rows: its phase 12 drops `'fsync'`,
+`'prompt'`, `'readonly'`, `'undoreload'`, `'write'` and `'writeany'`, taking the
+count 102 -> 96, which the old floor refused with `only 96 rows parsed`.
+tools/zerodelta.sh runs this beside its harnesses, so crossing the floor does not
+fail that phase -- it fails the delta check of EVERY zero phase after it, with a
+message about a table that moved.  Lowered here, in that phase's own commit, per
+ZERO-PLAN.md decision 8's argument and never silently; 80 leaves 16 globals of
+margin below zero's 96, and the plan removes no further rows.
 """
 
 import re
@@ -48,7 +64,7 @@ def main():
         sys.exit('orphanopts: options[] is not in this file')
     j = s.index('\n};', i)
     rows = set(re.findall(r'&(p_[a-z0-9_]+)\b', s[i:j]))
-    if len(rows) < 100:
+    if len(rows) < 80:
         sys.exit('orphanopts: only %d rows parsed -- the table has moved and '
                  'this would pass for the wrong reason' % len(rows))
 
