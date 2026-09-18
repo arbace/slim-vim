@@ -77,6 +77,17 @@ actually happened was an import crash.
   **out of the produced source**, compiles them with `-Wall -Wextra` and runs them
   beside libc's; its domain is bounded on purpose and its docstring says what the
   unbounded run found. Both are proven able to fail.
+- **`zhostonly.py <file.c>`** — zero phase 20's structural assertion, and the check
+  that survives into the file split. Moving code from the core into the host block
+  inside one translation unit frees no `nm -u` symbol, so the phase's real claim is
+  *where* the code is, not how much libc is left: this requires every mention of 43
+  host words — `sigaction`, `kill`, `ioctl`, `tcsetattr`, `select`, `nanosleep`,
+  every `SIG*`, `struct termios`, `fd_set`, `ICANON`, `VMIN` and the rest — to be
+  inside the `host_*`/`musl_*` block, with seven exceptions named one by one with
+  their reason and their exact count. It ignores string literals (the file says
+  `"close buffer"`) and `#` lines (`#include <errno.h>`), and it refuses to pass
+  vacuously: the host region must be found, must define all fourteen of its
+  functions, and must itself mention the six words that are the point.
 - **`zcompare.py`** — a recording against the baselines, under what
   `pipes/zero.delta` declares: a record by name, or a whole *dimension* through
   `screen-moved` and `stderr-moved`. A dimension declared that did not move is a

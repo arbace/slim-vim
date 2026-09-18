@@ -19,12 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are twenty phases, 0 to 19.  Phases are added one at a time, each on its
+# There are twenty-one phases, 0 to 20.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
 
 #   stage   phases
 stage       0
@@ -47,6 +47,7 @@ stage       16
 stage       17
 stage       18
 stage       19
+stage       20
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -228,6 +229,22 @@ apart       17 18
 # check compares against the text ITS edit was handed and its gone set from r17 is still
 # exactly `exit`, 18 having freed nothing, so it passes on a 18-19 stage.
 apart       18 19
+# Phase 19's check fails on a shared stage with 20, and it was MEASURED rather than
+# predicted: `tools/phaserun.sh zero 19-20` on r18 stops in 19's check with three
+# messages, and the FIRST is the one a reader would not predict -- ``deathtrap` as a
+# whole word has 4 mentions, expected 3``.  A phase about removing signal handling
+# leaves one MORE mention of a handler, because the host installs the core's `deathtrap`
+# rather than replacing it, which is what keeps the terminal restored when the editor is
+# killed.  The other two are ordinary: `the file gained -280 lines, expected 18` and
+# `options[] is not the 108 rows phase 12 left`, 'termresize' being the row 20 takes.
+# THIS ONE IS BOTH DIRECTIONS, unlike 16-17, 17-18 and 18-19.  Phase 20's own check
+# states its gone set as one `comm` against the stage's symbol snapshot, and a stage
+# takes ONE snapshot at its start -- so on a 19-20 stage it is handed r18's set and the
+# gone set is its seven PLUS `exit`, which phase 19 freed.  That is `apart 14 15`'s
+# shape exactly, and it is reasoning from those two programs rather than a second run,
+# because 19's check refuses first and there is nothing after it to observe.
+apart       19 20
+
 # NO `apart 13 14`.  Phase 13's check asserts that the libc surface moves by exactly
 # `fclose fsync getc putc` and that `fputs fputc fwrite putchar` are STILL undefined,
 # and phase 14 moves seventeen more -- so phase 13's check does fail on a phase 14
@@ -333,7 +350,7 @@ package  options      12
 package  tidy         13
 package  vendor       14 15
 package  includes     16
-package  host         17 18 19
+package  host         17 18 19 20
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -376,3 +393,6 @@ uses  host:18     seed:0     mechanical  tools/zerodelta.sh compares its recordi
 uses  host:18     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
 uses  host:19     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
 uses  host:19     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  host:20     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  host:20     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  host:20     terminal:2 rationale   the two "not to a terminal" warnings phase 2 removed were the last thing the core said about a terminal it had not been told about, and ZERO-PLAN.md 1's decision 7 -- "do not ask whether stdin or stdout is a terminal, the check goes entirely" -- was only two thirds kept there.  This phase takes all three surviving isatty() calls and finishes it
