@@ -398,6 +398,7 @@ import time
 
 sys.path.insert(0, 'tools')
 import zscreen
+import zstream
 
 TAG = 'deadly'
 d, old_bin, new_bin = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -414,10 +415,7 @@ def session(binary, sigs):
     it signals, so that what was drawn is a property of the editor and not of the
     machine's load -- see the loop below.
     """
-    stage = tempfile.mkdtemp(prefix='zero17-bin-')
-    vim = os.path.join(stage, 'vim')
-    shutil.copy2(binary, vim)
-    os.chmod(vim, 0o755)
+    vim = zstream.stage(binary)     # argv[0], and the copy race: tools/zstream.py
     home = tempfile.mkdtemp(prefix='zero17-home-')
     env = dict(os.environ)
     env.update(TERM='xterm', HOME=home, VIM=os.path.join(home, 'novim'),
@@ -468,7 +466,6 @@ def session(binary, sigs):
     except subprocess.TimeoutExpired:
         p.kill()
         out, err = p.communicate()
-    shutil.rmtree(stage, ignore_errors=True)
     shutil.rmtree(home, ignore_errors=True)
     return p.returncode, drawn + out, err
 

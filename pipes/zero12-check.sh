@@ -374,6 +374,7 @@ import time
 sys.path.insert(0, 'tools')
 import zrec
 import zscreen
+import zstream
 
 TAG = 'noopts'
 ESC, CR = b'\x1b', b'\r'
@@ -389,10 +390,7 @@ def record(binary, args, keys, timeout=10):
     in `ui_delay(1002L, TRUE)`, and a second of wall clock is the clearest evidence
     there is that the warning was really drawn and not merely a string in the binary.
     """
-    stage = tempfile.mkdtemp(prefix='zero12-bin-')
-    vim = os.path.join(stage, 'vim')
-    shutil.copy2(binary, vim)
-    os.chmod(vim, 0o755)
+    vim = zstream.stage(binary)     # argv[0], and the copy race: tools/zstream.py
     home = tempfile.mkdtemp(prefix='zero12-home-')
     env = dict(os.environ)
     env.update(TERM='xterm', HOME=home, VIM=os.path.join(home, 'novim'),
@@ -415,7 +413,6 @@ def record(binary, args, keys, timeout=10):
     except subprocess.TimeoutExpired:
         rc, out, err = 'timeout', b'', b''
     ms = int((time.time() - t0) * 1000)
-    shutil.rmtree(stage, ignore_errors=True)
     shutil.rmtree(home, ignore_errors=True)
     shutil.rmtree(d, ignore_errors=True)
     scr = zscreen.Screen(24, 80)

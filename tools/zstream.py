@@ -18,13 +18,17 @@ Three things it must get right, all of them measured (ZERO-PLAN.md 2b, 2l):
     keys that never come.  An invocation that blocks is a recording, not a crash;
   * **argv[0].**  A binary whose name begins with `r` is restricted mode, `e` is
     evim, `g` the GUI: every run is staged as `vim`, whatever it was called.
+    `stage()` below is the one place that does it, for this tool and for every zero
+    phase check, and it is one place because of a race and not for tidiness.
 
 Importing does nothing.  Call `session()`.
 """
+import atexit
 import os
 import shutil
 import subprocess
 import tempfile
+import threading
 
 import zscreen
 
@@ -33,12 +37,49 @@ class Blocked(Exception):
     """The editor took the input over and did not return."""
 
 
+_staged = {}
+_staging = threading.Lock()
+
+
+def stage(binary):
+    """The binary under the one name that means plain vim.  Every harness uses this.
+
+    argv[0] is why it is renamed (CLAUDE.md); a race is why it is ONE function.
+    `shutil.copy2` holds a write fd on its destination while it copies, and a `fork`
+    in ANOTHER thread -- every harness here runs its cases in a ThreadPoolExecutor --
+    hands that thread's child the same fd until it execs.  `execve` refuses a file
+    any process holds open for writing, so the COPYING thread's own exec then dies
+    with `OSError: [Errno 26] Text file busy`, the case it was written for never
+    runs, and the harness writes an empty record and exits non-zero.  Measured on the
+    r1 binary: 0 of 20 runs of zcases.py/zargv.py failed that way idle and **8 of
+    20** under a steady 64-way load, and a `make zero-verify` under that load lost 15
+    of its 18 units, almost every one of them this and not the pty -- and three
+    verify runs on an ORDINARY busy machine lost four, three and three, every one of
+    them a phase check's own copy of the three lines this replaces.
+
+    Two things make it safe, and neither is a retry.  **The copy happens once per
+    binary**, under a lock, so 102 sessions do not make 102 windows.  And **it
+    happens in a child process**, so the write fd exists in `cp` and never in this
+    address space -- a thread forking at the same instant cannot inherit what we do
+    not hold.  That is what makes it correct however late a caller asks for it,
+    which a lock alone is not: `pipes/zero4-check.sh` stages a SECOND binary from
+    inside the pool that is already forking the first.
+    """
+    with _staging:
+        vim = _staged.get(binary)
+        if vim is None:
+            d = tempfile.mkdtemp(prefix='zstream-bin-')
+            vim = os.path.join(d, 'vim')
+            subprocess.run(['cp', binary, vim], check=True)
+            os.chmod(vim, 0o755)
+            atexit.register(shutil.rmtree, d, True)
+            _staged[binary] = vim
+        return vim
+
+
 def session(binary, keys, term='xterm', args=(), rows=24, cols=80, timeout=20):
     """Run `binary` with `keys` on stdin.  Returns (screen, stdout, stderr, rc)."""
-    stage = tempfile.mkdtemp(prefix='zstream-bin-')
-    vim = os.path.join(stage, 'vim')
-    shutil.copy2(binary, vim)
-    os.chmod(vim, 0o755)
+    vim = stage(binary)
     home = tempfile.mkdtemp(prefix='zstream-home-')
     env = dict(os.environ)
     env.update(TERM=term, HOME=home, VIM=os.path.join(home, 'novim'),
@@ -63,6 +104,5 @@ def session(binary, keys, term='xterm', args=(), rows=24, cols=80, timeout=20):
         scr.feed(r.stdout)
         return scr, r.stdout, r.stderr, r.returncode
     finally:
-        shutil.rmtree(stage, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)
         shutil.rmtree(d, ignore_errors=True)
