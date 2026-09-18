@@ -1066,23 +1066,63 @@ Almost nothing, and the residue is nameable:
 Once argv is two options and nothing is loaded or saved, `main()` is a few lines of
 terminal setup, a size query, and `vim_main2()`.
 
-**THE TWO FILES' ROLES ARE THE OTHER WAY ROUND FROM WHAT THIS SECTION FIRST SAID**,
-settled by the user on 2026-09-18. The editor proper carries on in `editor.c`, and
-`zero-vim.c` becomes the host wrapper — the small file:
+**THERE IS NO SPLIT INTO TWO FILES. IT IS ONE FILE WITH TWO PARTS, AND THE FIRST
+`#include` IS THE BOUNDARY** — the user's design, 2026-09-18, replacing both earlier
+readings of this section:
 
 ```
-editor.c        the vim editor proper: vim_main(), and NO PREPROCESSOR SYNTAX AT
-                ALL -- not one directive, not even an #include.  At the top, an
-                explicit set of musl_-prefixed prototypes, which are the calls
-                back to the host.
-zero-vim.c      the host: main(), which calls vim_main(); the #includes; and the
-                definitions of every musl_ function editor.c declared.
+zero-vim.c   upper part   the core editor.  NO PREPROCESSOR SYNTAX AT ALL.  At its
+                          top, the musl_-prefixed prototypes: its calls to the host.
+             ----------   the first #include IS the boundary, and nothing else marks it
+             lower part   the host.  The #includes, then the musl_ definitions,
+                          host_exit, host_message, and main().
 ```
 
-The executable is still `zero-vim`, so `argv[0]` is unchanged and no harness moves —
-they stage the binary as `vim` whatever it is called outside. What does change is
-that every document here calls `zero-vim.c` the editor, and after the split it is the
-*smaller* of the two files.
+Everything stays `static` except `main`, which lives in the lower part. **When the
+project concludes the product is the upper part**, taken up to and not including the
+first `#include` — so the file that goes to the next repository is a *prefix* of this
+one, extracted by a rule with no judgement in it.
+
+This dissolves the problems the two-file version created rather than solving them,
+and each was measured before the design was taken:
+
+- **The boundary needs no marker.** It is a directive that has to be there anyway.
+  No comment — which the no-comments rule forbids — no sentinel declaration, no data
+  file naming the boundary functions.
+- **"Nothing is global but `main()`" survives untouched**, because there is still one
+  translation unit. `tools/phasecheck.sh`'s `grep -v '^main$'` and
+  `tools/funcreach.py`'s `{'main'}` root need no change, and the 130 implementation
+  keys that changing `phasecheck.sh` would have moved are not spent.
+- **The dead-code sweep survives intact.** One translation unit means
+  `-Wunused-function` stays a boolean and `funcreach.py`, `typereach.py` and
+  `deadsweep.py` work exactly as they do today. MEASURED that the two-file version
+  would have broken this: `funcreach.py` on `editor.c` alone deletes **49 functions
+  and 1,080 lines** — the editor's whole startup — because its root is `{'main'}` and
+  `main` leaves; and `-Wunused-function` is blind to a dead *external* function, so
+  none of `-flto`, `-fwhole-program` or a plain `cat` recovers it.
+- **No tool changes at all.** `PSOURCE`, `zero.mk`'s single `tar -xO`, `score.sh`,
+  `symbols.sh`, `sweep.sh`, `zerodelta.sh` and `zrecord.sh` all keep working on one
+  file, and the eleven files a split would have had to teach about two products stay
+  as they are. Two planned phases — a tooling phase and a join/split tool pair — drop
+  out entirely.
+- **The build stays one `gcc` invocation.**
+
+**The check that falls out of it is stronger than anything the two-file design had:
+cut the file at the first `#include` and compile the upper part with
+`-fsyntax-only`.** It must pass with no diagnostics, which proves the core is
+header-free and self-contained — and it cannot pass vacuously, because a core still
+needing a header fails loudly.
+
+**MEASURED, the size of what is left to do.** Moving the eleven `#include`s down to
+just above the host block leaves a core of **79,928 lines** and a host of **235**,
+and the compile gives **660 errors, every one of them a libc type or macro the core
+takes from a header**: `size_t` 263, `va_list` 11 (which the variadic collapse
+removes anyway), `INT_MAX` 8, `time_t` 5, `sig_atomic_t` 5, and `NULL`. Giving the
+core its own declarations for those is the whole of the remaining work, and it is the
+same work the two-file version needed — the difference is everything else it was
+going to cost.
+
+The executable is still `zero-vim` and `argv[0]` is unchanged, so no harness moves.
 
 The three steps that get there, in the order their measurements suggest: demote
 `main()` to `vim_main(void)` and give the launcher the four calls `common_init_1`,
