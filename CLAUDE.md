@@ -68,11 +68,11 @@ it is the only one.
 
 ## Layout
 
-Three hundred and ninety tracked files once all three pipelines have run
-(`git ls-files`): nineteen at the root, 206 under `pipes/` — the phase programs,
-twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and twenty-five for
-`zero.mk`'s fourteen, and each staged pipeline's stage manifest and declared delta — and
-165 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
+Four hundred tracked files once all three pipelines have run
+(`git ls-files`): nineteen at the root, 212 under `pipes/` — the phase programs,
+twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and thirty-one for
+`zero.mk`'s seventeen, and each staged pipeline's stage manifest and declared delta — and
+169 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
 phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Four of the nineteen are products
 (`slim-vim.c`, `whim-vim.c`, `zero-vim.c`, `LICENSE`), three are records
@@ -142,10 +142,11 @@ Both run from the repository root, so a path in either names the other directly.
 scratch roots of `whim-verify` and `whim-specpass` link both in.
 
 **The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed, a flag,
-eleven cuts and an instrument — and the filesystem work is finished.**
+fourteen cuts and an instrument — the filesystem work is finished, the libc that is
+pure computation is inside the file, and six of the eighteen `#include`s are gone.**
 `ZERO-GOAL.md` states what it is for — an embeddable editor core that keeps the
 screen and all visual editing and loses the filesystem, with `main()` demoted to a
-host launcher and the text later held as a tree — and has fourteen phases:
+host launcher and the text later held as a tree — and has seventeen phases:
 `pipes/zero0.sh`, the seed; `pipes/zero1.sh`, which adds `-fno-stack-protector`;
 `pipes/zero2-edit.sh` with `pipes/zero2-check.sh`, the first source cut — the two
 "not to a terminal" warnings, the two-second pause after them and `--ttyfail`;
@@ -185,13 +186,22 @@ no reader left, `'fsync' 'prompt' 'readonly' 'undoreload' 'write' 'writeany'`, w
 and `pipes/zero13-edit.sh` with `pipes/zero13-check.sh`, **no `FILE *` that is never
 opened** — `scriptin[NSCRIPT]` and `redir_fd`, two `static FILE *` that nothing has
 ever opened in any build of zero-vim, `ui_write()`'s `console` parameter, and the
-five functions the sweep finds under them — so `zero-vim.c` is
-now 79,603 lines
+five functions the sweep finds under them; `pipes/zero14-edit.sh` with
+`pipes/zero14-check.sh` and `pipes/zero15-edit.sh` with `pipes/zero15-check.sh`, **the
+libc that is pure computation**, defined in the file as local `static musl_*`
+functions — the sixteen `mem*`/`str*` of `<string.h>`, with `sprintf` moved onto the
+editor's own `vim_snprintf` instead, then the character classes, the two `ato*`,
+`qsort` and `bsearch`; and `pipes/zero16-edit.sh` with
+`pipes/zero16-check.sh`, **the includes nothing names** — six of eighteen,
+`<sys/stat.h>` `<fcntl.h>` `<iconv.h>` dead since before the pipeline and `<string.h>`
+`<ctype.h>` `<wctype.h>` dead since phase 15, with the `stat_T` typedef no sweep could
+take — so `zero-vim.c` is
+now 80,413 lines
 against `whim-vim.c`'s 86,614, and `access`, `fcntl` and `open` join the six libc
-symbols phase 6 freed, with `getcwd`, `stat` and `strerror` at phase 10 and `fclose`,
-`getc`, `putc` and `fsync` at phase 13: phases 7, 8, 11 and 12 free none and say so
-as an equality, and phases 9, 10 and 13 name the set each frees rather than the
-count.
+symbols phase 6 freed, with `getcwd`, `stat` and `strerror` at phase 10, `fclose`,
+`getc`, `putc` and `fsync` at phase 13, seventeen at phase 14 and eleven at phase 15:
+phases 7, 8, 11, 12 and 16 free none and say so as an equality, and phases 9, 10, 13,
+14 and 15 name the set each frees rather than the count.
 
 **After zero phase 13 the core cannot acquire a file descriptor and holds no stdio
 stream, and that is an invariant rather than a count.** `open`, `access` and `fcntl` went at phase 9 and
@@ -208,19 +218,27 @@ strerror fopen fdopen opendir` absent from **both** the source and `nm -u`. The 
 can read, write, close and dup fds 0, 1 and 2 and nothing else. `ZERO-PLAN.md` §4b
 states the invariant and it is assertable in that strongest form from here on.
 
-**After thirteen phases zero-vim is 79,603 lines and 61 libc symbols, and what is
-left of the host boundary is a terminal.** From `whim-vim.c`'s 86,614 lines, 869,512
-bytes and 79 symbols that is **−7,011 lines (8.1 %), −69,696 bytes and −18 symbols**;
-the binary is 799,816 bytes, still `EXEC` with no `INTERP`, no dynamic section and no
-relocation. The 61 are the terminal (`read write close dup ioctl select tcgetattr
-tcsetattr nanosleep isatty`), the messages that appear before there is a screen
-(`printf fflush stderr`), memory (3), strings and memory blocks (17), character
-classes (7), numbers (2), sorting (2), the clock (`time gettimeofday`), signals and
+**After sixteen phases zero-vim is 80,413 lines and 33 libc symbols, and what is left
+of the host boundary is a terminal.** From `whim-vim.c`'s 86,614 lines, 869,512 bytes
+and 79 symbols that is **−6,201 lines (7.2 %), −63,968 bytes and −46 symbols**; the
+binary is 805,544 bytes, still `EXEC` with no `INTERP`, no dynamic section and no
+relocation. **The file grew for the first time at phases 14 and 15** — 79,603 →
+80,421 lines — because those phases move code *in*, which is the trade the symbol
+count is the measure of.
+
+The 33 are the terminal (`read write close dup ioctl select tcgetattr tcsetattr
+nanosleep isatty`), the messages that appear before there is a screen (`printf fflush
+stderr`), memory (`malloc free realloc`), the clock (`time gettimeofday`), signals and
 exit (10), and five gcc emits from `printf`/`fprintf` and the source names nowhere
-(`__errno_location fputc fputs fwrite putchar`). `tools/symbols.sh` counts 62 because
-it compiles plain `-O0` and so adds `__stack_chk_fail`. **`isatty` is the terminal's
-and not the filesystem's** — three call sites, and `ZERO-PLAN.md` §4a had it going.
-`ZERO-PLAN.md` is built out: what remains of it is §4c, the host boundary itself.
+(`__errno_location fputc fputs fwrite putchar`). `tools/symbols.sh` counts 34 because
+it compiles plain `-O0` and so adds `__stack_chk_fail`. **There is no row for strings,
+character classes, numbers or sorting any more**: those 28 were the pure computation,
+and phases 14 and 15 put them inside the file as `static` definitions rather than
+asking a host for them. **`isatty` is the terminal's and not the filesystem's** — three
+call sites, and `ZERO-PLAN.md` §4a had it going. `ZERO-PLAN.md` is built out: what
+remains of it is §4c, the host boundary itself — and phases 14 to 16 reached its
+closing sentence early, the two rows it expected to be left in the core being gone
+before the launcher exists.
 
 **Phase 12 is the other zero phase that declares nothing, and for the opposite
 reason.** Phase 9 removed code that could not run; phase 12 removes code that *can*
@@ -253,12 +271,29 @@ instrument), plus eight adversarial sessions that name the buffer after a real f
 and are required to reach `open_buffer()` and not `readfile()`. An empty declaration
 is a statement here rather than an omission: the phase removes code that could not
 run.
+
+**Phase 16 is the fourth, and its empty declaration is the strongest of the four
+because a byte comparison settles it.** Phases 9, 12 and 13 each removed *something* —
+code that could not run, code the instrument cannot see, a possibility. Phase 16
+removes six `#include` lines and one typedef and **changes no code at all**, so its
+evidence is not that the recording did not move but that the binary is the same bytes:
+805,544 either side, both built with `SOURCE_DATE_EPOCH=0` and the boundary's own
+flags. That is verification tier 1 below, and it subsumes every screen case, every
+Ex-command row, every command line and every pty scenario at once, because the program
+that would be run is literally the same program. Its own argument is a *computation*
+rather than a list: each of the twelve surviving `#include`s is dropped in turn and the
+compile must fail, and the identical loop on the source it was handed must find exactly
+the six it removes — the same loop proving it can fail, in the same run.
+**Phases 14 and 15 declare nothing for a fifth reason and it is the weakest**: their
+code changes and their binary moves, and the claim is that twenty-eight replacement
+implementations do what the ones they replace did. Their own checks argue that.
+
 Phases are added one at a time, on request. Its input is the **committed**
 `whim-vim.c`, immutable, and `whim.sha` records the one a committed `zero-vim.c` was
 produced from, exactly as `slim.sha` does for whim. It is born staged:
-`pipes/zero.stages` (a stage per phase and seven packages: `seed 0`, `build 1`,
+`pipes/zero.stages` (a stage per phase and ten packages: `seed 0`, `build 1`,
 `terminal 2`, `harness 3`, `streams 4 5`, `files 6 7 8 9 10`, `buffers 11`,
-`options 12`, `tidy 13`, with `apart 2 4` — phase 2's
+`options 12`, `tidy 13`, `vendor 14 15`, `includes 16`, with `apart 2 4` — phase 2's
 check runs both its binaries with `-e -s`, which phase 4 removes — `apart 4 5`,
 because phase 4's check names `EDIT_STDIN`, `had_minmin`, `buflist_add` and
 `ME_TOO_MANY_ARGS` as things the argv phase is still to take, `apart 5 6`,
@@ -293,8 +328,14 @@ two cases and six command rows, phase 7's two cases and one, phase 8's two cases
 and five, **nothing at all for phase 9**, phase 10's one case and one row, and phase
 11's one case and one row — where the row `quit` is the first zero has declared that
 **changes message rather than ceasing to exist** — and **nothing at all for phases
-12 and 13**), checked
-by `tools/stages.sh zero` and `tools/packages.sh zero` as whim's are.
+12 and 13**, and **nothing at all for 14, 15 and 16** — where 16's empty declaration
+is the fourth kind above), checked
+by `tools/stages.sh zero` and `tools/packages.sh zero` as whim's are. The last two
+`apart` lines are the same shape as `apart 5 6`: `apart 14 15`, because each of those
+two checks states that the undefined set moved by exactly *its* symbols and a stage
+takes one snapshot at its start, and `apart 15 16`, in both directions — phase 15's
+check requires `<ctype.h>` and `<wctype.h>` still present, and phase 16's states as a
+`cmp` that it frees nothing while phase 15 frees eleven.
 
 **A phase can break a harness rather than change behaviour, and the two must not be
 confused.** `tools/termcheck.py` — whim's, and the one instrument the three
@@ -380,7 +421,7 @@ zero-vim.c     whim-vim.c, on its way to an embeddable core
 Makefile       the seed: builds all three, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
-zero.mk        zero-vim.c = H(whim-vim.c), the same construct, fourteen phases so far
+zero.mk        zero-vim.c = H(whim-vim.c), the same construct, seventeen phases so far
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
 whim.sha       the whim-vim.c zero-vim.c was produced from
@@ -1050,6 +1091,13 @@ they are the first thing in the file. No `#define`, no `#undef`, no `#if`,
 `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif`, `#pragma` or `#line`.
 Preprocessing this file does nothing but paste in libc.
 
+**`whim-vim.c` has 18 of them and `zero-vim.c` has 12**, and zero's twelve are the
+only ones any pipeline has ever *removed*: zero phase 16 took six that nothing named.
+`ZERO-GOAL.md`'s charter is the rule — no phase adds a directive, and a phase may
+remove one — and the count is checked rather than believed, both by that phase's edit
+and by a loop in its check that drops each survivor in turn and requires the compile
+to fail.
+
 That the includes can come first is only possible because nothing in `slim-vim.c` is
 read by a header. The five feature-test macros (`_XOPEN_SOURCE`, `_BSD_SOURCE`,
 `_SVID_SOURCE`, `_DEFAULT_SOURCE`, `_REENTRANT`) were the only candidates, and
@@ -1089,6 +1137,13 @@ near the top of the file.
 linkage**, which is why three thousand definitions say nothing about it.
 **Objects do not inherit**: a file-scope object with no storage class has
 external linkage whatever a prior declaration said, and gcc rejects the pair.
+
+**The keyword is checked, and the zero pipeline is where that started to matter.**
+`tools/phasecheck.sh` requires `nm` on the object to print exactly `main`, and zero
+phases 14 and 15 are the first change in any of the three pipelines to *add* hundreds
+of file-scope definitions rather than remove them — twenty-eight libc functions
+brought into `zero-vim.c` as `static`. One missing keyword there would be the first
+break of this invariant, and that check is what says there is none.
 
 The forward declarations are what keep definition order inside `slim-vim.c` from
 mattering, and **the redundant ones are gone**: Phase 10 moved the command table

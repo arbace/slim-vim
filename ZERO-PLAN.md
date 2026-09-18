@@ -953,6 +953,16 @@ eighteen that went, in phase order, are `__stack_chk_fail` (1), `setvbuf` and `s
 stat strerror` (10) and `fclose getc putc fsync` (13). And **`fsync` belongs to row 12
 and not row 9**, its only caller being `vim_fsync()`.
 
+**AND THE NUMBER MOVED AGAIN, FOR A REASON THIS SECTION NEVER CONSIDERED.** This whole
+estimate is about what *removal* frees. Zero phases 14 and 15 free 28 more symbols by
+**moving code in** rather than out — the strings and memory blocks, the character
+classes, the two `ato*`, `qsort` and `bsearch`, defined in `zero-vim.c` as `static`
+functions — so `nm -u` is **33** with zero's flags, 34 as `tools/symbols.sh` counts,
+and the file is **80,413 lines**, longer than the 79,603 thirteen phases left. Forty-six
+of whim's 79 symbols have gone and the eighteen listed above are only the first of
+them. The 8.1 % this section was corrected to is 7.2 % now, and a line count is no
+longer the measure it was.
+
 ## 4. What remains
 
 **THE PLAN IS BUILT AND WHAT REMAINS IS NOT WHAT THIS SECTION WAS WRITTEN FOR.**
@@ -962,14 +972,20 @@ corrected from measurement in place. What is actually left of `ZERO-PLAN.md` is
 asks for is the host boundary — `main()` demoted to a launcher, the terminal, the
 signal set and the two stream calls moved out of the core, and the text
 representation changed from lines to a tree. Two smaller things are named here
-rather than planned, because each is a decision and not a computation:
+rather than planned, because each is a decision and not a computation — **and the
+first of the two has since been built, which is why its bullet is struck through**:
 
-* **the includes.** After phase 13, `typedef struct stat stat_T;` has no user and
-  `#include <sys/stat.h>` and `#include <fcntl.h>` are needed by nothing. Removing
-  all three is free — measured: the same 799,816-byte binary, a byte-identical
-  recording, 79,599 lines and 16 directives — but it would be the first time a zero
-  phase changes the directive count, which `ZERO-GOAL.md`'s charter states as 18.
-  Phase 13 left them alone and says so.
+* ~~**the includes.**~~ **BUILT, AS ZERO PHASE 16, AND THIS BULLET IS WRONG TWICE.**
+  It says two headers and there are **three** — `<iconv.h>` supplies nothing either,
+  and its only occurrence in `zero-vim.c` was its own `#include` line, whim having
+  removed the conversion layer and left it. And "79,599 lines and 16 directives" is
+  **79,598 lines and 15**: the typedef sits between two blank lines and one of them
+  goes with it, which is five lines and not four, and the header count was short by
+  the one it missed. As built the phase takes **six**, because phases 14 and 15
+  emptied `<string.h>`, `<ctype.h>` and `<wctype.h>` first — **eighteen directives to
+  twelve** — and its evidence is a `cmp`: 805,544 bytes either side, both built with
+  `SOURCE_DATE_EPOCH=0`. `ZERO-GOAL.md`'s charter now says a phase may remove a
+  directive and may not add one.
 * **the clock.** `time()` and `gettimeofday()` are still asked, for undo's
   *"1 second ago"*, the command-line history's timestamps, `:sleep`, the bell, key
   timeouts and OSC replies — and the undo message is the one nondeterminism the
@@ -989,15 +1005,25 @@ counts, which compiles plain `-O0` and so adds `__stack_chk_fail` that zero's
 `-fno-stack-protector` removes). Every other row is confirmed symbol for symbol.
 Both corrections are in the table below.
 
+**AND THEN FOUR OF ITS ROWS STOPPED EXISTING.** Zero phases 14 and 15 are *no musl
+dependencies* for the half of the charter that is pure computation: the four rows
+struck through below — strings and memory blocks (17, `sprintf` among them),
+character classes (7), numbers (2), sorting and searching (2) — are **28 symbols that
+are now `static` definitions inside `zero-vim.c`**, and `sprintf` went onto the
+editor's own `vim_snprintf` rather than being copied. `nm -u` is **33** with zero's
+flags (34 as `tools/symbols.sh` counts). What is left is six rows and not one of them
+is a function of its arguments alone: every surviving symbol asks the operating system
+something, which is the line this table was always trying to draw.
+
 | why | symbols |
 | --- | --- |
 | **the terminal** (the whole of the host boundary that is left) | `read` `write` `close` `dup` `ioctl` `select` `tcgetattr` `tcsetattr` `nanosleep` **`isatty`** |
 | **messages before and after the screen** | `printf` `fflush` `stderr` |
 | **memory** | `malloc` `free` `realloc` |
-| **strings and memory blocks** | `memchr` `memcmp` `memcpy` `memmove` `memset` `strcasecmp` `strcat` `strchr` `strcmp` `strcpy` `strlen` `strncasecmp` `strncmp` `strncpy` `strpbrk` `strstr` `sprintf` |
-| **character classes** | `isalnum` `iscntrl` `ispunct` `tolower` `toupper` `towlower` `towupper` |
-| **numbers** | `atoi` `atol` |
-| **sorting and searching** | `qsort` `bsearch` |
+| ~~**strings and memory blocks**~~ *(phase 14)* | ~~`memchr` `memcmp` `memcpy` `memmove` `memset` `strcasecmp` `strcat` `strchr` `strcmp` `strcpy` `strlen` `strncasecmp` `strncmp` `strncpy` `strpbrk` `strstr` `sprintf`~~ |
+| ~~**character classes**~~ *(phase 15)* | ~~`isalnum` `iscntrl` `ispunct` `tolower` `toupper` `towlower` `towupper`~~ |
+| ~~**numbers**~~ *(phase 15)* | ~~`atoi` `atol`~~ |
+| ~~**sorting and searching**~~ *(phase 15)* | ~~`qsort` `bsearch`~~ |
 | **time** | `time` `gettimeofday` |
 | **signals and exit** | `sigaction` `sigaddset` `sigemptyset` `sigismember` `sigprocmask` `kill` `raise` `getpid` `exit` `_exit` |
 | **gcc's own** | `__errno_location` `fputc` **`fputs`** `fwrite` `putchar` |
@@ -1020,6 +1046,12 @@ Almost nothing, and the residue is nameable:
   opendir` — and phase 13's check asserts every one of them absent from **both** the
   source and `nm -u`. The core can read, write, close and dup fds 0, 1 and 2 and
   nothing else.
+* **Nothing phases 14 to 16 did touches this.** Those three free 28 symbols and
+  remove six headers, and not one of the 28 and not one of the six is file-shaped:
+  their checks state the surviving set as a `cmp`, so a file symbol *arriving* would
+  fail as loudly as one leaving. Two of the six headers are the ones a file-opening
+  core would have needed — `<sys/stat.h>` and `<fcntl.h>` — so from phase 16 the
+  invariant is visible in the directive list as well as in `nm -u`.
 * **`time()` and `gettimeofday()`.** `vim_time()` feeds undo's *"1 second ago"* and
   the command-line history's timestamps; `gettimeofday` times `:sleep`, the bell,
   key timeouts and OSC replies. The undo message is the one nondeterminism the
@@ -1050,6 +1082,29 @@ whole of `read`/`write`/`dup`/`close`); and move `mch_get_shellsize`,
 left in the core after that is the fifth and sixth rows of §4a's table — strings,
 memory and arithmetic — plus `printf` for the messages that appear before there is a
 screen, which is itself a question for the host.
+
+**THAT LAST SENTENCE CAME TRUE EARLY AND FROM THE OTHER DIRECTION.** The rows it
+expected to be left in the core — strings, character classes, numbers and sorting —
+are **gone from `nm -u` already**, taken by zero phases 14 and 15 *before* the
+launcher was written: they are `static` definitions in `zero-vim.c` now, which is
+where this section wanted them, reached by moving code in rather than by moving
+`main()` out. So the arithmetic in the destination above is done and what is left of
+§4c is exactly the three steps: `main()`, the two stream calls, and the terminal with
+its signal set. After them the core's undefined set would be `malloc free realloc`,
+`time gettimeofday`, `exit _exit` and gcc's five — and `printf`, still the open
+question this section named.
+
+**One fact for whoever writes `editor.c`, measured at phase 16 and recorded nowhere
+else.** The twelve `#include`s that survive are not twelve independent dependencies.
+`select`, `gettimeofday`, `fd_set`, `FD_SET`, `FD_ZERO`, `FD_ISSET`, `struct timeval`
+and every `*_MAX` reach `zero-vim.c` through **no header it names**: they arrive
+transitively, from `<sys/param.h>` — whose own contribution is `MIN` and `MAX` —
+through musl's `sys/resource.h` → `sys/time.h` → `sys/select.h`, measured with `gcc
+-E -H` and with one probe per identifier against each of the eighteen. A host that is
+not musl needs `<limits.h>`, `<sys/time.h>` and `<sys/select.h>` written in. Phase 16
+recorded it rather than repairing it, because repairing it means adding directives and
+the charter forbids that; the failure it leaves is loud — the build stops — which is
+the acceptable one.
 
 ## 5. Decision points
 

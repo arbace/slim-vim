@@ -15,7 +15,7 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has fourteen phases.** Phase 0 is the
+**This document is iterative, and so far it has seventeen phases.** Phase 0 is the
 seed, phase 1 is a compiler flag, phase 2 is the first cut in the source — the first
 piece of *a component, not a program* — phase 3 changes no source at all: it
 replaces the instrument every later phase is measured with; phase 4 removes Ex mode,
@@ -29,6 +29,13 @@ which by then had no remedy to offer, then the option rows that reported setting
 nothing read, and finally the two `FILE *` that had never been opened. After
 thirteen the core has no `open`, no `stat`, no stdio stream and no fourth
 descriptor: it can read, write, close and dup fds 0, 1 and 2 and nothing else.
+Phases 14 and 15 are *no musl dependencies* on request, for the half of that charter
+item which is pure computation: twenty-eight libc functions — the strings and memory
+blocks, the character classes, the numbers, the sort — defined in the file as local
+`static` ones instead of asked of a host, which takes `nm -u` from 61 to 33 and is the
+first change in the pipeline that makes the file *longer*. Phase 16 then removes the
+six `#include`s that nothing names any more, eighteen directives to twelve, and it is
+the first phase in any of the three pipelines to change a directive count.
 Phases
 are added one at a time, each on the user's own
 request, and each is written into this document, into `pipes/` and into
@@ -52,10 +59,18 @@ the concept is, as the user has stated it, and in no particular order of phases:
 - **The text representation moves, later, from lines to a structure.** A tree that
   mirrors an abstract syntax tree, with the line view that every motion, command and
   redraw expects simulated on top of it.
-- **`zero-vim.c` stays pure C without a preprocessor** — it inherits 18 directives
-  from `whim-vim.c`, every one an `#include` of a system header, and no phase adds a
-  `#define` or a conditional — because a following repository transpiles it to the
-  JVM, and every construct in the file is one that translation has to understand.
+- **`zero-vim.c` stays pure C without a preprocessor** — it inherited 18 directives
+  from `whim-vim.c` and is down to **twelve**, every one an `#include` of a system
+  header, and **no phase adds a `#define`, a conditional or an `#include`** — because a
+  following repository transpiles it to the JVM, and every construct in the file is one
+  that translation has to understand. **A phase may remove one**, and phase 16 is the
+  first that did. That permission is stated here because the old reading — a count the
+  pipeline preserves — is exactly why phase 13 measured that removing three of them was
+  free and declined, writing *"the count stays 18"* into its own program. Nothing is
+  ever added back: the twelve reach `select`, `gettimeofday`, `fd_set`, `struct
+  timeval` and every `*_MAX` only through musl's own `sys/param.h` →
+  `sys/resource.h` → `sys/time.h` → `sys/select.h`, which is recorded as a fragility
+  rather than repaired with three more directives.
 
 None of that is done by phase 0, and none of it is a commitment to an order. Each
 item becomes a phase, or several, when one is asked for.
@@ -2394,6 +2409,15 @@ says `zero-vim.c` "inherits 18 directives from `whim-vim.c`". That sentence is a
 statement about the pipeline, so the change belongs to whoever decides it, either here
 or as an includes phase of its own. The count stays **18**.
 
+**The user took it, as phase 16, and that phase found the paragraph above short by a
+header and by a line.** There is a third that supplies nothing — `<iconv.h>`, whose
+only occurrence in `zero-vim.c` is its own `#include` line, whim having removed the
+conversion layer and left it — and the cut is five lines and not four, because the
+typedef sits between two blank lines and one of them has to go with it. So the answer
+here was **15 directives**, not 16, and phase 16 takes six because phases 14 and 15
+emptied three more. The decision to decline was right for its reason: the charter now
+says in as many words that a phase may remove a directive and may not add one.
+
 ### The honest problem, and the probe that answers it
 
 Nothing this phase removes is reachable, so there is **no behavioural must-differ
@@ -2489,39 +2513,240 @@ against a phase that frees four, but the source assertions come first. Phase 11'
 pins the same three and would fail as well, but a stage holding 11 and 13 holds 12 and
 `apart 11 12` forbids that already.
 
-### What zero-vim is after thirteen phases
+## Phase 16 — the includes nothing names
+
+`pipes/zero16-edit.sh` and `pipes/zero16-check.sh`, `stage 16`, `package includes`.
+`zero-vim.c` inherited **eighteen** preprocessor directives from `whim-vim.c`, every
+one an `#include` of a system header, and fifteen phases removed none of them. Six are
+now needed by nothing, and this phase takes them — **the first zero phase to change
+that count**, and the only one whose evidence is a byte comparison rather than a
+recording.
+
+### Six headers, and three of them have been dead all along
+
+| | why it is unused | since |
+| --- | --- | --- |
+| `<sys/stat.h>` | supplies **nothing**: its one user is `typedef struct stat stat_T;`, and nothing uses `stat_T` | before the pipeline |
+| `<fcntl.h>` | supplies **nothing at all** — `fcntl`, `creat`, `openat` and every `O_*` at zero mentions | phase 9 |
+| `<iconv.h>` | supplies **nothing at all**, and nobody had noticed: `iconv` occurs exactly once in `zero-vim.c` and that once is its own `#include` line | whim |
+| `<string.h>` | the sixteen `mem*`/`str*` functions | phase 14 |
+| `<ctype.h>` | **ten** identifiers | phase 15 |
+| `<wctype.h>` | `towlower`, `towupper` — and `iswupper` | phase 15 |
+
+**`<iconv.h>` is the find, and it was missed twice.** `ZERO-PLAN.md` §4 measures this
+cut as "79,599 lines and **16 directives**", and `pipes/zero13-edit.sh` names two
+headers where there are three. Both were counting `<sys/stat.h>` and `<fcntl.h>` and
+neither looked at the rest; the answer is **15 directives** at that point and twelve
+here.
+
+**`<ctype.h>` is ten identifiers and not five, and the five that are invisible are the
+interesting half.** `isalnum`, `iscntrl`, `ispunct`, `tolower` and `toupper` are real
+calls and appear in `nm -u`. `isalpha`, `isdigit`, `isgraph`, `islower` and `isupper`
+are musl **macros** — `#define isalpha(a) (0 ? isalpha(a) : (((unsigned)(a)|32)-'a') <
+26)`, where the `0 ?` arm keeps the prototype visible and is never emitted — so they
+are in no undefined set at all and a survey driven by the symbol list cannot see them.
+Seventeen occurrences of real source, and `<ctype.h>` does not go until all ten are
+handled.
+
+**`iswupper` is the same shape one step further on**: a name the header had to supply
+that was never a symbol either. Its one occurrence sits directly after
+`return utf_isupper(c);` inside `vim_isupper()`, so gcc never emitted the call. Phase 15
+deleted the statement rather than vendoring a function nothing calls.
+
+### The typedef, which is the one silent drop in this file
+
+`typedef struct stat stat_T;` goes in the same edit as its header, and that is not
+tidiness. **Removing `<sys/stat.h>` alone compiles cleanly** — the typedef simply
+declares a new, *incomplete* `struct stat` at file scope — and what is left is a lie
+that only `sizeof(stat_T)` would ever expose. Measured both ways: `-Wall -Wextra
+-Wno-unused-parameter` is silent on that file, and a two-line probe using `stat_T` by
+value gives *"invalid application of `sizeof` to incomplete type `stat_T` {aka `struct
+stat`}"*. The check's loop could not have caught it, because the loop asks the compiler
+and the compiler is content.
+
+**And no sweep could ever have taken it, for two textual reasons, both measured.**
+`tools/typereach.py` takes as roots every identifier mentioned outside a type
+definition, and this definition's name set is `{stat, stat_T}`. It is kept alive by
+`update_search_stat()`'s local variable `searchstat_T stat;` **and by the `#include
+<sys/stat.h>` line itself**, whose text contains the token `stat`. Measured:
+`typereach.py` reports `0 unreachable` on the committed file, `0 unreachable` with only
+the include gone, `0 unreachable` with only the local renamed, and **`1 unreachable —
+stat,stat_T`** only when both are gone. Fifteen phases of sweeps had left it.
+
+**One blank line goes with it.** The typedef sits between two blank lines, so deleting
+the line alone leaves a run of two, which `CLAUDE.md` states this tree does not have —
+and which neither verification tier can see. `tools/canon.sh` would collapse it inside
+the sweep; the edit does it, so the text the sweep is handed is already right. Six
+includes, the typedef and one blank is **eight lines**.
+
+### The argument is a computation and not a list
+
+A phase that deleted six named headers would prove only that six named headers were
+deletable. `pipes/zero16-check.sh` proves something else, and it is the whole phase:
+
+* **on the output**, each of the twelve surviving `#include`s is removed in turn and
+  the compile **must fail**. A dead include that survived this phase would be a compile
+  that succeeded.
+* **on the source the phase was handed**, the identical loop over eighteen must find
+  **exactly the six this phase removes** droppable and the other twelve not. That is
+  the same loop proving it can fail, in the same run and on the same code path — phase
+  13's `ui_write()` control in this phase's shape.
+
+Thirty compiles, run at once, about five seconds. **gcc 15 defaults to C23, where an
+implicit function declaration is a hard error**, so a header that still supplies a
+function, a type, a macro constant or an enum constant cannot be dropped quietly:
+there is no `-Wimplicit-*` to look for because there is nothing left to warn about.
+Every one of the twelve refusals is recorded in the phase's output, so the check is a
+statement of *why* each survivor is held as well as a test that it is.
+
+Proven able to fail three ways, each measured on a scratch tree: a live `offsetof`
+rewritten to `__builtin_offsetof` leaves `<stddef.h>` dead and the loop names it; the
+typedef put back with its header gone is caught by the assertion above and not by the
+loop; and one character changed in one string literal is caught by the `cmp`.
+
+### `<sys/param.h>` is not touched, and the reason is recorded rather than repaired
+
+Its **own** contribution to this file is `MIN` and `MAX`. Everything else it supplies
+arrives through three levels of musl-internal inclusion — measured with `gcc -E -H`:
 
 ```
-zero-vim.c        79,603 lines          from whim-vim.c's 86,614  (-7,011, 8.1%)
-functions         1,719
-type definitions  908
+sys/param.h -> sys/resource.h -> sys/time.h -> sys/select.h
+```
+
+and `select`, `gettimeofday`, `fd_set`, `FD_SET`, `FD_ZERO`, `FD_ISSET`, `struct
+timeval` and every `*_MAX` are supplied by **no other header in this file** — measured,
+one probe per identifier against each of the eighteen. `zero-vim.c` has no
+`<limits.h>`, no `<sys/time.h>` and no `<sys/select.h>`. That is a real fragility, and
+it is written down instead of being fixed: fixing it means **adding** three directives,
+and the charter says no phase adds one. If musl ever reorganises those headers the
+build breaks outright, which is the loud failure and the acceptable one.
+
+**Two of the twelve are held by almost nothing**, and the edit counts those exactly,
+because the count is the statement. `<stddef.h>` is held by `offsetof` **alone**, nine
+mentions — `size_t` and `NULL` come from six of the twelve, so nothing else there is at
+risk. `<stdint.h>` is held by exactly **two** identifiers at one mention each:
+`SIZE_MAX`, which has held it all along, and `uintptr_t`, **which phase 14 brought** —
+the first thing in this pipeline's history to make a header *more* held rather than
+less, and the reason the number is two. A later phase that took them would find this
+check's loop reporting a dead include.
+
+### The declared delta is nothing at all, and it is a fourth kind
+
+Three phases before this one declared nothing, each for a different reason, and the
+reason is the statement: **9** removed code that could not run, **12** removed code that
+can run and that the instrument cannot see, **13** removed the possibility. **This phase
+changes no code at all**, and its evidence is not that the recording did not move but
+that **the binary is the same bytes** — the input's and the output's, both built with
+`SOURCE_DATE_EPOCH=0` and the boundary's own flags, compared with `cmp`.
+
+That is tier 1 of `CLAUDE.md`'s verification table, and it subsumes every screen case,
+every Ex-command row, every command line and every pty scenario at once, because the
+program that would be run is literally the same program. `tools/zerodelta.sh --phase 16`
+runs and finds nothing moved, as it must; here it corroborates rather than proves.
+
+**`SOURCE_DATE_EPOCH` is required and the file name is not.** `version.c`'s
+`__DATE__ " " __TIME__` is the only thing in `zero-vim.c` that a build can vary — there
+is no `__FILE__` and no `__LINE__` anywhere — so two ordinary builds of the same bytes
+differ, measured, while the same source built under two different names and from two
+different directories is identical. The `cmp` is also as sensitive as a comparison can
+be: gcc writes a GNU build-id note near the front of the image and it is a hash of the
+whole output, so any difference anywhere moves it and the first difference `cmp` reports
+is always that note.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,421 | **80,413** (−8) |
+| `#include` | **18** | **12** |
+| other directives | 0 | 0 |
+| functions | 1,736 | 1,736 — untouched |
+| type definitions | 908 | **907** (−1, `stat_T`) |
+| DWARF enumerators | 1,181 | 1,181 |
+| `nm -u`, as `phasecheck.sh` counts it | 34 | **34 — the same set, as a `cmp`** |
+| `nm -u` with zero's own flags | 33 | **33** |
+| external symbols | `main` | `main` |
+| binary | 805,544 | **805,544, byte-identical** |
+| sweep | | **1 round, a complete no-op** |
+
+**Nothing is freed and nothing arrives**, and the check states it as a `cmp` of the
+whole undefined set rather than as a count: a header is not code, so a symbol moving in
+either direction would mean the phase had done something it does not claim to do. The
+sweep finds nothing at all — 0 prototypes, 0 functions, 0 variables, 0 types, 0 fields,
+0 enumerators, `canon settled` — and the file it hands back is the one the edit wrote.
+`main` is still the only external symbol, which is also the cheapest re-assertion that
+phases 14 and 15 did not forget a `static`.
+
+### Its placement
+
+`stage 16`, `package includes`, and four `uses` lines: `includes:16 seed:0 mechanical`,
+because the "none" is checked against phase 0's baselines; `includes:16 tidy:13
+rationale`, because `pipes/zero13-edit.sh` names `<sys/stat.h>` and `<fcntl.h>`,
+measures that removing them is free and **declines** — *"the count stays 18"* — so this
+phase is that decision reversed; and one line each to `vendor:14` and `vendor:15`, whose vendoring
+is the only reason `<string.h>`, `<ctype.h>` and `<wctype.h>` are unused.
+
+**`need 16 swept` is not required, and it was measured.** The anchors are six exact
+`#include <...>` lines at one occurrence each and one exact typedef line — text no
+sweep has ever touched — and the computed part is a *compile* rather than a count, so
+it cannot shrink silently on unswept text the way a counted cut can. Measured: the edit
+applies unchanged to unswept text, and the sweep that follows it removes nothing.
+
+**`apart 15 16`, and it is measured in both directions.** Phase 15's check requires the
+three headers it emptied to be still present — "it is the includes phase's to take" —
+and this phase removes them. And phase 16's check states that it frees **nothing**, as
+a `cmp` of the stage's starting undefined set against the one it made; inside a stage
+every check compares with the *stage's* start, and phase 15 frees eleven symbols, so in
+a shared stage phase 16 says *"the libc surface moved, and REMOVING AN `#include`
+CANNOT MOVE IT"* and names them. It is `apart 5 6`'s shape exactly.
+
+**The edit refuses loudly on a tree the vendoring has not reached**, which is what
+makes the six a requirement rather than a wish: run on the phase-13 boundary it says
+*"`<string.h>` is NOT unused: memchr (1), memcmp (2), memcpy (7), memmove (159) …"* and
+exits 1 with the file untouched.
+
+### What zero-vim is after sixteen phases
+
+```
+zero-vim.c        80,413 lines          from whim-vim.c's 86,614  (-6,201, 7.2%)
+functions         1,736
+type definitions  907
 DWARF enumerators 1,181
 cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
 nv_cmds[] rows    194   (nvidxcheck: a permutation)
 options[] rows    108, 96 distinct globals  (orphanopts floor 80; 16 of margin)
-#include          18, every one a system header; no #define, no conditional
-libc symbols      61 with zero's flags, 62 as tools/symbols.sh counts
-binary            799,816 bytes, EXEC, no INTERP, no dynamic section, no relocation
+#include          12, every one a system header; no #define, no conditional
+libc symbols      33 with zero's flags, 34 as tools/symbols.sh counts
+binary            805,544 bytes, EXEC, no INTERP, no dynamic section, no relocation
 declared delta    20 records + stderr-moved, from whim-vim
 ```
 
-**The 61, attributed.** The whole host boundary that is left is a terminal, a message
-line, memory and the C library's own text handling:
+**Two of those numbers went the other way and that is the trade.** The file is 810
+lines longer than it was after phase 13 and the binary 5,728 bytes larger, because
+phases 14 and 15 move code *in*: twenty-eight libc functions are `static` definitions
+here now instead of names a host has to answer. `ZERO-GOAL.md` measures bytes to store
+**and** libc symbols to provide, and this is the first place the two disagree.
+
+**The 33, attributed.** The whole host boundary that is left is a terminal, a message
+line, memory, a clock and the process:
 
 | why | symbols |
 | --- | --- |
 | **the terminal** | `read` `write` `close` `dup` `ioctl` `select` `tcgetattr` `tcsetattr` `nanosleep` `isatty` (10) |
 | **messages before and after the screen** | `printf` `fflush` `stderr` (3) |
 | **memory** | `malloc` `free` `realloc` (3) |
-| **strings and memory blocks** | `memchr` `memcmp` `memcpy` `memmove` `memset` `strcasecmp` `strcat` `strchr` `strcmp` `strcpy` `strlen` `strncasecmp` `strncmp` `strncpy` `strpbrk` `strstr` `sprintf` (17) |
-| **character classes** | `isalnum` `iscntrl` `ispunct` `tolower` `toupper` `towlower` `towupper` (7) |
-| **numbers** | `atoi` `atol` (2) |
-| **sorting and searching** | `qsort` `bsearch` (2) |
 | **time** | `time` `gettimeofday` (2) |
 | **signals and exit** | `sigaction` `sigaddset` `sigemptyset` `sigismember` `sigprocmask` `kill` `raise` `getpid` `exit` `_exit` (10) |
 | **gcc's own**, named nowhere in the source | `__errno_location` `fputc` `fputs` `fwrite` `putchar` (5) |
 
-`tools/symbols.sh` counts 62 because it compiles plain `-O0` and so adds
+**Four rows are gone and they were the pure computation**: strings and memory blocks
+(17, with `sprintf`), character classes (7), numbers (2), sorting and searching (2).
+Phases 14 and 15 put all 28 inside `zero-vim.c` as `static` definitions, `sprintf`
+going onto the editor's own `vim_snprintf` rather than being copied. Nothing in the
+list above is a function of its arguments alone: every one of the 33 asks the
+operating system something.
+
+`tools/symbols.sh` counts 34 because it compiles plain `-O0` and so adds
 `__stack_chk_fail`, which zero's `-fno-stack-protector` removes. **`isatty` survives
 with three call sites** and belongs to the terminal, not the filesystem —
 `mch_check_win`'s `isatty(1)`, `mch_get_shellsize`'s `!isatty(fd) &&
@@ -2533,6 +2758,13 @@ a file, every way to read one, every way to name another one to edit, the machin
 that read the bytes, the buffer's own name with the last three questions the core
 asked a disk on its own initiative, the refusal that asked whether the text had been
 saved, the option rows that reported settings nothing read, and the two `FILE *` that
-were never opened. What remains of `ZERO-PLAN.md` is the host boundary itself: `main()`
-demoted to a launcher, the terminal and the signal set moved out of the core, and the
-text representation changed from lines to a tree.
+were never opened.
+
+**And the pure computation is finished too.** Phases 14, 15 and 16 took the other half
+of *no musl dependencies*: the twenty-eight functions a host should never have been
+asked for, and then the six headers that had nothing left to supply. What remains of
+`ZERO-PLAN.md` is the host boundary itself: `main()` demoted to a launcher, the
+terminal and the signal set moved out of the core, and the text representation changed
+from lines to a tree. **Its §4c expected strings, memory and arithmetic to be what was
+left in the core after that move; they are already gone, and the launcher has not been
+written.**
