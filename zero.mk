@@ -90,6 +90,35 @@ zero-vim.c: force
 	$(MAKE) --no-print-directory zero-pass; \
 	echo "$$live" > whim.sha
 
+# --- editor.c, the upper part on its own ----------------------------------
+# What this pipeline is for.  zero-vim.c is one translation unit with two parts:
+# above, the core editor, with no preprocessor syntax at all; below, the host,
+# beginning with the #includes -- and that first directive IS the boundary, marked
+# by nothing else (ZERO-PLAN.md 4c).  The product of the whole project is the upper
+# part, and this is the rule that takes it.
+#
+# The cut is `stop at the first #include`, which is one awk clause and no judgement.
+# The rest of the awk drops trailing blank lines, so the file ends on its last line
+# of code rather than on whatever blank separated the core from the host.
+#
+# IT DOES NOT COMPILE ON ITS OWN, AND THAT IS CORRECT, not a defect to fix: the core
+# calls the musl_ functions the host defines below, so the upper part declares them
+# and defines none.  What it must do is PARSE -- `gcc -fsyntax-only` with no errors
+# and a warning set equal to the declared boundary -- and that is the reorganisation
+# phase's check, not this rule's.
+#
+# Until the includes move down, the first line of zero-vim.c is one, so this rule
+# writes an EMPTY FILE.  That is the honest answer for the tree as it stands and it
+# is why the rule exists now: the target is here before the phase that fills it, so
+# the phase changes the source and not the makefile.
+.PHONY: editor.c
+editor.c: zero-vim.c
+	@awk '/^#include/ { exit } { a[NR] = $$0; if (NF) last = NR } \
+	      END { for (i = 1; i <= last; i++) print a[i] }' $< > $@
+	@printf '  %-12s %s lines, cut at the first #include of %s\n' "$@" \
+	    "`grep -c '' $@ | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`" \
+	    "`grep -c '' $< | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"
+
 # --- the baselines, which a tier 3 hit does not record ---------------------
 # Zero phase 0 records .reference/zero-baselines as a side effect of running, so a
 # pass that replays r0 from the cache records nothing -- and a tree with a warm
@@ -208,7 +237,7 @@ zero-record:
 
 .PHONY: zero-clean
 zero-clean:
-	rm -rf $(ZEROBUILD) $(ZEROWORK) zero-vim
+	rm -rf $(ZEROBUILD) $(ZEROWORK) zero-vim editor.c
 
 .PHONY: zero-residue
 zero-residue:

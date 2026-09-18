@@ -3,6 +3,11 @@ slim-vim
 whim-vim
 zero-vim
 
+# The upper part of zero-vim.c on its own -- the core editor, cut at the first
+# #include, which is the boundary.  Produced by `make editor.c`, never edited; it
+# is a prefix of a tracked file and git already has every byte of it.
+editor.c
+
 # The frozen snapshot of this tree, plus the harness baselines.  Data, and a
 # copy of what git already has -- not source.  See CLAUDE.md.
 .reference/
