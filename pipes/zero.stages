@@ -19,11 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are sixteen phases.  Phases are added one at a time, each on its own request
+# There are eighteen phases, 0 to 17.  Phases are added one at a time, each on its
+# own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
 
 #   stage   phases
 stage       0
@@ -43,6 +44,7 @@ stage       13
 stage       14
 stage       15
 stage       16
+stage       17
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -186,6 +188,22 @@ apart       14 15
 #               moved, and REMOVING AN #include CANNOT MOVE IT` and names them.  It is
 #               `apart 5 6`'s shape exactly, in both directions.
 apart       15 16
+#   apart 16 17 phase 16's check requires the file to have lost EXACTLY EIGHT lines --
+#               six `#include`s, the stat_T typedef and one of its two blanks -- and
+#               this phase takes nine more.  MEASURED with `tools/phaserun.sh zero
+#               16-17`: `the file lost 17 lines, expected 8`, exit 1.  Its libc check
+#               would fail as well, being a `cmp` of the stage's starting undefined set
+#               against the one it made -- phase 16 states that it frees NOTHING and
+#               this phase frees `_exit`, and inside a stage every check compares with
+#               the STAGE's start (tools/phaserun.sh) -- but the source assertions come
+#               first.  It is `apart 15 16`'s shape in one direction only: phase 17's
+#               own check PASSES on a 16-17 stage, phase 16 having freed nothing for it
+#               to be blamed for.
+#               NO `apart 15 17` is written, although phase 15's check DOES require
+#               `_exit` to be still undefined -- "it is not this phase's" -- and this
+#               phase takes it: a stage holding 15 and 17 holds 16, and `apart 15 16`
+#               forbids that already.  It is the shape of the missing `apart 2 6`.
+apart       16 17
 # NO `apart 13 14`.  Phase 13's check asserts that the libc surface moves by exactly
 # `fclose fsync getc putc` and that `fputs fputc fwrite putchar` are STILL undefined,
 # and phase 14 moves seventeen more -- so phase 13's check does fail on a phase 14
@@ -291,6 +309,7 @@ package  options      12
 package  tidy         13
 package  vendor       14 15
 package  includes     16
+package  exit         17
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -327,3 +346,5 @@ uses  includes:16 seed:0     mechanical  tools/zerodelta.sh compares its recordi
 uses  includes:16 tidy:13    rationale   pipes/zero13-edit.sh names <sys/stat.h> and <fcntl.h>, measures that removing them is free, and DECLINES -- "the count stays 18" -- because the charter stated the directive count as a property of the pipeline.  This phase is that decision reversed, and it finds a third header phase 13 did not: <iconv.h>, whose only occurrence in zero-vim.c was its own #include line
 uses  includes:16 vendor:14  mechanical  <string.h> is unused only because phase 14 moved all sixteen mem*/str* functions inside the file as static definitions
 uses  includes:16 vendor:15  mechanical  <ctype.h> and <wctype.h> likewise -- and <wctype.h> needed `iswupper` handled as well, a NAME with no libc symbol, sitting on a line gcc never emitted, which phase 15 deleted rather than vendoring a function nothing calls
+uses  exit:17     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  exit:17     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
