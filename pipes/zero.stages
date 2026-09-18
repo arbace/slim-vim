@@ -169,8 +169,10 @@ apart       12 13
 #               each would see the other's eleven or seventeen as symbols it did not
 #               remove and both statements would be false.  Measured: phase 15's
 #               check on a tree where both edits have run reports the set as neither
-#               phase's.  Phase 14's check also names <ctype.h>'s macros as still
-#               present, which phase 15 removes.
+#               phase's.  Phase 14's check fails the other way for a reason of its
+#               own: it pins `tolower` at 2 mentions with `\btolower\b` and names it
+#               as the character-class phase's, and on the tree phase 15 leaves it is
+#               0.  MEASURED on the recorded boundaries, r14 2 and r15 0.
 apart       14 15
 #   apart 15 16 phase 15's check requires `#include <ctype.h>` and `#include
 #               <wctype.h>` to be STILL PRESENT -- it is the includes phase's to take,
