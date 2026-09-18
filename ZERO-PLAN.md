@@ -270,7 +270,7 @@ A corpus that cannot fail is not evidence (`CLAUDE.md`). Six patched copies of
 | --- | --- | --- |
 | `do_addsub` returns `FAIL` — `CLAUDE.md`'s canonical break | one line | **11**: the ten CTRL-A/CTRL-X cases and `mb_incr`, and nothing else |
 | `CTRL-G` prints nothing (`fileinfo()` call removed) | one line | **1**: `ctrl_g`. **The file-based harness could not see this at all** — no file was written differently |
-| `check_changed()` returns `FALSE` (planned phase P10) | one line | **2**: `quit_modified` and `cmd_edit` (`:edit` answered E37 too); and 6 of 111 sweep rows — `edit enew ex quit view visual`, E37 → E32 or success |
+| `check_changed()` returns `FALSE` (planned phase P10) | one line | **2**: `quit_modified` and `cmd_edit` (`:edit` answered E37 too); and 6 of 111 sweep rows — `edit enew ex quit view visual`, E37 → E32 or success. **Built as zero phase 11 and it is 1 and 1**: five of the six rows went with `:edit` at phase 8 and `cmd_edit` with them, and `quit` changes message rather than ceasing to exist |
 | `ZZ` runs `q!` instead of `x` (planned phase P10) | one line | **1**: `zz_key` |
 | one `nv_cmds[]` row deleted under the precomputed index — the real twelve-phase arrow-key bug | one line | **100**, several with a non-zero exit: the editor cannot even quit. The two that do *not* move are `ctrl_c_clean` and `ctrl_c_changed`, which exit before a key is looked up |
 | `'ruler'` default off | one row | **100**, each by the same single line, and the same two exceptions |
@@ -515,15 +515,15 @@ permutation — §2g's fifth break is what happens otherwise.
 | 7 | no `:edit`, and no `gf` — **built, as zero phase 8** | the five rows and enumerators, `do_one_cmd`'s `curbuf_locked()` exemption for `:edit` and its `++opt` parse, and the `gf`/`gF` and `[f`/`]f` **arms** — there are no `nv_cmds[]` rows for them; the sweep then takes `do_ecmd` (328), `do_exedit`, `ex_edit`, `grab_file_name`, `otherfile`, `nv_gotofile`, `text_or_buf_locked`, `check_lnums*`, `prepare_help_buffer`, `getargopt` and six more — **17 functions; the file 84,453 → 83,755** | — | **`cmd_edit` and `key_gf`; the five sweep rows CEASE TO EXIST** |
 | 8 | nothing reads a byte — **built, as zero phase 9** | `open_buffer`'s two read arms, its `read_fifo` local and its signature; the sweep then takes `readfile` (787), `read_buffer`, `read_eintr`, `readfile_linenr`, `filemess`, `msg_add_fname`, `msg_add_lines`, `msg_add_eol` and eight more — **16 functions; the file 83,755 → 82,572**. `read_stdin` here is the ARGUMENT, not the function: `read_stdin()` was argv's and went with zero phase 5. `mch_isdir` and `set_rw_fname` land here and not in row 9 | `open access fcntl`, exactly | **nothing at all**: two full recordings byte-identical. The evidence is an instrumented build, not a record — see below |
 | 9 | the buffer has no name — **built, as zero phase 10** | `:file`'s row, enumerator and BOTH of `do_one_cmd`'s `CMD_file` tests; `buflist_new`'s two name parameters and everything it did with them; sixteen folds of `b_ffname`/`b_sfname`/`b_fname` (**32/26/29 mentions, not 58/30/42** — phase 9 had already taken eleven of them); `do_one_cmd`'s `EX_XFILE` call, which reaches zero rows here; `readonlymode` and `b_dev_valid`'s last write; `shorten_fnames`' cwd; and `find_file_name_in_path`'s `FNAME_EXP` arm. The sweep then takes **60 functions** — `setfname`, `ex_file`, `rename_buffer`, `otherfile_buf`, `buf_setino`, `fix_fname`, `ml_upd_block0`, `ml_timestamp`, `eval_vars`, `expand_filename`, `find_cmdline_var`, the whole `ExpandOne`/`gen_expand_wildcards` layer, `vim_FullName`, `mch_FullName`, `mch_dirname`, `mch_getperm`, `shorten_*`, `home_replace_save` and the `ff_*` remnants — with twelve `buf_T` fields and 43 string literals; **the file 82,572 → 80,387**. `buf_spname` and `get_spec_reg` are NOT removed: both survive folded, `[No Name]` being the only answer left. **`mch_isdir` and `set_rw_fname` are not here — zero phase 9 took both**, and `setfname` had one caller left because of it | `stat getcwd strerror`, exactly — and **only with the `shorten_fnames` and `FNAME_EXP` folds**: `stat`'s last caller is `mch_getperm`, `getcwd`'s and `strerror`'s is `mch_dirname`. **Not `fsync`**, whose only caller is `ui_write` and which is row 12's | **`cmd_file` and the sweep row `file`, and nothing else**: `reg_percent` and `ctrl_g` are byte-identical, `b_fname` having been NULL since row 4 and `[No Name]` already what they printed |
-| 10 | `:q` quits, `ZZ` is `ZQ` | `check_changed`, `no_write_message`, `no_write_message_nobang`; **`nv_Zet`'s `:x` is not here — zero phase 6 took it** | — | **`quit_modified` and the sweep row `quit`, and nothing else**: the measurement below was taken before zero phase 8, which has since moved `cmd_edit` and removed the rows `edit enew ex view visual` |
+| 10 | `:q` quits, `ZZ` is `ZQ` — **built, as zero phase 11** | ONE fold, of `ex_quit`'s refusal. This row names three functions and **sixteen** go: the five of the refusal — `check_changed`, `check_changed_any`, `no_write_message`, `no_write_message_nobang` and `not_exiting` — and then **eleven nobody foresaw**, `check_changed_any()`'s tail being the last caller of the whole switch-buffer/switch-window island: `add_bufnum`, `set_curbuf`, `enter_buffer`, `win_enter`, `win_enter_ext`, `goto_tabpage_win`, `goto_tabpage_tp`, `get_winopts`, `find_wininfo`, `buflist_findfpos` and `buflist_getfpos`. Two struct fields go by hand — `w_topline_was_set` and `wi_changelistidx`, write-only afterwards and invisible to `deadfields.py` — and `ex_quit`'s dead tail with them, since `getout()` sets `exiting` itself and never returns. **The file 80,387 → 79,866**; twelve enumerators go and nothing renumbers. **`nv_Zet`'s `:x` is not here — zero phase 6 took it** | — | **`quit_modified` and the sweep row `quit`, and nothing else**: the measurement below was taken before zero phase 8, which has since moved `cmd_edit` and removed the rows `edit enew ex view visual`. **`quit` CHANGES MESSAGE rather than ceasing to exist**, unlike every sweep row rows 5 to 9 declared, and the **exit status does not move in the corpus** — every case ends with a trailing `:q!`, so the 1 → 0 is a probe (`q_alone`) and not a record |
 | 11 | the options nothing reads | `'fsync'`, `'write'`, `'writeany'`, `'undoreload'`, and `'readonly'` by decision; `'shortmess'` and `'cpoptions'` letters that lost their readers. **`'paste'` is exempt and the phase says so** | — | none (`:set` is not swept); `tools/dropoptions.py --strict` refuses while a reader exists, which is the check |
 | 12 | no `FILE *` that is never opened | `scriptin[]` (3739, never assigned), `redir_fd` (3777, never assigned), `ui_write`'s `console` (its only caller passes `FALSE`) | `fclose getc fputs putc` | none |
 
-**Eight rows are built, and the numbering is not the table's.** Row 2 ran as zero
+**Nine rows are built, and the numbering is not the table's.** Row 2 ran as zero
 phase 2, row 3 as zero **phase 4**, row 4 as zero **phase 5**, row 5 as zero
 **phase 6**, row 6 as zero **phase 7**, row 7 as zero **phase 8**, row 8 as zero
-**phase 9** and row 9 as zero **phase 10**, because the harness switch of §2 landed
-between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what each one did; where this
+**phase 9**, row 9 as zero **phase 10** and row 10 as zero **phase 11**, because the
+harness switch of §2 landed between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what each one did; where this
 table turned out to be wrong is said at the row.
 
 #### P2 — nothing asks whether this is a terminal
@@ -755,6 +755,21 @@ left for this phase is **`quit_modified` and the sweep row `quit`**; `zz_key` mo
 at zero phase 6. `check_changed()` is folded away rather than deleted first, because
 `ex_quit` and `check_changed_any` call it — `do_ecmd` was the third caller and went
 with phase 8.
+
+**Built as zero phase 11, and three things here were wrong.** *(1)* The removal is
+not three functions but **sixteen**, and the eleven this row does not name are the
+larger half: `check_changed_any()`'s tail is "go to the buffer that refused", and
+after whim removed the buffer list and the window commands that tail was the last
+caller of the whole switch-buffer/switch-window island. The editor has no code for
+entering a different buffer or window afterwards. *(2)* The row `quit` **changes
+message rather than ceasing to exist** — `:quit` still has its row, so
+`tools/zexcmds.py` enumerates the same 98 names and compares the block — which makes
+it the first sweep row zero has declared that survives. *(3)* `need 11 swept` **is
+required**, where the brief that specified the phase said there was none: on the
+unswept text `buflist_findlnum()` still calls `buflist_findfpos()` from outside the
+island, so the invariant every fold rests on is false and the counted anchor refuses.
+Two extras the row does not mention were taken and each is byte-identical in the
+recording: the two struct fields that become write-only, and `ex_quit`'s dead tail.
 
 #### P11 — the options nothing reads
 
