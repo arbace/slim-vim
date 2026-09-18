@@ -12,6 +12,16 @@
 
 typedef typeof(sizeof(0)) usize;
 
+void *malloc(usize n);
+void *realloc(void *p, usize n);
+void free(void *p);
+long time(long *tp);
+int getpid(void);
+int kill(int pid, int sig);
+long write(int fd, const void *buf, usize n);
+long labs(long n);
+int abs(int n);
+
     static void *
 musl_memcpy(void *dest, const void *src, usize n)
 {
@@ -291,7 +301,7 @@ musl_fmtnum(char *dest, unsigned long long v, int base, int upper, int isneg)
     static int
 musl_fmtptr(char *dest, void *p)
 {
-    unsigned long long v = (unsigned long long)(uintptr_t)p;
+    unsigned long long v = (unsigned long long)(usize)p;
     int i;
     int d;
 
@@ -1101,7 +1111,7 @@ enum { MAX_MCO = 6 };
 
 enum { MB_MAXBYTES = 21 };
 
-typedef time_t      time_T;
+typedef long        time_T;
 
 enum { P_BOOL = 0x01 };
 enum { P_NUM = 0x02 };
@@ -1810,7 +1820,7 @@ typedef struct hist_entry
     int         viminfo;
     char_u      *hisstr;
     usize      hisstrlen;
-    time_t      time_set;
+    time_T      time_set;
 } histentry_T;
 
 typedef struct mapblock mapblock_T;
@@ -3526,6 +3536,7 @@ static int musl_get_winsize(int *rows, int *cols);
 static void musl_term_start(void);
 static void musl_term_stop(void);
 static int musl_tty_keys(int fd, int *bs, int *intr, int *cr, int *nlcr);
+static void musl_gettimeofday(long *sec, long *usec);
 static void musl_delay(long ms, int interruptible);
 static int musl_wait_for_input(long ms);
 static int musl_read_input(char *buf, int len);
@@ -3794,7 +3805,7 @@ static int      exiting  = FALSE ;
 static int      really_exiting  = FALSE ;
 static int      v_dying  = 0 ;
 
-static volatile sig_atomic_t full_screen  = FALSE ;
+static volatile int full_screen  = FALSE ;
 
 static int      secure  = FALSE ;
 
@@ -3930,7 +3941,7 @@ static int      need_highlight_changed  = TRUE ;
 
 static int      read_cmd_fd  = 0 ;
 
-static volatile sig_atomic_t got_int  = FALSE ;
+static volatile int got_int  = FALSE ;
 
 static int      termcap_active  = FALSE ;
 static int      term_entered = FALSE;
@@ -4211,8 +4222,11 @@ enum { MSCR_UP = 1 };
 
 enum { KEYLEN_REMOVED = 9999 };
 
-typedef struct timeval elapsed_T;
-static long elapsed(struct timeval *start_tv);
+typedef struct {
+    long        tv_sec;
+    long        tv_usec;
+} elapsed_T;
+static long elapsed(elapsed_T *start_tv);
 
 enum { REPTERM_FROM_PART = 1 };
 enum { REPTERM_DO_LT = 2 };
@@ -9802,7 +9816,7 @@ win_redr_status(win_T *wp, int ignore_pum)
         if (p_sc && *p_sloc == 's')
         {
             n = this_ru_col - plen - 2;
-            int width = MIN(10, n);
+            int width = (((10)<(n))?(10):(n));
 
             if (width > 0)
             {
@@ -10531,7 +10545,7 @@ win_update(win_T *wp)
                 top_to_mod = FALSE;
             }
 
-            if (!scrolled_for_mod && mod_bot !=  LONG_MAX  && lnum >= mod_top && lnum < MAX(mod_bot, mod_top + 1) && (!scrolled_down || row >= top_end))
+            if (!scrolled_for_mod && mod_bot !=  LONG_MAX  && lnum >= mod_top && lnum < (((mod_bot)>(mod_top + 1))?(mod_bot):(mod_top + 1)) && (!scrolled_down || row >= top_end))
             {
                 scrolled_for_mod = TRUE;
 
@@ -18196,7 +18210,7 @@ do_sleep(long msec, int hide_cursor)
     long        wait_now;
     elapsed_T   start_tv;
 
-     gettimeofday(&(start_tv), nullptr) ;
+     musl_gettimeofday(&start_tv.tv_sec, &start_tv.tv_usec) ;
 
     if (hide_cursor)
     {
@@ -18971,7 +18985,7 @@ parse_pattern_and_range(pos_T   *incsearch_start, int     *search_delim, int    
         return FALSE;
     }
 
-    if ( musl_strncmp((char *)(cmd), (char *)("substitute"), (p - cmd))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("smagic"), (p - cmd))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("snomagic"), (MAX(p - cmd, 3)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("vglobal"), (p - cmd))  == 0)
+    if ( musl_strncmp((char *)(cmd), (char *)("substitute"), (p - cmd))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("smagic"), (p - cmd))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("snomagic"), ((((p - cmd)>(3))?(p - cmd):(3))))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("vglobal"), (p - cmd))  == 0)
     {
         if (*cmd == 's' && cmd[1] == 'm')
         {
@@ -18982,7 +18996,7 @@ parse_pattern_and_range(pos_T   *incsearch_start, int     *search_delim, int    
             magic_overruled = OPTION_MAGIC_OFF;
         }
     }
-    else if ( musl_strncmp((char *)(cmd), (char *)("sort"), (MAX(p - cmd, 3)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("uniq"), (MAX(p - cmd, 3)))  == 0)
+    else if ( musl_strncmp((char *)(cmd), (char *)("sort"), ((((p - cmd)>(3))?(p - cmd):(3))))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("uniq"), ((((p - cmd)>(3))?(p - cmd):(3))))  == 0)
     {
         if (*p == '!')
         {
@@ -18997,7 +19011,7 @@ parse_pattern_and_range(pos_T   *incsearch_start, int     *search_delim, int    
             return FALSE;
         }
     }
-    else if ( musl_strncmp((char *)(cmd), (char *)("vimgrep"), (MAX(p - cmd, 3)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("vimgrepadd"), (MAX(p - cmd, 8)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("lvimgrep"), (MAX(p - cmd, 2)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("lvimgrepadd"), (MAX(p - cmd, 9)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("global"), (p - cmd))  == 0)
+    else if ( musl_strncmp((char *)(cmd), (char *)("vimgrep"), ((((p - cmd)>(3))?(p - cmd):(3))))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("vimgrepadd"), ((((p - cmd)>(8))?(p - cmd):(8))))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("lvimgrep"), ((((p - cmd)>(2))?(p - cmd):(2))))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("lvimgrepadd"), ((((p - cmd)>(9))?(p - cmd):(9))))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("global"), (p - cmd))  == 0)
     {
         if (*p == '!')
         {
@@ -21445,7 +21459,7 @@ add_buff(buffheader_T        *buf, char_u              *s, long                s
         {
             len = slen;
         }
-        p = alloc(offsetof(buffblock_T, b_str) + len + 1);
+        p = alloc(__builtin_offsetof(buffblock_T, b_str) + len + 1);
         if (p == nullptr)
         {
             return;
@@ -26132,7 +26146,7 @@ syn_name2id_len(char_u *name, int len)
     {
         return 0;
     }
-    return  ((hlname_T *)((hi)->hi_key -  offsetof(hlname_T, hn_key) )) ->hn_id;
+    return  ((hlname_T *)((hi)->hi_key -  __builtin_offsetof(hlname_T, hn_key) )) ->hn_id;
 }
 
     static int
@@ -26212,7 +26226,7 @@ syn_add_group(char_u *name)
         hlname_T    *hn;
         int         len = (int) musl_strlen((char *)(name)) ;
 
-        hn = alloc(offsetof(hlname_T, hn_key) + len + 1);
+        hn = alloc(__builtin_offsetof(hlname_T, hn_key) + len + 1);
         if (hn == nullptr)
         {
             vim_free(name);
@@ -26245,7 +26259,7 @@ syn_unadd_group(void)
         hash_remove(&highlight_ht, hi, "highlight");
     }
     vim_free( ((hl_group_T *)((highlight_ga.ga_data))) [highlight_ga.ga_len].sg_name);
-    vim_free( ((hl_group_T *)((highlight_ga.ga_data))) [highlight_ga.ga_len].sg_name_u -  offsetof(hlname_T, hn_key) );
+    vim_free( ((hl_group_T *)((highlight_ga.ga_data))) [highlight_ga.ga_len].sg_name_u -  __builtin_offsetof(hlname_T, hn_key) );
 }
 
     static int
@@ -29446,13 +29460,13 @@ if (win->w_buffer == curbuf)
         {
             win->w_topline += amount_after;
         }
-         {     pos_T *posp = &(win->w_cursor);       if (posp->lnum >= line1 && posp->lnum <= line2)         {           if (amount ==  LONG_MAX )          {           posp->lnum = MAX(line1 - 1, 1);                 posp->col = 0;      }       else               posp->lnum += amount;   }       else if (amount_after && posp->lnum > line2)        posp->lnum += amount_after;     } ;
+         {     pos_T *posp = &(win->w_cursor);       if (posp->lnum >= line1 && posp->lnum <= line2)         {           if (amount ==  LONG_MAX )          {           posp->lnum = (((line1 - 1)>(1))?(line1 - 1):(1));                 posp->col = 0;      }       else               posp->lnum += amount;   }       else if (amount_after && posp->lnum > line2)        posp->lnum += amount_after;     } ;
     }
 
 }
 
      for ((wip) = (curbuf)->b_wininfo; (wip) != nullptr; (wip) = (wip)->wi_next) 
-         {     pos_T *posp = &(wip->wi_fpos);       if (posp->lnum >= line1 && posp->lnum <= line2)         {           if (amount ==  LONG_MAX )          {           posp->lnum = MAX(line1 - 1, 1);                 posp->col = 0;      }       else               posp->lnum += amount;   }       else if (amount_after && posp->lnum > line2)        posp->lnum += amount_after;     } ;
+         {     pos_T *posp = &(wip->wi_fpos);       if (posp->lnum >= line1 && posp->lnum <= line2)         {           if (amount ==  LONG_MAX )          {           posp->lnum = (((line1 - 1)>(1))?(line1 - 1):(1));                 posp->col = 0;      }       else               posp->lnum += amount;   }       else if (amount_after && posp->lnum > line2)        posp->lnum += amount_after;     } ;
 }
 
     static void
@@ -34585,7 +34599,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             }
         }
 
-        page_count = ((space_needed +  (offsetof(DATA_BL, db_index)) ) + page_size - 1) / page_size;
+        page_count = ((space_needed +  (__builtin_offsetof(DATA_BL, db_index)) ) + page_size - 1) / page_size;
         if ((hp_new = ml_new_data(mfp, flags & ML_APPEND_NEW, page_count)) == nullptr)
         {
             --(buf->b_ml.ml_locked_lineadd);
@@ -35284,7 +35298,7 @@ ml_new_data(memfile_T *mfp, int negative, int page_count)
     dp = (DATA_BL *)(hp->bh_data);
     dp->db_id =  (('d' << 8) + 'a') ;
     dp->db_txt_start = dp->db_txt_end = page_count * mfp->mf_page_size;
-    dp->db_free = dp->db_txt_start -  (offsetof(DATA_BL, db_index)) ;
+    dp->db_free = dp->db_txt_start -  (__builtin_offsetof(DATA_BL, db_index)) ;
     dp->db_line_count = 0;
 
     return hp;
@@ -35304,7 +35318,7 @@ ml_new_ptr(memfile_T *mfp)
     pp = (PTR_BL *)(hp->bh_data);
     pp->pb_id =  (('p' << 8) + 't') ;
     pp->pb_count = 0;
-    pp->pb_count_max =  (short_u)(((mfp)->mf_page_size - offsetof(PTR_BL, pb_pointer)) / sizeof(PTR_EN)) ;
+    pp->pb_count_max =  (short_u)(((mfp)->mf_page_size - __builtin_offsetof(PTR_BL, pb_pointer)) / sizeof(PTR_EN)) ;
 
     return hp;
 }
@@ -37417,7 +37431,7 @@ store_sb_text(char_u      **sb_str, char_u      *s, int         attr, int       
 
     if (s > *sb_str)
     {
-        mp = alloc(offsetof(msgchunk_T, sb_text) + (s - *sb_str) + 1);
+        mp = alloc(__builtin_offsetof(msgchunk_T, sb_text) + (s - *sb_str) + 1);
         if (mp != nullptr)
         {
             mp->sb_eol = finish;
@@ -38271,7 +38285,7 @@ plines_m_win(win_T *wp, linenr_T first, linenr_T last, int max)
             ++first;
         }
     }
-    return MIN(max, count);
+    return (((max)<(count))?(max):(count));
 }
 
     static int
@@ -38561,7 +38575,7 @@ vim_beep(unsigned val)
         if (!did_init ||  elapsed(&(start_tv))  > 500)
         {
             did_init = TRUE;
-             gettimeofday(&(start_tv), nullptr) ;
+             musl_gettimeofday(&start_tv.tv_sec, &start_tv.tv_usec) ;
             if (p_vb)
             {
                 out_str_cf( ( term_strings[(int)(KS_VB)] ) );
@@ -40155,11 +40169,11 @@ get_real_state(void)
 }
 
     static long
-elapsed(struct timeval *start_tv)
+elapsed(elapsed_T *start_tv)
 {
-    struct timeval  now_tv;
+    elapsed_T       now_tv;
 
-    gettimeofday(&now_tv, nullptr);
+    musl_gettimeofday(&now_tv.tv_sec, &now_tv.tv_usec);
     return (now_tv.tv_sec - start_tv->tv_sec) * 1000L
          + (now_tv.tv_usec - start_tv->tv_usec) / 1000L;
 }
@@ -40170,7 +40184,7 @@ cmp_keyvalue_value_n(const void *a, const void *b)
     keyvalue_T *kv1 = (keyvalue_T *)a;
     keyvalue_T *kv2 = (keyvalue_T *)b;
 
-    return  musl_strncmp((char *)(kv1->value.string), (char *)(kv2->value.string), (MAX(kv1->value.length, kv2->value.length))) ;
+    return  musl_strncmp((char *)(kv1->value.string), (char *)(kv2->value.string), ((((kv1->value.length)>(kv2->value.length))?(kv1->value.length):(kv2->value.length)))) ;
 }
 
     static int
@@ -40188,7 +40202,7 @@ cmp_keyvalue_value_ni(const void *a, const void *b)
     keyvalue_T *kv1 = (keyvalue_T *)a;
     keyvalue_T *kv2 = (keyvalue_T *)b;
 
-    return vim_strnicmp_asc((char *)kv1->value.string, (char *)kv2->value.string, MAX(kv1->value.length, kv2->value.length));
+    return vim_strnicmp_asc((char *)kv1->value.string, (char *)kv2->value.string, (((kv1->value.length)>(kv2->value.length))?(kv1->value.length):(kv2->value.length)));
 }
 
 static void redraw_for_cursorline(win_T *wp);
@@ -42349,9 +42363,9 @@ pagescroll(int dir, long count, int half)
     {
         if (count)
         {
-            curwin-> w_onebuf_opt.wo_scr  = MIN(curwin->w_height, count);
+            curwin-> w_onebuf_opt.wo_scr  = (((curwin->w_height)<(count))?(curwin->w_height):(count));
         }
-        count = MIN(curwin->w_height, curwin-> w_onebuf_opt.wo_scr );
+        count = (((curwin->w_height)<(curwin-> w_onebuf_opt.wo_scr))?(curwin->w_height):(curwin-> w_onebuf_opt.wo_scr));
 
         long curscount = count;
         if (dir == FORWARD && (curwin->w_topline + curwin->w_height + count > buflen))
@@ -42390,14 +42404,14 @@ pagescroll(int dir, long count, int half)
     }
     else
     {
-        count *= (( TRUE  && p_window > 0 && p_window < Rows - 1) ? MAX(1, p_window - 2) : get_scroll_overlap(dir));
+        count *= (( TRUE  && p_window > 0 && p_window < Rows - 1) ? (((1)>(p_window - 2))?(1):(p_window - 2)) : get_scroll_overlap(dir));
         did_move = scroll_with_sms(dir, count, &count);
 
         if (did_move)
         {
             validate_botline();
             linenr_T lnum = (dir == FORWARD ? curwin->w_topline : curwin->w_botline - 1);
-            curwin->w_cursor.lnum = MAX(lnum, 1);
+            curwin->w_cursor.lnum = (((lnum)>(1))?(lnum):(1));
         }
     }
 
@@ -59610,7 +59624,7 @@ bt_regcomp(char_u *expr, int re_flags)
         return nullptr;
     }
 
-    r = alloc(offsetof(bt_regprog_T, program) + regsize);
+    r = alloc(__builtin_offsetof(bt_regprog_T, program) + regsize);
     if (r == nullptr)
     {
         return nullptr;
@@ -63876,7 +63890,7 @@ error:
             }
 
             curbuf->b_op_end.lnum = new_lnum;
-            col = MAX(0, (colnr_T)y_array[y_size - 1].length - lendiff);
+            col = (((0)>((colnr_T)y_array[y_size - 1].length - lendiff))?(0):((colnr_T)y_array[y_size - 1].length - lendiff));
             if (col > 1)
             {
                 curbuf->b_op_end.col = col - 1;
@@ -71493,7 +71507,7 @@ typedef enum {
 
 typedef struct {
     request_progress_T      tr_progress;
-    time_t                  tr_start;
+    time_T                  tr_start;
 } termrequest_T;
 
 typedef struct
@@ -74327,7 +74341,7 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
         }
 
         ga_init2(&osc_state.buf, 1, 1024);
-         gettimeofday(&(osc_state.start_tv), nullptr) ;
+         musl_gettimeofday(&osc_state.start_tv.tv_sec, &osc_state.start_tv.tv_usec) ;
         osc_state.processing = TRUE;
         osc_state.start_char = tp[0];
         last_char = 0;
@@ -76282,7 +76296,7 @@ vim_time(void)
 }
 
     static void
-add_time(char_u *buf, usize buflen, time_t tt)
+add_time(char_u *buf, usize buflen, time_T tt)
 {
     long seconds = (long)(vim_time() - tt);
 
@@ -76332,7 +76346,7 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
     long        elapsed_time = 0;
     elapsed_T   start_tv;
 
-     gettimeofday(&(start_tv), nullptr) ;
+     musl_gettimeofday(&start_tv.tv_sec, &start_tv.tv_usec) ;
 
     for (;;)
     {
@@ -76654,7 +76668,7 @@ check_row(int row)
     static void
 ui_focus_change(int         in_focus)
 {
-    static time_t       last_time = (time_t)0;
+    static time_T       last_time = (time_T)0;
 
     if (in_focus && last_time + 2 < time(nullptr))
     {
@@ -78555,14 +78569,14 @@ frame_new_height(frame_T     *topfrp, int         height, int         topfirst, 
 {
     if (set_ch)
     {
-        int new_ch = MAX(min_set_ch, p_ch + topfrp->fr_height - height);
+        int new_ch = (((min_set_ch)>(p_ch + topfrp->fr_height - height))?(min_set_ch):(p_ch + topfrp->fr_height - height));
         int save_ch = min_set_ch;
         if (new_ch != p_ch)
         {
             set_option_value((char_u *)"cmdheight", new_ch, nullptr, 0);
         }
         min_set_ch = save_ch;
-        height = MIN(height,  (Rows - p_ch) );
+        height = (((height)<((Rows - p_ch)))?(height):((Rows - p_ch)));
     }
     win_new_height(topfrp->fr_win, height - topfrp->fr_win->w_status_height -  0 );
     topfrp->fr_height = height;
@@ -79037,7 +79051,7 @@ win_fix_cursor(int normal)
     }
 
     wp->w_do_win_fix_cursor = false;
-    long so = MIN(wp->w_height / 2, get_scrolloff_value());
+    long so = (((wp->w_height / 2)<(get_scrolloff_value()))?(wp->w_height / 2):(get_scrolloff_value()));
     linenr_T lnum = wp->w_cursor.lnum;
 
     wp->w_cursor.lnum = wp->w_topline;
@@ -79241,7 +79255,7 @@ command_height(void)
 
     if (p_ch > old_p_ch && command_frame_height)
     {
-        int h = MIN(p_ch - old_p_ch, frp->fr_height - frame_minheight(frp, nullptr));
+        int h = (((p_ch - old_p_ch)<(frp->fr_height - frame_minheight(frp, nullptr)))?(p_ch - old_p_ch):(frp->fr_height - frame_minheight(frp, nullptr)));
         frame_add_height(frp, -h);
         old_p_ch += h;
     }
@@ -80031,6 +80045,16 @@ musl_tty_keys(int fd, int *bs, int *intr, int *cr, int *nlcr)
     *cr = (keys.c_iflag & ICRNL) != 0;
     *nlcr = (keys.c_oflag & ONLCR) != 0;
     return OK;
+}
+
+    static void
+musl_gettimeofday(long *sec, long *usec)
+{
+    struct timeval tv;
+
+    gettimeofday(&tv, nullptr);
+    *sec = tv.tv_sec;
+    *usec = tv.tv_usec;
 }
 
     static void
