@@ -432,3 +432,25 @@
 # to show for it: musl spells isalpha, isdigit, isgraph, islower and isupper as macros.
 # That is why <ctype.h> could not be removed by counting nm -u, and why this phase's
 # check asserts the header contract itself.
+#
+# 16 DECLARES NOTHING AT ALL, and it is a FOURTH kind of empty declaration.  Three
+# phases before it declared nothing, each for a different reason, and the reason is
+# the statement: 9 removed code that COULD NOT RUN, every way to name a file having
+# gone at phase 8; 12 removed code that CAN run and that this instrument CANNOT SEE,
+# nothing recorded ever asking `:set ro?`; 13 removed the POSSIBILITY, two `FILE *`
+# that had never been opened in any build of zero-vim.
+#
+# THIS PHASE CHANGES NO CODE AT ALL.  It removes six `#include` lines and one typedef
+# of a type nothing uses, and its evidence is not that the recording did not move but
+# that THE BINARY IS THE SAME BYTES -- the input's and the output's, both built with
+# SOURCE_DATE_EPOCH=0 and the boundary's own flags, compared with cmp.  That is tier 1
+# of CLAUDE.md's verification table, and it subsumes every screen case, every
+# Ex-command row, every command line and every pty scenario at once, because the
+# program that would be run is literally the same program.  tools/zerodelta.sh --phase
+# 16 runs and finds nothing moved, as it must; here it corroborates rather than proves.
+#
+# Phases 14 and 15 declare nothing for a fifth reason again, and it is the weakest of
+# the five: their code changes and their binary moves, and the claim is that
+# twenty-eight replacement implementations do what the ones they replace did.  Their
+# own checks are where that is argued.  This phase's claim is the only one in the
+# pipeline that a byte comparison can settle outright.

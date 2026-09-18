@@ -1,19 +1,13 @@
 #include <stdio.h>
-#include <ctype.h>
-#include <sys/stat.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/param.h>
 #include <time.h>
 #include <signal.h>
-#include <string.h>
 #include <errno.h>
 #include <stdint.h>
-#include <wctype.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include <fcntl.h>
-#include <iconv.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 
@@ -2580,8 +2574,6 @@ typedef enum
 typedef long (*find_func_t)(const char *line, long line_len, char *buffer, long buffer_size, void *priv);
 
 enum { TABSTOP_MAX = 9999 };
-
-typedef struct stat stat_T;
 
 typedef enum {
     PASTE_INSERT,

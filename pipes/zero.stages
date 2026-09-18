@@ -19,11 +19,11 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are fifteen phases.  Phases are added one at a time, each on its own request
+# There are sixteen phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
 
 #   stage   phases
 stage       0
@@ -42,6 +42,7 @@ stage       12
 stage       13
 stage       14
 stage       15
+stage       16
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -171,6 +172,18 @@ apart       12 13
 #               phase's.  Phase 14's check also names <ctype.h>'s macros as still
 #               present, which phase 15 removes.
 apart       14 15
+#   apart 15 16 phase 15's check requires `#include <ctype.h>` and `#include
+#               <wctype.h>` to be STILL PRESENT -- it is the includes phase's to take,
+#               and asserting them present is what keeps that phase from widening
+#               quietly -- and this phase removes both.  And the constraint runs the
+#               other way too, which is the direction measured here: phase 16's check
+#               states that it frees NOTHING, as a `cmp` of the stage's starting
+#               undefined set against the one it made, and inside a stage every check
+#               compares with the STAGE's start (tools/phaserun.sh).  Phase 15 frees
+#               eleven symbols, so in a shared stage phase 16 says `the libc surface
+#               moved, and REMOVING AN #include CANNOT MOVE IT` and names them.  It is
+#               `apart 5 6`'s shape exactly, in both directions.
+apart       15 16
 # NO `apart 13 14`.  Phase 13's check asserts that the libc surface moves by exactly
 # `fclose fsync getc putc` and that `fputs fputc fwrite putchar` are STILL undefined,
 # and phase 14 moves seventeen more -- so phase 13's check does fail on a phase 14
@@ -253,6 +266,16 @@ need        11 swept
 #                  failure is the edit's build of its own input binary, which is true
 #                  of every zero edit that builds one and is not declared for that
 #                  reason.
+#   NO `need 16`, AND IT WAS MEASURED RATHER THAN ASSUMED.  Phase 16's anchors are six
+#                  exact `#include <...>` lines at one occurrence each and one exact
+#                  typedef line -- text no sweep has ever touched -- and its computed
+#                  part is a COMPILE and not a count, so it cannot shrink silently on
+#                  unswept text the way a counted cut can.  Measured: the edit applies
+#                  unchanged to the unswept text phase 15's edit leaves, and the sweep
+#                  that follows it is a complete no-op -- one round, 0 prototypes, 0
+#                  functions, 0 variables, 0 types, 0 fields, 0 enumerators, canon
+#                  settled, the file not one line shorter than the edit left it.
+#                  Removing a header is not removing code.
 
 #        name         phases
 package  seed         0
@@ -265,6 +288,7 @@ package  buffers      11
 package  options      12
 package  tidy         13
 package  vendor       14 15
+package  includes     16
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -297,3 +321,7 @@ uses  vendor:14   harness:3  mechanical  its one MUST-DIFFER probe is a screen r
 uses  tidy:13     terminal:2 rationale   ui_write()'s `console` argument is FALSE at its one call site either way, and phase 2 is where the terminal stopped being asked anything -- so dropping the parameter rather than leaving __attribute__((unused)) on it is that phase's argument for check_tty(void)
 uses  vendor:15   seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
 uses  vendor:15   harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  includes:16 seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  includes:16 tidy:13    rationale   pipes/zero13-edit.sh names <sys/stat.h> and <fcntl.h>, measures that removing them is free, and DECLINES -- "the count stays 18" -- because the charter stated the directive count as a property of the pipeline.  This phase is that decision reversed, and it finds a third header phase 13 did not: <iconv.h>, whose only occurrence in zero-vim.c was its own #include line
+uses  includes:16 vendor:14  mechanical  <string.h> is unused only because phase 14 moved all sixteen mem*/str* functions inside the file as static definitions
+uses  includes:16 vendor:15  mechanical  <ctype.h> and <wctype.h> likewise -- and <wctype.h> needed `iswupper` handled as well, a NAME with no libc symbol, sitting on a line gcc never emitted, which phase 15 deleted rather than vendoring a function nothing calls
