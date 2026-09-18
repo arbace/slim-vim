@@ -15,17 +15,21 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has twelve phases.** Phase 0 is the
+**This document is iterative, and so far it has fourteen phases.** Phase 0 is the
 seed, phase 1 is a compiler flag, phase 2 is the first cut in the source — the first
 piece of *a component, not a program* — phase 3 changes no source at all: it
 replaces the instrument every later phase is measured with; phase 4 removes Ex mode,
-phase 5 leaves the command line as `+{command}` and `-T {term}`, and phases 6 to 11
+phase 5 leaves the command line as `+{command}` and `-T {term}`, and phases 6 to 13
 are *no filesystem* on request: the editor loses every way to write a file, then
 every way to read one, then every way to name another one to edit, then the
 machinery that read the bytes — which by then nothing could reach — then the
 buffer's own name, with the last three questions the core asked the filesystem on
-its own initiative, and finally the refusal that asked whether the text had been
-saved, which by then had no remedy to offer. Phases
+its own initiative, then the refusal that asked whether the text had been saved,
+which by then had no remedy to offer, then the option rows that reported settings
+nothing read, and finally the two `FILE *` that had never been opened. After
+thirteen the core has no `open`, no `stat`, no stdio stream and no fourth
+descriptor: it can read, write, close and dup fds 0, 1 and 2 and nothing else.
+Phases
 are added one at a time, each on the user's own
 request, and each is written into this document, into `pipes/` and into
 `pipes/zero.delta` and `pipes/zero.stages` when it is added — never in advance.
@@ -2309,3 +2313,226 @@ phase's`, `curbufIsChanged has 6 mentions, expected 7` (`change_warning`'s early
 read it) and `the function count went 1742 -> 1724, expected 1742 -> 1726` among them —
 and exits 1. Phase 10's check pins the same two rows and would fail too, but a stage
 holding 10 and 12 holds 11 and `apart 10 11` forbids that already.
+
+## Phase 13 — no `FILE *` that is never opened
+
+`pipes/zero13-edit.sh` and `pipes/zero13-check.sh`, `stage 13`, `package tidy`. Two
+`static FILE *` survive in this editor and **nothing has ever opened either of them in
+any build of `zero-vim`**: `scriptin[NSCRIPT]`, which `-s {scriptfile}` filled and for
+which whim removed the option, and `redir_fd`, which `:redir > file` filled and for
+which whim removed the command. So this phase removes the **possibility** rather than
+a behaviour — phase 9's situation and phase 9's answer.
+
+### The counts are the argument, and each is computed before anything is folded
+
+* **`scriptin[]` is assigned in exactly one place in the whole file**, and that place
+  is `scriptin[curscript] = NULL;` inside `closescript()`. So it is NULL for ever.
+* **`redir_fd`'s only assignment is its own declaration**, `= NULL`.
+* **`ui_write()` has three mentions** — a prototype, a definition and one call — and
+  that call passes `FALSE` for `console`.
+
+The edit asserts all three as exact text before it folds anything, because every fold
+rests on them; a fourth assignment anywhere would make every one a guess.
+
+### Six anchors, in three groups
+
+**A — `scriptin[]` is NULL for ever.** `may_sync_undo()` and `is_safe_now()` each lose
+one conjunct and **survive**: `u_sync()` still runs on the same condition, and
+`is_safe_now()` is still `stuff_empty() && typebuf.tb_len == 0 && !global_busy`.
+`using_script()` is FALSE at both call sites — a `&& !using_script()` conjunct and a
+`|| using_script()` disjunct — and the sweep then takes it. And `inchar()`'s script
+reader goes as text with its local, after which `if (script_char < 0)` is always true
+and folds; **that fold is what takes `closescript()`'s only caller**, and `fclose` and
+`getc` with it.
+
+**B — `redir_fd` is NULL for ever**, so `redirecting()` is FALSE always and folds at
+both call sites, in `undo_cmdmod` and inside `redir_write()`. **Their indentation
+differs**, which is what makes two separate one-count patterns honest rather than a
+count of two over one pattern. The second fold takes the whole `fputs`/`putc` block.
+
+**C — `ui_write()`'s `console`** is FALSE at its one call site, so the `vim_fsync(1)`
+it guards can never be entered. **The parameter goes too**, and that is what makes the
+cut honest: leaving it would leave `__attribute__((unused))` on something that will
+never be read again — phase 2's argument for `check_tty(void)` — and `tools/sweep.sh`
+compiles with `-Wno-unused-parameter`, so an unused parameter is invisible where an
+unused local is not. `vim_fsync()` is then uncalled and `fsync` goes.
+
+### Two locals are folded by hand and no tool covers either
+
+**`retesc`** is written only inside the loop anchor A4 deletes and read once.
+Afterwards it is a local that is **read and never written**: gcc has no warning for
+that, `deadsweep.py` acts on warnings, and leaving it would mean `inchar()` returns an
+uninitialised value on a path the compiler thinks exists. `return retesc;` becomes
+`return FALSE;` and the declaration goes. It is folded **after** the two declarations
+and **before** `fold_always`, because the fold dedents the body it keeps and a rewrite
+counted against the original indentation refuses afterwards — which it did, the first
+time this was run.
+
+**`did_return`** is the same shape one level down: the `if (!did_return)` block the
+`redir_write` extra removes is its only reader, and an `if` with an empty body is not
+something any tool here removes either, so the block goes whole with `cutil.drop_if`
+and the variable's two lines with it.
+
+### The recommended extra is taken, and a second is declined
+
+After B, `redir_write()` is `{ char_u *s = str; static int cur_col = 0; if (redir_off)
+return; }` — the sweep takes the two variables and leaves a function with five callers
+that cannot do anything. Leaving it is the "concept the table has and the code does
+not" that whim's Phase 18 argued against, so it goes with its five call sites, and
+`redir_off` — then written **five** times, not four, and read never, a file-scope
+static that no warning covers — goes with them. `msg_puts_attr_len()`'s call was every
+message the editor prints, and that is the one to notice: nothing is printed
+differently, because `redir_write()` returned without doing anything at every one of
+them.
+
+**A second extra is declined and is a question for the user, not an oversight.** After
+this phase `typedef struct stat stat_T;` has no user and `#include <sys/stat.h>` and
+`#include <fcntl.h>` are needed by nothing. Removing all three is free and was
+measured — same binary, byte-identical recording, four fewer lines — but it would be
+**the first time any zero phase changes the directive count**, and the charter above
+says `zero-vim.c` "inherits 18 directives from `whim-vim.c`". That sentence is a
+statement about the pipeline, so the change belongs to whoever decides it, either here
+or as an includes phase of its own. The count stays **18**.
+
+### The honest problem, and the probe that answers it
+
+Nothing this phase removes is reachable, so there is **no behavioural must-differ
+probe** and no dishonest one is offered instead. The check builds the source the phase
+was handed, twice:
+
+- **probe** — `(void)write(2, "FILESTAR-ENTERED\n", 17);` at **five** places: the top
+  of `closescript()`, inside `inchar()`'s `getc(scriptin[curscript])` loop, inside
+  `redir_write()`'s `redirecting()` block, inside `undo_cmdmod`'s, and the top of
+  `vim_fsync()`. **0 of the 106 records** carry the marker.
+- **ctl** — the *identical* instrument at the top of `ui_write()`, which every byte
+  the editor draws goes through. **105 of the same 106** carry it.
+
+The zero is the claim; the 105 is what makes it a probe that can fail. **Proven able
+to fail, by measurement**: with the instrument moved to `ui_write()` in the probe
+build, the recording carries the marker in 105 of 106 records and the check reports
+*105 of 106 records ENTERED one of the five sites on the binary this phase was handed*
+and exits 1.
+
+**Eighteen adversarial sessions** run on both instrumented binaries, and every one of
+them is a way of making the editor **print**, which is where `redir_write()` sat —
+`msg_puts_attr_len()` called it for every message. `:messages`, `:verbose set ai?`,
+`:silent echo`, `:history`, `:registers`, `:display`, `ga`, an unknown command, `:set
+all`, `:marks`, `:undolist`, `:changes`, `:map`, `:highlight`, `:normal ihi`,
+`:g/a/p`, a recorded-and-replayed register and `:set verbose=9`. **Each reached
+`ui_write()` and not one reached any of the five** — and the first half is checked
+too, because a session that draws nothing is not an adversary.
+
+### The declared delta is nothing at all, measured twice over
+
+`diff -rq` over two full recordings — the binary the phase was handed against the one
+it made — is **empty**: all 102 screen cases, all 111 Ex-command rows, all 30 command
+lines, the four pty scenarios and the nineteen terminal rows. `tools/zerodelta.sh
+--phase 13` then finds the same against whim-vim's frozen baselines, with the nine
+lines phases 2 to 11 declared and nothing new. `pipes/zero.delta` gets a comment and
+no line. Nine ordinary sessions run directly between the two binaries and each is
+required to be identical **and** to be doing something.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 79,757 | **79,603** (−154) |
+| functions | 1,724 | 1,719 (−5) |
+| type definitions | 909 | 908 |
+| enumerators (DWARF) | 1,182 | 1,181 (`NSCRIPT`, nothing renumbers) |
+| `FILE` mentions | 2 | **0** |
+| `#include` | 18 | 18 — untouched |
+| `nm -u`, as `phasecheck.sh` counts it | 66 | **62** |
+| `nm -u` with zero's own flags | 65 | **61** |
+| binary | 803,912 | **799,816** |
+
+**Four symbols go and the check names the set, not the count**: `fclose` and `getc`
+were `closescript()`'s and `inchar()`'s script loop's, `putc` was `redir_write()`'s,
+and `fsync` was `vim_fsync()`'s — whose only caller was `ui_write()`'s `console`
+branch, which is why **`fsync` is this phase's and not the buffer-name phase's**.
+
+**`fputs` does not go, and `ZERO-PLAN.md` row 12 says it does.** After this phase the
+source names it nowhere and `nm -u` still lists it: gcc lowers `fprintf(stderr, "…")`
+to it, exactly as it lowers `printf` to `fputc`, `fwrite` and `putchar`. The check
+asserts the freed set as exactly `fclose fsync getc putc`, with `fputs fputc fwrite
+putchar __errno_location` named as gcc's own and required to be **still** undefined.
+
+**`ZERO-PLAN.md` §4b's invariant is assertable in its strongest form now**, and the
+check states it: `open creat openat stat access fcntl getcwd strerror fopen fdopen
+opendir` are absent from **both** the source and the undefined set. The core has no
+`open`, no `stat`, no stdio stream and no fourth descriptor — it can read, write,
+close and dup fds 0, 1 and 2 and nothing else.
+
+The sweep is **3 rounds** and the phase **37 s**. Its boundary is `f995296f2536`.
+
+### Its placement
+
+`stage 13`, `package tidy`, and two `uses` lines: `tidy:13 seed:0 mechanical`, because
+the "none" is checked against phase 0's baselines, and `tidy:13 terminal:2 rationale`,
+because `ui_write()`'s `console` argument is FALSE at its one call site either way and
+phase 2 is where the terminal stopped being asked anything — so dropping the parameter
+rather than leaving `__attribute__((unused))` on it is that phase's argument for
+`check_tty(void)`.
+
+**`need 13 swept` is not required, and it was measured**: phase 13's edit applies
+unchanged to the *unswept* text phase 12's edit leaves, every counted anchor at the
+same number. The run fails only on the edit's build of its input binary, which is true
+of every zero edit that builds one.
+
+**`apart 12 13`, measured.** Phase 12's check pins `scriptin` at 8 mentions, `redir_fd`
+at 6 and `vim_fsync` at 3 and names all three as the `FILE *` phase's; it also requires
+`fclose`, `getc`, `putc` and `fsync` to be **still** undefined. Run on the tree this
+phase leaves it gives three complaints — `redir_fd has 0 mentions, expected 6`,
+`scriptin has 0 mentions, expected 8`, `vim_fsync has 0 mentions, expected 3` — and
+exits 1. Its symbol check would fail too, being a `cmp` of the whole undefined set
+against a phase that frees four, but the source assertions come first. Phase 11's check
+pins the same three and would fail as well, but a stage holding 11 and 13 holds 12 and
+`apart 11 12` forbids that already.
+
+### What zero-vim is after thirteen phases
+
+```
+zero-vim.c        79,603 lines          from whim-vim.c's 86,614  (-7,011, 8.1%)
+functions         1,719
+type definitions  908
+DWARF enumerators 1,181
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    108, 96 distinct globals  (orphanopts floor 80; 16 of margin)
+#include          18, every one a system header; no #define, no conditional
+libc symbols      61 with zero's flags, 62 as tools/symbols.sh counts
+binary            799,816 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    20 records + stderr-moved, from whim-vim
+```
+
+**The 61, attributed.** The whole host boundary that is left is a terminal, a message
+line, memory and the C library's own text handling:
+
+| why | symbols |
+| --- | --- |
+| **the terminal** | `read` `write` `close` `dup` `ioctl` `select` `tcgetattr` `tcsetattr` `nanosleep` `isatty` (10) |
+| **messages before and after the screen** | `printf` `fflush` `stderr` (3) |
+| **memory** | `malloc` `free` `realloc` (3) |
+| **strings and memory blocks** | `memchr` `memcmp` `memcpy` `memmove` `memset` `strcasecmp` `strcat` `strchr` `strcmp` `strcpy` `strlen` `strncasecmp` `strncmp` `strncpy` `strpbrk` `strstr` `sprintf` (17) |
+| **character classes** | `isalnum` `iscntrl` `ispunct` `tolower` `toupper` `towlower` `towupper` (7) |
+| **numbers** | `atoi` `atol` (2) |
+| **sorting and searching** | `qsort` `bsearch` (2) |
+| **time** | `time` `gettimeofday` (2) |
+| **signals and exit** | `sigaction` `sigaddset` `sigemptyset` `sigismember` `sigprocmask` `kill` `raise` `getpid` `exit` `_exit` (10) |
+| **gcc's own**, named nowhere in the source | `__errno_location` `fputc` `fputs` `fwrite` `putchar` (5) |
+
+`tools/symbols.sh` counts 62 because it compiles plain `-O0` and so adds
+`__stack_chk_fail`, which zero's `-fno-stack-protector` removes. **`isatty` survives
+with three call sites** and belongs to the terminal, not the filesystem —
+`mch_check_win`'s `isatty(1)`, `mch_get_shellsize`'s `!isatty(fd) &&
+isatty(read_cmd_fd)` and `fill_input_buf`'s `!did_read_something &&
+!isatty(read_cmd_fd)`.
+
+**The filesystem work is finished.** Phases 6 to 13 took, in order: every way to write
+a file, every way to read one, every way to name another one to edit, the machinery
+that read the bytes, the buffer's own name with the last three questions the core
+asked a disk on its own initiative, the refusal that asked whether the text had been
+saved, the option rows that reported settings nothing read, and the two `FILE *` that
+were never opened. What remains of `ZERO-PLAN.md` is the host boundary itself: `main()`
+demoted to a launcher, the terminal and the signal set moved out of the core, and the
+text representation changed from lines to a tree.
