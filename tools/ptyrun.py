@@ -4,26 +4,84 @@
 drawing, key decoding or `:set` reporting comes back empty from it.  Those need
 a pty.
 
-Three things this must get right, all learned the hard way:
+Four things this must get right, all learned the hard way:
   * a hard timeout -- an error at startup leaves vim on a `Press ENTER` prompt
     and a read loop waits for ever;
   * delays between keystrokes -- vim's input parser distinguishes a typed
     Escape from the Escape that starts a key sequence by timing;
   * ANSI escapes stripped from the output before matching, or every comparison
-    drowns in cursor positioning.
+    drowns in cursor positioning;
+  * staging the binary as `vim` -- argv[0] decides what the editor IS -- and
+    staging it in a way that a thread pool cannot race.  See stage().
 
 Importing does nothing.  Call session().
 """
+import atexit
 import os
 import pty
 import re
 import select
 import shutil
 import signal
+import subprocess
 import tempfile
+import threading
 import time
 
 ANSI = re.compile(rb'\x1b\[[0-9;?]*[a-zA-Z]|\x1b[()][0-9A-B]|\x1b[=>]|\x1b\][^\x07]*\x07|\r')
+
+_staged = {}
+_staging = threading.Lock()
+
+
+def stage(binary):
+    """The binary under the one name that means plain vim.  Every session uses this.
+
+    argv[0] is why it is renamed: 'r...' is restricted mode, 'e...' evim, 'g...'
+    the GUI, and only a basename of `vim` is plain vim.  A RACE is why it is one
+    function and not three lines inside session().  `shutil.copy2` holds a write fd
+    on its destination while it copies, and a `fork` in ANOTHER thread -- termcheck.py
+    runs nineteen sessions in a ThreadPoolExecutor and ptycheck.py five -- hands that
+    thread's child the same fd until it execs.  `execve` refuses a file any process
+    holds open for writing, so the COPYING thread's own exec then dies with
+    `OSError: [Errno 26] Text file busy`, the session it was written for never runs,
+    and the caller gets an empty capture.  Measured here, through termcheck.py and
+    with the child's exec failure logged rather than swallowed: **5 in 100 idle runs**
+    (1,900 pty sessions), every one errno 26, against **0 in 100** with this staging;
+    and interleaved in one loop so ambient conditions cannot favour either, **1 of 60
+    against 0 of 60**.  Load does NOT make it likelier -- 0 in 60 runs under a steady
+    256-way spin load and 0 in 20 under an oscillating 128-way one -- because what
+    overlaps is the nineteen threads' startup, which a loaded machine spreads apart.
+    None of the six moved a recording, because termcheck.py retries an empty answer at
+    a longer settle; the zero phase checks that call session() directly have no such
+    ladder, and an empty capture there is a failed check.
+
+    Two things make it safe, and neither is a retry.  **The copy happens once per
+    binary**, under a lock, so nineteen sessions do not make nineteen windows.  And
+    **it happens in a child process**, so the write fd exists in `cp` and never in
+    this address space -- a thread forking at the same instant cannot inherit what we
+    do not hold.  That is what makes it correct however late a caller asks for it,
+    which a lock alone is not: a caller may stage a SECOND binary from inside a pool
+    already forking the first.
+
+    **This is deliberately a copy of `tools/zstream.py`'s `stage()` and not a call
+    to it.**  They are the same eight lines for the same reason, and they are
+    duplicated because of the cache keys: `tools/implhash.sh` follows one level of
+    named paths, `pipes/slim1.sh` names `tools/termcheck.py` and `termcheck.py`
+    names this file, so importing zstream here would put a ZERO tool inside slim's
+    and whim's implementation keys and couple the two pipelines for ever.  Three
+    lines of duplication is the cheaper cost.  Fix both if either is wrong.
+    """
+    with _staging:
+        vim = _staged.get(binary)
+        if vim is None:
+            d = tempfile.mkdtemp(prefix='pty-bin-')
+            vim = os.path.join(d, 'vim')
+            subprocess.run(['cp', binary, vim], check=True)
+            os.chmod(vim, 0o755)
+            atexit.register(shutil.rmtree, d, True)
+            _staged[binary] = vim
+        return vim
 
 
 def session(binary, args, keys, term='xterm', timeout=20.0,
@@ -34,12 +92,7 @@ def session(binary, args, keys, term='xterm', timeout=20.0,
     `settle` seconds of reading.  Returns (output_bytes_ansi_stripped,
     exit_status).
     """
-    # vim reads its own argv[0]: 'r...' is restricted mode, 'e...' evim,
-    # 'g...' the GUI.  Stage it under the one name that means plain vim.
-    stage = tempfile.mkdtemp(prefix='pty-bin-')
-    vim = os.path.join(stage, 'vim')
-    shutil.copy2(binary, vim)
-    os.chmod(vim, 0o755)
+    vim = stage(binary)
 
     e = dict(os.environ if env is None else env)
     e['TERM'] = term
@@ -99,5 +152,4 @@ def session(binary, args, keys, term='xterm', timeout=20.0,
         os.close(fd)
     except OSError:
         pass
-    shutil.rmtree(stage, ignore_errors=True)
     return bytes(ANSI.sub(b'', bytes(out))), status

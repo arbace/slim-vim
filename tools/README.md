@@ -24,7 +24,14 @@ actually happened was an import crash.
   directory and its own session, all at once, with the rows written in table
   order so the recording is the same bytes it was when they ran in sequence.
 - **`ptyrun.py`**, **`ptycheck.py`** — drive a real terminal; the second records
-  a fixed set of scenarios.
+  a fixed set of scenarios. `ptyrun.py` holds **`stage()`**, which is the same rule
+  as `zstream.py`'s and deliberately a second copy of it: **a harness that copies
+  the binary it is about to exec must copy it once per binary, under a lock, in a
+  child process**, because `copy2` in one thread and a `fork` in another make
+  `execve` fail with `Text file busy` — 5 of 100 idle runs of `termcheck.py` before,
+  0 of 100 after. It is duplicated rather than imported because `implhash.sh`
+  follows named paths one level, so importing zero's tool here would put it in
+  slim's and whim's keys.
 - **`termcheck.py`** — what each `$TERM` resolves to and how many colours it
   gets, for every name in the table and every name dropped from it. An empty
   answer is retried at a longer settle before it is believed: under the load of
