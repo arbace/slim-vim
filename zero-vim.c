@@ -299,6 +299,185 @@ static int musl_fmtptr(char *dest, void *p)
     return 18;
 }
 
+    static int
+musl_isdigit(int c)
+{
+    return (unsigned)c - '0' < 10;
+}
+
+    static int
+musl_isalpha(int c)
+{
+    return ((unsigned)c | 32) - 'a' < 26;
+}
+
+    static int
+musl_isupper(int c)
+{
+    return (unsigned)c - 'A' < 26;
+}
+
+    static int
+musl_islower(int c)
+{
+    return (unsigned)c - 'a' < 26;
+}
+
+    static int
+musl_isgraph(int c)
+{
+    return (unsigned)c - 0x21 < 0x5e;
+}
+
+    static int
+musl_isspace(int c)
+{
+    return (unsigned)c - '\t' < 5 || c == ' ';
+}
+
+    static int
+musl_isalnum(int c)
+{
+    return musl_isalpha(c) || musl_isdigit(c);
+}
+
+    static int
+musl_iscntrl(int c)
+{
+    return (unsigned)c < 0x20 || c == 0x7f;
+}
+
+    static int
+musl_ispunct(int c)
+{
+    return musl_isgraph(c) && !musl_isalnum(c);
+}
+
+    static int
+musl_tolower(int c)
+{
+    if (musl_isupper(c))
+    {
+        return c | 32;
+    }
+    return c;
+}
+
+    static int
+musl_toupper(int c)
+{
+    if (musl_islower(c))
+    {
+        return c & 0x5f;
+    }
+    return c;
+}
+
+    static int
+musl_atoi(const char *s)
+{
+    int n = 0;
+    int neg = 0;
+
+    while (musl_isspace(*s))
+    {
+        ++s;
+    }
+    if (*s == '-')
+    {
+        neg = 1;
+        ++s;
+    }
+    else if (*s == '+')
+    {
+        ++s;
+    }
+    while (musl_isdigit(*s))
+    {
+        n = 10 * n - (*s++ - '0');
+    }
+    return neg ? n : -n;
+}
+
+    static long
+musl_atol(const char *s)
+{
+    long n = 0;
+    int neg = 0;
+
+    while (musl_isspace(*s))
+    {
+        ++s;
+    }
+    if (*s == '-')
+    {
+        neg = 1;
+        ++s;
+    }
+    else if (*s == '+')
+    {
+        ++s;
+    }
+    while (musl_isdigit(*s))
+    {
+        n = 10 * n - (*s++ - '0');
+    }
+    return neg ? n : -n;
+}
+
+    static void *
+musl_bsearch(const void *key, const void *base, size_t nel, size_t width, int (*cmp)(const void *, const void *))
+{
+    void *tryp;
+    int sign;
+
+    while (nel > 0)
+    {
+        tryp = (char *)base + width * (nel / 2);
+        sign = cmp(key, tryp);
+        if (sign < 0)
+        {
+            nel /= 2;
+        }
+        else if (sign > 0)
+        {
+            base = (char *)tryp + width;
+            nel -= nel / 2 + 1;
+        }
+        else
+        {
+            return tryp;
+        }
+    }
+    return NULL;
+}
+
+    static void
+musl_qsort(void *base, size_t nel, size_t width, int (*cmp)(const void *, const void *))
+{
+    char *a = (char *)base;
+    size_t i;
+    size_t j;
+    size_t k;
+
+    for (i = 1; i < nel; ++i)
+    {
+        for (j = i; j > 0 && cmp(a + (j - 1) * width, a + j * width) > 0; --j)
+        {
+            for (k = 0; k < width; ++k)
+            {
+                char t = a[(j - 1) * width + k];
+
+                a[(j - 1) * width + k] = a[j * width + k];
+                a[j * width + k] = t;
+            }
+        }
+    }
+}
+
+static int musl_towupper(int a);
+static int musl_towlower(int a);
+
 enum { BH_DIRTY = 1 };
 enum { BH_LOCKED = 2 };
 enum { CMOD_SILENT = 0x0002 };
@@ -6987,7 +7166,7 @@ vim_islower(int c)
         }
         return (latin1flags[c] & LATIN1LOWER) == LATIN1LOWER;
     }
-    return  (islower ((unsigned char)(c))) ;
+    return  (musl_islower((unsigned char)(c))) ;
 }
 
     static int
@@ -7002,12 +7181,11 @@ vim_isupper(int c)
         return utf_isupper(c);
         if (c >= 0x100)
         {
-            return iswupper(c);
             return FALSE;
         }
         return (latin1flags[c] & LATIN1UPPER) == LATIN1UPPER;
     }
-    return  (isupper ((unsigned char)(c))) ;
+    return  (musl_isupper((unsigned char)(c))) ;
 }
 
     static int
@@ -7022,7 +7200,7 @@ vim_toupper(int c)
         return utf_toupper(c);
         if (c >= 0x100)
         {
-            return towupper(c);
+            return musl_towupper(c);
             return c;
         }
         return latin1upper[c];
@@ -7031,7 +7209,7 @@ vim_toupper(int c)
     {
         return  (((c) < 'a' || (c) > 'z') ? (c) : (c) - ('a' - 'A')) ;
     }
-    return   (toupper ((unsigned char)(c))) ;
+    return   (musl_toupper((unsigned char)(c))) ;
 }
 
     static int
@@ -7046,7 +7224,7 @@ vim_tolower(int c)
         return utf_tolower(c);
         if (c >= 0x100)
         {
-            return towlower(c);
+            return musl_towlower(c);
             return c;
         }
         return latin1lower[c];
@@ -7055,7 +7233,7 @@ vim_tolower(int c)
     {
         return  (((c) < 'A' || (c) > 'Z') ? (c) : (c) + ('a' - 'A')) ;
     }
-    return   (tolower ((unsigned char)(c))) ;
+    return   (musl_tolower((unsigned char)(c))) ;
 }
 
     static char_u *
@@ -7075,7 +7253,7 @@ getdigits(char_u **pp)
     long        retval;
 
     p = *pp;
-    retval = atol((char *)p);
+    retval = musl_atol((char *)p);
     if (*p == '-')
     {
         ++p;
@@ -14166,7 +14344,7 @@ ins_ctrl_ey(int tc)
         {
             long        tw_save;
 
-            if (c < 256 && ! (isalnum ((unsigned char)(c))) )
+            if (c < 256 && ! (musl_isalnum((unsigned char)(c))) )
             {
                 AppendToRedobuff((char_u *) "\026" );
             }
@@ -14722,7 +14900,7 @@ ex_z(exarg_T *eap)
         }
         else
         {
-            bigness = atol((char *)x);
+            bigness = musl_atol((char *)x);
 
             if (bigness > 2 * curbuf->b_ml.ml_line_count || bigness < 0)
             {
@@ -14876,7 +15054,7 @@ skip_substitute(char_u *start, int delimiter)
     static int
 check_regexp_delim(int c)
 {
-    if ( (isalpha ((unsigned char)(c))) )
+    if ( (musl_isalpha((unsigned char)(c))) )
     {
         emsg(_(e_regular_expressions_cant_be_delimited_by_letters));
         return FAIL;
@@ -16898,7 +17076,7 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
                         }
                         if (vim_isdigit(*eap->cmd))
                         {
-                            cmod->cmod_verbose = atoi((char *)eap->cmd) + 1;
+                            cmod->cmod_verbose = musl_atoi((char *)eap->cmd) + 1;
                         }
                         else
                         {
@@ -18038,7 +18216,7 @@ ex_winsize(exarg_T *eap)
     char_u      *arg = eap->arg;
     char_u      *p;
 
-    if (! (isdigit ((unsigned char)(*arg))) )
+    if (! (musl_isdigit((unsigned char)(*arg))) )
     {
         semsg(_(e_invalid_argument_str), arg);
         return;
@@ -18275,7 +18453,7 @@ ex_later(exarg_T *eap)
     {
         count = 1;
     }
-    else if ( (isdigit ((unsigned char)(*p))) )
+    else if ( (musl_isdigit((unsigned char)(*p))) )
     {
         count = getdigits(&p);
         switch (*p)
@@ -21045,12 +21223,12 @@ file_name_in_line(char_u      *line, int         col, int         options, long 
         }
         if (*p != NUL)
         {
-            if (! (isdigit ((unsigned char)(*p))) )
+            if (! (musl_isdigit((unsigned char)(*p))) )
             {
                 ++p;
             }
             p = skipwhite(p);
-            if ( (isdigit ((unsigned char)(*p))) )
+            if ( (musl_isdigit((unsigned char)(*p))) )
             {
                 *file_lnum = (int)getdigits(&p);
             }
@@ -24383,7 +24561,7 @@ highlight_set_termgui_attr(int idx, char_u *key, char_u *arg, int init)
     while (arg[off] != NUL)
     {
         target.value.string = arg + off;
-        entry = (keyvalue_T *)bsearch(&target, &highlight_tab,  (sizeof(highlight_tab) / sizeof((highlight_tab)[0])) , sizeof(highlight_tab[0]), cmp_keyvalue_value_ni);
+        entry = (keyvalue_T *)musl_bsearch(&target, &highlight_tab,  (sizeof(highlight_tab) / sizeof((highlight_tab)[0])) , sizeof(highlight_tab[0]), cmp_keyvalue_value_ni);
         if (entry == NULL)
         {
             semsg(_(e_illegal_value_str), arg);
@@ -24529,7 +24707,7 @@ highlight_set_cterm_font(int     idx, char_u  *arg, int     init)
 
     if ( ((unsigned)(*arg) - '0' < 10) )
     {
-        font = atoi((char *)arg);
+        font = musl_atoi((char *)arg);
     }
     else if ( musl_strcasecmp((char *)(arg), (char *)("NONE"))  == 0)
     {
@@ -24567,7 +24745,7 @@ highlight_set_cterm_color(int     idx, char_u  *key, char_u  *key_start, char_u 
 
     if ( ((unsigned)(*arg) - '0' < 10) )
     {
-        color = atoi((char *)arg);
+        color = musl_atoi((char *)arg);
     }
     else if ( musl_strcasecmp((char *)(arg), (char *)("fg"))  == 0)
     {
@@ -24614,7 +24792,7 @@ highlight_set_cterm_color(int     idx, char_u  *key, char_u  *key_start, char_u 
         target.key = 0;
         target.value.string = arg;
         target.value.length = 0;
-        entry = (keyvalue_T *)bsearch(&target, &color_name_tab,  (sizeof(color_name_tab) / sizeof((color_name_tab)[0])) , sizeof(color_name_tab[0]), cmp_keyvalue_value_i);
+        entry = (keyvalue_T *)musl_bsearch(&target, &color_name_tab,  (sizeof(color_name_tab) / sizeof((color_name_tab)[0])) , sizeof(color_name_tab[0]), cmp_keyvalue_value_i);
         if (entry == NULL)
         {
             semsg(_(e_color_name_or_number_not_recognized_str), key_start);
@@ -32451,6 +32629,384 @@ static convertStruct toUpper[] =
         {0x1e922,0x1e943,1,-34}
 };
 
+static convertStruct musl_toUpper[] =
+{
+        {0x61,0x7a,1,-32},
+        {0xb5,0xb5,1,743},
+        {0xdf,0xdf,1,7615},
+        {0xe0,0xf6,1,-32},
+        {0xf8,0xfe,1,-32},
+        {0xff,0xff,1,121},
+        {0x101,0x12f,2,-1},
+        {0x131,0x131,1,-232},
+        {0x133,0x137,2,-1},
+        {0x13a,0x148,2,-1},
+        {0x14b,0x177,2,-1},
+        {0x17a,0x17e,2,-1},
+        {0x17f,0x17f,1,-300},
+        {0x180,0x180,1,195},
+        {0x183,0x185,2,-1},
+        {0x188,0x18c,4,-1},
+        {0x192,0x192,1,-1},
+        {0x195,0x195,1,97},
+        {0x199,0x199,1,-1},
+        {0x19a,0x19a,1,163},
+        {0x19e,0x19e,1,130},
+        {0x1a1,0x1a5,2,-1},
+        {0x1a8,0x1ad,5,-1},
+        {0x1b0,0x1b4,4,-1},
+        {0x1b6,0x1b9,3,-1},
+        {0x1bd,0x1bd,1,-1},
+        {0x1bf,0x1bf,1,56},
+        {0x1c5,0x1c5,1,-1},
+        {0x1c6,0x1c6,1,-2},
+        {0x1c8,0x1c8,1,-1},
+        {0x1c9,0x1c9,1,-2},
+        {0x1cb,0x1cb,1,-1},
+        {0x1cc,0x1cc,1,-2},
+        {0x1ce,0x1dc,2,-1},
+        {0x1dd,0x1dd,1,-79},
+        {0x1df,0x1ef,2,-1},
+        {0x1f2,0x1f2,1,-1},
+        {0x1f3,0x1f3,1,-2},
+        {0x1f5,0x1f9,4,-1},
+        {0x1fb,0x21f,2,-1},
+        {0x223,0x233,2,-1},
+        {0x23c,0x23c,1,-1},
+        {0x23f,0x240,1,10815},
+        {0x242,0x247,5,-1},
+        {0x249,0x24f,2,-1},
+        {0x250,0x250,1,10783},
+        {0x251,0x251,1,10780},
+        {0x252,0x252,1,10782},
+        {0x253,0x253,1,-210},
+        {0x254,0x254,1,-206},
+        {0x256,0x257,1,-205},
+        {0x259,0x259,1,-202},
+        {0x25b,0x25b,1,-203},
+        {0x25c,0x25c,1,42319},
+        {0x260,0x260,1,-205},
+        {0x261,0x261,1,42315},
+        {0x263,0x263,1,-207},
+        {0x265,0x265,1,42280},
+        {0x266,0x266,1,42308},
+        {0x268,0x268,1,-209},
+        {0x269,0x269,1,-211},
+        {0x26a,0x26a,1,42308},
+        {0x26b,0x26b,1,10743},
+        {0x26c,0x26c,1,42305},
+        {0x26f,0x26f,1,-211},
+        {0x271,0x271,1,10749},
+        {0x272,0x272,1,-213},
+        {0x275,0x275,1,-214},
+        {0x27d,0x27d,1,10727},
+        {0x280,0x280,1,-218},
+        {0x282,0x282,1,42307},
+        {0x283,0x283,1,-218},
+        {0x287,0x287,1,42282},
+        {0x288,0x288,1,-218},
+        {0x289,0x289,1,-69},
+        {0x28a,0x28b,1,-217},
+        {0x28c,0x28c,1,-71},
+        {0x292,0x292,1,-219},
+        {0x29d,0x29d,1,42261},
+        {0x29e,0x29e,1,42258},
+        {0x345,0x345,1,84},
+        {0x371,0x373,2,-1},
+        {0x377,0x377,1,-1},
+        {0x37b,0x37d,1,130},
+        {0x3ac,0x3ac,1,-38},
+        {0x3ad,0x3af,1,-37},
+        {0x3b1,0x3c1,1,-32},
+        {0x3c2,0x3c2,1,-31},
+        {0x3c3,0x3cb,1,-32},
+        {0x3cc,0x3cc,1,-64},
+        {0x3cd,0x3ce,1,-63},
+        {0x3d0,0x3d0,1,-62},
+        {0x3d1,0x3d1,1,-57},
+        {0x3d5,0x3d5,1,-47},
+        {0x3d6,0x3d6,1,-54},
+        {0x3d7,0x3d7,1,-8},
+        {0x3d9,0x3ef,2,-1},
+        {0x3f0,0x3f0,1,-86},
+        {0x3f1,0x3f1,1,-80},
+        {0x3f2,0x3f2,1,7},
+        {0x3f3,0x3f3,1,-116},
+        {0x3f5,0x3f5,1,-96},
+        {0x3f8,0x3fb,3,-1},
+        {0x430,0x44f,1,-32},
+        {0x450,0x45f,1,-80},
+        {0x461,0x481,2,-1},
+        {0x48b,0x4bf,2,-1},
+        {0x4c2,0x4ce,2,-1},
+        {0x4cf,0x4cf,1,-15},
+        {0x4d1,0x52f,2,-1},
+        {0x561,0x586,1,-48},
+        {0x10d0,0x10fa,1,3008},
+        {0x10fd,0x10ff,1,3008},
+        {0x13f8,0x13fd,1,-8},
+        {0x1c80,0x1c80,1,-6254},
+        {0x1c81,0x1c81,1,-6253},
+        {0x1c82,0x1c82,1,-6244},
+        {0x1c83,0x1c84,1,-6242},
+        {0x1c85,0x1c85,1,-6243},
+        {0x1c86,0x1c86,1,-6236},
+        {0x1c87,0x1c87,1,-6181},
+        {0x1c88,0x1c88,1,35266},
+        {0x1d79,0x1d79,1,35332},
+        {0x1d7d,0x1d7d,1,3814},
+        {0x1d8e,0x1d8e,1,35384},
+        {0x1e01,0x1e95,2,-1},
+        {0x1e9b,0x1e9b,1,-59},
+        {0x1ea1,0x1eff,2,-1},
+        {0x1f00,0x1f07,1,8},
+        {0x1f10,0x1f15,1,8},
+        {0x1f20,0x1f27,1,8},
+        {0x1f30,0x1f37,1,8},
+        {0x1f40,0x1f45,1,8},
+        {0x1f51,0x1f57,2,8},
+        {0x1f60,0x1f67,1,8},
+        {0x1f70,0x1f71,1,74},
+        {0x1f72,0x1f75,1,86},
+        {0x1f76,0x1f77,1,100},
+        {0x1f78,0x1f79,1,128},
+        {0x1f7a,0x1f7b,1,112},
+        {0x1f7c,0x1f7d,1,126},
+        {0x1f80,0x1f87,1,8},
+        {0x1f90,0x1f97,1,8},
+        {0x1fa0,0x1fa7,1,8},
+        {0x1fb0,0x1fb1,1,8},
+        {0x1fb3,0x1fb3,1,9},
+        {0x1fbe,0x1fbe,1,-7205},
+        {0x1fc3,0x1fc3,1,9},
+        {0x1fd0,0x1fd1,1,8},
+        {0x1fe0,0x1fe1,1,8},
+        {0x1fe5,0x1fe5,1,7},
+        {0x1ff3,0x1ff3,1,9},
+        {0x214e,0x214e,1,-28},
+        {0x2170,0x217f,1,-16},
+        {0x2184,0x2184,1,-1},
+        {0x2c30,0x2c5e,1,-48},
+        {0x2c61,0x2c61,1,-1},
+        {0x2c65,0x2c65,1,-10795},
+        {0x2c66,0x2c66,1,-10792},
+        {0x2c68,0x2c6c,2,-1},
+        {0x2c73,0x2c76,3,-1},
+        {0x2c81,0x2ce3,2,-1},
+        {0x2cec,0x2cee,2,-1},
+        {0x2cf3,0x2cf3,1,-1},
+        {0x2d00,0x2d25,1,-7264},
+        {0x2d27,0x2d2d,6,-7264},
+        {0xa641,0xa66d,2,-1},
+        {0xa681,0xa69b,2,-1},
+        {0xa723,0xa72f,2,-1},
+        {0xa733,0xa76f,2,-1},
+        {0xa77a,0xa77c,2,-1},
+        {0xa77f,0xa787,2,-1},
+        {0xa78c,0xa791,5,-1},
+        {0xa793,0xa793,1,-1},
+        {0xa794,0xa794,1,48},
+        {0xa797,0xa7a9,2,-1},
+        {0xa7b5,0xa7bf,2,-1},
+        {0xa7c3,0xa7c3,1,-1},
+        {0xab53,0xab53,1,-928},
+        {0xab70,0xabbf,1,-38864},
+        {0xff41,0xff5a,1,-32},
+        {0x10428,0x1044f,1,-40},
+        {0x104d8,0x104fb,1,-40},
+        {0x10cc0,0x10cf2,1,-64},
+        {0x118c0,0x118df,1,-32},
+        {0x16e60,0x16e7f,1,-32},
+        {0x1e922,0x1e943,1,-34}
+};
+
+static convertStruct musl_toLower[] =
+{
+        {0x41,0x5a,1,32},
+        {0xc0,0xd6,1,32},
+        {0xd8,0xde,1,32},
+        {0x100,0x12e,2,1},
+        {0x130,0x130,1,-199},
+        {0x132,0x136,2,1},
+        {0x139,0x147,2,1},
+        {0x14a,0x176,2,1},
+        {0x178,0x178,1,-121},
+        {0x179,0x17d,2,1},
+        {0x181,0x181,1,210},
+        {0x182,0x184,2,1},
+        {0x186,0x186,1,206},
+        {0x187,0x187,1,1},
+        {0x189,0x18a,1,205},
+        {0x18b,0x18b,1,1},
+        {0x18e,0x18e,1,79},
+        {0x18f,0x18f,1,202},
+        {0x190,0x190,1,203},
+        {0x191,0x191,1,1},
+        {0x193,0x193,1,205},
+        {0x194,0x194,1,207},
+        {0x196,0x196,1,211},
+        {0x197,0x197,1,209},
+        {0x198,0x198,1,1},
+        {0x19c,0x19c,1,211},
+        {0x19d,0x19d,1,213},
+        {0x19f,0x19f,1,214},
+        {0x1a0,0x1a4,2,1},
+        {0x1a6,0x1a6,1,218},
+        {0x1a7,0x1a7,1,1},
+        {0x1a9,0x1a9,1,218},
+        {0x1ac,0x1ac,1,1},
+        {0x1ae,0x1ae,1,218},
+        {0x1af,0x1af,1,1},
+        {0x1b1,0x1b2,1,217},
+        {0x1b3,0x1b5,2,1},
+        {0x1b7,0x1b7,1,219},
+        {0x1b8,0x1bc,4,1},
+        {0x1c4,0x1c4,1,2},
+        {0x1c5,0x1c5,1,1},
+        {0x1c7,0x1c7,1,2},
+        {0x1c8,0x1c8,1,1},
+        {0x1ca,0x1ca,1,2},
+        {0x1cb,0x1db,2,1},
+        {0x1de,0x1ee,2,1},
+        {0x1f1,0x1f1,1,2},
+        {0x1f2,0x1f4,2,1},
+        {0x1f6,0x1f6,1,-97},
+        {0x1f7,0x1f7,1,-56},
+        {0x1f8,0x21e,2,1},
+        {0x220,0x220,1,-130},
+        {0x222,0x232,2,1},
+        {0x23a,0x23a,1,10795},
+        {0x23b,0x23b,1,1},
+        {0x23d,0x23d,1,-163},
+        {0x23e,0x23e,1,10792},
+        {0x241,0x241,1,1},
+        {0x243,0x243,1,-195},
+        {0x244,0x244,1,69},
+        {0x245,0x245,1,71},
+        {0x246,0x24e,2,1},
+        {0x370,0x372,2,1},
+        {0x376,0x376,1,1},
+        {0x37f,0x37f,1,116},
+        {0x386,0x386,1,38},
+        {0x388,0x38a,1,37},
+        {0x38c,0x38c,1,64},
+        {0x38e,0x38f,1,63},
+        {0x391,0x3a1,1,32},
+        {0x3a3,0x3ab,1,32},
+        {0x3cf,0x3cf,1,8},
+        {0x3d8,0x3ee,2,1},
+        {0x3f4,0x3f4,1,-60},
+        {0x3f7,0x3f7,1,1},
+        {0x3f9,0x3f9,1,-7},
+        {0x3fa,0x3fa,1,1},
+        {0x3fd,0x3ff,1,-130},
+        {0x400,0x40f,1,80},
+        {0x410,0x42f,1,32},
+        {0x460,0x480,2,1},
+        {0x48a,0x4be,2,1},
+        {0x4c0,0x4c0,1,15},
+        {0x4c1,0x4cd,2,1},
+        {0x4d0,0x52e,2,1},
+        {0x531,0x556,1,48},
+        {0x10a0,0x10c5,1,7264},
+        {0x10c7,0x10cd,6,7264},
+        {0x13a0,0x13ef,1,38864},
+        {0x13f0,0x13f5,1,8},
+        {0x1c90,0x1cba,1,-3008},
+        {0x1cbd,0x1cbf,1,-3008},
+        {0x1e00,0x1e94,2,1},
+        {0x1e9e,0x1e9e,1,-7615},
+        {0x1ea0,0x1efe,2,1},
+        {0x1f08,0x1f0f,1,-8},
+        {0x1f18,0x1f1d,1,-8},
+        {0x1f28,0x1f2f,1,-8},
+        {0x1f38,0x1f3f,1,-8},
+        {0x1f48,0x1f4d,1,-8},
+        {0x1f59,0x1f5f,2,-8},
+        {0x1f68,0x1f6f,1,-8},
+        {0x1f88,0x1f8f,1,-8},
+        {0x1f98,0x1f9f,1,-8},
+        {0x1fa8,0x1faf,1,-8},
+        {0x1fb8,0x1fb9,1,-8},
+        {0x1fba,0x1fbb,1,-74},
+        {0x1fbc,0x1fbc,1,-9},
+        {0x1fc8,0x1fcb,1,-86},
+        {0x1fcc,0x1fcc,1,-9},
+        {0x1fd8,0x1fd9,1,-8},
+        {0x1fda,0x1fdb,1,-100},
+        {0x1fe8,0x1fe9,1,-8},
+        {0x1fea,0x1feb,1,-112},
+        {0x1fec,0x1fec,1,-7},
+        {0x1ff8,0x1ff9,1,-128},
+        {0x1ffa,0x1ffb,1,-126},
+        {0x1ffc,0x1ffc,1,-9},
+        {0x2126,0x2126,1,-7517},
+        {0x212a,0x212a,1,-8383},
+        {0x212b,0x212b,1,-8262},
+        {0x2132,0x2132,1,28},
+        {0x2160,0x216f,1,16},
+        {0x2183,0x2183,1,1},
+        {0x2c00,0x2c2e,1,48},
+        {0x2c60,0x2c60,1,1},
+        {0x2c62,0x2c62,1,-10743},
+        {0x2c63,0x2c63,1,-3814},
+        {0x2c64,0x2c64,1,-10727},
+        {0x2c67,0x2c6b,2,1},
+        {0x2c6d,0x2c6d,1,-10780},
+        {0x2c6e,0x2c6e,1,-10749},
+        {0x2c6f,0x2c6f,1,-10783},
+        {0x2c70,0x2c70,1,-10782},
+        {0x2c72,0x2c75,3,1},
+        {0x2c7e,0x2c7f,1,-10815},
+        {0x2c80,0x2ce2,2,1},
+        {0x2ceb,0x2ced,2,1},
+        {0x2cf2,0xa640,31054,1},
+        {0xa642,0xa66c,2,1},
+        {0xa680,0xa69a,2,1},
+        {0xa722,0xa72e,2,1},
+        {0xa732,0xa76e,2,1},
+        {0xa779,0xa77b,2,1},
+        {0xa77d,0xa77d,1,-35332},
+        {0xa77e,0xa786,2,1},
+        {0xa78b,0xa78b,1,1},
+        {0xa78d,0xa78d,1,-42280},
+        {0xa790,0xa792,2,1},
+        {0xa796,0xa7a8,2,1},
+        {0xa7aa,0xa7aa,1,-42308},
+        {0xa7ab,0xa7ab,1,-42319},
+        {0xa7ac,0xa7ac,1,-42315},
+        {0xa7ad,0xa7ad,1,-42305},
+        {0xa7ae,0xa7ae,1,-42308},
+        {0xa7b0,0xa7b0,1,-42258},
+        {0xa7b1,0xa7b1,1,-42282},
+        {0xa7b2,0xa7b2,1,-42261},
+        {0xa7b3,0xa7b3,1,928},
+        {0xa7b4,0xa7be,2,1},
+        {0xa7c2,0xa7c2,1,1},
+        {0xa7c4,0xa7c4,1,-48},
+        {0xa7c5,0xa7c5,1,-42307},
+        {0xa7c6,0xa7c6,1,-35384},
+        {0xff21,0xff3a,1,32},
+        {0x10400,0x10427,1,40},
+        {0x104b0,0x104d3,1,40},
+        {0x10c80,0x10cb2,1,64},
+        {0x118a0,0x118bf,1,32},
+        {0x16e40,0x16e5f,1,32},
+        {0x1e900,0x1e921,1,34}
+};
+
+    static int
+musl_towupper(int a)
+{
+    return utf_convert(a, musl_toUpper, (int)sizeof(musl_toUpper));
+}
+
+    static int
+musl_towlower(int a)
+{
+    return utf_convert(a, musl_toLower, (int)sizeof(musl_toLower));
+}
+
     static int
 utf_toupper(int a)
 {
@@ -32461,12 +33017,12 @@ utf_toupper(int a)
 
     if (!(cmp_flags & CMP_INTERNAL))
     {
-        return towupper(a);
+        return musl_towupper(a);
     }
 
     if (a < 128)
     {
-        return   (toupper ((unsigned char)(a))) ;
+        return   (musl_toupper((unsigned char)(a))) ;
     }
 
     return utf_convert(a, toUpper, (int)sizeof(toUpper));
@@ -32488,12 +33044,12 @@ utf_tolower(int a)
 
     if (!(cmp_flags & CMP_INTERNAL))
     {
-        return towlower(a);
+        return musl_towlower(a);
     }
 
     if (a < 128)
     {
-        return   (tolower ((unsigned char)(a))) ;
+        return   (musl_tolower((unsigned char)(a))) ;
     }
 
     return utf_convert(a, toLower, (int)sizeof(toLower));
@@ -39547,7 +40103,7 @@ get_special_key_code(char_u *name)
         target.name.string = name;
         target.name.length = 0;
 
-        entry = (struct key_name_entry *)bsearch(&target, &key_names_table,  (sizeof(key_names_table) / sizeof((key_names_table)[0])) , sizeof(key_names_table[0]), cmp_key_name_entry);
+        entry = (struct key_name_entry *)musl_bsearch(&target, &key_names_table,  (sizeof(key_names_table) / sizeof((key_names_table)[0])) , sizeof(key_names_table[0]), cmp_key_name_entry);
         if (entry != NULL && entry->enabled)
         {
             int key = entry->key;
@@ -45212,7 +45768,7 @@ v_visop(cmdarg_T *cap)
 {
     static char_u trans[] = "YyDdCcxdXdAAIIrr";
 
-    if ( (isupper ((unsigned char)(cap->cmdchar))) )
+    if ( (musl_isupper((unsigned char)(cap->cmdchar))) )
     {
         if (VIsual_mode != Ctrl_V)
         {
@@ -49287,7 +49843,7 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
         {
             if ( ((firstdigit) < 'a' ? (firstdigit) - 'A' : (firstdigit) - 'a')  < Prenum1)
             {
-                if ( (isupper ((unsigned char)(firstdigit))) )
+                if ( (musl_isupper((unsigned char)(firstdigit))) )
                 {
                     firstdigit = 'A';
                 }
@@ -49305,7 +49861,7 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
         {
             if (26 -  ((firstdigit) < 'a' ? (firstdigit) - 'A' : (firstdigit) - 'a')  - 1 < Prenum1)
             {
-                if ( (isupper ((unsigned char)(firstdigit))) )
+                if ( (musl_isupper((unsigned char)(firstdigit))) )
                 {
                     firstdigit = 'Z';
                 }
@@ -49448,9 +50004,9 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
         save_pos = curwin->w_cursor;
         for (i = 0; i < todel; ++i)
         {
-            if (c < 0x100 &&  (isalpha ((unsigned char)(c))) )
+            if (c < 0x100 &&  (musl_isalpha((unsigned char)(c))) )
             {
-                if ( (isupper ((unsigned char)(c))) )
+                if ( (musl_isupper((unsigned char)(c))) )
                 {
                     hexupper = TRUE;
                 }
@@ -54870,7 +55426,7 @@ did_set_term_option(optset_T *args)
 
     if (varp == & ( term_strings[(int)(KS_CCO)] ) )
     {
-        int colors = atoi((char *) ( term_strings[(int)(KS_CCO)] ) );
+        int colors = musl_atoi((char *) ( term_strings[(int)(KS_CCO)] ) );
 
         if (colors != t_colors)
         {
@@ -56002,7 +56558,7 @@ get_char_class(char_u **pp)
         }
         else
         {
-            entry = (keyvalue_T *)bsearch(&target, &char_class_tab,  (sizeof(char_class_tab) / sizeof((char_class_tab)[0])) , sizeof(char_class_tab[0]), cmp_keyvalue_value_n);
+            entry = (keyvalue_T *)musl_bsearch(&target, &char_class_tab,  (sizeof(char_class_tab) / sizeof((char_class_tab)[0])) , sizeof(char_class_tab[0]), cmp_keyvalue_value_n);
         }
         if (entry != NULL)
         {
@@ -58864,7 +59420,7 @@ collection:
                             case CLASS_ALNUM:
                                 for (cu = 1; cu < 128; cu++)
                                 {
-                                    if (isalnum(cu))
+                                    if (musl_isalnum(cu))
                                     {
                                         regmbc(cu);
                                     }
@@ -58873,7 +59429,7 @@ collection:
                             case CLASS_ALPHA:
                                 for (cu = 1; cu < 128; cu++)
                                 {
-                                    if (isalpha(cu))
+                                    if (musl_isalpha(cu))
                                     {
                                         regmbc(cu);
                                     }
@@ -58886,7 +59442,7 @@ collection:
                             case CLASS_CNTRL:
                                 for (cu = 1; cu <= 127; cu++)
                                 {
-                                    if (iscntrl(cu))
+                                    if (musl_iscntrl(cu))
                                     {
                                         regmbc(cu);
                                     }
@@ -58904,7 +59460,7 @@ collection:
                             case CLASS_GRAPH:
                                 for (cu = 1; cu <= 127; cu++)
                                 {
-                                    if (isgraph(cu))
+                                    if (musl_isgraph(cu))
                                     {
                                         regmbc(cu);
                                     }
@@ -58931,7 +59487,7 @@ collection:
                             case CLASS_PUNCT:
                                 for (cu = 1; cu < 128; cu++)
                                 {
-                                    if (ispunct(cu))
+                                    if (musl_ispunct(cu))
                                     {
                                         regmbc(cu);
                                     }
@@ -67979,7 +68535,7 @@ parse_search_pattern_offset(char_u      **pat, size_t      *patlen, int         
     {
         if ( ((unsigned)(*p) - '0' < 10)  ||  ((unsigned)(*(p + 1)) - '0' < 10) )
         {
-            offset->off = atol((char *)p);
+            offset->off = musl_atol((char *)p);
         }
         else if (*p == '-')
         {
@@ -69914,7 +70470,7 @@ sort_compare(const void *s1, const void *s2)
     static void
 sort_strings(char_u      **files, int         count)
 {
-    qsort((void *)files, (size_t)count, sizeof(char_u *), sort_compare);
+    musl_qsort((void *)files, (size_t)count, sizeof(char_u *), sort_compare);
 }
 
     static char_u  *
@@ -72237,7 +72793,7 @@ set_termname(char_u *term)
                 clear_termoptions();
             parse_builtin_tcap(term);
 
-            if (musl_strstr((char *)requested, "256color") != NULL && (term_strings_not_set(KS_CCO) || atoi((char *) ( term_strings[(int)(KS_CCO)] ) ) < 256))
+            if (musl_strstr((char *)requested, "256color") != NULL && (term_strings_not_set(KS_CCO) || musl_atoi((char *) ( term_strings[(int)(KS_CCO)] ) ) < 256))
             {
                 apply_builtin_tcap(term, builtin_256colors, TRUE);
             }
@@ -72828,7 +73384,7 @@ ttest(int pairs)
     }
     need_gather = TRUE;
 
-    t_colors = atoi((char *) ( term_strings[(int)(KS_CCO)] ) );
+    t_colors = musl_atoi((char *) ( term_strings[(int)(KS_CCO)] ) );
 }
 
     static void
@@ -74344,7 +74900,7 @@ handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
     {
         for (i = j + 3; i < len; ++i)
         {
-            if (i - j == 3 && ! (isdigit ((unsigned char)(tp[i]))) )
+            if (i - j == 3 && ! (musl_isdigit((unsigned char)(tp[i]))) )
             {
                 break;
             }
@@ -74530,7 +75086,7 @@ check_termcode(int         max_offset, char_u      *buf, int         bufsize, in
                         }
                         else
                         {
-                            for (j = slen - 2; j < len && ( (isdigit ((unsigned char)(tp[j])))  || tp[j] == '-' || tp[j] == ';'); ++j)
+                            for (j = slen - 2; j < len && ( (musl_isdigit((unsigned char)(tp[j])))  || tp[j] == '-' || tp[j] == ';'); ++j)
                             {
                                 ;
                             }
@@ -74546,7 +75102,7 @@ check_termcode(int         max_offset, char_u      *buf, int         bufsize, in
 
                             modifiers_start = tp + slen - 2;
 
-                            n = atoi((char *)modifiers_start);
+                            n = musl_atoi((char *)modifiers_start);
                             modifiers |= decode_modifiers(n);
 
                             slen = j;
@@ -74824,7 +75380,7 @@ find_term_bykeys(char_u *src, int *matchlen)
                 }
                 else
                 {
-                    for (j = slen - 2; j < len && ( (isdigit ((unsigned char)(src[j])))  || src[j] == '-' || src[j] == ';'); ++j)
+                    for (j = slen - 2; j < len && ( (musl_isdigit((unsigned char)(src[j])))  || src[j] == '-' || src[j] == ';'); ++j)
                     {
                         ;
                     }
