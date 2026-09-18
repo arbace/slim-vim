@@ -71,8 +71,6 @@ typedef unsigned short  short_u;
 typedef unsigned long           long_u;
 typedef          long           long_i;
 
-typedef off_t off_T;
-
 typedef char_u schar_T;
 typedef unsigned short sattr_T;
 enum { MAX_TYPENR = 65535 };
@@ -456,43 +454,8 @@ enum { BF_READERR = 0x40 };
 enum { BF_DUMMY = 0x80 };
 enum { BF_PRESERVED = 0x100 };
 enum { EXPAND_NOTHING = 0 };
-enum { EXPAND_FILES = 2 };
-enum { EXPAND_DIRECTORIES = 3 };
-enum { EXPAND_TAGS = 6 };
-enum { EXPAND_BUFFERS = 9 };
-enum { EXPAND_SHELLCMD = 32 };
-enum { EXPAND_FILES_IN_PATH = 38 };
-enum { EXPAND_DIRS_IN_CDPATH = 59 };
-enum { EXPAND_FINDFUNC = 61 };
-enum { WILD_EXPAND_FREE = 2 };
-enum { WILD_ALL = 6 };
-enum { WILD_LONGEST = 7 };
-enum { WILD_ALL_KEEP = 8 };
 enum { WILD_CANCEL = 9 };
 enum { WILD_APPLY = 10 };
-enum { WILD_LIST_NOTFOUND = 0x01 };
-enum { WILD_HOME_REPLACE = 0x02 };
-enum { WILD_NO_BEEP = 0x08 };
-enum { WILD_ADD_SLASH = 0x10 };
-enum { WILD_KEEP_ALL = 0x20 };
-enum { WILD_SILENT = 0x40 };
-enum { WILD_ESCAPE = 0x80 };
-enum { WILD_ICASE = 0x100 };
-enum { WILD_ALLLINKS = 0x200 };
-enum { WILD_NOERROR = 0x800 };
-enum { WILD_NOSELECT = 0x4000 };
-enum { EW_DIR = 0x01 };
-enum { EW_FILE = 0x02 };
-enum { EW_NOTFOUND = 0x04 };
-enum { EW_ADDSLASH = 0x08 };
-enum { EW_KEEPALL = 0x10 };
-enum { EW_SILENT = 0x20 };
-enum { EW_PATH = 0x80 };
-enum { EW_ICASE = 0x100 };
-enum { EW_NOERROR = 0x200 };
-enum { EW_ALLLINKS = 0x1000 };
-enum { EW_CDPATH = 0x20000 };
-
 enum { SEARCH_REV = 0x01 };
 enum { SEARCH_ECHO = 0x02 };
 enum { SEARCH_MSG = 0x0c };
@@ -517,10 +480,6 @@ enum { FNAME_HYP = 4 };
 enum { BLN_CURBUF = 1 };
 enum { BLN_LISTED = 2 };
 enum { BLN_DUMMY = 4 };
-enum { BLN_NEW = 8 };
-enum { BLN_NOOPT = 16 };
-enum { BLN_NOCURWIN = 128 };
-
 enum { MAPTYPE_MAP = 0 };
 enum { MAPTYPE_UNMAP = 1 };
 enum { MAPTYPE_NOREMAP = 2 };
@@ -1251,7 +1210,6 @@ typedef struct expand
     int         xp_backslash;
     int         xp_shell;
     int         xp_numfiles;
-    int         xp_selected;
     char_u      *xp_orig;
     char_u      **xp_files;
     char_u      **xp_files_abbr;
@@ -1261,10 +1219,6 @@ typedef struct expand
 } expand_T;
 
 enum { XP_BS_NONE = 0 };
-enum { XP_BS_ONE = 0x1 };
-enum { XP_BS_THREE = 0x2 };
-enum { XP_BS_COMMA = 0x4 };
-
 typedef struct
 {
     char_u      *cmdbuff;
@@ -1667,13 +1621,6 @@ struct file_buffer
     int         b_locked;
     int         b_locked_split;
 
-    char_u      *b_ffname;
-    char_u      *b_sfname;
-    char_u      *b_fname;
-
-    bool        b_dev_valid;
-    dev_t       b_dev;
-    ino_t       b_ino;
     int         b_fnum;
     char_u      b_key[VIM_SIZEOF_INT * 2 + 1];
 
@@ -1692,13 +1639,6 @@ struct file_buffer
     long        b_mod_xlines;
 
     wininfo_T   *b_wininfo;
-
-    long        b_mtime;
-    long        b_mtime_ns;
-    long        b_mtime_read;
-    long        b_mtime_read_ns;
-    off_T       b_orig_size;
-    int         b_orig_mode;
 
     pos_T       b_namedm[ ('z' - 'a' + 1) ];
 
@@ -2202,9 +2142,6 @@ typedef enum
 
 typedef long (*find_func_t)(const char *line, long line_len, char *buffer, long buffer_size, void *priv);
 
-enum { VALID_PATH = 1 };
-enum { VALID_HEAD = 2 };
-
 enum { TABSTOP_MAX = 9999 };
 
 typedef struct stat stat_T;
@@ -2223,9 +2160,6 @@ typedef enum {
 
 typedef enum {
     ESTACK_NONE,
-    ESTACK_SFILE,
-    ESTACK_STACK,
-    ESTACK_SCRIPT,
 } estack_arg_T;
 
 typedef enum {
@@ -2242,7 +2176,6 @@ typedef int (*opt_expand_cb_T)(optexpand_T *args, int *numMatches, char_u ***mat
 enum { EX_RANGE = 0x001 };
 enum { EX_BANG = 0x002 };
 enum { EX_EXTRA = 0x004 };
-enum { EX_XFILE = 0x008 };
 enum { EX_NOSPC = 0x010 };
 enum { EX_DFLALL = 0x020 };
 enum { EX_WHOLEFOLD = 0x040 };
@@ -2286,7 +2219,6 @@ enum CMD_index
     CMD_delmarks,
     CMD_display,
     CMD_earlier,
-    CMD_file,
     CMD_filter,
     CMD_fixdel,
     CMD_global,
@@ -2394,7 +2326,6 @@ struct exarg
     cmd_addr_T  addr_type;
     int         flags;
     char_u      *do_ecmd_cmd;
-    linenr_T    do_ecmd_lnum;
     int         amount;
     int         regname;
     char        *errmsg;
@@ -2410,14 +2341,8 @@ static sighandler_T mch_signal(int sig, sighandler_T func);
 static void reset_signals(void);
 static int vim_handle_signal(int sig);
 static long mch_get_pid(void);
-static int mch_dirname(char_u *buf, int len);
-static int mch_FullName(char_u *fname, char_u *buf, int len, int force);
-static int mch_isFullName(char_u *fname);
-static long mch_getperm(char_u *name);
 static void mch_exit(int r);
 static int get_tty_info(int fd, ttyinfo_T *info);
-static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
-static int mch_has_wildcard(char_u *p);
 
 static void *lalloc(size_t size, int message);
 static void do_outofmem_msg(size_t size);
@@ -2435,17 +2360,13 @@ static void free_wininfo(wininfo_T *wip);
 static void set_curbuf(buf_T *buf, int action);
 static void no_write_message(void);
 static int curbuf_reusable(void);
-static buf_T *buflist_new(char_u *ffname_arg, char_u *sfname_arg, linenr_T lnum, int flags);
+static buf_T *buflist_new(linenr_T lnum, int flags);
 static void free_buf_options(buf_T *buf, int free_p_ff);
 static buf_T *buflist_findnr(int nr);
 static void buflist_setfpos(buf_T *buf, win_T *win, linenr_T lnum, colnr_T col, int copy_options);
 static void get_winopts(buf_T *buf);
 static pos_T *buflist_findfpos(buf_T *buf);
-static void buf_name_changed(buf_T *buf);
-static void buf_setino(buf_T *buf);
 static int col_print(char_u *buf, size_t buflen, int col, int vcol);
-static char_u *fix_fname(char_u *fname);
-static void fname_expand(buf_T *buf, char_u **ffname, char_u **sfname);
 static int bt_help(buf_T *buf);
 static char_u *buf_spname(buf_T *buf);
 static char_u *buf_get_fname(buf_T *buf);
@@ -2497,7 +2418,6 @@ static int hex2nr(int c);
 static int rem_backslash(char_u *str);
 static int check_linecomment(char_u *line);
 
-static char_u *ExpandOne(expand_T *xp, char_u *str, char_u *orig, int options, int mode);
 static void ExpandCleanup(expand_T *xp);
 
 static void clear_hist_entry(histentry_T *hisptr);
@@ -2551,7 +2471,6 @@ static int parse_cmd_address(exarg_T *eap, char **errormsg, int silent);
 static char_u *find_ex_command(exarg_T *eap, int *full, int (*lookup)(char_u *, size_t, int cmd, cctx_T *), cctx_T *cctx);
 static char_u *skip_range(char_u *cmd_start, int skip_star, int *ctx);
 static linenr_T get_address(exarg_T *eap, char_u **ptr, cmd_addr_T addr_type, int skip, int silent, int to_other_file, int address_count);
-static int expand_filename(exarg_T *eap, char_u **cmdlinep, char **errormsgp);
 static void separate_nextcmd(exarg_T *eap, int keep_backslash);
 static char_u *skip_cmd_arg(char_u *p, int rembs);
 static int ends_excmd(int c);
@@ -2565,7 +2484,6 @@ static void ex_may_print(exarg_T *eap);
 static void redraw_cmd(int clear);
 static void exec_normal_cmd(char_u *cmd, int remap, int silent);
 static void exec_normal(int was_typed, int use_vpeekc, int may_use_terminal_loop);
-static char_u *eval_vars(char_u *src, char_u *srcstart, size_t *usedlen, linenr_T *lnump, char **errormsg, int *escaped, int empty_is_error);
 static void set_no_hlsearch(int flag);
 
 static int parse_pattern_and_range(pos_T *incsearch_start, int *search_delim, int *skiplen, int *patlen);
@@ -2585,36 +2503,20 @@ static void redrawcmd(void);
 static void compute_cmdrow(void);
 static void cursorcmd(void);
 static void gotocmdline(int clr);
-static char_u *vim_strsave_fnameescape(char_u *fname, int what);
-static void escape_fname(char_u **pp);
-static void tilde_replace(char_u *orig_pat, int num_files, char_u **files);
 static cmdline_info_T *get_cmdline_info(void);
 static int get_cmdline_firstc(void);
 static int get_list_range(char_u **str, int *num1, int *num2);
 
 static int vim_fsync(int fd);
-static char_u *shorten_fname1(char_u *full_path);
-static char_u *shorten_fname(char_u *full_path, char_u *dir_name);
-static void shorten_fnames(int force);
-static void buf_store_time(buf_T *buf, stat_T *st, char_u *fname);
+static void shorten_fnames(void);
 
 static size_t home_replace(buf_T *buf, char_u *src, char_u *dst, int dstlen, int one);
-static char_u *home_replace_save(buf_T *buf, char_u *src);
 static char_u *gettail(char_u *fname);
 static char_u *get_past_head(char_u *path);
 static int vim_ispathsep(int c);
 static int vim_ispathsep_nocolon(int c);
-static int vim_fnamecmp(char_u *x, char_u *y);
-static int vim_fnamencmp(char_u *x, char_u *y, size_t len);
-static char_u *FullName_save(char_u *fname, int force);
-static int expand_wildcards_eval(char_u **pat, int *num_file, char_u ***file, int flags);
-static int expand_wildcards(int num_pat, char_u **pat, int *num_files, char_u ***files, int flags);
-static int gen_expand_wildcards(int num_pat, char_u **pat, int *num_file, char_u ***file, int flags);
 static void FreeWild(int count, char_u **files);
-static int vim_FullName(char_u *fname, char_u *buf, int len, int force);
 
-static void vim_findfile_cleanup(void *ctx);
-static char_u *find_file_in_path(char_u *ptr, int len, int options, int first, char_u *rel_fname, char_u **file_to_find, char **search_ctx);
 static char_u *file_name_at_cursor(int options, long count, linenr_T *file_lnum);
 static char_u *file_name_in_line(char_u *line, int col, int options, long count, char_u *rel_fname, linenr_T *file_lnum);
 static char_u *find_file_name_in_path(char_u *ptr, int len, int options, long count, char_u *rel_fname);
@@ -2721,7 +2623,6 @@ static int get_prevcol_hl_flag(win_T *wp, match_T *search_hl, long curcol);
 static void get_search_match_hl(win_T *wp, match_T *search_hl, long col, int *char_attr);
 static int ml_open(buf_T *buf);
 static void ml_close(buf_T *buf, int del_file);
-static void ml_timestamp(buf_T *buf);
 static char_u *ml_get(linenr_T lnum);
 static char_u *ml_get_pos(pos_T *pos);
 static char_u *ml_get_curline(void);
@@ -2820,14 +2721,11 @@ static int get_keystroke(void);
 static void msgmore(long n);
 static void beep_flush(void);
 static void vim_beep(unsigned val);
-static char_u *expand_env_save(char_u *src);
-static char_u *expand_env_save_opt(char_u *src, int one, char_u *esc_chars);
 static size_t expand_env_esc(char_u *srcp, char_u *dst, int dstlen, char_u *esc_chars, int one, char_u *startstr);
 static void line_breakcheck(void);
 static void fast_breakcheck(void);
 static int goto_im(void);
 static int path_is_url(char_u *p);
-static int path_with_url(char_u *fname);
 static int trim_to_int(vimlong_T x);
 
 static int virtual_active(void);
@@ -3163,7 +3061,6 @@ static size_t vim_strlen_maxlen(char *s, size_t maxlen);
 static int vim_strnicmp_asc(char *s1, char *s2, size_t len);
 static char_u *vim_strchr(char_u *string, int c);
 static char_u *vim_strbyte(char_u *string, int c);
-static char_u *vim_strrchr(char_u *string, int c);
 static void sort_strings(char_u **files, int count);
 static char_u *concat_str(char_u *str1, char_u *str2);
 
@@ -3583,8 +3480,6 @@ static char     msg_buf[MSG_BUF_LEN];
 
 static int      RedrawingDisabled  = 0 ;
 
-static int      readonlymode  = FALSE ;
-
 static typebuf_T typebuf
                     = {NULL, NULL, 0, 0, 0, 0, 0, 0, 0}
                     ;
@@ -3623,10 +3518,6 @@ static int      need_start_insertmode  = FALSE ;
 static char_u   *last_cmdline  = NULL ;
 static char_u   *repeat_cmdline  = NULL ;
 static char_u   *new_last_cmdline  = NULL ;
-static char_u   *autocmd_fname  = NULL ;
-static int      autocmd_fname_full;
-static int      autocmd_bufnr  = 0 ;
-static char_u   *autocmd_match  = NULL ;
 static int      aucmd_cmdline_changed_count  = 0 ;
 
 static int      did_cursorhold  = TRUE ;
@@ -3635,8 +3526,6 @@ static pos_T    last_cursormoved
                     ;
 
 static int      replace_offset  = 0 ;
-
-static char_u   *escape_chars  = (char_u *)" \t\\\"|" ;
 
 static char_u   *empty_option  = (char_u *)"" ;
 
@@ -3732,10 +3621,8 @@ static char e_empty_str_brackets[]  =  "E70: Empty %s%%[]"  ;
 static char e_invalid_character_after_str[]  =  "E71: Invalid character after %s%%"  ;
 static char e_command_too_complex[]  =  "E74: Command too complex"  ;
 static char e_too_many_brackets[]  =  "E76: Too many ["  ;
-static char e_too_many_file_names[]  =  "E77: Too many file names"  ;
 static char e_unknown_mark[]  =  "E78: Unknown mark"  ;
 static char e_cannot_allocate_any_buffer_exiting[]  =  "E82: Cannot allocate any buffer, exiting..."  ;
-static char e_buffer_with_this_name_already_exists[]  =  "E95: Buffer with this name already exists"  ;
 static char e_cannot_move_range_of_lines_into_itself[]  =  "E134: Cannot move a range of lines into itself"  ;
 static char e_non_numeric_argument_to_z[]  =  "E144: Non-numeric argument to :z"  ;
 static char e_regular_expressions_cant_be_delimited_by_letters[]  =  "E146: Regular expressions can't be delimited by letters"  ;
@@ -3746,7 +3633,6 @@ static char e_command_too_recursive[]  =  "E169: Command too recursive"  ;
 
 static char e_argument_must_be_letter_or_forward_backward_quote[]  =  "E191: Argument must be a letter or forward/backward quote"  ;
 static char e_recursive_use_of_normal_too_deep[]  =  "E192: Recursive use of :normal too deep"  ;
-static char e_no_alternate_file_name_to_substitute_for_hash[]  =  "E194: No alternate file name to substitute for '#'"  ;
 static char e_add_to_internal_buffer_that_was_already_read_from[]  = "E222: Add to internal buffer that was already read from" ;
 static char e_recursive_mapping[]  =  "E223: Recursive mapping"  ;
 static char e_global_abbreviation_already_exists_for_str[]  =  "E224: Global abbreviation already exists for %s"  ;
@@ -3759,7 +3645,6 @@ static char e_block_was_not_locked[]  = "E293: Block was not locked" ;
 static char e_didnt_get_block_nr_zero[]  = "E298: Didn't get block nr 0?" ;
 static char e_didnt_get_block_nr_one[]  = "E298: Didn't get block nr 1?" ;
 static char e_didnt_get_block_nr_two[]  = "E298: Didn't get block nr 2?" ;
-static char e_ml_upd_block0_didnt_get_block_zero[]  = "E304: ml_upd_block0(): Didn't get block 0??" ;
 static char e_ml_get_invalid_lnum_nr[]  = "E315: ml_get: Invalid lnum: %ld" ;
 static char e_ml_get_cannot_find_line_nr_in_buffer_nr_str[]  = "E316: ml_get: Cannot find line %ld in buffer %d %s" ;
 static char e_pointer_block_id_wrong[]  = "E317: Pointer block id wrong" ;
@@ -3806,7 +3691,6 @@ static char e_u_undo_line_numbers_wrong[]  = "E438: u_undo: Line numbers wrong" 
 static char e_undo_list_corrupt[]  = "E439: Undo list corrupt" ;
 static char e_undo_line_missing[]  = "E440: Undo line missing" ;
 static char e_no_file_name_under_cursor[]  =  "E446: No file name under cursor"  ;
-static char e_cant_find_file_str_in_path_2[]  =  "E447: Can't find file \"%s\" in path"  ;
 static char e_ul_color_unknown[]  =  "E453: UL color unknown"  ;
 static char e_ambiguous_use_of_user_defined_command[]  =  "E464: Ambiguous use of user-defined command"  ;
 static char e_winsize_requires_two_number_arguments[]  =  "E465: :winsize requires two number arguments"  ;
@@ -3818,21 +3702,13 @@ static char e_invalid_argument_str[]  =  "E475: Invalid argument: %s"  ;
 static char e_invalid_command[]  =  "E476: Invalid command"  ;
 static char e_invalid_command_str[]  =  "E476: Invalid command: %s"  ;
 static char e_no_bang_allowed[]  =  "E477: No ! allowed"  ;
-static char e_no_match_str_2[]  =  "E480: No match: %s"  ;
 static char e_no_range_allowed[]  =  "E481: No range allowed"  ;
 static char e_pattern_not_found_str[]  =  "E486: Pattern not found: %s"  ;
 static char e_argument_must_be_positive[]  =  "E487: Argument must be positive"  ;
 static char e_trailing_characters[]  =  "E488: Trailing characters"  ;
 static char e_trailing_characters_str[]  =  "E488: Trailing characters: %s"  ;
-static char e_no_call_stack_to_substitute_for_stack[]  =  "E489: No call stack to substitute for \"<stack>\""  ;
 static char e_not_an_editor_command[]  =  "E492: Not an editor command"  ;
 static char e_backwards_range_given[]  =  "E493: Backwards range given"  ;
-static char e_no_autocommand_file_name_to_substitute_for_afile[]  =  "E495: No autocommand file name to substitute for \"<afile>\""  ;
-static char e_no_autocommand_buffer_number_to_substitute_for_abuf[]  =  "E496: No autocommand buffer number to substitute for \"<abuf>\""  ;
-static char e_no_autocommand_match_name_to_substitute_for_amatch[]  =  "E497: No autocommand match name to substitute for \"<amatch>\""  ;
-static char e_no_source_file_name_to_substitute_for_sfile[]  =  "E498: No :source file name to substitute for \"<sfile>\""  ;
-static char e_empty_file_name_for_percent_or_hash_only_works_with_ph[]  =  "E499: Empty file name for '%' or '#', only works with \":p:h\""  ;
-static char e_evaluates_to_an_empty_string[]  =  "E500: Evaluates to an empty string"  ;
 static char e_unknown_option[]  =  "E518: Unknown option"  ;
 static char e_option_not_supported[]  =  "E519: Option not supported"  ;
 static char e_number_required_after_equal[]  =  "E521: Number required after ="  ;
@@ -3861,12 +3737,10 @@ static char e_invalid_id_nr_must_be_greater_than_or_equal_to_one_1[]  =  "E799: 
 static char e_id_already_taken_nr[]  =  "E801: ID already taken: %d"  ;
 static char e_invalid_id_nr_must_be_greater_than_or_equal_to_one_2[]  =  "E802: Invalid ID: %d (must be greater than or equal to 1)"  ;
 static char e_id_not_found_nr[]  =  "E803: ID not found: %d"  ;
-static char e_hashsmall_is_not_available_without_the_eval_feature[]  =  "E809: #< is not available without the +eval feature"  ;
 static char e_not_allowed_to_change_buffer_information_now[]  =  "E811: Not allowed to change buffer information now"  ;
 static char e_undo_number_nr_not_found[]  =  "E830: Undo number %ld not found"  ;
 static char e_conflicts_with_value_of_listchars[]  =  "E834: Conflicts with value of 'listchars'"  ;
 static char e_conflicts_with_value_of_fillchars[]  =  "E835: Conflicts with value of 'fillchars'"  ;
-static char e_no_line_number_to_use_for_slnum[]  =  "E842: No line number to use for \"<slnum>\""  ;
 static char e_key_code_not_set[]  =  "E846: Key code not set"  ;
 static char e_too_many_highlight_and_syntax_groups[]  =  "E849: Too many highlight and syntax groups"  ;
 static char e_invalid_register_name[]  =  "E850: Invalid register name"  ;
@@ -3887,7 +3761,6 @@ static char e_resulting_text_too_long[]  =  "E1240: Resulting text too long"  ;
 static char e_line_number_out_of_range[]  =  "E1247: Line number out of range"  ;
 static char e_highlight_group_name_too_long[]  =  "E1249: Highlight group name too long"  ;
 static char e_cmd_mapping_must_end_with_cr[]  =  "E1255: <Cmd> mapping must end with <CR>"  ;
-static char e_no_script_file_name_to_substitute_for_script[]  =  "E1274: No script file name to substitute for \"<script>\""  ;
 static char e_atom_engine_must_be_at_start_of_pattern[]  =  "E1281: Atom '\\%%#=%c' must be at the start of the pattern"  ;
 static char e_cannot_change_mappings_while_listing[]  =  "E1309: Cannot change mappings while listing"  ;
 static char e_not_allowed_to_add_or_remove_entries_str[]  =  "E1313: Not allowed to add or remove entries (%s)"  ;
@@ -3934,10 +3807,6 @@ enum { FSK_FROM_PART = 0x10 };
 
 enum { MCH_DELAY_IGNOREINPUT = 1 };
 enum { MCH_DELAY_SETTMODE = 2 };
-
-enum { VSE_NONE = 0 };
-enum { VSE_SHELL = 1 };
-enum { VSE_BUFFER = 2 };
 
 enum { GETVCOL_END_EXCL_LBR = 1 };
 
@@ -4181,9 +4050,6 @@ unblock_autocmds(void)
 
 static void     enter_buffer(buf_T *buf);
 static void     buflist_getfpos(void);
-static buf_T    *buflist_findname_stat(char_u *ffname, stat_T *st);
-static int      otherfile_buf(buf_T *buf, char_u *ffname, stat_T *stp);
-static int      buf_same_ino(buf_T *buf, stat_T *stp);
 static void     free_buffer(buf_T *);
 static void     free_buffer_stuff(buf_T *buf, int free_options);
 
@@ -4204,11 +4070,6 @@ open_buffer(void)
 {
     int         retval = OK;
     bufref_T    old_curbuf;
-
-    if (readonlymode && curbuf->b_ffname != NULL && (curbuf->b_flags & BF_NEVERLOADED))
-    {
-        curbuf->b_p_ro = TRUE;
-    }
 
     if (ml_open(curbuf) == FAIL)
     {
@@ -4340,9 +4201,7 @@ can_unload_buffer(buf_T *buf)
 
     if (!can_unload)
     {
-        char_u *fname = buf->b_fname != NULL ? buf->b_fname : buf->b_ffname;
-
-        semsg(_(e_attempt_to_delete_buffer_that_is_in_use_str), fname != NULL ? fname : (char_u *)"[No Name]");
+        semsg(_(e_attempt_to_delete_buffer_that_is_in_use_str), (char_u *)"[No Name]");
     }
     return can_unload;
 }
@@ -4391,10 +4250,7 @@ close_buffer(win_T       *win, buf_T       *buf, int         action, int        
         return FALSE;
     }
 
-    if (buf->b_ffname == NULL)
-    {
-        del_buf = TRUE;
-    }
+    del_buf = TRUE;
 
     if (!buf_freeall(buf, (del_buf ? BFA_DEL : 0) + (wipe_buf ? BFA_WIPE : 0) + (ignore_abort ? BFA_IGNORE_ABORT : 0)))
     {
@@ -4634,42 +4490,17 @@ no_write_message_nobang(buf_T *buf  __attribute__((unused)) )
     static int
 curbuf_reusable(void)
 {
-    return (curbuf != NULL && curbuf->b_ffname == NULL && curbuf->b_nwindows <= 1 && (curbuf->b_ml.ml_mfp == NULL ||  (curbuf->b_ml.ml_line_count == 1 && *ml_get((linenr_T)1) == NUL) ) && !curbufIsChanged());
+    return (curbuf != NULL && curbuf->b_nwindows <= 1 && (curbuf->b_ml.ml_mfp == NULL ||  (curbuf->b_ml.ml_line_count == 1 && *ml_get((linenr_T)1) == NUL) ) && !curbufIsChanged());
 }
 
     static buf_T *
-buflist_new(char_u      *ffname_arg, char_u      *sfname_arg, linenr_T    lnum, int         flags)
+buflist_new(linenr_T    lnum, int         flags)
 {
-    char_u      *ffname = ffname_arg;
-    char_u      *sfname = sfname_arg;
     buf_T       *buf;
-    stat_T      st;
 
     if (top_file_num == 1)
     {
         hash_init(&buf_hashtab);
-    }
-
-    fname_expand(curbuf, &ffname, &sfname);
-
-    if (sfname == NULL ||  stat(((char *)sfname), (&st))  < 0)
-    {
-        st.st_dev = ( dev_t )-1;
-    }
-    if (ffname != NULL && !(flags & (BLN_DUMMY | BLN_NEW)) && (buf = buflist_findname_stat(ffname, &st)) != NULL)
-    {
-        vim_free(ffname);
-        if (lnum != 0)
-        {
-            buflist_setfpos(buf, (flags & BLN_NOCURWIN) ? NULL : curwin, lnum, (colnr_T)0, FALSE);
-        }
-
-        if ((flags & BLN_NOOPT) == 0)
-        {
-            buf_copy_options(buf, 0);
-        }
-
-        return buf;
     }
 
     buf = NULL;
@@ -4690,34 +4521,16 @@ buflist_new(char_u      *ffname_arg, char_u      *sfname_arg, linenr_T    lnum, 
         buf =  (buf_T *)alloc_clear(sizeof(buf_T)) ;
         if (buf == NULL)
         {
-            vim_free(ffname);
             return NULL;
         }
         init_changedtick(buf);
     }
 
-    if (ffname != NULL)
-    {
-        buf->b_ffname = ffname;
-        buf->b_sfname = vim_strsave(sfname);
-    }
-
     clear_wininfo(buf);
     buf->b_wininfo =  (wininfo_T *)alloc_clear(sizeof(wininfo_T)) ;
 
-    if ((ffname != NULL && (buf->b_ffname == NULL || buf->b_sfname == NULL)) || buf->b_wininfo == NULL)
+    if (buf->b_wininfo == NULL)
     {
-        if (buf->b_sfname != buf->b_ffname)
-        {
-             vim_free(buf->b_sfname);
-             (buf->b_sfname) = NULL;
-        }
-        else
-        {
-            buf->b_sfname = NULL;
-        }
-         vim_free(buf->b_ffname);
-         (buf->b_ffname) = NULL;
         if (buf != curbuf)
         {
             free_buffer(buf);
@@ -4754,17 +4567,6 @@ buflist_new(char_u      *ffname_arg, char_u      *sfname_arg, linenr_T    lnum, 
     buf->b_wininfo->wi_fpos.lnum = lnum;
     buf->b_wininfo->wi_win = curwin;
 
-    buf->b_fname = buf->b_sfname;
-    if (st.st_dev == ( dev_t )-1)
-    {
-        buf->b_dev_valid = false;
-    }
-    else
-    {
-        buf->b_dev_valid = true;
-        buf->b_dev = st.st_dev;
-        buf->b_ino = st.st_ino;
-    }
     buf->b_u_synced = true;
     buf->b_flags = BF_CHECK_RO | BF_NEVERLOADED;
     if (flags & BLN_DUMMY)
@@ -4818,16 +4620,6 @@ buflist_getfpos(void)
         curwin->w_cursor.coladd = 0;
         curwin->w_set_curswant = true;
     }
-}
-
-    static buf_T *
-buflist_findname_stat(char_u      *ffname, stat_T      *stp)
-{
-    if ((curbuf->b_flags & BF_DUMMY) == 0 && !otherfile_buf(curbuf, ffname, stp))
-    {
-        return curbuf;
-    }
-    return NULL;
 }
 
     static buf_T *
@@ -4983,209 +4775,14 @@ buflist_findfpos(buf_T *buf)
     }
 }
 
-    static linenr_T
-buflist_findlnum(buf_T *buf)
-{
-    return buflist_findfpos(buf)->lnum;
-}
-
-    static int
-buflist_name_nr(int         fnum, char_u      **fname, linenr_T    *lnum)
-{
-    buf_T       *buf;
-
-    buf = buflist_findnr(fnum);
-    if (buf == NULL || buf->b_fname == NULL)
-    {
-        return FAIL;
-    }
-
-    *fname = buf->b_fname;
-    *lnum = buflist_findlnum(buf);
-
-    return OK;
-}
-
-    static int
-setfname(buf_T       *buf, char_u      *ffname_arg, char_u      *sfname_arg, int         message)
-{
-    char_u      *ffname = ffname_arg;
-    char_u      *sfname = sfname_arg;
-    buf_T       *obuf = NULL;
-    stat_T      st;
-
-    if (ffname == NULL || *ffname == NUL)
-    {
-        if (buf->b_sfname != buf->b_ffname)
-        {
-             vim_free(buf->b_sfname);
-             (buf->b_sfname) = NULL;
-        }
-        else
-        {
-            buf->b_sfname = NULL;
-        }
-         vim_free(buf->b_ffname);
-         (buf->b_ffname) = NULL;
-        st.st_dev = ( dev_t )-1;
-    }
-    else
-    {
-        fname_expand(buf, &ffname, &sfname);
-        if (ffname == NULL)
-        {
-            return FAIL;
-        }
-
-        if ( stat(((char *)ffname), (&st))  < 0)
-        {
-            st.st_dev = ( dev_t )-1;
-        }
-        if (!(buf->b_flags & BF_DUMMY))
-        {
-            obuf = buflist_findname_stat(ffname, &st);
-        }
-        if (obuf != NULL && obuf != buf)
-        {
-            win_T       *win;
-            int         in_use = FALSE;
-
-             win = curwin;
-        if (win->w_buffer == obuf)
-        {
-            in_use = TRUE;
-        }
-
-            if (obuf->b_ml.ml_mfp != NULL || in_use)
-            {
-                if (message)
-                {
-                    emsg(_(e_buffer_with_this_name_already_exists));
-                }
-                vim_free(ffname);
-                return FAIL;
-            }
-            close_buffer(NULL, obuf, DOBUF_WIPE, FALSE, FALSE, FALSE);
-        }
-        sfname = vim_strsave(sfname);
-        if (ffname == NULL || sfname == NULL)
-        {
-            vim_free(sfname);
-            vim_free(ffname);
-            return FAIL;
-        }
-        if (buf->b_sfname != buf->b_ffname)
-        {
-            vim_free(buf->b_sfname);
-        }
-        vim_free(buf->b_ffname);
-        buf->b_ffname = ffname;
-        buf->b_sfname = sfname;
-    }
-    buf->b_fname = buf->b_sfname;
-    if (st.st_dev == ( dev_t )-1)
-    {
-        buf->b_dev_valid = false;
-    }
-    else
-    {
-        buf->b_dev_valid = true;
-        buf->b_dev = st.st_dev;
-        buf->b_ino = st.st_ino;
-    }
-
-    buf->b_shortname = false;
-
-    buf_name_changed(buf);
-    return OK;
-}
-
-    static void
-buf_name_changed(buf_T *buf)
-{
-    if (buf->b_ml.ml_mfp != NULL)
-    {
-    }
-
-    if (curwin->w_buffer == buf)
-    {
-    }
-    status_redraw_all();
-    ml_timestamp(buf);
-}
-
     static char_u  *
 getaltfname(int         errmsg)
 {
-    char_u      *fname;
-    linenr_T    dummy;
-
-    if (buflist_name_nr(0, &fname, &dummy) == FAIL)
+    if (errmsg)
     {
-        if (errmsg)
-        {
-            emsg(_(e_no_alternate_file));
-        }
-        return NULL;
+        emsg(_(e_no_alternate_file));
     }
-    return fname;
-}
-
-    static int
-otherfile_buf(buf_T               *buf, char_u              *ffname, stat_T            *stp)
-{
-    if (ffname == NULL || *ffname == NUL || buf->b_ffname == NULL)
-    {
-        return TRUE;
-    }
-    if ( vim_fnamecmp((char_u *)(ffname), (char_u *)(buf->b_ffname))  == 0)
-    {
-        return FALSE;
-    }
-    {
-        stat_T      st;
-
-        if (stp == NULL)
-        {
-            if (!buf->b_dev_valid ||  stat(((char *)ffname), (&st))  < 0)
-            {
-                st.st_dev = ( dev_t )-1;
-            }
-            stp = &st;
-        }
-        if (buf_same_ino(buf, stp))
-        {
-            buf_setino(buf);
-            if (buf_same_ino(buf, stp))
-            {
-                return FALSE;
-            }
-        }
-    }
-    return TRUE;
-}
-
-    static void
-buf_setino(buf_T *buf)
-{
-    stat_T      st;
-
-    if (buf->b_fname != NULL &&  stat(((char *)buf->b_fname), (&st))  >= 0)
-    {
-        buf->b_dev_valid = true;
-        buf->b_dev = st.st_dev;
-        buf->b_ino = st.st_ino;
-    }
-    else
-    {
-        buf->b_dev_valid = false;
-    }
-}
-
-    static int
-buf_same_ino(buf_T       *buf, stat_T      *stp)
-{
-    return (buf->b_dev_valid && stp->st_dev == buf->b_dev && stp->st_ino == buf->b_ino);
+    return NULL;
 }
 
     static void
@@ -5209,22 +4806,7 @@ fileinfo(int fullname, int shorthelp, int dont_truncate)
     buffer[bufferlen++] = '"';
 
     name = buf_spname(curbuf);
-    if (name != NULL)
-    {
-        bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "%s", name);
-    }
-    else
-    {
-        if (!fullname && curbuf->b_fname != NULL)
-        {
-            name = curbuf->b_fname;
-        }
-        else
-        {
-            name = curbuf->b_ffname;
-        }
-        bufferlen += home_replace(shorthelp ? curbuf : NULL, name, (char_u *)buffer + bufferlen,  (1024+1)  - (int)bufferlen, TRUE);
-    }
+    bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "%s", name);
 
     bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "\"%s%s%s%s%s%s", curbufIsChanged() ? (shortmess(SHM_MOD) ?  " [+]" : _(" [Modified]")) : " ", (curbuf->b_flags & BF_NOTEDITED) ? _("[Not edited]") : "", (curbuf->b_flags & BF_NEW) ? new_file_message() : "", (curbuf->b_flags & BF_READERR) ? _("[Read errors]") : "", curbuf->b_p_ro ? (shortmess(SHM_RO) ? _("[RO]") : _("[readonly]")) : "", (curbufIsChanged() || (curbuf->b_flags &  (BF_NOTEDITED + BF_NEW + BF_READERR) ) || curbuf->b_p_ro) ? " " : "");
 
@@ -5305,27 +4887,6 @@ get_rel_pos(win_T       *wp, char_u      *buf, int         buflen)
     return (int)vim_snprintf_safelen((char *)buf, buflen, _("%3s"), tmp);
 }
 
-    static char_u  *
-fix_fname(char_u  *fname)
-{
-    return FullName_save(fname, TRUE);
-}
-
-    static void
-fname_expand(buf_T       *buf  __attribute__((unused)) , char_u      **ffname, char_u      **sfname)
-{
-    if (*ffname == NULL)
-    {
-        return;
-    }
-    if (*sfname == NULL)
-    {
-        *sfname = *ffname;
-    }
-    *ffname = fix_fname(*ffname);
-
-}
-
 enum { VIM_VERSION_MAJOR = 9 };
 enum { VIM_VERSION_MINOR = 2 };
 static const char VIM_VERSION_DATE_ONLY[] = "2026 Feb 14";
@@ -5342,21 +4903,13 @@ bt_help(buf_T *buf)
     static char_u *
 buf_spname(buf_T *buf)
 {
-    if (buf->b_fname == NULL)
-    {
-        return buf_get_fname(buf);
-    }
-    return NULL;
+    return buf_get_fname(buf);
 }
 
     static char_u *
 buf_get_fname(buf_T *buf)
 {
-    if (buf->b_fname == NULL)
-    {
-        return (char_u *)_("[No Name]");
-    }
-    return buf->b_fname;
+    return (char_u *)_("[No Name]");
 }
 
     static char *
@@ -7843,18 +7396,6 @@ rem_backslash(char_u *str)
     return (str[0] == '\\' && str[1] != NUL);
 }
 
-    static void
-backslash_halve(char_u *p)
-{
-    for ( ; *p; ++p)
-    {
-        if (rem_backslash(p))
-        {
-              memmove((char *)((p)), (char *)((p + 1)),  strlen((char *)(p + 1))  + 1)  ;
-        }
-    }
-}
-
     static char_u *
 skip_string(char_u *p)
 {
@@ -7963,144 +7504,7 @@ check_linecomment(char_u *line)
     return (int)(p - line);
 }
 
-static int      ExpandFromContext(expand_T *xp, char_u *, char_u ***, int *, int);
-
 static string_T cmdline_orig = {NULL, 0};
-
-    static void
-wildescape(expand_T    *xp, char_u      *str, int         numfiles, char_u      **files)
-{
-    char_u      *p;
-    int         vse_what = xp->xp_context == EXPAND_BUFFERS
-                                                       ? VSE_BUFFER : VSE_NONE;
-
-    if (xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_FILES_IN_PATH || xp->xp_context == EXPAND_SHELLCMD || xp->xp_context == EXPAND_BUFFERS || xp->xp_context == EXPAND_DIRECTORIES || xp->xp_context == EXPAND_DIRS_IN_CDPATH)
-    {
-        for (int i = 0; i < numfiles; ++i)
-        {
-            if (xp->xp_backslash & XP_BS_THREE)
-            {
-                char *pat = (xp->xp_backslash & XP_BS_COMMA) ?  " ," : " ";
-                p = vim_strsave_escaped(files[i], (char_u *)pat);
-                if (p != NULL)
-                {
-                    vim_free(files[i]);
-                    files[i] = p;
-                }
-            }
-            else if (xp->xp_backslash & XP_BS_COMMA)
-            {
-                if (vim_strchr(files[i], ',') != NULL)
-                {
-                    p = vim_strsave_escaped(files[i], (char_u *)",");
-                    if (p != NULL)
-                    {
-                        vim_free(files[i]);
-                        files[i] = p;
-                    }
-                }
-            }
-            p = vim_strsave_fnameescape(files[i], xp->xp_shell ? VSE_SHELL : vse_what);
-            if (p != NULL)
-            {
-                vim_free(files[i]);
-                files[i] = p;
-            }
-
-            if (str[0] == '\\' && str[1] == '~' && files[i][0] == '~')
-            {
-                escape_fname(&files[i]);
-            }
-        }
-        xp->xp_backslash = XP_BS_NONE;
-
-        if (*files[0] == '+')
-        {
-            escape_fname(&files[0]);
-        }
-    }
-    else if (xp->xp_context == EXPAND_TAGS)
-    {
-        for (int i = 0; i < numfiles; ++i)
-        {
-            p = vim_strsave_escaped(files[i], (char_u *)"\\|\"");
-            if (p != NULL)
-            {
-                vim_free(files[i]);
-                files[i] = p;
-            }
-        }
-    }
-}
-
-    static void
-ExpandEscape(expand_T    *xp, char_u      *str, int         numfiles, char_u      **files, int         options)
-{
-    if (options & WILD_HOME_REPLACE)
-    {
-        tilde_replace(str, numfiles, files);
-    }
-
-    if (options & WILD_ESCAPE)
-    {
-        wildescape(xp, str, numfiles, files);
-    }
-}
-
-    static char_u *
-ExpandOne_start(int mode, expand_T *xp, char_u *str, int options)
-{
-    int         non_suf_match;
-    char_u      *ss = NULL;
-
-    if (ExpandFromContext(xp, str, &xp->xp_files, &xp->xp_numfiles, options) == FAIL)
-    {
-    }
-    else if (xp->xp_numfiles == 0)
-    {
-        if (!(options & WILD_SILENT))
-        {
-            semsg(_(e_no_match_str_2), str);
-        }
-    }
-    else
-    {
-        ExpandEscape(xp, str, xp->xp_numfiles, xp->xp_files, options);
-
-        if (mode != WILD_ALL && mode != WILD_ALL_KEEP && mode != WILD_LONGEST)
-        {
-            if (xp->xp_numfiles)
-            {
-                non_suf_match = xp->xp_numfiles;
-            }
-            else
-            {
-                non_suf_match = 1;
-            }
-            if ((xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_DIRECTORIES) && xp->xp_numfiles > 1)
-            {
-                non_suf_match = 0;
-            }
-            if (non_suf_match != 1)
-            {
-                if (!(options & WILD_SILENT))
-                {
-                    emsg(_(e_too_many_file_names));
-                }
-                else if (!(options & WILD_NO_BEEP))
-                {
-                    beep_flush();
-                }
-            }
-            if (!(non_suf_match != 1 && mode == WILD_EXPAND_FREE))
-            {
-                ss = vim_strsave(xp->xp_files[0]);
-            }
-        }
-    }
-
-    return ss;
-}
 
     static void
 free_xp_files_extra(expand_T *xp, int numfiles)
@@ -8125,54 +7529,6 @@ free_xp_files_extra(expand_T *xp, int numfiles)
         FreeWild(numfiles, xp->xp_files_info);
         xp->xp_files_info = NULL;
     }
-}
-
-    static char_u *
-ExpandOne(expand_T    *xp, char_u      *str, char_u      *orig, int         options, int         mode)
-{
-    char_u      *ss = NULL;
-    int         orig_saved = FALSE;
-
-    if (mode == WILD_APPLY)
-    {
-        if (xp->xp_selected == -1)
-        {
-            ss = vim_strsave(xp->xp_orig ? xp->xp_orig : (char_u *)"");
-        }
-        else
-        {
-            ss = vim_strsave(xp->xp_files[xp->xp_selected]);
-        }
-    }
-
-    if (xp->xp_numfiles != -1 && mode != WILD_ALL && mode != WILD_LONGEST)
-    {
-        FreeWild(xp->xp_numfiles, xp->xp_files);
-        free_xp_files_extra(xp, xp->xp_numfiles);
-        xp->xp_numfiles = -1;
-         vim_free(xp->xp_orig);
-         (xp->xp_orig) = NULL;
-
-    }
-    xp->xp_selected = (options & WILD_NOSELECT) ? -1 : 0;
-
-    if (xp->xp_numfiles == -1 && mode != WILD_APPLY && mode != WILD_CANCEL)
-    {
-        vim_free(xp->xp_orig);
-        xp->xp_orig = orig;
-        orig_saved = TRUE;
-
-        ss = ExpandOne_start(mode, xp, str, options);
-    }
-
-    ExpandCleanup(xp);
-
-    if (!orig_saved)
-    {
-        vim_free(orig);
-    }
-
-    return ss;
 }
 
     static void
@@ -8203,141 +7559,6 @@ clear_cmdline_orig(void)
      vim_free(cmdline_orig.string);
      (cmdline_orig.string) = NULL;
      cmdline_orig.length = 0;
-}
-
-    static int
-expand_files_and_dirs(expand_T        *xp, char_u          *pat, char_u          ***matches, int             *numMatches, int             flags, int             options)
-{
-    int         free_pat = FALSE;
-    int         ret = FAIL;
-
-    if (xp->xp_backslash != XP_BS_NONE)
-    {
-        size_t  pat_len;
-        char_u  *pat_end;
-        char_u  *p;
-
-        free_pat = TRUE;
-
-        pat_len =  strlen((char *)(pat)) ;
-        pat = vim_strnsave(pat, pat_len);
-        if (pat == NULL)
-        {
-            return ret;
-        }
-
-        pat_end = pat + pat_len;
-        for (p = pat; *p != NUL; ++p)
-        {
-            char_u  *from;
-
-            if (*p != '\\')
-            {
-                continue;
-            }
-
-            if (xp->xp_backslash & XP_BS_THREE && *(p + 1) == '\\' && *(p + 2) == '\\' && *(p + 3) == ' ')
-            {
-                from = p + 3;
-                 memmove((char *)(p), (char *)(from), (size_t)(pat_end - from) + 1) ;
-                pat_end -= 3;
-            }
-            else if (xp->xp_backslash & XP_BS_ONE && *(p + 1) == ' ')
-            {
-                from = p + 1;
-                 memmove((char *)(p), (char *)(from), (size_t)(pat_end - from) + 1) ;
-                --pat_end;
-            }
-            else if (xp->xp_backslash & XP_BS_COMMA)
-            {
-                if (*(p + 1) == '\\' && *(p + 2) == ',')
-                {
-                    from = p + 2;
-                     memmove((char *)(p), (char *)(from), (size_t)(pat_end - from) + 1) ;
-                    pat_end -= 2;
-                }
-            }
-        }
-    }
-
-    if (xp->xp_context == EXPAND_FINDFUNC)
-    {
-    }
-    else
-    {
-        if (xp->xp_context == EXPAND_FILES)
-        {
-            flags |= EW_FILE;
-        }
-        else if (xp->xp_context == EXPAND_FILES_IN_PATH)
-        {
-            flags |= (EW_FILE | EW_PATH);
-        }
-        else if (xp->xp_context == EXPAND_DIRS_IN_CDPATH)
-        {
-            flags = (flags | EW_DIR | EW_CDPATH) & ~EW_FILE;
-        }
-        else
-        {
-            flags = (flags | EW_DIR) & ~EW_FILE;
-        }
-        if (options & WILD_ICASE)
-        {
-            flags |= EW_ICASE;
-        }
-
-        ret = expand_wildcards_eval(&pat, numMatches, matches, flags);
-    }
-    if (free_pat)
-    {
-        vim_free(pat);
-    }
-    return ret;
-}
-
-    static int
-map_wildopts_to_ewflags(int options)
-{
-    int         flags;
-
-    flags = EW_DIR;
-    if (options & WILD_LIST_NOTFOUND)
-    {
-        flags |= EW_NOTFOUND;
-    }
-    if (options & WILD_ADD_SLASH)
-    {
-        flags |= EW_ADDSLASH;
-    }
-    if (options & WILD_KEEP_ALL)
-    {
-        flags |= EW_KEEPALL;
-    }
-    if (options & WILD_SILENT)
-    {
-        flags |= EW_SILENT;
-    }
-    if (options & WILD_NOERROR)
-    {
-        flags |= EW_NOERROR;
-    }
-    if (options & WILD_ALLLINKS)
-    {
-        flags |= EW_ALLLINKS;
-    }
-
-    return flags;
-}
-
-    static int
-ExpandFromContext(expand_T    *xp, char_u      *pat, char_u      ***matches, int         *numMatches, int         options)
-{
-    int         flags;
-
-    flags = map_wildopts_to_ewflags(options);
-
-    return expand_files_and_dirs(xp, pat, matches, numMatches, flags, options);
-
 }
 
 static histentry_T *(history[HIST_COUNT]) = {NULL, NULL, NULL, NULL, NULL};
@@ -15261,59 +14482,6 @@ print_line(linenr_T lnum, int use_number, int list)
     info_message = FALSE;
 }
 
-    static int
-rename_buffer(char_u *new_fname)
-{
-    char_u *fname;
-    char_u *sfname;
-    buf_T       *buf;
-
-    buf = curbuf;
-    if (buf != curbuf)
-    {
-        return FAIL;
-    }
-    fname = curbuf->b_ffname;
-    sfname = curbuf->b_sfname;
-    curbuf->b_ffname = NULL;
-    curbuf->b_sfname = NULL;
-    if (setfname(curbuf, new_fname, NULL, TRUE) == FAIL)
-    {
-        curbuf->b_ffname = fname;
-        curbuf->b_sfname = sfname;
-        return FAIL;
-    }
-    curbuf->b_flags |= BF_NOTEDITED;
-    vim_free(fname);
-    vim_free(sfname);
-
-    return OK;
-}
-
-    static void
-ex_file(exarg_T *eap)
-{
-    if (eap->addr_count > 0 && (*eap->arg != NUL || eap->line2 > 0 || eap->addr_count > 1))
-    {
-        emsg(_(e_invalid_argument));
-        return;
-    }
-
-    if (*eap->arg != NUL || eap->addr_count == 1)
-    {
-        if (rename_buffer(eap->arg) == FAIL)
-        {
-            return;
-        }
-        redraw_tabline = TRUE;
-    }
-
-    if (*eap->arg == NUL || !shortmess(SHM_FILEINFO))
-    {
-        fileinfo(FALSE, FALSE, eap->forceit);
-    }
-}
-
 static int append_indent = 0;
 
     static void
@@ -17081,7 +16249,7 @@ check_changed_any(int         hidden, int         unload)
             msg_col = 0;
             msg_didout = FALSE;
         }
-        if (semsg(_(e_no_write_since_last_change_for_buffer_str), buf_spname(buf) != NULL ? buf_spname(buf) : buf->b_fname))
+        if (semsg(_(e_no_write_since_last_change_for_buffer_str), buf_spname(buf)))
         {
             save = no_wait_return;
             no_wait_return = FALSE;
@@ -17124,12 +16292,8 @@ theend:
     static int
 check_fname(void)
 {
-    if (curbuf->b_ffname == NULL)
-    {
-        emsg(_(e_no_file_name));
-        return FAIL;
-    }
-    return OK;
+    emsg(_(e_no_file_name));
+    return FAIL;
 }
 
 static int      quitmore = 0;
@@ -17144,7 +16308,6 @@ static void address_default_all(exarg_T *eap);
 static void     get_flags(exarg_T *eap);
 static char     *invalid_range(exarg_T *eap);
 static void     correct_range(exarg_T *eap);
-static char_u   *repl_cmdline(exarg_T *eap, char_u *src, size_t srclen, char_u *repl, char_u **cmdlinep);
 static void     ex_print(exarg_T *eap);
 
 typedef void (*ex_func_T) (exarg_T *eap);
@@ -17478,7 +16641,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         goto doend;
     }
 
-    if (!(ea.argt & (EX_CMDWIN | EX_LOCK_OK)) && ea.cmdidx != CMD_file && curbuf_locked())
+    if (!(ea.argt & (EX_CMDWIN | EX_LOCK_OK)) && curbuf_locked())
     {
         goto doend;
     }
@@ -17529,11 +16692,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     correct_range(&ea);
 
     ea.arg = skipwhite(p);
-
-    if (ea.cmdidx == CMD_file && *ea.arg != NUL && curbuf_locked())
-    {
-        goto doend;
-    }
 
     if (ea.cmdidx == CMD_lshift || ea.cmdidx == CMD_rshift)
     {
@@ -17640,11 +16798,6 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     if ((ea.argt & EX_NEEDARG) && *ea.arg == NUL)
     {
         errormsg = _(e_argument_required);
-        goto doend;
-    }
-
-    if ((ea.argt & EX_XFILE) && expand_filename(&ea, cmdlinep, &errormsg) == FAIL)
-    {
         goto doend;
     }
 
@@ -18736,175 +17889,6 @@ correct_range(exarg_T *eap)
     }
 }
 
-    static int
-expand_filename(exarg_T     *eap, char_u      **cmdlinep, char        **errormsgp)
-{
-    int         has_wildcards;
-    char_u      *repl;
-    size_t      srclen;
-    char_u      *p;
-    int         n;
-    int         escaped;
-
-    p = eap->arg;
-
-    has_wildcards = mch_has_wildcard(p);
-    while (*p != NUL)
-    {
-        if (vim_strchr((char_u *)"%#<", *p) == NULL)
-        {
-            ++p;
-            continue;
-        }
-
-        repl = eval_vars(p, eap->arg, &srclen, &(eap->do_ecmd_lnum), errormsgp, &escaped, TRUE);
-        if (*errormsgp != NULL)
-        {
-            return FAIL;
-        }
-        if (repl == NULL)
-        {
-            p += srclen;
-            continue;
-        }
-
-        if (vim_strchr(repl, '$') != NULL || vim_strchr(repl, '~') != NULL)
-        {
-            char_u *l = repl;
-
-            repl = expand_env_save(repl);
-            vim_free(l);
-        }
-
-        if (!escaped)
-        {
-            char_u      *l;
-
-            for (l = repl; *l; ++l)
-            {
-                if (vim_strchr( escape_chars , *l) != NULL)
-                {
-                    l = vim_strsave_escaped(repl,  escape_chars );
-                    if (l != NULL)
-                    {
-                        vim_free(repl);
-                        repl = l;
-                    }
-                    break;
-                }
-            }
-        }
-
-        p = repl_cmdline(eap, p, srclen, repl, cmdlinep);
-        vim_free(repl);
-        if (p == NULL)
-        {
-            return FAIL;
-        }
-    }
-
-    if (eap->argt & EX_NOSPC)
-    {
-        for (n = 1; n <= 2; ++n)
-        {
-            if (n == 2)
-            {
-                if (!has_wildcards)
-                {
-                    backslash_halve(eap->arg);
-                }
-            }
-
-            if (has_wildcards)
-            {
-                if (n == 1)
-                {
-                    if (vim_strchr(eap->arg, '$') != NULL || vim_strchr(eap->arg, '~') != NULL)
-                    {
-                        expand_env_esc(eap->arg, NameBuff,  PATH_MAX , (char_u *)(" \t"  "*?[{" ), TRUE, NULL);
-                        has_wildcards = mch_has_wildcard(NameBuff);
-                        p = NameBuff;
-                    }
-                    else
-                    {
-                        p = NULL;
-                    }
-                }
-                else
-                {
-                    expand_T    xpc;
-                    int         options = WILD_LIST_NOTFOUND
-                                               | WILD_NOERROR | WILD_ADD_SLASH;
-
-                    ExpandInit(&xpc);
-                    xpc.xp_context = EXPAND_FILES;
-                    p = ExpandOne(&xpc, eap->arg, NULL, options, WILD_EXPAND_FREE);
-                    if (p == NULL)
-                    {
-                        return FAIL;
-                    }
-                }
-                if (p != NULL)
-                {
-                    (void)repl_cmdline(eap, eap->arg,  strlen((char *)(eap->arg)) , p, cmdlinep);
-                    if (n == 2)
-                    {
-                        vim_free(p);
-                    }
-                }
-            }
-        }
-    }
-    return OK;
-}
-
-    static char_u *
-repl_cmdline(exarg_T     *eap, char_u      *src, size_t      srclen, char_u      *repl, char_u      **cmdlinep)
-{
-    size_t      repllen;
-    size_t      taillen;
-    size_t      i;
-    char_u      *new_cmdline;
-    size_t      new_cmdlinelen;
-
-    repllen =  strlen((char *)(repl)) ;
-    taillen =  strlen((char *)(src + srclen)) ;
-    i = (src - *cmdlinep) + repllen + taillen + 3;
-    if (eap->nextcmd != NULL)
-    {
-        i +=  strlen((char *)(eap->nextcmd)) ;
-    }
-    if ((new_cmdline = alloc(i)) == NULL)
-    {
-        return NULL;
-    }
-
-    new_cmdlinelen = src - *cmdlinep;
-     memmove((char *)(new_cmdline), (char *)(*cmdlinep), new_cmdlinelen) ;
-
-     memmove((char *)(new_cmdline + new_cmdlinelen), (char *)(repl), repllen) ;
-    new_cmdlinelen += repllen;
-     strcpy((char *)(new_cmdline + new_cmdlinelen), (char *)(src + srclen)) ;
-    src = new_cmdline + new_cmdlinelen;
-
-    if (eap->nextcmd != NULL)
-    {
-        new_cmdlinelen += taillen + 1;
-         strcpy((char *)(new_cmdline + new_cmdlinelen), (char *)(eap->nextcmd)) ;
-        eap->nextcmd = new_cmdline + new_cmdlinelen;
-    }
-    eap->cmd = new_cmdline + (eap->cmd - *cmdlinep);
-    eap->arg = new_cmdline + (eap->arg - *cmdlinep);
-    if (eap->do_ecmd_cmd != NULL && eap->do_ecmd_cmd != dollar_command)
-    {
-        eap->do_ecmd_cmd = new_cmdline + (eap->do_ecmd_cmd - *cmdlinep);
-    }
-    vim_free(*cmdlinep);
-    *cmdlinep = new_cmdline;
-
-    return src;
-}
-
     static void
 separate_nextcmd(exarg_T *eap, int keep_backslash)
 {
@@ -18916,7 +17900,7 @@ separate_nextcmd(exarg_T *eap, int keep_backslash)
     {
         if (*p == Ctrl_V)
         {
-            if (eap->argt & (EX_CTRLV | EX_XFILE))
+            if (eap->argt & EX_CTRLV)
             {
                 ++p;
             }
@@ -19773,320 +18757,6 @@ exec_normal(int was_typed, int use_vpeekc, int may_use_terminal_loop  __attribut
         update_topline_cursor();
             normal_cmd(&oa, TRUE);
     }
-}
-
-enum {
-    SPEC_PERC = 0,
-    SPEC_HASH,
-    SPEC_CWORD,
-    SPEC_CCWORD,
-    SPEC_CEXPR,
-    SPEC_CFILE,
-    SPEC_SFILE,
-    SPEC_SLNUM,
-    SPEC_STACK,
-    SPEC_SCRIPT,
-    SPEC_AFILE,
-    SPEC_ABUF,
-    SPEC_AMATCH,
-    SPEC_SFLNUM,
-    SPEC_SID
-};
-
-    static int
-find_cmdline_var(char_u *src, size_t *usedlen)
-{
-    static keyvalue_T spec_str_tab[] = {
-         {(SPEC_SID), {((char_u *)"SID>"),  (sizeof("SID>" "") - 1) }} ,
-         {(SPEC_ABUF), {((char_u *)"abuf>"),  (sizeof("abuf>" "") - 1) }} ,
-         {(SPEC_AFILE), {((char_u *)"afile>"),  (sizeof("afile>" "") - 1) }} ,
-         {(SPEC_AMATCH), {((char_u *)"amatch>"),  (sizeof("amatch>" "") - 1) }} ,
-         {(SPEC_CCWORD), {((char_u *)"cWORD>"),  (sizeof("cWORD>" "") - 1) }} ,
-         {(SPEC_CEXPR), {((char_u *)"cexpr>"),  (sizeof("cexpr>" "") - 1) }} ,
-         {(SPEC_CFILE), {((char_u *)"cfile>"),  (sizeof("cfile>" "") - 1) }} ,
-         {(SPEC_CWORD), {((char_u *)"cword>"),  (sizeof("cword>" "") - 1) }} ,
-         {(SPEC_SCRIPT), {((char_u *)"script>"),  (sizeof("script>" "") - 1) }} ,
-         {(SPEC_SFILE), {((char_u *)"sfile>"),  (sizeof("sfile>" "") - 1) }} ,
-         {(SPEC_SFLNUM), {((char_u *)"sflnum>"),  (sizeof("sflnum>" "") - 1) }} ,
-         {(SPEC_SLNUM), {((char_u *)"slnum>"),  (sizeof("slnum>" "") - 1) }} ,
-         {(SPEC_STACK), {((char_u *)"stack>"),  (sizeof("stack>" "") - 1) }} 
-    };
-    keyvalue_T target;
-    keyvalue_T *entry;
-
-    switch (*src)
-    {
-    case '%':
-        *usedlen = 1;
-        return SPEC_PERC;
-
-    case '#':
-        *usedlen = 1;
-        return SPEC_HASH;
-
-    case '<':
-        target.key = 0;
-        target.value.string = src + 1;
-        target.value.length = 0;
-
-        entry = (keyvalue_T *)bsearch(&target, &spec_str_tab,  (sizeof(spec_str_tab) / sizeof((spec_str_tab)[0])) , sizeof(spec_str_tab[0]), cmp_keyvalue_value_n);
-        if (entry == NULL)
-        {
-            return -1;
-        }
-
-        *usedlen = entry->value.length + 1;
-        return entry->key;
-
-    default:
-        break;
-    }
-
-    return -1;
-}
-
-    static char_u *
-eval_vars(char_u      *src, char_u      *srcstart, size_t      *usedlen, linenr_T    *lnump, char        **errormsg, int         *escaped, int         empty_is_error)
-{
-    int         i;
-    char_u      *s;
-    char_u      *result = (char_u *)"";
-    char_u      *resultbuf = NULL;
-    size_t      resultlen;
-    buf_T       *buf;
-    int         valid = VALID_HEAD + VALID_PATH;
-    int         spec_idx;
-    char_u      strbuf[30];
-
-    *errormsg = NULL;
-    if (escaped != NULL)
-    {
-        *escaped = FALSE;
-    }
-
-    spec_idx = find_cmdline_var(src, usedlen);
-    if (spec_idx < 0)
-    {
-        *usedlen = 1;
-        return NULL;
-    }
-
-    if (src > srcstart && src[-1] == '\\')
-    {
-        *usedlen = 0;
-          memmove((char *)((src - 1)), (char *)((src)),  strlen((char *)(src))  + 1)  ;
-        return NULL;
-    }
-
-    if (spec_idx == SPEC_CWORD || spec_idx == SPEC_CCWORD || spec_idx == SPEC_CEXPR)
-    {
-        resultlen = find_ident_under_cursor(&result, spec_idx == SPEC_CWORD ? (FIND_IDENT | FIND_STRING) : spec_idx == SPEC_CEXPR ? (FIND_IDENT | FIND_STRING | FIND_EVAL) : FIND_STRING);
-        if (resultlen == 0)
-        {
-            *errormsg = "";
-            return NULL;
-        }
-    }
-
-    else
-    {
-        size_t off = 0;
-
-        switch (spec_idx)
-        {
-        case SPEC_PERC:
-                {
-                    if (curbuf->b_fname == NULL)
-                    {
-                        result = (char_u *)"";
-                        valid = 0;
-                    }
-                    else
-                    {
-                        result = curbuf->b_fname;
-                    }
-                    break;
-                }
-        case SPEC_HASH:
-                if (off == 0 ? src[1] == '#' : src[2] == '%')
-                {
-                    result = (char_u *)"";
-                    resultbuf = NULL;
-                    *usedlen = off + 2;
-                    if (escaped != NULL)
-                    {
-                        *escaped = TRUE;
-                    }
-                    break;
-                }
-                s = src + off + 1;
-                if (*s == '<')
-                {
-                    ++s;
-                }
-                i = (int)getdigits(&s);
-                if (s == src + off + 2 && src[off + 1] == '-')
-                {
-                    s--;
-                }
-                *usedlen = (int)(s - src);
-
-                if (src[off + 1] == '<' && i != 0)
-                {
-                    if (*usedlen < off + 2)
-                    {
-                        *usedlen = off + 1;
-                        return NULL;
-                    }
-                    *errormsg = _(e_hashsmall_is_not_available_without_the_eval_feature);
-                    return NULL;
-                }
-                else
-                {
-                    if (i == 0 && src[off + 1] == '<' && *usedlen > off + 1)
-                    {
-                        *usedlen = off + 1;
-                    }
-                    buf = buflist_findnr(i);
-                    if (buf == NULL)
-                    {
-                        *errormsg = _(e_no_alternate_file_name_to_substitute_for_hash);
-                        return NULL;
-                    }
-                    if (lnump != NULL)
-                    {
-                        *lnump =  ((linenr_T)-1) ;
-                    }
-                    if (buf->b_fname == NULL)
-                    {
-                        result = (char_u *)"";
-                        valid = 0;
-                    }
-                    else
-                    {
-                        result = buf->b_fname;
-                    }
-                }
-                break;
-
-        case SPEC_CFILE:
-                result = file_name_at_cursor(FNAME_MESS|FNAME_HYP, 1L, NULL);
-                if (result == NULL)
-                {
-                    *errormsg = "";
-                    return NULL;
-                }
-                resultbuf = result;
-                break;
-
-        case SPEC_AFILE:
-                result = autocmd_fname;
-                if (result != NULL && !autocmd_fname_full)
-                {
-                    autocmd_fname_full = TRUE;
-                    result = FullName_save(autocmd_fname, FALSE);
-                    vim_free(autocmd_fname);
-                    autocmd_fname = result;
-                }
-                if (result == NULL)
-                {
-                    *errormsg = _(e_no_autocommand_file_name_to_substitute_for_afile);
-                    return NULL;
-                }
-                result = shorten_fname1(result);
-                break;
-
-        case SPEC_ABUF:
-                if (autocmd_bufnr <= 0)
-                {
-                    *errormsg = _(e_no_autocommand_buffer_number_to_substitute_for_abuf);
-                    return NULL;
-                }
-                sprintf((char *)strbuf, "%d", autocmd_bufnr);
-                result = strbuf;
-                break;
-
-        case SPEC_AMATCH:
-                result = autocmd_match;
-                if (result == NULL)
-                {
-                    *errormsg = _(e_no_autocommand_match_name_to_substitute_for_amatch);
-                    return NULL;
-                }
-                break;
-
-        case SPEC_SFILE:
-                result = estack_sfile(ESTACK_SFILE);
-                if (result == NULL)
-                {
-                    *errormsg = _(e_no_source_file_name_to_substitute_for_sfile);
-                    return NULL;
-                }
-                resultbuf = result;
-                break;
-        case SPEC_STACK:
-                result = estack_sfile(ESTACK_STACK);
-                if (result == NULL)
-                {
-                    *errormsg = _(e_no_call_stack_to_substitute_for_stack);
-                    return NULL;
-                }
-                resultbuf = result;
-                break;
-        case SPEC_SCRIPT:
-                result = estack_sfile(ESTACK_SCRIPT);
-                if (result == NULL)
-                {
-                    *errormsg = _(e_no_script_file_name_to_substitute_for_script);
-                    return NULL;
-                }
-                resultbuf = result;
-                break;
-
-        case SPEC_SLNUM:
-                if ( (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_name)  == NULL ||  (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_lnum)  == 0)
-                {
-                    *errormsg = _(e_no_line_number_to_use_for_slnum);
-                    return NULL;
-                }
-                sprintf((char *)strbuf, "%ld",  (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_lnum) );
-                result = strbuf;
-                break;
-
-        }
-
-        resultlen =  strlen((char *)(result)) ;
-        if (src[*usedlen] == '<')
-        {
-            ++*usedlen;
-            if ((s = vim_strrchr(result, '.')) != NULL && s >= gettail(result))
-            {
-                resultlen = s - result;
-            }
-        }
-    }
-
-    if (resultlen == 0 || valid != VALID_HEAD + VALID_PATH)
-    {
-        if (empty_is_error)
-        {
-            if (valid != VALID_HEAD + VALID_PATH)
-            {
-                *errormsg = _(e_empty_file_name_for_percent_or_hash_only_works_with_ph);
-            }
-            else
-            {
-                *errormsg = _(e_evaluates_to_an_empty_string);
-            }
-        }
-        result = NULL;
-    }
-    else
-    {
-        result = vim_strnsave(result, resultlen);
-    }
-    vim_free(resultbuf);
-    return result;
 }
 
     static void
@@ -22259,56 +20929,6 @@ gotocmdline(int clr)
     windgoto(cmdline_row, cmdline_col_off);
 }
 
-    static char_u *
-vim_strsave_fnameescape(char_u *fname, int what)
-{
-    char_u      *p;
-    p = vim_strsave_escaped(fname, what == VSE_SHELL ?  ((char_u *)" \t\n*?[{`$\\%#'\"|!<>();&")  : what == VSE_BUFFER ?  ((char_u *)" \t\n*?[`$\\%#'\"|!<")  :  ((char_u *)" \t\n*?[{`$\\%#'\"|!<") );
-    if (p != NULL && (*p == '>' || *p == '+' || (*p == '-' && p[1] == NUL)))
-    {
-        escape_fname(&p);
-    }
-
-    return p;
-}
-
-    static void
-escape_fname(char_u **pp)
-{
-    char_u      *p;
-
-    p = alloc( strlen((char *)(*pp))  + 2);
-    if (p == NULL)
-    {
-        return;
-    }
-
-    p[0] = '\\';
-     strcpy((char *)(p + 1), (char *)(*pp)) ;
-    vim_free(*pp);
-    *pp = p;
-}
-
-    static void
-tilde_replace(char_u  *orig_pat, int     num_files, char_u  **files)
-{
-    int     i;
-    char_u  *p;
-
-    if (orig_pat[0] == '~' && vim_ispathsep(orig_pat[1]))
-    {
-        for (i = 0; i < num_files; ++i)
-        {
-            p = home_replace_save(NULL, files[i]);
-            if (p != NULL)
-            {
-                vim_free(files[i]);
-                files[i] = p;
-            }
-        }
-    }
-}
-
     static cmdline_info_T *
 get_cmdline_info(void)
 {
@@ -22377,112 +20997,11 @@ vim_fsync(int fd)
     return r;
 }
 
-    static char_u *
-shorten_fname1(char_u *full_path)
-{
-    char_u      *dirname;
-    char_u      *p = full_path;
-
-    dirname = alloc( PATH_MAX );
-    if (dirname == NULL)
-    {
-        return full_path;
-    }
-    if (mch_dirname(dirname,  PATH_MAX ) == OK)
-    {
-        p = shorten_fname(full_path, dirname);
-        if (p == NULL || *p == NUL)
-        {
-            p = full_path;
-        }
-    }
-    vim_free(dirname);
-    return p;
-}
-
-    static char_u *
-shorten_fname(char_u *full_path, char_u *dir_name)
-{
-    int         len;
-    char_u      *p;
-
-    if (full_path == NULL)
-    {
-        return NULL;
-    }
-    len = (int) strlen((char *)(dir_name)) ;
-    if ( vim_fnamencmp((char_u *)(dir_name), (char_u *)(full_path), (len))  == 0)
-    {
-        p = full_path + len;
-        {
-            if (vim_ispathsep(*p))
-            {
-                do
-                {
-                    ++p;
-                }
-                while (vim_ispathsep_nocolon(*p))
-                    ;
-            }
-            else
-            {
-                p = NULL;
-            }
-        }
-    }
-    else
-    {
-        p = NULL;
-    }
-    return p;
-}
-
     static void
-shorten_buf_fname(buf_T *buf, char_u *dirname, int force)
+shorten_fnames(void)
 {
-    char_u      *p;
-
-    if (buf->b_fname != NULL && !path_with_url(buf->b_fname) && (force || buf->b_sfname == NULL || mch_isFullName(buf->b_sfname)))
-    {
-        if (buf->b_sfname != buf->b_ffname)
-        {
-             vim_free(buf->b_sfname);
-             (buf->b_sfname) = NULL;
-        }
-        p = shorten_fname(buf->b_ffname, dirname);
-        if (p != NULL)
-        {
-            buf->b_sfname = vim_strsave(p);
-            buf->b_fname = buf->b_sfname;
-        }
-        if (p == NULL || buf->b_fname == NULL)
-        {
-            buf->b_fname = buf->b_ffname;
-        }
-    }
-}
-
-    static void
-shorten_fnames(int force)
-{
-    char_u      dirname[ PATH_MAX ];
-    buf_T       *buf;
-
-    mch_dirname(dirname,  PATH_MAX );
-     buf = curbuf;
-    shorten_buf_fname(buf, dirname, force);
-
     status_redraw_all();
     redraw_tabline = TRUE;
-}
-
-    static void
-buf_store_time(buf_T *buf, stat_T *st, char_u *fname  __attribute__((unused)) )
-{
-    buf->b_mtime = (long)st->st_mtime;
-    buf->b_mtime_ns = (long)st-> st_mtim.tv_nsec ;
-    buf->b_orig_size = st->st_size;
-    buf->b_orig_mode = (int)st->st_mode;
 }
 
     static void
@@ -22561,25 +21080,6 @@ home_replace(buf_T       *buf, char_u      *src, char_u      *dst, int         d
     return len;
 }
 
-    static char_u  *
-home_replace_save(buf_T       *buf, char_u      *src)
-{
-    char_u      *dst;
-    unsigned    len;
-
-    len = 3;
-    if (src != NULL)
-    {
-        len += (unsigned) strlen((char *)(src)) ;
-    }
-    dst = alloc(len);
-    if (dst != NULL)
-    {
-        home_replace(buf, src, dst, len, TRUE);
-    }
-    return dst;
-}
-
     static char_u *
 gettail(char_u *fname)
 {
@@ -22629,116 +21129,6 @@ vim_ispathsep_nocolon(int c)
         ;
 }
 
-    static int
-vim_fnamecmp(char_u *x, char_u *y)
-{
-    return  strcmp((char *)(x), (char *)(y)) ;
-}
-
-    static int
-vim_fnamencmp(char_u *x, char_u *y, size_t len)
-{
-    return  strncmp((char *)(x), (char *)(y), (len)) ;
-}
-
-    static char_u  *
-FullName_save(char_u      *fname, int         force)
-{
-    char_u      *buf;
-    char_u      *new_fname = NULL;
-
-    if (fname == NULL)
-    {
-        return NULL;
-    }
-
-    buf = alloc( PATH_MAX );
-    if (buf == NULL)
-    {
-        return NULL;
-    }
-
-    if (vim_FullName(fname, buf,  PATH_MAX , force) != FAIL)
-    {
-        new_fname = vim_strsave(buf);
-    }
-    else
-    {
-        new_fname = vim_strsave(fname);
-    }
-    vim_free(buf);
-    return new_fname;
-}
-
-    static int
-expand_wildcards_eval(char_u       **pat, int           *num_file, char_u      ***file, int            flags)
-{
-    int         ret = FAIL;
-    char_u      *eval_pat = NULL;
-    char_u      *exp_pat = *pat;
-    char        *ignored_msg;
-    size_t      usedlen;
-    int         is_cur_alt_file = *exp_pat == '%' || *exp_pat == '#';
-    int         star_follows = FALSE;
-
-    if (is_cur_alt_file || *exp_pat == '<')
-    {
-        ++emsg_off;
-        eval_pat = eval_vars(exp_pat, exp_pat, &usedlen, NULL, &ignored_msg, NULL, TRUE);
-        --emsg_off;
-        if (eval_pat != NULL)
-        {
-            star_follows =  strcmp((char *)(exp_pat + usedlen), (char *)("*"))  == 0;
-            exp_pat = concat_str(eval_pat, exp_pat + usedlen);
-        }
-    }
-
-    if (exp_pat != NULL)
-    {
-        ret = expand_wildcards(1, &exp_pat, num_file, file, flags);
-    }
-
-    if (eval_pat != NULL)
-    {
-        if (*num_file == 0 && is_cur_alt_file && star_follows)
-        {
-            *file =  (char_u * *)alloc(sizeof(char_u *)) ;
-            if (*file != NULL)
-            {
-                **file = eval_pat;
-                eval_pat = NULL;
-                *num_file = 1;
-                ret = OK;
-            }
-        }
-        vim_free(exp_pat);
-        vim_free(eval_pat);
-    }
-
-    return ret;
-}
-
-    static int
-expand_wildcards(int            num_pat, char_u       **pat, int           *num_files, char_u      ***files, int            flags)
-{
-    int         retval;
-
-    retval = gen_expand_wildcards(num_pat, pat, num_files, files, flags);
-
-    if ((flags & EW_KEEPALL) || retval == FAIL)
-    {
-        return retval;
-    }
-
-    return retval;
-}
-
-    static int
-gen_expand_wildcards(int         num_pat, char_u      **pat, int         *num_file, char_u      ***file, int         flags)
-{
-    return save_patterns(num_pat, pat, num_file, file);
-}
-
     static void
 FreeWild(int count, char_u **files)
 {
@@ -22753,240 +21143,10 @@ FreeWild(int count, char_u **files)
     vim_free(files);
 }
 
-    static int
-vim_FullName(char_u      *fname, char_u      *buf, int         len, int         force)
-{
-    int         retval = OK;
-    int         url;
-
-    *buf = NUL;
-    if (fname == NULL)
-    {
-        return FAIL;
-    }
-
-    url = path_with_url(fname);
-    if (!url)
-    {
-        retval = mch_FullName(fname, buf, len, force);
-    }
-    if (url || retval == FAIL)
-    {
-        vim_strncpy(buf, fname, len - 1);
-    }
-    return retval;
-}
-
-typedef struct ff_stack
-{
-    struct ff_stack     *ffs_prev;
-
-    string_T            ffs_fix_path;
-    string_T            ffs_wc_path;
-
-    char_u              **ffs_filearray;
-    int                 ffs_filearray_size;
-
-} ff_stack_T;
-
-typedef struct ff_visited
-{
-    struct ff_visited   *ffv_next;
-
-    char_u              *ffv_wc_path;
-
-} ff_visited_T;
-
-typedef struct ff_visited_list_hdr
-{
-    struct ff_visited_list_hdr  *ffvl_next;
-
-    char_u                      *ffvl_filename;
-
-    ff_visited_T                *ffvl_visited_list;
-
-} ff_visited_list_hdr_T;
-
-typedef struct ff_search_ctx_T
-{
-    ff_stack_T                  *ffsc_stack_ptr;
-    ff_visited_list_hdr_T       *ffsc_visited_lists_list;
-    ff_visited_list_hdr_T       *ffsc_dir_visited_lists_list;
-    string_T                    ffsc_file_to_search;
-    string_T                    ffsc_start_dir;
-    string_T                    ffsc_fix_path;
-    string_T                    ffsc_wc_path;
-    int                         ffsc_level;
-    string_T                    *ffsc_stopdirs_v;
-} ff_search_ctx_T;
-
-static void vim_findfile_free_visited(void *search_ctx_arg);
-static void vim_findfile_free_visited_list(ff_visited_list_hdr_T **list_headp);
-static void ff_free_visited_list(ff_visited_T *vl);
-
-static ff_stack_T *ff_pop(ff_search_ctx_T *search_ctx);
-static void ff_clear(ff_search_ctx_T *search_ctx);
-static void ff_free_stack_element(ff_stack_T *stack_ptr);
-
-    static void
-vim_findfile_cleanup(void *ctx)
-{
-    if (ctx == NULL)
-    {
-        return;
-    }
-
-    vim_findfile_free_visited(ctx);
-    ff_clear(ctx);
-    vim_free(ctx);
-}
-
-    static void
-vim_findfile_free_visited(void *search_ctx_arg)
-{
-    ff_search_ctx_T *search_ctx;
-
-    if (search_ctx_arg == NULL)
-    {
-        return;
-    }
-
-    search_ctx = (ff_search_ctx_T *)search_ctx_arg;
-    vim_findfile_free_visited_list(&search_ctx->ffsc_visited_lists_list);
-    vim_findfile_free_visited_list(&search_ctx->ffsc_dir_visited_lists_list);
-}
-
-    static void
-vim_findfile_free_visited_list(ff_visited_list_hdr_T **list_headp)
-{
-    ff_visited_list_hdr_T *vp;
-
-    while (*list_headp != NULL)
-    {
-        vp = (*list_headp)->ffvl_next;
-        ff_free_visited_list((*list_headp)->ffvl_visited_list);
-
-        vim_free((*list_headp)->ffvl_filename);
-        vim_free(*list_headp);
-        *list_headp = vp;
-    }
-    *list_headp = NULL;
-}
-
-    static void
-ff_free_visited_list(ff_visited_T *vl)
-{
-    ff_visited_T *vp;
-
-    while (vl != NULL)
-    {
-        vp = vl->ffv_next;
-        vim_free(vl->ffv_wc_path);
-        vim_free(vl);
-        vl = vp;
-    }
-    vl = NULL;
-}
-
-    static ff_stack_T *
-ff_pop(ff_search_ctx_T *search_ctx)
-{
-    ff_stack_T  *sptr;
-
-    sptr = search_ctx->ffsc_stack_ptr;
-    if (search_ctx->ffsc_stack_ptr != NULL)
-    {
-        search_ctx->ffsc_stack_ptr = search_ctx->ffsc_stack_ptr->ffs_prev;
-    }
-
-    return sptr;
-}
-
-    static void
-ff_free_stack_element(ff_stack_T *stack_ptr)
-{
-     vim_free(stack_ptr->ffs_fix_path.string);
-     (stack_ptr->ffs_fix_path.string) = NULL;
-     stack_ptr->ffs_fix_path.length = 0;
-     vim_free(stack_ptr->ffs_wc_path.string);
-     (stack_ptr->ffs_wc_path.string) = NULL;
-     stack_ptr->ffs_wc_path.length = 0;
-
-    if (stack_ptr->ffs_filearray != NULL)
-    {
-        FreeWild(stack_ptr->ffs_filearray_size, stack_ptr->ffs_filearray);
-    }
-
-    vim_free(stack_ptr);
-}
-
-    static void
-ff_clear(ff_search_ctx_T *search_ctx)
-{
-    ff_stack_T   *sptr;
-
-    while ((sptr = ff_pop(search_ctx)) != NULL)
-    {
-        ff_free_stack_element(sptr);
-    }
-
-    if (search_ctx->ffsc_stopdirs_v != NULL)
-    {
-        int  i = 0;
-
-        while (search_ctx->ffsc_stopdirs_v[i].string != NULL)
-        {
-            vim_free(search_ctx->ffsc_stopdirs_v[i].string);
-            i++;
-        }
-         vim_free(search_ctx->ffsc_stopdirs_v);
-         (search_ctx->ffsc_stopdirs_v) = NULL;
-    }
-
-     vim_free(search_ctx->ffsc_file_to_search.string);
-     (search_ctx->ffsc_file_to_search.string) = NULL;
-     search_ctx->ffsc_file_to_search.length = 0;
-     vim_free(search_ctx->ffsc_start_dir.string);
-     (search_ctx->ffsc_start_dir.string) = NULL;
-     search_ctx->ffsc_start_dir.length = 0;
-     vim_free(search_ctx->ffsc_fix_path.string);
-     (search_ctx->ffsc_fix_path.string) = NULL;
-     search_ctx->ffsc_fix_path.length = 0;
-     vim_free(search_ctx->ffsc_wc_path.string);
-     (search_ctx->ffsc_wc_path.string) = NULL;
-     search_ctx->ffsc_wc_path.length = 0;
-    search_ctx->ffsc_level = 0;
-}
-
-    static char_u *
-find_file_in_path(char_u      *ptr, int         len, int         options, int         first, char_u      *rel_fname, char_u      **file_to_find, char        **search_ctx)
-{
-    char_u      *name;
-
-    if (!first)
-    {
-        return NULL;
-    }
-
-    name = vim_strnsave(ptr, len);
-    if (name == NULL)
-    {
-        return NULL;
-    }
-
-    if (mch_getperm(name) < 0)
-    {
-        vim_free(name);
-        return NULL;
-    }
-
-    return name;
-}
-
     static char_u *
 file_name_at_cursor(int options, long count, linenr_T *file_lnum)
 {
-    return file_name_in_line(ml_get_curline(), curwin->w_cursor.col, options, count, curbuf->b_ffname, file_lnum);
+    return file_name_in_line(ml_get_curline(), curwin->w_cursor.col, options, count, NULL, file_lnum);
 }
 
     static char_u *
@@ -23100,41 +21260,13 @@ file_name_in_line(char_u      *line, int         col, int         options, long 
 find_file_name_in_path(char_u      *ptr, int         len, int         options, long        count, char_u      *rel_fname)
 {
     char_u      *file_name;
-    int         c;
 
     if (len == 0)
     {
         return NULL;
     }
 
-    if (options & FNAME_EXP)
-    {
-        char_u  *file_to_find = NULL;
-        char    *search_ctx = NULL;
-
-        file_name = find_file_in_path(ptr, len, options & ~FNAME_MESS, TRUE, rel_fname, &file_to_find, &search_ctx);
-
-        if (file_name == NULL && (options & FNAME_MESS))
-        {
-            c = ptr[len];
-            ptr[len] = NUL;
-            semsg(_(e_cant_find_file_str_in_path_2), ptr);
-            ptr[len] = c;
-        }
-
-        while (file_name != NULL && --count > 0)
-        {
-            vim_free(file_name);
-            file_name = find_file_in_path(ptr, len, options, FALSE, rel_fname, &file_to_find, &search_ctx);
-        }
-
-        vim_free(file_to_find);
-        vim_findfile_cleanup(search_ctx);
-    }
-    else
-    {
-        file_name = vim_strnsave(ptr, len);
-    }
+    file_name = vim_strnsave(ptr, len);
 
     return file_name;
 }
@@ -35546,12 +33678,6 @@ typedef struct pointer_entry    PTR_EN;
 
 enum { BLOCK0_ID0 = 'b' };
 enum { BLOCK0_ID1 = '0' };
-enum { BLOCK0_ID1_C0 = 'c' };
-enum { BLOCK0_ID1_C1 = 'C' };
-enum { BLOCK0_ID1_C2 = 'd' };
-enum { BLOCK0_ID1_C3 = 'S' };
-enum { BLOCK0_ID1_C4 = 's' };
-
 struct pointer_entry
 {
     blocknr_T   pe_bnum;
@@ -35579,7 +33705,6 @@ struct data_block
 };
 
 enum { B0_FNAME_SIZE_ORG = 900 };
-enum { B0_FNAME_SIZE_CRYPT = 890 };
 enum { B0_MAGIC_LONG = 0x30313233L };
 enum { B0_MAGIC_INT = 0x20212223L };
 enum { B0_MAGIC_SHORT = 0x10111213L };
@@ -35590,8 +33715,6 @@ struct block0
     char_u      b0_id[2];
     char_u      b0_version[10];
     char_u      b0_page_size[4];
-    char_u      b0_mtime[4];
-    char_u      b0_ino[4];
     char_u      b0_pid[4];
     char_u      b0_fname[B0_FNAME_SIZE_ORG];
     long        b0_magic_long;
@@ -35611,11 +33734,6 @@ enum { ML_INSERT = 0x12 };
 enum { ML_FIND = 0x13 };
 enum { ML_FLUSH = 0x02 };
 
-typedef enum {
-      UB_FNAME = 0
-    } upd_block0_T;
-
-static void ml_upd_block0(buf_T *buf, upd_block0_T what);
 static void set_b0_fname(ZERO_BL *, buf_T *buf);
 static void ml_flush_line(buf_T *);
 static bhdr_T *ml_new_data(memfile_T *, int, int);
@@ -35771,95 +33889,10 @@ ml_close_notmod(void)
 }
 
     static void
-ml_timestamp(buf_T *buf)
-{
-    ml_upd_block0(buf, UB_FNAME);
-}
-
-    static int
-ml_check_b0_id(ZERO_BL *b0p)
-{
-    if (b0p->b0_id[0] != BLOCK0_ID0 || (b0p->b0_id[1] != BLOCK0_ID1 && b0p->b0_id[1] != BLOCK0_ID1_C0 && b0p->b0_id[1] != BLOCK0_ID1_C1 && b0p->b0_id[1] != BLOCK0_ID1_C2 && b0p->b0_id[1] != BLOCK0_ID1_C3 && b0p->b0_id[1] != BLOCK0_ID1_C4))
-    {
-        return FAIL;
-    }
-    return OK;
-}
-
-    static void
-ml_upd_block0(buf_T *buf, upd_block0_T what)
-{
-    memfile_T   *mfp;
-    bhdr_T      *hp;
-    ZERO_BL     *b0p;
-
-    mfp = buf->b_ml.ml_mfp;
-    if (mfp == NULL)
-    {
-        return;
-    }
-    hp = mf_get(mfp, (blocknr_T)0, 1);
-    if (hp == NULL)
-    {
-        return;
-    }
-
-    b0p = (ZERO_BL *)(hp->bh_data);
-    if (ml_check_b0_id(b0p) == FAIL)
-    {
-        iemsg(e_ml_upd_block0_didnt_get_block_zero);
-    }
-    else
-    {
-        if (what == UB_FNAME)
-        {
-            set_b0_fname(b0p, buf);
-        }
-        else
-        {
-        }
-    }
-    mf_put(mfp, hp, TRUE, FALSE);
-}
-
-    static void
 set_b0_fname(ZERO_BL *b0p, buf_T *buf)
 {
-    stat_T      st;
 
-    if (buf->b_ffname == NULL)
-    {
-        b0p->b0_fname[0] = NUL;
-    }
-    else
-    {
-
-        (void)home_replace(NULL, buf->b_ffname, b0p->b0_fname, B0_FNAME_SIZE_CRYPT, TRUE);
-        if (b0p->b0_fname[0] == '~')
-        {
-
-            vim_strncpy(b0p->b0_fname, buf->b_ffname, B0_FNAME_SIZE_CRYPT - 1);
-        }
-        if ( stat(((char *)buf->b_ffname), (&st))  >= 0)
-        {
-            long_to_char((long)st.st_mtime, b0p->b0_mtime);
-            long_to_char((long)st.st_ino, b0p->b0_ino);
-            buf_store_time(buf, &st, buf->b_ffname);
-            buf->b_mtime_read = buf->b_mtime;
-            buf->b_mtime_read_ns = buf->b_mtime_ns;
-        }
-        else
-        {
-            long_to_char(0L, b0p->b0_mtime);
-            long_to_char(0L, b0p->b0_ino);
-            buf->b_mtime = 0;
-            buf->b_mtime_ns = 0;
-            buf->b_mtime_read = 0;
-            buf->b_mtime_read_ns = 0;
-            buf->b_orig_size = 0;
-            buf->b_orig_mode = 0;
-        }
-    }
+    b0p->b0_fname[0] = NUL;
 
 }
 
@@ -40284,25 +38317,6 @@ vim_beep(unsigned val)
 
 }
 
-    static char_u *
-expand_env_save(char_u *src)
-{
-    return expand_env_save_opt(src, FALSE, NULL);
-}
-
-    static char_u *
-expand_env_save_opt(char_u *src, int one, char_u *esc_chars)
-{
-    char_u      *p;
-
-    p = alloc( PATH_MAX );
-    if (p != NULL)
-    {
-        expand_env_esc(src, p,  PATH_MAX , esc_chars, one, NULL);
-    }
-    return p;
-}
-
     static size_t
 expand_env_esc(char_u      *srcp, char_u      *dst, int         dstlen, char_u      *esc_chars, int         one, char_u      *startstr)
 {
@@ -40416,29 +38430,6 @@ path_is_url(char_u *p)
         return URL_BACKSLASH;
     }
     return 0;
-}
-
-    static int
-path_with_url(char_u *fname)
-{
-    char_u *p;
-
-    if (! ( ((unsigned)(*fname) - 'A' < 26)  ||  ((unsigned)(*fname) - 'a' < 26) ) )
-    {
-        return 0;
-    }
-
-    for (p = fname + 1; ( ( ((unsigned)(*p) - 'A' < 26)  ||  ((unsigned)(*p) - 'a' < 26) )  || (*p == '-')); ++p)
-    {
-        ;
-    }
-
-    if (p[-1] == '-')
-    {
-        return 0;
-    }
-
-    return path_is_url(p);
 }
 
     static int
@@ -55138,11 +53129,6 @@ did_set_paste(optset_T *args  __attribute__((unused)) )
     static char *
 did_set_readonly(optset_T *args)
 {
-    if (!curbuf->b_p_ro && (args->os_flags & OPT_LOCAL) == 0)
-    {
-        readonlymode = FALSE;
-    }
-
     if (curbuf->b_p_ro)
     {
         curbuf->b_did_warn = false;
@@ -57505,8 +55491,6 @@ static void catch_int_signal(void);
 static void set_signals(void);
 static void catch_signals(void (*func_deadly)(int), void (*func_other)(int));
 
-static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);
-
 static volatile sig_atomic_t do_resize = FALSE;
 static volatile sig_atomic_t got_tstp = FALSE;
 
@@ -57920,88 +55904,6 @@ mch_get_pid(void)
     return (long)getpid();
 }
 
-    static int
-mch_dirname(char_u *buf, int len)
-{
-    static char_u   cwd[ PATH_MAX ];
-    static int      cwd_len = -1;
-
-    if (cwd_len < 0)
-    {
-        if (getcwd((char *)cwd, sizeof(cwd)) == NULL)
-        {
-             strcpy((char *)(buf), (char *)(strerror(errno))) ;
-            return FAIL;
-        }
-        cwd_len = (int) strlen((char *)(cwd)) ;
-    }
-    if (cwd_len >= len)
-    {
-        return FAIL;
-    }
-     strcpy((char *)(buf), (char *)(cwd)) ;
-    return OK;
-}
-
-    static int
-mch_FullName(char_u      *fname, char_u      *buf, int         len, int         force)
-{
-    int         buflen = 0;
-
-    if (!mch_isFullName(fname))
-    {
-        if (mch_dirname(buf, len) == FAIL)
-        {
-            *buf = NUL;
-            return FAIL;
-        }
-        buflen = (int) strlen((char *)(buf)) ;
-        if (buflen >= len - 1)
-        {
-            return FAIL;
-        }
-        if (buflen > 0 && buf[buflen - 1] !=  ((char_u)'/')  && *fname != NUL &&  strcmp((char *)(fname), (char *)("."))  != 0)
-        {
-             strcpy((char *)(buf + buflen), (char *)( "/" )) ;
-            buflen += sizeof( ((char_u)'/') );
-        }
-    }
-    else
-    {
-        *buf = NUL;
-    }
-
-    if ((int)(buflen +  strlen((char *)(fname)) ) >= len)
-    {
-        return FAIL;
-    }
-
-    if ( strcmp((char *)(fname), (char *)("."))  != 0)
-    {
-         strcpy((char *)(buf + buflen), (char *)(fname)) ;
-    }
-
-    return OK;
-}
-
-    static int
-mch_isFullName(char_u *fname)
-{
-    return (*fname == '/' || *fname == '~');
-}
-
-    static long
-mch_getperm(char_u *name)
-{
-    struct stat statb;
-
-    if (stat((char *)name, &statb))
-    {
-        return -1;
-    }
-    return statb.st_mode;
-}
-
     static void
 exit_scroll(void)
 {
@@ -58324,50 +56226,6 @@ select_eintr:
     }
 
     return result;
-}
-
-    static int
-save_patterns(int         num_pat, char_u      **pat, int         *num_file, char_u      ***file)
-{
-    int         i;
-    char_u      *s;
-
-    *file =  (char_u * *)alloc(sizeof(char_u *) * (num_pat)) ;
-    if (*file == NULL)
-    {
-        return FAIL;
-    }
-    for (i = 0; i < num_pat; i++)
-    {
-        s = vim_strsave(pat[i]);
-        if (s != NULL)
-        {
-            backslash_halve(s);
-        }
-        (*file)[i] = s;
-    }
-    *num_file = num_pat;
-    return OK;
-}
-
-    static int
-mch_has_wildcard(char_u *p)
-{
-    for ( ; *p;  p += utfc_ptr2len(p) )
-    {
-        if (*p == '\\' && p[1] != NUL)
-        {
-            ++p;
-        }
-        else
-        {
-            if (vim_strchr((char_u *) "*?[{`'$", *p) != NULL || (*p == '~' && p[1] != NUL))
-            {
-            return TRUE;
-            }
-        }
-    }
-    return FALSE;
 }
 
     static int
@@ -65200,7 +63058,7 @@ get_spec_reg(int         regname, char_u      **argp, int         *allocated, in
             {
                 check_fname();
             }
-            *argp = curbuf->b_fname;
+            *argp = NULL;
             return TRUE;
 
         case '#':
@@ -66511,24 +64369,6 @@ ex_display(exarg_T *eap)
     {
         msg_puts("\n  c  \":   ");
         dis_msg(last_cmdline, FALSE);
-    }
-
-    if (curbuf->b_fname != NULL && (arg == NULL || vim_strchr(arg, '%') != NULL) && !got_int && !message_filtered(curbuf->b_fname))
-    {
-        msg_puts("\n  c  \"%   ");
-        dis_msg(curbuf->b_fname, FALSE);
-    }
-
-    if ((arg == NULL || vim_strchr(arg, '#') != NULL) && !got_int)
-    {
-        char_u      *fname;
-        linenr_T    dummy;
-
-        if (buflist_name_nr(0, &fname, &dummy) != FAIL && !message_filtered(fname))
-        {
-            msg_puts("\n  c  \"#   ");
-            dis_msg(fname, FALSE);
-        }
     }
 
     if (last_search_pat() != NULL && (arg == NULL || vim_strchr(arg, '/') != NULL) && !got_int && !message_filtered(last_search_pat()))
@@ -69148,14 +66988,7 @@ draw_tabline(void)
     static void
 get_trans_bufname(buf_T *buf)
 {
-    if (buf_spname(buf) != NULL)
-    {
-        vim_strncpy(NameBuff, buf_spname(buf),  PATH_MAX  - 1);
-    }
-    else
-    {
-        home_replace(buf, buf->b_fname, NameBuff,  PATH_MAX , TRUE);
-    }
+    vim_strncpy(NameBuff, buf_spname(buf),  PATH_MAX  - 1);
     trans_characters(NameBuff,  PATH_MAX );
 }
 
@@ -72431,23 +70264,6 @@ vim_strbyte(char_u *string, int c)
         ++p;
     }
     return NULL;
-}
-
-    static char_u  *
-vim_strrchr(char_u *string, int c)
-{
-    char_u      *retval = NULL;
-    char_u      *p = string;
-
-    while (*p)
-    {
-        if (*p == c)
-        {
-            retval = p;
-        }
-         p += utfc_ptr2len(p) ;
-    }
-    return retval;
 }
 
     static int
@@ -80914,7 +78730,6 @@ static struct cmdname cmdnames[] =
     [CMD_delmarks] = {(char_u *)"delmarks", 4, ex_delmarks, (long_u)(EX_BANG|EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_display] = {(char_u *)"display", 2, ex_display, (long_u)(EX_EXTRA|EX_NOTRLCOM|EX_TRLBAR|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_earlier] = {(char_u *)"earlier", 2, ex_later, (long_u)(EX_TRLBAR|EX_EXTRA|EX_NOSPC|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
-    [CMD_file] = {(char_u *)"file", 1, ex_file, (long_u)(EX_RANGE|EX_ZEROR|EX_BANG| ( (EX_XFILE | EX_EXTRA)  | EX_NOSPC) |EX_TRLBAR), ADDR_OTHER},
     [CMD_filter] = {(char_u *)"filter", 4, ex_wrongmodifier, (long_u)(EX_BANG|EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM), ADDR_NONE},
     [CMD_fixdel] = {(char_u *)"fixdel", 3, do_fixdel, (long_u)(EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK), ADDR_NONE},
     [CMD_global] = {(char_u *)"global", 1, ex_global, (long_u)(EX_RANGE|EX_WHOLEFOLD|EX_BANG|EX_EXTRA|EX_DFLALL|EX_SBOXOK|EX_CMDWIN|EX_LOCK_OK|EX_NONWHITE_OK), ADDR_LINES},
@@ -81182,7 +78997,7 @@ win_alloc_firstwin(win_T *oldwin)
     {
         return FAIL;
     }
-    curbuf = buflist_new(NULL, NULL, 1L, BLN_LISTED);
+    curbuf = buflist_new(1L, BLN_LISTED);
     if (curbuf == NULL)
     {
         return FAIL;
@@ -82085,7 +79900,7 @@ vim_main2(void)
 
     setpcmark();
 
-    shorten_fnames(FALSE);
+    shorten_fnames();
 
         if (params.n_commands > 0)
         {
