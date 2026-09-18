@@ -19,12 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are twenty-two phases, 0 to 21.  Phases are added one at a time, each on its
+# There are twenty-three phases, 0 to 22.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22
 
 #   stage   phases
 stage       0
@@ -49,6 +49,7 @@ stage       18
 stage       19
 stage       20
 stage       21
+stage       22
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -257,6 +258,23 @@ apart       19 20
 # run shows phase 21's edit succeeding on phase 20's UNSWEPT output, 80,181 -> 80,206
 # lines, every anchor holding.
 apart       20 21
+# MEASURED rather than predicted, with `tools/phaserun.sh zero 21-22` on r20: phase
+# 21's check stops with FOUR complaints, and the FIRST is the one a reader would not
+# predict -- ``printf` has 4 mentions, expected 10`.  That is phase 21's own documented
+# counting trap read from the other end: none of the ten is a call, nine are
+# `__attribute__((format(printf, ...)))` and one is the string "E767: Too many arguments
+# for printf()" -- and SIX of the nine sit on the wrapper prototypes this phase deletes.
+# The other three are ordinary: ``vim_snprintf` has 201 mentions, expected 73`, which is
+# one at each of the 129 expanded sites less the redundant second prototype;
+# ``musl_strlen` has 135 mentions, expected 134`, which is `append_room()`'s; and `the
+# file is 80176 lines and the input was 80148 -- expected exactly 25 more`.
+# ONE DIRECTION ONLY, and it is not observable in that run because 21's check refuses
+# first: what the run DOES show is phase 22's edit applying unchanged to phase 21's
+# UNSWEPT output, 129 sites in the same 92/7/30 shapes and the same 80174 -> 80182
+# lines as on the swept text.  That is also the measurement behind there being no
+# `need 22 swept`: this edit finds its sites by word boundary and balanced parens over
+# the whole file and asserts no counted anchor a sweep can move.
+apart       21 22
 
 # NO `apart 13 14`.  Phase 13's check asserts that the libc surface moves by exactly
 # `fclose fsync getc putc` and that `fputs fputc fwrite putchar` are STILL undefined,
@@ -373,6 +391,10 @@ package  tidy         13
 package  vendor       14 15
 package  includes     16
 package  host         17 18 19 20 21
+# `format` is a new package, and it is not `vendor`: nothing is brought in.  A layer
+# is FLATTENED -- seven wrappers over one formatter become 129 call sites and five
+# helpers, so that `va_start` appears once and the formatter becomes movable.
+package  format       22
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -422,3 +444,7 @@ uses  host:21     seed:0   mechanical  tools/zerodelta.sh compares its recording
 uses  host:21     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
 uses  host:21     vendor:14  mechanical  report_term_error and mainerr assemble their message with vim_snprintf, which is the only formatter left in the file because phase 14 put sprintf onto it rather than vendoring one
 uses  host:21     includes:16 rationale   <stdio.h> goes with the seven symbols, and a phase may remove a directive only because phase 16 is where the charter's old reading -- a count the pipeline preserves -- was replaced by the rule it states now
+uses  format:22   seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  format:22   harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  format:22   vendor:14  rationale   musl_strlen is what append_room() measures the appended string with, and phase 14 is where the core got its own string functions to measure with
+uses  format:22   host:21    mechanical  phase 21 routed mainerr and report_term_error through vim_snprintf, so the mention count this phase's arithmetic starts from is phase 21's and the check asserts only the count AFTER

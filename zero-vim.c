@@ -3076,18 +3076,13 @@ static linenr_T ml_firstmarked(void);
 static void ml_clearmarked(void);
 static void ml_setflags(buf_T *buf);
 
-static int smsg(const char *, ...)  __attribute__((cold))   __attribute__((format(printf, 1, 2))) ;
-
-static int smsg_attr(int, const char *, ...)  __attribute__((format(printf, 2, 3))) ;
-
-static int semsg(const char *, ...)  __attribute__((cold))   __attribute__((format(printf, 1, 2))) ;
-
-static void siemsg(const char *, ...)  __attribute__((cold))   __attribute__((format(printf, 1, 2))) ;
-
-static int vim_snprintf_add(char *, size_t, const char *, ...)  __attribute__((format(printf, 3, 4))) ;
-
 static int vim_snprintf(char *, size_t, const char *, ...)  __attribute__((format(printf, 3, 4))) ;
-static size_t vim_snprintf_safelen(char *, size_t, const char *, ...)  __attribute__((format(printf, 3, 4))) ;
+static int emsg_not_now(void);
+static size_t iobuff_room(void);
+static size_t emsg_iobuff_room(void);
+static char *iobuff_or(const char *s);
+static size_t safelen_result(char *str, size_t str_m, int str_l);
+static size_t append_room(char *str, size_t str_m);
 
 static int vim_vsnprintf(char *str, size_t str_m, const char *fmt, va_list ap)
          __attribute__((format(printf, 3, 0))) ;
@@ -4304,7 +4299,8 @@ do_outofmem_msg(size_t size)
 
     did_outofmem_msg = TRUE;
 
-    semsg(_(e_out_of_memory_allocating_nr_bytes), (long_u)size);
+    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_out_of_memory_allocating_nr_bytes), (long_u)size);
+    emsg(iobuff_or(_(e_out_of_memory_allocating_nr_bytes)));
 
     if (starting == NO_SCREEN)
     {
@@ -4620,7 +4616,8 @@ can_unload_buffer(buf_T *buf)
 
     if (!can_unload)
     {
-        semsg(_(e_attempt_to_delete_buffer_that_is_in_use_str), (char_u *)"[No Name]");
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_attempt_to_delete_buffer_that_is_in_use_str), (char_u *)"[No Name]");
+        emsg(iobuff_or(_(e_attempt_to_delete_buffer_that_is_in_use_str)));
     }
     return can_unload;
 }
@@ -5025,27 +5022,27 @@ fileinfo(int fullname, int shorthelp, int dont_truncate)
 
     if (fullname > 1)
     {
-        bufferlen = vim_snprintf_safelen(buffer,  (1024+1) , "buf %d: ", curbuf->b_fnum);
+        bufferlen = safelen_result(buffer, (1024+1), vim_snprintf(buffer, (1024+1), "buf %d: ", curbuf->b_fnum));
     }
 
     buffer[bufferlen++] = '"';
 
     name = buf_spname(curbuf);
-    bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "%s", name);
+    bufferlen += safelen_result(buffer + bufferlen, (1024+1)  - bufferlen, vim_snprintf(buffer + bufferlen, (1024+1)  - bufferlen, "%s", name));
 
-    bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "\"%s%s%s%s%s", curbufIsChanged() ? (shortmess(SHM_MOD) ?  " [+]" : _(" [Modified]")) : " ", (curbuf->b_flags & BF_NOTEDITED) ? _("[Not edited]") : "", (curbuf->b_flags & BF_NEW) ? new_file_message() : "", (curbuf->b_flags & BF_READERR) ? _("[Read errors]") : "", (curbufIsChanged() || (curbuf->b_flags &  (BF_NOTEDITED + BF_NEW + BF_READERR) )) ? " " : "");
+    bufferlen += safelen_result(buffer + bufferlen, (1024+1)  - bufferlen, vim_snprintf(buffer + bufferlen, (1024+1)  - bufferlen, "\"%s%s%s%s%s", curbufIsChanged() ? (shortmess(SHM_MOD) ?  " [+]" : _(" [Modified]")) : " ", (curbuf->b_flags & BF_NOTEDITED) ? _("[Not edited]") : "", (curbuf->b_flags & BF_NEW) ? new_file_message() : "", (curbuf->b_flags & BF_READERR) ? _("[Read errors]") : "", (curbufIsChanged() || (curbuf->b_flags &  (BF_NOTEDITED + BF_NEW + BF_READERR) )) ? " " : ""));
 
     if (curbuf->b_ml.ml_flags & ML_EMPTY)
     {
-        bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "%s", _((char *)no_lines_msg));
+        bufferlen += safelen_result(buffer + bufferlen, (1024+1)  - bufferlen, vim_snprintf(buffer + bufferlen, (1024+1)  - bufferlen, "%s", _((char *)no_lines_msg)));
     }
     else if (p_ru)
     {
-        bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, NGETTEXT("%ld line --%d%%--", "%ld lines --%d%%--", curbuf->b_ml.ml_line_count), (long)curbuf->b_ml.ml_line_count, calc_percentage(curwin->w_cursor.lnum, curbuf->b_ml.ml_line_count));
+        bufferlen += safelen_result(buffer + bufferlen, (1024+1)  - bufferlen, vim_snprintf(buffer + bufferlen, (1024+1)  - bufferlen, NGETTEXT("%ld line --%d%%--", "%ld lines --%d%%--", curbuf->b_ml.ml_line_count), (long)curbuf->b_ml.ml_line_count, calc_percentage(curwin->w_cursor.lnum, curbuf->b_ml.ml_line_count)));
     }
     else
     {
-        bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, _("line %ld of %ld --%d%%-- col "), (long)curwin->w_cursor.lnum, (long)curbuf->b_ml.ml_line_count, calc_percentage(curwin->w_cursor.lnum, curbuf->b_ml.ml_line_count));
+        bufferlen += safelen_result(buffer + bufferlen, (1024+1)  - bufferlen, vim_snprintf(buffer + bufferlen, (1024+1)  - bufferlen, _("line %ld of %ld --%d%%-- col "), (long)curwin->w_cursor.lnum, (long)curbuf->b_ml.ml_line_count, calc_percentage(curwin->w_cursor.lnum, curbuf->b_ml.ml_line_count)));
 
         validate_virtcol();
         bufferlen += col_print((char_u *)buffer + bufferlen,  (1024+1)  - bufferlen, (int)curwin->w_cursor.col + 1, (int)curwin->w_virtcol + 1);
@@ -5078,10 +5075,10 @@ col_print(char_u  *buf, size_t  buflen, int     col, int     vcol)
 {
     if (col == vcol)
     {
-        return (int)vim_snprintf_safelen((char *)buf, buflen, "%d", col);
+        return (int)safelen_result((char *)buf, buflen, vim_snprintf((char *)buf, buflen, "%d", col));
     }
 
-    return (int)vim_snprintf_safelen((char *)buf, buflen, "%d-%d", col, vcol);
+    return (int)safelen_result((char *)buf, buflen, vim_snprintf((char *)buf, buflen, "%d-%d", col, vcol));
 }
 
     static int
@@ -5098,18 +5095,18 @@ get_rel_pos(win_T       *wp, char_u      *buf, int         buflen)
     below = wp->w_buffer->b_ml.ml_line_count - wp->w_botline + 1;
     if (below <= 0)
     {
-        return (int)vim_snprintf_safelen((char *)buf, buflen, "%s", (above == 0) ? _("All") : _("Bot"));
+        return (int)safelen_result((char *)buf, buflen, vim_snprintf((char *)buf, buflen, "%s", (above == 0) ? _("All") : _("Bot")));
     }
 
     if (above <= 0)
     {
-        return (int)vim_snprintf_safelen((char *)buf, buflen, "%s", _("Top"));
+        return (int)safelen_result((char *)buf, buflen, vim_snprintf((char *)buf, buflen, "%s", _("Top")));
     }
 
     int perc = calc_percentage(above, above + below);
     char tmp[8];
     vim_snprintf(tmp, sizeof(tmp), _("%d%%"), perc);
-    return (int)vim_snprintf_safelen((char *)buf, buflen, _("%3s"), tmp);
+    return (int)safelen_result((char *)buf, buflen, vim_snprintf((char *)buf, buflen, _("%3s"), tmp));
 }
 
 enum { VIM_VERSION_MAJOR = 9 };
@@ -5666,7 +5663,8 @@ del_bytes(long        count, int         fixpos_arg, int         use_delcombine 
 
     if (count < 1)
     {
-        siemsg(e_invalid_count_for_del_bytes_nr, count);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), e_invalid_count_for_del_bytes_nr, count);
+        iemsg(iobuff_or(e_invalid_count_for_del_bytes_nr));
         return FAIL;
     }
 
@@ -8098,7 +8096,8 @@ ex_history(exarg_T *eap)
             else
             {
                 *end = i;
-                semsg(_(e_trailing_characters_str), arg);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_trailing_characters_str), arg);
+                emsg(iobuff_or(_(e_trailing_characters_str)));
                 return;
             }
         }
@@ -8116,11 +8115,13 @@ ex_history(exarg_T *eap)
     {
         if (*end != NUL)
         {
-            semsg(_(e_trailing_characters_str), end);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_trailing_characters_str), end);
+            emsg(iobuff_or(_(e_trailing_characters_str)));
         }
         else
         {
-            semsg(_(e_val_too_large), arg);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_val_too_large), arg);
+            emsg(iobuff_or(_(e_val_too_large)));
         }
         return;
     }
@@ -14540,7 +14541,8 @@ do_move(linenr_T line1, linenr_T line2, linenr_T dest)
 
     if (!global_busy && num_lines > p_report)
     {
-        smsg(NGETTEXT("%ld line moved", "%ld lines moved", num_lines), (long)num_lines);
+        vim_snprintf((char *)IObuff, iobuff_room(), NGETTEXT("%ld line moved", "%ld lines moved", num_lines), (long)num_lines);
+        msg(iobuff_or(NGETTEXT("%ld line moved", "%ld lines moved", num_lines)));
     }
 
     if (dest >= line1)
@@ -15344,7 +15346,8 @@ ex_substitute(exarg_T *eap)
         {
             char        buf[20];
             vim_snprintf(buf, sizeof(buf), "%ld", i);
-            semsg(_(e_val_too_large), buf);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_val_too_large), buf);
+            emsg(iobuff_or(_(e_val_too_large)));
             vim_free(sub);
             return;
         }
@@ -15362,7 +15365,8 @@ ex_substitute(exarg_T *eap)
         set_nextcmd(eap, cmd);
         if (eap->nextcmd == NULL)
         {
-            semsg(_(e_trailing_characters_str), cmd);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_trailing_characters_str), cmd);
+            emsg(iobuff_or(_(e_trailing_characters_str)));
             vim_free(sub);
             return;
         }
@@ -15589,7 +15593,8 @@ ex_substitute(exarg_T *eap)
                         i = msg_scroll;
                         msg_scroll = 0;
                         msg_no_more = TRUE;
-                        smsg_attr( highlight_attr[(int)(HLF_R)] , _("replace with %s (y/n/a/q/l/^E/^Y)?"), sub);
+                        vim_snprintf((char *)IObuff, iobuff_room(), _("replace with %s (y/n/a/q/l/^E/^Y)?"), sub);
+                        msg_attr(iobuff_or(_("replace with %s (y/n/a/q/l/^E/^Y)?")), highlight_attr[(int)(HLF_R)]);
                         msg_no_more = FALSE;
                         msg_scroll = i;
                         showruler(TRUE);
@@ -15993,7 +15998,8 @@ outofmem:
         }
         else if (subflags.do_error)
         {
-            semsg(_(e_pattern_not_found_str), get_search_pat());
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_pattern_not_found_str), get_search_pat());
+            emsg(iobuff_or(_(e_pattern_not_found_str)));
         }
     }
 
@@ -16028,7 +16034,7 @@ do_sub_msg(int     count_only)
                     ? NGETTEXT("%ld match on %ld lines", "%ld matches on %ld lines", sub_nsubs)
                     : NGETTEXT("%ld substitution on %ld lines", "%ld substitutions on %ld lines", sub_nsubs);
 
-        vim_snprintf_add(msg_buf, sizeof(msg_buf), NGETTEXT(msg_single, msg_plural, sub_nlines), sub_nsubs, (long)sub_nlines);
+        vim_snprintf(msg_buf +  musl_strlen((char *)(msg_buf)) , append_room(msg_buf, sizeof(msg_buf)), NGETTEXT(msg_single, msg_plural, sub_nlines), sub_nsubs, (long)sub_nlines);
 
         if (msg(msg_buf))
         {
@@ -16174,11 +16180,13 @@ ex_global(exarg_T *eap)
         {
             if (type == 'v')
             {
-                smsg(_("Pattern found in every line: %s"), used_pat);
+                vim_snprintf((char *)IObuff, iobuff_room(), _("Pattern found in every line: %s"), used_pat);
+                msg(iobuff_or(_("Pattern found in every line: %s")));
             }
             else
             {
-                smsg(_("Pattern not found: %s"), used_pat);
+                vim_snprintf((char *)IObuff, iobuff_room(), _("Pattern not found: %s"), used_pat);
+                msg(iobuff_or(_("Pattern not found: %s")));
             }
         }
         else
@@ -16356,11 +16364,13 @@ msg_verbose_cmd(linenr_T lnum, char_u *cmd)
 
     if (lnum == 0)
     {
-        smsg(_("Executing: %s"), cmd);
+        vim_snprintf((char *)IObuff, iobuff_room(), _("Executing: %s"), cmd);
+        msg(iobuff_or(_("Executing: %s")));
     }
     else
     {
-        smsg(_("line %ld: %s"), (long)lnum, cmd);
+        vim_snprintf((char *)IObuff, iobuff_room(), _("line %ld: %s"), (long)lnum, cmd);
+        msg(iobuff_or(_("line %ld: %s")));
     }
     if (msg_silent == 0)
     {
@@ -18060,7 +18070,8 @@ set_nextcmd(exarg_T *eap, char_u *arg)
     }
     else if (p != NULL)
     {
-        semsg(_(e_cannot_use_bar_to_separate_commands_here_str), arg);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_cannot_use_bar_to_separate_commands_here_str), arg);
+        emsg(iobuff_or(_(e_cannot_use_bar_to_separate_commands_here_str)));
     }
 }
 
@@ -18171,7 +18182,8 @@ ex_wrongmodifier(exarg_T *eap)
     static void
 ex_equal(exarg_T *eap)
 {
-    smsg("%ld", (long)eap->line2);
+    vim_snprintf((char *)IObuff, iobuff_room(), "%ld", (long)eap->line2);
+    msg(iobuff_or("%ld"));
     ex_may_print(eap);
 }
 
@@ -18225,7 +18237,8 @@ ex_winsize(exarg_T *eap)
 
     if (! (musl_isdigit((unsigned char)(*arg))) )
     {
-        semsg(_(e_invalid_argument_str), arg);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_argument_str), arg);
+        emsg(iobuff_or(_(e_invalid_argument_str)));
         return;
     }
     w = getdigits(&arg);
@@ -18493,7 +18506,8 @@ ex_later(exarg_T *eap)
 
     if (*p != NUL)
     {
-        semsg(_(e_invalid_argument_str), eap->arg);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_argument_str), eap->arg);
+        emsg(iobuff_or(_(e_invalid_argument_str)));
     }
     else
     {
@@ -18590,7 +18604,8 @@ ex_mark(exarg_T *eap)
 
     if (eap->arg[1] != NUL)
     {
-        semsg(_(e_trailing_characters_str), eap->arg);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_trailing_characters_str), eap->arg);
+        emsg(iobuff_or(_(e_trailing_characters_str)));
         return;
     }
 
@@ -23843,7 +23858,8 @@ check_hashtab_frozen(hashtab_T *ht, char *command)
         return FALSE;
     }
 
-    semsg(_(e_not_allowed_to_add_or_remove_entries_str), command);
+    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_not_allowed_to_add_or_remove_entries_str), command);
+    emsg(iobuff_or(_(e_not_allowed_to_add_or_remove_entries_str)));
     return TRUE;
 }
 
@@ -24571,7 +24587,8 @@ highlight_set_termgui_attr(int idx, char_u *key, char_u *arg, int init)
         entry = (keyvalue_T *)musl_bsearch(&target, &highlight_tab,  (sizeof(highlight_tab) / sizeof((highlight_tab)[0])) , sizeof(highlight_tab[0]), cmp_keyvalue_value_ni);
         if (entry == NULL)
         {
-            semsg(_(e_illegal_value_str), arg);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_illegal_value_str), arg);
+            emsg(iobuff_or(_(e_illegal_value_str)));
             return FALSE;
         }
 
@@ -24802,7 +24819,8 @@ highlight_set_cterm_color(int     idx, char_u  *key, char_u  *key_start, char_u 
         entry = (keyvalue_T *)musl_bsearch(&target, &color_name_tab,  (sizeof(color_name_tab) / sizeof((color_name_tab)[0])) , sizeof(color_name_tab[0]), cmp_keyvalue_value_i);
         if (entry == NULL)
         {
-            semsg(_(e_color_name_or_number_not_recognized_str), key_start);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_color_name_or_number_not_recognized_str), key_start);
+            emsg(iobuff_or(_(e_color_name_or_number_not_recognized_str)));
             return FALSE;
         }
 
@@ -24873,7 +24891,8 @@ highlight_set_startstop_termcode(int idx, char_u *key, char_u *arg, int init)
 
             if ((int)( musl_strlen((char *)(buf))  +  musl_strlen((char *)(p)) ) >= 99)
             {
-                semsg(_(e_terminal_code_too_long_str), arg);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_terminal_code_too_long_str), arg);
+                emsg(iobuff_or(_(e_terminal_code_too_long_str)));
                 return FALSE;
             }
              musl_strcat((char *)(buf), (char *)(p)) ;
@@ -24978,7 +24997,8 @@ do_highlight(char_u      *line, int         forceit, int         init)
         id = syn_namen2id(line, (int)(name_end - line));
         if (id == 0)
         {
-            semsg(_(e_highlight_group_name_not_found_str), line);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_highlight_group_name_not_found_str), line);
+            emsg(iobuff_or(_(e_highlight_group_name_not_found_str)));
         }
         else
         {
@@ -25002,13 +25022,15 @@ do_highlight(char_u      *line, int         forceit, int         init)
 
         if (ends_excmd2(line, from_start) || ends_excmd2(line, to_start))
         {
-            semsg(_(e_not_enough_arguments_highlight_link_str), from_start);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_not_enough_arguments_highlight_link_str), from_start);
+            emsg(iobuff_or(_(e_not_enough_arguments_highlight_link_str)));
             return;
         }
 
         if (!ends_excmd2(line, skipwhite(to_end)))
         {
-            semsg(_(e_too_many_arguments_highlight_link_str), from_start);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_too_many_arguments_highlight_link_str), from_start);
+            emsg(iobuff_or(_(e_too_many_arguments_highlight_link_str)));
             return;
         }
 
@@ -25065,7 +25087,8 @@ do_highlight(char_u      *line, int         forceit, int         init)
             key_start = linep;
             if (*linep == '=')
             {
-                semsg(_(e_unexpected_equal_sign_str), key_start);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_unexpected_equal_sign_str), key_start);
+                emsg(iobuff_or(_(e_unexpected_equal_sign_str)));
                 error = TRUE;
                 break;
             }
@@ -25098,7 +25121,8 @@ do_highlight(char_u      *line, int         forceit, int         init)
 
             if (*linep != '=')
             {
-                semsg(_(e_missing_equal_sign_str_2), key_start);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_missing_equal_sign_str_2), key_start);
+                emsg(iobuff_or(_(e_missing_equal_sign_str_2)));
                 error = TRUE;
                 break;
             }
@@ -25111,7 +25135,8 @@ do_highlight(char_u      *line, int         forceit, int         init)
                 linep = vim_strchr(linep, '\'');
                 if (linep == NULL)
                 {
-                    semsg(_(e_invalid_argument_str), key_start);
+                    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_argument_str), key_start);
+                    emsg(iobuff_or(_(e_invalid_argument_str)));
                     error = TRUE;
                     break;
                 }
@@ -25123,7 +25148,8 @@ do_highlight(char_u      *line, int         forceit, int         init)
             }
             if (linep == arg_start)
             {
-                semsg(_(e_missing_argument_str), key_start);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_missing_argument_str), key_start);
+                emsg(iobuff_or(_(e_missing_argument_str)));
                 error = TRUE;
                 break;
             }
@@ -25185,7 +25211,8 @@ do_highlight(char_u      *line, int         forceit, int         init)
             }
             else
             {
-                semsg(_(e_illegal_argument_str_3), key_start);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_illegal_argument_str_3), key_start);
+                emsg(iobuff_or(_(e_illegal_argument_str_3)));
                 error = TRUE;
                 break;
             }
@@ -28127,11 +28154,13 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
                     {
                         if (abbrev)
                         {
-                            semsg(_(e_global_abbreviation_already_exists_for_str), mp->m_keys);
+                            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_global_abbreviation_already_exists_for_str), mp->m_keys);
+                            emsg(iobuff_or(_(e_global_abbreviation_already_exists_for_str)));
                         }
                         else
                         {
-                            semsg(_(e_global_mapping_already_exists_for_str), mp->m_keys);
+                            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_global_mapping_already_exists_for_str), mp->m_keys);
+                            emsg(iobuff_or(_(e_global_mapping_already_exists_for_str)));
                         }
                         retval = 5;
                         goto theend;
@@ -28222,11 +28251,13 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
                             {
                                 if (abbrev)
                                 {
-                                    semsg(_(e_abbreviation_already_exists_for_str), p);
+                                    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_abbreviation_already_exists_for_str), p);
+                                    emsg(iobuff_or(_(e_abbreviation_already_exists_for_str)));
                                 }
                                 else
                                 {
-                                    semsg(_(e_mapping_already_exists_for_str), p);
+                                    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_mapping_already_exists_for_str), p);
+                                    emsg(iobuff_or(_(e_mapping_already_exists_for_str)));
                                 }
                                 retval = 5;
                                 goto theend;
@@ -29143,7 +29174,8 @@ show_one_mark(int         c, char_u      *arg, pos_T       *p, char_u      *name
             }
             else
             {
-                semsg(_(e_no_marks_matching_str), arg);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_no_marks_matching_str), arg);
+                emsg(iobuff_or(_(e_no_marks_matching_str)));
             }
         }
     }
@@ -29217,7 +29249,8 @@ ex_delmarks(exarg_T *eap)
                     to = p[2];
                     if (! ((unsigned)(p[2]) - 'a' < 26)  || to < from)
                     {
-                        semsg(_(e_invalid_argument_str), p);
+                        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_argument_str), p);
+                        emsg(iobuff_or(_(e_invalid_argument_str)));
                         return;
                     }
                     p += 2;
@@ -29260,7 +29293,8 @@ ex_delmarks(exarg_T *eap)
                     case ' ':
                         break;
                     default:
-                        semsg(_(e_invalid_argument_str), p);
+                        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_argument_str), p);
+                        emsg(iobuff_or(_(e_invalid_argument_str)));
                               return;
                 }
             }
@@ -29500,7 +29534,8 @@ match_add(win_T       *wp, char_u      *grp, char_u      *pat, int         prio,
     }
     if (id < -1 || id == 0)
     {
-        semsg(_(e_invalid_id_nr_must_be_greater_than_or_equal_to_one_1), id);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_id_nr_must_be_greater_than_or_equal_to_one_1), id);
+        emsg(iobuff_or(_(e_invalid_id_nr_must_be_greater_than_or_equal_to_one_1)));
         return -1;
     }
     if (id == -1)
@@ -29513,7 +29548,8 @@ match_add(win_T       *wp, char_u      *grp, char_u      *pat, int         prio,
         {
             if (cur->mit_id == id)
             {
-                semsg(_(e_id_already_taken_nr), id);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_id_already_taken_nr), id);
+                emsg(iobuff_or(_(e_id_already_taken_nr)));
                 return -1;
             }
         }
@@ -29526,12 +29562,14 @@ match_add(win_T       *wp, char_u      *grp, char_u      *pat, int         prio,
 
     if ((hlg_id = syn_namen2id(grp, (int) musl_strlen((char *)(grp)) )) == 0)
     {
-        semsg(_(e_no_such_highlight_group_name_str), grp);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_no_such_highlight_group_name_str), grp);
+        emsg(iobuff_or(_(e_no_such_highlight_group_name_str)));
         return -1;
     }
     if (pat != NULL && (regprog = vim_regcomp(pat, RE_MAGIC)) == NULL)
     {
-        semsg(_(e_invalid_argument_str), pat);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_argument_str), pat);
+        emsg(iobuff_or(_(e_invalid_argument_str)));
         return -1;
     }
 
@@ -29590,7 +29628,8 @@ match_delete(win_T *wp, int id, int perr)
     {
         if (perr == TRUE)
         {
-            semsg(_(e_invalid_id_nr_must_be_greater_than_or_equal_to_one_2), id);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_id_nr_must_be_greater_than_or_equal_to_one_2), id);
+            emsg(iobuff_or(_(e_invalid_id_nr_must_be_greater_than_or_equal_to_one_2)));
         }
         return -1;
     }
@@ -29603,7 +29642,8 @@ match_delete(win_T *wp, int id, int perr)
     {
         if (perr == TRUE)
         {
-            semsg(_(e_id_not_found_nr), id);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_id_not_found_nr), id);
+            emsg(iobuff_or(_(e_id_not_found_nr)));
         }
         return -1;
     }
@@ -30199,7 +30239,8 @@ ex_match(exarg_T *eap)
         if (*p == NUL)
         {
             vim_free(g);
-            semsg(_(e_invalid_argument_str), eap->arg);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_argument_str), eap->arg);
+            emsg(iobuff_or(_(e_invalid_argument_str)));
             return;
         }
         end = skip_regexp(p + 1, *p, TRUE);
@@ -30212,7 +30253,8 @@ ex_match(exarg_T *eap)
         if (*end != *p)
         {
             vim_free(g);
-            semsg(_(e_invalid_argument_str), p);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_argument_str), p);
+            emsg(iobuff_or(_(e_invalid_argument_str)));
             return;
         }
 
@@ -34291,7 +34333,8 @@ ml_get_buf(buf_T       *buf, linenr_T    lnum, int         will_change)
         if (recursive == 0)
         {
             ++recursive;
-            siemsg(e_ml_get_invalid_lnum_nr, lnum);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), e_ml_get_invalid_lnum_nr, lnum);
+            iemsg(iobuff_or(e_ml_get_invalid_lnum_nr));
             --recursive;
         }
         ml_flush_line(buf);
@@ -34329,7 +34372,8 @@ errorret:
                 ++recursive;
                 get_trans_bufname(buf);
                 shorten_dir(NameBuff);
-                siemsg(e_ml_get_cannot_find_line_nr_in_buffer_nr_str, lnum, buf->b_fnum, NameBuff);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), e_ml_get_cannot_find_line_nr_in_buffer_nr_str, lnum, buf->b_fnum, NameBuff);
+                iemsg(iobuff_or(e_ml_get_cannot_find_line_nr_in_buffer_nr_str));
                 --recursive;
             }
             goto errorret;
@@ -35165,7 +35209,8 @@ ml_flush_line(buf_T *buf)
         hp = ml_find_line(buf, lnum, ML_FIND);
         if (hp == NULL)
         {
-            siemsg(e_cannot_find_line_nr, lnum);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), e_cannot_find_line_nr, lnum);
+            iemsg(iobuff_or(e_cannot_find_line_nr));
         }
         else
         {
@@ -35416,12 +35461,14 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
         {
             if (lnum > buf->b_ml.ml_line_count)
             {
-                siemsg(e_line_number_out_of_range_nr_past_the_end, lnum - buf->b_ml.ml_line_count);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), e_line_number_out_of_range_nr_past_the_end, lnum - buf->b_ml.ml_line_count);
+                iemsg(iobuff_or(e_line_number_out_of_range_nr_past_the_end));
             }
 
             else
             {
-                siemsg(e_line_count_wrong_in_block_nr, bnum);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), e_line_count_wrong_in_block_nr, bnum);
+                iemsg(iobuff_or(e_line_count_wrong_in_block_nr));
             }
             goto error_block;
         }
@@ -35773,54 +35820,61 @@ trunc_string(char_u      *s, char_u      *buf, int         room_in, int         
     }
 }
 
-static int vim_snprintf(char *str, size_t str_m, const char *fmt, ...);
-
-    static int
-smsg(const char *s, ...)
+    static size_t
+iobuff_room(void)
 {
     if (IObuff == NULL)
     {
-        return msg((char *)s);
+        return 0;
     }
-
-    va_list arglist;
-
-    va_start(arglist, s);
-    vim_vsnprintf((char *)IObuff,  (1024+1) , s, arglist);
-    va_end(arglist);
-    return msg((char *)IObuff);
+    return  (1024+1) ;
 }
 
-    static int
-smsg_attr(int attr, const char *s, ...)
+    static size_t
+emsg_iobuff_room(void)
 {
-    if (IObuff == NULL)
+    if (IObuff == NULL || emsg_not_now())
     {
-        return msg_attr((char *)s, attr);
+        return 0;
     }
-
-    va_list arglist;
-
-    va_start(arglist, s);
-    vim_vsnprintf((char *)IObuff,  (1024+1) , s, arglist);
-    va_end(arglist);
-    return msg_attr((char *)IObuff, attr);
+    return  (1024+1) ;
 }
 
-    static int
-smsg_attr_keep(int attr, const char *s, ...)
+    static char *
+iobuff_or(const char *s)
 {
     if (IObuff == NULL)
     {
-        return msg_attr_keep((char *)s, attr, TRUE);
+        return (char *)s;
     }
+    return (char *)IObuff;
+}
 
-    va_list arglist;
+    static size_t
+safelen_result(char *str, size_t str_m, int str_l)
+{
+    if (str_m == 0)
+    {
+        return 0;
+    }
+    if (str_l < 0)
+    {
+        *str = NUL;
+        return 0;
+    }
+    return ((size_t)str_l >= str_m) ? str_m - 1 : (size_t)str_l;
+}
 
-    va_start(arglist, s);
-    vim_vsnprintf((char *)IObuff,  (1024+1) , s, arglist);
-    va_end(arglist);
-    return msg_attr_keep((char *)IObuff, attr, TRUE);
+    static size_t
+append_room(char *str, size_t str_m)
+{
+    size_t      len =  musl_strlen((char *)(str)) ;
+
+    if (str_m <= len)
+    {
+        return 0;
+    }
+    return str_m - len;
 }
 
 static int      last_sourcing_lnum = 0;
@@ -36026,27 +36080,6 @@ emsg(char *s)
     return emsg_core(s);
 }
 
-    static int
-semsg(const char *s, ...)
-{
-    if (emsg_not_now())
-    {
-        return TRUE;
-    }
-
-    if (IObuff == NULL)
-    {
-        return emsg_core(s);
-    }
-
-    va_list ap;
-
-    va_start(ap, s);
-    vim_vsnprintf((char *)IObuff,  (1024+1) , s, ap);
-    va_end(ap);
-    return emsg_core((char *)IObuff);
-}
-
     static void
 iemsg(char *s)
 {
@@ -36061,42 +36094,19 @@ iemsg(char *s)
 }
 
     static void
-siemsg(const char *s, ...)
-{
-    if (emsg_not_now())
-    {
-        return;
-    }
-
-    emsg_core(_(e_internal_error_please_report_a_bug));
-
-    if (IObuff == NULL)
-    {
-        emsg_core(s);
-    }
-    else
-    {
-        va_list ap;
-
-        va_start(ap, s);
-        vim_vsnprintf((char *)IObuff,  (1024+1) , s, ap);
-        va_end(ap);
-        emsg_core((char *)IObuff);
-    }
-}
-
-    static void
 internal_error(char *where)
 {
     emsg_core(_(e_internal_error_please_report_a_bug));
 
-    siemsg(_(e_internal_error_str), where);
+    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_internal_error_str), where);
+    iemsg(iobuff_or(_(e_internal_error_str)));
 }
 
     static void
 emsg_invreg(int name)
 {
-    semsg(_(e_invalid_register_name_str), transchar_buf(NULL, name));
+    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_register_name_str), transchar_buf(NULL, name));
+    emsg(iobuff_or(_(e_invalid_register_name_str)));
 }
 
     static char *
@@ -38339,7 +38349,8 @@ ask_yesno(char_u *str, int direct)
 
     while (r != 'y' && r != 'n')
     {
-        smsg_attr( highlight_attr[(int)(HLF_R)] , "%s (y/n)?", str);
+        vim_snprintf((char *)IObuff, iobuff_room(), "%s (y/n)?", str);
+        msg_attr(iobuff_or("%s (y/n)?"), highlight_attr[(int)(HLF_R)]);
         if (direct)
         {
             r = get_keystroke();
@@ -48786,7 +48797,8 @@ op_tilde(oparg_T *oap)
 
     if (oap->line_count > p_report)
     {
-        smsg(NGETTEXT("%ld line changed", "%ld lines changed", oap->line_count), oap->line_count);
+        vim_snprintf((char *)IObuff, iobuff_room(), NGETTEXT("%ld line changed", "%ld lines changed", oap->line_count), oap->line_count);
+        msg(iobuff_or(NGETTEXT("%ld line changed", "%ld lines changed", oap->line_count)));
     }
 }
 
@@ -49678,7 +49690,8 @@ op_addsub(oparg_T     *oap, linenr_T    Prenum1, int         g_cmd)
 
         if (change_cnt > p_report)
         {
-            smsg(NGETTEXT("%d line changed", "%d lines changed", change_cnt), change_cnt);
+            vim_snprintf((char *)IObuff, iobuff_room(), NGETTEXT("%d line changed", "%d lines changed", change_cnt), change_cnt);
+            msg(iobuff_or(NGETTEXT("%d line changed", "%d lines changed", change_cnt)));
         }
     }
 }
@@ -53954,7 +53967,8 @@ set_option_value(char_u      *name, long        number, char_u      *string, int
             return NULL;
         }
 
-        semsg(_(e_unknown_option_str_2), name);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_unknown_option_str_2), name);
+        emsg(iobuff_or(_(e_unknown_option_str_2)));
     }
     else
     {
@@ -53977,7 +53991,8 @@ set_option_value(char_u      *name, long        number, char_u      *string, int
                 }
                 if (string[idx] != NUL || idx == 0)
                 {
-                    semsg(_(e_number_required_after_str_equal_str), name, string);
+                    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_number_required_after_str_equal_str), name, string);
+                    emsg(iobuff_or(_(e_number_required_after_str_equal_str)));
                     return NULL;
 
                 }
@@ -54932,8 +54947,10 @@ set_string_option_direct(char_u      *name, int         opt_idx, char_u      *va
         idx = findoption(name);
         if (idx < 0)
         {
-            semsg(_(e_internal_error_str), "set_string_option_direct()");
-            siemsg("For option %s", name);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_internal_error_str), "set_string_option_direct()");
+            emsg(iobuff_or(_(e_internal_error_str)));
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), "For option %s", name);
+            iemsg(iobuff_or("For option %s"));
             return;
         }
     }
@@ -56680,7 +56697,7 @@ read_limits(long *minval, long *maxval)
     }
     if (*regparse != '}')
     {
-         return (semsg((const char *)(_(e_syntax_error_in_str_curlies)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, FAIL) ;
+         return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_syntax_error_in_str_curlies)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_syntax_error_in_str_curlies))))), rc_did_emsg = TRUE, FAIL) ;
     }
 
     if ((!reverse && *minval > *maxval) || (reverse && *minval < *maxval))
@@ -57043,7 +57060,8 @@ re_mult_next(char *what)
 {
     if (re_multi_type(peekchr()) == MULTI_MULT)
     {
-        semsg(_(e_nfa_regexp_cannot_repeat_str), what);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_nfa_regexp_cannot_repeat_str), what);
+        emsg(iobuff_or(_(e_nfa_regexp_cannot_repeat_str)));
         rc_did_emsg = TRUE;
         return FAIL;
     }
@@ -58287,7 +58305,7 @@ regatom(int *flagp)
             {
                 goto delimiter_atom;
             }
-             return (semsg((const char *)(_(e_invalid_character_after_str)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+             return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_invalid_character_after_str)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_invalid_character_after_str))))), rc_did_emsg = TRUE, (void *)NULL) ;
         }
         if (c == '^')
         {
@@ -58369,7 +58387,7 @@ regatom(int *flagp)
       case  ((int)('(') - 256) :
         if (one_exactly)
         {
-              return (semsg((const char *)(_(e_invalid_item_in_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL)  ;
+              return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_invalid_item_in_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_invalid_item_in_str_brackets))))), rc_did_emsg = TRUE, (void *)NULL)  ;
         }
         ret = reg(REG_PAREN, &flags);
         if (ret == NULL)
@@ -58385,7 +58403,7 @@ regatom(int *flagp)
       case  ((int)(')') - 256) :
         if (one_exactly)
         {
-              return (semsg((const char *)(_(e_invalid_item_in_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL)  ;
+              return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_invalid_item_in_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_invalid_item_in_str_brackets))))), rc_did_emsg = TRUE, (void *)NULL)  ;
         }
          return (iemsg((e_internal_error_in_regexp)), rc_did_emsg = TRUE, (void *)NULL) ;
 
@@ -58396,7 +58414,7 @@ regatom(int *flagp)
       case  ((int)('{') - 256) :
       case  ((int)('*') - 256) :
         c = no_Magic(c);
-         return (semsg((const char *)(_(e_str_chr_follows_nothing)), ((c == '*' ? reg_magic >= MAGIC_ON : reg_magic == MAGIC_ALL)) ? "" : "\\", (c)), rc_did_emsg = TRUE, (void *)NULL) ;
+         return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_str_chr_follows_nothing)), ((c == '*' ? reg_magic >= MAGIC_ON : reg_magic == MAGIC_ALL)) ? "" : "\\", (c)), emsg(iobuff_or((const char *)(_(e_str_chr_follows_nothing))))), rc_did_emsg = TRUE, (void *)NULL) ;
 
       case  ((int)('~') - 256) :
             if (reg_prev_sub != NULL)
@@ -58481,7 +58499,7 @@ regatom(int *flagp)
                 case '(':
                     if (one_exactly)
                     {
-                          return (semsg((const char *)(_(e_invalid_item_in_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL)  ;
+                          return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_invalid_item_in_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_invalid_item_in_str_brackets))))), rc_did_emsg = TRUE, (void *)NULL)  ;
                     }
                     ret = reg(REG_NPAREN, &flags);
                     if (ret == NULL)
@@ -58502,7 +58520,8 @@ regatom(int *flagp)
                 case '#':
                     if (regparse[0] == '=' && regparse[1] >= 48 && regparse[1] <= 50)
                     {
-                        semsg(_(e_atom_engine_must_be_at_start_of_pattern), regparse[1]);
+                        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_atom_engine_must_be_at_start_of_pattern), regparse[1]);
+                        emsg(iobuff_or(_(e_atom_engine_must_be_at_start_of_pattern)));
                         return FAIL;
                     }
                     ret = regnode(CURSOR);
@@ -58519,7 +58538,7 @@ regatom(int *flagp)
                 case '[':
                           if (one_exactly)
                           {
-                                return (semsg((const char *)(_(e_invalid_item_in_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL)  ;
+                                return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_invalid_item_in_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_invalid_item_in_str_brackets))))), rc_did_emsg = TRUE, (void *)NULL)  ;
                           }
                           {
                               char_u    *lastbranch;
@@ -58531,7 +58550,7 @@ regatom(int *flagp)
                               {
                                   if (c == NUL)
                                   {
-                                       return (semsg((const char *)(_(e_missing_sb_after_str)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+                                       return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_missing_sb_after_str)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_missing_sb_after_str))))), rc_did_emsg = TRUE, (void *)NULL) ;
                                   }
                                   br = regnode(BRANCH);
                                   if (ret == NULL)
@@ -58558,7 +58577,7 @@ regatom(int *flagp)
                               }
                               if (ret == NULL)
                               {
-                                   return (semsg((const char *)(_(e_empty_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+                                   return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_empty_str_brackets)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_empty_str_brackets))))), rc_did_emsg = TRUE, (void *)NULL) ;
                               }
                               lastbranch = regnode(BRANCH);
                               br = regnode(NOTHING);
@@ -58619,7 +58638,7 @@ regatom(int *flagp)
 
                               if (i < 0 || i > INT_MAX)
                               {
-                                   return (semsg((const char *)(_(e_invalid_character_after_str_2)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+                                   return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_invalid_character_after_str_2)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_invalid_character_after_str_2))))), rc_did_emsg = TRUE, (void *)NULL) ;
                               }
                               if (use_multibytecode(i))
                               {
@@ -58675,7 +58694,7 @@ delimiter_atom:
                                 idx = 3;
                                 break;
                             default:
-                                 return (semsg((const char *)(_(e_invalid_character_after_str)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+                                 return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_invalid_character_after_str)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_invalid_character_after_str))))), rc_did_emsg = TRUE, (void *)NULL) ;
                         }
                         if (delim_nl)
                         {
@@ -58740,7 +58759,8 @@ delimiter_atom:
                               {
                                   if (cur && n)
                                   {
-                                    semsg(_(e_regexp_number_after_dot_pos_search_chr), no_Magic(c));
+                                    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_regexp_number_after_dot_pos_search_chr), no_Magic(c));
+                                    emsg(iobuff_or(_(e_regexp_number_after_dot_pos_search_chr)));
                                     rc_did_emsg = TRUE;
                                     return NULL;
                                   }
@@ -58790,7 +58810,7 @@ delimiter_atom:
                               }
                           }
 
-                           return (semsg((const char *)(_(e_invalid_character_after_str)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+                           return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_invalid_character_after_str)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_invalid_character_after_str))))), rc_did_emsg = TRUE, (void *)NULL) ;
             }
         }
         break;
@@ -59102,7 +59122,7 @@ collection:
             }
             else if (reg_strict)
             {
-                 return (semsg((const char *)(_(e_missing_rsb_after_str_lsb)), (reg_magic > MAGIC_OFF) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+                 return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_missing_rsb_after_str_lsb)), (reg_magic > MAGIC_OFF) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_missing_rsb_after_str_lsb))))), rc_did_emsg = TRUE, (void *)NULL) ;
             }
         }
 
@@ -59243,7 +59263,7 @@ regpiece(int *flagp)
                 }
                 if (lop == END)
                 {
-                     return (semsg((const char *)(_(e_invalid_character_after_str_at)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+                     return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_invalid_character_after_str_at)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_invalid_character_after_str_at))))), rc_did_emsg = TRUE, (void *)NULL) ;
                 }
                 if (lop == BEHIND || lop == NOBEHIND)
                 {
@@ -59289,7 +59309,7 @@ regpiece(int *flagp)
             {
                 if (num_complex_braces >= 10)
                 {
-                     return (semsg((const char *)(_(e_too_many_complex_str_curly)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+                     return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_too_many_complex_str_curly)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_too_many_complex_str_curly))))), rc_did_emsg = TRUE, (void *)NULL) ;
                 }
                 reginsert(BRACE_COMPLEX + num_complex_braces, ret);
                 regoptail(ret, regnode(BACK));
@@ -59307,9 +59327,9 @@ regpiece(int *flagp)
     {
         if (peekchr() ==  ((int)('*') - 256) )
         {
-             return (semsg((const char *)(_(e_nested_str)), (reg_magic >= MAGIC_ON) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+             return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_nested_str)), (reg_magic >= MAGIC_ON) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_nested_str))))), rc_did_emsg = TRUE, (void *)NULL) ;
         }
-         return (semsg((const char *)(_(e_nested_str_chr)), (reg_magic == MAGIC_ALL) ? "" : "\\", (no_Magic(peekchr()))), rc_did_emsg = TRUE, (void *)NULL) ;
+         return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_nested_str_chr)), (reg_magic == MAGIC_ALL) ? "" : "\\", (no_Magic(peekchr()))), emsg(iobuff_or((const char *)(_(e_nested_str_chr))))), rc_did_emsg = TRUE, (void *)NULL) ;
     }
 
     return ret;
@@ -59454,7 +59474,7 @@ reg(int         paren, int         *flagp)
     {
         if (regnpar >= NSUBEXP)
         {
-             return (semsg((const char *)(_(e_too_many_str_open)), (reg_magic == MAGIC_ALL) ? "" : "\\"), rc_did_emsg = TRUE, (void *)NULL) ;
+             return ((vim_snprintf((char *)IObuff, emsg_iobuff_room(), (const char *)(_(e_too_many_str_open)), (reg_magic == MAGIC_ALL) ? "" : "\\"), emsg(iobuff_or((const char *)(_(e_too_many_str_open))))), rc_did_emsg = TRUE, (void *)NULL) ;
         }
         parno = regnpar;
         ++regnpar;
@@ -59523,14 +59543,16 @@ reg(int         paren, int         *flagp)
     {
         if (paren == REG_NPAREN)
         {
-            semsg(_(e_unmatched_str_percent_open), reg_magic == MAGIC_ALL ? "" : "\\");
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_unmatched_str_percent_open), reg_magic == MAGIC_ALL ? "" : "\\");
+            emsg(iobuff_or(_(e_unmatched_str_percent_open)));
             rc_did_emsg = TRUE;
             ret = NULL;
             goto theend;
         }
         else
         {
-            semsg(_(e_unmatched_str_open), reg_magic == MAGIC_ALL ? "" : "\\");
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_unmatched_str_open), reg_magic == MAGIC_ALL ? "" : "\\");
+            emsg(iobuff_or(_(e_unmatched_str_open)));
             rc_did_emsg = TRUE;
             ret = NULL;
             goto theend;
@@ -59540,7 +59562,8 @@ reg(int         paren, int         *flagp)
     {
         if (curchr ==  ((int)(')') - 256) )
         {
-            semsg(_(e_unmatched_str_close), reg_magic == MAGIC_ALL ? "" : "\\");
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_unmatched_str_close), reg_magic == MAGIC_ALL ? "" : "\\");
+            emsg(iobuff_or(_(e_unmatched_str_close)));
             rc_did_emsg = TRUE;
             ret = NULL;
             goto theend;
@@ -63118,11 +63141,13 @@ op_yank(oparg_T *oap, int deleting, int mess)
             update_topline_redraw();
             if (oap->block_mode)
             {
-                smsg(NGETTEXT("block of %ld line yanked%s", "block of %ld lines yanked%s", yanklines), yanklines, namebuf);
+                vim_snprintf((char *)IObuff, iobuff_room(), NGETTEXT("block of %ld line yanked%s", "block of %ld lines yanked%s", yanklines), yanklines, namebuf);
+                msg(iobuff_or(NGETTEXT("block of %ld line yanked%s", "block of %ld lines yanked%s", yanklines)));
             }
             else
             {
-                smsg(NGETTEXT("%ld line yanked%s", "%ld lines yanked%s", yanklines), yanklines, namebuf);
+                vim_snprintf((char *)IObuff, iobuff_room(), NGETTEXT("%ld line yanked%s", "%ld lines yanked%s", yanklines), yanklines, namebuf);
+                msg(iobuff_or(NGETTEXT("%ld line yanked%s", "%ld lines yanked%s", yanklines)));
             }
         }
     }
@@ -63324,7 +63349,8 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
 
     if (y_size == 0 || y_array == NULL)
     {
-        semsg(_(e_nothing_in_register_str), regname == 0 ? (char_u *)"\"" : transchar(regname));
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_nothing_in_register_str), regname == 0 ? (char_u *)"\"" : transchar(regname));
+        emsg(iobuff_or(_(e_nothing_in_register_str)));
         goto end;
     }
 
@@ -67626,7 +67652,8 @@ searchit(win_T       *win, buf_T       *buf, pos_T       *pos, pos_T       *end_
     {
         if ((options & SEARCH_MSG) && !rc_did_emsg)
         {
-            semsg(_(e_invalid_search_string_str), mr_pattern);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_invalid_search_string_str), mr_pattern);
+            emsg(iobuff_or(_(e_invalid_search_string_str)));
         }
         return FAIL;
     }
@@ -67970,15 +67997,18 @@ searchit(win_T       *win, buf_T       *buf, pos_T       *pos, pos_T       *end_
         {
             if (p_ws)
             {
-                semsg(_(e_pattern_not_found_str), mr_pattern);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_pattern_not_found_str), mr_pattern);
+                emsg(iobuff_or(_(e_pattern_not_found_str)));
             }
             else if (lnum == 0)
             {
-                semsg(_(e_search_hit_top_without_match_for_str), mr_pattern);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_search_hit_top_without_match_for_str), mr_pattern);
+                emsg(iobuff_or(_(e_search_hit_top_without_match_for_str)));
             }
             else
             {
-                semsg(_(e_search_hit_bottom_without_match_for_str), mr_pattern);
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_search_hit_bottom_without_match_for_str), mr_pattern);
+                emsg(iobuff_or(_(e_search_hit_bottom_without_match_for_str)));
             }
         }
         return FAIL;
@@ -70015,28 +70045,6 @@ concat_str(char_u *str1, char_u *str2)
 }
 
     static int
-vim_snprintf_add(char *str, size_t str_m, const char *fmt, ...)
-{
-    va_list     ap;
-    int         str_l;
-    size_t      len =  musl_strlen((char *)(str)) ;
-    size_t      space;
-
-    if (str_m <= len)
-    {
-        space = 0;
-    }
-    else
-    {
-        space = str_m - len;
-    }
-    va_start(ap, fmt);
-    str_l = vim_vsnprintf(str + len, space, fmt, ap);
-    va_end(ap);
-    return str_l;
-}
-
-    static int
 vim_snprintf(char *str, size_t str_m, const char *fmt, ...)
 {
     va_list     ap;
@@ -70046,29 +70054,6 @@ vim_snprintf(char *str, size_t str_m, const char *fmt, ...)
     str_l = vim_vsnprintf(str, str_m, fmt, ap);
     va_end(ap);
     return str_l;
-}
-
-    static size_t
-vim_snprintf_safelen(char *str, size_t str_m, const char *fmt, ...)
-{
-    va_list ap;
-    int     str_l;
-
-    if (str_m == 0)
-    {
-        return 0;
-    }
-
-    va_start(ap, fmt);
-    str_l = vim_vsnprintf_typval(str, str_m, fmt, ap, NULL);
-    va_end(ap);
-
-    if (str_l < 0)
-    {
-        *str = NUL;
-        return 0;
-    }
-    return ((size_t)str_l >= str_m) ? str_m - 1 : (size_t)str_l;
 }
 
     static int
@@ -70244,7 +70229,8 @@ adjust_types(const char ***ap_types, int arg, int *num_posarg, const char *type)
 {
     if (arg <= 0)
     {
-        semsg(_( e_invalid_format_specifier_str), type);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_invalid_format_specifier_str), type);
+        emsg(iobuff_or(_( e_invalid_format_specifier_str)));
         return FAIL;
     }
 
@@ -70294,7 +70280,8 @@ adjust_types(const char ***ap_types, int arg, int *num_posarg, const char *type)
                     case 'i':
                         break;
                     default:
-                        semsg(_(e_positional_num_field_spec_reused_str_str), arg, format_typename((*ap_types)[arg - 1]), format_typename(type));
+                        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_positional_num_field_spec_reused_str_str), arg, format_typename((*ap_types)[arg - 1]), format_typename(type));
+                        emsg(iobuff_or(_(e_positional_num_field_spec_reused_str_str)));
                         return FAIL;
                 }
             }
@@ -70303,7 +70290,8 @@ adjust_types(const char ***ap_types, int arg, int *num_posarg, const char *type)
         {
             if (format_typeof(type) != format_typeof((*ap_types)[arg - 1]))
             {
-                semsg(_( e_positional_arg_num_type_inconsistent_str_str), arg, format_typename(type), format_typename((*ap_types)[arg - 1]));
+                vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_positional_arg_num_type_inconsistent_str_str), arg, format_typename(type), format_typename((*ap_types)[arg - 1]));
+                emsg(iobuff_or(_( e_positional_arg_num_type_inconsistent_str_str)));
                 return FAIL;
             }
         }
@@ -70331,12 +70319,14 @@ format_overflow_error(const char *pstart)
     if (argcopy != NULL)
     {
         musl_strncpy(argcopy, pstart, arglen);
-        semsg(_( e_val_too_large), argcopy);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_val_too_large), argcopy);
+        emsg(iobuff_or(_( e_val_too_large)));
         free(argcopy);
     }
     else
     {
-        semsg(_(e_out_of_memory_allocating_nr_bytes), arglen);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_out_of_memory_allocating_nr_bytes), arglen);
+        emsg(iobuff_or(_(e_out_of_memory_allocating_nr_bytes)));
     }
 }
 
@@ -70415,7 +70405,8 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
             {
                 if (*p == '0')
                 {
-                    semsg(_( e_invalid_format_specifier_str), fmt);
+                    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_invalid_format_specifier_str), fmt);
+                    emsg(iobuff_or(_( e_invalid_format_specifier_str)));
                     goto error;
                 }
 
@@ -70430,7 +70421,7 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
 
                 any_pos = 1;
                  if (any_pos && any_arg)
-                     {   semsg(_( e_cannot_mix_positional_and_non_positional_str), fmt);         goto error;     }   ;
+                     {   vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_cannot_mix_positional_and_non_positional_str), fmt); emsg(iobuff_or(_( e_cannot_mix_positional_and_non_positional_str)));         goto error;     }   ;
 
                 ++p;
             }
@@ -70470,7 +70461,8 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
 
                     if (*p != '$')
                     {
-                        semsg(_( e_invalid_format_specifier_str), fmt);
+                        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_invalid_format_specifier_str), fmt);
+                        emsg(iobuff_or(_( e_invalid_format_specifier_str)));
                         goto error;
                     }
                     else
@@ -70478,7 +70470,7 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
                         ++p;
                         any_pos = 1;
                          if (any_pos && any_arg)
-                             {   semsg(_( e_cannot_mix_positional_and_non_positional_str), fmt);         goto error;     }   ;
+                             {   vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_cannot_mix_positional_and_non_positional_str), fmt); emsg(iobuff_or(_( e_cannot_mix_positional_and_non_positional_str)));         goto error;     }   ;
 
                         if (adjust_types(ap_types, uj, num_posarg, arg) == FAIL)
                         {
@@ -70490,7 +70482,7 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
                 {
                     any_arg = 1;
                      if (any_pos && any_arg)
-                         {   semsg(_( e_cannot_mix_positional_and_non_positional_str), fmt);         goto error;     }   ;
+                         {   vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_cannot_mix_positional_and_non_positional_str), fmt); emsg(iobuff_or(_( e_cannot_mix_positional_and_non_positional_str)));         goto error;     }   ;
                 }
             }
             else if ( ((unsigned)((int)(*p)) - '0' < 10) )
@@ -70505,7 +70497,8 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
 
                 if (*p == '$')
                 {
-                    semsg(_( e_invalid_format_specifier_str), fmt);
+                    vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_invalid_format_specifier_str), fmt);
+                    emsg(iobuff_or(_( e_invalid_format_specifier_str)));
                     goto error;
                 }
             }
@@ -70531,7 +70524,7 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
                         {
                             any_pos = 1;
                              if (any_pos && any_arg)
-                                 {   semsg(_( e_cannot_mix_positional_and_non_positional_str), fmt);         goto error;     }   ;
+                                 {   vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_cannot_mix_positional_and_non_positional_str), fmt); emsg(iobuff_or(_( e_cannot_mix_positional_and_non_positional_str)));         goto error;     }   ;
 
                             ++p;
 
@@ -70542,7 +70535,8 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
                         }
                         else
                         {
-                            semsg(_( e_invalid_format_specifier_str), fmt);
+                            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_invalid_format_specifier_str), fmt);
+                            emsg(iobuff_or(_( e_invalid_format_specifier_str)));
                             goto error;
                         }
                     }
@@ -70550,7 +70544,7 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
                     {
                         any_arg = 1;
                          if (any_pos && any_arg)
-                             {   semsg(_( e_cannot_mix_positional_and_non_positional_str), fmt);         goto error;     }   ;
+                             {   vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_cannot_mix_positional_and_non_positional_str), fmt); emsg(iobuff_or(_( e_cannot_mix_positional_and_non_positional_str)));         goto error;     }   ;
                     }
                 }
                 else if ( ((unsigned)((int)(*p)) - '0' < 10) )
@@ -70565,7 +70559,8 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
 
                     if (*p == '$')
                     {
-                        semsg(_( e_invalid_format_specifier_str), fmt);
+                        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_invalid_format_specifier_str), fmt);
+                        emsg(iobuff_or(_( e_invalid_format_specifier_str)));
                         goto error;
                     }
                 }
@@ -70575,7 +70570,7 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
             {
                 any_pos = 1;
                  if (any_pos && any_arg)
-                     {   semsg(_( e_cannot_mix_positional_and_non_positional_str), fmt);         goto error;     }   ;
+                     {   vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_cannot_mix_positional_and_non_positional_str), fmt); emsg(iobuff_or(_( e_cannot_mix_positional_and_non_positional_str)));         goto error;     }   ;
 
                 ptype = p;
             }
@@ -70619,14 +70614,15 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
                     {
                         any_arg = 1;
                          if (any_pos && any_arg)
-                             {   semsg(_( e_cannot_mix_positional_and_non_positional_str), fmt);         goto error;     }   ;
+                             {   vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_cannot_mix_positional_and_non_positional_str), fmt); emsg(iobuff_or(_( e_cannot_mix_positional_and_non_positional_str)));         goto error;     }   ;
                     }
                     break;
 
                 default:
                     if (pos_arg != -1)
                     {
-                        semsg(_( e_cannot_mix_positional_and_non_positional_str), fmt);
+                        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_cannot_mix_positional_and_non_positional_str), fmt);
+                        emsg(iobuff_or(_( e_cannot_mix_positional_and_non_positional_str)));
                         goto error;
                     }
             }
@@ -70642,7 +70638,8 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
     {
         if ((*ap_types)[arg_idx] == NULL)
         {
-            semsg(_(e_fmt_arg_nr_unused_str), arg_idx + 1, fmt);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_fmt_arg_nr_unused_str), arg_idx + 1, fmt);
+            emsg(iobuff_or(_(e_fmt_arg_nr_unused_str)));
             goto error;
         }
 
@@ -70685,7 +70682,8 @@ skip_to_arg(const char  **ap_types, va_list     ap_start, va_list     *ap, int  
 
         if (ap_types == NULL || ap_types[*arg_cur] == NULL)
         {
-            siemsg(e_aptypes_is_null_nr_str, *arg_cur, fmt);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), e_aptypes_is_null_nr_str, *arg_cur, fmt);
+            iemsg(iobuff_or(e_aptypes_is_null_nr_str));
             return;
         }
 
@@ -72435,7 +72433,8 @@ add_termcap_entry(char_u *name, int force)
 
     if ( (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_name)  == NULL)
     {
-            semsg(_(e_no_str_entry_in_termcap), name);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_no_str_entry_in_termcap), name);
+            emsg(iobuff_or(_(e_no_str_entry_in_termcap)));
     }
     return FAIL;
 }
@@ -74366,7 +74365,8 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
 
     if ( elapsed(&(osc_state.start_tv))  >= p_ost)
     {
-        semsg(_(e_osc_response_timed_out), osc_state.buf.ga_len, osc_state.buf.ga_data);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_osc_response_timed_out), osc_state.buf.ga_len, osc_state.buf.ga_data);
+        emsg(iobuff_or(_(e_osc_response_timed_out)));
 
         ga_clear(&osc_state.buf);
         osc_state.processing = FALSE;
@@ -75162,7 +75162,8 @@ term_set_sync_output(int flags)
     }
     else
     {
-        siemsg("Unknown sync output value %d", flags);
+        vim_snprintf((char *)IObuff, emsg_iobuff_room(), "Unknown sync output value %d", flags);
+        iemsg(iobuff_or("Unknown sync output value %d"));
         return;
     }
 }
@@ -77365,7 +77366,8 @@ undo_time(long        step, int         sec, int         file, int         absol
 
         if (absolute)
         {
-            semsg(_(e_undo_number_nr_not_found), step);
+            vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_undo_number_nr_not_found), step);
+            emsg(iobuff_or(_(e_undo_number_nr_not_found)));
             return;
         }
 
@@ -77882,7 +77884,8 @@ u_undo_end(int         did_undo, int         absolute)
         check_pos(curbuf, &VIsual);
     }
 
-    smsg_attr_keep(0, _("%ld %s; %s #%ld  %s"), u_oldcount < 0 ? -u_oldcount : u_oldcount, _(msgstr), did_undo ? _("before") : _("after"), uhp == NULL ? 0L : uhp->uh_seq, msgbuf);
+    vim_snprintf((char *)IObuff, iobuff_room(), _("%ld %s; %s #%ld  %s"), u_oldcount < 0 ? -u_oldcount : u_oldcount, _(msgstr), did_undo ? _("before") : _("after"), uhp == NULL ? 0L : uhp->uh_seq, msgbuf);
+    msg_attr_keep(iobuff_or(_("%ld %s; %s #%ld  %s")), 0, TRUE);
 }
 
     static void

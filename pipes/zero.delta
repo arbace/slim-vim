@@ -601,3 +601,50 @@
 # the input and 997 here; a `-T` of 2,000 is 2,039 against 1,023.  It is not declared,
 # because nothing in the corpus is within 800 characters of it and `pipes/zero.delta` is
 # a list of records that moved; it is pinned as a probe in both directions instead.
+
+# 22 DECLARES NOTHING AT ALL, and it is phase 2's kind rather than phase 9's: the code
+# runs, and the instrument can barely see it.  Seven wrapper functions that took `...`,
+# opened a `va_list` and handed it to `vim_vsnprintf` are expanded at their 129 call
+# sites into `vim_snprintf(...)` plus the tail the wrapper ran afterwards -- `msg()`,
+# `msg_attr()`, `msg_attr_keep()`, `emsg()`, `iemsg()`, all five of which already
+# existed and were already called from elsewhere, so no message logic is written here at
+# all.  `va_start` goes from eight functions to one.  Two full recordings either side
+# are byte-identical: 102 screen cases, ref-excmds.txt, ref-argv.txt, ref-pty.txt and
+# ref-term.txt.
+#
+# HOW BLIND THE RECORDING IS, MEASURED rather than asserted.  The input source built
+# again with `write(2, "ZW|<wrapper>|<format>\n", ...)` at the entry to each of the
+# seven, run over the 102 screen cases: `vim_snprintf_safelen` is entered 617 times,
+# `smsg_attr_keep` 6, `vim_snprintf_add` 2, and `smsg`, `smsg_attr`, `semsg` and
+# `siemsg` NOT ONCE.  `semsg` is 94 of the 129 sites and the screen corpus never enters
+# it.  So the phase owes probes, and pipes/zero22-check.sh runs 263 of them on both
+# binaries -- the Ex-command errors, 132 regexp errors over both engines and three magic
+# settings (which are where the 18 comma-expression sites live), the report messages,
+# the substitute-confirm prompt, undo, CTRL-G and the ruler, and four incsearch probes
+# with a bad pattern, which are the only way to reach a `semsg` under `emsg_off > 0`.
+# The same instrument says the probes enter `semsg` 232 times over 34 distinct formats
+# and reach 67 of the 129 sites -- 66 found by mapping each runtime format string back
+# through the `static char e_*[]` table to the site's format expression, plus
+# `vim_snprintf_add`'s single site, whose format is a parameter and which the instrument
+# shows entered twice.  The other 62 are covered by the edit being ONE RULE applied
+# uniformly, and by the whole-file equalities the check makes: `semsg`'s unreached sites
+# are out-of-memory reports, the twenty inside the formatter itself -- which fire only
+# on a format string the editor would have to have got wrong, and every format in this
+# file is one of its own -- and `siemsg`'s ten internal errors, which is the memfile
+# detecting its own corruption.
+#
+# THE PROBES ARE PROVEN ABLE TO FAIL, WITH FOUR CONTROLS, AND TWO OF THEM MOVE NOTHING
+# ON PURPOSE.  This phase's own output with both room helpers returning 20 instead of
+# IOSIZE moves 129 of 263; with every `semsg` site given `msg()` for a tail instead of
+# `emsg()` it moves 155.  With `safelen_result`'s clamp removed it moves 0, and with all
+# three guards removed it moves 0 -- and those two are reported rather than dropped,
+# because they are the honest statement of what the evidence cannot reach: the clamp
+# needs a message longer than 1,025 bytes out of `fileinfo`, and the guards need
+# `IObuff == NULL`, which is an out-of-memory failure of the first two allocations the
+# process makes.
+#
+# NOTHING MOVES IN `nm -u` EITHER, and that is the other half of the same fact.  A pure
+# restructure inside one translation unit frees nothing: `vim_vsnprintf_typval` still
+# does every conversion in the same file, and `<stdarg.h>`'s three names are macros and
+# a compiler builtin type, which are no symbol at all.  What the phase moves is not code
+# across a boundary but the POSSIBILITY of drawing one.
