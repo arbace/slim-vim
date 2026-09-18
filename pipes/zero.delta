@@ -357,3 +357,39 @@
 # close and dup fds 0, 1 and 2 and nothing else.  `fputs` does NOT go and the check
 # asserts it STILL undefined: the source names it nowhere and gcc lowers
 # `fprintf(stderr, "...")` to it.
+#
+# 14 DECLARES NOTHING AT ALL, and the reason is a THIRD one -- neither phase 9's nor
+# phase 12's.  Phase 9 removed code that could not run.  Phase 12 removed code that
+# can run and that the instrument cannot see.  This phase REMOVES NO CODE AND CHANGES
+# NO BEHAVIOUR: it brings sixteen libc string and memory functions into the file as
+# `static musl_*` written from /root/musl/src/string/, and moves `sprintf` onto the
+# printf this editor already carries.  A recording that MOVED would mean a vendored
+# function was wrong.
+#
+# Measured twice over: `diff -rq` of two full recordings, the binary the phase was
+# handed against the one it made, is EMPTY -- all 102 screen cases, all 111
+# Ex-command rows, all 30 command lines, the four pty scenarios and the nineteen
+# terminal rows -- and tools/zerodelta.sh --phase 14 finds the same against
+# whim-vim's frozen baselines.  Not one enumerator moves either, because nothing is
+# deleted: no type, no enum, no cmdnames[] row, no options[] row.
+#
+# SEVENTEEN LIBC SYMBOLS GO, `memchr memcmp memcpy memmove memset sprintf strcasecmp
+# strcat strchr strcmp strcpy strlen strncasecmp strncmp strncpy strpbrk strstr`, and
+# `nm -u` goes 61 -> 44.  That it is SEVENTEEN and not fifteen is a measurement and
+# was the open question: gcc emits `memcpy` and `memset` for ITSELF, for aggregate
+# assignments and large zero initialisers, whatever the source calls -- and in this
+# file it emits none, so nothing had to be defined under a real name and
+# "nothing is global but main()" is untouched.  pipes/zero14-check.sh asserts it from
+# the assembly as well as from nm.
+#
+# ONE THING DOES CHANGE ON ONE REACHABLE INPUT, AND IT IS A BUG FIX, so it is written
+# here rather than left to the commit message.  `t_CF` is a user-settable option that
+# `term_font()` uses as a FORMAT STRING into `char buf[20]`; `sprintf` has no bound.
+# `:set t_CF=` + forty X + `%d`, then `:highlight Search ctermfont=3` and a search,
+# exits -11 (SIGSEGV) on the binary this phase was handed and exits 0 here with the
+# output truncated to nineteen characters.  It is NOT a declared delta because
+# nothing in the instrument sets `t_CF` and the only built-in `t_CF` is the `debug`
+# terminal's "[CF%d]"; it is a MUST-DIFFER probe in the check, with both halves
+# required.  The same probe records that a user-set `%f`, `%b`, `%*d` or `%z` now
+# renders as vim's own printf spells it rather than as musl's, while `%d` and `%1$d`
+# are identical -- and that `%s` segfaults on BOTH binaries and is not this phase's.

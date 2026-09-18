@@ -19,11 +19,11 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are eleven phases.  Phases are added one at a time, each on its own request
+# There are fifteen phases.  Phases are added one at a time, each on its own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14
 
 #   stage   phases
 stage       0
@@ -40,6 +40,7 @@ stage       10
 stage       11
 stage       12
 stage       13
+stage       14
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -160,6 +161,16 @@ apart       11 12
 # 11's check pins the same three and would fail too, but a stage holding 11 and 13
 # holds 12, and `apart 11 12` forbids that already.
 apart       12 13
+# NO `apart 13 14`.  Phase 13's check asserts that the libc surface moves by exactly
+# `fclose fsync getc putc` and that `fputs fputc fwrite putchar` are STILL undefined,
+# and phase 14 moves seventeen more -- so phase 13's check does fail on a phase 14
+# tree, and a stage holding both would be wrong.  It is not written because every
+# zero phase is its own stage and because it is the same shape as the missing
+# `apart 2 6`: nothing can hold 13 and 14 without holding them adjacent, and the
+# constraint would become real only if a later phase joined them.  THE ONE THAT WILL
+# MATTER is `apart 14 15`, which the character-class phase owns: this phase's check
+# pins `tolower` and `toupper` at their current mentions and requires both STILL
+# undefined, and that phase takes them.
 
 # What phase 7's edit needs of the text it is handed (pipes/whim.stages defines the
 # word).  Every zero phase is its own stage today, so this is a statement rather
@@ -243,6 +254,7 @@ package  files        6 7 8 9 10
 package  buffers      11
 package  options      12
 package  tidy         13
+package  vendor       14
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -270,4 +282,6 @@ uses  options:12  files:6    mechanical  'write', 'writeany' and 'fsync' were do
 uses  options:12  files:8    mechanical  'undoreload' was read by do_ecmd, which went with the :edit family
 uses  options:12  streams:4  mechanical  'prompt' was read by getexmodeline()'s `if (p_prompt) msg_putchar(':');` and by nothing else, so it is phase 4's orphan and is collected here
 uses  tidy:13     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  vendor:14   seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  vendor:14   harness:3  mechanical  its one MUST-DIFFER probe is a screen record of a binary that SEGFAULTS on t_CF, and a recording of what the editor DRAWS is what phase 3 gave the pipeline: the file-based sweep recorded an exit status and could not tell a crash from a quit
 uses  tidy:13     terminal:2 rationale   ui_write()'s `console` argument is FALSE at its one call site either way, and phase 2 is where the terminal stopped being asked anything -- so dropping the parameter rather than leaving __attribute__((unused)) on it is that phase's argument for check_tty(void)
