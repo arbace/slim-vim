@@ -2477,7 +2477,6 @@ static cmdline_info_T *get_cmdline_info(void);
 static int get_cmdline_firstc(void);
 static int get_list_range(char_u **str, int *num1, int *num2);
 
-static int vim_fsync(int fd);
 static void shorten_fnames(void);
 
 static size_t home_replace(buf_T *buf, char_u *src, char_u *dst, int dstlen, int one);
@@ -2672,7 +2671,6 @@ static void msg_clr_eos_force(void);
 static void msg_clr_cmdline(void);
 static int msg_end(void);
 static void msg_check(void);
-static int redirecting(void);
 static void verbose_enter_scroll(void);
 static void verbose_leave_scroll(void);
 static void give_warning(char_u *message, int hl);
@@ -3103,7 +3101,7 @@ static void internal_format(int textwidth, int second_indent, int flags, int for
 static int comp_textwidth(void);
 
 static time_T vim_time(void);
-static void ui_write(char_u *s, int len, int console);
+static void ui_write(char_u *s, int len);
 static int ui_inchar(char_u *buf, int maxlen, long wtime, int tb_change_cnt);
 static int inchar_loop(char_u *buf, int maxlen, long wtime, int tb_change_cnt, int (*wait_func)(long wtime, int *interrupted, int ignore_input), int (*resize_func)(int check_only));
 static void ui_delay(long msec_arg, int ignoreinput);
@@ -3463,9 +3461,6 @@ static int      do_redraw  = FALSE ;
 
 static int      need_highlight_changed  = TRUE ;
 
-enum { NSCRIPT = 15 };
-static FILE     *scriptin[NSCRIPT];
-static int      curscript  = 0 ;
 static int      read_cmd_fd  = 0 ;
 
 static volatile sig_atomic_t got_int  = FALSE ;
@@ -3492,9 +3487,6 @@ static pos_T    last_cursormoved
 static int      replace_offset  = 0 ;
 
 static char_u   *empty_option  = (char_u *)"" ;
-
-static int  redir_off  = FALSE ;
-static FILE *redir_fd  = NULL ;
 
 static const char *Version;
 static char *longVersion;
@@ -16711,11 +16703,6 @@ undo_cmdmod(cmdmod_T *cmod)
         }
         msg_scroll = cmod->cmod_save_msg_scroll;
 
-        if (redirecting())
-        {
-            msg_col = 0;
-        }
-
         cmod->cmod_save_msg_silent = 0;
         cmod->cmod_did_esilent = 0;
     }
@@ -19420,7 +19407,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
     ccline.xpc = &xpc;
     clear_cmdline_orig();
 
-    redir_off = TRUE;
     if (!cmd_silent)
     {
         i = msg_scrolled;
@@ -19459,7 +19445,6 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
          vim_free(prev_cmdbuff);
          (prev_cmdbuff) = NULL;
 
-        redir_off = TRUE;
         quit_more = FALSE;
 
         did_emsg = FALSE;
@@ -19847,7 +19832,6 @@ returncmd:
 
     msg_check();
     msg_scroll = save_msg_scroll;
-    redir_off = FALSE;
 
     if (some_key_typed)
     {
@@ -20535,15 +20519,6 @@ get_list_range(char_u **str, int *num1, int *num2)
     return OK;
 }
 
-    static int
-vim_fsync(int fd)
-{
-    int r;
-
-        r = fsync(fd);
-    return r;
-}
-
     static void
 shorten_fnames(void)
 {
@@ -20845,7 +20820,6 @@ static int      read_readbuf(buffheader_T *buf, int advance);
 static void     init_typebuf(void);
 static void     may_sync_undo(void);
 static void     free_typebuf(void);
-static void     closescript(void);
 static int      vgetorpeek(int);
 static int      inchar(char_u *buf, int maxlen, long wait_time);
 
@@ -21901,7 +21875,7 @@ ungetchars(int len)
     static void
 may_sync_undo(void)
 {
-    if ((!(State & (MODE_INSERT | MODE_CMDLINE)) || arrow_used) && scriptin[curscript] == NULL)
+    if (!(State & (MODE_INSERT | MODE_CMDLINE)) || arrow_used)
     {
         u_sync(FALSE);
     }
@@ -21953,8 +21927,6 @@ free_typebuf(void)
     }
 }
 
-static typebuf_T saved_typebuf[NSCRIPT];
-
 static int old_char = -1;
 static int old_mod_mask;
 static int old_KeyStuffed;
@@ -22002,26 +21974,6 @@ restore_typeahead(tasave_T *tp, int overwrite  __attribute__((unused)) )
     free_buff(&readbuf2);
     readbuf2 = tp->save_readbuf2;
     set_input_buf(tp->save_inputbuf, overwrite);
-}
-
-    static void
-closescript(void)
-{
-    free_typebuf();
-    typebuf = saved_typebuf[curscript];
-
-    fclose(scriptin[curscript]);
-    scriptin[curscript] = NULL;
-    if (curscript > 0)
-    {
-        --curscript;
-    }
-}
-
-    static int
-using_script(void)
-{
-    return scriptin[curscript] != NULL;
 }
 
     static int
@@ -23214,8 +23166,6 @@ vgetorpeek(int advance)
 inchar(char_u      *buf, int         maxlen, long        wait_time)
 {
     int         len = 0;
-    int         retesc = FALSE;
-    int         script_char;
     int         tb_change_cnt = typebuf.tb_change_cnt;
 
     if (wait_time == -1L || wait_time > 100L)
@@ -23230,52 +23180,27 @@ inchar(char_u      *buf, int         maxlen, long        wait_time)
     }
     undo_off = FALSE;
 
-    script_char = -1;
-    while (scriptin[curscript] != NULL && script_char < 0)
+    if (got_int)
     {
-        if (got_int || (script_char = getc(scriptin[curscript])) < 0)
+        char_u      dum[ (MAXMAPLEN * 3 + 3)  + 1];
+
+        for (;;)
         {
-            closescript();
-            if (got_int)
+            len = ui_inchar(dum,  (MAXMAPLEN * 3 + 3) , 0L, 0);
+            if (len == 0 || (len == 1 && dum[0] == Ctrl_C))
             {
-                retesc = TRUE;
-            }
-            else
-            {
-                return -1;
+                break;
             }
         }
-        else
-        {
-            buf[0] = script_char;
-            len = 1;
-        }
+        return FALSE;
     }
 
-    if (script_char < 0)
+    if (wait_time == -1L || wait_time > 10L)
     {
-        if (got_int)
-        {
-            char_u      dum[ (MAXMAPLEN * 3 + 3)  + 1];
-
-            for (;;)
-            {
-                len = ui_inchar(dum,  (MAXMAPLEN * 3 + 3) , 0L, 0);
-                if (len == 0 || (len == 1 && dum[0] == Ctrl_C))
-                {
-                    break;
-                }
-            }
-            return retesc;
-        }
-
-        if (wait_time == -1L || wait_time > 10L)
-        {
-            out_flush();
-        }
-
-        len = ui_inchar(buf, maxlen / 3, wait_time, tb_change_cnt);
+        out_flush();
     }
+
+    len = ui_inchar(buf, maxlen / 3, wait_time, tb_change_cnt);
 
     if (typebuf_changed(tb_change_cnt))
     {
@@ -34789,7 +34714,6 @@ static int do_more_prompt(int typed_char);
 static void msg_screen_putchar(int c, int attr);
 static void msg_moremsg(int full);
 static int  msg_check_screen(void);
-static void redir_write(char_u *s, int maxlen);
 
 struct msg_hist
 {
@@ -35198,17 +35122,14 @@ emsg_core(const char *s)
                 if (p != NULL)
                 {
                      strcat((char *)(p), (char *)("\n")) ;
-                    redir_write(p, -1);
                     vim_free(p);
                 }
                 p = get_emsg_lnum();
                 if (p != NULL)
                 {
                      strcat((char *)(p), (char *)("\n")) ;
-                    redir_write(p, -1);
                     vim_free(p);
                 }
-                redir_write((char_u *)s, -1);
             }
             return TRUE;
         }
@@ -35612,7 +35533,6 @@ wait_return(int redraw)
         return;
     }
 
-    redir_off = TRUE;
     oldState = State;
     if (quit_more)
     {
@@ -35703,7 +35623,6 @@ wait_return(int redraw)
             do_sleep(msg_wait, TRUE);
         }
     }
-    redir_off = FALSE;
 
     if (c == ':' || c == '?' || c == '/')
     {
@@ -35795,7 +35714,6 @@ set_keep_msg_from_hist(void)
     static void
 msg_start(void)
 {
-    int         did_return = FALSE;
 
     if (msg_row < cmdline_row)
     {
@@ -35818,7 +35736,6 @@ msg_start(void)
     else if (msg_didout || in_echowindow)
     {
         msg_putchar('\n');
-        did_return = TRUE;
         cmdline_row = msg_row;
     }
     if (!msg_didany || lines_left < 0)
@@ -35831,10 +35748,6 @@ msg_start(void)
         cursor_off();
     }
 
-    if (!did_return)
-    {
-        redir_write((char_u *)"\n", -1);
-    }
 }
 
     static void
@@ -36353,7 +36266,6 @@ msg_puts_attr(char *s, int attr)
     static void
 msg_puts_attr_len(char *str, int maxlen, int attr)
 {
-    redir_write((char_u *)str, maxlen);
 
     if (msg_silent != 0)
     {
@@ -37280,65 +37192,6 @@ msg_check(void)
         need_wait_return = TRUE;
         redraw_cmdline = TRUE;
     }
-}
-
-    static void
-redir_write(char_u *str, int maxlen)
-{
-    char_u      *s = str;
-    static int  cur_col = 0;
-
-    if (redir_off)
-    {
-        return;
-    }
-
-    if (redirecting())
-    {
-        if (*s != '\n' && *s != '\r')
-        {
-            while (cur_col < msg_col)
-            {
-                    if (redir_fd != NULL)
-                    {
-                    fputs(" ", redir_fd);
-                    }
-                ++cur_col;
-            }
-        }
-
-        while (*s != NUL && (maxlen < 0 || (int)(s - str) < maxlen))
-        {
-                if (redir_fd != NULL)
-                {
-                    putc(*s, redir_fd);
-                }
-            if (*s == '\r' || *s == '\n')
-            {
-                cur_col = 0;
-            }
-            else if (*s == '\t')
-            {
-                cur_col += (8 - cur_col % 8);
-            }
-            else
-            {
-                ++cur_col;
-            }
-            ++s;
-        }
-
-        if (msg_silent != 0)
-        {
-            msg_col = cur_col;
-        }
-    }
-}
-
-    static int
-redirecting(void)
-{
-    return redir_fd != NULL;
 }
 
     static void
@@ -43164,7 +43017,7 @@ clear_showcmd(void)
         return;
     }
 
-    if (VIsual_active && stuff_empty() && typebuf.tb_len == 0 && !using_script())
+    if (VIsual_active && stuff_empty() && typebuf.tb_len == 0)
     {
         int             cursor_bot =  (((VIsual).lnum != (curwin->w_cursor).lnum)               ? (VIsual).lnum < (curwin->w_cursor).lnum                   : (VIsual).col != (curwin->w_cursor).col                        ? (VIsual).col < (curwin->w_cursor).col                     : (VIsual).coladd < (curwin->w_cursor).coladd) ;
         long            lines;
@@ -66244,7 +66097,7 @@ screen_del_lines(int         off, int         row, int         line_count, int  
     static int
 skip_showmode(void)
 {
-    if (global_busy || msg_silent != 0 || !redrawing() || ((!stuff_empty() || typebuf.tb_len > 0 || using_script()) && !KeyTyped))
+    if (global_busy || msg_silent != 0 || !redrawing() || ((!stuff_empty() || typebuf.tb_len > 0) && !KeyTyped))
     {
         redraw_mode = TRUE;
         return TRUE;
@@ -72402,7 +72255,7 @@ out_flush(void)
 
     len = out_pos;
     out_pos = 0;
-    ui_write(out_buf, len, FALSE);
+    ui_write(out_buf, len);
 }
 
     static void
@@ -76132,15 +75985,9 @@ add_time(char_u *buf, size_t buflen, time_t tt)
 }
 
     static void
-ui_write(char_u *s, int len, int console  __attribute__((unused)) )
+ui_write(char_u *s, int len)
 {
-
     mch_write(s, len);
-    if (console && s[len - 1] == '\n')
-    {
-        vim_fsync(1);
-    }
-
 }
 
     static int
@@ -79346,7 +79193,6 @@ is_safe_now(void)
 {
     return stuff_empty()
         && typebuf.tb_len == 0
-        && scriptin[curscript] == NULL
         && !global_busy;
 }
 
