@@ -19,12 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are nineteen phases, 0 to 18.  Phases are added one at a time, each on its
+# There are twenty phases, 0 to 19.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 
 #   stage   phases
 stage       0
@@ -46,6 +46,7 @@ stage       15
 stage       16
 stage       17
 stage       18
+stage       19
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -213,6 +214,20 @@ apart       16 17
 # against the text ITS edit was handed, which is 17's output either way, so it passes
 # on a 17-18 stage.
 apart       17 18
+# Phase 18's check fails at its FIRST act, before any of the four reasons a reader
+# would predict.  It builds its own control by rewriting mch_exit's `exit(r);` to
+# `exit(r + 1);` with sed, and refuses when that changes nothing -- and phase 19 has
+# replaced that line with `vim_host_exit(r);`.  Measured with
+# `tools/phaserun.sh zero 18-19` on r17: `the control edit changed nothing -- mch_exit's
+# exit(r); is not where this phase expects it`, exit 1.  Three more of its assertions
+# would fail after it: it states as a `cmp` that the undefined set did not move at all
+# and a stage takes ONE symbol snapshot at its start, so on a shared stage it is handed
+# the set after 19 has freed `exit`; it requires the file to have gained exactly five
+# lines where 18 and 19 together gain 23; and it requires the file to END with its own
+# six-line launcher, which 19 replaces with twenty.  ONE DIRECTION ONLY: phase 19's own
+# check compares against the text ITS edit was handed and its gone set from r17 is still
+# exactly `exit`, 18 having freed nothing, so it passes on a 18-19 stage.
+apart       18 19
 # NO `apart 13 14`.  Phase 13's check asserts that the libc surface moves by exactly
 # `fclose fsync getc putc` and that `fputs fputc fwrite putchar` are STILL undefined,
 # and phase 14 moves seventeen more -- so phase 13's check does fail on a phase 14
@@ -318,7 +333,7 @@ package  options      12
 package  tidy         13
 package  vendor       14 15
 package  includes     16
-package  host         17 18
+package  host         17 18 19
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -359,3 +374,5 @@ uses  host:17     seed:0     mechanical  tools/zerodelta.sh compares its recordi
 uses  host:17     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
 uses  host:18     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
 uses  host:18     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  host:19     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  host:19     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
