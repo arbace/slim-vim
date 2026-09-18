@@ -767,3 +767,44 @@
 # = ... };` placed after `#include <limits.h>` is `enum : int { 0x7fffffff = ... };`, a
 # syntax error.  They are phase 27's, with the move, and they are the only
 # header-supplied names this phase leaves above the host block.
+#
+# 27 DECLARES NOTHING AT ALL, and it is the SEVENTH kind -- one no earlier zero phase
+# has had, because none of them moved code without changing a line of it.  Phase 16's
+# and 23's empty declarations were a byte-identical BINARY, which is CLAUDE.md's tier 1
+# and subsumes every case at once; this phase cannot have that, because it moves 1,800
+# lines of definitions past the rest of the file and every address below the first of
+# them moves.  What it has instead is tier 1 ONE LEVEL UP, on the SOURCE: the output is
+# the input's lines, rearranged.  Stated as a multiset and checked as one -- not one of
+# the input's 80,197 lines is missing from the output, and the only lines the output
+# adds are the THIRTY-TWO this phase writes, twenty enumerator lines and twelve
+# static_asserts, plus three blanks where an emptied paragraph left two.  A phase that
+# moved code and altered a character of it on the way could not say that, and the
+# recording is what answers for the thirty-two.
+#
+# WHAT MOVES.  The eleven `#include`s go down to just above the host block, and THE
+# FIRST OF THEM IS THE BOUNDARY between the core and the host -- nothing else marks it
+# (ZERO-PLAN.md 4c).  With them go the four functions that hold a `va_list`, which the
+# core cannot declare: vim_snprintf, vim_vsnprintf, vim_vsnprintf_typval and
+# skip_to_arg.  And with THOSE goes whatever only they use, computed to a fixpoint by
+# compiling the cut and moving what gcc calls unused -- five rounds, 15 functions, 18
+# objects and 3 enum blocks, the formatter's whole private island.  Up go the twelve
+# constants the core used to take from <limits.h>, <stdint.h>, <stdlib.h>, <signal.h>
+# and <limits.h>'s PATH_MAX: eight derived from the type system and four asserted, all
+# twelve enumerators because PATH_MAX is an ARRAY BOUND.
+#
+# AND THE RECORDING IS THE ONLY THING THAT CAN ANSWER FOR IT, which is why this phase
+# is 25's and 21's kind and not 16's: the code runs, the instrument sees it, and it does
+# the same thing.  Two full recordings, of the binary the phase was handed and of its
+# own, are byte-identical across all 106 records -- and the binary is 788,488 bytes on
+# both sides, the same size and not the same bytes.  `nm -u` is the same 17 names in
+# both directions, because moving a definition inside ONE translation unit frees nothing
+# and needs nothing: THE CLAIM OF THIS PHASE IS STRUCTURAL AND NOT A SYMBOL COUNT.
+#
+# WHAT IT ADDS TO THE PIPELINE IS A CHECK NOTHING BEFORE IT COULD MAKE.  Cut the file at
+# the first `#include` -- one `awk` clause, no judgement -- and the 78,358-line prefix is
+# a complete translation unit: 0 directives, 0 errors under `-fsyntax-only`, and a
+# warning set that IS the core -> host interface, thirteen names every one `used but
+# never defined`.  Three mistakes that are SILENT in the ordinary build are caught by
+# that and by nothing else: a `#define` above the cut, an `#include` back at line 1, and
+# one core function quietly moved below the boundary, which changes the thirteen by
+# exactly its name.

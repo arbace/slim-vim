@@ -100,6 +100,16 @@ EXCEPTIONS = (
      'deadly signal, and from that phase it DECLARES what it calls instead of taking '
      'the declaration from <signal.h>, because the headers are on their way below the '
      'boundary'),
+    ('<file scope>', 'SIGHUP', (0, 2),
+     '2 from zero phase 27, which moved the eleven `#include`s below the core: the '
+     "core's own `enum { SIGHUP = 1 };` above the boundary, and the "
+     '`static_assert(1 == SIGHUP, "SIGHUP");` below the includes that checks it '
+     'against <signal.h>.  0 before, the name having come from the header.  It is the '
+     'two exceptions above wearing another face -- the core still NAMES the two deadly '
+     'signals it reports, and from that phase it declares the numbers instead of being '
+     'given them.  Both lines are outside the host region this tool reads, the assert '
+     'because the region begins at host_winch_pending and the includes are above it'),
+    ('<file scope>', 'SIGTERM', (0, 2), 'the same two lines for the other signal'),
     ('<file scope>', 'struct timeval', (0, 2),
      "2 up to zero phase 25 -- `elapsed_T`'s typedef and `elapsed`'s prototype, the "
      "clock's -- and 0 from phase 26, which is the \"somebody else's later phase\" the "
