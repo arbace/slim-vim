@@ -309,7 +309,7 @@ package  options      12
 package  tidy         13
 package  vendor       14 15
 package  includes     16
-package  exit         17
+package  host         17
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -346,5 +346,5 @@ uses  includes:16 seed:0     mechanical  tools/zerodelta.sh compares its recordi
 uses  includes:16 tidy:13    rationale   pipes/zero13-edit.sh names <sys/stat.h> and <fcntl.h>, measures that removing them is free, and DECLINES -- "the count stays 18" -- because the charter stated the directive count as a property of the pipeline.  This phase is that decision reversed, and it finds a third header phase 13 did not: <iconv.h>, whose only occurrence in zero-vim.c was its own #include line
 uses  includes:16 vendor:14  mechanical  <string.h> is unused only because phase 14 moved all sixteen mem*/str* functions inside the file as static definitions
 uses  includes:16 vendor:15  mechanical  <ctype.h> and <wctype.h> likewise -- and <wctype.h> needed `iswupper` handled as well, a NAME with no libc symbol, sitting on a line gcc never emitted, which phase 15 deleted rather than vendoring a function nothing calls
-uses  exit:17     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
-uses  exit:17     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  host:17     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  host:17     harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
