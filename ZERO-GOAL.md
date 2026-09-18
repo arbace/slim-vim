@@ -15,7 +15,7 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has twenty-one phases.** Phase 0 is the
+**This document is iterative, and so far it has twenty-four phases.** Phase 0 is the
 seed, phase 1 is a compiler flag, phase 2 is the first cut in the source — the first
 piece of *a component, not a program* — phase 3 changes no source at all: it
 replaces the instrument every later phase is measured with; phase 4 removes Ex mode,
@@ -46,7 +46,16 @@ pointer the launcher installs, so the editor hands the process back with a numbe
 instead of ending it; and then the signal handlers, the window size, the terminal
 mode, the delay and the wait all move into a host block at the bottom of the same
 file, which takes `nm -u` to 24 and leaves the core making exactly two syscalls for
-itself, a `read` of fd 0 and a `write` of fd 1.
+itself, a `read` of fd 0 and a `write` of fd 1. Phase 21 finishes §4c's second step:
+every byte the editor put on a *stream* rather than a screen goes through one callback
+the launcher installs, which takes `nm -u` to **17**, removes `<stdio.h>` and leaves
+`write` the only syscall the core still makes for itself. Phases 22 and 23 are the
+first of the reorganisation that draws the boundary itself: 22 expands the seven
+wrappers that walk a `va_list` at their 129 call sites, so that `va_start` appears
+**once** in the file and the formatter becomes movable, and 23 replaces `NULL` and
+`size_t` with `nullptr` and a `usize` of the core's own — two names the **language**
+supplies instead of a header — with a binary that is byte for byte the one it was
+handed.
 Phases
 are added one at a time, each on the user's own
 request, and each is written into this document, into `pipes/` and into
@@ -71,14 +80,15 @@ the concept is, as the user has stated it, and in no particular order of phases:
   mirrors an abstract syntax tree, with the line view that every motion, command and
   redraw expects simulated on top of it.
 - **`zero-vim.c` stays pure C without a preprocessor** — it inherited 18 directives
-  from `whim-vim.c` and is down to **twelve**, every one an `#include` of a system
+  from `whim-vim.c` and is down to **eleven**, every one an `#include` of a system
   header, and **no phase adds a `#define`, a conditional or an `#include`** — because a
   following repository transpiles it to the JVM, and every construct in the file is one
   that translation has to understand. **A phase may remove one**, and phase 16 is the
-  first that did. That permission is stated here because the old reading — a count the
+  first that did, phase 21 the second, taking `<stdio.h>` with the seven symbols it
+  freed. That permission is stated here because the old reading — a count the
   pipeline preserves — is exactly why phase 13 measured that removing three of them was
   free and declined, writing *"the count stays 18"* into its own program. Nothing is
-  ever added back: the twelve reach `select`, `gettimeofday`, `fd_set`, `struct
+  ever added back: the eleven reach `select`, `gettimeofday`, `fd_set`, `struct
   timeval` and every `*_MAX` only through musl's own `sys/param.h` →
   `sys/resource.h` → `sys/time.h` → `sys/select.h`, which is recorded as a fragility
   rather than repaired with three more directives.
@@ -4343,3 +4353,688 @@ third, and the second is what is left — `mch_write`'s `write(1, …)` and
 itself. What remains after that is the file split, and `tools/zhostonly.py` is the
 check that survives into it: when `editor.c` and `zero-vim.c` become two files, the
 host block becomes the second file and the tool becomes `grep` over the first.
+
+## Phase 21 — the messages are the editor's, the writing is the host's
+
+`pipes/zero21-edit.sh` and `pipes/zero21-check.sh`, `stage 21`, `package host`.
+`ZERO-PLAN.md` §4c's second step, and the half of it that is not the screen: *"`printf`
+for the messages that appear before there is a screen, which is itself a question for
+the host"*. Every byte this file has ever put on a **stream** instead of a screen now
+goes through one callback the launcher installs, in exactly phase 19's shape:
+
+```c
+static void (*vim_host_message)(const char *msg, int len, int err);
+
+    static void
+host_message(const char *msg, int len, int err)
+{
+    ...
+    int w = (int)write(err ? 2 : 1, msg + off, (size_t)(n - off));
+    ...
+}
+```
+
+`vim_main()` takes it as a fourth parameter and installs it beside `vim_host_exit`; the
+two become `musl_` prototypes at the split, together. `<stdio.h>` goes with the symbols
+— **twelve directives become eleven**, the second time a zero phase has removed one and
+the same argument phase 16 made.
+
+**Formatting stays in the core, and that is what turns twenty statements into eight call
+sites.** `vim_snprintf` has been the only formatter in the file since phase 14, so the
+two multi-part speakers assemble into a 1024-byte local and hand over one string, and
+the other six sites are one call each with the text unchanged. Measured with a
+`SOCK_SEQPACKET` socketpair as fd 2, which preserves write boundaries exactly: `-Q` was
+**6 writes of 96 bytes and is 1 write of 96**; `-T no-such-term-9x` was **5 of 54 and is
+1 of 54**. The same bytes, one syscall — and the latent hazard goes with them, stdout's
+buffered `printf` arm arriving after everything the editor drew.
+
+### Four of the seven symbols are named nowhere in the source
+
+Unlike phase 20 this one really frees symbols, and the reason is the rule phase 20
+stated: a symbol leaves when its last **caller** leaves the file. `printf` and `fprintf`
+were being *called* here, not merely mentioned.
+
+```
+nm -u  24 → 17, gone exactly
+    fflush  fputc  fputs  fwrite  printf  putchar  stderr
+arrived: nothing
+```
+
+**`fputc`, `fputs`, `fwrite` and `putchar` have never appeared in `zero-vim.c` at all.**
+They are what gcc emits for `printf("%s", x)` and `fprintf(stderr, "%s", x)`, and no
+grep of the source could have found them. So they were **predicted** to leave with the
+construct and then **verified by building** — which is the whole reason the check states
+the claim as one `comm` with an *empty* `arrived` side rather than as a count. A
+prediction about a symbol the source does not name has nothing but the linker to
+confirm it.
+
+**`__errno_location` is not this phase's and the check requires it PRESENT.** `errno` is
+3 → 3, its two uses being `host_tty_set`'s and `musl_wait_for_input`'s `EINTR` tests,
+both inside phase 20's host block. It leaves at the split, not here — said out loud,
+because a reader who watches seven symbols go will look for the eighth.
+
+**And `printf` is not at 0.** It is 13 → 10, and none of the ten is a call: nine are
+`__attribute__((format(printf, …)))` and one is the string `"E767: Too many arguments
+for printf()"`. `assert printf at 0` fails on a correct phase. The assertions that work
+are `fprintf` 16 → 0, `stderr` 17 → 0, `fflush` 1 → 0, `printf` 13 → 10, and `nm -u`.
+
+### The inventory is twenty statements in five functions, and the brief said twenty-one in six
+
+The survey this phase was written from counted twenty-one output statements in six
+functions, and the sixth was `nv_esc`'s `Type :qa! and press <Enter> to abandon all
+changes`. **Phase 20 had already taken it**, with `stdout_isatty` and the `out_redir`
+arm it sat in. So `fprintf` is sixteen here and not seventeen, `stderr` is seventeen and
+not eighteen, and there are **eight call sites and not nine**. The edit counts its input
+rather than trusting the survey, which is the only reason the arithmetic closed:
+
+| function | statements | what it says |
+| --- | --- | --- |
+| `mainerr` | 6 `fprintf` | the version banner and the argv refusal |
+| `report_term_error` | 7 `fprintf` | `'<term>' not known, defaulting to 'xterm'` |
+| `set_termname` | 1 `fflush` | eleven lines *below* the call above, not inside it |
+| `msg_puts_printf` | 2 `printf`, 2 `fprintf` | whatever message was being printed |
+| `exit_scroll` | 1 `printf`, 1 `fprintf` | `"\n"` / `"\r\n"` on the way out |
+
+The instrument goes on **nineteen** of the twenty, `fflush` taking no message.
+
+### `msg_puts_printf()` and `exit_scroll`'s printf arm are deliberately KEPT
+
+All 75 lines of the first and the else arm of the second stay, and that is a decision
+rather than an oversight. **`msg_use_printf()` is not dead: it returns TRUE 23 times in
+106 records** — once in each `mainerr` record, from `mch_exit` → `exit_scroll()`'s else
+arm → `msg_clr_eos_force()`, where `full_screen` is FALSE and the body it guards
+therefore does nothing. It is never true at `msg_puts_attr()`'s call site, so
+`msg_puts_printf()` is entered **0 of 106 records** against a control that marks 100 of
+102 screens. That is phase 12's kind of dead and not phase 9's: the branch *can* be
+taken and never is.
+
+Folding either would run `screen_fill()` on a screen the test has just called unusable —
+`msg_clr_eos_force()` with no valid screen, or `msg_puts_display()` on a screen
+`msg_use_printf()` has just said is not there. Removing them is a separate phase with a
+separate question — *"the screen is always usable in this build"* — and phase 12's kind
+of evidence to gather, and **it would free nothing, because the symbols are gone here**.
+
+### The bound that comes with the buffer, stated rather than declared
+
+`mainerr`'s `str` and `report_term_error`'s `term` are both argv, so assembling into a
+1024-byte buffer caps a message that used to be unbounded. That is a real behaviour
+change and **no instrument in this pipeline can see it**, because nothing in the corpus
+comes within 800 characters of the bound and `pipes/zero.delta` is a list of records
+that moved. So it is not declared; it is pinned as probes, in both directions and in
+both speakers, so it cannot drift:
+
+| probe | the input | this |
+| --- | --- | --- |
+| an unknown option of **900** characters | 995 B | **995 B — byte-identical** |
+| an unknown option of **930** characters | 1,025 B | **1,023 B — the turn** |
+| an unknown option of **2,000** characters | 2,095 B | **exactly 1,023 B** |
+| `-T` of **900** characters | 939 B | **939 B — byte-identical** |
+| `-T` of **2,000** characters | 2,039 B | **exactly 1,023 B** |
+
+1024 is `IOSIZE`, which is what every other message in this editor is built in. The
+counts are **raw and not scrubbed** except at 900: the version banner's
+`__DATE__`/`__TIME__` differ between two builds and their *length* does not, so only the
+equality needs scrubbing and the caps do not.
+
+### `zerodelta.sh` is the second opinion here and not the first
+
+The declared delta is nothing at all, and two full recordings either side are
+**byte-identical** — `diff -r` reports 0 lines across 102 screen cases, `ref-excmds.txt`,
+`ref-argv.txt`, `ref-pty.txt` and `ref-term.txt`. The control proves that table can
+fail: `write(err ? 2 : 1, …)` made `write(err ? 1 : 1, …)`, **one character**, moves 24
+records and **217 lines** of `diff -r`.
+
+**And it confirms a trap the survey named.** Run on the same control,
+`tools/zerodelta.sh` names only **fourteen** of those twenty-four, because ten of them
+are argv rows phases 4 and 5 already declared (`-`, `--`, `-e`, `-E`, `-e -s`, `-v`,
+`f.txt`, `f.txt g.txt`, `+q! f.txt`, `-- +q!`) and `tools/zcompare.py` therefore accepts
+any *further* movement in them silently. A declared row is not compared again. So this
+check diffs the two recordings itself and keeps `zerodelta.sh` as the second opinion —
+run on the control, where it must refuse.
+
+**The instrumented pair is what makes the empty declaration mean something**, and it is
+phase 9's shape: the input built with `write(2, "MESSAGE-OUT\n", 12)` at all nineteen
+output statements and the output with the identical instrument inside `host_message()`
+mark **exactly the same 24 of the 30 argv rows, by name**, and 0 of 102 screens, 0 of
+`ref-excmds.txt`, 0 of `ref-pty.txt` and 0 of `ref-term.txt`. Same places, same times,
+different primitive. The 24 are 23 `mainerr` and one `report_term_error` — which is also
+what says the other four speakers fire in zero of 106 records.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,148 | **80,173 (+25)** |
+| functions | 1,757 | **1,758** (`host_message`) |
+| type definitions | 904 | 904 |
+| DWARF enumerators | 1,177 | 1,177 |
+| `nm -u` with zero's own flags | 24 | **17**, the gone set as one `comm` |
+| `nm -u` as `tools/symbols.sh` counts it | 25 | **18** |
+| external symbols | `main` | `main` |
+| `#include` | 12 | **11** (`<stdio.h>`) |
+| bare `write()` call sites | 1 | **2** — `mch_write`'s and `host_message`'s |
+| `options[]` rows | 107 | 107 |
+| `cmdnames[]` rows | 98 | 98 |
+| `nv_cmds[]` rows | 194 | 194 |
+| binary | 797,192 | **784,392 (−12,800)** |
+| sweep | | 0 warnings |
+| phase | | **28 s** |
+
+### Its placement
+
+`stage 21`, `package host` beside 17, 18, 19 and 20, with `uses host:21 seed:0` and
+`uses host:21 harness:3` mechanical, `uses host:21 vendor:14 mechanical` — `mainerr` and
+`report_term_error` assemble with `vim_snprintf`, which is the only formatter left in
+the file because phase 14 put `sprintf` onto it rather than vendoring one — and
+`uses host:21 includes:16 rationale`, because a phase may remove a directive at all only
+since phase 16 replaced the charter's old reading of the directive count as a property
+the pipeline preserves.
+
+**`need 21 swept` is not required, and it was measured** in the same run that measured
+`apart 20 21`: phase 21's edit applied to the **unswept** text phase 20's edit leaves
+gives 80,181 → 80,206, every one of its anchors holding — the twelve input counts, the
+twenty statements, the eleven output counts and the whole launcher tail. Its cuts are
+exact text in functions no sweep touches and its computed parts are counts of words a
+sweep cannot create, so there is nothing that could shrink silently.
+
+**`apart 20 21`, measured, one direction only.** `tools/phaserun.sh zero 20-21` on r19
+runs both edits and two sweeps and stops in phase 20's check on one message — *"the
+output does not have exactly the twelve `#include` directives phase 16 left"*. Phase 20
+states the twelve as a property it preserves and this phase takes `<stdio.h>`. There is
+a second reason the run never reaches, and it is `apart 14 15`'s and `apart 19 20`'s
+shape: phase 20 states its gone set as one `comm` against the **stage's** symbol
+snapshot, a stage takes one snapshot at its start, so on a 20-21 stage its gone set
+would be its seven plus these seven.
+
+### What zero-vim is after twenty-one phases
+
+```
+zero-vim.c        80,173 lines          from whim-vim.c's 86,614  (-6,441, 7.4%)
+functions         1,758
+type definitions  904
+DWARF enumerators 1,177
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    107, 95 distinct globals  (orphanopts floor 80; 15 of margin)
+#include          11, every one a system header; no #define, no conditional
+libc symbols      17 with zero's flags, 18 as tools/symbols.sh counts
+binary            784,392 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    20 records + stderr-moved, from whim-vim
+```
+
+**The 17, attributed — and a whole row of the table is gone.**
+
+| why | symbols |
+| --- | --- |
+| **the terminal**, every one of them in the host block | `read` `ioctl` `select` `tcgetattr` `tcsetattr` `nanosleep` (6) |
+| **the two writes** — `mch_write`'s in the core, `host_message`'s in the launcher | `write` (1) |
+| **memory** | `malloc` `free` `realloc` (3) |
+| **time** | `time` `gettimeofday` (2) |
+| **signals** — `sigaction` and `sigemptyset` in the host block, `kill` and `getpid` in both | `sigaction` `sigemptyset` `kill` `getpid` (4) |
+| **gcc's own**, named nowhere in the source | `__errno_location` (1) |
+
+**There is no row for "messages before there is a screen" any more**, and the five-strong
+"gcc's own" row is down to one. `write` has a row of its own because it is the only one
+here the **core** still does for itself as well as the host: `mch_write`'s
+`write(1, …)`, which with `musl_read_input`'s `read(0, …)` is all of `ZERO-PLAN.md`
+§4c's remaining step.
+
+## Phase 22 — the variadic collapse
+
+`pipes/zero22-edit.sh` and `pipes/zero22-check.sh`, `stage 22`, `package format`.
+C cannot forward `...` — which is why `vsnprintf` exists beside `snprintf` — so a
+function that takes `...`, opens a `va_list` and hands it to `vim_vsnprintf` cannot
+survive a split unless the formatter goes with it. There are eight such functions.
+**Seven are wrappers over the eighth**, and this phase expands every one of their 129
+call sites into `vim_snprintf(…)` plus the tail the wrapper ran afterwards.
+
+**`va_start` goes from eight functions to one**, and that is the whole product: no libc
+symbol falls, no Ex command goes, no option goes, no message changes, and the binary
+gets *bigger*. This is the half of the `va_list` decision that needs only one file, and
+it exists separately for the reason `ZERO-PLAN.md` §4c gives — its declared delta must
+be nothing at all, provable as a byte-identical recording, which is a far stronger
+position from which to make 129 mechanical edits than making them while everything else
+is moving.
+
+| wrapper | mentions | protos | own def | **call sites** |
+| --- | --- | --- | --- | --- |
+| `smsg` | 12 | 1 | 1 | **10** |
+| `smsg_attr` | 4 | 1 | 1 | **2** |
+| `smsg_attr_keep` | 2 | **0** | 1 | **1** |
+| `semsg` | 96 | 1 | 1 | **94** |
+| `siemsg` | 12 | 1 | 1 | **10** |
+| `vim_snprintf_add` | 3 | 1 | 1 | **1** |
+| `vim_snprintf_safelen` | 13 | 1 | 1 | **11** |
+| | | | | **129** |
+
+`smsg_attr_keep` has no prototype and `vim_snprintf` has **two**, so a phase that
+deletes "the prototype and the definition" for each of seven names fails on the first
+and leaves one behind on the second.
+
+### No message logic was written, because the tails already existed
+
+Read each wrapper beside its non-variadic twin and the wrapper *is* the twin with a
+format in front of it. `semsg`'s tail is `emsg()`, `siemsg`'s is `iemsg()`, `smsg`'s is
+`msg()`, `smsg_attr`'s `msg_attr()`, `smsg_attr_keep`'s `msg_attr_keep(…, TRUE)`. All
+five already existed and all five were already called from elsewhere. What is left over
+is the two guards, and those become helpers: `iobuff_room()`, `emsg_iobuff_room()`,
+`iobuff_or()`, `safelen_result()` and `append_room()` — **five helpers against seven
+deleted definitions, which is the whole of 1,758 → 1,756.**
+
+**The size-zero trick is what makes the expansion exactly faithful, and it was measured
+rather than assumed.** `vim_vsnprintf_typval` guards every write with
+`if (str_l < str_m)` and terminates with `if (str_m > 0)`, so `vim_snprintf(buf, 0, …)`
+**writes nothing and does not fault** — measured with a build whose first act is
+`vim_snprintf(canary, 0, …)` and `vim_snprintf(NULL, 0, …)`: all eight canary bytes
+untouched, no fault on the null destination. So a helper returning 0 reproduces **both**
+of the wrapper's guards — `emsg_off > 0` and `IObuff == NULL` — with **no conditional at
+any site**. That is why there are five helpers and not an `if`/`else` written out 117
+times.
+
+### The sites come in three shapes, and an edit that emits two statements always gets two of them wrong
+
+| shape | sites | what the expansion does |
+| --- | --- | --- |
+| a plain statement alone on its line | **92** | two lines at the same indentation |
+| a **whole block on one line** inside `parse_fmt_types` | **7** | inline on the same line — two lines would put a statement in front of the closing brace |
+| **value position** | **30** | a comma expression, the format call then the tail |
+
+The 30 are the 18 `return (semsg(…), rc_did_emsg = TRUE, (void *)NULL);` comma
+expressions in the regexp engine, all eleven `vim_snprintf_safelen`s — whose value is
+consumed at every site, five of them `+=` — and `vim_snprintf_add`'s one. A statement is
+told from an operand by the character after the closing paren. **The comma shape already
+existed in the file**, as `return (iemsg(e_internal_error_in_regexp), rc_did_emsg =
+TRUE, (void *)NULL);`, so the expansion invents no idiom.
+
+The survey split them 93 / 29 / 7 and put `vim_snprintf_add`'s site in the plain column;
+it is in value position, and the implementation's 92 / 30 / 7 is the count that makes
+the edit correct.
+
+### All 129 formats are non-literals, which is why the warning list is the check that matters
+
+The thing a reader expects to be a problem is not one, and the measurement is the
+opposite of the expected answer: **every one of `semsg`'s 94 formats is `_(e_name)` or
+`(const char *)(_(e_name))`**, where `e_name` is a `static char e_name[] = "E123: …";`
+array. Whim's constant fold turned upstream's string macros into arrays, so **there is
+no string literal at a `semsg` site anywhere in the file.** It changes nothing about the
+edit, which copies the format *expression* verbatim into `vim_snprintf`'s third
+argument — but it means the build cannot catch a mis-expanded argument list.
+
+What can is `-Wformat=2`. The wrappers carry `format(printf, 1, 2)` / `(2, 3)` / `(3,
+4)` and `vim_snprintf` carries `format(printf, 3, 4)`, and every expansion puts the
+format expression at `vim_snprintf`'s third parameter — so gcc checks exactly what it
+checked before. **115 `-Wformat-nonliteral` warnings in 53 functions before, and the
+identical 115 in the identical 53 after**, compared as an exact list equality and not as
+two numbers. `_()` and `NGETTEXT()` are `static inline __attribute__((format_arg(1)))`,
+so gcc sees through them either side.
+
+**And the invariant fired for real on its first run**, which is the part worth keeping.
+It reported `115 warnings in 0 distinct functions`: gcc quotes identifiers as `'x'`
+under the phase's locale and as curly quotes under the author's, so the function-name
+regex matched nothing and an empty list compared equal to an empty list. The regex
+matches both quotings now, and **a zero-function list can no longer pass for an
+equality** — a list comparison that can be satisfied by two empty lists is the same
+mistake as a test that cannot fail.
+
+The other thing that could have gone wrong was measured too. The expansion mentions the
+format **twice** — once in `vim_snprintf`, once in the tail's `iobuff_or(F)` — and over
+all 129 sites every format expression is side-effect-free: 118 are `_(e_name)`, a bare
+`e_name` or a literal, 8 are `NGETTEXT(a, b, n)` (a pure inline `return`), 2 are a `? :`
+over two `_()`s, and 1 is a parameter.
+
+### `nm -u` cannot move for a restructure inside one translation unit, and the check asserts that as an equality
+
+```
+nm -u  17 → 17, THE SAME SET
+gone: nothing        arrived: nothing
+```
+
+A reader meeting a 129-site phase expects a symbol to fall, and none can: a symbol
+leaves when its last **caller** leaves the file, and nothing left. `vim_vsnprintf_typval`
+still does every conversion in the same file, and `<stdarg.h>`'s three names are macros
+and a compiler builtin type, which are no symbol at all. **The binary GROWS — 784,392 →
+788,488 — and the check requires it to**, because at `-O0` 129 sites that carried one
+call now carry a format call and a tail call. It is the same fact wearing its other
+face, and the check reports the number rather than letting it look like a mistake.
+
+What the phase moves is not code across a boundary but the **possibility of drawing
+one**: eight functions calling `va_start` cannot be split, one can.
+
+### Two controls move nothing, and they are kept
+
+The recording is nearly blind to this phase, and that is measured rather than asserted.
+The input source built again with `write(2, "ZW|<wrapper>|<format>\n", …)` at the entry
+to each of the seven, run over the 102 screen cases: `vim_snprintf_safelen` is entered
+**617** times, `smsg_attr_keep` **6**, `vim_snprintf_add` **2**, and `smsg`, `smsg_attr`,
+`semsg` and `siemsg` **not once**. `semsg` is 94 of the 129 sites and the screen corpus
+enters it zero times. So the phase owes probes, and the check runs **263** on both
+binaries — the Ex-command errors, 132 regexp errors over both engines and three magic
+settings (which are where the 18 comma-expression sites live), the report messages, the
+substitute-confirm prompt, undo, CTRL-G and the ruler, and four incsearch probes with a
+bad pattern, which are the only way to reach a `semsg` under `emsg_off > 0`. The same
+instrument says they enter `semsg` **232 times over 34 distinct formats** and reach **67
+of the 129 sites**.
+
+**263 probes, 0 differ. Four deliberate breaks, and two of them move nothing on
+purpose:**
+
+| break | records that differ |
+| --- | --- |
+| both room helpers return 20 instead of `IOSIZE` | **129 of 263** |
+| every `semsg` site given `msg()` for a tail instead of `emsg()` | **155 of 263** |
+| `safelen_result`'s clamp reduced to `return str_l;` | **0 of 263** |
+| all three guards removed | **0 of 263** |
+
+The two zeroes are reported rather than dropped, in the program, the delta file and
+here, because **they are the honest statement of what this evidence cannot reach**: the
+clamp needs a message longer than 1,025 bytes out of `fileinfo`, and the guards need
+`IObuff == NULL`, which is an out-of-memory failure of the first two allocations the
+process makes. Reporting them as 0 is the difference between *"the probes prove the
+guards are load-bearing"*, which would be false, and *"the guards are correct by
+construction and the probes say so about the other two"*.
+
+The other 62 sites are covered by the edit being **one rule applied uniformly** and by
+the whole-file equalities above. `semsg`'s unreached sites are out-of-memory reports and
+the twenty inside the formatter itself — which fire only on a format string the editor
+would have to have got wrong, and every format in this file is one of its own — and
+`siemsg`'s ten are the memfile detecting its own corruption.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,173 | **80,176 (+3)** |
+| functions | 1,758 | **1,756** — seven wrappers out, five helpers in |
+| type definitions | 904 | 904 |
+| DWARF enumerators | 1,177 | **1,177**, and not one went, arrived or renumbered |
+| `va_start` / `va_list` / `va_end` | 8 / 15 / 10 | **1 / 8 / 3** |
+| `vim_snprintf` mentions | 73 | **201** — one per site less the redundant second prototype |
+| `-Wformat-nonliteral` | 115 in 53 functions | **the identical 115 in the identical 53** |
+| `nm -u` with zero's own flags | 17 | **17, the same set**, a `comm` empty both ways |
+| `nm -u` as `tools/symbols.sh` counts it | 18 | **18** |
+| external symbols | `main` | `main` |
+| `#include` | 11 | 11 |
+| `options[]` / `cmdnames[]` / `nv_cmds[]` rows | 107 / 98 / 194 | 107 / 98 / 194 |
+| binary | 784,392 | **788,488 (+4,096)** |
+| sweep | | takes nothing, 0 warnings |
+| phase | | **37 s** |
+
+**Four functions still hold a `va_list`** — `vim_snprintf`, `vim_vsnprintf`,
+`vim_vsnprintf_typval` and `skip_to_arg`, the positional-argument walker, which
+`ZERO-PLAN.md` named as three. All four belong below the first `#include` when the
+reorganisation comes.
+
+### Its placement
+
+`stage 22`, `package format`. **`format` is a new package and it is deliberately not
+`vendor`**: nothing is brought in. A layer is *flattened* — seven wrappers over one
+formatter become 129 call sites and five helpers, so that `va_start` appears once and
+the formatter becomes movable. Its `uses` are `format:22 seed:0` and
+`format:22 harness:3` mechanical, `format:22 vendor:14 rationale` — `musl_strlen` is
+what `append_room()` measures the appended string with, and phase 14 is where the core
+got its own string functions — and `format:22 host:21 mechanical`, because phase 21
+routed `mainerr` and `report_term_error` through `vim_snprintf`, so the mention count
+this phase's arithmetic starts from is phase 21's. **The check therefore asserts
+`vim_snprintf`'s count only AFTER**, as the transformer's own arithmetic against
+whatever it was handed.
+
+**`need 22 swept` is not required, and it was measured** in the same run that measured
+`apart 21 22`: this edit finds its sites by word boundary and balanced parens over the
+whole file and asserts no counted anchor a sweep can move, and on phase 21's **unswept**
+output it finds the same 129 sites in the same 92 / 7 / 30 shapes, 80,174 → 80,182
+lines.
+
+**`apart 21 22`, measured, and the first complaint is not the predicted one.**
+`tools/phaserun.sh zero 21-22` on r20 stops in phase 21's check with **``printf` has 4
+mentions, expected 10``** — phase 21's own documented counting trap read from the other
+end. None of the ten is a call; nine are `format(printf, …)` attributes, and **six of
+those nine sit on the wrapper prototypes this phase deletes**. The other three
+complaints are ordinary: ``vim_snprintf` has 201 mentions, expected 73``, ``musl_strlen`
+has 135 mentions, expected 134`` — `append_room()`'s — and *the file is 80176 lines and
+the input was 80148, expected exactly 25 more*. **One direction only**, and it is not
+observable in that run because 21's check refuses first.
+
+### What zero-vim is after twenty-two phases
+
+```
+zero-vim.c        80,176 lines          from whim-vim.c's 86,614  (-6,438, 7.4%)
+functions         1,756
+type definitions  904
+DWARF enumerators 1,177
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    107, 95 distinct globals  (orphanopts floor 80; 15 of margin)
+#include          11, every one a system header; no #define, no conditional
+libc symbols      17 with zero's flags, 18 as tools/symbols.sh counts
+binary            788,488 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    20 records + stderr-moved, from whim-vim
+va_start          1, in vim_snprintf
+```
+
+**The 17 are phase 21's 17, unchanged**, and that is this phase's claim rather than an
+omission. What it produced is not a symbol, a line count or a row but a *shape*: one
+`va_start` in the file, which is what the split needs and what nothing before it could
+have asserted.
+
+## Phase 23 — `nullptr` and `usize`
+
+`pipes/zero23-edit.sh` and `pipes/zero23-check.sh`, `stage 23`, `package boundary`.
+`ZERO-PLAN.md` §4c settled the design: **there is no split into two files, there is one
+file with two parts, and the first `#include` is the boundary.** The core is the prefix
+above it and must name nothing a header supplies. Four phases draw that line; this is
+the first, and it is deliberately the smallest **because it is the one that can be
+checked by `cmp`**.
+
+Two names the core takes from a header are replaced by two the **language** supplies:
+
+```c
+    NULL    →  nullptr                            a C23 keyword; nothing is declared
+    size_t  →  usize                              typedef typeof(sizeof(0)) usize;
+```
+
+Neither is a new dependency. gcc here defaults to C23 — `__STDC_VERSION__` is
+`202311L` — and this file already depends on it for `enum : long`, `static_assert` and
+the lowercase `bool`/`true`/`false` it uses throughout. The check states the dependency
+as a measurement rather than leaving it implicit: it lifts the typedef line **out of the
+output** and compiles it four ways, where gcc's default and `-std=c23` must accept it
+and `-std=c11` and `-std=c99` must refuse.
+
+**Both spellings came from the user and both beat what had been proposed.** An
+enumerator with the value 0 is a null pointer constant everywhere except a variadic
+argument, where it passes four bytes to a callee reading eight **with no warning from
+gcc**; `nullptr` is typed, so the hazard does not exist and the rule the phase would
+have had to assert for ever is not needed. And `typeof(sizeof(0))` **is** `size_t` on
+any target, because `sizeof(0)` has that type by definition — proved in the same
+translation unit as the real `<stddef.h>` with `_Generic((usize)0, size_t: 1, default:
+0)`, which is the same *type* and not merely the same width. `typedef unsigned long
+size_t;` is correct here and silently wrong elsewhere, and silent when it is right, so
+nothing in this repository could have told the two apart.
+
+The `#include`s stay at the top. Moving them is phase 26. Eleven directives sit on the
+first eleven lines and the typedef on line 13, which is the whole of **+2 lines**.
+
+### The binary is byte-identical, and that is the whole of the evidence
+
+`cmp` of the input's binary against the output's, both built with
+`SOURCE_DATE_EPOCH=0` and the boundary's own flags: **788,488 bytes either side, no
+difference at all**. That is tier 1 of `CLAUDE.md`'s verification table, and it subsumes
+every screen case, every Ex-command row, every command line and every pty scenario at
+once, **because the program that would be run is the same program**. `nm -u` holds still
+as a `comm` empty both ways, `main` is still the only external symbol, the sweep took
+nothing and canon settled in one round. `tools/zerodelta.sh --phase 23` still runs and
+corroborates; it is not the evidence. It is phase 16's shape exactly, on three thousand
+edits instead of seven.
+
+### Every `size_t` was partitioned before any was renamed
+
+`NULL` 2,555 → 3 and `size_t` 437 → 0, and the second number is a **partition and not a
+count**. The edit classifies all 437 into
+
+| class | sites |
+| --- | --- |
+| casts — `(size_t)` and `((size_t)` | **202** |
+| declarations — parameter, local, struct field, return type | **235** |
+| anything else | **0** |
+
+and **refuses on a leftover**. A leftover would be a use a typedef does not serve — a
+case label, an array bound, a `sizeof(size_t)` — and there are none. The classification
+is computed from the text, so it stays true of a file this phase has never seen; the
+edit asserts no *count* of its input at all, because one rule applied to every
+occurrence is correct for any number of them, and pinning the count would make the phase
+refuse on a tree that is merely bigger without making a wrong substitution any more
+visible.
+
+**The eleven vendored signatures change with everything else, and that is not an
+interface change.** `musl_memcpy musl_memmove musl_memset musl_memcmp musl_memchr
+musl_strncpy musl_strncmp musl_strncasecmp musl_bsearch musl_qsort` take `usize`
+parameters and `musl_strlen` returns one. They have been the core's own `static`
+definitions since phases 14 and 15 — nothing outside this file calls them — so renaming
+their parameter type changes no contract with anybody.
+
+### Three `NULL`s survive, and the control is what proves they matter
+
+Three string literals in this file contain `NULL`:
+
+```
+"E1507: Internal error: ap_types or ap_types[idx] is NULL: %d: %s"
+"[NULL]"          the printf layer's stand-in for a null %s argument
+"NULL"            what ga_print writes for an empty growarray
+```
+
+and no literal contains `size_t`. So the substitution is not a `sed`: it scans the file
+for string and character literals first — cheap and exact here, this file having no
+preprocessor and no comments — and rewrites only outside them.
+
+**The check builds the literal-unaware form as a control and requires it to differ.**
+Measured: a plain line-wise `\bNULL\b` → `nullptr` gives a binary **1,598 bytes
+different — 50 in `.text`, 174 in `.data` and 1,354 in `.rodata`** — and `strings` finds
+`[nullptr]`, `nullptr` and an E1507 message that names a C keyword at the user. That is
+`CLAUDE.md`'s rule that *what must not change is data, and the check for that is the
+strings*, arriving on a phase nobody expected it on. Without the control the `cmp` above
+is a pair of numbers agreeing, and a test that cannot fail is not evidence.
+
+The survey measured the same control at **1,597 bytes and 49 in `.text`**; it ran it on
+r21, and on r22 — the text this phase was actually handed — it is 1,598 and 50. The
+`.rodata` and `.data` figures are the same either side, which is what says the extra
+byte is code motion and not another string.
+
+### The one-pass rule, which is worth more than the phase
+
+**Both names must be rewritten in ONE pass over the original text**, and that is not
+tidiness. A second pass indexes literal spans computed on the **first pass's output**,
+and every span after the first replacement is shifted. Measured: the two-pass form
+leaves **five of the 437 `size_t` behind** — and leaves a file that still **compiles**,
+whose binary is still **byte-identical**, because `<stddef.h>` is still above every line
+of it. Every check this phase has passes on that file except the count.
+
+It would have surfaced at phase 26, as five unexplained errors in a move that had
+nothing to do with them and nothing pointing back here. **A whole-file substitution is
+literal-aware and single-pass**, and `CLAUDE.md` records it as a pattern now rather than
+as this phase's incident.
+
+### The thirty `(void *)NULL` become plain `nullptr`, and the survey said eighteen
+
+That is a decision and not a mechanical consequence: a mechanical `\bNULL\b` → `nullptr`
+leaves them as `(void *)nullptr`, which compiles and is byte-identical. The cast exists
+for exactly one hazard — an untyped null constant in a variadic argument position
+passing a four-byte `int` where the callee reads an eight-byte pointer — and `nullptr`
+is typed, `sizeof(nullptr) == sizeof(void *)`, so the cast now says nothing a reader
+needs. Doing it here rather than later is what keeps those sites from being touched
+twice.
+
+**The survey counted eighteen of them and it was simply wrong**, at r22 and at r21
+alike. Re-measured, there are **thirty**: 28 comma expressions in the regexp parser,
+`return (emsg(…), rc_did_emsg = TRUE, (void *)NULL);`, where the cast was carrying the
+comma expression's type, and 2 returns in `get_register`. `nullptr_t` converts to any
+pointer type on return, so they are the same program — which the `cmp` says. The
+survey's occurrence counts were r21's as well, and phase 22 moved both.
+
+### And one control that moves nothing, reported rather than dropped
+
+Reverting one `usize` to `size_t` compiles cleanly and gives a byte-identical binary,
+because the `#include`s are still at the **top** of the file and `size_t` is therefore
+still declared above every line of it. That is the honest statement of what this phase's
+evidence cannot reach: **the rename is not yet load-bearing**, and it becomes so at
+phase 26, where the same control is three hard errors. It is phase 22's b3/b4 in this
+phase's shape.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,176 | **80,178 (+2)** — the typedef and its blank |
+| functions | 1,756 | 1,756 |
+| type definitions | 904 | **905** (`usize`) |
+| DWARF enumerators | 1,177 | 1,177 |
+| `NULL` | 2,555 | **3**, all three inside string literals |
+| `nullptr` | 0 | **2,552** |
+| `size_t` | 437 | **0** — 202 casts and 235 declarations, nothing left over |
+| `usize` | 0 | **438** — the 437 and its own typedef |
+| `(void *)NULL` | 30 | **0** |
+| `nm -u` with zero's own flags | 17 | **17, the same set**, a `comm` empty both ways |
+| `nm -u` as `tools/symbols.sh` counts it | 18 | **18** |
+| external symbols | `main` | `main` |
+| `#include` | 11 | 11, on the first eleven lines |
+| `options[]` / `cmdnames[]` / `nv_cmds[]` rows | 107 / 98 / 194 | 107 / 98 / 194 |
+| binary | 788,488 | **788,488 — `cmp`-identical** |
+| sweep | | takes nothing, 0 warnings, canon settles in one round |
+| phase | | **18 s** |
+
+### Its placement
+
+`stage 23`, `package boundary`. **The package is `boundary` and not `language`**,
+although `language` is what this phase and phase 25 do: phases 23 to 26 are one idea —
+23, the two names the language supplies instead of a header; 24, the two host calls that
+become plain ones; 25, the header types and macros the core can own; 26, the move itself
+— and `language` would have named 23 and 25 while leaving 24 and 26 in a package that
+did not describe them. Its `uses` are `boundary:23 seed:0 mechanical`,
+`boundary:23 vendor:14 rationale` and `boundary:23 vendor:15 rationale` for the eleven
+vendored signatures above, and `boundary:23 host:21 mechanical` — this edit puts the
+typedef directly below the **last** `#include` and asserts eleven directives on the
+first eleven lines, and the eleventh and the count are phase 21's, which took
+`<stdio.h>` with the seven symbols it freed.
+
+**`need 23 swept` is not required, and it was measured** in the same run that measured
+`apart 22 23`. This edit asserts **no count of its input**, so there is no counted anchor
+that could shrink silently; what it asserts is structural — eleven directives on the
+first eleven lines, `usize` and `nullptr` at zero, the three literals holding `NULL`, and
+the partition — and every one of those held on the unswept text phase 22's edit leaves,
+giving the same 2,552, 437 and 30. The one number that differs is the blank-line runs it
+preserves, 5 on unswept text against 0 on swept, and it **preserves whatever it is
+handed** rather than requiring a value.
+
+**`apart 22 23`, measured, and the refusal is a phase that renamed nothing breaking on a
+phase that renamed two type names.** `tools/phaserun.sh zero 22-23` on r21 runs both
+edits and two sweeps and stops at phase 22's check's **first act** — ``iobuff_room` is
+not in the output exactly once, so the controls below would not be controls`. Phase 22
+writes its four controls by matching the helpers' text **verbatim**, and two of the three
+hold `if (IObuff == NULL)`, which this phase spells `nullptr`. Behind that refusal sit
+every other literal text it names: `safelen_result`'s clamp is `((size_t)str_l >= str_m)
+? …` and all six declarations it requires are `static size_t …`. **One direction
+observed**, because 22's check refuses first; what the run does show is phase 23's edit
+applying unchanged to phase 22's unswept output, and its own input binary building to the
+same 788,488 bytes.
+
+### What zero-vim is after twenty-three phases
+
+```
+zero-vim.c        80,178 lines          from whim-vim.c's 86,614  (-6,436, 7.4%)
+functions         1,756
+type definitions  905
+DWARF enumerators 1,177
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    107, 95 distinct globals  (orphanopts floor 80; 15 of margin)
+#include          11, on the first eleven lines; no #define, no conditional
+libc symbols      17 with zero's flags, 18 as tools/symbols.sh counts
+binary            788,488 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    20 records + stderr-moved, from whim-vim
+va_start          1, in vim_snprintf
+NULL / size_t     3 (all in string literals) / 0
+```
+
+**Three phases in a row have declared nothing**, and each is a different kind of nothing:
+21 the code runs and the instrument sees it do the same thing; 22 the code runs and the
+instrument is nearly blind to it, so 263 probes stand in; 23 **the binary is the same
+bytes**, which is the strongest kind this pipeline has — phase 16's, and the reason this
+phase was made the smallest of the four rather than the first convenient one.
