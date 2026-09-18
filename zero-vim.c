@@ -710,7 +710,6 @@ enum { CPO_PRESERVE = '&' };
 enum { CPO_SUBPERCENT = '/' };
 enum { CPO_BACKSL = '\\' };
 enum { CPO_SCOLON = ';' };
-enum { SHM_RO = 'r' };
 enum { SHM_MOD = 'm' };
 enum { SHM_NEW = 'n' };
 enum { SHM_TRUNC = 't' };
@@ -765,9 +764,7 @@ static int      p_eb;
 static int      p_ek;
 static int      p_et;
 static char_u   *p_fcs;
-static int      p_fs;
 static int      p_gd;
-static int      p_prompt;
 static char_u   *p_hl;
 static int      p_hls;
 static long     p_hi;
@@ -802,7 +799,6 @@ static int      p_paste;
 static char_u   *p_pt;
 static int      p_pi;
 static char_u   *p_qe;
-static int      p_ro;
 static int      p_remap;
 static long     p_report;
 static int      p_ru;
@@ -840,7 +836,6 @@ static long     p_ttm;
 static int      p_tf;
 static long     p_ttyscroll;
 static long     p_ul;
-static long     p_ur;
 static int      p_vb;
 static char_u   *p_ve;
 static unsigned ve_flags;
@@ -859,8 +854,6 @@ static long     p_wmh = 1L;
 static long     p_wmw = 1L;
 static long     p_wm;
 static int      p_ws;
-static int      p_write;
-static int      p_wa;
 static long     p_wd;
 
 enum
@@ -868,7 +861,6 @@ enum
     BV_AI = 0
     , BV_CI = 9
     , BV_ET = 26
-    , BV_FS = 32
     , BV_ISK = 38
     , BV_MA = 44
     , BV_MOD = 46
@@ -876,8 +868,7 @@ enum
     , BV_NF
     , BV_PI = 50
     , BV_QE
-    , BV_RO
-    , BV_SI
+    , BV_SI = 53
     , BV_STS = 55
     , BV_SW = 57
     , BV_TS = 61
@@ -1679,13 +1670,11 @@ struct file_buffer
     int         b_p_et;
     int         b_p_et_nopaste;
     char_u      *b_p_isk;
-    int         b_p_fs;
     char_u      *b_p_mps;
     int         b_p_ma;
     char_u      *b_p_nf;
     int         b_p_pi;
     char_u      *b_p_qe;
-    int         b_p_ro;
     long        b_p_sw;
     int         b_p_si;
     long        b_p_sts;
@@ -1698,8 +1687,6 @@ struct file_buffer
 
     unsigned    b_tc_flags;
     long        b_p_ul;
-
-    bool        b_did_warn;
 
     bool        b_help;
 
@@ -2870,7 +2857,6 @@ static char *did_set_modified(optset_T *args);
 static char *did_set_number_relativenumber(optset_T *args);
 static char *did_set_osctimeoutlen(optset_T *args);
 static char *did_set_paste(optset_T *args);
-static char *did_set_readonly(optset_T *args);
 static char *did_set_maxsearchcount(optset_T *args);
 static char *did_set_shiftwidth_tabstop(optset_T *args);
 static char *did_set_smoothscroll(optset_T *args);
@@ -3313,8 +3299,6 @@ static int      cterm_normal_bg_color  = 0 ;
 static int      cterm_normal_ul_color  = 0 ;
 static  long  fallback_fg_rgb  =  (( long )0x1ffffff)  ;
 static  long  fallback_bg_rgb  =  (( long )0x1ffffff)  ;
-
-static int      autocmd_busy  = FALSE ;
 
 static int      mouse_dragging  = 0 ;
 
@@ -4470,7 +4454,6 @@ free_buf_options(buf_T       *buf, int         free_p_ff)
     clear_string_option(&buf->b_p_isk);
     clear_string_option(&buf->b_p_nf);
     clear_string_option(&buf->b_p_qe);
-    buf->b_p_fs = -1;
     buf->b_p_ul =  (-123456) ;
 }
 
@@ -4590,7 +4573,7 @@ fileinfo(int fullname, int shorthelp, int dont_truncate)
     name = buf_spname(curbuf);
     bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "%s", name);
 
-    bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "\"%s%s%s%s%s%s", curbufIsChanged() ? (shortmess(SHM_MOD) ?  " [+]" : _(" [Modified]")) : " ", (curbuf->b_flags & BF_NOTEDITED) ? _("[Not edited]") : "", (curbuf->b_flags & BF_NEW) ? new_file_message() : "", (curbuf->b_flags & BF_READERR) ? _("[Read errors]") : "", curbuf->b_p_ro ? (shortmess(SHM_RO) ? _("[RO]") : _("[readonly]")) : "", (curbufIsChanged() || (curbuf->b_flags &  (BF_NOTEDITED + BF_NEW + BF_READERR) ) || curbuf->b_p_ro) ? " " : "");
+    bufferlen += vim_snprintf_safelen(buffer + bufferlen,  (1024+1)  - bufferlen, "\"%s%s%s%s%s", curbufIsChanged() ? (shortmess(SHM_MOD) ?  " [+]" : _(" [Modified]")) : " ", (curbuf->b_flags & BF_NOTEDITED) ? _("[Not edited]") : "", (curbuf->b_flags & BF_NEW) ? new_file_message() : "", (curbuf->b_flags & BF_READERR) ? _("[Read errors]") : "", (curbufIsChanged() || (curbuf->b_flags &  (BF_NOTEDITED + BF_NEW + BF_READERR) )) ? " " : "");
 
     if (curbuf->b_ml.ml_flags & ML_EMPTY)
     {
@@ -4701,51 +4684,10 @@ new_file_message(void)
 }
 
     static void
-change_warning(int col)
-{
-    static char *w_readonly =  "W10: Warning: Changing a readonly file" ;
-
-    if (curbuf->b_did_warn || curbufIsChanged() || autocmd_busy || !curbuf->b_p_ro)
-    {
-        return;
-    }
-
-    ++curbuf_lock;
-    --curbuf_lock;
-    if (!curbuf->b_p_ro)
-    {
-        return;
-    }
-
-    msg_start();
-    if (msg_row == Rows - 1)
-    {
-        msg_col = col;
-    }
-    msg_source( highlight_attr[(int)(HLF_W)] );
-    msg_puts_attr(_(w_readonly),  highlight_attr[(int)(HLF_W)]  | MSG_HIST);
-    msg_clr_eos();
-    (void)msg_end();
-    if (msg_silent == 0)
-    {
-        out_flush();
-        ui_delay(1002L, TRUE);
-    }
-    curbuf->b_did_warn = true;
-    redraw_cmdline = FALSE;
-    if (msg_row < Rows - 1)
-    {
-        showmode();
-    }
-}
-
-    static void
 changed(void)
 {
     if (!curbuf->b_changed)
     {
-
-        change_warning(0);
 
         changed_internal();
     }
@@ -9346,7 +9288,7 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
         p = NameBuff;
         plen = (int) strlen((char *)(p)) ;
 
-        if ((bt_help(wp->w_buffer) || bufIsChanged(wp->w_buffer) || wp->w_buffer->b_p_ro) && plen <  PATH_MAX  - 1)
+        if ((bt_help(wp->w_buffer) || bufIsChanged(wp->w_buffer)) && plen <  PATH_MAX  - 1)
         {
             *(p + plen++) = ' ';
             *(p + plen) = NUL;
@@ -9358,10 +9300,6 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
         if (bufIsChanged(wp->w_buffer))
         {
             plen += vim_snprintf((char *)p + plen,  PATH_MAX  - plen, "%s", "[+]");
-        }
-        if (wp->w_buffer->b_p_ro)
-        {
-            plen += vim_snprintf((char *)p + plen,  PATH_MAX  - plen, "%s", _("[RO]"));
         }
 
         this_ru_col = ru_col - (cmdline_width - wp->w_width);
@@ -10903,7 +10841,6 @@ edit(int         cmdchar, int         startln, long        count)
 
     if (!p_im && did_restart_edit == 0)
     {
-        change_warning(i == 0 ? 0 : i + 1);
     }
 
     string_T inserted = get_inserted();
@@ -50493,10 +50430,6 @@ static struct vimoption options[] =
                             {(char_u *)"vert:|,fold:-,eob:~,lastline:@",
                                                                   (char_u *)0L}
                               },
-    {"fsync",       "fs",   P_BOOL|P_SECURE|P_VI_DEF,
-                            (char_u *)&p_fs,   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  , NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}
-                              },
     {"gdefault",    "gd",   P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_gd, PV_NONE, NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -50622,15 +50555,9 @@ static struct vimoption options[] =
     {"preserveindent", "pi", P_BOOL|P_VI_DEF|P_VIM,
                             (char_u *)&p_pi,   (idopt_T)(PV_BUF + (int)(BV_PI))  , NULL, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
-    {"prompt",      NULL,   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_prompt, PV_NONE, NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
     {"quoteescape", "qe",   P_STRING|P_ALLOCED|P_VI_DEF,
                             (char_u *)&p_qe,   (idopt_T)(PV_BUF + (int)(BV_QE))  , NULL, NULL,
                             {(char_u *)"\\", (char_u *)0L}   },
-    {"readonly",    "ro",   P_BOOL|P_VI_DEF|P_RSTAT|P_NOGLOB,
-                            (char_u *)&p_ro,   (idopt_T)(PV_BUF + (int)(BV_RO))  , did_set_readonly, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
     {"relativenumber", "rnu", P_BOOL|P_VI_DEF|P_RWIN,
                             (char_u *) ((char_u *)-1) ,   (idopt_T)(PV_WIN + (int)(WV_RNU))  ,
                             did_set_number_relativenumber, NULL,
@@ -50766,9 +50693,6 @@ static struct vimoption options[] =
                             {
                             (char_u *)9999L,
                                 (char_u *)0L}   },
-    {"undoreload",  "ur",   P_NUM|P_VI_DEF,
-                            (char_u *)&p_ur, PV_NONE, NULL, NULL,
-                            { (char_u *)10000L, (char_u *)0L}   },
     {"verbose",     "vbs",  P_NUM|P_VI_DEF,
                             (char_u *)&p_verbose, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
@@ -50805,12 +50729,6 @@ static struct vimoption options[] =
     {"wrapscan",    "ws",   P_BOOL|P_VI_DEF,
                             (char_u *)&p_ws, PV_NONE, NULL, NULL,
                             {(char_u *)TRUE, (char_u *)0L}   },
-    {"write",       NULL,   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_write, PV_NONE, NULL, NULL,
-                            {(char_u *)TRUE, (char_u *)0L}   },
-    {"writeany",    "wa",   P_BOOL|P_VI_DEF,
-                            (char_u *)&p_wa, PV_NONE, NULL, NULL,
-                            {(char_u *)FALSE, (char_u *)0L}   },
     {"writedelay",  "wd",   P_NUM|P_VI_DEF,
                             (char_u *)&p_wd, PV_NONE, NULL, NULL,
                             {(char_u *)0L, (char_u *)0L}   },
@@ -50954,7 +50872,6 @@ set_init_1(void)
     set_options_default(0);
 
     curbuf->b_p_initialized = true;
-    curbuf->b_p_fs = -1;
     curbuf->b_p_ul =  (-123456) ;
     check_buf_options(curbuf);
     check_win_options(curwin);
@@ -52736,19 +52653,6 @@ did_set_paste(optset_T *args  __attribute__((unused)) )
 }
 
     static char *
-did_set_readonly(optset_T *args)
-{
-    if (curbuf->b_p_ro)
-    {
-        curbuf->b_did_warn = false;
-    }
-
-    redraw_titles();
-
-    return NULL;
-}
-
-    static char *
 did_set_maxsearchcount(optset_T *args  __attribute__((unused)) )
 {
     char        *errmsg = NULL;
@@ -53764,8 +53668,6 @@ get_varp_scope(struct vimoption *p, int scope)
     {
         switch ((int)p->indir)
         {
-            case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  :
-                return (char_u *)&(curbuf->b_p_fs);
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SISO)) ))  :
                 return (char_u *)&(curwin-> w_onebuf_opt.wo_siso );
             case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SO)) ))  :
@@ -53815,9 +53717,6 @@ get_varp(struct vimoption *p)
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_WIN + (int)(WV_SOP)) ))  :
             return curwin-> w_onebuf_opt.wo_sop  != -1
                                     ? (char_u *)&(curwin-> w_onebuf_opt.wo_sop ) : p->var;
-        case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_FS)) ))  :
-            return curbuf->b_p_fs >= 0
-                                    ? (char_u *)&(curbuf->b_p_fs) : p->var;
         case   (idopt_T)(PV_BOTH + (int)( (idopt_T)(PV_BUF + (int)(BV_UL)) ))  :
             return curbuf->b_p_ul !=  (-123456) 
                                     ? (char_u *)&(curbuf->b_p_ul) : p->var;
@@ -53867,8 +53766,6 @@ get_varp(struct vimoption *p)
             return (char_u *)&(curbuf->b_p_pi);
         case   (idopt_T)(PV_BUF + (int)(BV_QE))  :
             return (char_u *)&(curbuf->b_p_qe);
-        case   (idopt_T)(PV_BUF + (int)(BV_RO))  :
-            return (char_u *)&(curbuf->b_p_ro);
         case   (idopt_T)(PV_BUF + (int)(BV_SI))  :
             return (char_u *)&(curbuf->b_p_si);
         case   (idopt_T)(PV_BUF + (int)(BV_STS))  :
@@ -54008,7 +53905,6 @@ buf_copy_options(buf_T *buf, int flags)
             if (!buf->b_p_initialized)
             {
                 free_buf_options(buf, TRUE);
-                buf->b_p_ro = FALSE;
             }
             else
             {
@@ -54067,7 +53963,6 @@ buf_copy_options(buf_T *buf, int flags)
               ;
               ;
 
-            buf->b_p_fs = -1;
             buf->b_p_ul =  (-123456) ;
             buf->b_bkc_flags = 0;
             buf->b_tc_flags = 0;
@@ -76763,7 +76658,6 @@ u_savecommon(linenr_T    top, linenr_T    bot, linenr_T    newbot, int         r
             return FAIL;
         }
 
-        change_warning(0);
         if (bot > curbuf->b_ml.ml_line_count + 1)
         {
             emsg(_(e_line_count_changed_unexpectedly));
@@ -77060,7 +76954,6 @@ u_doit(int startcount)
     }
     while (count--)
     {
-        change_warning(0);
 
         if (undo_undoes)
         {
@@ -77360,7 +77253,6 @@ target_zero:
     {
         while (!got_int)
         {
-            change_warning(0);
 
             uhp = curbuf->b_u_curhead;
             if (uhp == NULL)
@@ -77387,7 +77279,6 @@ target_zero:
         {
             while (!got_int)
             {
-                change_warning(0);
 
                 uhp = curbuf->b_u_curhead;
                 if (uhp == NULL)
