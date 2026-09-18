@@ -1106,6 +1106,20 @@ its signal set. After them the core's undefined set would be `malloc free reallo
 `time gettimeofday`, `exit _exit` and gcc's five — and `printf`, still the open
 question this section named.
 
+**THE FIRST OF THE THREE IS DONE, AND THE ARITHMETIC ABOVE IS ONE SYMBOL OUT BECAUSE
+OF IT.** Zero phase 18 demoted `main()` to `static int vim_main(int argc, char **argv)`
+and put a launcher of its own at the bottom of the same file, and zero phase 19 gave
+the core a `static void (*vim_host_exit)(int)` that `vim_main()` installs and
+`mch_exit()` calls where `exit(r);` used to be. So `exit` and `_exit` are BOTH already
+out of the list this section expected to be left with — `_exit` at phase 17, `exit`
+here — and the launcher jumps with `__builtin_setjmp`/`__builtin_longjmp` rather than
+`sigsetjmp`, because measured on this tree the library spelling costs two undefined
+symbols and a thirteenth `#include` where the builtin costs nothing, and because the
+signal mask the process ends with is UNCHANGED by the builtin and would have been
+changed by `siglongjmp` (`exit()` was always called from inside the handler with the
+handled signal blocked). What is left of §4c is the two stream calls and the terminal
+with its signal set.
+
 **One fact for whoever writes `editor.c`, measured at phase 16 and recorded nowhere
 else.** The twelve `#include`s that survive are not twelve independent dependencies.
 `select`, `gettimeofday`, `fd_set`, `FD_SET`, `FD_ZERO`, `FD_ISSET`, `struct timeval`
