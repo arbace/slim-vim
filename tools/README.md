@@ -39,12 +39,20 @@ actually happened was an import crash.
   build timestamp, each padded to the width it replaces, because a screen is
   columns). A CJK glyph is two cells and a combining mark none — counting
   characters got two cases of 102 wrong against an independent emulator.
+  `zstream.py` also holds **`stage()`**, the one place any zero harness or phase
+  check copies the binary under test to the name `vim`: once per binary, under a
+  lock, in a child process, because a `copy2` in one thread and a `fork` in another
+  make `execve` fail with `Text file busy` — 15 of 18 units of one loaded
+  `make zero-verify`.
 - **`zcases.py`**, **`zexcmds.py`**, **`zargv.py`**, **`zpty.py`** — the four
   corpora: 102 keystroke cases that type their own text under `'paste'`, every Ex
   command name typed at `:` and recorded by the message it prints, every command
   line the parser may see, and the four pty scenarios for what only a terminal
   shows (the window size from `TIOCGWINSZ`, raw mode, the arrow keys in Normal
-  mode). **`zrecord.sh <binary> <source> <outdir>`** runs all four and
+  mode). `zpty.py` types the next key when the redraw before it has **ended** — one
+  more `\x1b[?25h` — and not when a clock says the editor has been quiet, and its
+  child sets the window size before it execs: both were races, 16 of 60 runs under
+  load before and 0 of 60 after. **`zrecord.sh <binary> <source> <outdir>`** runs all four and
   `ztermcheck.py` at once, in 5 s, and that is one *recording*.
 - **`ztermcheck.py`** — `termcheck.py` with one difference: it asks without a file
   argument, because from zero phase 5 a file argument is an unknown option and the

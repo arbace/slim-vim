@@ -977,6 +977,19 @@ Every harness stages the binary under test into a temp directory as `vim`,
 whatever it was called outside — so the recorded baselines always describe
 `argv[0] == "vim"`, and renaming the product could not silently move them.
 
+**In zero that staging is one function, `tools/zstream.py`'s `stage()`, and it is
+one function because of a race.** `shutil.copy2` holds a write fd on its
+destination, and a `fork` in another thread — every zero harness runs its cases in
+a `ThreadPoolExecutor` — hands that thread's child the same fd until it execs;
+`execve` refuses a file any process holds open for writing, so the *copying*
+thread's own exec dies with `Text file busy`. Measured on r1: 0 of 20 runs of
+`zcases.py`/`zargv.py` idle and **8 of 20** under a steady 64-way load, and a
+`make zero-verify` under that load lost **15 of its 18 units**, almost every one of
+them this. `stage()` copies **once per binary, under a lock, in a child process**,
+so the write fd never exists in an address space that is forking. Every zero
+harness and every zero phase check calls it; `tools/ptyrun.py` has its own copy of
+the same three lines and is whim's, so it is the one place left.
+
 **The product is `slim-vim`, and that name was checked rather than assumed.**
 It matches none of the prefixes above and falls through to plain vim: run side
 by side against the same binary named `vim`, `:r !echo` works and `readonly` is
@@ -990,6 +1003,22 @@ vim on a `Press ENTER` prompt and the loop would otherwise hang for ever. Before
 concluding a pty harness is broken, check that what it reports is not simply
 true — one scenario that looked wrong was `0Dworld`, which never enters insert
 mode.
+
+**A pty harness waits on content, never on a clock**, and `tools/zpty.py` is where
+that is written down. It used to type the next key once output had been quiet for
+0.25 s, which is a reading of the machine's load: under enough of one the editor
+stalls mid-redraw, the key goes in early, and the answer the scenario asked for is
+wiped before any redraw ends on it. It now waits for one more `\x1b[?25h` —
+show cursor, which is where a redraw *ends* and where `tools/zscreen.py` snapshots
+— and only then asks about quiet. **The window size is set by the child before it
+execs** for the same reason: `TIOCSWINSZ` on the master after `pty.fork()` is a bet
+that the parent beats the child's startup, and losing it leaves a 24-row scroll
+region on a 30-row screen, where three message lines overwrite each other on the
+bottom row. Measured against the recorded baselines under one oscillating 192-way
+load, alternating the two versions: **16 of 60 runs failed before and 0 of 60
+after**. A deadline is still there and it is the failure path: a wait that reaches
+it writes a `stalled` section into the record, says so on stderr and exits 1,
+rather than returning a short capture silently.
 
 **The Ex-command sweep dispatches all 600 command names, each from its own
 scratch directory.** `:mkvimrc`, `:mkexrc`, `:mksession`, `:mkview` and

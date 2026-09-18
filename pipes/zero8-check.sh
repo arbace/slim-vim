@@ -343,6 +343,7 @@ import tempfile
 sys.path.insert(0, 'tools')
 import zrec
 import zscreen
+import zstream
 
 TAG = 'noedit'
 ESC, CR = b'\x1b', b'\r'
@@ -359,10 +360,7 @@ def record(binary, args, keys, timeout=10):
     reach this shell.  THE KEYSTROKE FILE IS THE FILE THE PROBES OPEN: it is written
     as `keys` in the run directory, so `:e! keys` needs nothing planted.
     """
-    stage = tempfile.mkdtemp(prefix='zero8-bin-')
-    vim = os.path.join(stage, 'vim')
-    shutil.copy2(binary, vim)
-    os.chmod(vim, 0o755)
+    vim = zstream.stage(binary)     # argv[0], and the copy race: tools/zstream.py
     home = tempfile.mkdtemp(prefix='zero8-home-')
     env = dict(os.environ)
     env.update(TERM='xterm', HOME=home, VIM=os.path.join(home, 'novim'),
@@ -384,7 +382,6 @@ def record(binary, args, keys, timeout=10):
     except subprocess.TimeoutExpired:
         rc, out, err = 'timeout', b'', b''
     finally:
-        shutil.rmtree(stage, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)
         shutil.rmtree(d, ignore_errors=True)
     scr = zscreen.Screen(24, 80)
@@ -599,6 +596,7 @@ import concurrent.futures, hashlib, os, shutil, subprocess, sys, tempfile
 sys.path.insert(0, 'tools')
 import zrec
 import zscreen
+import zstream
 TAG = 'noedit'
 ESC, CR = b'\x1b', b'\r'
 old_bin, new_bin = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
@@ -613,10 +611,7 @@ KEYS = G + B + MOVERS
 
 
 def record(binary, keys):
-    stage = tempfile.mkdtemp(prefix='zero8-k-')
-    vim = os.path.join(stage, 'vim')
-    shutil.copy2(binary, vim)
-    os.chmod(vim, 0o755)
+    vim = zstream.stage(binary)     # argv[0], and the copy race: tools/zstream.py
     home = tempfile.mkdtemp(prefix='zero8-kh-')
     env = dict(os.environ)
     env.update(TERM='xterm', HOME=home, VIM=os.path.join(home, 'novim'),
@@ -637,7 +632,7 @@ def record(binary, keys):
     except subprocess.TimeoutExpired:
         rc, out = 'timeout', b''
     finally:
-        for p in (stage, home, d):
+        for p in (home, d):
             shutil.rmtree(p, ignore_errors=True)
     scr = zscreen.Screen(24, 80)
     scr.feed(out)

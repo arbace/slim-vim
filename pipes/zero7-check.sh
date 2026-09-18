@@ -252,6 +252,7 @@ import tempfile
 sys.path.insert(0, 'tools')
 import zrec
 import zscreen
+import zstream
 
 TAG = 'noread'
 ESC, CR = b'\x1b', b'\r'
@@ -268,10 +269,7 @@ def record(binary, args, keys, timeout=10):
     reach this shell.  THE KEYSTROKE FILE IS THE FILE THE PROBES READ: it is written
     as `keys` in the run directory, so `:r keys` needs nothing planted.
     """
-    stage = tempfile.mkdtemp(prefix='zero7-bin-')
-    vim = os.path.join(stage, 'vim')
-    shutil.copy2(binary, vim)
-    os.chmod(vim, 0o755)
+    vim = zstream.stage(binary)     # argv[0], and the copy race: tools/zstream.py
     home = tempfile.mkdtemp(prefix='zero7-home-')
     env = dict(os.environ)
     env.update(TERM='xterm', HOME=home, VIM=os.path.join(home, 'novim'),
@@ -293,7 +291,6 @@ def record(binary, args, keys, timeout=10):
     except subprocess.TimeoutExpired:
         rc, out, err = 'timeout', b'', b''
     finally:
-        shutil.rmtree(stage, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)
         shutil.rmtree(d, ignore_errors=True)
     scr = zscreen.Screen(24, 80)
