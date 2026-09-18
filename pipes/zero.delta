@@ -281,3 +281,48 @@
 # identical -- `:cquit` and `:quit`'s neighbours among them.
 11    case:quit_modified
       quit
+#
+# 12 DECLARES NOTHING AT ALL, and the reason is not phase 9's.  Phase 9 removed code
+# that could not run; this phase removes code that CAN run and that the instrument
+# cannot see.  Six option rows go -- `'fsync'`, `'prompt'`, `'readonly'`,
+# `'undoreload'`, `'write'` and `'writeany'`, the six of a computed seven whose global
+# nothing reads -- and with `'readonly'` go the `W10: Warning: Changing a readonly
+# file` message, the second it paused for, and the `[RO]`/`[readonly]` indicators on
+# the CTRL-G line and the status line.
+#
+# WHY NONE OF THAT MOVES A RECORD, measured record by record:
+#
+#   `:set <name>?` goes from an answer to `E518: Unknown option`, and NO RECORDED
+#   CASE OR ROW ASKS ANY OF THE SIX.
+#   BARE `:set` DOES NOT MOVE, because none of the six differs from its default, and
+#   its listing is wiped by the Press-ENTER redraw before tools/zscreen.py takes its
+#   picture anyway.
+#   `:set all` DOES move -- `readonly`, `fsync`, `prompt` and `undoreload` are in the
+#   old stream and absent from the new -- and `:set all` is in no harness.  It is a
+#   probe.
+#   THE W10 WARNING AND THE TWO INDICATORS MOVE, and no recorded case sets
+#   `'readonly'`: they need `:set ro`, which nothing types.
+#   tools/zexcmds.py records `exit`, `bells`, `stderr`, `text` and `msgs` for the
+#   `set` row and NO STREAM DIGEST, so even a change to what `:set` prints in the
+#   stream would be invisible there.
+#
+# So a phase that did nothing and a phase that did everything have the same
+# recording, and pipes/zero12-check.sh says what the evidence is instead: 26 probes on
+# both binaries, of which `ro_w10` is the one that shows BEHAVIOUR going -- `:set ro`
+# on an unmodified buffer and then an insert draws W10 and pauses 1,008 ms on the
+# binary this phase was handed and 3 ms here, the same shape as phase 2's 2,010 -> 5.
+#
+# THE FLAG LETTERS ARE NOT TOUCHED AND THAT IS A DECISION, not an omission.  A letter
+# in `'cpoptions'`' or `'shortmess'`'s validity list with no enumerator is accepted
+# and means nothing -- 23 of 60 and 14 of 23 here, and this phase makes exactly one
+# more so, `'shortmess'`'s `r`.  Removing a letter from a list could not move `:set
+# cpo?` or `:set shm?`, the value being a different literal, but it WOULD turn `:set
+# shm=F` from silently accepted into E539, and nothing in the instrument types `:set
+# shm=`.  Accepting a letter that does nothing is what upstream does for every feature
+# a build lacks.
+#
+# Measured: `diff -rq` over two full recordings, the binary the phase was handed
+# against the one it made, is EMPTY -- all 102 screen cases, all 111 Ex-command rows,
+# all 30 command lines, the four pty scenarios and the nineteen terminal rows -- and
+# tools/zerodelta.sh --phase 12 finds the same against whim-vim's frozen baselines,
+# with the nine lines phases 2 to 11 declared and nothing new.

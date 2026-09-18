@@ -23,7 +23,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12
 
 #   stage   phases
 stage       0
@@ -38,6 +38,7 @@ stage       8
 stage       9
 stage       10
 stage       11
+stage       12
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -136,6 +137,17 @@ apart       9 10
 # 6 and 11 holds 10, so the line below forbids it already.  It is the shape of the
 # missing `apart 2 6`, `apart 6 8` and `apart 8 10`.
 apart       10 11
+# Phase 11's check pins `p_ro` and `p_ur` at 2 mentions WITH their option rows and
+# says in as many words that removing one is the options phase's.  This phase removes
+# both rows.  Measured by running pipes/zero11-check.sh on the tree phase 12 leaves:
+# six complaints -- `p_ro has 0 mentions, expected 2`, `p_ur has 0 mentions, expected
+# 2`, `'undoreload' lost its option row, and that is the options phase's`, the same
+# for `'readonly'`, `curbufIsChanged has 6 mentions, expected 7` (change_warning's
+# early return read it) and `the function count went 1742 -> 1724, expected 1742 ->
+# 1726` -- and exit 1.  Phase 10's check pins the same two option rows and would fail
+# as well, but a stage holding 10 and 12 holds 11, and `apart 10 11` forbids that
+# already.
+apart       11 12
 
 # What phase 7's edit needs of the text it is handed (pipes/whim.stages defines the
 # word).  Every zero phase is its own stage today, so this is a statement rather
@@ -208,6 +220,7 @@ package  harness      3
 package  streams      4 5
 package  files        6 7 8 9 10
 package  buffers      11
+package  options      12
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -230,3 +243,7 @@ uses  files:10    seed:0     mechanical  tools/zerodelta.sh compares its one scr
 uses  files:10    harness:3  mechanical  :file went from the CTRL-G line to E492 with the SAME exit status; the old file-based sweep recorded an exit status, so phase 3's message-level record is what can see this phase at all
 uses  buffers:11  seed:0     mechanical  tools/zerodelta.sh compares its one screen case and one command row with the baselines phase 0 records
 uses  buffers:11  files:6    rationale   the refusal has no remedy once nothing can be written: phase 6 took every :write, so E37 asked for a save that the editor no longer had any way to perform
+uses  options:12  seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  options:12  files:6    mechanical  'write', 'writeany' and 'fsync' were do_write's, not_writing's, check_overwrite's and buf_write's, and 'readonly' reached its last setter when phase 6 left :set ro as the only thing that could mark a buffer read only
+uses  options:12  files:8    mechanical  'undoreload' was read by do_ecmd, which went with the :edit family
+uses  options:12  streams:4  mechanical  'prompt' was read by getexmodeline()'s `if (p_prompt) msg_putchar(':');` and by nothing else, so it is phase 4's orphan and is collected here
