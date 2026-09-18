@@ -55898,15 +55898,6 @@ deathtrap  (int sigarg  __attribute__((unused)) )
     }
 
     full_screen = FALSE;
-    if (entered >= 3)
-    {
-        reset_signals();
-        if (entered >= 4)
-        {
-            _exit(8);
-        }
-        exit(7);
-    }
     if (entered == 2)
     {
          out_str((char_u *)("Vim: Double signal, exiting\n")) ;
