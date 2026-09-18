@@ -19,12 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are twenty-six phases, 0 to 25.  Phases are added one at a time, each on its
+# There are twenty-seven phases, 0 to 26.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
 
 #   stage   phases
 stage       0
@@ -53,6 +53,7 @@ stage       22
 stage       23
 stage       24
 stage       25
+stage       26
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -311,6 +312,17 @@ apart       22 23
 # byte-identical in all 106 records.  Phase 24 frees nothing for phase 25 to be blamed
 # for, and phase 25's arithmetic is stated against the text ITS edit was handed.
 apart       24 25
+# Phase 25's check states its arithmetic as a line count -- "the file is N lines and the
+# input was N+5", phase 25 being a net removal of five -- and phase 26 adds twenty-four to
+# the text before that check reads it.  Measured: `tools/phaserun.sh zero 25-26` on r24
+# runs both edits, one sweep and then phase 25's check, which stops at `the file is 80197
+# lines and the input was 80178 (80178 recorded) -- expected exactly five fewer`.  Its
+# `cmp` of the two binaries would fail too -- phase 25's evidence is a byte-identical
+# recording and a moved binary, and phase 26 moves the binary again -- but the source
+# assertion comes first.  ONE DIRECTION ONLY, and the other is not claimed rather than
+# claimed and unmeasured: phase 25's check refuses before phase 26's ever runs, so there
+# is nothing after it to observe.  That is `apart 19 20`'s shape.
+apart       25 26
 #
 # NO `apart 23 24`, AND IT WAS MEASURED RATHER THAN PREDICTED.  `tools/phaserun.sh zero
 # 23-24` on r22 runs both edits, one sweep and BOTH CHECKS, and every one of them passes:
@@ -455,6 +467,17 @@ need        11 swept
 #                  Phase 24's edit changes no line count and touches no line this phase
 #                  reads, and the sweep between them is a complete no-op at this point in
 #                  the pipeline: one round, 0 of all six kinds, canon settled.
+#   NO `need 26`, AND IT WAS MEASURED RATHER THAN ASSUMED, in the same run that measured
+#                  `apart 25 26`.  Both edits came from the edit cache, which is keyed on
+#                  the DIGEST of the tree each is handed -- so the unswept text phase 25's
+#                  edit leaves IS the tree phase 26's edit was handed on the real pass, and
+#                  a direct `cmp` says the same thing: phase 25's edit applied to r24 gives
+#                  a `zero-vim.c` byte-identical to r25's.  The sweep between them is a
+#                  complete no-op.  Phase 26's edit would not need it in any case: every
+#                  anchor it has is an exact text or a count of a name the sweep cannot
+#                  create, and its one computed part -- the MIN/MAX expansion -- is driven
+#                  by the preprocessor rather than by a number, so there is nothing that
+#                  could shrink silently.
 
 
 #        name         phases
@@ -492,7 +515,27 @@ package  format       22
 # installed through parameters become two forward declarations and nine direct calls,
 # which is the boundary spelled as a declaration rather than as an object.  That is this
 # package's idea exactly, and phase 24's was the other one.
-package  boundary     23 25
+#
+# PHASE 26 IS `boundary` FOR THE SAME REASON PHASE 23 IS.  Both are the core learning to
+# say for itself what a header says for it today: 23 took `NULL` and `size_t`, which the
+# LANGUAGE supplies, and 26 takes the six types and macros the core can OWN -- time_T,
+# `volatile int`, usize, a TAGLESS elapsed_T, MIN/MAX expanded and __builtin_offsetof --
+# and gives the nine libc calls left in the core their own prototypes.  What is NOT in it
+# is the twelve derived constants, because `enum : int { INT_MAX = ... };` placed after
+# `#include <limits.h>` is `enum : int { 0x7fffffff = ... };`, a syntax error: they can
+# only be written once the includes have moved, so they are phase 27's, with the move.
+#
+# AND ONE THING PHASE 26 LEAVES FOR A LATER PHASE, recorded here because nothing hashes
+# this file and the argument would otherwise be lost.  Every core use of the clock is
+# "stamp now, then ask how many milliseconds have passed": `elapsed()` is one
+# `gettimeofday` and a subtraction to milliseconds, and its callers -- do_sleep, vim_beep,
+# handle_osc through osc_state.start_tv, and inchar_loop -- all compare the answer against
+# a millisecond count.  So the core never needs the LAYOUT, only a scalar, and a
+# `long musl_now_ms(void)` would take `struct timeval`, `gettimeofday` and the whole
+# tagless-struct question out of the core together.  The tagless struct is an INTERIM
+# shape: it is what the survey specified and what phase 26's evidence was measured
+# against, and the scalar clock is a phase of its own.
+package  boundary     23 25 26
 # `dialect` is phase 24's, and it is NOT `boundary`: the boundary is where the line
 # between core and host falls, and this phase moves no line.  It is about the LANGUAGE
 # THE CORE IS WRITTEN IN -- 113 GNU `__attribute__((unused))` deleted because the flags
@@ -505,6 +548,15 @@ package  boundary     23 25
 # move itself -- ARE NOW 25, 26 AND 27; the section's numbering is the plan's and this
 # is the tree's.
 package  dialect      24
+
+# Phase 26 is `boundary` and phase 23 is too: both are the core learning to say for
+# itself what a header says for it today.  23 took `NULL` and `size_t`, which the
+# LANGUAGE supplies; 26 takes the six types and macros the core can OWN -- time_T,
+# volatile int, usize, a tagless elapsed_T, MIN/MAX expanded and __builtin_offsetof --
+# and gives the nine libc calls left in the core their own prototypes.  What is NOT here
+# is the twelve derived constants, because `enum : int { INT_MAX = ... };` after
+# `#include <limits.h>` is `enum : int { 0x7fffffff = ... };`: they can only be written
+# once the includes have moved, so they are phase 27's, with the move.
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -572,3 +624,7 @@ uses  boundary:25 host:18    rationale   `vim_main(int argc, char **argv)` is th
 uses  boundary:25 host:19    mechanical  `vim_host_exit`, its parameter, its assignment and its one call site are phase 19's, and so is the reason they were a POINTER -- "a pointer the launcher installs through a parameter adds no external symbol", which was true of a design with two translation units.  This phase also depends on 19's launcher being untouched: `exit` stays out of nm -u because host_exit() still records a status and jumps
 uses  boundary:25 host:20    mechanical  the two prototypes are added at the end of the nine `musl_` prototypes phase 20 left, so the core -> host boundary is ONE block of eleven; and tools/zhostonly.py, which this check runs, is phase 20's structural check
 uses  boundary:25 host:21    mechanical  `vim_host_message`, its parameter, its assignment and its EIGHT call sites are phase 21's, and `host_message()` is the function phase 21 defined in the launcher.  Its control here -- the two streams swapped moving ref-argv.txt and nothing else -- is phase 21's own finding, that everything reaching that function is printed before there is a screen
+uses  boundary:26 seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  boundary:26 harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  boundary:26 host:20    mechanical  musl_gettimeofday is DEFINED inside the host block phase 20 created, immediately above musl_delay -- tools/zhostonly.py reads the host region as the lines from host_winch_pending to musl_suspend's last brace, so a definition below musl_suspend would put a `struct timeval` outside it and the tool would refuse
+uses  boundary:26 host:19    rationale   the two `sig_atomic_t` this phase respells are the core's, and the THREE it leaves alone are the host block's -- the split that makes that sentence meaningful is the launcher phases 18 and 19 put at the bottom of the file
