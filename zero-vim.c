@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/param.h>
@@ -490,6 +489,8 @@ musl_qsort(void *base, size_t nel, size_t width, int (*cmp)(const void *, const 
 
 static int musl_towupper(int a);
 static int musl_towlower(int a);
+
+static void (*vim_host_message)(const char *msg, int len, int err);
 
 enum { BH_DIRTY = 1 };
 enum { BH_LOCKED = 2 };
@@ -37633,11 +37634,11 @@ msg_puts_printf(char_u *str, int maxlen)
                 buf[n++] = NUL;
                 if (info_message)
                 {
-                     printf("%s", ((char *)buf)) ;
+                    vim_host_message((char *)buf, -1, FALSE);
                 }
                 else
                 {
-                     fprintf(stderr, "%s", ((char *)buf)) ;
+                    vim_host_message((char *)buf, -1, TRUE);
                 }
                 vim_free(buf);
             }
@@ -37670,11 +37671,11 @@ msg_puts_printf(char_u *str, int maxlen)
         {
             if (info_message)
             {
-                 printf("%s", ((char *)p)) ;
+                vim_host_message((char *)p, -1, FALSE);
             }
             else
             {
-                 fprintf(stderr, "%s", ((char *)p)) ;
+                vim_host_message((char *)p, -1, TRUE);
             }
             vim_free(tofree);
         }
@@ -55801,11 +55802,11 @@ exit_scroll(void)
         {
             if (info_message)
             {
-                 printf("%s", ("\n")) ;
+                vim_host_message("\n", -1, FALSE);
             }
             else
             {
-                 fprintf(stderr, "%s", ("\r\n")) ;
+                vim_host_message("\r\n", -1, TRUE);
             }
         }
         else
@@ -72178,16 +72179,17 @@ term_strings_not_set(enum SpecialKey idx)
     static void
 report_term_error(char *error_msg, char_u *term)
 {
-     fprintf(stderr, "%s", ("\r\n")) ;
+    char        buf[1024];
+
     if (error_msg != NULL)
     {
-         fprintf(stderr, "%s", (error_msg)) ;
-         fprintf(stderr, "%s", ("\r\n")) ;
+        vim_snprintf(buf, sizeof(buf), "\r\n%s\r\n'%s%s\r\n", error_msg, (char *)term, _("' not known, defaulting to 'xterm'"));
     }
-     fprintf(stderr, "%s", ("'")) ;
-     fprintf(stderr, "%s", ((char *)term)) ;
-     fprintf(stderr, "%s", (_("' not known, defaulting to 'xterm'"))) ;
-     fprintf(stderr, "%s", ("\r\n")) ;
+    else
+    {
+        vim_snprintf(buf, sizeof(buf), "\r\n'%s%s\r\n", (char *)term, _("' not known, defaulting to 'xterm'"));
+    }
+    vim_host_message(buf, -1, TRUE);
 }
 
     static void
@@ -72298,7 +72300,6 @@ set_termname(char_u *term)
                 term =  (char_u *)"xterm" ;
                 report_default_term(term);
                 set_string_option_direct((char_u *)"term", -1, term, OPT_FREE, 0);
-                 fflush(stderr) ;
             }
             out_flush();
                 clear_termoptions();
@@ -79829,17 +79830,18 @@ exe_commands(mparm_T *parmp)
     static void
 mainerr(int         n, char_u      *str)
 {
+    char        buf[1024];
 
     init_longVersion();
-     fprintf(stderr, "%s", (longVersion)) ;
-     fprintf(stderr, "%s", ("\n")) ;
-     fprintf(stderr, "%s", (_(main_errors[n]))) ;
     if (str != NULL)
     {
-         fprintf(stderr, "%s", (": \"")) ;
-         fprintf(stderr, "%s", ((char *)str)) ;
-         fprintf(stderr, "%s", ("\"")) ;
+        vim_snprintf(buf, sizeof(buf), "%s\n%s: \"%s\"", longVersion, _(main_errors[n]), (char *)str);
     }
+    else
+    {
+        vim_snprintf(buf, sizeof(buf), "%s\n%s", longVersion, _(main_errors[n]));
+    }
+    vim_host_message(buf, -1, TRUE);
 
     mch_exit(1);
 }
@@ -79851,10 +79853,11 @@ mainerr_arg_missing(char_u *str)
 }
 
     static int
-vim_main(int argc, char **argv, void (*exit_fn)(int))
+vim_main(int argc, char **argv, void (*exit_fn)(int), void (*message_fn)(const char *, int, int))
 {
 
     vim_host_exit = exit_fn;
+    vim_host_message = message_fn;
 
       musl_memset((&(params)), (0), (sizeof(params)))  ;
     params.argc = argc;
@@ -80137,6 +80140,28 @@ host_exit(int r)
     __builtin_longjmp(host_jump, 1);
 }
 
+    static void
+host_message(const char *msg, int len, int err)
+{
+    int         n = len;
+    int         off = 0;
+
+    if (n < 0)
+    {
+        n = (int)musl_strlen(msg);
+    }
+    while (off < n)
+    {
+        int w = (int)write(err ? 2 : 1, msg + off, (size_t)(n - off));
+
+        if (w <= 0)
+        {
+            return;
+        }
+        off += w;
+    }
+}
+
     int
 main(int argc, char **argv)
 {
@@ -80144,5 +80169,5 @@ main(int argc, char **argv)
     {
         return host_code;
     }
-    return vim_main(argc, argv, host_exit);
+    return vim_main(argc, argv, host_exit, host_message);
 }
