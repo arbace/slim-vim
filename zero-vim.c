@@ -56130,6 +56130,8 @@ exit_scroll(void)
     }
 }
 
+static void (*vim_host_exit)(int);
+
     static void
 mch_exit(int r)
 {
@@ -56158,7 +56160,7 @@ mch_exit(int r)
     out_flush();
     ml_close_all(TRUE);
 
-    exit(r);
+    vim_host_exit(r);
 }
 
     static int
@@ -80375,10 +80377,11 @@ mainerr_arg_missing(char_u *str)
     mainerr(ME_ARG_MISSING, str);
 }
 
-    int
-main
-(int argc, char **argv)
+    static int
+vim_main(int argc, char **argv, void (*exit_fn)(int))
 {
+
+    vim_host_exit = exit_fn;
 
       musl_memset((&(params)), (0), (sizeof(params)))  ;
     params.argc = argc;
@@ -80420,4 +80423,24 @@ main
     init_highlight(TRUE, FALSE);
 
     return vim_main2();
+}
+
+static void *host_jump[5];
+static int host_code;
+
+    static void
+host_exit(int r)
+{
+    host_code = r;
+    __builtin_longjmp(host_jump, 1);
+}
+
+    int
+main(int argc, char **argv)
+{
+    if (__builtin_setjmp(host_jump) != 0)
+    {
+        return host_code;
+    }
+    return vim_main(argc, argv, host_exit);
 }

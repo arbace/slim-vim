@@ -493,3 +493,44 @@
 # useless as a source assertion -- two string literals, a `goto exit;` and its `exit:`
 # label in vim_regsub_both() carry four of its five remaining mentions -- so what this
 # phase asserts is `nm -u`.
+#
+# 18 DECLARES NOTHING AT ALL, and it is a SIXTH kind of empty declaration -- the one
+# where there is nothing to declare because the phase moves no code and removes none.
+# `main()` becomes `static int vim_main(int argc, char **argv)` with its body unchanged
+# byte for byte, and a six-line `main()` whose whole content is
+# `return vim_main(argc, argv);` is appended below it.  The editor runs one call frame
+# deeper and does exactly what it did.
+#
+# The five before it each removed SOMETHING and the reason each declared nothing was
+# different: 9 removed code that COULD NOT RUN, 12 removed code that CAN run and that
+# this instrument CANNOT SEE, 13 removed a POSSIBILITY, 16 changed no code at all and
+# its binary is the same bytes, and 14 and 15 replaced code with code that computes the
+# same answers.  THIS ONE ADDS A FRAME AND THAT IS ALL, so its binary is NOT the same
+# bytes -- at -O0 a call is real code -- and 16's tier-1 argument is not available.
+#
+# What is available instead is every way the editor can end, probed on both binaries:
+# `:q!` 0, `:cq 3` 3, EOF 1, a bad option 1, SIGTERM 1, SIGHUP 1 -- ex_quit, ex_cquit,
+# read_error_exit, mainerr and deathtrap twice, which is every termination route
+# ZERO-PLAN.md maps that a probe can reach from outside.  `return vim_main(argc, argv);`
+# puts a value in the program's path that was not there before, and that table is what
+# says it arrives.  The table is PROVEN able to fail: the output built a second time
+# with mch_exit's `exit(r)` changed to `exit(r + 1)` moves all six.
+#
+# 19 DECLARES NOTHING AT ALL, and it is 18's kind: the phase moves no code out and
+# changes no message.  `mch_exit()`'s last statement stops being `exit(r);` and becomes
+# `vim_host_exit(r);`, a call through a function pointer the launcher installs; the
+# launcher lands on `__builtin_setjmp` and RETURNS the status instead of the process
+# ending inside the editor.  Everything mch_exit does before that line -- the terminal
+# restored, the screen scrolled, the memfile closed -- is unchanged, so what the editor
+# DRAWS on its way out cannot move, and the recording is of what the editor draws.
+#
+# What CAN move is the exit status, and that is measured rather than declared: six
+# routes on both binaries, `:q!` 0, `:cq 3` 3, EOF 1, a bad option 1, SIGTERM 1,
+# SIGHUP 1, with the output built again with `host_code = r;` made `host_code = r + 1;`
+# required to move all six.  A status is not a dimension of this instrument -- zcases
+# and zexcmds record it per case and zerodelta compares it -- so an unchanged status is
+# part of "nothing moved" and the probe table is what makes it legible.
+#
+# 18 and 19 are the first two phases in this pipeline whose empty declaration means
+# NEITHER "nothing ran" NOR "the instrument cannot see it": the code runs, the
+# instrument sees it, and it does the same thing.
