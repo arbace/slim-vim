@@ -1155,7 +1155,30 @@ of the rule is kept — but they are gcc extensions in a file whose point is to 
 C. The alternatives are to keep the variadic layer on the host side, or to give the
 editor a fixed-arity formatting interface. Not settled.
 
-**The split necessarily ends "nothing is global but `main()`."** Two translation
+**The split necessarily ends "nothing is global but `main()`" — and replaces it with
+a named list rather than with nothing.** The user's constraint, 2026-09-18: *"of
+course we need to introduce some global functions for the interaction between host
+and editor, but keep it minimal as necessary."* So the invariant generalises instead
+of lapsing. Today's check is `nm --extern-only --defined-only` giving exactly `main`;
+afterwards it is **exactly the enumerated boundary and nothing else** — `vim_main`
+out of `editor.c`, and the `musl_` set out of `zero-vim.c` — with any name not on the
+list a failure. That is a stronger check than the one it replaces, because the list
+has to be *written down and argued for* rather than being the single name a linker
+happens to need, and every future phase that wants to add to it has to say so.
+
+Two consequences of keeping it minimal, both worth settling before the split rather
+than during it. **The boundary should be counted, not just listed**: the 33 symbols
+`zero-vim.c` has now are not the same as the number of `musl_` prototypes it will
+need, because several collapse — `tcgetattr` and `tcsetattr` become one `musl_set_raw`,
+`select` with its `fd_set` becomes one `musl_wait_for_input`, `sigaction`/`sigprocmask`/
+`sigemptyset`/`sigaddset`/`sigismember` become a flag the host sets and the editor
+reads. Fewer, wider calls in plain scalars is both the minimal set and the
+transpilable one. And **the `exit` decision simplifies**: the host callback chosen
+while everything was still one file — a `static void (*vim_host_exit)(int)` installed
+through a parameter, which named no symbol at all — can become a plain `musl_exit(int)`
+prototype once there are two translation units. The function-pointer indirection was
+there to avoid a global; with a declared boundary the global is the honest spelling.
+Two translation
 units mean `vim_main()` and every `musl_` the host provides have external linkage by
 construction. Two tools hard-code the old invariant — `tools/phasecheck.sh:64`'s
 `grep -v '^main$'` and `tools/funcreach.py:127`'s `{'main'}` root — and the cost of
