@@ -124,10 +124,12 @@ zero-vim.c: force
 # and a warning set equal to the declared boundary -- and that is the reorganisation
 # phase's check, not this rule's.
 #
-# Until the includes move down, the first line of zero-vim.c is one, so this rule
-# writes an EMPTY FILE.  That is the honest answer for the tree as it stands and it
-# is why the rule exists now: the target is here before the phase that fills it, so
-# the phase changes the source and not the makefile.
+# THIS RULE WROTE AN EMPTY FILE UNTIL ZERO PHASE 27, and that was the honest answer
+# rather than a defect: the includes were the first eleven lines, so there was nothing
+# above the first one.  It was written before the phase that fills it precisely so that
+# the phase would change the SOURCE and not the makefile -- and it did.  Phase 27 moved
+# the includes to 78,360 and the rule now writes the 78,358 lines above them, which is
+# the product of this whole project.
 .PHONY: editor.c
 editor.c: zero-vim.c
 	@awk '/^ *# *include / { exit } { a[NR] = $$0; if (NF) last = NR } \
