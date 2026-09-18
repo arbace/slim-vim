@@ -67,29 +67,48 @@ HOST_FUNCS = ('host_catch', 'host_on_winch', 'host_on_tstp', 'host_on_int',
 
 HOST_MUST = ('sigaction', 'ioctl', 'tcsetattr', 'nanosleep', 'select', 'kill')
 
-# (function, word, count, why).  `<file scope>` is anything outside a definition.
+# (function, word, counts, why).  `<file scope>` is anything outside a definition.
 # Every one of these is a place the CORE still says one of these words, and each is
 # here because it was read and kept, not because the pattern was loosened.
+#
+# COUNTS IS A TUPLE BECAUSE THIS TOOL IS RUN AT MORE THAN ONE BOUNDARY.  It is named by
+# the checks of zero phases 20, 21 and 26, each of which runs it on ITS OWN output, and
+# the core's vocabulary shrinks between them -- so an exception that is 2 at r20 and 0
+# at r26 is not a contradiction, it is the pipeline working.  What the tool refuses is a
+# count NOBODY HAS WRITTEN DOWN: every accepted value is listed here with the phase that
+# made it true, so "an exception that stops being true is a fact this tool is meant to
+# notice" still holds -- the phase that ends one has to come here and say so.
 EXCEPTIONS = (
-    ('signal_info[]', 'SIGHUP', 1,
+    ('signal_info[]', 'SIGHUP', (1,),
      'the deadly-signal table: the two signals whose NAME the editor reports.  The '
      'host installs the handler; the core still owns the message'),
-    ('signal_info[]', 'SIGTERM', 1, 'the same row of the same table'),
-    ('deathtrap', 'SIGHUP', 1,
+    ('signal_info[]', 'SIGTERM', (1,), 'the same row of the same table'),
+    ('deathtrap', 'SIGHUP', (1,),
      "deathtrap's own test for the two signals it may defer.  The core keeps this "
      'function on purpose: it is what restores the terminal and writes `Vim: Caught '
      'deadly signal` before the editor ends, and the host installs it rather than '
      'replacing it'),
-    ('deathtrap', 'SIGTERM', 1, 'the same test'),
-    ('vim_handle_signal', 'kill', 1,
+    ('deathtrap', 'SIGTERM', (1,), 'the same test'),
+    ('vim_handle_signal', 'kill', (1,),
      're-raising a deadly signal that arrived while the editor was not reading.  '
      'This is the ONLY core mention of any of these words that is not a message, and '
      'it is kept because deleting it would make a deadly signal act in the middle of '
      'a screen update -- a behaviour change no recording can see'),
-    ('<file scope>', 'struct timeval', 2,
-     "`elapsed_T`, the clock's, and not this phase's: zero-vim measures elapsed time "
-     'with `gettimeofday`, which is somebody else\'s later phase'),
-    ('elapsed', 'struct timeval', 2, 'the same clock, in the one function that reads it'),
+    ('<file scope>', 'kill', (0, 1),
+     "1 from zero phase 26, which gave the core its own PROTOTYPE for it; 0 before.  "
+     'It is the exception above wearing its other face -- the core still re-raises a '
+     'deadly signal, and from that phase it DECLARES what it calls instead of taking '
+     'the declaration from <signal.h>, because the headers are on their way below the '
+     'boundary'),
+    ('<file scope>', 'struct timeval', (0, 2),
+     "2 up to zero phase 25 -- `elapsed_T`'s typedef and `elapsed`'s prototype, the "
+     "clock's -- and 0 from phase 26, which is the \"somebody else's later phase\" the "
+     'old wording pointed at: `elapsed_T` is now the core\'s own TAGLESS `struct '
+     '{ long tv_sec; long tv_usec; }`'),
+    ('elapsed', 'struct timeval', (0, 2),
+     'the same clock, in the one function that reads it, and 0 from the same phase: '
+     'the five `gettimeofday` calls go through `musl_gettimeofday(long *, long *)` in '
+     'the host block'),
 )
 
 
@@ -184,23 +203,27 @@ def main(argv):
                         'would then be asserting that the core does not say a word '
                         'nobody says' % w)
 
-    want = {(f, w): c for f, w, c, _ in EXCEPTIONS}
+    want = {(f, w): cs for f, w, cs, _ in EXCEPTIONS}
     for (who, word), ls in sorted(hits.items()):
         if who == '<host>':
             continue
         n = len(ls)
-        if want.get((who, word)) != n:
+        if n not in want.get((who, word), ()):
             fail.append('%s says `%s` %d time%s (line%s %s)%s'
                         % (who, word, n, '' if n == 1 else 's',
                            '' if n == 1 else 's',
                            ' '.join(str(x) for x in ls[:6]),
                            '' if (who, word) not in want else
-                           ', where %d was expected' % want[(who, word)]))
-    for (f, w), c in want.items():
-        if len(hits.get((f, w), [])) != c:
-            fail.append('the named exception `%s` in %s is gone or has moved -- it was '
-                        '%d.  An exception that stops being true is a fact this tool '
-                        'is meant to notice' % (w, f, c))
+                           ', where %s was expected'
+                           % ' or '.join(str(c) for c in want[(who, word)])))
+    for (f, w), cs in want.items():
+        n = len(hits.get((f, w), []))
+        if n not in cs:
+            fail.append('the named exception `%s` in %s is at %d, and the only counts '
+                        'this tool has been told about are %s.  An exception that stops '
+                        'being true is a fact this tool is meant to notice -- the phase '
+                        'that ends one comes here and writes the new count beside the '
+                        'old' % (w, f, n, ' and '.join(str(c) for c in cs)))
 
     if fail:
         for line in fail:
@@ -211,10 +234,11 @@ def main(argv):
         words = sorted({w for (who, w) in hits if who == '<host>'})
         print('  zhostonly    %d mentions of %d host words, ALL of them inside the '
               '%d-line host block (%s)' % (n, len(words), len(inhost), ' '.join(words)))
-        print('  %-12s and %d named exceptions in the core, every one of them the '
-              'deadly-signal message or the clock: %s' %
-              ('', len(EXCEPTIONS),
-               ', '.join('%s:%s' % (f, w) for f, w, _, _ in EXCEPTIONS)))
+        live = [(f, w) for f, w, _, _ in EXCEPTIONS if hits.get((f, w))]
+        print('  %-12s and %d of %d named exceptions LIVE in the core, every one of '
+              'them the deadly-signal message, the signal it re-raises or the clock: '
+              '%s' % ('', len(live), len(EXCEPTIONS),
+                      ', '.join('%s:%s' % (f, w) for f, w in live)))
     return 0
 
 

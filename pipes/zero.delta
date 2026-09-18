@@ -731,3 +731,39 @@
 # `static` off the two prototypes gcc refuses, and with it off the prototypes and the
 # definitions the build is silent and two symbols become external.  pipes/zero25-check.sh
 # builds both.
+#
+# 26 DECLARES NOTHING AT ALL, and it is a SIXTH kind: not code that could not run (9,
+# 17), not code the instrument cannot see (12), not a possibility removed (13), not a
+# `cmp` of the binary (16, 23, 24), and not phase 25's "the code runs, the instrument
+# sees it, and it does the same thing" either -- it is SIX OF SEVEN CHANGES THAT ARE A
+# `cmp` AND ONE THAT IS A RECORDING, and the phase separates them rather than taking the
+# weaker evidence for all of it.  The core stops taking eight things from a header:
+# `time_t` becomes `typedef long time_T`, `sig_atomic_t` is spelled `volatile int`,
+# `uintptr_t` becomes `usize`, `MIN` and `MAX` are expanded at 19 lines to the text the
+# preprocessor gives for <sys/param.h>, `offsetof` becomes `__builtin_offsetof`, and the
+# nine libc functions the core still calls get plain prototypes.  Every one of those is a
+# rename or an expansion the preprocessor was already performing, so none of them can
+# generate a different instruction -- and the check states that as an equality rather
+# than as a claim: with the SEVENTH change alone reverted the binary is `cmp`-IDENTICAL
+# to the 788,488-byte one the phase was handed.
+#
+# THE SEVENTH IS THE CLOCK, and it is the only libc type the core could not simply rename
+# away.  `struct timeval` is a LAYOUT, so `elapsed_T` becomes the core's own TAGLESS
+# `struct { long tv_sec; long tv_usec; }` and the five `gettimeofday(&X, nullptr)` calls
+# go through a new `musl_gettimeofday(long *, long *)` in the host block.  That is a call
+# and two stores where there was a syscall wrapper, so the binary moves -- 788,488 either
+# side -- and the evidence for it is TWO FULL RECORDINGS, `diff -r` empty across all 106
+# records.
+#
+# AND THE RECORDING IS NOT BLIND TO IT, which is what keeps that empty `diff -r` from
+# being two numbers agreeing.  `musl_gettimeofday` writing its two fields the wrong way
+# round moves SIX of the 102 screen cases -- key_Q, key_gQ, key_gf, macro_q, reg_percent
+# and ruler_move -- and stalls tools/zpty.py outright, an editor whose timeouts never
+# expire being exactly what a backwards clock makes.  The control is zcases.py alone for
+# that reason: the pty harness is right to hang on it, and a check should not depend on
+# how long it takes to give up.
+#
+# THE TWELVE DERIVED CONSTANTS ARE NOT IN THIS PHASE and cannot be: `enum : int { INT_MAX
+# = ... };` placed after `#include <limits.h>` is `enum : int { 0x7fffffff = ... };`, a
+# syntax error.  They are phase 27's, with the move, and they are the only
+# header-supplied names this phase leaves above the host block.
