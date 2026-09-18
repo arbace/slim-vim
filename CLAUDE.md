@@ -1019,15 +1019,32 @@ loop; **load does not make it likelier** (0 in 60 under a steady 256-way load, 0
 names `termcheck.py`, which names `ptyrun.py`: the import would put a zero tool in
 slim's and whim's implementation keys for ever.
 
-**`tools/ptyrun.py` is in no implementation key at all**, and that is a gap rather
-than a design. `implhash.sh` extracts dependencies by grepping a program for
-`tools/…` *paths*, and nothing names this one that way — `termcheck.py` says
-`import ptyrun`. Measured both ways: a one-line change to `termcheck.py` moves 28 of
-the 144 keys (1 slim, 12 whim units, 1 whim edit, 12 zero units, 2 zero edits) and
-the same change to `ptyrun.py` moves **none**. So a change to the pty driver
-invalidates no cache and a repass silently reuses results the old driver produced.
-It is safe only because a harness writes no tree; a change there must be shown
-behaviour-neutral by measurement, because the keys will not force a re-run.
+**A tool reached by `import` and never named as a path was in no implementation key
+at all**, and three were. `implhash.sh` extracts dependencies by grepping a program
+for `tools/…` *paths*; Python tools reach each other by module name, so
+`import ptyrun` named nothing it could see. Measured both ways: a one-line change to
+`termcheck.py` moved 28 of the 144 keys (1 slim, 12 whim units, 1 whim edit, 12 zero
+units, 2 zero edits) and the same change to `ptyrun.py` moved **none**.
+
+**Two of the three were transformers, and that is why it mattered.** `ptyrun.py` is a
+harness and a harness writes no tree, so its invisibility cost nothing. But
+`tools/cond.py` — imported by `plant.py` and `resolve.py`, which resolve the
+conditional directives in slim's Phase 5 — and `tools/macros.py` — imported by
+`toenum.py`, `expand.py` and `dropmacros.py`, which are Phase 9's macro expansion —
+*produce the tree*. Editing either would have changed a phase's output, moved no key,
+and let a warm repass replay the old boundary and report success. That is the hazard
+**Editing an existing phase's program does not re-run it** describes, one level
+deeper: the phase's own program is untouched and innocent, and the thing that
+actually changed is invisible. It was harmless only because nobody had edited those
+two since the caches were warmed, which is luck rather than a property.
+
+**The fix names the path in a comment beside the import**, in all six importing
+files, and leaves `implhash.sh` alone. `implhash` greps, and does not know what a
+comment is — the same mechanism that re-keyed zero phases 2 and 4 when they named
+`create_cmdidxs.py` in a comment, used deliberately here. Measured: 29 keys move
+(slim 1, 5, 6, 9; all 12 whim stages; whim edit 80; 13 zero units), no boundary
+moves, and `slim-verify` 12 of 12, `whim-verify` 13 of 13 and `zero-verify` 20 of 20
+all pass. **Do not delete those comments**; each says so in place.
 
 **The product is `slim-vim`, and that name was checked rather than assumed.**
 It matches none of the prefixes above and falls through to plain vim: run side

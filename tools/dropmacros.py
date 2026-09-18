@@ -28,6 +28,12 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, __file__.rsplit('/', 1)[0])
+# The import below reaches a tool that tools/implhash.sh would otherwise not see.
+# implhash extracts dependencies by grepping for tools/ PATHS, and an `import`
+# names a module, not a path -- so tools/macros.py sat in no implementation key and an
+# edit to it would have moved no cache key at all.  Naming the path here is what
+# puts it back in this phase's key; implhash greps, and does not know what a
+# comment is.  Do not delete this line without reading CLAUDE.md on the gap.
 import macros
 
 WORD = re.compile(r'[A-Za-z_]\w*')
