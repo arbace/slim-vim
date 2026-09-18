@@ -23,7 +23,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13
 
 #   stage   phases
 stage       0
@@ -39,6 +39,7 @@ stage       9
 stage       10
 stage       11
 stage       12
+stage       13
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -148,6 +149,17 @@ apart       10 11
 # as well, but a stage holding 10 and 12 holds 11, and `apart 10 11` forbids that
 # already.
 apart       11 12
+# Phase 12's check pins `scriptin` at 8 mentions, `redir_fd` at 6 and `vim_fsync` at
+# 3, and names all three as the FILE* phase's; it also requires `fclose`, `getc`,
+# `putc` and `fsync` to be STILL undefined.  This phase takes every one of them to 0
+# and frees all four symbols.  Measured by running pipes/zero12-check.sh on the tree
+# phase 13 leaves: three complaints -- `redir_fd has 0 mentions, expected 6`,
+# `scriptin has 0 mentions, expected 8` and `vim_fsync has 0 mentions, expected 3` --
+# and exit 1.  Its symbol check would fail as well, being a cmp of the whole undefined
+# set against a phase that frees four, but the source assertions come first.  Phase
+# 11's check pins the same three and would fail too, but a stage holding 11 and 13
+# holds 12, and `apart 11 12` forbids that already.
+apart       12 13
 
 # What phase 7's edit needs of the text it is handed (pipes/whim.stages defines the
 # word).  Every zero phase is its own stage today, so this is a statement rather
@@ -211,6 +223,15 @@ need        10 swept
 #                  Unlike 7, 8 and 9 the text before it COMPILES -- phase 10's edit
 #                  left valid C -- so the refusal is the counted anchors alone.
 need        11 swept
+#   NO `need 12` AND NO `need 13`, and both were MEASURED rather than assumed.
+#                  `tools/phaserun.sh zero 11-12` runs phase 12's edit on the unswept
+#                  text phase 11's edit leaves and every counted anchor matches -- the
+#                  same seven rows come back from the computation and the cut ends at
+#                  the same 108 rows and 96 globals.  Phase 13's edit likewise applies
+#                  unchanged to the text phase 12's edit leaves.  In both runs the only
+#                  failure is the edit's build of its own input binary, which is true
+#                  of every zero edit that builds one and is not declared for that
+#                  reason.
 
 #        name         phases
 package  seed         0
@@ -221,6 +242,7 @@ package  streams      4 5
 package  files        6 7 8 9 10
 package  buffers      11
 package  options      12
+package  tidy         13
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -247,3 +269,5 @@ uses  options:12  seed:0     mechanical  tools/zerodelta.sh compares its recordi
 uses  options:12  files:6    mechanical  'write', 'writeany' and 'fsync' were do_write's, not_writing's, check_overwrite's and buf_write's, and 'readonly' reached its last setter when phase 6 left :set ro as the only thing that could mark a buffer read only
 uses  options:12  files:8    mechanical  'undoreload' was read by do_ecmd, which went with the :edit family
 uses  options:12  streams:4  mechanical  'prompt' was read by getexmodeline()'s `if (p_prompt) msg_putchar(':');` and by nothing else, so it is phase 4's orphan and is collected here
+uses  tidy:13     seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  tidy:13     terminal:2 rationale   ui_write()'s `console` argument is FALSE at its one call site either way, and phase 2 is where the terminal stopped being asked anything -- so dropping the parameter rather than leaving __attribute__((unused)) on it is that phase's argument for check_tty(void)
