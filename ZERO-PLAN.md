@@ -1161,13 +1161,41 @@ transpile**, since a JVM target has no `struct termios` either. `size_t` and `NU
 become a typedef and a constant `editor.c` declares for itself; `offsetof` becomes
 `__builtin_offsetof`, which phase 16 already measured leaves `<stddef.h>` dead.
 
-**`va_list` is the one with no scalar workaround, and it needs a decision.**
-`vim_vsnprintf_typval` is variadic and vim's whole message layer runs through it. gcc
-spells the type `__builtin_va_list` and the three macros `__builtin_va_start`,
-`__builtin_va_arg` and `__builtin_va_end` — no header and no directive, so the letter
-of the rule is kept — but they are gcc extensions in a file whose point is to be plain
-C. The alternatives are to keep the variadic layer on the host side, or to give the
-editor a fixed-arity formatting interface. Not settled.
+**`va_list` was the one with no scalar workaround, and it is settled: the variadic
+layer goes to the host.** Decided by the user on 2026-09-18, against the alternative
+of `__builtin_va_list` in `editor.c` — which keeps the letter of the rule, since it
+needs no header, but puts a gcc extension in the one file whose point is to be plain
+C, and which is the hardest thing here to transpile: a `va_list` walk is type-driven
+at run time by the format string, where Java varargs hand you an `Object[]`. The
+option that looks worse by this repository's own vendoring principle — a formatter is
+pure computation, and phases 14 and 15 established that what the file can compute it
+computes — is the one that actually transpiles, and that is what the split exists to
+serve. The inconsistency is real and is recorded here rather than glossed.
+
+**From the core side it costs one prototype**, because a *caller* of a variadic
+function needs no header at all: `...` is C syntax and only the callee that walks the
+list needs `va_list`. MEASURED — `int musl_snprintf(char *, unsigned long, const char
+*, ...);` followed by a call compiles `-Wall -Wextra` clean with no directive of any
+kind.
+
+**What it costs the core is that the eight wrappers cannot survive**, because C cannot
+forward `...` — which is exactly why `vsnprintf` exists beside `snprintf`. MEASURED,
+the functions that call `va_start`: `smsg`, `smsg_attr`, `smsg_attr_keep`, `semsg`,
+`siemsg`, `vim_snprintf_add`, `vim_snprintf`, `vim_snprintf_safelen`, with
+`vim_vsnprintf` and `vim_vsnprintf_typval` taking a list, the latter **734 lines**.
+Each wrapper's call sites become two statements — `semsg("E123: %s", x)` into
+`musl_snprintf(IObuff, IOSIZE, "E123: %s", x); emsg(IObuff);`, the same buffer they
+already use. Counts: `semsg` ~94, `vim_snprintf_safelen` ~11, `smsg` ~10, `siemsg`
+~10, the rest ~3, and `vim_snprintf`'s ~66 sites are a pure rename. About **130
+sites**.
+
+**It splits into two steps and only the second needs two files.** The wrapper
+expansion can be done in one translation unit against the core's own `vim_snprintf`,
+taking `va_start` from eight functions to one; the split then moves `vim_snprintf`,
+`vim_vsnprintf` and `vim_vsnprintf_typval` to the host, and the core keeps the
+prototype alone. The first step's declared delta must be nothing at all and is
+checkable as a byte-identical recording, which is a much stronger position to do 130
+mechanical edits from than doing them during a file split.
 
 **The split necessarily ends "nothing is global but `main()`" — and replaces it with
 a named list rather than with nothing.** The user's constraint, 2026-09-18: *"of
