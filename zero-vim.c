@@ -527,8 +527,6 @@ enum { ME_EXTRA_CMD = 3 };
 
 enum { VIM_SIZEOF_INT = 4 };
 
-typedef void (*sighandler_T)  (int) ;
-
 enum { NUMBUFLEN = 65 };
 
 enum { STR2NR_BIN = 0x01 };
@@ -842,11 +840,6 @@ enum SpecialKey
 };
 
 static char_u *(term_strings[]);
-
-typedef enum {
-    TMODE_COOK,
-    TMODE_SLEEP,
-    TMODE_RAW} tmode_T;
 
 static inline __attribute__((format_arg(1))) char *_(const char *x)
 {
@@ -1298,7 +1291,6 @@ static int      p_sol;
 static char_u   *p_spk = (char_u *)"cursor";
 
 static long     p_ts;
-static char_u   *p_trz;
 static int      p_tsy;
 static int      p_terse;
 static long     p_tw;
@@ -2785,8 +2777,6 @@ enum { EXFLAG_LIST = 0x01 };
 enum { EXFLAG_NR = 0x02 };
 enum { EXFLAG_PRINT = 0x04 };
 
-static sighandler_T mch_signal(int sig, sighandler_T func);
-static void reset_signals(void);
 static int vim_handle_signal(int sig);
 static long mch_get_pid(void);
 static void mch_exit(int r);
@@ -3388,7 +3378,6 @@ static char *did_set_shortmess(optset_T *args);
 static char *did_set_showcmdloc(optset_T *args);
 static char *did_set_term(optset_T *args);
 static char *did_set_term_option(optset_T *args);
-static char *did_set_termresize(optset_T *args);
 static char *did_set_virtualedit(optset_T *args);
 static char *did_set_whichwrap(optset_T *args);
 static char *did_set_wincolor(optset_T *args);
@@ -3534,7 +3523,17 @@ static void out_str_t_TE(void);
 static void out_str_t_TI(void);
 static void out_str_t_BE(void);
 static void may_send_t_RK(void);
-static void settmode(tmode_T tmode);
+static void term_enter(void);
+static void term_leave(void);
+static void musl_host_init(void);
+static int musl_get_winsize(int *rows, int *cols);
+static void musl_term_start(void);
+static void musl_term_stop(void);
+static int musl_tty_keys(int fd, int *bs, int *intr, int *cr, int *nlcr);
+static void musl_delay(long ms, int interruptible);
+static int musl_wait_for_input(long ms);
+static int musl_read_input(char *buf, int len);
+static void musl_suspend(void);
 static void starttermcap(void);
 static void stoptermcap(void);
 static int swapping_screen(void);
@@ -3557,7 +3556,6 @@ static int check_termcode(int max_offset, char_u *buf, int bufsize, int *buflen)
 static char_u *replace_termcodes(char_u *from, char_u **bufp, scid_T sid_arg, int flags, int *did_simplify);
 static void show_termcodes(int flags);
 static int show_one_termcode(char_u *name, char_u *code, int printit);
-static void term_set_win_resize(bool state);
 static int sync_output_active(void);
 static void term_set_sync_output(int flags);
 
@@ -3797,7 +3795,6 @@ static int      starting  = NO_SCREEN ;
 static int      exiting  = FALSE ;
 static int      really_exiting  = FALSE ;
 static int      v_dying  = 0 ;
-static int      stdout_isatty  = TRUE ;
 
 static volatile sig_atomic_t full_screen  = FALSE ;
 
@@ -3938,7 +3935,7 @@ static int      read_cmd_fd  = 0 ;
 static volatile sig_atomic_t got_int  = FALSE ;
 
 static int      termcap_active  = FALSE ;
-static tmode_T  cur_tmode  = TMODE_COOK ;
+static int      term_entered = FALSE;
 static int      searchcmdlen;
 
 static int      did_outofmem_msg  = FALSE ;
@@ -4231,8 +4228,6 @@ enum { FSK_SIMPLIFY = 0x08 };
 enum { FSK_FROM_PART = 0x10 };
 
 enum { MCH_DELAY_IGNOREINPUT = 1 };
-enum { MCH_DELAY_SETTMODE = 2 };
-
 enum { GETVCOL_END_EXCL_LBR = 1 };
 
     static void *
@@ -19895,7 +19890,7 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
 
     State = MODE_CMDLINE;
 
-    settmode(TMODE_RAW);
+    term_enter();
 
     init_history();
     hiscnt = get_hislen();
@@ -38334,7 +38329,7 @@ ask_yesno(char_u *str, int direct)
 
     if (exiting)
     {
-        settmode(TMODE_RAW);
+        term_enter();
     }
     ++no_wait_return;
     State = MODE_CONFIRM;
@@ -38595,7 +38590,6 @@ expand_env_esc(char_u      *srcp, char_u      *dst, int         dstlen, char_u  
     static void
 prepare_to_exit(void)
 {
-    mch_signal(SIGHUP, SIG_IGN);
 
     {
         windgoto((int)Rows - 1, cmdline_col_off);
@@ -38608,7 +38602,7 @@ prepare_to_exit(void)
             int was_full_screen = full_screen;
 
             full_screen = TRUE;
-            settmode(TMODE_COOK);
+            term_leave();
             full_screen = was_full_screen;
         }
         stoptermcap();
@@ -47071,32 +47065,15 @@ nv_esc(cmdarg_T *cap)
     {
         if (restart_edit == 0 && !VIsual_active && no_reason)
         {
-            int out_redir = !stdout_isatty;
-
             if (anyBufIsChanged())
             {
                 char *ms = _("Type  :qa!  and press <Enter> to abandon all changes and exit Vim");
 
-                if (out_redir)
-                {
-                     fprintf(stderr, "%s", (ms)) ;
-                }
-                else
-                {
-                    msg(ms);
-                }
+                msg(ms);
             }
             else
             {
-                if (out_redir)
-                {
-                    got_int = FALSE;
-                    do_cmdline_cmd((char_u *)"qa");
-                }
-                else
-                {
-                    msg(_("Type  :qa  and press <Enter> to exit Vim"));
-                }
+                msg(_("Type  :qa  and press <Enter> to exit Vim"));
             }
         }
 
@@ -51353,10 +51330,6 @@ static struct vimoption options[] =
     {"term",        NULL,   P_STRING|P_EXPAND|P_NODEFAULT|P_NO_MKRC|P_VI_DEF|P_RALL,
                             (char_u *)& ( term_strings[(int)(KS_NAME)] ) , PV_NONE, did_set_term, NULL,
                             {(char_u *)"", (char_u *)0L}   },
-    {"termresize", "trz", P_STRING|P_VI_DEF,
-                            (char_u *)&p_trz, PV_NONE, did_set_termresize, NULL,
-                            {(char_u *)"", (char_u *)0}
-                              },
     {"termsync", "tsy",     P_BOOL|P_VI_DEF,
                             (char_u *)&p_tsy, PV_NONE, did_set_termsync, NULL,
                             {(char_u *)FALSE, (char_u *)0L}   },
@@ -55479,25 +55452,6 @@ did_set_term_option(optset_T *args)
 }
 
     static char *
-did_set_termresize(optset_T *args  __attribute__((unused)) )
-{
-    if (*p_trz == NUL ||  musl_strcmp((char *)(p_trz), (char *)("inband"))  == 0)
-    {
-        term_set_win_resize(true);
-    }
-    else if ( musl_strcmp((char *)(p_trz), (char *)("sigwinch"))  == 0)
-    {
-        term_set_win_resize(false);
-    }
-    else
-    {
-        return e_invalid_argument;
-    }
-
-    return NULL;
-}
-
-    static char *
 did_set_virtualedit(optset_T *args)
 {
     char_u              *ve = p_ve;
@@ -55680,95 +55634,21 @@ opt_strings_flags(char_u      *val, char        **values, unsigned    *flagp, in
     return OK;
 }
 
-static int ignore_sigtstp = FALSE;
-
 static int  WaitForChar(long msec, int *interrupted, int ignore_input);
 static int  RealWaitForChar(int, long, int *, int *interrupted);
 
-static void handle_resize(void);
-
-static void sig_winch  (int) ;
-static void sig_tstp  (int) ;
-static volatile sig_atomic_t in_mch_suspend = FALSE;
-static void catch_sigint  (int) ;
 static void deathtrap  (int) ;
-
-static void catch_int_signal(void);
-static void set_signals(void);
-static void catch_signals(void (*func_deadly)(int), void (*func_other)(int));
-
-static volatile sig_atomic_t do_resize = FALSE;
-static volatile sig_atomic_t got_tstp = FALSE;
-
-static tmode_T mch_cur_tmode = TMODE_COOK;
 
 static struct signalinfo
 {
     int     sig;
     char    *name;
-    char    deadly;
 } signal_info[] =
 {
-    {SIGHUP,        "HUP",      TRUE},
-    {SIGTERM,       "TERM",     TRUE},
-    {SIGINT,        "INT",      FALSE},
-    {SIGWINCH,      "WINCH",    FALSE},
-    {SIGTSTP,       "TSTP",     FALSE},
-    {-1,            "Unknown!", FALSE}
+    {SIGHUP,        "HUP"},
+    {SIGTERM,       "TERM"},
+    {-1,            "Unknown!"}
 };
-
-    static sighandler_T
-mch_signal(int sig, sighandler_T func)
-{
-    struct sigaction sa;
-    struct sigaction old;
-    sigset_t            curset;
-    int                 blocked;
-
-    if (sigprocmask(SIG_BLOCK, NULL, &curset) == -1)
-    {
-        return SIG_ERR;
-    }
-
-    blocked = sigismember(&curset, sig);
-
-    if (func == SIG_HOLD)
-    {
-        if (blocked)
-        {
-            return SIG_HOLD;
-        }
-
-        sigemptyset(&curset);
-        sigaddset(&curset, sig);
-
-        if (sigaction(sig, NULL, &old) == -1 || sigprocmask(SIG_BLOCK, &curset, NULL) == -1)
-        {
-            return SIG_ERR;
-        }
-        return old.sa_handler;
-    }
-
-    if (blocked)
-    {
-        sigemptyset(&curset);
-        sigaddset(&curset, sig);
-
-        if (sigprocmask(SIG_UNBLOCK, &curset, NULL) == -1)
-        {
-            return SIG_ERR;
-        }
-    }
-
-    sa.sa_handler = func;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-    if (sigaction(sig, &sa, &old) == -1)
-    {
-        return SIG_ERR;
-    }
-    return blocked ? SIG_HOLD: old.sa_handler;
-}
 
     static void
 mch_write(char_u *s, int len)
@@ -55781,95 +55661,23 @@ mch_write(char_u *s, int len)
 }
 
     static int
-resize_func(int check_only)
-{
-    if (check_only)
-    {
-        return do_resize;
-    }
-    while (do_resize)
-    {
-        handle_resize();
-    }
-    return FALSE;
-}
-
-    static int
 mch_inchar(char_u      *buf, int         maxlen, long        wtime, int         tb_change_cnt)
 {
-    return inchar_loop(buf, maxlen, wtime, tb_change_cnt, WaitForChar, resize_func);
-}
-
-    static void
-handle_resize(void)
-{
-    do_resize = FALSE;
-    shell_resized();
+    return inchar_loop(buf, maxlen, wtime, tb_change_cnt, WaitForChar, NULL);
 }
 
     static void
 mch_delay(long msec, int flags)
 {
-    tmode_T     old_tmode;
-    int         call_settmode;
-
     if (flags & MCH_DELAY_IGNOREINPUT)
     {
-        call_settmode = mch_cur_tmode == TMODE_RAW
-                               && (msec > 500 || (flags & MCH_DELAY_SETTMODE));
-        if (call_settmode)
-        {
-            old_tmode = mch_cur_tmode;
-            settmode(TMODE_SLEEP);
-        }
-
-        {
-            struct timespec ts;
-
-            ts.tv_sec = msec / 1000;
-            ts.tv_nsec = (msec % 1000) * 1000000;
-            (void)nanosleep(&ts, NULL);
-        }
-
-        if (call_settmode)
-        {
-            settmode(old_tmode);
-        }
+        out_flush();
+        musl_delay(msec, TRUE);
     }
     else
     {
         WaitForChar(msec, NULL, FALSE);
     }
-}
-
-    static void
-sig_winch  (int sigarg  __attribute__((unused)) ) 
-{
-    mch_signal(SIGWINCH, sig_winch);
-    do_resize = TRUE;
-}
-
-    static void
-sig_tstp  (int sigarg  __attribute__((unused)) ) 
-{
-    if (in_mch_suspend)
-    {
-        mch_signal(SIGTSTP, ignore_sigtstp ? SIG_IGN : SIG_DFL);
-        raise(sigarg);
-    }
-    else
-    {
-        got_tstp = TRUE;
-    }
-
-    mch_signal(SIGTSTP, sig_tstp);
-}
-
-    static void
-catch_sigint  (int sigarg  __attribute__((unused)) ) 
-{
-    mch_signal(SIGINT, catch_sigint);
-    got_int = TRUE;
 }
 
     static void
@@ -55912,62 +55720,15 @@ deathtrap  (int sigarg  __attribute__((unused)) )
 }
 
     static void
-after_sigcont(void)
-{
-
-    settmode(TMODE_RAW);
-}
-
-static void sigcont_handler  (int) ;
-
-static volatile sig_atomic_t sigcont_received;
-static void sigcont_handler  (int) ;
-
-    static void
-sigcont_handler  (int sigarg  __attribute__((unused)) ) 
-{
-    if (in_mch_suspend)
-    {
-        sigcont_received = TRUE;
-    }
-    else
-    {
-        after_sigcont();
-        redraw_later(UPD_CLEAR);
-        cursor_on_force();
-        out_flush();
-    }
-}
-
-    static void
 mch_suspend(void)
 {
-    if (ignore_sigtstp)
-    {
-        return;
-    }
-
-    in_mch_suspend = TRUE;
-
     out_flush();
-    settmode(TMODE_COOK);
+    term_leave();
     out_flush();
 
-    sigcont_received = FALSE;
+    musl_suspend();
 
-    kill(0, SIGTSTP);
-
-    {
-        long wait_time;
-
-        for (wait_time = 0; !sigcont_received && wait_time <= 3L; wait_time++)
-        {
-            mch_delay(wait_time, 0);
-        }
-    }
-    in_mch_suspend = FALSE;
-
-    after_sigcont();
+    term_enter();
 }
 
     static void
@@ -55978,68 +55739,8 @@ mch_init(void)
 
     out_flush();
 
-    ignore_sigtstp = SIG_IGN == mch_signal(SIGTSTP, SIG_ERR);
-    set_signals();
+    musl_host_init();
 
-}
-
-    static void
-set_sigwinch_handler(void)
-{
-    mch_signal(SIGWINCH, sig_winch);
-}
-
-    static void
-set_signals(void)
-{
-    mch_signal(SIGWINCH, sig_winch);
-
-    mch_signal(SIGTSTP, ignore_sigtstp ? SIG_IGN : sig_tstp);
-    mch_signal(SIGCONT, sigcont_handler);
-    mch_signal(SIGPIPE, SIG_IGN);
-
-    catch_int_signal();
-
-    mch_signal(SIGALRM, SIG_IGN);
-
-    catch_signals(deathtrap, SIG_ERR);
-
-}
-
-    static void
-catch_int_signal(void)
-{
-    mch_signal(SIGINT, catch_sigint);
-}
-
-    static void
-reset_signals(void)
-{
-    catch_signals(SIG_DFL, SIG_DFL);
-    mch_signal(SIGCONT, SIG_DFL);
-}
-
-    static void
-catch_signals(void (*func_deadly)(int), void (*func_other)(int))
-{
-    int     i;
-
-    for (i = 0; signal_info[i].sig != -1; i++)
-    {
-        if (signal_info[i].deadly)
-        {
-            struct sigaction sa;
-
-            sa.sa_handler = func_deadly;
-            sigemptyset(&sa.sa_mask);
-            sa.sa_flags = 0;
-            sigaction(signal_info[i].sig, &sa, NULL);
-        }
-        else if (func_other != SIG_ERR)
-        {
-            mch_signal(signal_info[i].sig, signal_info[i].sig == SIGTSTP && ignore_sigtstp ? SIG_IGN : func_other);
-        }
-    }
 }
 
     static int
@@ -56073,16 +55774,6 @@ vim_handle_signal(int sig)
                              break;
     }
     return FALSE;
-}
-
-    static int
-mch_check_win(int argc  __attribute__((unused)) , char **argv  __attribute__((unused)) )
-{
-    if (isatty(1))
-    {
-        return OK;
-    }
-    return FAIL;
 }
 
     static int
@@ -56138,7 +55829,7 @@ mch_exit(int r)
     exiting = TRUE;
 
     {
-        settmode(TMODE_COOK);
+        term_leave();
 
         if (swapping_screen() && !newline_on_exit)
         {
@@ -56161,76 +55852,6 @@ mch_exit(int r)
     ml_close_all(TRUE);
 
     vim_host_exit(r);
-}
-
-    static int
-get_tty_fd(int fd)
-{
-    int         tty_fd = fd;
-
-    return tty_fd;
-}
-
-    static int
-mch_tcgetattr(int fd, void *term)
-{
-    int         tty_fd;
-    int         retval = -1;
-
-    tty_fd = get_tty_fd(fd);
-    if (tty_fd < 0)
-    {
-        return -1;
-    }
-
-    retval = tcgetattr(tty_fd, (struct termios *)term);
-    if (tty_fd != fd)
-    {
-        close(tty_fd);
-    }
-    return retval;
-}
-
-    static void
-mch_settmode(tmode_T tmode)
-{
-    static int first = TRUE;
-
-    static struct termios told;
-           struct termios tnew;
-
-    if (first)
-    {
-        first = FALSE;
-        mch_tcgetattr(read_cmd_fd, &told);
-    }
-
-    tnew = told;
-    if (tmode == TMODE_RAW)
-    {
-        tnew.c_iflag &= ~(ICRNL | ( ( term_strings[(int)(KS_XON)] )  == NULL || * ( term_strings[(int)(KS_XON)] )  == NUL ? IXON : 0));
-        tnew.c_lflag &= ~(ICANON | ECHO | ISIG | ECHOE | IEXTEN);
-        tnew.c_oflag &= ~(ONLCR | XTABS);
-        tnew.c_cc[VMIN] = 1;
-        tnew.c_cc[VTIME] = 0;
-    }
-    else if (tmode == TMODE_SLEEP)
-    {
-        tnew.c_lflag &= ~(ICANON | ECHO);
-        tnew.c_cc[VMIN] = 1;
-        tnew.c_cc[VTIME] = 0;
-    }
-
-    {
-        int     n = 10;
-
-        while (tcsetattr(read_cmd_fd, TCSANOW, &tnew) == -1 && errno == EINTR && n > 0)
-        {
-            --n;
-        }
-    }
-
-    mch_cur_tmode = tmode;
 }
 
     static void
@@ -56260,63 +55881,20 @@ get_stty(void)
     static int
 get_tty_info(int fd, ttyinfo_T *info)
 {
-    struct termios keys;
+    int bs = 0;
+    int intr = 0;
+    int cr = 0;
+    int nlcr = 0;
 
-    if (mch_tcgetattr(fd, &keys) != -1)
+    if (musl_tty_keys(fd, &bs, &intr, &cr, &nlcr) == OK)
     {
-        info->backspace = keys.c_cc[VERASE];
-        info->interrupt = keys.c_cc[VINTR];
-        if (keys.c_iflag & ICRNL)
-        {
-            info->enter = NL;
-        }
-        else
-        {
-            info->enter = CAR;
-        }
-        if (keys.c_oflag & ONLCR)
-        {
-            info->nl_does_cr = TRUE;
-        }
-        else
-        {
-            info->nl_does_cr = FALSE;
-        }
+        info->backspace = (char_u)bs;
+        info->interrupt = (char_u)intr;
+        info->enter = cr ? NL : CAR;
+        info->nl_does_cr = nlcr ? TRUE : FALSE;
         return OK;
     }
     return FAIL;
-}
-
-    static int
-mch_get_shellsize(void)
-{
-    long        rows = 0;
-    long        columns = 0;
-
-    {
-        struct winsize  ws;
-        int fd = 1;
-
-        if (!isatty(fd) && isatty(read_cmd_fd))
-        {
-            fd = read_cmd_fd;
-        }
-        if (ioctl(fd, TIOCGWINSZ, &ws) == 0)
-        {
-            columns = ws.ws_col;
-            rows = ws.ws_row;
-        }
-    }
-
-    if (columns <= 0 || rows <= 0)
-    {
-        return FAIL;
-    }
-
-    Rows = rows;
-    Columns = columns;
-    limit_screen_size();
-    return OK;
 }
 
     static void
@@ -56333,7 +55911,7 @@ mch_set_shellsize(void)
     static void
 mch_breakcheck(int force)
 {
-    if ((mch_cur_tmode == TMODE_RAW || force) && RealWaitForChar(read_cmd_fd, 0L, NULL, NULL))
+    if ((term_entered || force) && RealWaitForChar(read_cmd_fd, 0L, NULL, NULL))
     {
         fill_input_buf(FALSE);
     }
@@ -56354,77 +55932,9 @@ WaitForChar(long msec, int *interrupted, int ignore_input)
 }
 
     static int
-RealWaitForChar(int fd, long msec, int *check_for_gpm  __attribute__((unused)) , int *interrupted)
+RealWaitForChar(int fd  __attribute__((unused)) , long msec, int *check_for_gpm  __attribute__((unused)) , int *interrupted  __attribute__((unused)) )
 {
-    int         ret;
-    int         result;
-
-    {
-        struct timeval  tv;
-        struct timeval  *tvp;
-        static fd_set rfds;
-        static fd_set wfds;
-        static fd_set efds;
-        int             maxfd;
-        long            towait = msec;
-
-        if (towait >= 0)
-        {
-            tv.tv_sec = towait / 1000;
-            tv.tv_usec = (towait % 1000) * (1000000/1000);
-            tvp = &tv;
-        }
-        else
-        {
-            tvp = NULL;
-        }
-
-select_eintr:
-        FD_ZERO(&rfds);
-        FD_ZERO(&wfds);
-        FD_ZERO(&efds);
-        FD_SET(fd, &rfds);
-        FD_SET(fd, &efds);
-        maxfd = fd;
-
-        if (interrupted != NULL)
-        {
-            *interrupted = FALSE;
-        }
-
-        ret = select(maxfd + 1,  (fd_set *)  &rfds,  (fd_set *)  &wfds,  (fd_set *)  &efds, tvp);
-        result = ret > 0 && FD_ISSET(fd, &rfds);
-        if (result)
-        {
-            --ret;
-        }
-        else if (interrupted != NULL && ret > 0)
-        {
-            *interrupted = TRUE;
-        }
-
-        if (ret == -1 && errno == EINTR)
-        {
-            if (got_tstp && !in_mch_suspend)
-            {
-                exarg_T ea;
-
-                ea.forceit = TRUE;
-                ex_stop(&ea);
-                got_tstp = FALSE;
-            }
-
-            if (do_resize)
-            {
-                handle_resize();
-            }
-
-            goto select_eintr;
-        }
-
-    }
-
-    return result;
+    return musl_wait_for_input(msec);
 }
 
     static int
@@ -72010,9 +71520,6 @@ static int sync_output_setting = 0;
 
 static int sync_output_state = 0;
 
-static int win_resize_setting = 0;
-static bool win_resize_enabled = false;
-
 typedef struct
 {
     int         bt_entry;
@@ -73619,42 +73126,41 @@ may_send_t_RK(void)
 }
 
     static void
-settmode(tmode_T tmode)
+term_enter(void)
 {
-    if (!full_screen)
+    if (!full_screen || term_entered)
     {
         return;
     }
 
-    if (tmode != cur_tmode)
+    if (termcap_active)
     {
-        if (tmode != TMODE_RAW)
-        {
-        }
-
-        if (termcap_active && tmode != TMODE_SLEEP && cur_tmode != TMODE_SLEEP)
-        {
-              ;
-
-            if (tmode != TMODE_RAW)
-            {
-                out_str( ( term_strings[(int)(KS_CBD)] ) );
-                out_str_t_TE();
-            }
-            else
-            {
-                out_str_t_BE();
-                out_str_t_TI();
-            }
-        }
-        out_flush();
-        mch_settmode(tmode);
-        cur_tmode = tmode;
-        if (tmode == TMODE_RAW)
-        {
-        }
-        out_flush();
+        out_str_t_BE();
+        out_str_t_TI();
     }
+    out_flush();
+    musl_term_start();
+    term_entered = TRUE;
+    out_flush();
+}
+
+    static void
+term_leave(void)
+{
+    if (!full_screen || !term_entered)
+    {
+        return;
+    }
+
+    if (termcap_active)
+    {
+        out_str( ( term_strings[(int)(KS_CBD)] ) );
+        out_str_t_TE();
+    }
+    out_flush();
+    musl_term_stop();
+    term_entered = FALSE;
+    out_flush();
 }
 
     static void
@@ -74661,7 +74167,7 @@ handle_csi(char_u  *tp, int     len, char_u  *argp, int     offset, char_u  *buf
         key_name[1] = (int)KE_IGNORE;
     }
 
-    else if (first == '?' && trail == 'y' && argc == 2 && (arg[0] == 2026 || arg[0] == 2048))
+    else if (first == '?' && trail == 'y' && argc == 2 && arg[0] == 2026)
     {
         int setting = arg[1];
 
@@ -74677,11 +74183,6 @@ handle_csi(char_u  *tp, int     len, char_u  *argp, int     offset, char_u  *buf
                     sync_output_setting = setting;
                     set_option_value_give_err((char_u *)"termsync", setting == 1 || setting == 2, NULL, 0);
                     break;
-                case 2048:
-                    win_resize_setting = setting;
-
-                    term_set_win_resize(true);
-                    break;
             }
         }
         else
@@ -74689,7 +74190,15 @@ handle_csi(char_u  *tp, int     len, char_u  *argp, int     offset, char_u  *buf
         }
     }
 
-    else if (win_resize_enabled && argc >= 3 && arg[0] == 48)
+    else if (first == '?' && argc == 1 && arg[0] == 1 && trail == 'z')
+    {
+        *slen = csi_len;
+        key_name[0] = (int)KS_EXTRA;
+        key_name[1] = (int)KE_IGNORE;
+        do_cmdline_cmd((char_u *)"stop");
+    }
+
+    else if (argc >= 3 && arg[0] == 48)
     {
         int height = arg[1];
         int width = arg[2];
@@ -74698,10 +74207,7 @@ handle_csi(char_u  *tp, int     len, char_u  *argp, int     offset, char_u  *buf
         key_name[0] = (int)KS_EXTRA;
         key_name[1] = (int)KE_IGNORE;
 
-        if (height != Rows || width != Columns)
-        {
-            set_shellsize(width, height, true);
-        }
+        set_shellsize(width, height, true);
     }
 
     else if (* ( term_strings[(int)(KS_CRV)] )  != NUL && ap > argp + 1 && trail == 'c')
@@ -75591,32 +75097,7 @@ show_one_termcode(char_u *name, char_u *code, int printit)
 term_disable_dec(void)
 {
     term_set_sync_output(TERM_SYNC_OUTPUT_OFF);
-    term_set_win_resize(false);
     out_flush();
-}
-
-    static void
-term_set_win_resize(bool state)
-{
-    if (!state || win_resize_setting == 0 || win_resize_setting == 4)
-    {
-        if (win_resize_enabled)
-        {
-            set_shellsize(0, 0, false);
-            set_sigwinch_handler();
-            out_str((char_u *)"\033[?2048l");
-        }
-        win_resize_enabled = false;
-    }
-    else if ((*p_trz == NUL ||  musl_strcmp((char *)(p_trz), (char *)("inband"))  == 0) && !win_resize_enabled)
-    {
-        if (win_resize_setting == 2)
-        {
-            out_str((char_u *)"\033[?2048h");
-        }
-        mch_signal(SIGWINCH, SIG_DFL);
-        win_resize_enabled = true;
-    }
 }
 
     static int
@@ -76922,8 +76403,17 @@ ui_suspend(void)
 ui_get_shellsize(void)
 {
     int     retval;
+    int     hrows = 0;
+    int     hcols = 0;
 
-        retval = mch_get_shellsize();
+        retval = FAIL;
+        if (musl_get_winsize(&hrows, &hcols) == OK)
+        {
+            Rows = hrows;
+            Columns = hcols;
+            limit_screen_size();
+            retval = OK;
+        }
 
     check_shellsize();
 
@@ -77078,7 +76568,6 @@ fill_input_buf(int exit_on_error  __attribute__((unused)) )
 {
     int         len;
     int         try;
-    static int  did_read_something = FALSE;
 
     if (vim_is_input_buf_full())
     {
@@ -77089,20 +76578,11 @@ fill_input_buf(int exit_on_error  __attribute__((unused)) )
     for (try = 0; try < 100; ++try)
     {
         size_t readlen = (size_t)(INBUFLEN - inbufcount);
-        len = read(read_cmd_fd, (char *)inbuf + inbufcount, readlen);
+        len = musl_read_input((char *)inbuf + inbufcount, (int)readlen);
 
         if (len > 0 || got_int)
         {
             break;
-        }
-        if (!did_read_something && !isatty(read_cmd_fd) && read_cmd_fd == 0)
-        {
-            int m = cur_tmode;
-
-            settmode(TMODE_COOK);
-            close(0);
-            vim_ignored = dup(2);
-            settmode(m);
         }
         if (!exit_on_error)
         {
@@ -77112,10 +76592,6 @@ fill_input_buf(int exit_on_error  __attribute__((unused)) )
     if (len <= 0 && !got_int)
     {
         read_error_exit();
-    }
-    if (len > 0)
-    {
-        did_read_something = TRUE;
     }
     if (got_int)
     {
@@ -79916,7 +79392,7 @@ vim_main2(void)
         newline_on_exit = TRUE;
     }
 
-    settmode(TMODE_RAW);
+    term_enter();
 
     if (need_wait_return || msg_didany)
     {
@@ -79989,8 +79465,6 @@ common_init_1(void)
     static void
 common_init_2(mparm_T *paramp)
 {
-    stdout_isatty = (mch_check_win(paramp->argc, paramp->argv) != FAIL);
-
     if (win_alloc_first() == FAIL)
     {
         mch_exit(0);
@@ -80355,7 +79829,6 @@ exe_commands(mparm_T *parmp)
     static void
 mainerr(int         n, char_u      *str)
 {
-    reset_signals();
 
     init_longVersion();
      fprintf(stderr, "%s", (longVersion)) ;
@@ -80423,6 +79896,235 @@ vim_main(int argc, char **argv, void (*exit_fn)(int))
     init_highlight(TRUE, FALSE);
 
     return vim_main2();
+}
+
+static volatile sig_atomic_t host_winch_pending = FALSE;
+static volatile sig_atomic_t host_tstp_pending = FALSE;
+static volatile sig_atomic_t host_int_pending = FALSE;
+static struct termios host_tty_saved;
+static int host_tty_valid = FALSE;
+static int host_tty_raw = FALSE;
+
+    static void
+host_catch(int sig, void (*f)(int))
+{
+    struct sigaction sa;
+
+    sa.sa_handler = f;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(sig, &sa, NULL);
+}
+
+    static void
+host_on_winch(int sigarg  __attribute__((unused)) )
+{
+    host_winch_pending = TRUE;
+}
+
+    static void
+host_on_tstp(int sigarg  __attribute__((unused)) )
+{
+    host_tstp_pending = TRUE;
+}
+
+    static void
+host_on_int(int sigarg  __attribute__((unused)) )
+{
+    host_int_pending = TRUE;
+}
+
+    static void
+host_tty_set(int raw, int sleep)
+{
+    struct termios tnew;
+    int n = 10;
+
+    if (!host_tty_valid)
+    {
+        if (tcgetattr(0, &host_tty_saved) == -1)
+        {
+            return;
+        }
+        host_tty_valid = TRUE;
+    }
+    tnew = host_tty_saved;
+    if (raw)
+    {
+        tnew.c_iflag &= ~(ICRNL | IXON);
+        tnew.c_lflag &= ~(ICANON | ECHO | ISIG | ECHOE | IEXTEN);
+        tnew.c_oflag &= ~(ONLCR | XTABS);
+        tnew.c_cc[VMIN] = 1;
+        tnew.c_cc[VTIME] = 0;
+    }
+    else if (sleep)
+    {
+        tnew.c_lflag &= ~(ICANON | ECHO);
+        tnew.c_cc[VMIN] = 1;
+        tnew.c_cc[VTIME] = 0;
+    }
+    while (tcsetattr(0, TCSANOW, &tnew) == -1 && errno == EINTR && n > 0)
+    {
+        --n;
+    }
+}
+
+    static void
+musl_host_init(void)
+{
+    host_catch(SIGHUP, deathtrap);
+    host_catch(SIGTERM, deathtrap);
+    host_catch(SIGWINCH, host_on_winch);
+    host_catch(SIGCONT, host_on_winch);
+    host_catch(SIGTSTP, host_on_tstp);
+    host_catch(SIGINT, host_on_int);
+    host_catch(SIGPIPE, SIG_IGN);
+    host_catch(SIGALRM, SIG_IGN);
+}
+
+    static int
+musl_get_winsize(int *rows, int *cols)
+{
+    struct winsize ws;
+
+    if (ioctl(1, TIOCGWINSZ, &ws) != 0)
+    {
+        return FAIL;
+    }
+    if (ws.ws_row <= 0 || ws.ws_col <= 0)
+    {
+        return FAIL;
+    }
+    *rows = ws.ws_row;
+    *cols = ws.ws_col;
+    return OK;
+}
+
+    static void
+musl_term_start(void)
+{
+    host_tty_raw = TRUE;
+    host_tty_set(TRUE, FALSE);
+}
+
+    static void
+musl_term_stop(void)
+{
+    host_tty_raw = FALSE;
+    host_tty_set(FALSE, FALSE);
+}
+
+    static int
+musl_tty_keys(int fd, int *bs, int *intr, int *cr, int *nlcr)
+{
+    struct termios keys;
+
+    if (tcgetattr(fd, &keys) == -1)
+    {
+        return FAIL;
+    }
+    *bs = (int)keys.c_cc[VERASE];
+    *intr = (int)keys.c_cc[VINTR];
+    *cr = (keys.c_iflag & ICRNL) != 0;
+    *nlcr = (keys.c_oflag & ONLCR) != 0;
+    return OK;
+}
+
+    static void
+musl_delay(long ms, int interruptible)
+{
+    struct timespec ts;
+    int relax = interruptible && host_tty_raw && ms > 500;
+
+    if (relax)
+    {
+        host_tty_set(FALSE, TRUE);
+    }
+    ts.tv_sec = ms / 1000;
+    ts.tv_nsec = (ms % 1000) * 1000000;
+    (void)nanosleep(&ts, NULL);
+    if (relax)
+    {
+        host_tty_set(TRUE, FALSE);
+    }
+}
+
+    static int
+musl_wait_for_input(long ms)
+{
+    struct timeval tv;
+    struct timeval *tvp;
+    fd_set rfds;
+    int ret;
+
+    if (ms >= 0)
+    {
+        tv.tv_sec = ms / 1000;
+        tv.tv_usec = (ms % 1000) * 1000;
+        tvp = &tv;
+    }
+    else
+    {
+        tvp = NULL;
+    }
+    for (;;)
+    {
+        if (host_winch_pending || host_tstp_pending || host_int_pending)
+        {
+            return 1;
+        }
+        FD_ZERO(&rfds);
+        FD_SET(0, &rfds);
+        ret = select(1, &rfds, NULL, NULL, tvp);
+        if (ret == -1 && errno == EINTR)
+        {
+            continue;
+        }
+        return ret > 0 && FD_ISSET(0, &rfds);
+    }
+}
+
+    static int
+musl_read_input(char *buf, int len)
+{
+    if (host_int_pending)
+    {
+        host_int_pending = FALSE;
+        if (len >= 1)
+        {
+            buf[0] = 3;
+            return 1;
+        }
+    }
+    if (host_winch_pending)
+    {
+        int rows = 0;
+        int cols = 0;
+
+        host_winch_pending = FALSE;
+        if (musl_get_winsize(&rows, &cols) == OK && len >= 32)
+        {
+            return vim_snprintf(buf, (size_t)len, "\033[48;%d;%d;0;0t", rows, cols);
+        }
+    }
+    if (host_tstp_pending)
+    {
+        host_tstp_pending = FALSE;
+        if (len >= 5)
+        {
+            musl_memcpy(buf, "\033[?1z", 5);
+            return 5;
+        }
+    }
+    return (int)read(0, buf, (size_t)len);
+}
+
+    static void
+musl_suspend(void)
+{
+    host_catch(SIGTSTP, SIG_DFL);
+    kill(0, SIGTSTP);
+    host_catch(SIGTSTP, host_on_tstp);
 }
 
 static void *host_jump[5];
