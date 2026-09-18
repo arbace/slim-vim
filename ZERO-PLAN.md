@@ -1113,6 +1113,30 @@ cut the file at the first `#include` and compile the upper part with
 header-free and self-contained — and it cannot pass vacuously, because a core still
 needing a header fails loudly.
 
+**`NULL` becomes `nil`, and it is an enumerator: `enum { nil = 0 };`** — one line, pure
+C, no directive. Settled by the user, 2026-09-18. It is a null pointer constant by
+C11 6.3.2.3p3 — *an integer constant expression with the value 0* — and an
+enumeration constant is an integer constant expression, so it works everywhere the
+file uses `NULL` today. MEASURED clean under `-Wall -Wextra` in a static initialiser,
+an aggregate initialiser, a comparison, a `return` and a prototyped argument.
+
+The name is not `NULL` deliberately. MEASURED, there is no hard collision —
+`enum { NULL = 0 };` followed later by `#include <stddef.h>` compiles clean, because
+the macro governs only the textual occurrences after it — but the token would then
+mean an enumerator above the boundary and a macro below it, which reads fine and
+misleads later. `nil` is also a character shorter than `NULL` at 2,558 occurrences.
+
+**The one hazard is varargs, and it is silent.** In a variadic argument position
+`nil` passes a four-byte `int` where the callee reads an eight-byte pointer, and
+MEASURED, **gcc does not warn**. The file looks clean — of the nineteen lines where
+`NULL` appears near a variadic call, every one is the comma expression's own value
+(`return (semsg(…), rc_did_emsg = TRUE, (void *)NULL);`), an argument to a prototyped
+inner call such as `transchar_buf(NULL, name)`, or a comparison — but a line-grep is
+not proof for a bug that compiles silently, so the phase must verify it properly. The
+convention is already right in the source: those eighteen sites write `(void *)NULL`
+and become `(void *)nil`. **The check states it as a rule: no bare `nil` inside a
+variadic argument list.**
+
 **MEASURED, the size of what is left to do.** Moving the eleven `#include`s down to
 just above the host block leaves a core of **79,928 lines** and a host of **235**,
 and the compile gives **660 errors, every one of them a libc type or macro the core
