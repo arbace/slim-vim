@@ -23,7 +23,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10
+phases      0 1 2 3 4 5 6 7 8 9 10 11
 
 #   stage   phases
 stage       0
@@ -37,6 +37,7 @@ stage       7
 stage       8
 stage       9
 stage       10
+stage       11
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -121,6 +122,20 @@ apart       8 9
 # the only arm that could say it.  A stage holding 8 and 10 holds 9, and `apart 8 9`
 # forbids that already.  It is the shape of the missing `apart 2 6` and `apart 6 8`.
 apart       9 10
+# Phases 6, 7, 8, 9 AND 10 all assert `E37: No write since last change` in the new
+# record of their `quit_modified` probe, and all five name `check_changed` as a thing
+# the `:q` phase takes -- pipes/zero6-check.sh:158 and :422-424 are the first of them.
+# This phase takes it.  Measured by running pipes/zero10-check.sh on the tree phase 11
+# leaves: five complaints -- `check_changed has 0 mentions, expected 4`,
+# `no_write_message has 0 mentions, expected 3`, `buf_spname has 4 mentions, expected
+# 5`, `open_buffer has 4 mentions, expected 5` and `E37 went, and check_changed() is
+# the :q phase's` -- and exit 1.  Its `quit_modified` probe would fail too, requiring
+# E37 in the new record, but the source assertions come first.
+#
+# ONLY `apart 10 11` IS WRITTEN, and the four before it are implied: a stage holding
+# 6 and 11 holds 10, so the line below forbids it already.  It is the shape of the
+# missing `apart 2 6`, `apart 6 8` and `apart 8 10`.
+apart       10 11
 
 # What phase 7's edit needs of the text it is handed (pipes/whim.stages defines the
 # word).  Every zero phase is its own stage today, so this is a statement rather
@@ -167,6 +182,23 @@ need        9 swept
 #                  and 9, the text before it COMPILES -- phase 9's edit left valid C --
 #                  so the refusal is the counted anchor alone and nothing else.
 need        10 swept
+#   need 11 swept  anchor: `buflist_findfpos` has exactly 3 mentions -- its prototype,
+#                  its definition and the one call inside `buflist_getfpos`, which is
+#                  itself one of the eleven functions of the switch-buffer island.
+#                  THE INVARIANT THE WHOLE PHASE RESTS ON is that every call to any of
+#                  the eleven is inside check_changed_any() or inside another of the
+#                  eleven, so that the island hangs off that one tail and off nothing
+#                  else.  On the text phase 10's edit leaves there are FOUR:
+#                  `buflist_findlnum()` is still there to make `return
+#                  buflist_findfpos(buf)->lnum;`, a call from OUTSIDE the island, and
+#                  phase 10's sweep is what takes it.  The invariant is false on that
+#                  text and the edit refuses.  `SHM_FILEINFO` refuses first, at 3
+#                  mentions where it wants 2, `ex_file()` still being there to read
+#                  the 'shortmess' F letter -- measured with `tools/phaserun.sh zero
+#                  10-11`, which says `SHM_FILEINFO has 3 mentions, expected 2`.
+#                  Unlike 7, 8 and 9 the text before it COMPILES -- phase 10's edit
+#                  left valid C -- so the refusal is the counted anchors alone.
+need        11 swept
 
 #        name         phases
 package  seed         0
@@ -175,6 +207,7 @@ package  terminal     2
 package  harness      3
 package  streams      4 5
 package  files        6 7 8 9 10
+package  buffers      11
 
 #     phase       needs    kind        why
 uses  build:1     seed:0   mechanical  tools/zerodelta.sh refuses without .reference/zero-baselines, which phase 0 records
@@ -195,3 +228,5 @@ uses  files:9     seed:0     mechanical  tools/zerodelta.sh compares its recordi
 uses  files:9     streams:5  mechanical  read_stdin() the function was argv's, and the `read_stdin` ARGUMENT open_buffer's signature fold removes is FALSE at all four call sites only because phase 5 took the bare `-` and EDIT_STDIN with it
 uses  files:10    seed:0     mechanical  tools/zerodelta.sh compares its one screen case and one command row with the baselines phase 0 records
 uses  files:10    harness:3  mechanical  :file went from the CTRL-G line to E492 with the SAME exit status; the old file-based sweep recorded an exit status, so phase 3's message-level record is what can see this phase at all
+uses  buffers:11  seed:0     mechanical  tools/zerodelta.sh compares its one screen case and one command row with the baselines phase 0 records
+uses  buffers:11  files:6    rationale   the refusal has no remedy once nothing can be written: phase 6 took every :write, so E37 asked for a save that the editor no longer had any way to perform
