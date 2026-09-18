@@ -492,8 +492,6 @@ musl_qsort(void *base, usize nel, usize width, int (*cmp)(const void *, const vo
 static int musl_towupper(int a);
 static int musl_towlower(int a);
 
-static void (*vim_host_message)(const char *msg, int len, int err);
-
 enum { BH_DIRTY = 1 };
 enum { BH_LOCKED = 2 };
 enum { CMOD_SILENT = 0x0002 };
@@ -3532,6 +3530,8 @@ static void musl_delay(long ms, int interruptible);
 static int musl_wait_for_input(long ms);
 static int musl_read_input(char *buf, int len);
 static void musl_suspend(void);
+static void host_exit(int r);
+static void host_message(const char *msg, int len, int err);
 static void starttermcap(void);
 static void stoptermcap(void);
 static int swapping_screen(void);
@@ -37646,11 +37646,11 @@ msg_puts_printf(char_u *str, int maxlen)
                 buf[n++] = NUL;
                 if (info_message)
                 {
-                    vim_host_message((char *)buf, -1, FALSE);
+                    host_message((char *)buf, -1, FALSE);
                 }
                 else
                 {
-                    vim_host_message((char *)buf, -1, TRUE);
+                    host_message((char *)buf, -1, TRUE);
                 }
                 vim_free(buf);
             }
@@ -37683,11 +37683,11 @@ msg_puts_printf(char_u *str, int maxlen)
         {
             if (info_message)
             {
-                vim_host_message((char *)p, -1, FALSE);
+                host_message((char *)p, -1, FALSE);
             }
             else
             {
-                vim_host_message((char *)p, -1, TRUE);
+                host_message((char *)p, -1, TRUE);
             }
             vim_free(tofree);
         }
@@ -55821,11 +55821,11 @@ exit_scroll(void)
         {
             if (info_message)
             {
-                vim_host_message("\n", -1, FALSE);
+                host_message("\n", -1, FALSE);
             }
             else
             {
-                vim_host_message("\r\n", -1, TRUE);
+                host_message("\r\n", -1, TRUE);
             }
         }
         else
@@ -55840,8 +55840,6 @@ exit_scroll(void)
         windgoto((int)Rows - 1, cmdline_col_off);
     }
 }
-
-static void (*vim_host_exit)(int);
 
     static void
 mch_exit(int r)
@@ -55871,7 +55869,7 @@ mch_exit(int r)
     out_flush();
     ml_close_all(TRUE);
 
-    vim_host_exit(r);
+    host_exit(r);
 }
 
     static void
@@ -72189,7 +72187,7 @@ report_term_error(char *error_msg, char_u *term)
     {
         vim_snprintf(buf, sizeof(buf), "\r\n'%s%s\r\n", (char *)term, _("' not known, defaulting to 'xterm'"));
     }
-    vim_host_message(buf, -1, TRUE);
+    host_message(buf, -1, TRUE);
 }
 
     static void
@@ -79846,7 +79844,7 @@ mainerr(int         n, char_u      *str)
     {
         vim_snprintf(buf, sizeof(buf), "%s\n%s", longVersion, _(main_errors[n]));
     }
-    vim_host_message(buf, -1, TRUE);
+    host_message(buf, -1, TRUE);
 
     mch_exit(1);
 }
@@ -79858,11 +79856,8 @@ mainerr_arg_missing(char_u *str)
 }
 
     static int
-vim_main(int argc, char **argv, void (*exit_fn)(int), void (*message_fn)(const char *, int, int))
+vim_main(int argc, char **argv)
 {
-
-    vim_host_exit = exit_fn;
-    vim_host_message = message_fn;
 
       musl_memset((&(params)), (0), (sizeof(params)))  ;
     params.argc = argc;
@@ -80174,5 +80169,5 @@ main(int argc, char **argv)
     {
         return host_code;
     }
-    return vim_main(argc, argv, host_exit, host_message);
+    return vim_main(argc, argv);
 }
