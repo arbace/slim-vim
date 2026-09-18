@@ -1,0 +1,179 @@
+
+    static int
+musl_isdigit(int c)
+{
+    return (unsigned)c - '0' < 10;
+}
+
+    static int
+musl_isalpha(int c)
+{
+    return ((unsigned)c | 32) - 'a' < 26;
+}
+
+    static int
+musl_isupper(int c)
+{
+    return (unsigned)c - 'A' < 26;
+}
+
+    static int
+musl_islower(int c)
+{
+    return (unsigned)c - 'a' < 26;
+}
+
+    static int
+musl_isgraph(int c)
+{
+    return (unsigned)c - 0x21 < 0x5e;
+}
+
+    static int
+musl_isspace(int c)
+{
+    return (unsigned)c - '\t' < 5 || c == ' ';
+}
+
+    static int
+musl_isalnum(int c)
+{
+    return musl_isalpha(c) || musl_isdigit(c);
+}
+
+    static int
+musl_iscntrl(int c)
+{
+    return (unsigned)c < 0x20 || c == 0x7f;
+}
+
+    static int
+musl_ispunct(int c)
+{
+    return musl_isgraph(c) && !musl_isalnum(c);
+}
+
+    static int
+musl_tolower(int c)
+{
+    if (musl_isupper(c))
+    {
+        return c | 32;
+    }
+    return c;
+}
+
+    static int
+musl_toupper(int c)
+{
+    if (musl_islower(c))
+    {
+        return c & 0x5f;
+    }
+    return c;
+}
+
+    static int
+musl_atoi(const char *s)
+{
+    int n = 0;
+    int neg = 0;
+
+    while (musl_isspace(*s))
+    {
+        ++s;
+    }
+    if (*s == '-')
+    {
+        neg = 1;
+        ++s;
+    }
+    else if (*s == '+')
+    {
+        ++s;
+    }
+    while (musl_isdigit(*s))
+    {
+        n = 10 * n - (*s++ - '0');
+    }
+    return neg ? n : -n;
+}
+
+    static long
+musl_atol(const char *s)
+{
+    long n = 0;
+    int neg = 0;
+
+    while (musl_isspace(*s))
+    {
+        ++s;
+    }
+    if (*s == '-')
+    {
+        neg = 1;
+        ++s;
+    }
+    else if (*s == '+')
+    {
+        ++s;
+    }
+    while (musl_isdigit(*s))
+    {
+        n = 10 * n - (*s++ - '0');
+    }
+    return neg ? n : -n;
+}
+
+    static void *
+musl_bsearch(const void *key, const void *base, size_t nel, size_t width, int (*cmp)(const void *, const void *))
+{
+    void *tryp;
+    int sign;
+
+    while (nel > 0)
+    {
+        tryp = (char *)base + width * (nel / 2);
+        sign = cmp(key, tryp);
+        if (sign < 0)
+        {
+            nel /= 2;
+        }
+        else if (sign > 0)
+        {
+            base = (char *)tryp + width;
+            nel -= nel / 2 + 1;
+        }
+        else
+        {
+            return tryp;
+        }
+    }
+    return NULL;
+}
+
+    static void
+musl_qsort(void *base, size_t nel, size_t width, int (*cmp)(const void *, const void *))
+{
+    char *a = (char *)base;
+    size_t i;
+    size_t j;
+    size_t k;
+
+    for (i = 1; i < nel; ++i)
+    {
+        for (j = i; j > 0 && cmp(a + (j - 1) * width, a + j * width) > 0; --j)
+        {
+            for (k = 0; k < width; ++k)
+            {
+                char t = a[(j - 1) * width + k];
+
+                a[(j - 1) * width + k] = a[j * width + k];
+                a[j * width + k] = t;
+            }
+        }
+    }
+}
+
+static int musl_towupper(int a);
+static int musl_towlower(int a);

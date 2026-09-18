@@ -51,6 +51,17 @@ actually happened was an import crash.
   original's nineteen rows all read `(none)`. It imports `termcheck.py` and replaces
   its `ask()`, so the terminal list, the isolation and the format cannot drift;
   `termcheck.py` is left alone because whim's and slim's keys read its bytes.
+- **`muslcase.py`**, **`muslctype.py`** — zero phase 15's two equivalence tools, and
+  neither trusts the bytes the phase shipped. `muslcase.py --generate` writes musl's
+  Unicode case mapping as `convertStruct` rows — the shape `zero-vim.c` already has
+  for its own case tables — and `--verify <file.c>` re-derives every one of the
+  1,114,112 codepoints from *this machine's* libc through ctypes and compares. So
+  the 187 + 171 rows are data checked against the only authority there is rather
+  than a remembered constant, and a musl upgrade that moved one codepoint fails the
+  phase. `muslctype.py --verify <file.c>` slices the seventeen vendored functions
+  **out of the produced source**, compiles them with `-Wall -Wextra` and runs them
+  beside libc's; its domain is bounded on purpose and its docstring says what the
+  unbounded run found. Both are proven able to fail.
 - **`zcompare.py`** — a recording against the baselines, under what
   `pipes/zero.delta` declares: a record by name, or a whole *dimension* through
   `screen-moved` and `stderr-moved`. A dimension declared that did not move is a
