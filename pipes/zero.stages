@@ -19,12 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are twenty-seven phases, 0 to 26.  Phases are added one at a time, each on its
+# There are twenty-eight phases, 0 to 27.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
 
 #   stage   phases
 stage       0
@@ -54,6 +54,7 @@ stage       23
 stage       24
 stage       25
 stage       26
+stage       27
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -323,6 +324,24 @@ apart       24 25
 # claimed and unmeasured: phase 25's check refuses before phase 26's ever runs, so there
 # is nothing after it to observe.  That is `apart 19 20`'s shape.
 apart       25 26
+# MEASURED rather than predicted, by running pipes/zero26-check.sh on the tree phase 27
+# leaves -- r25 restored, 26's edit, 27's edit, one sweep, then 26's check.  It stops
+# with TWO complaints, and behind them a third that never gets a chance to speak.  `the
+# output is 80232 lines and the input was 80173, a difference of 59 where 24 was
+# expected`, phase 27 adding 35 more; and `the output does not have exactly eleven
+# directives on its first eleven lines: 11 at 78359 78360 ...`, which is phase 26's
+# check stating as a property the very thing phase 27 exists to make false.  The third
+# is the whole of phase 26's argument: SIXTEEN static_asserts and four mismatched
+# declarations, every one of which needs the headers ABOVE the core, and its `r0`
+# control puts `struct timeval` back into what is now the upper part -- `storage size
+# of 'start_tv' isn't known`, six errors before it has compiled anything.  That is not
+# an accident of two programs meeting; it is the ordering ZERO-PLAN.md 4c requires,
+# read from the far side.
+# ONE DIRECTION ONLY, and it was measured rather than reasoned: phase 27's own check was
+# run on the tree that stage leaves and every part of it passed -- it compares against
+# the text and binary ITS OWN edit was handed, which is 26's output either way, and it
+# takes no symbol snapshot from the stage.
+apart       26 27
 #
 # NO `apart 23 24`, AND IT WAS MEASURED RATHER THAN PREDICTED.  `tools/phaserun.sh zero
 # 23-24` on r22 runs both edits, one sweep and BOTH CHECKS, and every one of them passes:
@@ -467,6 +486,18 @@ need        11 swept
 #                  Phase 24's edit changes no line count and touches no line this phase
 #                  reads, and the sweep between them is a complete no-op at this point in
 #                  the pipeline: one round, 0 of all six kinds, canon settled.
+#   NO `need 27`, AND IT WAS MEASURED RATHER THAN ASSUMED, in the same run that measured
+#                  `apart 26 27`.  Phase 27's edit was run on the UNSWEPT text phase 26's
+#                  edit leaves and the output is `cmp`-IDENTICAL to the one the swept
+#                  path gives: the same 80,197 -> 80,232 lines, the same five fixpoint
+#                  rounds naming the same 15 functions, 18 objects and 3 enum blocks, the
+#                  same 78,358-line cut and the same thirteen boundary names.  It could
+#                  hardly be otherwise: this edit asserts no count of its input at all.
+#                  What it asserts is STRUCTURAL -- eleven directives on the first eleven
+#                  lines, the host block beginning once, no run of two blank lines -- and
+#                  every set it acts on is COMPUTED BY COMPILING, which cannot shrink
+#                  silently the way a counted cut can.  The sweep between the two is a
+#                  complete no-op at this point in the pipeline.
 #   NO `need 26`, AND IT WAS MEASURED RATHER THAN ASSUMED, in the same run that measured
 #                  `apart 25 26`.  Both edits came from the edit cache, which is keyed on
 #                  the DIGEST of the tree each is handed -- so the unswept text phase 25's
@@ -535,7 +566,37 @@ package  format       22
 # tagless-struct question out of the core together.  The tagless struct is an INTERIM
 # shape: it is what the survey specified and what phase 26's evidence was measured
 # against, and the scalar clock is a phase of its own.
-package  boundary     23 25 26
+#
+# PHASE 27 IS THE MOVE, AND IT IS WHAT THE OTHER THREE WERE CLEARING THE GROUND FOR.
+# The eleven `#include`s go down to just above the host block, and the FIRST OF THEM IS
+# THE BOUNDARY -- no marker, no sentinel, no data file naming anything, because a
+# directive that has to be there anyway is the line.  With them go the four functions
+# that hold a `va_list` -- `va_list` is <stdarg.h>'s and the core cannot declare it --
+# and, computed to a fixpoint by compiling the cut and moving whatever gcc calls unused,
+# the formatter's whole private island: 15 functions, 18 objects and 3 enum blocks in
+# five rounds, where the brief's single round predicted five functions and two objects.
+# Up go the twelve constants, in the only phase where they CAN go up.  What comes out is
+# a product: `make editor.c` is one `awk` clause with no judgement in it and writes the
+# 78,358-line core, where until this phase it wrote an empty file.
+#
+# AND THE CHECK THAT FALLS OUT OF THE POSITION IS THE POINT OF THE PACKAGE.  Cut the
+# file at the first `#include` and compile the prefix alone: 0 errors, and a warning set
+# that IS the core -> host interface, thirteen names every one `used but never defined`.
+# Three mistakes the ordinary build cannot see are caught by nothing else -- a `#define`
+# above the cut, an `#include` back at line 1, and one core function quietly moved below
+# the boundary, which changes that set by exactly its name.
+#
+# WHAT IT OWES THE OTHER THREE IS INSIDE THE PACKAGE, so it is here and not in a `uses`
+# line.  Phase 26 left the twelve constants and NOTHING ELSE header-supplied above the
+# host block, and phase 27's edit proves that by asking the compiler rather than by
+# remembering: the move alone leaves the cut with 23 errors naming exactly those twelve,
+# and a thirteenth would mean phase 26 did not finish.  The constants go directly below
+# `typedef typeof(sizeof(0)) usize;`, which is phase 23's line, and `enum : usize
+# { SIZE_MAX = (usize)-1 };` is spelled in its name.  And `host_exit` and `host_message`
+# are two of the thirteen names the cut enumerates -- they are NAMES at all because
+# phase 25 turned two function pointers into forward-declared calls, and a boundary
+# spelled as a declaration is one a compiler can list.
+package  boundary     23 25 26 27
 # `dialect` is phase 24's, and it is NOT `boundary`: the boundary is where the line
 # between core and host falls, and this phase moves no line.  It is about the LANGUAGE
 # THE CORE IS WRITTEN IN -- 113 GNU `__attribute__((unused))` deleted because the flags
@@ -627,4 +688,9 @@ uses  boundary:25 host:21    mechanical  `vim_host_message`, its parameter, its 
 uses  boundary:26 seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
 uses  boundary:26 harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
 uses  boundary:26 host:20    mechanical  musl_gettimeofday is DEFINED inside the host block phase 20 created, immediately above musl_delay -- tools/zhostonly.py reads the host region as the lines from host_winch_pending to musl_suspend's last brace, so a definition below musl_suspend would put a `struct timeval` outside it and the tool would refuse
+uses  boundary:27 seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  boundary:27 harness:3   mechanical  its evidence is a RECORDING and not a cmp -- 1,800 lines of definitions move past the rest, so every address below the first of them moves -- and a zero recording is what phase 3 made one
+uses  boundary:27 format:22   mechanical  what moves below the includes is four functions and not eleven because phase 22 collapsed the seven `va_list` wrappers into their call sites; `skip_to_arg` is the fourth, which ZERO-PLAN.md 4c missed and phase 22 counted
+uses  boundary:27 host:20     mechanical  the includes land immediately above `host_winch_pending`, the first line of the block phase 20 created, and tools/zhostonly.py -- phase 20's structural check, which this check runs -- reads the host region from there
+uses  boundary:27 host:21     mechanical  the eleven directives on the first eleven lines are what phase 21 left when <stdio.h> went with the seven symbols it freed, and this edit asserts that shape before lifting the block
 uses  boundary:26 host:19    rationale   the two `sig_atomic_t` this phase respells are the core's, and the THREE it leaves alone are the host block's -- the split that makes that sentence meaningful is the launcher phases 18 and 19 put at the bottom of the file
