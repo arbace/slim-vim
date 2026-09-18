@@ -86,9 +86,13 @@
 #    this phase and takes it now -- and `zz_key`/`zq_key` must leave the same screen.
 #
 # 6. A REAL TERMINAL, because every probe above went through a pipe.  On a pty the
-#    old binary answers E37 to `:q` and needs the `:q!` after it; this one is gone
-#    on the `:q` and the `:q!` reaches nothing.  An ordinary editing session beside
-#    it must be identical either side.
+#    old binary answers E37 to `:q` and is still running, so the `:q!` after it
+#    reaches the command line; this one draws no E37 at all.  THE OPPOSITE PAIR --
+#    "the `:q!` did not reach the new binary" -- IS NOT ASSERTED, and it is a race:
+#    once the editor has quit the pty leaves raw mode and whether the trailing
+#    keystrokes are echoed back depends on how fast the process exits.  What the `:q`
+#    quit is `q_alone`'s to say, by its exit status through a pipe.  An ordinary
+#    editing session beside it must be identical either side.
 #
 # A record is built the way tools/zcases.py builds one and scrubbed the same way
 # (tools/zrec.py).  tools/zstream.py's session() is not called directly because this
@@ -654,12 +658,18 @@ if 'E37: No write since last change' not in o:
                 'nothing')
 if 'E37' in n:
     fail.append('the pty session still refuses on the new binary')
-if ':q!' in n:
-    fail.append('the `:q!` after the `:q` reached the new binary, so the `:q` did '
-                'not quit')
 if ':q!' not in o:
     fail.append('the `:q!` did not reach the input binary, so the `:q` there did '
-                'not leave the editor running')
+                'not leave the editor running -- which is the evidence that it '
+                'refused rather than quitting')
+# THE OTHER DIRECTION IS NOT ASSERTED, AND THAT IS DELIBERATE.  "the `:q!` did not
+# reach the new binary" looks like the obvious pair and is a race: once the editor
+# has quit the pty leaves raw mode, so whether the trailing keystrokes are echoed
+# back depends on how fast the process exits.  Measured: it passes alone and fails
+# under `make zero-verify`, which runs fourteen phases at once.  What the `:q` quit
+# is `q_alone`'s to say, through a pipe and by its exit status, where nothing is
+# timing-dependent; this section's claim is that the refusal is gone on a REAL
+# TERMINAL, and E37 is the whole of that.
 eo, eos = session(sys.argv[1], EDIT)
 en, ens = session(sys.argv[2], EDIT)
 if eo != en or eos != ens:
@@ -672,7 +682,7 @@ if fail:
         print('  %-12s %s' % (TAG, line))
     sys.exit(1)
 print('  %-12s a real terminal: `:q` draws E37 and leaves the editor running on the '
-      'binary this phase was handed, so its `:q!` is what ends the session; here the '
-      '`:q` quits and the `:q!` reaches nothing, and an ordinary editing session is '
-      'identical either side' % TAG)
+      'binary this phase was handed, so its `:q!` is what ends the session, and here '
+      'there is no E37 at all -- an ordinary editing session is identical either '
+      'side' % TAG)
 PY
