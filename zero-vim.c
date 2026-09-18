@@ -17,6 +17,288 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 
+static void *musl_memcpy(void *dest, const void *src, size_t n)
+{
+    unsigned char *d = dest;
+    const unsigned char *s = src;
+    for (; n; n--)
+    {
+        *d++ = *s++;
+    }
+    return dest;
+}
+
+static void *musl_memmove(void *dest, const void *src, size_t n)
+{
+    unsigned char *d = dest;
+    const unsigned char *s = src;
+    if (d == s)
+    {
+        return dest;
+    }
+    if (d < s)
+    {
+        for (; n; n--)
+        {
+            *d++ = *s++;
+        }
+    }
+    else
+    {
+        while (n)
+        {
+            n--;
+            d[n] = s[n];
+        }
+    }
+    return dest;
+}
+
+static void *musl_memset(void *dest, int c, size_t n)
+{
+    unsigned char *s = dest;
+    for (; n; n--)
+    {
+        *s++ = (unsigned char)c;
+    }
+    return dest;
+}
+
+static int musl_memcmp(const void *vl, const void *vr, size_t n)
+{
+    const unsigned char *l = vl;
+    const unsigned char *r = vr;
+    for (; n && *l == *r; n--, l++, r++)
+    {
+    }
+    return n ? *l - *r : 0;
+}
+
+static void *musl_memchr(const void *src, int c, size_t n)
+{
+    const unsigned char *s = src;
+    unsigned char ch = (unsigned char)c;
+    for (; n && *s != ch; s++, n--)
+    {
+    }
+    return n ? (void *)s : NULL;
+}
+
+static size_t musl_strlen(const char *s)
+{
+    const char *a = s;
+    for (; *s; s++)
+    {
+    }
+    return (size_t)(s - a);
+}
+
+static char *musl_strcpy(char *dest, const char *src)
+{
+    char *d = dest;
+    while ((*d = *src) != 0)
+    {
+        d++;
+        src++;
+    }
+    return dest;
+}
+
+static char *musl_strncpy(char *dest, const char *src, size_t n)
+{
+    char *d = dest;
+    for (; n && *src; n--)
+    {
+        *d++ = *src++;
+    }
+    for (; n; n--)
+    {
+        *d++ = 0;
+    }
+    return dest;
+}
+
+static char *musl_strcat(char *dest, const char *src)
+{
+    musl_strcpy(dest + musl_strlen(dest), src);
+    return dest;
+}
+
+static int musl_strcmp(const char *l, const char *r)
+{
+    for (; *l == *r && *l; l++, r++)
+    {
+    }
+    return *(const unsigned char *)l - *(const unsigned char *)r;
+}
+
+static int musl_strncmp(const char *ls, const char *rs, size_t n)
+{
+    const unsigned char *l = (const unsigned char *)ls;
+    const unsigned char *r = (const unsigned char *)rs;
+    if (!n--)
+    {
+        return 0;
+    }
+    for (; *l && *r && n && *l == *r; l++, r++, n--)
+    {
+    }
+    return *l - *r;
+}
+
+static int musl_strcasecmp(const char *ls, const char *rs)
+{
+    const unsigned char *l = (const unsigned char *)ls;
+    const unsigned char *r = (const unsigned char *)rs;
+    for (; *l && *r && ((unsigned)*l - 'A' < 26 ? *l | 32 : *l) == ((unsigned)*r - 'A' < 26 ? *r | 32 : *r); l++, r++)
+    {
+    }
+    return ((unsigned)*l - 'A' < 26 ? *l | 32 : *l) - ((unsigned)*r - 'A' < 26 ? *r | 32 : *r);
+}
+
+static int musl_strncasecmp(const char *ls, const char *rs, size_t n)
+{
+    const unsigned char *l = (const unsigned char *)ls;
+    const unsigned char *r = (const unsigned char *)rs;
+    if (!n--)
+    {
+        return 0;
+    }
+    for (; *l && *r && n && ((unsigned)*l - 'A' < 26 ? *l | 32 : *l) == ((unsigned)*r - 'A' < 26 ? *r | 32 : *r); l++, r++, n--)
+    {
+    }
+    return ((unsigned)*l - 'A' < 26 ? *l | 32 : *l) - ((unsigned)*r - 'A' < 26 ? *r | 32 : *r);
+}
+
+static char *musl_strchr(const char *s, int c)
+{
+    unsigned char ch = (unsigned char)c;
+    for (; *s && *(const unsigned char *)s != ch; s++)
+    {
+    }
+    if (*(const unsigned char *)s == ch)
+    {
+        return (char *)s;
+    }
+    return NULL;
+}
+
+static char *musl_strstr(const char *h, const char *n)
+{
+    size_t i;
+    if (!n[0])
+    {
+        return (char *)h;
+    }
+    for (; *h; h++)
+    {
+        for (i = 0; n[i] && h[i] == n[i]; i++)
+        {
+        }
+        if (!n[i])
+        {
+            return (char *)h;
+        }
+    }
+    return NULL;
+}
+
+static char *musl_strpbrk(const char *s, const char *b)
+{
+    const char *c;
+    for (; *s; s++)
+    {
+        for (c = b; *c; c++)
+        {
+            if (*s == *c)
+            {
+                return (char *)s;
+            }
+        }
+    }
+    return NULL;
+}
+
+static int musl_fmtbase(char spec)
+{
+    if (spec == 'o')
+    {
+        return 8;
+    }
+    if (spec == 'x' || spec == 'X')
+    {
+        return 16;
+    }
+    return 10;
+}
+
+static int musl_fmtnum(char *dest, unsigned long long v, int base, int upper, int isneg)
+{
+    char digits[24];
+    int n = 0;
+    int out = 0;
+    int i;
+    int d;
+
+    if (isneg)
+    {
+        v = ~v + 1ULL;
+    }
+    do
+    {
+        d = (int)(v % (unsigned long long)base);
+        if (d < 10)
+        {
+            digits[n++] = (char)('0' + d);
+        }
+        else if (upper)
+        {
+            digits[n++] = (char)('A' + d - 10);
+        }
+        else
+        {
+            digits[n++] = (char)('a' + d - 10);
+        }
+        v /= (unsigned long long)base;
+    }
+    while (v != 0)
+        ;
+    if (isneg)
+    {
+        dest[out++] = '-';
+    }
+    for (i = 0; i < n; i++)
+    {
+        dest[out++] = digits[n - 1 - i];
+    }
+    dest[out] = '\0';
+    return out;
+}
+
+static int musl_fmtptr(char *dest, void *p)
+{
+    unsigned long long v = (unsigned long long)(uintptr_t)p;
+    int i;
+    int d;
+
+    dest[0] = '0';
+    dest[1] = 'x';
+    for (i = 0; i < 16; i++)
+    {
+        d = (int)((v >> (60 - 4 * i)) & 0xf);
+        if (d < 10)
+        {
+            dest[2 + i] = (char)('0' + d);
+        }
+        else
+        {
+            dest[2 + i] = (char)('a' + d - 10);
+        }
+    }
+    dest[18] = '\0';
+    return 18;
+}
+
 enum { BH_DIRTY = 1 };
 enum { BH_LOCKED = 2 };
 enum { CMOD_SILENT = 0x0002 };
@@ -3777,7 +4059,7 @@ alloc_clear(size_t size)
     p = lalloc(size, TRUE);
     if (p != NULL)
     {
-        (void) memset((p), (0), (size)) ;
+        (void) musl_memset((p), (0), (size)) ;
     }
     return p;
 }
@@ -3790,7 +4072,7 @@ lalloc_clear(size_t size, int message)
     p = lalloc(size, message);
     if (p != NULL)
     {
-        (void) memset((p), (0), (size)) ;
+        (void) musl_memset((p), (0), (size)) ;
     }
     return p;
 }
@@ -3851,7 +4133,7 @@ vim_memsave(char_u *p, size_t len)
 
     if (ret != NULL)
     {
-         memmove((char *)(ret), (char *)(p), len) ;
+         musl_memmove((char *)(ret), (char *)(p), len) ;
     }
     return ret;
 }
@@ -3941,7 +4223,7 @@ ga_grow_inner(garray_T *gap, int n)
         return FAIL;
     }
     old_len = (size_t)gap->ga_itemsize * gap->ga_maxlen;
-     memset((pp + old_len), (0), (new_len - old_len)) ;
+     musl_memset((pp + old_len), (0), (new_len - old_len)) ;
     gap->ga_maxlen = gap->ga_len + n;
     gap->ga_data = pp;
     return OK;
@@ -3956,10 +4238,10 @@ ga_concat(garray_T *gap, char_u *s)
     {
         return;
     }
-    len = (int) strlen((char *)(s)) ;
+    len = (int) musl_strlen((char *)(s)) ;
     if (ga_grow(gap, len) == OK)
     {
-         memmove((char *)((char *)gap->ga_data + gap->ga_len), (char *)(s), (size_t)len) ;
+         musl_memmove((char *)((char *)gap->ga_data + gap->ga_len), (char *)(s), (size_t)len) ;
         gap->ga_len += len;
     }
 }
@@ -3973,7 +4255,7 @@ ga_concat_len(garray_T *gap, char_u *s, size_t len)
     }
     if (ga_grow(gap, (int)len) == OK)
     {
-         memmove((char *)((char *)gap->ga_data + gap->ga_len), (char *)(s), len) ;
+         musl_memmove((char *)((char *)gap->ga_data + gap->ga_len), (char *)(s), len) ;
         gap->ga_len += (int)len;
     }
 }
@@ -4743,7 +5025,7 @@ changed_common(linenr_T    lnum, colnr_T     col, linenr_T    lnume, long       
                 if (curbuf->b_changelistlen == JUMPLISTSIZE)
                 {
                     curbuf->b_changelistlen = JUMPLISTSIZE - 1;
-                     memmove((char *)(curbuf->b_changelist), (char *)(curbuf->b_changelist + 1), sizeof(pos_T) * (JUMPLISTSIZE - 1)) ;
+                     musl_memmove((char *)(curbuf->b_changelist), (char *)(curbuf->b_changelist + 1), sizeof(pos_T) * (JUMPLISTSIZE - 1)) ;
                      wp = curwin;
                 if (wp->w_buffer == curbuf && wp->w_changelistidx > 0)
                 {
@@ -4968,7 +5250,7 @@ unchanged(buf_T *buf, int ff, int always_inc_changedtick)
     static void
 ins_bytes(char_u *p)
 {
-    ins_bytes_len(p, (int) strlen((char *)(p)) );
+    ins_bytes_len(p, (int) musl_strlen((char *)(p)) );
 }
 
     static void
@@ -5074,16 +5356,16 @@ ins_char_bytes(char_u *buf, int charlen)
 
     if (col > 0)
     {
-         memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
+         musl_memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
     }
 
     p = newp + col;
     if (linelen > col + oldlen)
     {
-         memmove((char *)(p + newlen), (char *)(oldp + col + oldlen), (size_t)(linelen - col - oldlen)) ;
+         musl_memmove((char *)(p + newlen), (char *)(oldp + col + oldlen), (size_t)(linelen - col - oldlen)) ;
     }
 
-     memmove((char *)(p), (char *)(buf), charlen) ;
+     musl_memmove((char *)(p), (char *)(buf), charlen) ;
     i = charlen;
 
     while (i < newlen)
@@ -5131,10 +5413,10 @@ ins_str(char_u *s, size_t slen)
     }
     if (col > 0)
     {
-         memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
+         musl_memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
     }
-     memmove((char *)(newp + col), (char *)(s), slen) ;
-     memmove((char *)(newp + col + slen), (char *)(oldp + col), (size_t)(oldlen - col + 1)) ;
+     musl_memmove((char *)(newp + col), (char *)(s), slen) ;
+     musl_memmove((char *)(newp + col + slen), (char *)(oldp + col), (size_t)(oldlen - col + 1)) ;
     ml_replace(lnum, newp, FALSE);
     inserted_bytes(lnum, col, (int)slen);
     curwin->w_cursor.col += (colnr_T)slen;
@@ -5248,9 +5530,9 @@ del_bytes(long        count, int         fixpos_arg, int         use_delcombine 
         {
             return FAIL;
         }
-         memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
+         musl_memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
     }
-     memmove((char *)(newp + col), (char *)(oldp + col + count), (size_t)movelen) ;
+     musl_memmove((char *)(newp + col), (char *)(oldp + col + count), (size_t)movelen) ;
     if (alloc_newp)
     {
         ml_replace(lnum, newp, FALSE);
@@ -5371,7 +5653,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
                     }
                     newindent = get_indent();
                 }
-                p = ptr +  strlen((char *)(ptr))  - 1;
+                p = ptr +  musl_strlen((char *)(ptr))  - 1;
                 while (p > ptr &&  ((*p) == ' ' || (*p) == '\t') )
                 {
                     --p;
@@ -5413,7 +5695,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
 
                     while ((ptr[0] == '#' || was_backslashed) && curwin->w_cursor.lnum < curbuf->b_ml.ml_line_count)
                     {
-                        if (*ptr && ptr[ strlen((char *)(ptr))  - 1] == '\\')
+                        if (*ptr && ptr[ musl_strlen((char *)(ptr))  - 1] == '\\')
                         {
                             was_backslashed = TRUE;
                         }
@@ -5764,7 +6046,7 @@ buf_init_chartab(buf_T       *buf, int         global)
         }
     }
 
-      memset((&(buf->b_chartab)), (0), (sizeof(buf->b_chartab)))  ;
+      musl_memset((&(buf->b_chartab)), (0), (sizeof(buf->b_chartab)))  ;
 
     for (i = global ? 0 : 3; i <= 3; ++i)
     {
@@ -5942,7 +6224,7 @@ trans_characters(char_u      *buf, int         bufsize)
     char_u      *trs;
     int         trs_len;
 
-    len = (int) strlen((char *)(buf)) ;
+    len = (int) musl_strlen((char *)(buf)) ;
     room = bufsize - len;
     while (*buf != 0)
     {
@@ -5953,7 +6235,7 @@ trans_characters(char_u      *buf, int         bufsize)
         else
         {
             trs = transchar_byte(*buf);
-            trs_len = (int) strlen((char *)(trs)) ;
+            trs_len = (int) musl_strlen((char *)(trs)) ;
             if (trs_len > 1)
             {
                 room -= trs_len - 1;
@@ -5961,9 +6243,9 @@ trans_characters(char_u      *buf, int         bufsize)
                 {
                     return;
                 }
-                 memmove((char *)(buf + trs_len), (char *)(buf + 1), (size_t)len) ;
+                 musl_memmove((char *)(buf + trs_len), (char *)(buf + 1), (size_t)len) ;
             }
-             memmove((char *)(buf), (char *)(trs), (size_t)trs_len) ;
+             musl_memmove((char *)(buf), (char *)(trs), (size_t)trs_len) ;
             --len;
         }
         buf += trs_len;
@@ -6292,7 +6574,7 @@ vim_isprintc_strict(int c)
     static void
 init_chartabsize_arg(chartabsize_T   *cts, win_T           *wp, linenr_T        lnum  __attribute__((unused)) , colnr_T         col, char_u          *line, char_u          *ptr)
 {
-      memset(((cts)), (0), (sizeof(*(cts))))  ;
+      musl_memset(((cts)), (0), (sizeof(*(cts))))  ;
     cts->cts_win = wp;
     cts->cts_vcol = col;
     cts->cts_line = line;
@@ -7169,7 +7451,7 @@ skip_string(char_u *p)
 
                 for (p += 3; *p; ++p)
                 {
-                    if (p[0] == ')' &&  strncmp((char *)(p + 1), (char *)(delim), (delim_len))  == 0 && p[delim_len + 1] == '"')
+                    if (p[0] == ')' &&  musl_strncmp((char *)(p + 1), (char *)(delim), (delim_len))  == 0 && p[delim_len + 1] == '"')
                     {
                         p += delim_len + 1;
                         break;
@@ -7250,7 +7532,7 @@ free_xp_files_extra(expand_T *xp, int numfiles)
     static void
 ExpandInit(expand_T *xp)
 {
-      memset(((xp)), (0), (sizeof(*(xp))))  ;
+      musl_memset(((xp)), (0), (sizeof(*(xp))))  ;
     xp->xp_backslash = XP_BS_NONE;
     xp->xp_prefix = XP_PREFIX_NONE;
     xp->xp_numfiles = -1;
@@ -7459,7 +7741,7 @@ in_history(int     type, char_u  *str, int     move_to_front, int     sep, int  
         }
 
         p = history[type][i].hisstr;
-        if ( strcmp((char *)(str), (char *)(p))  == 0 && !(writing && history[type][i].viminfo) && (type != HIST_SEARCH || sep == p[history[type][i].hisstrlen + 1]))
+        if ( musl_strcmp((char *)(str), (char *)(p))  == 0 && !(writing && history[type][i].viminfo) && (type != HIST_SEARCH || sep == p[history[type][i].hisstrlen + 1]))
         {
             if (!move_to_front)
             {
@@ -7502,7 +7784,7 @@ in_history(int     type, char_u  *str, int     move_to_front, int     sep, int  
 get_histtype(char_u *name)
 {
     int         i;
-    int         len = (int) strlen((char *)(name)) ;
+    int         len = (int) musl_strlen((char *)(name)) ;
 
     if (len == 0)
     {
@@ -7511,7 +7793,7 @@ get_histtype(char_u *name)
 
     for (i = 0; history_names[i] != NULL; ++i)
     {
-        if ( strncasecmp((char *)(name), (char *)(history_names[i]), (len))  == 0)
+        if ( musl_strncasecmp((char *)(name), (char *)(history_names[i]), (len))  == 0)
         {
             return i;
         }
@@ -7623,7 +7905,7 @@ ex_history(exarg_T *eap)
         histype1 = get_histtype(arg);
         if (histype1 == -1)
         {
-            if ( strncasecmp((char *)(arg), (char *)("all"), ( strlen((char *)(arg)) ))  == 0)
+            if ( musl_strncasecmp((char *)(arg), (char *)("all"), ( musl_strlen((char *)(arg)) ))  == 0)
             {
                 histype1 = 0;
                 histype2 = HIST_COUNT-1;
@@ -7694,7 +7976,7 @@ ex_history(exarg_T *eap)
                     }
                     else
                     {
-                         strcpy((char *)(IObuff + len), (char *)(hist[i].hisstr)) ;
+                         musl_strcpy((char *)(IObuff + len), (char *)(hist[i].hisstr)) ;
                     }
                     msg_outtrans(IObuff);
                     out_flush();
@@ -7982,7 +8264,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
         return startrow;
     }
 
-      memset((&(wlv)), (0), (sizeof(wlv)))  ;
+      musl_memset((&(wlv)), (0), (sizeof(wlv)))  ;
 
     wlv.lnum = lnum;
     wlv.startrow = startrow;
@@ -8483,7 +8765,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                 c = *wlv.p_extra;
                 mb_c = mb_ptr2char_adv(&wlv.p_extra);
                 mb_utf8 = (c >= 0x80);
-                wlv.n_extra = (int) strlen((char *)(wlv.p_extra)) ;
+                wlv.n_extra = (int) musl_strlen((char *)(wlv.p_extra)) ;
                 wlv.c_extra = NUL;
                 wlv.c_final = NUL;
                 if (area_attr == 0 && search_attr == 0)
@@ -9278,7 +9560,7 @@ win_redr_status(win_T *wp, int ignore_pum  __attribute__((unused)) )
 
         get_trans_bufname(wp->w_buffer);
         p = NameBuff;
-        plen = (int) strlen((char *)(p)) ;
+        plen = (int) musl_strlen((char *)(p)) ;
 
         if ((bt_help(wp->w_buffer) || bufIsChanged(wp->w_buffer)) && plen <  PATH_MAX  - 1)
         {
@@ -10412,12 +10694,12 @@ redraw_asap(int type)
     {
         for (r = 0; r < rows; ++r)
         {
-             memmove((char *)(screenline + r * cols), (char *)(ScreenLines + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(schar_T)) ;
-             memmove((char *)(screenattr + r * cols), (char *)(ScreenAttrs + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(sattr_T)) ;
-             memmove((char *)(screenlineUC + r * cols), (char *)(ScreenLinesUC + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(u8char_T)) ;
+             musl_memmove((char *)(screenline + r * cols), (char *)(ScreenLines + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(schar_T)) ;
+             musl_memmove((char *)(screenattr + r * cols), (char *)(ScreenAttrs + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(sattr_T)) ;
+             musl_memmove((char *)(screenlineUC + r * cols), (char *)(ScreenLinesUC + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(u8char_T)) ;
             for (i = 0; i < p_mco; ++i)
             {
-                 memmove((char *)(screenlineC[i] + r * cols), (char *)(ScreenLinesC[i] + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(u8char_T)) ;
+                 musl_memmove((char *)(screenlineC[i] + r * cols), (char *)(ScreenLinesC[i] + LineOffset[cmdline_row + r]), (size_t)cols * sizeof(u8char_T)) ;
             }
         }
 
@@ -10430,12 +10712,12 @@ redraw_asap(int type)
 
             for (r = 0; r < rows; ++r)
             {
-                 memmove((char *)(current_ScreenLine), (char *)(screenline + r * cols), (size_t)cols * sizeof(schar_T)) ;
-                 memmove((char *)(ScreenAttrs + off), (char *)(screenattr + r * cols), (size_t)cols * sizeof(sattr_T)) ;
-                 memmove((char *)(ScreenLinesUC + off), (char *)(screenlineUC + r * cols), (size_t)cols * sizeof(u8char_T)) ;
+                 musl_memmove((char *)(current_ScreenLine), (char *)(screenline + r * cols), (size_t)cols * sizeof(schar_T)) ;
+                 musl_memmove((char *)(ScreenAttrs + off), (char *)(screenattr + r * cols), (size_t)cols * sizeof(sattr_T)) ;
+                 musl_memmove((char *)(ScreenLinesUC + off), (char *)(screenlineUC + r * cols), (size_t)cols * sizeof(u8char_T)) ;
                 for (i = 0; i < p_mco; ++i)
                 {
-                     memmove((char *)(ScreenLinesC[i] + off), (char *)(screenlineC[i] + r * cols), (size_t)cols * sizeof(u8char_T)) ;
+                     musl_memmove((char *)(ScreenLinesC[i] + off), (char *)(screenlineC[i] + r * cols), (size_t)cols * sizeof(u8char_T)) ;
                 }
                 screen_line(curwin, cmdline_row + r, 0, cols, cols, -1, 0);
             }
@@ -11758,7 +12040,7 @@ insert_special(int     c, int     allow_modmask, int     ctrlv)
     if ( ((c) < 0)  || (mod_mask && allow_modmask))
     {
         p = get_special_key_name(c, mod_mask);
-        len = (int) strlen((char *)(p)) ;
+        len = (int) musl_strlen((char *)(p)) ;
         c = p[len - 1];
         if (len > 2)
         {
@@ -12401,7 +12683,7 @@ replace_push(int     c)
         }
         if (replace_stack != NULL)
         {
-             memmove((char *)(p), (char *)(replace_stack), (size_t)(replace_stack_nr * sizeof(char_u))) ;
+             musl_memmove((char *)(p), (char *)(replace_stack), (size_t)(replace_stack_nr * sizeof(char_u))) ;
             vim_free(replace_stack);
         }
         replace_stack = p;
@@ -12409,7 +12691,7 @@ replace_push(int     c)
     p = replace_stack + replace_stack_nr - replace_offset;
     if (replace_offset)
     {
-         memmove((char *)(p + 1), (char *)(p), (size_t)(replace_offset * sizeof(char_u))) ;
+         musl_memmove((char *)(p + 1), (char *)(p), (size_t)(replace_offset * sizeof(char_u))) ;
     }
     *p = c;
     ++replace_stack_nr;
@@ -12448,7 +12730,7 @@ replace_join(int     off)
         if (replace_stack[i] == NUL && off-- <= 0)
         {
             --replace_stack_nr;
-             memmove((char *)(replace_stack + i), (char *)(replace_stack + i + 1), (size_t)(replace_stack_nr - i)) ;
+             musl_memmove((char *)(replace_stack + i), (char *)(replace_stack + i + 1), (size_t)(replace_stack_nr - i)) ;
             return;
         }
     }
@@ -13265,7 +13547,7 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
     int         save_allow_keys = allow_keys;
     int         save_paste = p_paste;
 
-    if (end != NULL &&  strlen((char *)(end))  >= NUMBUFLEN)
+    if (end != NULL &&  musl_strlen((char *)(end))  >= NUMBUFLEN)
     {
         end = NULL;
     }
@@ -13296,7 +13578,7 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
 
         idx += utf_char2bytes(c, buf + idx);
         buf[idx] = NUL;
-        if (end != NULL &&  strncmp((char *)(buf), (char *)(end), (idx))  == 0)
+        if (end != NULL &&  musl_strncmp((char *)(buf), (char *)(end), (idx))  == 0)
         {
             if (end[idx] == NUL)
             {
@@ -13315,7 +13597,7 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
                 case PASTE_EX:
                     if (gap != NULL && ga_grow(gap, idx + 1) == OK)
                     {
-                         memmove((char *)((char *)gap->ga_data + gap->ga_len), (char *)(buf), (size_t)idx) ;
+                         musl_memmove((char *)((char *)gap->ga_data + gap->ga_len), (char *)(buf), (size_t)idx) ;
                         gap->ga_len += idx;
                     }
                     break;
@@ -13762,7 +14044,7 @@ ins_tab(void)
             i = cursor->col - fpos.col;
             if (i > 0)
             {
-                      memmove((char *)((ptr)), (char *)((ptr + i)),  strlen((char *)(ptr + i))  + 1)  ;
+                      musl_memmove((char *)((ptr)), (char *)((ptr + i)),  musl_strlen((char *)(ptr + i))  + 1)  ;
                 if ((State & REPLACE_FLAG) && !(State & VREPLACE_FLAG))
                 {
                     for (temp = i; --temp >= 0; )
@@ -13963,7 +14245,7 @@ do_ascii(exarg_T *eap  __attribute__((unused)) )
 
     while ((c >= 0x100 || (c >= 0x80)))
     {
-        len = (int) strlen((char *)(IObuff)) ;
+        len = (int) musl_strlen((char *)(IObuff)) ;
         if (len > 0)
         {
             IObuff[len++] = ' ';
@@ -14253,7 +14535,7 @@ ex_append(exarg_T *eap)
             p = vim_strchr(eap->nextcmd, NL);
             if (p == NULL)
             {
-                p = eap->nextcmd +  strlen((char *)(eap->nextcmd)) ;
+                p = eap->nextcmd +  musl_strlen((char *)(eap->nextcmd)) ;
             }
             theline = vim_strnsave(eap->nextcmd, p - eap->nextcmd);
             if (*p != NUL)
@@ -14694,7 +14976,7 @@ ex_substitute(exarg_T *eap)
             return;
         }
 
-        if ( strcmp((char *)(sub), (char *)("%"))  == 0 && vim_strchr(p_cpo, CPO_SUBPERCENT) != NULL)
+        if ( musl_strcmp((char *)(sub), (char *)("%"))  == 0 && vim_strchr(p_cpo, CPO_SUBPERCENT) != NULL)
         {
             if (old_sub == NULL)
             {
@@ -14738,7 +15020,7 @@ ex_substitute(exarg_T *eap)
         endcolumn = (curwin->w_curswant == MAXCOL);
     }
 
-    if (pat.string != NULL &&  strcmp((char *)(pat.string), (char *)("\\n"))  == 0 && *sub == NUL && (*cmd == NUL || (cmd[1] == NUL && (*cmd == 'g' || *cmd == 'l' || *cmd == 'p' || *cmd == '#'))))
+    if (pat.string != NULL &&  musl_strcmp((char *)(pat.string), (char *)("\\n"))  == 0 && *sub == NUL && (*cmd == NUL || (cmd[1] == NUL && (*cmd == 'g' || *cmd == 'l' || *cmd == 'p' || *cmd == '#'))))
     {
         linenr_T    joined_lines_count;
 
@@ -15252,13 +15534,13 @@ ex_substitute(exarg_T *eap)
                             vim_free(new_start.string);
                             goto outofmem;
                         }
-                         memmove((char *)(p1), (char *)(new_start.string), new_start.length + 1) ;
+                         musl_memmove((char *)(p1), (char *)(new_start.string), new_start.length + 1) ;
                         vim_free(new_start.string);
                         new_start.string = p1;
                     }
                 }
 
-                 memmove((char *)(new_start.string + new_start.length), (char *)(sub_firstline.string + copycol), copy_len) ;
+                 musl_memmove((char *)(new_start.string + new_start.length), (char *)(sub_firstline.string + copycol), copy_len) ;
                 new_start.length += copy_len;
 
                 new_end = new_start.string + new_start.length;
@@ -15322,7 +15604,7 @@ ex_substitute(exarg_T *eap)
                     if (p1[0] == '\\' && p1[1] != NUL)
                     {
                         n = (size_t)(new_start.length - (p1 - new_start.string));
-                         memmove((char *)(p1), (char *)(p1 + 1), n + 1) ;
+                         musl_memmove((char *)(p1), (char *)(p1 + 1), n + 1) ;
                         --new_start.length;
                     }
                     else if (*p1 == CAR)
@@ -15352,7 +15634,7 @@ ex_substitute(exarg_T *eap)
                             did_split = true;
                             ++curwin->w_cursor.lnum;
                             n = new_start.length - (size_t)plen;
-                             memmove((char *)(new_start.string), (char *)(p1 + 1), n + 1) ;
+                             musl_memmove((char *)(new_start.string), (char *)(p1 + 1), n + 1) ;
                             new_start.length = n;
                             p1 = new_start.string - 1;
                         }
@@ -15371,7 +15653,7 @@ skip:
                 {
                     if (new_start.string != NULL)
                     {
-                         strcpy((char *)(new_start.string + new_start.length), (char *)(sub_firstline.string + copycol)) ;
+                         musl_strcpy((char *)(new_start.string + new_start.length), (char *)(sub_firstline.string + copycol)) ;
                         new_start.length += sub_firstline.length - (size_t)copycol;
                         matchcol = (colnr_T)(sub_firstline.length - matchcol);
                         prev_matchcol = (colnr_T)(sub_firstline.length - prev_matchcol);
@@ -15547,7 +15829,7 @@ do_sub_msg(int     count_only)
 
         if (got_int)
         {
-             strcpy((char *)(msg_buf), (char *)(_("(Interrupted) "))) ;
+             musl_strcpy((char *)(msg_buf), (char *)(_("(Interrupted) "))) ;
         }
         else
         {
@@ -15664,7 +15946,7 @@ ex_global(exarg_T *eap)
         {
             *cmd++ = NUL;
         }
-        patlen =  strlen((char *)(pat)) ;
+        patlen =  musl_strlen((char *)(pat)) ;
     }
 
     if (search_regcomp(pat, patlen, &used_pat, RE_BOTH, which_pat, SEARCH_HIS, &regmatch) == FAIL)
@@ -16025,7 +16307,7 @@ do_cmdline(char_u      *cmdline, char_u      *(*fgetline)(int, void *, int, getl
         }
         else
         {
-              memmove((char *)((cmdline_copy)), (char *)((next_cmdline)),  strlen((char *)(next_cmdline))  + 1)  ;
+              musl_memmove((char *)((cmdline_copy)), (char *)((next_cmdline)),  musl_strlen((char *)(next_cmdline))  + 1)  ;
             next_cmdline = cmdline_copy;
         }
 
@@ -16082,7 +16364,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
     int         sourcing = flags & DOCMD_VERBOSE;
     int         did_append_cmd = FALSE;
 
-      memset((&(ea)), (0), (sizeof(ea)))  ;
+      musl_memset((&(ea)), (0), (sizeof(ea)))  ;
     ea.line1 = 1;
     ea.line2 = 1;
 
@@ -16156,7 +16438,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
 
     if (ea.cmdidx == CMD_SIZE)
     {
-         strcpy((char *)(IObuff), (char *)(_(e_not_an_editor_command))) ;
+         musl_strcpy((char *)(IObuff), (char *)(_(e_not_an_editor_command))) ;
         if (!sourcing)
         {
             if (after_modifier != NULL)
@@ -16275,7 +16557,7 @@ do_one_cmd(char_u      **cmdlinep, int         flags, char_u      *(*fgetline)(i
         {
             if (*p == '\\' && p[1] == '\n')
             {
-                  memmove((char *)((p)), (char *)((p + 1)),  strlen((char *)(p + 1))  + 1)  ;
+                  musl_memmove((char *)((p)), (char *)((p + 1)),  musl_strlen((char *)(p + 1))  + 1)  ;
             }
             else if (*p == '\n')
             {
@@ -16376,7 +16658,7 @@ doend:
         {
             if (errormsg != (char *)IObuff)
             {
-                 strcpy((char *)(IObuff), (char *)(errormsg)) ;
+                 musl_strcpy((char *)(IObuff), (char *)(errormsg)) ;
                 errormsg = (char *)IObuff;
             }
             append_command(*cmdlinep);
@@ -16478,10 +16760,10 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
     char_u  *cmd_start = NULL;
     int     has_visual_range = FALSE;
 
-      memset(((cmod)), (0), (sizeof(*(cmod))))  ;
+      musl_memset(((cmod)), (0), (sizeof(*(cmod))))  ;
     cmod->cmod_flags = sticky_cmdmod_flags;
 
-    if ( strncmp((char *)(eap->cmd), (char *)("'<,'>"), (5))  == 0)
+    if ( musl_strncmp((char *)(eap->cmd), (char *)("'<,'>"), (5))  == 0)
     {
         eap->cmd += 5;
         cmd_start = eap->cmd;
@@ -16632,9 +16914,9 @@ parse_command_modifiers(exarg_T     *eap, char        **errormsg, cmdmod_T    *c
     {
         if (eap->cmd > cmd_start)
         {
-             memmove((char *)(cmd_start - 5), (char *)(cmd_start), eap->cmd - cmd_start) ;
+             musl_memmove((char *)(cmd_start - 5), (char *)(cmd_start), eap->cmd - cmd_start) ;
             eap->cmd -= 5;
-             memmove((char *)(eap->cmd - 1), (char *)(":'<,'>"), 6) ;
+             musl_memmove((char *)(eap->cmd - 1), (char *)(":'<,'>"), 6) ;
         }
         else
         {
@@ -16824,7 +17106,7 @@ theend:
     static void
 append_command(char_u *cmd)
 {
-    size_t  len =  strlen((char *)(IObuff)) ;
+    size_t  len =  musl_strlen((char *)(IObuff)) ;
     char_u  *s = cmd;
     char_u  *d;
 
@@ -16832,16 +17114,16 @@ append_command(char_u *cmd)
     {
         d = IObuff +  (1024+1)  - 100;
         d -= utf_head_off(IObuff, d);
-         strcpy((char *)(d), (char *)("...")) ;
+         musl_strcpy((char *)(d), (char *)("...")) ;
     }
-     strcat((char *)(IObuff), (char *)(": ")) ;
-    d = IObuff +  strlen((char *)(IObuff)) ;
+     musl_strcat((char *)(IObuff), (char *)(": ")) ;
+    d = IObuff +  musl_strlen((char *)(IObuff)) ;
     while (*s != NUL && d - IObuff + 5 <  (1024+1) )
     {
         if ((s[0] == 0xc2 && s[1] == 0xa0))
         {
             s += 2;
-             strcpy((char *)(d), (char *)("<a0>")) ;
+             musl_strcpy((char *)(d), (char *)("<a0>")) ;
             d += 4;
         }
         else if (d - IObuff + utfc_ptr2len(s) + 1 >=  (1024+1) )
@@ -16925,7 +17207,7 @@ find_ex_command(exarg_T *eap, int     *full  __attribute__((unused)) , int     (
 
         for (eap->cmdidx = (cmdidx_T)0; (int)eap->cmdidx < (int)CMD_SIZE; eap->cmdidx = (cmdidx_T)((int)eap->cmdidx + 1))
         {
-            if (len >= cmdnames[(int)eap->cmdidx].cmd_minlen &&  strncmp((char *)(cmdnames[(int)eap->cmdidx].cmd_name), (char *)((char *)eap->cmd), ((size_t)len))  == 0)
+            if (len >= cmdnames[(int)eap->cmdidx].cmd_minlen &&  musl_strncmp((char *)(cmdnames[(int)eap->cmdidx].cmd_name), (char *)((char *)eap->cmd), ((size_t)len))  == 0)
             {
                 break;
             }
@@ -17202,7 +17484,7 @@ get_address(exarg_T     *eap  __attribute__((unused)) , char_u      **ptr, cmd_a
                     }
                     searchcmdlen = 0;
                     flags = silent ? SEARCH_KEEP : SEARCH_HIS | SEARCH_MSG;
-                    if (!do_search(NULL, c, c, cmd,  strlen((char *)(cmd)) , 1L, flags, NULL))
+                    if (!do_search(NULL, c, c, cmd,  musl_strlen((char *)(cmd)) , 1L, flags, NULL))
                     {
                         curwin->w_cursor = pos;
                         cmd = NULL;
@@ -17457,7 +17739,7 @@ separate_nextcmd(exarg_T *eap, int keep_backslash)
             }
             else
             {
-                  memmove((char *)((p)), (char *)((p + 1)),  strlen((char *)(p + 1))  + 1)  ;
+                  musl_memmove((char *)((p)), (char *)((p + 1)),  musl_strlen((char *)(p + 1))  + 1)  ;
             }
             if (*p == NUL)
             {
@@ -17469,7 +17751,7 @@ separate_nextcmd(exarg_T *eap, int keep_backslash)
         {
             if ((vim_strchr(p_cpo, CPO_BAR) == NULL || !(eap->argt & EX_CTRLV)) && *(p - 1) == '\\')
             {
-                  memmove((char *)((p - 1)), (char *)((p)),  strlen((char *)(p))  + 1)  ;
+                  musl_memmove((char *)((p - 1)), (char *)((p)),  musl_strlen((char *)(p))  + 1)  ;
                 --p;
             }
             else
@@ -17525,7 +17807,7 @@ skip_cmd_arg(char_u *p, int    rembs)
         {
             if (rembs)
             {
-                  memmove((char *)((p)), (char *)((p + 1)),  strlen((char *)(p + 1))  + 1)  ;
+                  musl_memmove((char *)((p)), (char *)((p + 1)),  musl_strlen((char *)(p + 1))  + 1)  ;
             }
             else
             {
@@ -18224,7 +18506,7 @@ ex_normal(exarg_T *eap)
     }
     if (len > 0)
     {
-        arg = alloc( strlen((char *)(eap->arg))  + len + 1);
+        arg = alloc( musl_strlen((char *)(eap->arg))  + len + 1);
         if (arg != NULL)
         {
             len = 0;
@@ -18463,7 +18745,7 @@ parse_pattern_and_range(pos_T   *incsearch_start, int     *search_delim, int    
     search_first_line = 0;
     search_last_line =  LONG_MAX ;
 
-      memset((&(ea)), (0), (sizeof(ea)))  ;
+      musl_memset((&(ea)), (0), (sizeof(ea)))  ;
     ea.line1 = 1;
     ea.line2 = 1;
     ea.cmd = ccline.cmdbuff;
@@ -18487,7 +18769,7 @@ parse_pattern_and_range(pos_T   *incsearch_start, int     *search_delim, int    
         return FALSE;
     }
 
-    if ( strncmp((char *)(cmd), (char *)("substitute"), (p - cmd))  == 0 ||  strncmp((char *)(cmd), (char *)("smagic"), (p - cmd))  == 0 ||  strncmp((char *)(cmd), (char *)("snomagic"), (MAX(p - cmd, 3)))  == 0 ||  strncmp((char *)(cmd), (char *)("vglobal"), (p - cmd))  == 0)
+    if ( musl_strncmp((char *)(cmd), (char *)("substitute"), (p - cmd))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("smagic"), (p - cmd))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("snomagic"), (MAX(p - cmd, 3)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("vglobal"), (p - cmd))  == 0)
     {
         if (*cmd == 's' && cmd[1] == 'm')
         {
@@ -18498,7 +18780,7 @@ parse_pattern_and_range(pos_T   *incsearch_start, int     *search_delim, int    
             magic_overruled = OPTION_MAGIC_OFF;
         }
     }
-    else if ( strncmp((char *)(cmd), (char *)("sort"), (MAX(p - cmd, 3)))  == 0 ||  strncmp((char *)(cmd), (char *)("uniq"), (MAX(p - cmd, 3)))  == 0)
+    else if ( musl_strncmp((char *)(cmd), (char *)("sort"), (MAX(p - cmd, 3)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("uniq"), (MAX(p - cmd, 3)))  == 0)
     {
         if (*p == '!')
         {
@@ -18513,7 +18795,7 @@ parse_pattern_and_range(pos_T   *incsearch_start, int     *search_delim, int    
             return FALSE;
         }
     }
-    else if ( strncmp((char *)(cmd), (char *)("vimgrep"), (MAX(p - cmd, 3)))  == 0 ||  strncmp((char *)(cmd), (char *)("vimgrepadd"), (MAX(p - cmd, 8)))  == 0 ||  strncmp((char *)(cmd), (char *)("lvimgrep"), (MAX(p - cmd, 2)))  == 0 ||  strncmp((char *)(cmd), (char *)("lvimgrepadd"), (MAX(p - cmd, 9)))  == 0 ||  strncmp((char *)(cmd), (char *)("global"), (p - cmd))  == 0)
+    else if ( musl_strncmp((char *)(cmd), (char *)("vimgrep"), (MAX(p - cmd, 3)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("vimgrepadd"), (MAX(p - cmd, 8)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("lvimgrep"), (MAX(p - cmd, 2)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("lvimgrepadd"), (MAX(p - cmd, 9)))  == 0 ||  musl_strncmp((char *)(cmd), (char *)("global"), (p - cmd))  == 0)
     {
         if (*p == '!')
         {
@@ -19008,7 +19290,7 @@ may_add_char_to_search(int firstc, int *c, incsearch_state_T *is_state)
     static void
 cmdline_init(void)
 {
-      memset((&(ccline)), (0), (sizeof(ccline)))  ;
+      musl_memset((&(ccline)), (0), (sizeof(ccline)))  ;
 }
 
     static int
@@ -19217,7 +19499,7 @@ cmdline_browse_history(int     c, int     firstc, char_u  **curcmdstr, size_t  *
             hiscnt = orig_hiscnt;
             break;
         }
-        if ((c !=   (-(('k') + ((int)('u') << 8)))   && c !=   (-(('k') + ((int)('d') << 8)))  ) || hiscnt == orig_hiscnt ||  strncmp((char *)(get_histentry(histype)[hiscnt].hisstr), (char *)(lookfor), (lookforlen))  == 0)
+        if ((c !=   (-(('k') + ((int)('u') << 8)))   && c !=   (-(('k') + ((int)('d') << 8)))  ) || hiscnt == orig_hiscnt ||  musl_strncmp((char *)(get_histentry(histype)[hiscnt].hisstr), (char *)(lookfor), (lookforlen))  == 0)
         {
             break;
         }
@@ -19299,7 +19581,7 @@ cmdline_browse_history(int     c, int     firstc, char_u  **curcmdstr, size_t  *
                 res = GOTO_NORMAL_MODE;
                 goto done;
             }
-             strcpy((char *)(ccline.cmdbuff), (char *)(p)) ;
+             musl_strcpy((char *)(ccline.cmdbuff), (char *)(p)) ;
             ccline.cmdpos = ccline.cmdlen = (int)plen;
         }
 
@@ -19337,7 +19619,7 @@ init_ccline(int firstc, int indent)
 
     if (firstc <= 0)
     {
-         memset((ccline.cmdbuff), (' '), (indent)) ;
+         musl_memset((ccline.cmdbuff), (' '), (indent)) ;
         ccline.cmdbuff[indent] = NUL;
         ccline.cmdpos = indent;
         ccline.cmdspos = indent;
@@ -19387,7 +19669,7 @@ getcmdline_int(int         firstc, long        count  __attribute__((unused)) , 
     }
     if (clear_ccline)
     {
-          memset((&(ccline)), (0), (sizeof(ccline)))  ;
+          musl_memset((&(ccline)), (0), (sizeof(ccline)))  ;
     }
 
     init_incsearch_state(&is_state);
@@ -19791,7 +20073,7 @@ cmdline_changed:
         {
             may_do_incsearch_highlighting(firstc, count, &is_state);
         }
-        if (trigger_cmdlinechanged && (ccline.cmdpos != prev_cmdpos || (prev_cmdbuff != NULL &&  strcmp((char *)(prev_cmdbuff), (char *)(ccline.cmdbuff))  != 0)))
+        if (trigger_cmdlinechanged && (ccline.cmdpos != prev_cmdpos || (prev_cmdbuff != NULL &&  musl_strcmp((char *)(prev_cmdbuff), (char *)(ccline.cmdbuff))  != 0)))
         {
         }
 
@@ -20017,7 +20299,7 @@ realloc_cmdbuff(int len)
         ccline.cmdbufflen = plen;
         return FAIL;
     }
-     memmove((char *)(ccline.cmdbuff), (char *)(p), (size_t)ccline.cmdlen) ;
+     musl_memmove((char *)(ccline.cmdbuff), (char *)(p), (size_t)ccline.cmdlen) ;
     ccline.cmdbuff[ccline.cmdlen] = NUL;
 
     if (ccline.xpc != NULL && ccline.xpc->xp_pattern != NULL && ccline.xpc->xp_context != EXPAND_NOTHING && ccline.xpc->xp_context !=  (-2) )
@@ -20091,7 +20373,7 @@ put_on_cmdline(char_u *str, int len, int redraw)
 
     if (len < 0)
     {
-        len = (int) strlen((char *)(str)) ;
+        len = (int) musl_strlen((char *)(str)) ;
     }
 
     if (ccline.cmdlen + len + 1 >= ccline.cmdbufflen)
@@ -20106,7 +20388,7 @@ put_on_cmdline(char_u *str, int len, int redraw)
     {
         if (!ccline.overstrike)
         {
-             memmove((char *)(ccline.cmdbuff + ccline.cmdpos + len), (char *)(ccline.cmdbuff + ccline.cmdpos), (size_t)(ccline.cmdlen - ccline.cmdpos)) ;
+             musl_memmove((char *)(ccline.cmdbuff + ccline.cmdpos + len), (char *)(ccline.cmdbuff + ccline.cmdpos), (size_t)(ccline.cmdlen - ccline.cmdpos)) ;
             ccline.cmdlen += len;
         }
         else
@@ -20122,7 +20404,7 @@ put_on_cmdline(char_u *str, int len, int redraw)
             }
             if (i < ccline.cmdlen)
             {
-                 memmove((char *)(ccline.cmdbuff + ccline.cmdpos + len), (char *)(ccline.cmdbuff + i), (size_t)(ccline.cmdlen - i)) ;
+                 musl_memmove((char *)(ccline.cmdbuff + ccline.cmdpos + len), (char *)(ccline.cmdbuff + i), (size_t)(ccline.cmdlen - i)) ;
                 ccline.cmdlen += ccline.cmdpos + len - i;
             }
             else
@@ -20130,7 +20412,7 @@ put_on_cmdline(char_u *str, int len, int redraw)
                 ccline.cmdlen = ccline.cmdpos + len;
             }
         }
-         memmove((char *)(ccline.cmdbuff + ccline.cmdpos), (char *)(str), (size_t)len) ;
+         musl_memmove((char *)(ccline.cmdbuff + ccline.cmdpos), (char *)(str), (size_t)len) ;
         ccline.cmdbuff[ccline.cmdlen] = NUL;
 
         i = 0;
@@ -20212,7 +20494,7 @@ save_cmdline(cmdline_info_T *ccp)
 {
     if (!prev_ccline_used)
     {
-          memset((&(prev_ccline)), (0), (sizeof(prev_ccline)))  ;
+          musl_memset((&(prev_ccline)), (0), (sizeof(prev_ccline)))  ;
         prev_ccline_used = TRUE;
     }
     *ccp = prev_ccline;
@@ -20273,7 +20555,7 @@ cmdline_paste(int regname, int literally, int remcr)
                 w -= len;
             }
             len = (int)((ccline.cmdbuff + ccline.cmdpos) - w);
-            if (p_ic ?  strncasecmp((char *)(w), (char *)(arg), (len))  == 0 :  strncmp((char *)(w), (char *)(arg), (len))  == 0)
+            if (p_ic ?  musl_strncasecmp((char *)(w), (char *)(arg), (len))  == 0 :  musl_strncmp((char *)(w), (char *)(arg), (len))  == 0)
             {
                 p += len;
             }
@@ -20592,12 +20874,12 @@ home_replace(buf_T       *buf, char_u      *src, char_u      *dst, int         d
         *dst = NUL;
         return 0;
     }
-    len =  strlen((char *)(src)) ;
+    len =  musl_strlen((char *)(src)) ;
     if (len >= (size_t)dstlen)
     {
         len = (size_t)dstlen - 1;
     }
-     memmove((char *)(dst), (char *)(src), len) ;
+     musl_memmove((char *)(dst), (char *)(src), len) ;
     dst[len] = NUL;
     return len;
 }
@@ -20743,16 +21025,16 @@ file_name_in_line(char_u      *line, int         col, int         options, long 
         size_t  match_textlen = 6;
 
         p = ptr + len;
-        if ( strncmp((char *)(p), (char *)(match_text), (match_textlen))  == 0)
+        if ( musl_strncmp((char *)(p), (char *)(match_text), (match_textlen))  == 0)
         {
             p += match_textlen;
         }
         else
         {
             match_text = _(line_msg);
-            match_textlen =  strlen((char *)(match_text)) ;
+            match_textlen =  musl_strlen((char *)(match_text)) ;
 
-            if ( strncmp((char *)(p), (char *)(match_text), (match_textlen))  == 0)
+            if ( musl_strncmp((char *)(p), (char *)(match_text), (match_textlen))  == 0)
             {
                 p += match_textlen;
             }
@@ -20917,7 +21199,7 @@ add_buff(buffheader_T        *buf, char_u              *s, long                s
 {
     if (slen < 0)
     {
-        slen = (long) strlen((char *)(s)) ;
+        slen = (long) musl_strlen((char *)(s)) ;
     }
     if (slen == 0)
     {
@@ -20936,7 +21218,7 @@ add_buff(buffheader_T        *buf, char_u              *s, long                s
     }
     else if (buf->bh_index != 0)
     {
-         memmove((char *)(buf->bh_first.b_next->b_str), (char *)(buf->bh_first.b_next->b_str + buf->bh_index), (buf->bh_first.b_next->b_strlen - buf->bh_index) + 1) ;
+         musl_memmove((char *)(buf->bh_first.b_next->b_str), (char *)(buf->bh_first.b_next->b_str + buf->bh_index), (buf->bh_first.b_next->b_strlen - buf->bh_index) + 1) ;
         buf->bh_first.b_next->b_strlen -= buf->bh_index;
         buf->bh_space += buf->bh_index;
     }
@@ -21557,17 +21839,17 @@ ins_typebuf(char_u      *str, int         noremap, int         offset, int      
         typebuf.tb_change_cnt = 1;
     }
 
-    addlen = (int) strlen((char *)(str)) ;
+    addlen = (int) musl_strlen((char *)(str)) ;
 
     if (offset == 0 && addlen <= typebuf.tb_off)
     {
         typebuf.tb_off -= addlen;
-         memmove((char *)(typebuf.tb_buf + typebuf.tb_off), (char *)(str), (size_t)addlen) ;
+         musl_memmove((char *)(typebuf.tb_buf + typebuf.tb_off), (char *)(str), (size_t)addlen) ;
     }
     else if (typebuf.tb_len == 0 && typebuf.tb_buflen >= addlen + 3 * (MAXMAPLEN + 4))
     {
         typebuf.tb_off = (typebuf.tb_buflen - addlen - 3 * (MAXMAPLEN + 4)) / 2;
-         memmove((char *)(typebuf.tb_buf + typebuf.tb_off), (char *)(str), (size_t)addlen) ;
+         musl_memmove((char *)(typebuf.tb_buf + typebuf.tb_off), (char *)(str), (size_t)addlen) ;
     }
     else
     {
@@ -21595,17 +21877,17 @@ ins_typebuf(char_u      *str, int         noremap, int         offset, int      
         }
         typebuf.tb_buflen = newlen;
 
-         memmove((char *)(s1 + newoff), (char *)(typebuf.tb_buf + typebuf.tb_off), (size_t)offset) ;
-         memmove((char *)(s1 + newoff + offset), (char *)(str), (size_t)addlen) ;
-         memmove((char *)(s1 + newoff + offset + addlen), (char *)(typebuf.tb_buf + typebuf.tb_off + offset), (size_t)(typebuf.tb_len - offset + 1)) ;
+         musl_memmove((char *)(s1 + newoff), (char *)(typebuf.tb_buf + typebuf.tb_off), (size_t)offset) ;
+         musl_memmove((char *)(s1 + newoff + offset), (char *)(str), (size_t)addlen) ;
+         musl_memmove((char *)(s1 + newoff + offset + addlen), (char *)(typebuf.tb_buf + typebuf.tb_off + offset), (size_t)(typebuf.tb_len - offset + 1)) ;
         if (typebuf.tb_buf != typebuf_init)
         {
             vim_free(typebuf.tb_buf);
         }
         typebuf.tb_buf = s1;
 
-         memmove((char *)(s2 + newoff), (char *)(typebuf.tb_noremap + typebuf.tb_off), (size_t)offset) ;
-         memmove((char *)(s2 + newoff + offset + addlen), (char *)(typebuf.tb_noremap + typebuf.tb_off + offset), (size_t)(typebuf.tb_len - offset)) ;
+         musl_memmove((char *)(s2 + newoff), (char *)(typebuf.tb_noremap + typebuf.tb_off), (size_t)offset) ;
+         musl_memmove((char *)(s2 + newoff + offset + addlen), (char *)(typebuf.tb_noremap + typebuf.tb_off + offset), (size_t)(typebuf.tb_len - offset)) ;
         if (typebuf.tb_noremap != noremapbuf_init)
         {
             vim_free(typebuf.tb_noremap);
@@ -21714,12 +21996,12 @@ del_typebuf(int len, int offset)
         i = typebuf.tb_off + offset;
         if (typebuf.tb_off > MAXMAPLEN)
         {
-             memmove((char *)(typebuf.tb_buf + MAXMAPLEN), (char *)(typebuf.tb_buf + typebuf.tb_off), (size_t)offset) ;
-             memmove((char *)(typebuf.tb_noremap + MAXMAPLEN), (char *)(typebuf.tb_noremap + typebuf.tb_off), (size_t)offset) ;
+             musl_memmove((char *)(typebuf.tb_buf + MAXMAPLEN), (char *)(typebuf.tb_buf + typebuf.tb_off), (size_t)offset) ;
+             musl_memmove((char *)(typebuf.tb_noremap + MAXMAPLEN), (char *)(typebuf.tb_noremap + typebuf.tb_off), (size_t)offset) ;
             typebuf.tb_off = MAXMAPLEN;
         }
-         memmove((char *)(typebuf.tb_buf + typebuf.tb_off + offset), (char *)(typebuf.tb_buf + i + len), (size_t)(typebuf.tb_len - offset + 1)) ;
-         memmove((char *)(typebuf.tb_noremap + typebuf.tb_off + offset), (char *)(typebuf.tb_noremap + i + len), (size_t)(typebuf.tb_len - offset)) ;
+         musl_memmove((char *)(typebuf.tb_buf + typebuf.tb_off + offset), (char *)(typebuf.tb_buf + i + len), (size_t)(typebuf.tb_len - offset + 1)) ;
+         musl_memmove((char *)(typebuf.tb_noremap + typebuf.tb_off + offset), (char *)(typebuf.tb_noremap + i + len), (size_t)(typebuf.tb_len - offset)) ;
     }
 
     if (typebuf.tb_maplen > offset)
@@ -22710,7 +22992,7 @@ handle_mapping(int *keylenp, int *timedout, int *mapdepth)
             {
                 noremap =  mp->m_noremap ;
             }
-            else if ( strncmp((char *)(map_str), (char *)(mp->m_keys), ((size_t)keylen))  == 0 || (mp->m_alt != NULL &&  strncmp((char *)(map_str), (char *)(mp->m_alt->m_keys), ((size_t)mp->m_alt->m_keylen))  == 0))
+            else if ( musl_strncmp((char *)(map_str), (char *)(mp->m_keys), ((size_t)keylen))  == 0 || (mp->m_alt != NULL &&  musl_strncmp((char *)(map_str), (char *)(mp->m_alt->m_keys), ((size_t)mp->m_alt->m_keylen))  == 0))
             {
                 noremap =  (-3) ;
             }
@@ -23225,7 +23507,7 @@ fix_input_buffer(char_u *buf, int len)
     {
         if (p[0] == NUL || (p[0] ==  (0x80)  && (i < 2 || p[1] != KS_EXTRA || (p[2] != (int)KE_CURSORHOLD && p[2] != (int)KE_COMPLETE_DELAY))))
         {
-             memmove((char *)(p + 3), (char *)(p + 1), (size_t)i) ;
+             musl_memmove((char *)(p + 3), (char *)(p + 1), (size_t)i) ;
             p[2] =  (((p[0]) ==  (0x80)  || (p[0]) == NUL) ?  ('X')  :  (((unsigned)(-(p[0])) >> 8) & 0xff) ) ;
             p[1] =  ((p[0]) ==  (0x80)  ? KS_SPECIAL : (p[0]) == NUL ? KS_ZERO :  ((-(p[0])) & 0xff) ) ;
             p[0] =  (0x80) ;
@@ -23363,7 +23645,7 @@ static int hash_may_resize(hashtab_T *ht, int minitems);
     static void
 hash_init(hashtab_T *ht)
 {
-      memset(((ht)), (0), (sizeof(*(ht))))  ;
+      musl_memset(((ht)), (0), (sizeof(*(ht))))  ;
     ht->ht_array = ht->ht_smallarray;
     ht->ht_mask = HT_INIT_SIZE - 1;
 }
@@ -23405,7 +23687,7 @@ hash_lookup(hashtab_T *ht, char_u *key, hash_T hash)
     {
         freeitem = hi;
     }
-    else if (hi->hi_hash == hash &&  strcmp((char *)(hi->hi_key), (char *)(key))  == 0)
+    else if (hi->hi_hash == hash &&  musl_strcmp((char *)(hi->hi_key), (char *)(key))  == 0)
     {
         return hi;
     }
@@ -23422,7 +23704,7 @@ hash_lookup(hashtab_T *ht, char_u *key, hash_T hash)
         {
             return freeitem == NULL ? hi : freeitem;
         }
-        if (hi->hi_hash == hash && hi->hi_key !=  &hash_removed  &&  strcmp((char *)(hi->hi_key), (char *)(key))  == 0)
+        if (hi->hi_hash == hash && hi->hi_key !=  &hash_removed  &&  musl_strcmp((char *)(hi->hi_key), (char *)(key))  == 0)
         {
             return hi;
         }
@@ -23552,14 +23834,14 @@ hash_may_resize(hashtab_T   *ht, int         minitems)
         newarray = ht->ht_smallarray;
         if (ht->ht_array == newarray)
         {
-             memmove((char *)(temparray), (char *)(newarray), sizeof(temparray)) ;
+             musl_memmove((char *)(temparray), (char *)(newarray), sizeof(temparray)) ;
             oldarray = temparray;
         }
         else
         {
             oldarray = ht->ht_array;
         }
-          memset((&(ht->ht_smallarray)), (0), (sizeof(ht->ht_smallarray)))  ;
+          musl_memset((&(ht->ht_smallarray)), (0), (sizeof(ht->ht_smallarray)))  ;
     }
 
     else if (newsize == oldsize && ht->ht_filled * 3 < oldsize * 2)
@@ -24000,7 +24282,7 @@ lookup_color(int idx, int foreground, int *boldp)
         {
             p =  ( term_strings[(int)(KS_CSF)] ) ;
         }
-        if (*p != NUL && (t_colors > 256 || *(p +  strlen((char *)(p))  - 1) == 'm'))
+        if (*p != NUL && (t_colors > 256 || *(p +  musl_strlen((char *)(p))  - 1) == 'm'))
         {
             if (t_colors == 88)
             {
@@ -24027,7 +24309,7 @@ highlight_group_link(char_u  *from_hg, int     from_len, char_u  *to_hg, int    
     hl_group_T  *hlgroup = NULL;
 
     from_id = syn_check_group(from_hg, from_len);
-    if ( strncmp((char *)(to_hg), (char *)("NONE"), (4))  == 0)
+    if ( musl_strncmp((char *)(to_hg), (char *)("NONE"), (4))  == 0)
     {
         to_id = 0;
     }
@@ -24249,7 +24531,7 @@ highlight_set_cterm_font(int     idx, char_u  *arg, int     init)
     {
         font = atoi((char *)arg);
     }
-    else if ( strcasecmp((char *)(arg), (char *)("NONE"))  == 0)
+    else if ( musl_strcasecmp((char *)(arg), (char *)("NONE"))  == 0)
     {
         font = -1;
     }
@@ -24287,7 +24569,7 @@ highlight_set_cterm_color(int     idx, char_u  *key, char_u  *key_start, char_u 
     {
         color = atoi((char *)arg);
     }
-    else if ( strcasecmp((char *)(arg), (char *)("fg"))  == 0)
+    else if ( musl_strcasecmp((char *)(arg), (char *)("fg"))  == 0)
     {
         if (cterm_normal_fg_color)
         {
@@ -24299,7 +24581,7 @@ highlight_set_cterm_color(int     idx, char_u  *key, char_u  *key_start, char_u 
             return FALSE;
         }
     }
-    else if ( strcasecmp((char *)(arg), (char *)("bg"))  == 0)
+    else if ( musl_strcasecmp((char *)(arg), (char *)("bg"))  == 0)
     {
         if (cterm_normal_bg_color > 0)
         {
@@ -24311,7 +24593,7 @@ highlight_set_cterm_color(int     idx, char_u  *key, char_u  *key_start, char_u 
             return FALSE;
         }
     }
-    else if ( strcasecmp((char *)(arg), (char *)("ul"))  == 0)
+    else if ( musl_strcasecmp((char *)(arg), (char *)("ul"))  == 0)
     {
         if (cterm_normal_ul_color > 0)
         {
@@ -24382,7 +24664,7 @@ highlight_set_startstop_termcode(int idx, char_u *key, char_u *arg, int init)
          ((hl_group_T *)((highlight_ga.ga_data))) [idx].sg_set |= SG_TERM;
     }
 
-    if ( strncmp((char *)(arg), (char *)("t_"), (2))  == 0)
+    if ( musl_strncmp((char *)(arg), (char *)("t_"), (2))  == 0)
     {
         off = 0;
         buf[0] = 0;
@@ -24404,12 +24686,12 @@ highlight_set_startstop_termcode(int idx, char_u *key, char_u *arg, int init)
                 p = (char_u *)"";
             }
 
-            if ((int)( strlen((char *)(buf))  +  strlen((char *)(p)) ) >= 99)
+            if ((int)( musl_strlen((char *)(buf))  +  musl_strlen((char *)(p)) ) >= 99)
             {
                 semsg(_(e_terminal_code_too_long_str), arg);
                 return FALSE;
             }
-             strcat((char *)(buf), (char *)(p)) ;
+             musl_strcat((char *)(buf), (char *)(p)) ;
 
             off += len;
             if (arg[off] == ',')
@@ -24436,7 +24718,7 @@ highlight_set_startstop_termcode(int idx, char_u *key, char_u *arg, int init)
         buf[off] = NUL;
     }
 
-    if ( strcmp((char *)(buf), (char *)("NONE"))  == 0)
+    if ( musl_strcmp((char *)(buf), (char *)("NONE"))  == 0)
     {
         p = NULL;
     }
@@ -24489,7 +24771,7 @@ do_highlight(char_u      *line, int         forceit, int         init)
     name_end = skiptowhite(line);
     linep = skipwhite(name_end);
 
-    if ( strncmp((char *)(line), (char *)("default"), (name_end - line))  == 0)
+    if ( musl_strncmp((char *)(line), (char *)("default"), (name_end - line))  == 0)
     {
         dodefault = TRUE;
         line = linep;
@@ -24497,11 +24779,11 @@ do_highlight(char_u      *line, int         forceit, int         init)
         linep = skipwhite(name_end);
     }
 
-    if ( strncmp((char *)(line), (char *)("clear"), (name_end - line))  == 0)
+    if ( musl_strncmp((char *)(line), (char *)("clear"), (name_end - line))  == 0)
     {
         doclear = TRUE;
     }
-    if ( strncmp((char *)(line), (char *)("link"), (name_end - line))  == 0)
+    if ( musl_strncmp((char *)(line), (char *)("link"), (name_end - line))  == 0)
     {
         dolink = TRUE;
     }
@@ -24577,7 +24859,7 @@ do_highlight(char_u      *line, int         forceit, int         init)
 
     item_before =  ((hl_group_T *)((highlight_ga.ga_data))) [idx];
 
-    if ( strcmp((char *)( ((hl_group_T *)((highlight_ga.ga_data))) [idx].sg_name_u), (char *)("NORMAL"))  == 0)
+    if ( musl_strcmp((char *)( ((hl_group_T *)((highlight_ga.ga_data))) [idx].sg_name_u), (char *)("NORMAL"))  == 0)
     {
         is_normal_group = TRUE;
     }
@@ -24616,7 +24898,7 @@ do_highlight(char_u      *line, int         forceit, int         init)
             }
             linep = skipwhite(linep);
 
-            if ( strcmp((char *)(key), (char *)("NONE"))  == 0)
+            if ( musl_strcmp((char *)(key), (char *)("NONE"))  == 0)
             {
                 if (!init ||  ((hl_group_T *)((highlight_ga.ga_data))) [idx].sg_set == 0)
                 {
@@ -24672,7 +24954,7 @@ do_highlight(char_u      *line, int         forceit, int         init)
                 ++linep;
             }
 
-            if ( strcmp((char *)(key), (char *)("TERM"))  == 0 ||  strcmp((char *)(key), (char *)("CTERM"))  == 0 ||  strcmp((char *)(key), (char *)("GUI"))  == 0)
+            if ( musl_strcmp((char *)(key), (char *)("TERM"))  == 0 ||  musl_strcmp((char *)(key), (char *)("CTERM"))  == 0 ||  musl_strcmp((char *)(key), (char *)("GUI"))  == 0)
             {
                 if (!highlight_set_termgui_attr(idx, key, arg, init))
                 {
@@ -24680,10 +24962,10 @@ do_highlight(char_u      *line, int         forceit, int         init)
                     break;
                 }
             }
-            else if ( strcmp((char *)(key), (char *)("FONT"))  == 0)
+            else if ( musl_strcmp((char *)(key), (char *)("FONT"))  == 0)
             {
             }
-            else if ( strcmp((char *)(key), (char *)("CTERMFG"))  == 0 ||  strcmp((char *)(key), (char *)("CTERMBG"))  == 0 ||  strcmp((char *)(key), (char *)("CTERMUL"))  == 0)
+            else if ( musl_strcmp((char *)(key), (char *)("CTERMFG"))  == 0 ||  musl_strcmp((char *)(key), (char *)("CTERMBG"))  == 0 ||  musl_strcmp((char *)(key), (char *)("CTERMUL"))  == 0)
             {
                 if (!highlight_set_cterm_color(idx, key, key_start, arg, is_normal_group, init))
                 {
@@ -24691,7 +24973,7 @@ do_highlight(char_u      *line, int         forceit, int         init)
                     break;
                 }
             }
-            else if ( strcmp((char *)(key), (char *)("CTERMFONT"))  == 0)
+            else if ( musl_strcmp((char *)(key), (char *)("CTERMFONT"))  == 0)
             {
                 if (!highlight_set_cterm_font(idx, arg, init))
                 {
@@ -24699,16 +24981,16 @@ do_highlight(char_u      *line, int         forceit, int         init)
                     break;
                 }
             }
-            else if ( strcmp((char *)(key), (char *)("GUIFG"))  == 0)
+            else if ( musl_strcmp((char *)(key), (char *)("GUIFG"))  == 0)
             {
             }
-            else if ( strcmp((char *)(key), (char *)("GUIBG"))  == 0)
+            else if ( musl_strcmp((char *)(key), (char *)("GUIBG"))  == 0)
             {
             }
-            else if ( strcmp((char *)(key), (char *)("GUISP"))  == 0)
+            else if ( musl_strcmp((char *)(key), (char *)("GUISP"))  == 0)
             {
             }
-            else if ( strcmp((char *)(key), (char *)("START"))  == 0 ||  strcmp((char *)(key), (char *)("STOP"))  == 0)
+            else if ( musl_strcmp((char *)(key), (char *)("START"))  == 0 ||  musl_strcmp((char *)(key), (char *)("STOP"))  == 0)
             {
                 if (!highlight_set_startstop_termcode(idx, key, arg, init))
                 {
@@ -24755,7 +25037,7 @@ do_highlight(char_u      *line, int         forceit, int         init)
     vim_free(key);
     vim_free(arg);
 
-    if ((did_change || memcmp(& ((hl_group_T *)((highlight_ga.ga_data))) [idx], &item_before, sizeof(item_before)) != 0))
+    if ((did_change || musl_memcmp(& ((hl_group_T *)((highlight_ga.ga_data))) [idx], &item_before, sizeof(item_before)) != 0))
     {
         if (!updating_screen)
         {
@@ -24819,7 +25101,7 @@ get_attr_entry(garray_T *table, attrentry_T *aep)
     for (i = 0; i < table->ga_len; ++i)
     {
         taep = &(((attrentry_T *)table->ga_data)[i]);
-        if (       aep->ae_attr == taep->ae_attr && ((table == &term_attr_table && (aep->ae_u.term.start == NULL) == (taep->ae_u.term.start == NULL) && (aep->ae_u.term.start == NULL ||  strcmp((char *)(aep->ae_u.term.start), (char *)(taep->ae_u.term.start))  == 0) && (aep->ae_u.term.stop == NULL) == (taep->ae_u.term.stop == NULL) && (aep->ae_u.term.stop == NULL ||  strcmp((char *)(aep->ae_u.term.stop), (char *)(taep->ae_u.term.stop))  == 0)) || (table == &cterm_attr_table && aep->ae_u.cterm.fg_color == taep->ae_u.cterm.fg_color && aep->ae_u.cterm.bg_color == taep->ae_u.cterm.bg_color && aep->ae_u.cterm.ul_color == taep->ae_u.cterm.ul_color && aep->ae_u.cterm.font == taep->ae_u.cterm.font)))
+        if (       aep->ae_attr == taep->ae_attr && ((table == &term_attr_table && (aep->ae_u.term.start == NULL) == (taep->ae_u.term.start == NULL) && (aep->ae_u.term.start == NULL ||  musl_strcmp((char *)(aep->ae_u.term.start), (char *)(taep->ae_u.term.start))  == 0) && (aep->ae_u.term.stop == NULL) == (taep->ae_u.term.stop == NULL) && (aep->ae_u.term.stop == NULL ||  musl_strcmp((char *)(aep->ae_u.term.stop), (char *)(taep->ae_u.term.stop))  == 0)) || (table == &cterm_attr_table && aep->ae_u.cterm.fg_color == taep->ae_u.cterm.fg_color && aep->ae_u.cterm.bg_color == taep->ae_u.cterm.bg_color && aep->ae_u.cterm.ul_color == taep->ae_u.cterm.ul_color && aep->ae_u.cterm.font == taep->ae_u.cterm.font)))
         {
         return i +  (HL_ALL + 1) ;
         }
@@ -24852,7 +25134,7 @@ get_attr_entry(garray_T *table, attrentry_T *aep)
     }
 
     taep = &(((attrentry_T *)table->ga_data)[table->ga_len]);
-      memset(((taep)), (0), (sizeof(*(taep))))  ;
+      musl_memset(((taep)), (0), (sizeof(*(taep))))  ;
     taep->ae_attr = aep->ae_attr;
     if (table == &term_attr_table)
     {
@@ -24928,7 +25210,7 @@ hl_combine_attr(int char_attr, int prim_attr)
         }
         else
         {
-              memset((&(new_en)), (0), (sizeof(new_en)))  ;
+              musl_memset((&(new_en)), (0), (sizeof(new_en)))  ;
             if (char_attr <= HL_ALL)
             {
                 new_en.ae_attr = char_attr;
@@ -24976,7 +25258,7 @@ hl_combine_attr(int char_attr, int prim_attr)
     }
     else
     {
-          memset((&(new_en)), (0), (sizeof(new_en)))  ;
+          musl_memset((&(new_en)), (0), (sizeof(new_en)))  ;
         if (char_attr <= HL_ALL)
         {
             new_en.ae_attr = char_attr;
@@ -25182,7 +25464,7 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg  __attribut
         }
         else
         {
-              memset((&(new_en)), (0), (sizeof(new_en)))  ;
+              musl_memset((&(new_en)), (0), (sizeof(new_en)))  ;
             if (char_attr <= HL_ALL)
             {
                 new_en.ae_attr = char_attr;
@@ -25191,7 +25473,7 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg  __attribut
 
         if (popup_attr <= HL_ALL)
         {
-              memset((&(tmp_en)), (0), (sizeof(tmp_en)))  ;
+              musl_memset((&(tmp_en)), (0), (sizeof(tmp_en)))  ;
             tmp_en.ae_attr = popup_attr;
             popup_aep = &tmp_en;
 
@@ -25256,7 +25538,7 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg  __attribut
     }
     else
     {
-          memset((&(new_en)), (0), (sizeof(new_en)))  ;
+          musl_memset((&(new_en)), (0), (sizeof(new_en)))  ;
         if (char_attr <= HL_ALL)
         {
             new_en.ae_attr = char_attr;
@@ -25286,7 +25568,7 @@ hl_pum_blend_attr(int char_attr, int popup_attr, int blend  __attribute__((unuse
         }
         else
         {
-              memset((&(new_en)), (0), (sizeof(new_en)))  ;
+              musl_memset((&(new_en)), (0), (sizeof(new_en)))  ;
             if (char_attr <= HL_ALL)
             {
                 new_en.ae_attr = char_attr;
@@ -25295,7 +25577,7 @@ hl_pum_blend_attr(int char_attr, int popup_attr, int blend  __attribute__((unuse
 
         if (popup_attr <= HL_ALL)
         {
-              memset((&(tmp_en)), (0), (sizeof(tmp_en)))  ;
+              musl_memset((&(tmp_en)), (0), (sizeof(tmp_en)))  ;
             tmp_en.ae_attr = popup_attr;
             popup_aep = &tmp_en;
 
@@ -25340,7 +25622,7 @@ hl_pum_blend_attr(int char_attr, int popup_attr, int blend  __attribute__((unuse
     }
     else
     {
-          memset((&(new_en)), (0), (sizeof(new_en)))  ;
+          musl_memset((&(new_en)), (0), (sizeof(new_en)))  ;
         if (char_attr <= HL_ALL)
         {
             new_en.ae_attr = char_attr;
@@ -25440,7 +25722,7 @@ highlight_arg_to_string(int         type, int         iarg, char_u      *sarg, c
 {
     if (type == LIST_INT)
     {
-        sprintf((char *)buf, "%d", iarg - 1);
+        vim_snprintf((char *)buf, MAX_ATTR_LEN, "%d", iarg - 1);
     }
     else if (type == LIST_STRING)
     {
@@ -25458,10 +25740,10 @@ highlight_arg_to_string(int         type, int         iarg, char_u      *sarg, c
             {
                 if (buflen > 0)
                 {
-                     strcpy((char *)(buf + buflen), (char *)((char_u *)",")) ;
+                     musl_strcpy((char *)(buf + buflen), (char *)((char_u *)",")) ;
                     ++buflen;
                 }
-                 strcpy((char *)(buf + buflen), (char *)(highlight_index_tab[i]->value.string)) ;
+                 musl_strcpy((char *)(buf + buflen), (char *)(highlight_index_tab[i]->value.string)) ;
                 buflen += highlight_index_tab[i]->value.length;
                 iarg &= ~highlight_index_tab[i]->key;
             }
@@ -25488,7 +25770,7 @@ highlight_list_arg(int         id, int         didh, int         type, int      
 
     ts = highlight_arg_to_string(type, iarg, sarg, buf);
 
-    (void)syn_list_header(didh, (int)(vim_strsize(ts) +  strlen((char *)(name))  + 1), id);
+    (void)syn_list_header(didh, (int)(vim_strsize(ts) +  musl_strlen((char *)(name))  + 1), id);
     didh = TRUE;
     if (!got_int)
     {
@@ -25566,7 +25848,7 @@ set_hl_attr(int         idx)
     attrentry_T     at_en;
     hl_group_T      *sgp =  ((hl_group_T *)((highlight_ga.ga_data)))  + idx;
 
-    if (sgp->sg_name_u != NULL &&  strcmp((char *)(sgp->sg_name_u), (char *)("NORMAL"))  == 0)
+    if (sgp->sg_name_u != NULL &&  musl_strcmp((char *)(sgp->sg_name_u), (char *)("NORMAL"))  == 0)
     {
         return;
     }
@@ -25624,7 +25906,7 @@ syn_name2id_len(char_u *name, int len)
     {
         len = MAX_SYN_NAME;
     }
-     memmove((char *)(name_u), (char *)(name), len) ;
+     musl_memmove((char *)(name_u), (char *)(name), len) ;
     name_u[len] = NUL;
     vim_strup(name_u);
     if (!highlight_ht_inited)
@@ -25714,7 +25996,7 @@ syn_add_group(char_u *name)
 
     {
         hlname_T    *hn;
-        int         len = (int) strlen((char *)(name)) ;
+        int         len = (int) musl_strlen((char *)(name)) ;
 
         hn = alloc(offsetof(hlname_T, hn_key) + len + 1);
         if (hn == NULL)
@@ -25728,7 +26010,7 @@ syn_add_group(char_u *name)
         name_up = hn->hn_key;
     }
 
-      memset(((&( ((hl_group_T *)((highlight_ga.ga_data))) [highlight_ga.ga_len]))), (0), (sizeof(*(&( ((hl_group_T *)((highlight_ga.ga_data))) [highlight_ga.ga_len])))))  ;
+      musl_memset(((&( ((hl_group_T *)((highlight_ga.ga_data))) [highlight_ga.ga_len]))), (0), (sizeof(*(&( ((hl_group_T *)((highlight_ga.ga_data))) [highlight_ga.ga_len])))))  ;
      ((hl_group_T *)((highlight_ga.ga_data))) [highlight_ga.ga_len].sg_name = name;
      ((hl_group_T *)((highlight_ga.ga_data))) [highlight_ga.ga_len].sg_name_u = name_up;
     hash_add(&highlight_ht, name_up, "highlight");
@@ -25831,7 +26113,7 @@ highlight_changed(void)
     {
         if (i)
         {
-            if (default_hl != NULL && p_hl != NULL &&  strcmp((char *)(default_hl), (char *)(p_hl))  == 0)
+            if (default_hl != NULL && p_hl != NULL &&  musl_strcmp((char *)(default_hl), (char *)(p_hl))  == 0)
             {
                 continue;
             }
@@ -25919,7 +26201,7 @@ highlight_changed(void)
                                 end = vim_strchr(p, ',');
                                 if (end == NULL)
                                 {
-                                    end = p +  strlen((char *)(p)) ;
+                                    end = p +  musl_strlen((char *)(p)) ;
                                 }
                                 id = syn_check_group(p, (int)(end - p));
                                 if (id == 0)
@@ -26056,9 +26338,9 @@ push_highlight_overrides(hl_override_T *arr, int len)
     set->next = overrides;
     overrides = set;
 
-    memcpy(set->attr, highlight_attr, sizeof(highlight_attr));
+    musl_memcpy(set->attr, highlight_attr, sizeof(highlight_attr));
 
-    memcpy(highlight_attr, highlight_attr_raw, sizeof(highlight_attr));
+    musl_memcpy(highlight_attr, highlight_attr_raw, sizeof(highlight_attr));
 
     if (arr != NULL)
     {
@@ -26080,7 +26362,7 @@ pop_highlight_overrides(void)
 
     overrides = set->next;
 
-    memcpy(highlight_attr, set->attr, sizeof(highlight_attr));
+    musl_memcpy(highlight_attr, set->attr, sizeof(highlight_attr));
     vim_free(set);
 }
 
@@ -26162,7 +26444,7 @@ parse_winhighlight(char_u *opt, int *len, char **errmsg)
 
         if (tmp == NULL)
         {
-            tolen = (int) strlen((char *)(p)) ;
+            tolen = (int) musl_strlen((char *)(p)) ;
         }
         else
         {
@@ -26216,7 +26498,7 @@ parse_winhighlight(char_u *opt, int *len, char **errmsg)
                     goto fail;
                 }
 
-                if (ids[k] == &fromid &&  strcmp((char *)( ((hl_group_T *)((highlight_ga.ga_data))) [*ids[k] - 1].sg_name_u), (char *)("NORMAL"))  == 0)
+                if (ids[k] == &fromid &&  musl_strcmp((char *)( ((hl_group_T *)((highlight_ga.ga_data))) [*ids[k] - 1].sg_name_u), (char *)("NORMAL"))  == 0)
                 {
                     *ids[k] = -HLF_WIN;
                 }
@@ -26281,10 +26563,10 @@ hlf_get_id(win_T *wp, int hlf)
         return highlight_ids[hlf];
     }
 
-    memcpy(prev, highlight_ids, sizeof(highlight_ids));
+    musl_memcpy(prev, highlight_ids, sizeof(highlight_ids));
     set_highlight_attr(wp->w_hl, wp->w_hl_len, true);
     id = highlight_ids[hlf];
-    memcpy(highlight_ids, prev, sizeof(highlight_ids));
+    musl_memcpy(highlight_ids, prev, sizeof(highlight_ids));
 
     return id;
 }
@@ -26292,7 +26574,7 @@ hlf_get_id(win_T *wp, int hlf)
     static char *
 update_wincolor(win_T *wp, char_u *opt)
 {
-    char_u  *str = *opt == NUL ? "" : alloc(sizeof("!(:") +  strlen((char *)(opt)) );
+    char_u  *str = *opt == NUL ? "" : alloc(sizeof("!(:") +  musl_strlen((char *)(opt)) );
     char    *errmsg;
 
     if (str == NULL)
@@ -26302,7 +26584,7 @@ update_wincolor(win_T *wp, char_u *opt)
 
     if (*opt != NUL)
     {
-        sprintf((char *)str, "!(:%s", opt);
+        vim_snprintf((char *)str, sizeof("!(:") +  musl_strlen((char *)(opt)) , "!(:%s", opt);
     }
 
     errmsg = update_winhighlight(wp, str);
@@ -26591,7 +26873,7 @@ set_indent(int         size, int         flags)
         *s++ = ' ';
         --todo;
     }
-     memmove((char *)(s), (char *)(p), (size_t)line_len) ;
+     musl_memmove((char *)(s), (char *)(p), (size_t)line_len) ;
 
     if (!(flags & SIN_UNDO) || u_savesub(curwin->w_cursor.lnum) == OK)
     {
@@ -27038,7 +27320,7 @@ copy_indent(int size, char_u *src)
         }
     }
 
-     memmove((char *)(p), (char *)(ml_get_curline()), (size_t)line_len) ;
+     musl_memmove((char *)(p), (char *)(ml_get_curline()), (size_t)line_len) ;
 
     ml_replace(curwin->w_cursor.lnum, line, FALSE);
 
@@ -27093,7 +27375,7 @@ validate_maphash(void)
         return;
     }
 
-      memset((&(maphash)), (0), (sizeof(maphash)))  ;
+      musl_memset((&(maphash)), (0), (sizeof(maphash)))  ;
     maphash_valid = TRUE;
 }
 
@@ -27194,7 +27476,7 @@ showmap(mapblock_T  *mp, int         local)
     if (mapchars != NULL)
     {
         msg_puts((char *)mapchars);
-        len = (int) strlen((char *)(mapchars)) ;
+        len = (int) musl_strlen((char *)(mapchars)) ;
         vim_free(mapchars);
     }
 
@@ -27280,7 +27562,7 @@ map_add(mapblock_T  **map_table, mapblock_T  **abbr_table, char_u      *keys, ch
         vim_free(mp);
         return NULL;
     }
-    mp->m_keylen = (int) strlen((char *)(mp->m_keys)) ;
+    mp->m_keylen = (int) musl_strlen((char *)(mp->m_keys)) ;
     mp->m_noremap = noremap;
     mp->m_nowait = nowait;
     mp->m_silent = silent;
@@ -27395,7 +27677,7 @@ list_mappings(int     keyround, int     abbrev, int     haskey, char_u  *keys, i
                 else
                 {
                     int n = mp->m_keylen;
-                    if ( strncmp((char *)(mp->m_keys), (char *)(keys), ((size_t)(n < keys_len ? n : keys_len)))  == 0)
+                    if ( musl_strncmp((char *)(mp->m_keys), (char *)(keys), ((size_t)(n < keys_len ? n : keys_len)))  == 0)
                     {
                         showmap(mp, TRUE);
                         *did_local = TRUE;
@@ -27460,7 +27742,7 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
 
     for (;;)
     {
-        if ( strncmp((char *)(keys), (char *)("<buffer>"), (8))  == 0)
+        if ( musl_strncmp((char *)(keys), (char *)("<buffer>"), (8))  == 0)
         {
             keys = skipwhite(keys + 8);
             map_table = curbuf->b_maphash;
@@ -27468,28 +27750,28 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
             continue;
         }
 
-        if ( strncmp((char *)(keys), (char *)("<nowait>"), (8))  == 0)
+        if ( musl_strncmp((char *)(keys), (char *)("<nowait>"), (8))  == 0)
         {
             keys = skipwhite(keys + 8);
             nowait = TRUE;
             continue;
         }
 
-        if ( strncmp((char *)(keys), (char *)("<silent>"), (8))  == 0)
+        if ( musl_strncmp((char *)(keys), (char *)("<silent>"), (8))  == 0)
         {
             keys = skipwhite(keys + 8);
             silent = TRUE;
             continue;
         }
 
-        if ( strncmp((char *)(keys), (char *)("<special>"), (9))  == 0)
+        if ( musl_strncmp((char *)(keys), (char *)("<special>"), (9))  == 0)
         {
             keys = skipwhite(keys + 9);
             special = TRUE;
             continue;
         }
 
-        if ( strncmp((char *)(keys), (char *)("<unique>"), (8))  == 0)
+        if ( musl_strncmp((char *)(keys), (char *)("<unique>"), (8))  == 0)
         {
             keys = skipwhite(keys + 8);
             unique = TRUE;
@@ -27546,7 +27828,7 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
     orig_rhs = rhs;
     if (hasarg)
     {
-        if ( strcasecmp((char *)(rhs), (char *)("<nop>"))  == 0)
+        if ( musl_strcasecmp((char *)(rhs), (char *)("<nop>"))  == 0)
         {
             rhs = (char_u *)"";
         }
@@ -27579,7 +27861,7 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
 
         if (haskey)
         {
-            len = (int) strlen((char *)(keys)) ;
+            len = (int) musl_strlen((char *)(keys)) ;
             if (len > MAXMAPLEN)
             {
                 retval = 1;
@@ -27594,7 +27876,7 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
                 char_u      keys_unescaped[MAXMAPLEN + 1];
                 size_t      keys_unescaped_len;
 
-                 memmove((char *)(keys_unescaped), (char *)(keys), (size_t)(len + 1)) ;
+                 musl_memmove((char *)(keys_unescaped), (char *)(keys), (size_t)(len + 1)) ;
                 keys_unescaped_len = vim_unescape_csi(keys_unescaped);
                 p = keys_unescaped;
 
@@ -27656,7 +27938,7 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
                 }
                 for ( ; mp != NULL && !got_int; mp = mp->m_next)
                 {
-                    if ((mp->m_mode & mode) != 0 && mp->m_keylen == len &&  strncmp((char *)(mp->m_keys), (char *)(keys), ((size_t)len))  == 0)
+                    if ((mp->m_mode & mode) != 0 && mp->m_keylen == len &&  musl_strncmp((char *)(mp->m_keys), (char *)(keys), ((size_t)len))  == 0)
                     {
                         if (abbrev)
                         {
@@ -27714,7 +27996,7 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
                     {
                         if (round)
                         {
-                            n = (int) strlen((char *)(mp->m_str)) ;
+                            n = (int) musl_strlen((char *)(mp->m_str)) ;
                             p = mp->m_str;
                         }
                         else
@@ -27722,7 +28004,7 @@ do_map(int         maptype, char_u      *arg, int         mode, int         abbr
                             n = mp->m_keylen;
                             p = mp->m_keys;
                         }
-                        if ( strncmp((char *)(p), (char *)(keys), ((size_t)(n < len ? n : len)))  == 0)
+                        if ( musl_strncmp((char *)(p), (char *)(keys), ((size_t)(n < len ? n : len)))  == 0)
                         {
                             if (maptype == MAPTYPE_UNMAP)
                             {
@@ -27940,7 +28222,7 @@ map_clear(char_u      *cmdp, char_u      *arg, int         forceit, int         
     int         mode;
     int         local;
 
-    local = ( strcmp((char *)(arg), (char *)("<buffer>"))  == 0);
+    local = ( musl_strcmp((char *)(arg), (char *)("<buffer>"))  == 0);
     if (!local && *arg != NUL)
     {
         emsg(_(e_invalid_argument));
@@ -28045,7 +28327,7 @@ vim_strsave_escape_csi(char_u *p)
     char_u *s;
     char_u *d;
 
-    res = alloc( strlen((char *)(p))  * 4 + 1);
+    res = alloc( musl_strlen((char *)(p))  * 4 + 1);
     if (res == NULL)
     {
         return NULL;
@@ -28702,7 +28984,7 @@ show_one_mark(int         c, char_u      *arg, pos_T       *p, char_u      *name
             msg_putchar('\n');
             if (!got_int)
             {
-                sprintf((char *)IObuff, " %c %6ld %4d ", c, p->lnum, p->col);
+                vim_snprintf((char *)IObuff,  (1024+1) , " %c %6ld %4d ", c, p->lnum, p->col);
                 msg_outtrans(IObuff);
                 if (name != NULL)
                 {
@@ -28818,7 +29100,7 @@ ex_changes(exarg_T *eap  __attribute__((unused)) )
             {
                 break;
             }
-            sprintf((char *)IObuff, "%c %3d %5ld %4d ", i == curwin->w_changelistidx ? '>' : ' ', i > curwin->w_changelistidx ? i - curwin->w_changelistidx : curwin->w_changelistidx - i, (long)curbuf->b_changelist[i].lnum, curbuf->b_changelist[i].col);
+            vim_snprintf((char *)IObuff,  (1024+1) , "%c %3d %5ld %4d ", i == curwin->w_changelistidx ? '>' : ' ', i > curwin->w_changelistidx ? i - curwin->w_changelistidx : curwin->w_changelistidx - i, (long)curbuf->b_changelist[i].lnum, curbuf->b_changelist[i].col);
             msg_outtrans(IObuff);
             name = mark_line(&curbuf->b_changelist[i], 17);
             if (name == NULL)
@@ -29057,7 +29339,7 @@ match_add(win_T       *wp, char_u      *grp, char_u      *pat, int         prio,
         }
     }
 
-    if ((hlg_id = syn_namen2id(grp, (int) strlen((char *)(grp)) )) == 0)
+    if ((hlg_id = syn_namen2id(grp, (int) musl_strlen((char *)(grp)) )) == 0)
     {
         semsg(_(e_no_such_highlight_group_name_str), grp);
         return -1;
@@ -29720,7 +30002,7 @@ ex_match(exarg_T *eap)
     {
         end = eap->arg;
     }
-    else if (( strncasecmp((char *)(eap->arg), (char *)("none"), (4))  == 0 && ( ((eap->arg[4]) == ' ' || (eap->arg[4]) == '\t')  || ends_excmd2(eap->arg, eap->arg + 4))))
+    else if (( musl_strncasecmp((char *)(eap->arg), (char *)("none"), (4))  == 0 && ( ((eap->arg[4]) == ' ' || (eap->arg[4]) == '\t')  || ends_excmd2(eap->arg, eap->arg + 4))))
     {
         end = eap->arg + 4;
     }
@@ -32348,14 +32630,14 @@ show_utf8(void)
         {
             if (i > 0)
             {
-                 strcpy((char *)(IObuff + rlen), (char *)("+ ")) ;
+                 musl_strcpy((char *)(IObuff + rlen), (char *)("+ ")) ;
                 rlen += 2;
             }
             clen = utf_ptr2len(line + i);
         }
-        sprintf((char *)IObuff + rlen, "%02x ", (line[i] == NL) ? NUL : line[i]);
+        vim_snprintf((char *)IObuff + rlen, (size_t)( (1024+1)  - rlen), "%02x ", (line[i] == NL) ? NUL : line[i]);
         --clen;
-        rlen += (int) strlen((char *)(IObuff + rlen)) ;
+        rlen += (int) musl_strlen((char *)(IObuff + rlen)) ;
         if (rlen >  (1024+1)  - 20)
         {
             break;
@@ -32416,7 +32698,7 @@ mb_copy_char(char_u **fp, char_u **tp)
 {
     int     l = utfc_ptr2len(*fp);
 
-     memmove((char *)(*tp), (char *)(*fp), (size_t)l) ;
+     musl_memmove((char *)(*tp), (char *)(*fp), (size_t)l) ;
     *tp += l;
     *fp += l;
 }
@@ -32723,7 +33005,7 @@ mf_new(memfile_T *mfp, int negative, int page_count)
     mf_ins_used(mfp, hp);
     mf_ins_hash(mfp, hp);
 
-    (void) memset(((char *)(hp->bh_data)), (0), ((size_t)mfp->mf_page_size * page_count)) ;
+    (void) musl_memset(((char *)(hp->bh_data)), (0), ((size_t)mfp->mf_page_size * page_count)) ;
 
     return hp;
 }
@@ -32985,7 +33267,7 @@ enum { MHT_GROWTH_FACTOR = 2 };
     static void
 mf_hash_init(mf_hashtab_T *mht)
 {
-      memset(((mht)), (0), (sizeof(*(mht))))  ;
+      musl_memset(((mht)), (0), (sizeof(*(mht))))  ;
     mht->mht_buckets = mht->mht_small_buckets;
     mht->mht_mask = MHT_INIT_SIZE - 1;
 }
@@ -33104,7 +33386,7 @@ mf_hash_grow(mf_hashtab_T *mht)
 
     for (i = 0; i <= mht->mht_mask; i++)
     {
-          memset((&(tails)), (0), (sizeof(tails)))  ;
+          musl_memset((&(tails)), (0), (sizeof(tails)))  ;
 
         for (mhi = mht->mht_buckets[i]; mhi != NULL; mhi = mhi->mhi_next)
         {
@@ -33257,8 +33539,8 @@ ml_open(buf_T *buf)
     b0p->b0_magic_int = (int)B0_MAGIC_INT;
     b0p->b0_magic_short = (short)B0_MAGIC_SHORT;
     b0p->b0_magic_char = B0_MAGIC_CHAR;
-     memmove((char *)(b0p->b0_version), (char *)("VIM "), 4) ;
-     strncpy((char *)(b0p->b0_version + 4), (char *)(Version), (6)) ;
+     musl_memmove((char *)(b0p->b0_version), (char *)("VIM "), 4) ;
+     musl_strncpy((char *)(b0p->b0_version + 4), (char *)(Version), (6)) ;
     long_to_char((long)mfp->mf_page_size, b0p->b0_page_size);
 
     {
@@ -33428,7 +33710,7 @@ ml_get_buf_len(buf_T *buf, linenr_T lnum)
 
     if (buf->b_ml.ml_line_textlen <= 0)
     {
-        buf->b_ml.ml_line_textlen = (int) strlen((char *)(line))  + 1;
+        buf->b_ml.ml_line_textlen = (int) musl_strlen((char *)(line))  + 1;
     }
     return buf->b_ml.ml_line_textlen - 1;
 }
@@ -33451,7 +33733,7 @@ ml_get_buf(buf_T       *buf, linenr_T    lnum, int         will_change)
         }
         ml_flush_line(buf);
 errorret:
-         strcpy((char *)(questions), (char *)("???")) ;
+         musl_strcpy((char *)(questions), (char *)("???")) ;
         buf->b_ml.ml_line_len = 4;
         buf->b_ml.ml_line_textlen = buf->b_ml.ml_line_len;
         buf->b_ml.ml_line_lnum = lnum;
@@ -33556,7 +33838,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
 
     if (len == 0)
     {
-        len = (colnr_T) strlen((char *)(line))  + 1;
+        len = (colnr_T) musl_strlen((char *)(line))  + 1;
     }
 
     space_needed = len +  (sizeof(unsigned)) ;
@@ -33616,7 +33898,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             {
                 offset = ((dp->db_index[db_idx]) &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) );
             }
-             memmove((char *)((char *)dp + dp->db_txt_start), (char *)((char *)dp + dp->db_txt_start + len), (size_t)(offset - (dp->db_txt_start + len))) ;
+             musl_memmove((char *)((char *)dp + dp->db_txt_start), (char *)((char *)dp + dp->db_txt_start + len), (size_t)(offset - (dp->db_txt_start + len))) ;
             for (i = line_count - 1; i > db_idx; --i)
             {
                 dp->db_index[i + 1] = dp->db_index[i] - len;
@@ -33628,7 +33910,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             dp->db_index[db_idx + 1] = dp->db_txt_start;
         }
 
-         memmove((char *)((char *)dp + dp->db_index[db_idx + 1]), (char *)(line), (size_t)len) ;
+         musl_memmove((char *)((char *)dp + dp->db_index[db_idx + 1]), (char *)(line), (size_t)len) ;
         if (flags & ML_APPEND_MARK)
         {
             dp->db_index[db_idx + 1] |=  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ;
@@ -33732,14 +34014,14 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 dp_right->db_index[0] |=  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ;
             }
 
-             memmove((char *)((char *)dp_right + dp_right->db_txt_start), (char *)(line), (size_t)len) ;
+             musl_memmove((char *)((char *)dp_right + dp_right->db_txt_start), (char *)(line), (size_t)len) ;
             ++line_count_right;
         }
         if (lines_moved)
         {
             dp_right->db_txt_start -= data_moved;
             dp_right->db_free -= total_moved;
-             memmove((char *)((char *)dp_right + dp_right->db_txt_start), (char *)((char *)dp_left + dp_left->db_txt_start), (size_t)data_moved) ;
+             musl_memmove((char *)((char *)dp_right + dp_right->db_txt_start), (char *)((char *)dp_left + dp_left->db_txt_start), (size_t)data_moved) ;
             offset = dp_right->db_txt_start - dp_left->db_txt_start;
             dp_left->db_txt_start += data_moved;
             dp_left->db_free += total_moved;
@@ -33762,7 +34044,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             {
                 dp_left->db_index[line_count_left] |=  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ;
             }
-             memmove((char *)((char *)dp_left + dp_left->db_txt_start), (char *)(line), (size_t)len) ;
+             musl_memmove((char *)((char *)dp_left + dp_left->db_txt_start), (char *)(line), (size_t)len) ;
             ++line_count_left;
         }
 
@@ -33819,7 +34101,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             {
                 if (pb_idx + 1 < (int)pp->pb_count)
                 {
-                     memmove((char *)(&pp->pb_pointer[pb_idx + 2]), (char *)(&pp->pb_pointer[pb_idx + 1]), (size_t)(pp->pb_count - pb_idx - 1) * sizeof(PTR_EN)) ;
+                     musl_memmove((char *)(&pp->pb_pointer[pb_idx + 2]), (char *)(&pp->pb_pointer[pb_idx + 1]), (size_t)(pp->pb_count - pb_idx - 1) * sizeof(PTR_EN)) ;
                 }
                 ++pp->pb_count;
                 pp->pb_pointer[pb_idx].pe_line_count = line_count_left;
@@ -33866,7 +34148,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                     break;
                 }
 
-                 memmove((char *)(pp_new), (char *)(pp), (size_t)page_size) ;
+                 musl_memmove((char *)(pp_new), (char *)(pp), (size_t)page_size) ;
                 pp->pb_count = 1;
                 pp->pb_pointer[0].pe_bnum = hp_new-> bh_hashitem.mhi_key ;
                 pp->pb_pointer[0].pe_line_count = buf->b_ml.ml_line_count;
@@ -33881,7 +34163,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             total_moved = pp->pb_count - pb_idx - 1;
             if (total_moved)
             {
-                 memmove((char *)(&pp_new->pb_pointer[0]), (char *)(&pp->pb_pointer[pb_idx + 1]), (size_t)(total_moved) * sizeof(PTR_EN)) ;
+                 musl_memmove((char *)(&pp_new->pb_pointer[0]), (char *)(&pp->pb_pointer[pb_idx + 1]), (size_t)(total_moved) * sizeof(PTR_EN)) ;
                 pp_new->pb_count = total_moved;
                 pp->pb_count -= total_moved - 1;
                 pp->pb_pointer[pb_idx + 1].pe_bnum = bnum_right;
@@ -33982,7 +34264,7 @@ ml_replace(linenr_T lnum, char_u *line, int copy)
 
     if (line != NULL)
     {
-        len = (colnr_T) strlen((char *)(line)) ;
+        len = (colnr_T) musl_strlen((char *)(line)) ;
     }
     return ml_replace_len(lnum, line, len, FALSE, copy);
 }
@@ -34129,7 +34411,7 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
             {
                 if (count != idx)
                 {
-                     memmove((char *)(&pp->pb_pointer[idx]), (char *)(&pp->pb_pointer[idx + 1]), (size_t)(count - idx) * sizeof(PTR_EN)) ;
+                     musl_memmove((char *)(&pp->pb_pointer[idx]), (char *)(&pp->pb_pointer[idx + 1]), (size_t)(count - idx) * sizeof(PTR_EN)) ;
                 }
                 mf_put(mfp, hp, TRUE, FALSE);
 
@@ -34149,7 +34431,7 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
     else
     {
         text_start = dp->db_txt_start;
-         memmove((char *)((char *)dp + text_start + line_size), (char *)((char *)dp + text_start), (size_t)(line_start - text_start)) ;
+         musl_memmove((char *)((char *)dp + text_start + line_size), (char *)((char *)dp + text_start), (size_t)(line_start - text_start)) ;
 
         for (i = idx; i < count - 1; ++i)
         {
@@ -34344,7 +34626,7 @@ ml_flush_line(buf_T *buf)
                 count = buf->b_ml.ml_locked_high - buf->b_ml.ml_locked_low + 1;
                 if (extra != 0 && idx < count - 1)
                 {
-                     memmove((char *)((char *)dp + dp->db_txt_start - extra), (char *)((char *)dp + dp->db_txt_start), (size_t)(start - dp->db_txt_start)) ;
+                     musl_memmove((char *)((char *)dp + dp->db_txt_start - extra), (char *)((char *)dp + dp->db_txt_start), (size_t)(start - dp->db_txt_start)) ;
 
                     for (i = idx + 1; i < count; ++i)
                     {
@@ -34356,7 +34638,7 @@ ml_flush_line(buf_T *buf)
                 dp->db_free -= extra;
                 dp->db_txt_start -= extra;
 
-                 memmove((char *)(old_line - extra), (char *)(new_line), (size_t)new_len) ;
+                 musl_memmove((char *)(old_line - extra), (char *)(new_line), (size_t)new_len) ;
                 buf->b_ml.ml_flags |= (ML_LOCKED_DIRTY | ML_LOCKED_POS);
             }
             else
@@ -34625,7 +34907,7 @@ ml_add_stack(buf_T *buf)
         }
         if (top > 0)
         {
-             memmove((char *)(newstack), (char *)(buf->b_ml.ml_stack), (size_t)top * sizeof(infoptr_T)) ;
+             musl_memmove((char *)(newstack), (char *)(buf->b_ml.ml_stack), (size_t)top * sizeof(infoptr_T)) ;
         }
         vim_free(buf->b_ml.ml_stack);
         buf->b_ml.ml_stack = newstack;
@@ -34764,7 +35046,7 @@ msg_attr_keep(char        *s, int         attr, int         keep)
     }
     ++entered;
 
-    if ((char_u *)s != keep_msg || (*s != '<' && last_msg_hist != NULL && last_msg_hist->msg != NULL &&  strcmp((char *)(s), (char *)(last_msg_hist->msg))  != 0))
+    if ((char_u *)s != keep_msg || (*s != '<' && last_msg_hist != NULL && last_msg_hist->msg != NULL &&  musl_strcmp((char *)(s), (char *)(last_msg_hist->msg))  != 0))
     {
         add_msg_hist((char_u *)s, -1, attr);
     }
@@ -34873,7 +35155,7 @@ trunc_string(char_u      *s, char_u      *buf, int         room_in, int         
     }
 
     i = e;
-    half = i = (int) strlen((char *)(s)) ;
+    half = i = (int) musl_strlen((char *)(s)) ;
     for (;;)
     {
         do
@@ -34895,7 +35177,7 @@ trunc_string(char_u      *s, char_u      *buf, int         room_in, int         
     {
         if (s != buf)
         {
-            len =  strlen((char *)(s)) ;
+            len =  musl_strlen((char *)(s)) ;
             if (len >= (size_t)buflen)
             {
                 len = buflen - 1;
@@ -34907,19 +35189,19 @@ trunc_string(char_u      *s, char_u      *buf, int         room_in, int         
             }
             else
             {
-                 memmove((char *)(buf + e), (char *)(s + e), len) ;
+                 musl_memmove((char *)(buf + e), (char *)(s + e), len) ;
             }
         }
     }
     else if (e + 3 < buflen)
     {
-         memmove((char *)(buf + e), (char *)("..."), (size_t)3) ;
-        len =  strlen((char *)(s + i))  + 1;
+         musl_memmove((char *)(buf + e), (char *)("..."), (size_t)3) ;
+        len =  musl_strlen((char *)(s + i))  + 1;
         if (len >= (size_t)buflen - e - 3)
         {
             len = buflen - e - 3 - 1;
         }
-         memmove((char *)(buf + e + 3), (char *)(s + i), len) ;
+         musl_memmove((char *)(buf + e + 3), (char *)(s + i), len) ;
         buf[e + 3 + len - 1] = NUL;
     }
     else
@@ -34996,7 +35278,7 @@ other_sourcing_name(void)
     {
         if (last_sourcing_name != NULL)
         {
-            return  strcmp((char *)( (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_name) ), (char *)(last_sourcing_name))  != 0;
+            return  musl_strcmp((char *)( (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_name) ), (char *)(last_sourcing_name))  != 0;
         }
         return TRUE;
     }
@@ -35020,10 +35302,10 @@ get_emsg_source(void)
         }
 
             p = (char_u *)_("Error detected while processing %s:");
-        Buf = alloc( strlen((char *)(sname))  +  strlen((char *)(p)) );
+        Buf = alloc( musl_strlen((char *)(sname))  +  musl_strlen((char *)(p)) );
         if (Buf != NULL)
         {
-            sprintf((char *)Buf, (char *)p, sname);
+            vim_snprintf((char *)Buf,  musl_strlen((char *)(sname))  +  musl_strlen((char *)(p)) , (char *)p, sname);
         }
         vim_free(tofree);
         return Buf;
@@ -35040,10 +35322,10 @@ get_emsg_lnum(void)
     if ( (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_name)  != NULL && (other_sourcing_name() ||  (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_lnum)  != last_sourcing_lnum) &&  (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_lnum)  != 0)
     {
         p = (char_u *)_("line %4ld:");
-        Buf = alloc( strlen((char *)(p))  + 20);
+        Buf = alloc( musl_strlen((char *)(p))  + 20);
         if (Buf != NULL)
         {
-            sprintf((char *)Buf, (char *)p, (long) (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_lnum) );
+            vim_snprintf((char *)Buf,  musl_strlen((char *)(p))  + 20, (char *)p, (long) (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_lnum) );
         }
         return Buf;
     }
@@ -35121,13 +35403,13 @@ emsg_core(const char *s)
                 p = get_emsg_source();
                 if (p != NULL)
                 {
-                     strcat((char *)(p), (char *)("\n")) ;
+                     musl_strcat((char *)(p), (char *)("\n")) ;
                     vim_free(p);
                 }
                 p = get_emsg_lnum();
                 if (p != NULL)
                 {
-                     strcat((char *)(p), (char *)("\n")) ;
+                     musl_strcat((char *)(p), (char *)("\n")) ;
                     vim_free(p);
                 }
             }
@@ -35282,7 +35564,7 @@ msg_may_trunc(int force, char_u *s)
     int         room;
 
     room = (int)(Rows - cmdline_row - 1) * cmdline_width + sc_col - 1;
-    if (room > 0 && (force || shortmess(SHM_TRUNC)) && (n = (int) strlen((char *)(s))  - room) > 0)
+    if (room > 0 && (force || shortmess(SHM_TRUNC)) && (n = (int) musl_strlen((char *)(s))  - room) > 0)
     {
         int size = vim_strsize(s);
 
@@ -35321,7 +35603,7 @@ add_msg_hist(char_u      *s, int         len, int         attr)
 
     if (len < 0)
     {
-        len = (int) strlen((char *)(s)) ;
+        len = (int) musl_strlen((char *)(s)) ;
     }
     while (len > 0 && *s == '\n')
     {
@@ -35390,18 +35672,18 @@ messagesopt_changed(void)
     p = p_mopt;
     while (*p != NUL)
     {
-        if ( strncmp((char *)(p), (char *)( "hit-enter" ), ( (sizeof( "hit-enter"  "") - 1) ))  == 0)
+        if ( musl_strncmp((char *)(p), (char *)( "hit-enter" ), ( (sizeof( "hit-enter"  "") - 1) ))  == 0)
         {
             p +=  (sizeof( "hit-enter"  "") - 1) ;
             messages_flags_new |= MESSAGES_HIT_ENTER;
         }
-        else if ( strncmp((char *)(p), (char *)( "wait:" ), ( (sizeof( "wait:"  "") - 1) ))  == 0 &&  ((unsigned)(p[ (sizeof( "wait:"  "") - 1) ]) - '0' < 10) )
+        else if ( musl_strncmp((char *)(p), (char *)( "wait:" ), ( (sizeof( "wait:"  "") - 1) ))  == 0 &&  ((unsigned)(p[ (sizeof( "wait:"  "") - 1) ]) - '0' < 10) )
         {
             p +=  (sizeof( "wait:"  "") - 1) ;
             messages_wait_new = getdigits(&p);
             messages_flags_new |= MESSAGES_WAIT;
         }
-        else if ( strncmp((char *)(p), (char *)( "history:" ), ( (sizeof( "history:"  "") - 1) ))  == 0 &&  ((unsigned)(p[ (sizeof( "history:"  "") - 1) ]) - '0' < 10) )
+        else if ( musl_strncmp((char *)(p), (char *)( "history:" ), ( (sizeof( "history:"  "") - 1) ))  == 0 &&  ((unsigned)(p[ (sizeof( "history:"  "") - 1) ]) - '0' < 10) )
         {
             p +=  (sizeof( "history:"  "") - 1) ;
             messages_history_new = getdigits(&p);
@@ -35453,7 +35735,7 @@ ex_messages(exarg_T *eap)
     struct msg_hist *p;
     int             c = 0;
 
-    if ( strcmp((char *)(eap->arg), (char *)("clear"))  == 0)
+    if ( musl_strcmp((char *)(eap->arg), (char *)("clear"))  == 0)
     {
         int keep = eap->addr_count == 0 ? 0 : eap->line2;
 
@@ -35791,7 +36073,7 @@ msg_outtrans(char_u *str)
     static int
 msg_outtrans_attr(char_u *str, int attr)
 {
-    return msg_outtrans_len_attr(str, (int) strlen((char *)(str)) , attr);
+    return msg_outtrans_len_attr(str, (int) musl_strlen((char *)(str)) , attr);
 }
 
     static int
@@ -35869,7 +36151,7 @@ msg_outtrans_len_attr(char_u *msgstr, int len, int attr)
                 }
                 plain_start = str + 1;
                 msg_puts_attr((char *)s, attr == 0 ?  highlight_attr[(int)(HLF_8)]  : attr);
-                retval += (int) strlen((char *)(s)) ;
+                retval += (int) musl_strlen((char *)(s)) ;
             }
             else
             {
@@ -36002,10 +36284,10 @@ str2specialbuf(char_u *sp, char_u *buf, int len)
     while (*sp)
     {
         s = str2special(&sp, FALSE, FALSE);
-        s_len =  strlen((char *)(s)) ;
+        s_len =  musl_strlen((char *)(s)) ;
         if (buf_len + s_len < (size_t)len)
         {
-             strcpy((char *)(buf + buf_len), (char *)(s)) ;
+             musl_strcpy((char *)(buf + buf_len), (char *)(s)) ;
             buf_len += s_len;
         }
         else
@@ -36042,7 +36324,7 @@ msg_prt_line(char_u *s, int list)
     {
         if (curwin->w_lcs_chars.trail)
         {
-            trail = s +  strlen((char *)(s)) ;
+            trail = s +  musl_strlen((char *)(s)) ;
             while (trail > s &&  ((trail[-1]) == ' ' || (trail[-1]) == '\t') )
             {
                 --trail;
@@ -36090,7 +36372,7 @@ msg_prt_line(char_u *s, int list)
             col += utf_ptr2cells(s);
             if (l >= MB_MAXBYTES)
             {
-                 strcpy((char *)(buf), (char *)("?")) ;
+                 musl_strcpy((char *)(buf), (char *)("?")) ;
             }
             else if (curwin->w_lcs_chars.nbsp != NUL && list && (utf_ptr2char(s) == 160 || utf_ptr2char(s) == 0x202f))
             {
@@ -36100,7 +36382,7 @@ msg_prt_line(char_u *s, int list)
             }
             else
             {
-                 memmove((char *)(buf), (char *)(s), (size_t)l) ;
+                 musl_memmove((char *)(buf), (char *)(s), (size_t)l) ;
                 buf[l] = NUL;
             }
             msg_puts((char *)buf);
@@ -36283,7 +36565,7 @@ msg_puts_attr_len(char *str, int maxlen, int attr)
         attr &= ~MSG_HIST;
     }
 
-    if (msg_scrolled != 0 && !msg_scrolled_ign &&  strcmp((char *)(str), (char *)("\r"))  != 0)
+    if (msg_scrolled != 0 && !msg_scrolled_ign &&  musl_strcmp((char *)(str), (char *)("\r"))  != 0)
     {
         need_wait_return = TRUE;
     }
@@ -36780,7 +37062,7 @@ msg_puts_printf(char_u *str, int maxlen)
             buf = alloc(n + 3);
             if (buf != NULL)
             {
-                memcpy(buf, p, n);
+                musl_memcpy(buf, p, n);
                 if (!info_message)
                 {
                     buf[n++] = CAR;
@@ -37607,7 +37889,7 @@ get_keystroke(void)
                 len -= 3;
                 if (len > 0)
                 {
-                     memmove((char *)(buf), (char *)(buf + 3), (size_t)len) ;
+                     musl_memmove((char *)(buf), (char *)(buf + 3), (size_t)len) ;
                 }
                 continue;
             }
@@ -37821,11 +38103,11 @@ goto_im(void)
     static int
 path_is_url(char_u *p)
 {
-    if ( strncmp((char *)(p), (char *)("://"), ((size_t)3))  == 0)
+    if ( musl_strncmp((char *)(p), (char *)("://"), ((size_t)3))  == 0)
     {
         return URL_SLASH;
     }
-    else if ( strncmp((char *)(p), (char *)(":\\\\"), ((size_t)3))  == 0)
+    else if ( musl_strncmp((char *)(p), (char *)(":\\\\"), ((size_t)3))  == 0)
     {
         return URL_BACKSLASH;
     }
@@ -38876,7 +39158,7 @@ get_special_key_name(int c, int modifiers)
 
         if (s->length + idx + 2 <= MAX_KEY_NAME_LEN)
         {
-             strcpy((char *)(string + idx), (char *)(s->string)) ;
+             musl_strcpy((char *)(string + idx), (char *)(s->string)) ;
             idx += (int)s->length;
         }
     }
@@ -38978,7 +39260,7 @@ find_special_key(char_u      **srcp, int         *modp, int         flags, int  
         {
             bp += 3;
         }
-        else if ( strncasecmp((char *)(bp), (char *)("char-"), (5))  == 0)
+        else if ( musl_strncasecmp((char *)(bp), (char *)("char-"), (5))  == 0)
         {
             vim_str2nr(bp + 5, NULL, &l,  (STR2NR_BIN + STR2NR_OCT + STR2NR_HEX + STR2NR_OOCT) , NULL, NULL, 0, TRUE, NULL);
             if (l == 0)
@@ -39011,7 +39293,7 @@ find_special_key(char_u      **srcp, int         *modp, int         flags, int  
 
         if (bp >= last_dash)
         {
-            if ( strncasecmp((char *)(last_dash + 1), (char *)("char-"), (5))  == 0 &&  ((unsigned)(last_dash[6]) - '0' < 10) )
+            if ( musl_strncasecmp((char *)(last_dash + 1), (char *)("char-"), (5))  == 0 &&  ((unsigned)(last_dash[6]) - '0' < 10) )
             {
                 vim_str2nr(last_dash + 6, NULL, &l,  (STR2NR_BIN + STR2NR_OCT + STR2NR_HEX + STR2NR_OOCT) , NULL, &n, 0, TRUE, NULL);
                 if (l == 0)
@@ -39313,7 +39595,7 @@ cmp_keyvalue_value_n(const void *a, const void *b)
     keyvalue_T *kv1 = (keyvalue_T *)a;
     keyvalue_T *kv2 = (keyvalue_T *)b;
 
-    return  strncmp((char *)(kv1->value.string), (char *)(kv2->value.string), (MAX(kv1->value.length, kv2->value.length))) ;
+    return  musl_strncmp((char *)(kv1->value.string), (char *)(kv2->value.string), (MAX(kv1->value.length, kv2->value.length))) ;
 }
 
     static int
@@ -39322,7 +39604,7 @@ cmp_keyvalue_value_i(const void *a, const void *b)
     keyvalue_T *kv1 = (keyvalue_T *)a;
     keyvalue_T *kv2 = (keyvalue_T *)b;
 
-    return  strcasecmp((char *)(kv1->value.string), (char *)(kv2->value.string)) ;
+    return  musl_strcasecmp((char *)(kv1->value.string), (char *)(kv2->value.string)) ;
 }
 
     static int
@@ -42449,7 +42731,7 @@ normal_cmd(oparg_T     *oap, int         toplevel  __attribute__((unused)) )
     int         set_prevcount = FALSE;
     int         save_did_cursorhold = did_cursorhold;
 
-      memset((&(ca)), (0), (sizeof(ca)))  ;
+      musl_memset((&(ca)), (0), (sizeof(ca)))  ;
     ca.oap = oap;
 
     ca.opcount = opcount;
@@ -43152,7 +43434,7 @@ add_to_showcmd(int c)
         p = transchar(c);
         if (*p == ' ')
         {
-             strcpy((char *)(p), (char *)("<20>")) ;
+             musl_strcpy((char *)(p), (char *)("<20>")) ;
         }
     }
     else
@@ -43160,14 +43442,14 @@ add_to_showcmd(int c)
         mbyte_buf[utf_char2bytes(c, mbyte_buf)] = NUL;
         p = mbyte_buf;
     }
-    old_len = (int) strlen((char *)(showcmd_buf)) ;
-    extra_len = (int) strlen((char *)(p)) ;
+    old_len = (int) musl_strlen((char *)(showcmd_buf)) ;
+    extra_len = (int) musl_strlen((char *)(p)) ;
     overflow = old_len + extra_len - SHOWCMD_COLS;
     if (overflow > 0)
     {
-         memmove((char *)(showcmd_buf), (char *)(showcmd_buf + overflow), old_len - overflow + 1) ;
+         musl_memmove((char *)(showcmd_buf), (char *)(showcmd_buf + overflow), old_len - overflow + 1) ;
     }
-     strcat((char *)(showcmd_buf), (char *)(p)) ;
+     musl_strcat((char *)(showcmd_buf), (char *)(p)) ;
 
     if (char_avail())
     {
@@ -43198,7 +43480,7 @@ del_from_showcmd(int len)
         return;
     }
 
-    old_len = (int) strlen((char *)(showcmd_buf)) ;
+    old_len = (int) musl_strlen((char *)(showcmd_buf)) ;
     if (len > old_len)
     {
         len = old_len;
@@ -43216,7 +43498,7 @@ push_showcmd(void)
 {
     if (p_sc)
     {
-         strcpy((char *)(old_showcmd_buf), (char *)(showcmd_buf)) ;
+         musl_strcpy((char *)(old_showcmd_buf), (char *)(showcmd_buf)) ;
     }
 }
 
@@ -43228,7 +43510,7 @@ pop_showcmd(void)
         return;
     }
 
-     strcpy((char *)(showcmd_buf), (char *)(old_showcmd_buf)) ;
+     musl_strcpy((char *)(showcmd_buf), (char *)(old_showcmd_buf)) ;
 
     display_showcmd();
 }
@@ -43939,7 +44221,7 @@ nv_ident(cmdarg_T *cap)
 
     if (!g_cmd && vim_iswordp(ptr))
     {
-         strcpy((char *)(buf), (char *)("\\<")) ;
+         musl_strcpy((char *)(buf), (char *)("\\<")) ;
         buflen =  (sizeof("\\<" "") - 1) ;
     }
     no_smartcase = TRUE;
@@ -43975,7 +44257,7 @@ nv_ident(cmdarg_T *cap)
 
     if (!g_cmd && (vim_iswordp(mb_prevptr(ml_get_curline(), ptr))))
     {
-         strcpy((char *)(buf + buflen), (char *)("\\>")) ;
+         musl_strcpy((char *)(buf + buflen), (char *)("\\>")) ;
         buflen +=  (sizeof("\\>" "") - 1) ;
     }
 
@@ -44261,7 +44543,7 @@ nv_search(cmdarg_T *cap)
         return;
     }
 
-    (void)normal_search(cap, cap->cmdchar, cap->searchbuf,  strlen((char *)(cap->searchbuf)) , (cap->arg || ! (((save_cursor).lnum == (curwin->w_cursor).lnum) && ((save_cursor).col == (curwin->w_cursor).col) && ((save_cursor).coladd == (curwin->w_cursor).coladd)) ) ? 0 : SEARCH_MARK, NULL);
+    (void)normal_search(cap, cap->cmdchar, cap->searchbuf,  musl_strlen((char *)(cap->searchbuf)) , (cap->arg || ! (((save_cursor).lnum == (curwin->w_cursor).lnum) && ((save_cursor).col == (curwin->w_cursor).col) && ((save_cursor).coladd == (curwin->w_cursor).coladd)) ) ? 0 : SEARCH_MARK, NULL);
 }
 
     static void
@@ -44296,7 +44578,7 @@ normal_search(cmdarg_T    *cap, int         dir, char_u      *pat, size_t      p
     cap->oap->use_reg_one = TRUE;
     curwin->w_set_curswant = true;
 
-      memset((&(sia)), (0), (sizeof(sia)))  ;
+      musl_memset((&(sia)), (0), (sizeof(sia)))  ;
     i = do_search(cap->oap, dir, dir, pat, patlen, cap->count1, opt | SEARCH_OPT | SEARCH_ECHO | SEARCH_MSG, &sia);
     if (wrapped != NULL)
     {
@@ -46295,7 +46577,7 @@ set_cursor_for_append_to_line(void)
     }
     else
     {
-        curwin->w_cursor.col += (colnr_T) strlen((char *)(ml_get_cursor())) ;
+        curwin->w_cursor.col += (colnr_T) musl_strlen((char *)(ml_get_cursor())) ;
     }
 }
 
@@ -47078,12 +47360,12 @@ shift_block(oparg_T *oap, int amount)
         {
             return;
         }
-         memmove((char *)(newp), (char *)(oldp), (size_t)bd.textcol) ;
+         musl_memmove((char *)(newp), (char *)(oldp), (size_t)bd.textcol) ;
         newlen = bd.textcol;
-         memset((newp + newlen), (TAB), ((size_t)tabs)) ;
+         musl_memset((newp + newlen), (TAB), ((size_t)tabs)) ;
         newlen += tabs;
-         memset((newp + newlen), (' '), ((size_t)spaces)) ;
-         strcpy((char *)(newp + newlen + spaces), (char *)(bd.textstart)) ;
+         musl_memset((newp + newlen), (' '), ((size_t)spaces)) ;
+         musl_strcpy((char *)(newp + newlen + spaces), (char *)(bd.textstart)) ;
     }
     else
     {
@@ -47150,10 +47432,10 @@ shift_block(oparg_T *oap, int amount)
         {
             return;
         }
-         memmove((char *)(newp), (char *)(oldp), fixedlen) ;
+         musl_memmove((char *)(newp), (char *)(oldp), fixedlen) ;
         newlen = fixedlen;
-         memset((newp + newlen), (' '), ((size_t)fill)) ;
-         strcpy((char *)(newp + newlen + fill), (char *)(non_white)) ;
+         musl_memset((newp + newlen), (' '), ((size_t)fill)) ;
+         musl_strcpy((char *)(newp + newlen + fill), (char *)(non_white)) ;
     }
     ml_replace(curwin->w_cursor.lnum, newp, FALSE);
 
@@ -47244,20 +47526,20 @@ block_insert(oparg_T             *oap, char_u              *s, size_t           
             continue;
         }
 
-         memmove((char *)(newp), (char *)(oldp), (size_t)offset) ;
+         musl_memmove((char *)(newp), (char *)(oldp), (size_t)offset) ;
         oldp += offset;
 
-         memset((newp + offset), (' '), ((size_t)spaces)) ;
+         musl_memset((newp + offset), (' '), ((size_t)spaces)) ;
         startcol = offset + spaces;
 
-         memmove((char *)(newp + startcol), (char *)(s), slen) ;
+         musl_memmove((char *)(newp + startcol), (char *)(s), slen) ;
         offset += (int)slen;
 
         if (spaces > 0 && !bdp->is_short)
         {
             if (*oldp == TAB)
             {
-                 memset((newp + offset + spaces), (' '), ((size_t)(ts_val - spaces))) ;
+                 musl_memset((newp + offset + spaces), (' '), ((size_t)(ts_val - spaces))) ;
                 oldp++;
                 count++;
             }
@@ -47271,7 +47553,7 @@ block_insert(oparg_T             *oap, char_u              *s, size_t           
         {
             offset += count;
         }
-         strcpy((char *)(newp + offset), (char *)(oldp)) ;
+         musl_strcpy((char *)(newp + offset), (char *)(oldp)) ;
 
         ml_replace(lnum, newp, FALSE);
 
@@ -47443,9 +47725,9 @@ op_delete(oparg_T *oap)
             {
                 continue;
             }
-             memmove((char *)(newp), (char *)(oldp), (size_t)bd.textcol) ;
-             memset((newp + bd.textcol), (' '), ((size_t)(bd.startspaces + bd.endspaces))) ;
-             strcpy((char *)(newp + bd.textcol + bd.startspaces + bd.endspaces), (char *)(oldp + bd.textcol + bd.textlen)) ;
+             musl_memmove((char *)(newp), (char *)(oldp), (size_t)bd.textcol) ;
+             musl_memset((newp + bd.textcol), (' '), ((size_t)(bd.startspaces + bd.endspaces))) ;
+             musl_strcpy((char *)(newp + bd.textcol + bd.startspaces + bd.endspaces), (char *)(oldp + bd.textcol + bd.textlen)) ;
             ml_replace(lnum, newp, FALSE);
 
         }
@@ -47733,10 +48015,10 @@ op_replace(oparg_T *oap, int c)
             {
                 continue;
             }
-             memset((newp), (NUL), ((size_t)(oldlen + 1 + n))) ;
-             memmove((char *)(newp), (char *)(oldp), (size_t)bd.textcol) ;
+             musl_memset((newp), (NUL), ((size_t)(oldlen + 1 + n))) ;
+             musl_memmove((char *)(newp), (char *)(oldp), (size_t)bd.textcol) ;
             newlen = bd.textcol;
-             memset((newp + newlen), (' '), ((size_t)bd.startspaces)) ;
+             musl_memset((newp + newlen), (' '), ((size_t)bd.startspaces)) ;
             newlen += bd.startspaces;
             if (had_ctrl_v_cr || (c != '\r' && c != '\n'))
             {
@@ -47746,8 +48028,8 @@ op_replace(oparg_T *oap, int c)
                 }
                 if (!bd.is_short)
                 {
-                     memset((newp + newlen), (' '), ((size_t)bd.endspaces)) ;
-                     strcpy((char *)(newp + newlen + bd.endspaces), (char *)(oldp + bd.textcol + bd.textlen)) ;
+                     musl_memset((newp + newlen), (' '), ((size_t)bd.endspaces)) ;
+                     musl_strcpy((char *)(newp + newlen + bd.endspaces), (char *)(oldp + bd.textcol + bd.textlen)) ;
                 }
             }
             else
@@ -47755,7 +48037,7 @@ op_replace(oparg_T *oap, int c)
                 after_p = alloc(oldlen + 1 + n - newlen);
                 if (after_p != NULL)
                 {
-                     strcpy((char *)(after_p), (char *)(oldp + bd.textcol + bd.textlen)) ;
+                     musl_strcpy((char *)(after_p), (char *)(oldp + bd.textcol + bd.textlen)) ;
                 }
             }
 
@@ -48352,12 +48634,12 @@ op_change(oparg_T *oap)
                         {
                             continue;
                         }
-                         memmove((char *)(newp), (char *)(oldp), (size_t)bd.textcol) ;
+                         musl_memmove((char *)(newp), (char *)(oldp), (size_t)bd.textcol) ;
                         newlen = bd.textcol;
-                         memset((newp + newlen), (' '), ((size_t)vpos.coladd)) ;
+                         musl_memset((newp + newlen), (' '), ((size_t)vpos.coladd)) ;
                         newlen += vpos.coladd;
-                         memmove((char *)(newp + newlen), (char *)(ins_text), ins_len) ;
-                         strcpy((char *)(newp + newlen + ins_len), (char *)(oldp + bd.textcol)) ;
+                         musl_memmove((char *)(newp + newlen), (char *)(ins_text), ins_len) ;
+                         musl_strcpy((char *)(newp + newlen + ins_len), (char *)(oldp + bd.textcol)) ;
                         ml_replace(linenr, newp, FALSE);
                     }
                 }
@@ -48428,7 +48710,7 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
         if (t == 0 && setmark && (cmdmod.cmod_flags & CMOD_LOCKMARKS) == 0)
         {
             curwin->w_buffer->b_op_start.lnum = curwin->w_cursor.lnum;
-            curwin->w_buffer->b_op_start.col  = (colnr_T) strlen((char *)(curr)) ;
+            curwin->w_buffer->b_op_start.col  = (colnr_T) musl_strlen((char *)(curr)) ;
         }
         if (insert_space && t > 0)
         {
@@ -48449,7 +48731,7 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
                 }
             }
         }
-        currsize = (int) strlen((char *)(curr)) ;
+        currsize = (int) musl_strlen((char *)(curr)) ;
         sumsize += currsize + spaces[t];
         endcurr1 = endcurr2 = NUL;
         if (insert_space && currsize > 0)
@@ -48488,12 +48770,12 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
         int spaces_removed;
 
         cend -= currsize;
-         memmove((char *)(cend), (char *)(curr), (size_t)currsize) ;
+         musl_memmove((char *)(cend), (char *)(curr), (size_t)currsize) ;
 
         if (spaces[t] > 0)
         {
             cend -= spaces[t];
-             memset((cend), (' '), ((size_t)(spaces[t]))) ;
+             musl_memset((cend), (' '), ((size_t)(spaces[t]))) ;
         }
 
         spaces_removed = (curr - curr_start) - spaces[t];
@@ -48508,7 +48790,7 @@ do_join(long    count, int     insert_space, int     save_undo, int     use_form
         {
             curr = skipwhite(curr);
         }
-        currsize = (int) strlen((char *)(curr)) ;
+        currsize = (int) musl_strlen((char *)(curr)) ;
     }
 
     ml_replace_len(curwin->w_cursor.lnum, newp, (colnr_T)newp_len, TRUE, FALSE);
@@ -49251,7 +49533,7 @@ do_addsub(int         op_type, pos_T       *pos, int         length, linenr_T   
         *ptr = NUL;
         buf1len = (int)(ptr - buf1);
 
-         strcpy((char *)(buf1 + buf1len), (char *)(buf2)) ;
+         musl_strcpy((char *)(buf1 + buf1len), (char *)(buf2)) ;
         buf1len += buf2len;
 
         save_pos = curwin->w_cursor;
@@ -49313,7 +49595,7 @@ theend:
     static void
 clear_oparg(oparg_T *oap)
 {
-      memset(((oap)), (0), (sizeof(*(oap))))  ;
+      musl_memset(((oap)), (0), (sizeof(*(oap))))  ;
 }
 
     static varnumber_T
@@ -50887,7 +51169,7 @@ find_dup_item(char_u *origval, char_u *newval, size_t newvallen, long_u flags)
 
     for (s = origval; *s != NUL; ++s)
     {
-        if ((!(flags & P_COMMA) || s == origval || (s[-1] == ',' && !(bs & 1))) &&  strncmp((char *)(s), (char *)(newval), (newvallen))  == 0 && (!(flags & P_COMMA) || s[newvallen] == ',' || s[newvallen] == NUL))
+        if ((!(flags & P_COMMA) || s == origval || (s[-1] == ',' && !(bs & 1))) &&  musl_strncmp((char *)(s), (char *)(newval), (newvallen))  == 0 && (!(flags & P_COMMA) || s[newvallen] == ',' || s[newvallen] == NUL))
         {
             return s;
         }
@@ -50968,12 +51250,12 @@ get_option_prefix(char_u **argp)
     int         prefix = PREFIX_NONE;
     char_u      *arg = *argp;
 
-    if ( strncmp((char *)(arg), (char *)("no"), (2))  == 0 &&  strncmp((char *)(arg), (char *)("novice"), (6))  != 0)
+    if ( musl_strncmp((char *)(arg), (char *)("no"), (2))  == 0 &&  musl_strncmp((char *)(arg), (char *)("novice"), (6))  != 0)
     {
         prefix = PREFIX_NO;
         arg += 2;
     }
-    else if ( strncmp((char *)(arg), (char *)("inv"), (3))  == 0)
+    else if ( musl_strncmp((char *)(arg), (char *)("inv"), (3))  == 0)
     {
         prefix = PREFIX_INV;
         arg += 3;
@@ -51167,27 +51449,27 @@ opt_whichwrap_nr2str(char_u **argp, char_u *whichwrap)
     int i = getdigits(argp);
     if (i & 1)
     {
-         strcpy((char *)(whichwrap), (char *)("b,")) ;
+         musl_strcpy((char *)(whichwrap), (char *)("b,")) ;
         len += 2;
     }
     if (i & 2)
     {
-         strcpy((char *)(whichwrap + len), (char *)("s,")) ;
+         musl_strcpy((char *)(whichwrap + len), (char *)("s,")) ;
         len += 2;
     }
     if (i & 4)
     {
-         strcpy((char *)(whichwrap + len), (char *)("h,l,")) ;
+         musl_strcpy((char *)(whichwrap + len), (char *)("h,l,")) ;
         len += 4;
     }
     if (i & 8)
     {
-         strcpy((char *)(whichwrap + len), (char *)("<,>,")) ;
+         musl_strcpy((char *)(whichwrap + len), (char *)("<,>,")) ;
         len += 4;
     }
     if (i & 16)
     {
-         strcpy((char *)(whichwrap + len), (char *)("[,],")) ;
+         musl_strcpy((char *)(whichwrap + len), (char *)("[,],")) ;
         len += 4;
     }
     if (*whichwrap != NUL)
@@ -51206,10 +51488,10 @@ stropt_copy_value(char_u      *origval, char_u      **argp, set_op_T    op, int 
     char_u      *newval;
     char_u      *s = NULL;
 
-    newlen = (unsigned) strlen((char *)(arg))  + 1;
+    newlen = (unsigned) musl_strlen((char *)(arg))  + 1;
     if (op != OP_NONE)
     {
-        newlen += (unsigned) strlen((char *)(origval))  + 1;
+        newlen += (unsigned) musl_strlen((char *)(origval))  + 1;
     }
     newval = alloc(newlen);
     if (newval == NULL)
@@ -51228,7 +51510,7 @@ stropt_copy_value(char_u      *origval, char_u      **argp, set_op_T    op, int 
         }
         if ((i = utfc_ptr2len(arg)) > 1)
         {
-             memmove((char *)(s), (char *)(arg), (size_t)i) ;
+             musl_memmove((char *)(s), (char *)(arg), (size_t)i) ;
             arg += i;
             s += i;
         }
@@ -51253,10 +51535,10 @@ stropt_expand_envvar(int         opt_idx, char_u      *origval, char_u      *new
     }
 
     vim_free(newval);
-    unsigned newlen = (unsigned) strlen((char *)(s))  + 1;
+    unsigned newlen = (unsigned) musl_strlen((char *)(s))  + 1;
     if (op != OP_NONE)
     {
-        newlen += (unsigned) strlen((char *)(origval))  + 1;
+        newlen += (unsigned) musl_strlen((char *)(origval))  + 1;
     }
 
     newval = alloc(newlen);
@@ -51265,7 +51547,7 @@ stropt_expand_envvar(int         opt_idx, char_u      *origval, char_u      *new
         return NULL;
     }
 
-     strcpy((char *)(newval), (char *)(s)) ;
+     musl_strcpy((char *)(newval), (char *)(s)) ;
 
     return newval;
 }
@@ -51278,18 +51560,18 @@ stropt_concat_with_comma(char_u      *origval, char_u      *newval, set_op_T    
     int comma = ((flags & P_COMMA) && *origval != NUL && *newval != NUL);
     if (op == OP_ADDING)
     {
-        len = (int) strlen((char *)(origval)) ;
+        len = (int) musl_strlen((char *)(origval)) ;
         if (comma && len > 1 && (flags & P_ONECOMMA) == P_ONECOMMA && origval[len - 1] == ',' && origval[len - 2] != '\\')
         {
             len--;
         }
-         memmove((char *)(newval + len + comma), (char *)(newval),  strlen((char *)(newval))  + 1) ;
-         memmove((char *)(newval), (char *)(origval), (size_t)len) ;
+         musl_memmove((char *)(newval + len + comma), (char *)(newval),  musl_strlen((char *)(newval))  + 1) ;
+         musl_memmove((char *)(newval), (char *)(origval), (size_t)len) ;
     }
     else
     {
-        len = (int) strlen((char *)(newval)) ;
-          memmove((char *)((newval + len + comma)), (char *)((origval)),  strlen((char *)(origval))  + 1)  ;
+        len = (int) musl_strlen((char *)(newval)) ;
+          musl_memmove((char *)((newval + len + comma)), (char *)((origval)),  musl_strlen((char *)(origval))  + 1)  ;
     }
     if (comma)
     {
@@ -51300,7 +51582,7 @@ stropt_concat_with_comma(char_u      *origval, char_u      *newval, set_op_T    
     static void
 stropt_remove_val(char_u      *origval, char_u      *newval, int         flags, char_u      *strval, int         len)
 {
-     strcpy((char *)(newval), (char *)(origval)) ;
+     musl_strcpy((char *)(newval), (char *)(origval)) ;
     if (*strval)
     {
         if (flags & P_COMMA)
@@ -51318,7 +51600,7 @@ stropt_remove_val(char_u      *origval, char_u      *newval, int         flags, 
                 ++len;
             }
         }
-          memmove((char *)((newval + (strval - origval))), (char *)((strval + len)),  strlen((char *)(strval + len))  + 1)  ;
+          musl_memmove((char *)((newval + (strval - origval))), (char *)((strval + len)),  musl_strlen((char *)(strval + len))  + 1)  ;
     }
 }
 
@@ -51329,12 +51611,12 @@ find_key_item(char_u *src, char_u *key, int keylen, int *itemlenp)
 
     while (*p != NUL)
     {
-        if ((p == src || *(p - 1) == ',') &&  strncmp((char *)(p), (char *)(key), (keylen))  == 0)
+        if ((p == src || *(p - 1) == ',') &&  musl_strncmp((char *)(p), (char *)(key), (keylen))  == 0)
         {
             char_u *end = vim_strchr(p, ',');
             if (end == NULL)
             {
-                end = p +  strlen((char *)(p)) ;
+                end = p +  musl_strlen((char *)(p)) ;
             }
             *itemlenp = (int)(end - p);
             return p;
@@ -51349,11 +51631,11 @@ remove_comma_item(char_u *str, char_u *item, int itemlen)
 {
     if (item[itemlen] == ',')
     {
-          memmove((char *)((item)), (char *)((item + itemlen + 1)),  strlen((char *)(item + itemlen + 1))  + 1)  ;
+          musl_memmove((char *)((item)), (char *)((item + itemlen + 1)),  musl_strlen((char *)(item + itemlen + 1))  + 1)  ;
     }
     else if (item > str && *(item - 1) == ',')
     {
-          memmove((char *)((item - 1)), (char *)((item + itemlen)),  strlen((char *)(item + itemlen))  + 1)  ;
+          musl_memmove((char *)((item - 1)), (char *)((item + itemlen)),  musl_strlen((char *)(item + itemlen))  + 1)  ;
     }
     else
     {
@@ -51390,24 +51672,24 @@ remove_key_item(char_u *str, char_u *key, int keylen, char_u *skip)
     static void
 append_item(char_u *str, char_u *item, int item_len)
 {
-    int len = (int) strlen((char *)(str)) ;
+    int len = (int) musl_strlen((char *)(str)) ;
 
     if (len > 0)
     {
         str[len++] = ',';
     }
-     memmove((char *)(str + len), (char *)(item), (size_t)item_len) ;
+     musl_memmove((char *)(str + len), (char *)(item), (size_t)item_len) ;
     str[len + item_len] = NUL;
 }
 
     static void
 prepend_item(char_u *str, char_u *item, int item_len)
 {
-    int len = (int) strlen((char *)(str)) ;
+    int len = (int) musl_strlen((char *)(str)) ;
     int comma = (len > 0) ? 1 : 0;
 
-     memmove((char *)(str + item_len + comma), (char *)(str), (size_t)len + 1) ;
-     memmove((char *)(str), (char *)(item), (size_t)item_len) ;
+     musl_memmove((char *)(str + item_len + comma), (char *)(str), (size_t)len + 1) ;
+     musl_memmove((char *)(str), (char *)(item), (size_t)item_len) ;
     if (comma)
     {
         str[item_len] = ',';
@@ -51431,14 +51713,14 @@ stropt_handle_keymatch(char_u      *origval, char_u      *newval, set_op_T    op
         return false;
     }
 
-     strcpy((char *)(newval), (char *)(origval)) ;
+     musl_strcpy((char *)(newval), (char *)(origval)) ;
 
     item_start = newval_copy;
     for (;;)
     {
         p = vim_strchr(item_start, ',');
         int item_len = (p == NULL)
-                            ? (int) strlen((char *)(item_start))  : (int)(p - item_start);
+                            ? (int) musl_strlen((char *)(item_start))  : (int)(p - item_start);
 
         if (item_len > 0)
         {
@@ -51453,7 +51735,7 @@ stropt_handle_keymatch(char_u      *origval, char_u      *newval, set_op_T    op
                     char_u *found = find_key_item(newval, item_start, keylen, &old_itemlen);
                     if (found != NULL)
                     {
-                        if (old_itemlen == item_len &&  strncmp((char *)(found), (char *)(item_start), (item_len))  == 0)
+                        if (old_itemlen == item_len &&  musl_strncmp((char *)(found), (char *)(item_start), (item_len))  == 0)
                         {
                             remove_key_item(newval, item_start, keylen, found);
                         }
@@ -51538,7 +51820,7 @@ stropt_remove_dupflags(char_u *newval, int flags)
         {
             if (*s != ',' && *(s + 1) == ',' && vim_strchr(s + 2, *s) != NULL)
             {
-                  memmove((char *)((s)), (char *)((s + 2)),  strlen((char *)(s + 2))  + 1)  ;
+                  musl_memmove((char *)((s)), (char *)((s + 2)),  musl_strlen((char *)(s + 2))  + 1)  ;
                 continue;
             }
         }
@@ -51546,7 +51828,7 @@ stropt_remove_dupflags(char_u *newval, int flags)
         {
             if ((!(flags & P_COMMA) || *s != ',') && vim_strchr(s + 1, *s) != NULL)
             {
-                  memmove((char *)((s)), (char *)((s + 1)),  strlen((char *)(s + 1))  + 1)  ;
+                  musl_memmove((char *)((s)), (char *)((s + 1)),  musl_strlen((char *)(s + 1))  + 1)  ;
                 continue;
             }
         }
@@ -51610,18 +51892,18 @@ stropt_get_newval(int         nextchar, int         opt_idx, char_u      **argp,
             int len = 0;
             if (op == OP_REMOVING || (flags & P_NODUP))
             {
-                len = (int) strlen((char *)(newval)) ;
+                len = (int) musl_strlen((char *)(newval)) ;
                 s = find_dup_item(origval, newval, len, flags);
 
                 if ((op == OP_ADDING || op == OP_PREPENDING) && s != NULL)
                 {
                     op = OP_NONE;
-                     strcpy((char *)(newval), (char *)(origval)) ;
+                     musl_strcpy((char *)(newval), (char *)(origval)) ;
                 }
 
                 if (s == NULL)
                 {
-                    s = origval + (int) strlen((char *)(origval)) ;
+                    s = origval + (int) musl_strlen((char *)(origval)) ;
                 }
             }
 
@@ -52088,7 +52370,7 @@ do_set(char_u      *arg_start, int         opt_flags)
 
     while (*arg != NUL)
     {
-        if ( strncmp((char *)(arg), (char *)("all"), (3))  == 0 && ! ( ((unsigned)(arg[3]) - 'A' < 26)  ||  ((unsigned)(arg[3]) - 'a' < 26) ) )
+        if ( musl_strncmp((char *)(arg), (char *)("all"), (3))  == 0 && ! ( ((unsigned)(arg[3]) - 'A' < 26)  ||  ((unsigned)(arg[3]) - 'a' < 26) ) )
         {
             arg += 3;
             if (*arg == '&')
@@ -52105,7 +52387,7 @@ do_set(char_u      *arg_start, int         opt_flags)
                 did_show = TRUE;
             }
         }
-        else if ( strncmp((char *)(arg), (char *)("termcap"), (7))  == 0)
+        else if ( musl_strncmp((char *)(arg), (char *)("termcap"), (7))  == 0)
         {
             showoptions(2, opt_flags);
             show_termcodes(opt_flags);
@@ -52146,8 +52428,8 @@ do_set(char_u      *arg_start, int         opt_flags)
                 i = vim_snprintf((char *)IObuff,  (1024+1) , "%s", (char_u *)_(errmsg)) + 2;
                 if (i + (arg - startarg) <  (1024+1) )
                 {
-                     strcpy((char *)(IObuff + i - 2), (char *)(": ")) ;
-                     memmove((char *)(IObuff + i), (char *)(startarg), (arg - startarg)) ;
+                     musl_strcpy((char *)(IObuff + i - 2), (char *)(": ")) ;
+                     musl_memmove((char *)(IObuff + i), (char *)(startarg), (arg - startarg)) ;
                     IObuff[i + (arg - startarg)] = NUL;
                 }
                 trans_characters(IObuff,  (1024+1) );
@@ -52208,7 +52490,7 @@ option_expand(int opt_idx, char_u *val)
         return NULL;
     }
 
-    if (val != NULL &&  strlen((char *)(val))  >  PATH_MAX )
+    if (val != NULL &&  musl_strlen((char *)(val))  >  PATH_MAX )
     {
         return NULL;
     }
@@ -52221,7 +52503,7 @@ option_expand(int opt_idx, char_u *val)
     int esc = FALSE;
 
     expand_env_esc(val, NameBuff,  PATH_MAX , esc ? (char_u *)" \t" : NULL, FALSE, NULL);
-    if ( strcmp((char *)(NameBuff), (char *)(val))  == 0)
+    if ( musl_strcmp((char *)(NameBuff), (char *)(val))  == 0)
     {
         return NULL;
     }
@@ -52602,13 +52884,13 @@ did_set_terse(optset_T *args  __attribute__((unused)) )
 
     if (p_terse && p == NULL)
     {
-         strcpy((char *)(IObuff), (char *)(p_shm)) ;
-         strcat((char *)(IObuff), (char *)("s")) ;
+         musl_strcpy((char *)(IObuff), (char *)(p_shm)) ;
+         musl_strcat((char *)(IObuff), (char *)("s")) ;
         set_string_option_direct((char_u *)"shm", -1, IObuff, OPT_FREE, 0);
     }
     else if (!p_terse && p != NULL)
     {
-          memmove((char *)((p)), (char *)((p + 1)),  strlen((char *)(p + 1))  + 1)  ;
+          musl_memmove((char *)((p)), (char *)((p + 1)),  musl_strlen((char *)(p + 1))  + 1)  ;
     }
     return NULL;
 }
@@ -52732,7 +53014,7 @@ set_bool_option(int         opt_idx, char_u      *varp, int         value, int  
     {
         optset_T args;
 
-          memset((&(args)), (0), (sizeof(args)))  ;
+          musl_memset((&(args)), (0), (sizeof(args)))  ;
         args.os_varp = varp;
         args.os_flags = opt_flags;
         args.os_oldval.boolean = old_value;
@@ -52909,7 +53191,7 @@ set_num_option(int         opt_idx, char_u      *varp, long        value, char  
     {
         optset_T args;
 
-          memset((&(args)), (0), (sizeof(args)))  ;
+          musl_memset((&(args)), (0), (sizeof(args)))  ;
         args.os_varp = varp;
         args.os_flags = opt_flags;
         args.os_oldval.number = old_value;
@@ -53029,7 +53311,7 @@ findoption(char_u *arg)
     }
     for (; (s = options[opt_idx].fullname) != NULL && s[0] == arg[0]; opt_idx++)
     {
-        if ( strcmp((char *)(arg), (char *)(s))  == 0)
+        if ( musl_strcmp((char *)(arg), (char *)(s))  == 0)
         {
             break;
         }
@@ -53044,7 +53326,7 @@ findoption(char_u *arg)
         for ( ; options[opt_idx].fullname != NULL; opt_idx++)
         {
             s = options[opt_idx].shortname;
-            if (s != NULL &&  strcmp((char *)(arg), (char *)(s))  == 0)
+            if (s != NULL &&  musl_strcmp((char *)(arg), (char *)(s))  == 0)
             {
                 break;
             }
@@ -53108,7 +53390,7 @@ set_option_value(char_u      *name, long        number, char_u      *string, int
     {
         int key;
 
-        if ( strlen((char *)(name))  == 4 && name[0] == 't' && name[1] == '_' && (key = find_key_option(name, FALSE)) != 0)
+        if ( musl_strlen((char *)(name))  == 4 && name[0] == 't' && name[1] == '_' && (key = find_key_option(name, FALSE)) != 0)
         {
             char_u key_name[2];
 
@@ -53321,7 +53603,7 @@ showoptions(int         all, int         opt_flags)
                 else
                 {
                     option_value2string(p, opt_flags);
-                    len = (int) strlen((char *)(p->fullname))  + vim_strsize(NameBuff) + 1;
+                    len = (int) musl_strlen((char *)(p->fullname))  + vim_strsize(NameBuff) + 1;
                 }
                 if ((len <= INC - GAP && run == 1) || (len > INC - GAP && run == 2))
                 {
@@ -53382,7 +53664,7 @@ optval_default(struct vimoption *p, char_u *varp, int compatible)
     {
         return (*(int *)varp == (int)(long)(long_i)p->def_val[dvi]);
     }
-    return ( strcmp((char *)(*(char_u **)varp), (char *)(p->def_val[dvi]))  == 0);
+    return ( musl_strcmp((char *)(*(char_u **)varp), (char *)(p->def_val[dvi]))  == 0);
 }
 
     static void
@@ -53863,7 +54145,7 @@ option_value2string(struct vimoption    *opp, int                 scope)
     if (opp->flags & P_NUM)
     {
 
-        sprintf((char *)NameBuff, "%ld", *(long *)varp);
+        vim_snprintf((char *)NameBuff, PATH_MAX, "%ld", *(long *)varp);
     }
     else
     {
@@ -54196,7 +54478,7 @@ set_string_option(int         opt_idx, char_u      *value, int         opt_flags
     static int
 check_illegal_path_names(int opt_idx, char_u **varp)
 {
-    return (((get_option_flags(opt_idx) & P_NFNAME) &&  (char_u *)strpbrk((char *)(*varp), (char *)((char_u *)(secure ? "/\\*?[|;&<>\r\n" : "/\\*?[<>\r\n")))  != NULL) || ((get_option_flags(opt_idx) & P_NDNAME) &&  (char_u *)strpbrk((char *)(*varp), (char *)((char_u *)"*?[|;&<>\r\n"))  != NULL));
+    return (((get_option_flags(opt_idx) & P_NFNAME) &&  (char_u *)musl_strpbrk((char *)(*varp), (char *)((char_u *)(secure ? "/\\*?[|;&<>\r\n" : "/\\*?[<>\r\n")))  != NULL) || ((get_option_flags(opt_idx) & P_NDNAME) &&  (char_u *)musl_strpbrk((char *)(*varp), (char *)((char_u *)"*?[|;&<>\r\n"))  != NULL));
 }
 
     static char *
@@ -54632,11 +54914,11 @@ did_set_term_option(optset_T *args)
     static char *
 did_set_termresize(optset_T *args  __attribute__((unused)) )
 {
-    if (*p_trz == NUL ||  strcmp((char *)(p_trz), (char *)("inband"))  == 0)
+    if (*p_trz == NUL ||  musl_strcmp((char *)(p_trz), (char *)("inband"))  == 0)
     {
         term_set_win_resize(true);
     }
-    else if ( strcmp((char *)(p_trz), (char *)("sigwinch"))  == 0)
+    else if ( musl_strcmp((char *)(p_trz), (char *)("sigwinch"))  == 0)
     {
         term_set_win_resize(false);
     }
@@ -54670,7 +54952,7 @@ did_set_virtualedit(optset_T *args)
         {
             return e_invalid_argument;
         }
-        else if ( strcmp((char *)(ve), (char *)(args->os_oldval.string))  != 0)
+        else if ( musl_strcmp((char *)(ve), (char *)(args->os_oldval.string))  != 0)
         {
             validate_virtcol();
             coladvance(curwin->w_virtcol);
@@ -54719,7 +55001,7 @@ did_set_string_option(int         opt_idx, char_u      **varp, char_u      *oldv
         }
     }
 
-      memset((&(args)), (0), (sizeof(args)))  ;
+      musl_memset((&(args)), (0), (sizeof(args)))  ;
 
     if ((secure) && (get_option_flags(opt_idx) & P_SECURE))
     {
@@ -54814,8 +55096,8 @@ opt_strings_flags(char_u      *val, char        **values, unsigned    *flagp, in
                 return FAIL;
             }
 
-            len = (int) strlen((char *)(values[i])) ;
-            if ( strncmp((char *)(values[i]), (char *)(val), (len))  == 0 && ((list && val[len] == ',') || val[len] == NUL))
+            len = (int) musl_strlen((char *)(values[i])) ;
+            if ( musl_strncmp((char *)(values[i]), (char *)(val), (len))  == 0 && ((list && val[len] == ',') || val[len] == NUL))
             {
                 val += len + (val[len] == ',');
                 new_flags |= (1 << i);
@@ -55065,7 +55347,7 @@ deathtrap  (int sigarg  __attribute__((unused)) )
         getout(1);
     }
 
-    sprintf((char *)IObuff, "Vim: Caught deadly signal %s\r\n", signal_info[i].name);
+    vim_snprintf((char *)IObuff,  (1024+1) , "Vim: Caught deadly signal %s\r\n", signal_info[i].name);
 
     preserve_exit();
 
@@ -55252,7 +55534,7 @@ vim_is_xterm(char_u *name)
     {
         return FALSE;
     }
-    return (( strncasecmp((char *)(name), (char *)("xterm"), (5))  == 0 &&  strncasecmp((char *)(name), (char *)("xterm-kitty"), (11))  != 0) ||  strncasecmp((char *)(name), (char *)("nxterm"), (6))  == 0 ||  strncasecmp((char *)(name), (char *)("kterm"), (5))  == 0 ||  strncasecmp((char *)(name), (char *)("mlterm"), (6))  == 0 ||  strncasecmp((char *)(name), (char *)("rxvt"), (4))  == 0 ||  strncasecmp((char *)(name), (char *)("screen.xterm"), (12))  == 0 ||  strcmp((char *)(name), (char *)("builtin_xterm"))  == 0);
+    return (( musl_strncasecmp((char *)(name), (char *)("xterm"), (5))  == 0 &&  musl_strncasecmp((char *)(name), (char *)("xterm-kitty"), (11))  != 0) ||  musl_strncasecmp((char *)(name), (char *)("nxterm"), (6))  == 0 ||  musl_strncasecmp((char *)(name), (char *)("kterm"), (5))  == 0 ||  musl_strncasecmp((char *)(name), (char *)("mlterm"), (6))  == 0 ||  musl_strncasecmp((char *)(name), (char *)("rxvt"), (4))  == 0 ||  musl_strncasecmp((char *)(name), (char *)("screen.xterm"), (12))  == 0 ||  musl_strcmp((char *)(name), (char *)("builtin_xterm"))  == 0);
 }
 
     static long
@@ -55965,7 +56247,7 @@ skip_regexp_ex(char_u      *startp, int         dirc, int         magic, char_u 
             {
                 if (startplen == 0)
                 {
-                    startplen =  strlen((char *)(startp)) ;
+                    startplen =  musl_strlen((char *)(startp)) ;
                 }
                 if (*newp == NULL)
                 {
@@ -55982,7 +56264,7 @@ skip_regexp_ex(char_u      *startp, int         dirc, int         magic, char_u 
                 }
                 if (*newp != NULL)
                 {
-                     memmove((char *)(p), (char *)(p + 1), startplen - ((p + 1) - startp) + 1) ;
+                     musl_memmove((char *)(p), (char *)(p + 1), startplen - ((p + 1) - startp) + 1) ;
                 }
                 else
                 {
@@ -56590,13 +56872,13 @@ cleanup_subexpr(void)
 
     if ( (rex.reg_match == NULL) )
     {
-         memset((rex.reg_startpos), (0xff), (sizeof(lpos_T) * NSUBEXP)) ;
-         memset((rex.reg_endpos), (0xff), (sizeof(lpos_T) * NSUBEXP)) ;
+         musl_memset((rex.reg_startpos), (0xff), (sizeof(lpos_T) * NSUBEXP)) ;
+         musl_memset((rex.reg_endpos), (0xff), (sizeof(lpos_T) * NSUBEXP)) ;
     }
     else
     {
-         memset((rex.reg_startp), (0), (sizeof(char_u *) * NSUBEXP)) ;
-         memset((rex.reg_endp), (0), (sizeof(char_u *) * NSUBEXP)) ;
+         musl_memset((rex.reg_startp), (0), (sizeof(char_u *) * NSUBEXP)) ;
+         musl_memset((rex.reg_endp), (0), (sizeof(char_u *) * NSUBEXP)) ;
     }
     rex.need_clear_subexpr = FALSE;
 }
@@ -56625,7 +56907,7 @@ match_with_backref(linenr_T start_lnum, colnr_T  start_col, linenr_T end_lnum, c
     {
         if (rex.line != reg_tofree)
         {
-            len = (int) strlen((char *)(rex.line)) ;
+            len = (int) musl_strlen((char *)(rex.line)) ;
             if (reg_tofree == NULL || len >= (int)reg_tofreelen)
             {
                 len += 50;
@@ -56637,7 +56919,7 @@ match_with_backref(linenr_T start_lnum, colnr_T  start_col, linenr_T end_lnum, c
                 }
                 reg_tofreelen = len;
             }
-             strcpy((char *)(reg_tofree), (char *)(rex.line)) ;
+             musl_strcpy((char *)(reg_tofree), (char *)(rex.line)) ;
             rex.input = reg_tofree + (rex.input - rex.line);
             rex.line = reg_tofree;
         }
@@ -56783,7 +57065,7 @@ cstrncmp(char_u *s1, char_u *s2, int *n)
 
     if (!rex.reg_ic)
     {
-        result =  strncmp((char *)(s1), (char *)(s2), (*n)) ;
+        result =  musl_strncmp((char *)(s1), (char *)(s2), (*n)) ;
     }
     else
     {
@@ -56941,7 +57223,7 @@ regtilde(char_u *source, int magic)
 
     for (p = newsub; *p; ++p)
     {
-        if ( strncmp((char *)(p), (char *)(tilde), (tildelen))  == 0)
+        if ( musl_strncmp((char *)(p), (char *)(tilde), (tildelen))  == 0)
         {
             size_t prefixlen = p - newsub;
             char_u *postfix = p + tildelen;
@@ -56950,7 +57232,7 @@ regtilde(char_u *source, int magic)
 
             if (newsublen == 0)
             {
-                newsublen =  strlen((char *)(newsub)) ;
+                newsublen =  musl_strlen((char *)(newsub)) ;
             }
             newsublen -= tildelen;
             postfixlen = newsublen - prefixlen;
@@ -56975,9 +57257,9 @@ regtilde(char_u *source, int magic)
                     break;
                 }
 
-                 memmove((char *)(tmpsub), (char *)(newsub), prefixlen) ;
-                 memmove((char *)(tmpsub + prefixlen), (char *)(reg_prev_sub), reg_prev_sublen) ;
-                 strcpy((char *)(tmpsub + prefixlen + reg_prev_sublen), (char *)(postfix)) ;
+                 musl_memmove((char *)(tmpsub), (char *)(newsub), prefixlen) ;
+                 musl_memmove((char *)(tmpsub + prefixlen), (char *)(reg_prev_sub), reg_prev_sublen) ;
+                 musl_strcpy((char *)(tmpsub + prefixlen + reg_prev_sublen), (char *)(postfix)) ;
 
                 if (newsub != source)
                 {
@@ -56989,7 +57271,7 @@ regtilde(char_u *source, int magic)
             }
             else
             {
-                 memmove((char *)(p), (char *)(postfix), postfixlen + 1) ;
+                 musl_memmove((char *)(p), (char *)(postfix), postfixlen + 1) ;
             }
 
             --p;
@@ -57243,7 +57525,7 @@ vim_regsub_both(char_u      *source, typval_T    *expr, char_u      *dest, int  
                         iemsg("vim_regsub_both(): not enough space");
                         return 0;
                     }
-                     memmove((char *)(dst + 1), (char *)(src - 1 + clen), (size_t)(totlen - clen)) ;
+                     musl_memmove((char *)(dst + 1), (char *)(src - 1 + clen), (size_t)(totlen - clen)) ;
                 }
                 dst += totlen - clen;
             }
@@ -57640,7 +57922,7 @@ regcomp_start(char_u      *expr, int         re_flags)
 
     num_complex_braces = 0;
     regnpar = 1;
-      memset((&(had_endbrace)), (0), (sizeof(had_endbrace)))  ;
+      musl_memset((&(had_endbrace)), (0), (sizeof(had_endbrace)))  ;
     regsize = 0L;
     reg_toolong = FALSE;
     bt_reg_parse_depth = 0;
@@ -59297,7 +59579,7 @@ bt_regcomp(char_u *expr, int re_flags)
             {
                 if ( ((int)*(scan))  == EXACTLY)
                 {
-                    scanlen =  strlen((char *)( ((scan) + 3) )) ;
+                    scanlen =  musl_strlen((char *)( ((scan) + 3) )) ;
                     if (scanlen >= (size_t)len)
                     {
                         longest =  ((scan) + 3) ;
@@ -60445,7 +60727,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                     }
                     else
                     {
-                        len = (int) strlen((char *)(opnd)) ;
+                        len = (int) musl_strlen((char *)(opnd)) ;
                         if (cstrncmp(opnd, rex.input, &len) != 0)
                         {
                             status = RA_NOMATCH;
@@ -61241,7 +61523,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                 limit =  (((long)(rp->rs_scan)[3] << 24) + ((long)(rp->rs_scan)[4] << 16)                    + ((long)(rp->rs_scan)[5] << 8) + (long)(rp->rs_scan)[6]) ;
                 if ( (rex.reg_match == NULL) )
                 {
-                    if (limit > 0 && ((rp->rs_un.regsave.rs_u.pos.lnum < behind_pos.rs_u.pos.lnum ? (colnr_T) strlen((char *)(rex.line))  : behind_pos.rs_u.pos.col) - rp->rs_un.regsave.rs_u.pos.col >= limit))
+                    if (limit > 0 && ((rp->rs_un.regsave.rs_u.pos.lnum < behind_pos.rs_u.pos.lnum ? (colnr_T) musl_strlen((char *)(rex.line))  : behind_pos.rs_u.pos.col) - rp->rs_un.regsave.rs_u.pos.col >= limit))
                     {
                         no = FAIL;
                     }
@@ -61255,7 +61537,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                         {
                             reg_restore(&rp->rs_un.regsave, &backpos);
                             rp->rs_un.regsave.rs_u.pos.col =
-                                                 (colnr_T) strlen((char *)(rex.line)) ;
+                                                 (colnr_T) musl_strlen((char *)(rex.line)) ;
                         }
                     }
                     else
@@ -62018,7 +62300,7 @@ stuff_yank(int regname, char_u *p)
         return OK;
     }
 
-    plen =  strlen((char *)(p)) ;
+    plen =  musl_strlen((char *)(p)) ;
     get_yank_register(regname, TRUE);
     if (y_append && y_current->y_array != NULL)
     {
@@ -62034,8 +62316,8 @@ stuff_yank(int regname, char_u *p)
             vim_free(p);
             return FAIL;
         }
-         strcpy((char *)(tmp), (char *)(pp->string)) ;
-         strcpy((char *)(tmp + pp->length), (char *)(p)) ;
+         musl_strcpy((char *)(tmp), (char *)(pp->string)) ;
+         musl_strcpy((char *)(tmp + pp->length), (char *)(p)) ;
         vim_free(p);
         vim_free(pp->string);
         pp->string = tmp;
@@ -62156,7 +62438,7 @@ do_execreg(int     regname, int     colon, int     addcr, int     silent)
         p = vim_strsave_escaped_ext(last_cmdline, (char_u *)"\001\002\003\004\005\006\007" "\010\011\012\013\014\015\016\017" "\020\021\022\023\024\025\026\027" "\030\031\032\033\034\035\036\037", Ctrl_V, FALSE);
         if (p != NULL)
         {
-            if (VIsual_active &&  strncmp((char *)(p), (char *)("'<,'>"), (5))  == 0)
+            if (VIsual_active &&  musl_strncmp((char *)(p), (char *)("'<,'>"), (5))  == 0)
             {
                 retval = put_in_typebuf(p + 5, TRUE, TRUE, silent);
             }
@@ -62672,7 +62954,7 @@ op_yank(oparg_T *oap, int deleting, int mess)
 
                     charwise_block_prep(oap->start, oap->end, &bd, lnum, oap->inclusive);
 
-                    tmp = (int) strlen((char *)(bd.textstart)) ;
+                    tmp = (int) musl_strlen((char *)(bd.textstart)) ;
                     if (tmp < bd.textlen)
                     {
                         bd.textlen = tmp;
@@ -62719,8 +63001,8 @@ op_yank(oparg_T *oap, int deleting, int mess)
             }
 
             --j;
-             strcpy((char *)(pnew), (char *)(curr->y_array[j].string)) ;
-             strcpy((char *)(pnew + curr->y_array[j].length), (char *)(y_current->y_array[0].string)) ;
+             musl_strcpy((char *)(pnew), (char *)(curr->y_array[j].string)) ;
+             musl_strcpy((char *)(pnew + curr->y_array[j].length), (char *)(y_current->y_array[0].string)) ;
             vim_free(curr->y_array[j].string);
             curr->y_array[j].string = pnew;
             curr->y_array[j].length = curr->y_array[j].length + y_current->y_array[0].length;
@@ -62811,11 +63093,11 @@ yank_copy_line(struct block_def *bd, long y_idx, int exclude_trailing_space)
         return FAIL;
     }
     y_current->y_array[y_idx].string = pnew;
-     memset((pnew), (' '), ((size_t)bd->startspaces)) ;
+     musl_memset((pnew), (' '), ((size_t)bd->startspaces)) ;
     pnew += bd->startspaces;
-     memmove((char *)(pnew), (char *)(bd->textstart), (size_t)bd->textlen) ;
+     musl_memmove((char *)(pnew), (char *)(bd->textstart), (size_t)bd->textlen) ;
     pnew += bd->textlen;
-     memset((pnew), (' '), ((size_t)bd->endspaces)) ;
+     musl_memset((pnew), (' '), ((size_t)bd->endspaces)) ;
     pnew += bd->endspaces;
     if (exclude_trailing_space)
     {
@@ -62895,7 +63177,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
 
     if (insert_string.string != NULL)
     {
-        insert_string.length =  strlen((char *)(insert_string.string)) ;
+        insert_string.length =  musl_strlen((char *)(insert_string.string)) ;
 
         y_type = MCHAR;
         {
@@ -63166,20 +63448,20 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
             }
 
             ptr = newp;
-             memmove((char *)(ptr), (char *)(oldp), (size_t)bd.textcol) ;
+             musl_memmove((char *)(ptr), (char *)(oldp), (size_t)bd.textcol) ;
             ptr += bd.textcol;
 
-             memset((ptr), (' '), ((size_t)bd.startspaces)) ;
+             musl_memset((ptr), (' '), ((size_t)bd.startspaces)) ;
             ptr += bd.startspaces;
 
             for (j = 0; j < count; ++j)
             {
-                 memmove((char *)(ptr), (char *)(y_array[i].string), (size_t)yanklen) ;
+                 musl_memmove((char *)(ptr), (char *)(y_array[i].string), (size_t)yanklen) ;
                 ptr += yanklen;
 
                 if ((j < count - 1 || !shortline) && spaces > 0)
                 {
-                     memset((ptr), (' '), ((size_t)spaces)) ;
+                     musl_memset((ptr), (' '), ((size_t)spaces)) ;
                     ptr += spaces;
                 }
                 else
@@ -63188,10 +63470,10 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                 }
             }
 
-             memset((ptr), (' '), ((size_t)bd.endspaces)) ;
+             musl_memset((ptr), (' '), ((size_t)bd.endspaces)) ;
             ptr += bd.endspaces;
 
-             memmove((char *)(ptr), (char *)(oldp + bd.textcol + delcount), (size_t)(oldlen - bd.textcol - delcount + 1)) ;
+             musl_memmove((char *)(ptr), (char *)(oldp + bd.textcol + delcount), (size_t)(oldlen - bd.textcol - delcount + 1)) ;
             ml_replace(curwin->w_cursor.lnum, newp, FALSE);
 
             ++curwin->w_cursor.lnum;
@@ -63324,14 +63606,14 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                     {
                         goto end;
                     }
-                     memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
+                     musl_memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
                     ptr = newp + col;
                     for (i = 0; i < count; ++i)
                     {
-                         memmove((char *)(ptr), (char *)(y_array[0].string), (size_t)yanklen) ;
+                         musl_memmove((char *)(ptr), (char *)(y_array[0].string), (size_t)yanklen) ;
                         ptr += yanklen;
                     }
-                     memmove((char *)(ptr), (char *)(oldp + col), (size_t)(oldlen - col) + 1) ;
+                     musl_memmove((char *)(ptr), (char *)(oldp + col), (size_t)(oldlen - col) + 1) ;
 
                     first_byte_off = utf_head_off(newp, ptr - 1);
 
@@ -63397,8 +63679,8 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                     {
                         goto error;
                     }
-                     strcpy((char *)(newp), (char *)(y_array[y_size - 1].string)) ;
-                     strcpy((char *)(newp + totlen), (char *)(ptr)) ;
+                     musl_strcpy((char *)(newp), (char *)(y_array[y_size - 1].string)) ;
+                     musl_strcpy((char *)(newp + totlen), (char *)(ptr)) ;
                     ml_append(lnum, newp, (colnr_T)0, FALSE);
                     ++new_lnum;
                     vim_free(newp);
@@ -63409,8 +63691,8 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                     {
                         goto error;
                     }
-                     memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
-                     memmove((char *)(newp + col), (char *)(y_array[0].string), (size_t)(yanklen + 1)) ;
+                     musl_memmove((char *)(newp), (char *)(oldp), (size_t)col) ;
+                     musl_memmove((char *)(newp + col), (char *)(y_array[0].string), (size_t)(yanklen + 1)) ;
                     ml_replace(lnum, newp, FALSE);
 
                     curwin->w_cursor.lnum = lnum;
@@ -64506,7 +64788,7 @@ screen_stop_highlight(void)
                     aep = syn_term_attr2entry(screen_attr);
                     if (aep != NULL && aep->ae_u.term.stop != NULL)
                     {
-                        if ( strcmp((char *)(aep->ae_u.term.stop), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
+                        if ( musl_strcmp((char *)(aep->ae_u.term.stop), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
                         {
                             do_ME = TRUE;
                         }
@@ -64528,7 +64810,7 @@ screen_stop_highlight(void)
 
             if (screen_attr & HL_STANDOUT)
             {
-                if ( strcmp((char *)( ( term_strings[(int)(KS_SE)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
+                if ( musl_strcmp((char *)( ( term_strings[(int)(KS_SE)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
                 {
                     do_ME = TRUE;
                 }
@@ -64540,7 +64822,7 @@ screen_stop_highlight(void)
             is_under = (screen_attr & (HL_UNDERCURL | HL_UNDERDOUBLE | HL_UNDERDOTTED | HL_UNDERDASHED));
             if (is_under && * ( term_strings[(int)(KS_UCE)] )  != NUL)
             {
-                if ( strcmp((char *)( ( term_strings[(int)(KS_UCE)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
+                if ( musl_strcmp((char *)( ( term_strings[(int)(KS_UCE)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
                 {
                     do_ME = TRUE;
                 }
@@ -64551,7 +64833,7 @@ screen_stop_highlight(void)
             }
             if ((screen_attr & HL_UNDERLINE) || (is_under && * ( term_strings[(int)(KS_UCE)] )  == NUL))
             {
-                if ( strcmp((char *)( ( term_strings[(int)(KS_UE)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
+                if ( musl_strcmp((char *)( ( term_strings[(int)(KS_UE)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
                 {
                     do_ME = TRUE;
                 }
@@ -64562,7 +64844,7 @@ screen_stop_highlight(void)
             }
             if (screen_attr & HL_ITALIC)
             {
-                if ( strcmp((char *)( ( term_strings[(int)(KS_CZR)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
+                if ( musl_strcmp((char *)( ( term_strings[(int)(KS_CZR)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
                 {
                     do_ME = TRUE;
                 }
@@ -64573,7 +64855,7 @@ screen_stop_highlight(void)
             }
             if (screen_attr & HL_STRIKETHROUGH)
             {
-                if ( strcmp((char *)( ( term_strings[(int)(KS_STE)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
+                if ( musl_strcmp((char *)( ( term_strings[(int)(KS_STE)] ) ), (char *)( ( term_strings[(int)(KS_ME)] ) ))  == 0)
                 {
                     do_ME = TRUE;
                 }
@@ -65018,7 +65300,7 @@ retry:
      wp = curwin;
 win_free_lsize(wp);
     new_ScreenLines =  (schar_T *)lalloc(sizeof(schar_T) * ((Rows + 1) * Columns), FALSE) ;
-     memset((new_ScreenLinesC), (0), (sizeof(u8char_T *) * MAX_MCO)) ;
+     musl_memset((new_ScreenLinesC), (0), (sizeof(u8char_T *) * MAX_MCO)) ;
     new_ScreenLinesUC =  (u8char_T *)lalloc(sizeof(u8char_T) * ((Rows + 1) * Columns), FALSE) ;
     for (int i = 0; i < p_mco; ++i)
     {
@@ -65085,14 +65367,14 @@ give_up:
             new_LineOffset[new_row] = new_row * Columns;
             new_LineWraps[new_row] = FALSE;
 
-            (void) memset((new_ScreenLines + new_row * Columns), (' '), ((size_t)Columns * sizeof(schar_T))) ;
-            (void) memset((new_ScreenLinesUC + new_row * Columns), (0), ((size_t)Columns * sizeof(u8char_T))) ;
+            (void) musl_memset((new_ScreenLines + new_row * Columns), (' '), ((size_t)Columns * sizeof(schar_T))) ;
+            (void) musl_memset((new_ScreenLinesUC + new_row * Columns), (0), ((size_t)Columns * sizeof(u8char_T))) ;
             for (int i = 0; i < p_mco; ++i)
             {
-                (void) memset((new_ScreenLinesC[i] + new_row * Columns), (0), ((size_t)Columns * sizeof(u8char_T))) ;
+                (void) musl_memset((new_ScreenLinesC[i] + new_row * Columns), (0), ((size_t)Columns * sizeof(u8char_T))) ;
             }
-            (void) memset((new_ScreenAttrs + new_row * Columns), (0), ((size_t)Columns * sizeof(sattr_T))) ;
-            (void) memset((new_ScreenCols + new_row * Columns), (0), ((size_t)Columns * sizeof(colnr_T))) ;
+            (void) musl_memset((new_ScreenAttrs + new_row * Columns), (0), ((size_t)Columns * sizeof(sattr_T))) ;
+            (void) musl_memset((new_ScreenCols + new_row * Columns), (0), ((size_t)Columns * sizeof(colnr_T))) ;
 
             if (!doclear)
             {
@@ -65109,18 +65391,18 @@ give_up:
                     }
                     if (!(ScreenLinesUC == NULL) && p_mco == Screen_mco)
                     {
-                         memmove((char *)(new_ScreenLines + new_LineOffset[new_row]), (char *)(ScreenLines + LineOffset[old_row]), (size_t)len * sizeof(schar_T)) ;
+                         musl_memmove((char *)(new_ScreenLines + new_LineOffset[new_row]), (char *)(ScreenLines + LineOffset[old_row]), (size_t)len * sizeof(schar_T)) ;
                     }
                     if (ScreenLinesUC != NULL && p_mco == Screen_mco)
                     {
-                         memmove((char *)(new_ScreenLinesUC + new_LineOffset[new_row]), (char *)(ScreenLinesUC + LineOffset[old_row]), (size_t)len * sizeof(u8char_T)) ;
+                         musl_memmove((char *)(new_ScreenLinesUC + new_LineOffset[new_row]), (char *)(ScreenLinesUC + LineOffset[old_row]), (size_t)len * sizeof(u8char_T)) ;
                         for (int i = 0; i < p_mco; ++i)
                         {
-                             memmove((char *)(new_ScreenLinesC[i] + new_LineOffset[new_row]), (char *)(ScreenLinesC[i] + LineOffset[old_row]), (size_t)len * sizeof(u8char_T)) ;
+                             musl_memmove((char *)(new_ScreenLinesC[i] + new_LineOffset[new_row]), (char *)(ScreenLinesC[i] + LineOffset[old_row]), (size_t)len * sizeof(u8char_T)) ;
                         }
                     }
-                     memmove((char *)(new_ScreenAttrs + new_LineOffset[new_row]), (char *)(ScreenAttrs + LineOffset[old_row]), (size_t)len * sizeof(sattr_T)) ;
-                     memmove((char *)(new_ScreenCols + new_LineOffset[new_row]), (char *)(ScreenCols + LineOffset[old_row]), (size_t)len * sizeof(colnr_T)) ;
+                     musl_memmove((char *)(new_ScreenAttrs + new_LineOffset[new_row]), (char *)(ScreenAttrs + LineOffset[old_row]), (size_t)len * sizeof(sattr_T)) ;
+                     musl_memmove((char *)(new_ScreenCols + new_LineOffset[new_row]), (char *)(ScreenCols + LineOffset[old_row]), (size_t)len * sizeof(colnr_T)) ;
                 }
             }
         }
@@ -65267,17 +65549,17 @@ screenclear2(int doclear)
     static void
 lineclear(unsigned off, int width, int attr)
 {
-    (void) memset((ScreenLines + off), (' '), ((size_t)width * sizeof(schar_T))) ;
-    (void) memset((ScreenLinesUC + off), (0), ((size_t)width * sizeof(u8char_T))) ;
-    (void) memset((ScreenAttrs + off), (attr), ((size_t)width * sizeof(sattr_T))) ;
-    (void) memset((ScreenCols + off), (-1), ((size_t)width * sizeof(colnr_T))) ;
+    (void) musl_memset((ScreenLines + off), (' '), ((size_t)width * sizeof(schar_T))) ;
+    (void) musl_memset((ScreenLinesUC + off), (0), ((size_t)width * sizeof(u8char_T))) ;
+    (void) musl_memset((ScreenAttrs + off), (attr), ((size_t)width * sizeof(sattr_T))) ;
+    (void) musl_memset((ScreenCols + off), (-1), ((size_t)width * sizeof(colnr_T))) ;
 }
 
     static void
 lineinvalid(unsigned off, int width)
 {
-    (void) memset((ScreenAttrs + off), (-1), ((size_t)width * sizeof(sattr_T))) ;
-    (void) memset((ScreenCols + off), (-1), ((size_t)width * sizeof(colnr_T))) ;
+    (void) musl_memset((ScreenAttrs + off), (-1), ((size_t)width * sizeof(sattr_T))) ;
+    (void) musl_memset((ScreenCols + off), (-1), ((size_t)width * sizeof(colnr_T))) ;
 }
 
     static void
@@ -65286,16 +65568,16 @@ linecopy(int to, int from, win_T *wp)
     unsigned    off_to = LineOffset[to] + wp->w_wincol;
     unsigned    off_from = LineOffset[from] + wp->w_wincol;
 
-     memmove((char *)(ScreenLines + off_to), (char *)(ScreenLines + off_from), wp->w_width * sizeof(schar_T)) ;
+     musl_memmove((char *)(ScreenLines + off_to), (char *)(ScreenLines + off_from), wp->w_width * sizeof(schar_T)) ;
     int     i;
 
-     memmove((char *)(ScreenLinesUC + off_to), (char *)(ScreenLinesUC + off_from), wp->w_width * sizeof(u8char_T)) ;
+     musl_memmove((char *)(ScreenLinesUC + off_to), (char *)(ScreenLinesUC + off_from), wp->w_width * sizeof(u8char_T)) ;
     for (i = 0; i < p_mco; ++i)
     {
-         memmove((char *)(ScreenLinesC[i] + off_to), (char *)(ScreenLinesC[i] + off_from), wp->w_width * sizeof(u8char_T)) ;
+         musl_memmove((char *)(ScreenLinesC[i] + off_to), (char *)(ScreenLinesC[i] + off_from), wp->w_width * sizeof(u8char_T)) ;
     }
-     memmove((char *)(ScreenAttrs + off_to), (char *)(ScreenAttrs + off_from), wp->w_width * sizeof(sattr_T)) ;
-     memmove((char *)(ScreenCols + off_to), (char *)(ScreenCols + off_from), wp->w_width * sizeof(colnr_T)) ;
+     musl_memmove((char *)(ScreenAttrs + off_to), (char *)(ScreenAttrs + off_from), wp->w_width * sizeof(sattr_T)) ;
+     musl_memmove((char *)(ScreenCols + off_to), (char *)(ScreenCols + off_from), wp->w_width * sizeof(colnr_T)) ;
 }
 
     static int
@@ -65371,7 +65653,7 @@ windgoto(int row, int col)
             }
             if (*bs)
             {
-                cost = (screen_cur_col - col) * (int) strlen((char *)(bs)) ;
+                cost = (screen_cur_col - col) * (int) musl_strlen((char *)(bs)) ;
             }
             else
             {
@@ -66332,7 +66614,7 @@ recording_mode(int attr)
 
     char s[4];
 
-    sprintf(s, " @%c", reg_recording);
+    vim_snprintf(s, sizeof(s), " @%c", reg_recording);
     msg_puts_attr(s, attr);
 }
 
@@ -66572,7 +66854,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply, char *er
     if (is_listchars)
     {
         tab = lcstab;
-          memset((&(lcs_chars)), (0), (sizeof(lcs_chars)))  ;
+          musl_memset((&(lcs_chars)), (0), (sizeof(lcs_chars)))  ;
         entries =  (sizeof(lcstab) / sizeof((lcstab)[0])) ;
         if (wp-> w_onebuf_opt.wo_lcs [0] == NUL)
         {
@@ -66659,14 +66941,14 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply, char *er
         {
             for (i = 0; i < entries; ++i)
             {
-                if (!( strncmp((char *)(p), (char *)(tab[i].name.string), (tab[i].name.length))  == 0 && p[tab[i].name.length] == ':'))
+                if (!( musl_strncmp((char *)(p), (char *)(tab[i].name.string), (tab[i].name.length))  == 0 && p[tab[i].name.length] == ':'))
                 {
                     continue;
                 }
 
                 s = p + tab[i].name.length + 1;
 
-                if (is_listchars &&  strcmp((char *)(tab[i].name.string), (char *)("multispace"))  == 0)
+                if (is_listchars &&  musl_strcmp((char *)(tab[i].name.string), (char *)("multispace"))  == 0)
                 {
                     if (round == 0)
                     {
@@ -66703,7 +66985,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply, char *er
                     break;
                 }
 
-                if (is_listchars &&  strcmp((char *)(tab[i].name.string), (char *)("leadmultispace"))  == 0)
+                if (is_listchars &&  musl_strcmp((char *)(tab[i].name.string), (char *)("leadmultispace"))  == 0)
                 {
                     if (round == 0)
                     {
@@ -67664,7 +67946,7 @@ parse_search_pattern_offset(char_u      **pat, size_t      *patlen, int         
     p = skip_regexp_ex(*pat, search_delim, magic_isset(), strcopy, NULL, NULL);
     if (*strcopy != ps)
     {
-        size_t len =  strlen((char *)(*strcopy)) ;
+        size_t len =  musl_strlen((char *)(*strcopy)) ;
         cmdlen += (int)(*patlen - len);
         *pat = *strcopy;
         *patlen = len;
@@ -67877,7 +68159,7 @@ do_search(oparg_T         *oap, int             dirc, int             search_del
             }
             else
             {
-                 memset((msgbuf), (' '), (msgbufsize)) ;
+                 musl_memset((msgbuf), (' '), (msgbufsize)) ;
                 msgbuflen = msgbufsize - 1;
                 msgbuf[msgbuflen] = NUL;
                 if (!cmd_silent)
@@ -67889,15 +68171,15 @@ do_search(oparg_T         *oap, int             dirc, int             search_del
                     if (utf_iscomposing(utf_ptr2char(p)))
                     {
                         msgbuf[1] = ' ';
-                         memmove((char *)(msgbuf + 2), (char *)(p), plen) ;
+                         musl_memmove((char *)(msgbuf + 2), (char *)(p), plen) ;
                     }
                     else
                     {
-                         memmove((char *)(msgbuf + 1), (char *)(p), plen) ;
+                         musl_memmove((char *)(msgbuf + 1), (char *)(p), plen) ;
                     }
                     if (off_len > 0)
                     {
-                         memmove((char *)(msgbuf + plen + 1), (char *)(off_buf), off_len) ;
+                         musl_memmove((char *)(msgbuf + plen + 1), (char *)(off_buf), off_len) ;
                     }
 
                     trunc = msg_strtrunc(msgbuf, TRUE);
@@ -67905,7 +68187,7 @@ do_search(oparg_T         *oap, int             dirc, int             search_del
                     {
                         vim_free(msgbuf);
                         msgbuf = trunc;
-                        msgbuflen =  strlen((char *)(msgbuf)) ;
+                        msgbuflen =  musl_strlen((char *)(msgbuf)) ;
                     }
 
                     msg_outtrans(msgbuf);
@@ -68167,7 +68449,7 @@ searchc(cmdarg_T *cap, int t_cmd)
                     break;
                 }
             }
-            else if ( strncmp((char *)(p + col), (char *)(lastc_bytes), (lastc_bytelen))  == 0 && stop)
+            else if ( musl_strncmp((char *)(p + col), (char *)(lastc_bytes), (lastc_bytelen))  == 0 && stop)
             {
                 break;
             }
@@ -68242,7 +68524,7 @@ find_rawstring_end(char_u *linep, pos_T *startpos, pos_T *endpos)
             {
                 break;
             }
-            if (*p == ')' &&  strncmp((char *)(delim_copy), (char *)(p + 1), (delim_len))  == 0 && p[delim_len + 1] == '"')
+            if (*p == ')' &&  musl_strncmp((char *)(delim_copy), (char *)(p + 1), (delim_len))  == 0 && p[delim_len + 1] == '"')
             {
                 found = TRUE;
                 break;
@@ -68392,7 +68674,7 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
                 if (*ptr == '#' && pos.col <= (colnr_T)(ptr - linep))
                 {
                     ptr = skipwhite(ptr + 1);
-                    if (    strncmp((char *)(ptr), (char *)("if"), (2))  == 0 ||  strncmp((char *)(ptr), (char *)("endif"), (5))  == 0 ||  strncmp((char *)(ptr), (char *)("el"), (2))  == 0)
+                    if (    musl_strncmp((char *)(ptr), (char *)("if"), (2))  == 0 ||  musl_strncmp((char *)(ptr), (char *)("endif"), (5))  == 0 ||  musl_strncmp((char *)(ptr), (char *)("el"), (2))  == 0)
                     {
                         hash_dir = 1;
                     }
@@ -68482,11 +68764,11 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
             if (initc != '#')
             {
                 ptr = skipwhite(skipwhite(linep) + 1);
-                if ( strncmp((char *)(ptr), (char *)("if"), (2))  == 0 ||  strncmp((char *)(ptr), (char *)("el"), (2))  == 0)
+                if ( musl_strncmp((char *)(ptr), (char *)("if"), (2))  == 0 ||  musl_strncmp((char *)(ptr), (char *)("el"), (2))  == 0)
                 {
                     hash_dir = 1;
                 }
-                else if ( strncmp((char *)(ptr), (char *)("endif"), (5))  == 0)
+                else if ( musl_strncmp((char *)(ptr), (char *)("endif"), (5))  == 0)
                 {
                     hash_dir = -1;
                 }
@@ -68521,18 +68803,18 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
                 ptr = skipwhite(ptr + 1);
                 if (hash_dir > 0)
                 {
-                    if ( strncmp((char *)(ptr), (char *)("if"), (2))  == 0)
+                    if ( musl_strncmp((char *)(ptr), (char *)("if"), (2))  == 0)
                     {
                         count++;
                     }
-                    else if ( strncmp((char *)(ptr), (char *)("el"), (2))  == 0)
+                    else if ( musl_strncmp((char *)(ptr), (char *)("el"), (2))  == 0)
                     {
                         if (count == 0)
                         {
                             return &pos;
                         }
                     }
-                    else if ( strncmp((char *)(ptr), (char *)("endif"), (5))  == 0)
+                    else if ( musl_strncmp((char *)(ptr), (char *)("endif"), (5))  == 0)
                     {
                         if (count == 0)
                         {
@@ -68543,7 +68825,7 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
                 }
                 else
                 {
-                    if ( strncmp((char *)(ptr), (char *)("if"), (2))  == 0)
+                    if ( musl_strncmp((char *)(ptr), (char *)("if"), (2))  == 0)
                     {
                         if (count == 0)
                         {
@@ -68551,14 +68833,14 @@ findmatchlimit(oparg_T     *oap, int         initc, int         flags, int      
                         }
                         count--;
                     }
-                    else if (initc == '#' &&  strncmp((char *)(ptr), (char *)("el"), (2))  == 0)
+                    else if (initc == '#' &&  musl_strncmp((char *)(ptr), (char *)("el"), (2))  == 0)
                     {
                         if (count == 0)
                         {
                             return &pos;
                         }
                     }
-                    else if ( strncmp((char *)(ptr), (char *)("endif"), (5))  == 0)
+                    else if ( musl_strncmp((char *)(ptr), (char *)("endif"), (5))  == 0)
                     {
                         count++;
                     }
@@ -69251,7 +69533,7 @@ cmdline_search_stat(int         dirc, pos_T       *pos, pos_T       *cursor_pos,
 
     if (show_top_bot_msg && len + 2 < SEARCH_STAT_BUF_LEN)
     {
-         memmove((char *)(t + 2), (char *)(t), len) ;
+         musl_memmove((char *)(t + 2), (char *)(t), len) ;
         t[0] = 'W';
         t[1] = ' ';
         len += 2;
@@ -69261,7 +69543,7 @@ cmdline_search_stat(int         dirc, pos_T       *pos, pos_T       *cursor_pos,
     {
         len = msgbuflen;
     }
-     memmove((char *)(msgbuf + msgbuflen - len), (char *)(t), len) ;
+     musl_memmove((char *)(msgbuf + msgbuflen - len), (char *)(t), len) ;
 
     if (dirc == '?' && stat.cur == maxcount + 1)
     {
@@ -69290,7 +69572,7 @@ update_search_stat(int                 dirc, pos_T               *pos, pos_T    
     static size_t   lastpatlen = 0;
     static buf_T    *lbuf = NULL;
 
-      memset(((stat)), (0), (sizeof(*(stat))))  ;
+      musl_memset(((stat)), (0), (sizeof(*(stat))))  ;
 
     if (dirc == 0 && !recompute && ! ((lastpos).lnum == 0 && (lastpos).col == 0 && (lastpos).coladd == 0) )
     {
@@ -69305,7 +69587,7 @@ update_search_stat(int                 dirc, pos_T               *pos, pos_T    
 
     wraparound = ((dirc == '?' &&  (((lastpos).lnum != (p).lnum)               ? (lastpos).lnum < (p).lnum                   : (lastpos).col != (p).col                        ? (lastpos).col < (p).col                     : (lastpos).coladd < (p).coladd) ) || (dirc == '/' &&  (((p).lnum != (lastpos).lnum)               ? (p).lnum < (lastpos).lnum                   : (p).col != (lastpos).col                        ? (p).col < (lastpos).col                     : (p).coladd < (lastpos).coladd) ));
 
-    if (!(chgtick ==  ((curbuf)->b_ct_di.di_tv.vval.v_number)  && (lastpat != NULL &&  strncmp((char *)(lastpat), (char *)(spats[last_idx].pat), (lastpatlen))  == 0 && lastpatlen == spats[last_idx].patlen) &&  (((lastpos).lnum == (*cursor_pos).lnum) && ((lastpos).col == (*cursor_pos).col) && ((lastpos).coladd == (*cursor_pos).coladd))  && lbuf == curbuf) || wraparound || cur < 0 || (maxcount > 0 && cur > maxcount) || recompute)
+    if (!(chgtick ==  ((curbuf)->b_ct_di.di_tv.vval.v_number)  && (lastpat != NULL &&  musl_strncmp((char *)(lastpat), (char *)(spats[last_idx].pat), (lastpatlen))  == 0 && lastpatlen == spats[last_idx].patlen) &&  (((lastpos).lnum == (*cursor_pos).lnum) && ((lastpos).col == (*cursor_pos).col) && ((lastpos).coladd == (*cursor_pos).coladd))  && lbuf == curbuf) || wraparound || cur < 0 || (maxcount > 0 && cur > maxcount) || recompute)
     {
         cur = 0;
         cnt = 0;
@@ -69381,11 +69663,11 @@ vim_strsave(char_u *string)
     char_u      *p;
     size_t      len;
 
-    len =  strlen((char *)(string))  + 1;
+    len =  musl_strlen((char *)(string))  + 1;
     p = alloc(len);
     if (p != NULL)
     {
-         memmove((char *)(p), (char *)(string), len) ;
+         musl_memmove((char *)(p), (char *)(string), len) ;
     }
     return p;
 }
@@ -69401,7 +69683,7 @@ vim_strnsave(char_u *string, size_t len)
         return NULL;
     }
 
-     strncpy((char *)(p), (char *)(string), (len)) ;
+     musl_strncpy((char *)(p), (char *)(string), (len)) ;
     p[len] = NUL;
     return p;
 }
@@ -69446,7 +69728,7 @@ vim_strsave_escaped_ext(char_u      *string, char_u      *esc_chars, int        
     {
         if ((l = utfc_ptr2len(p)) > 1)
         {
-             memmove((char *)(p2), (char *)(p), (size_t)l) ;
+             musl_memmove((char *)(p2), (char *)(p), (size_t)l) ;
             p2 += l;
             p += l - 1;
             continue;
@@ -69494,7 +69776,7 @@ del_trailing_spaces(char_u *ptr)
 {
     char_u      *q;
 
-    q = ptr +  strlen((char *)(ptr)) ;
+    q = ptr +  musl_strlen((char *)(ptr)) ;
     while (--q > ptr &&  ((q[0]) == ' ' || (q[0]) == '\t')  && q[-1] != '\\' && q[-1] != Ctrl_V)
     {
         *q = NUL;
@@ -69504,24 +69786,24 @@ del_trailing_spaces(char_u *ptr)
     static void
 vim_strncpy(char_u *to, char_u *from, size_t len)
 {
-     strncpy((char *)(to), (char *)(from), (len)) ;
+     musl_strncpy((char *)(to), (char *)(from), (len)) ;
     to[len] = NUL;
 }
 
     static void
 vim_strcat(char_u *to, char_u *from, size_t tosize)
 {
-    size_t tolen =  strlen((char *)(to)) ;
-    size_t fromlen =  strlen((char *)(from)) ;
+    size_t tolen =  musl_strlen((char *)(to)) ;
+    size_t fromlen =  musl_strlen((char *)(from)) ;
 
     if (tolen + fromlen + 1 > tosize)
     {
-         memmove((char *)(to + tolen), (char *)(from), tosize - tolen - 1) ;
+         musl_memmove((char *)(to + tolen), (char *)(from), tosize - tolen - 1) ;
         to[tosize - 1] = NUL;
     }
     else
     {
-         memmove((char *)(to + tolen), (char *)(from), fromlen + 1) ;
+         musl_memmove((char *)(to + tolen), (char *)(from), fromlen + 1) ;
     }
 }
 
@@ -69626,7 +69908,7 @@ vim_strbyte(char_u *string, int c)
     static int
 sort_compare(const void *s1, const void *s2)
 {
-    return  strcmp((char *)(*(char **)s1), (char *)(*(char **)s2)) ;
+    return  musl_strcmp((char *)(*(char **)s1), (char *)(*(char **)s2)) ;
 }
 
     static void
@@ -69639,9 +69921,9 @@ sort_strings(char_u      **files, int         count)
 concat_str(char_u *str1, char_u *str2)
 {
     char_u  *dest;
-    size_t  l = str1 == NULL ? 0 :  strlen((char *)(str1)) ;
+    size_t  l = str1 == NULL ? 0 :  musl_strlen((char *)(str1)) ;
 
-    dest = alloc(l + (str2 == NULL ? 0 :  strlen((char *)(str2)) ) + 1L);
+    dest = alloc(l + (str2 == NULL ? 0 :  musl_strlen((char *)(str2)) ) + 1L);
     if (dest == NULL)
     {
         return NULL;
@@ -69652,11 +69934,11 @@ concat_str(char_u *str1, char_u *str2)
     }
     else
     {
-         strcpy((char *)(dest), (char *)(str1)) ;
+         musl_strcpy((char *)(dest), (char *)(str1)) ;
     }
     if (str2 != NULL)
     {
-         strcpy((char *)(dest + l), (char *)(str2)) ;
+         musl_strcpy((char *)(dest + l), (char *)(str2)) ;
     }
     return dest;
 }
@@ -69666,7 +69948,7 @@ vim_snprintf_add(char *str, size_t str_m, const char *fmt, ...)
 {
     va_list     ap;
     int         str_l;
-    size_t      len =  strlen((char *)(str)) ;
+    size_t      len =  musl_strlen((char *)(str)) ;
     size_t      space;
 
     if (str_m <= len)
@@ -69977,7 +70259,7 @@ format_overflow_error(const char *pstart)
     argcopy =  (char *)alloc_clear(sizeof(char) * (arglen + 1)) ;
     if (argcopy != NULL)
     {
-        strncpy(argcopy, pstart, arglen);
+        musl_strncpy(argcopy, pstart, arglen);
         semsg(_( e_val_too_large), argcopy);
         free(argcopy);
     }
@@ -70036,8 +70318,8 @@ parse_fmt_types(const char  ***ap_types, int         *num_posarg, const char  *f
     {
         if (*p != '%')
         {
-            const char    *q = strchr(p + 1, '%');
-            size_t  n = (q == NULL) ?  strlen((char *)(p))  : (size_t)(q - p);
+            const char    *q = musl_strchr(p + 1, '%');
+            size_t  n = (q == NULL) ?  musl_strlen((char *)(p))  : (size_t)(q - p);
 
             p += n;
         }
@@ -70417,14 +70699,14 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
     {
         if (*p != '%')
         {
-            const char    *q = strchr(p + 1, '%');
-            size_t  n = (q == NULL) ?  strlen((char *)(p))  : (size_t)(q - p);
+            const char    *q = musl_strchr(p + 1, '%');
+            size_t  n = (q == NULL) ?  musl_strlen((char *)(p))  : (size_t)(q - p);
 
             if (str_l < str_m)
             {
                 size_t avail = str_m - str_l;
 
-                 memmove((char *)(str + str_l), (char *)(p), n > avail ? avail : n) ;
+                 musl_memmove((char *)(str + str_l), (char *)(p), n > avail ? avail : n) ;
             }
             p += n;
             str_l += n;
@@ -70713,7 +70995,7 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                     }
                     else if (!precision_specified)
                     {
-                        str_arg_l = strlen(str_arg);
+                        str_arg_l = musl_strlen(str_arg);
                     }
                     else if (precision == 0)
                     {
@@ -70721,7 +71003,7 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                     }
                     else
                     {
-                        const char *q = memchr(str_arg, '\0', precision <= (size_t)0x7fffffffL ? precision : (size_t)0x7fffffffL);
+                        const char *q = musl_memchr(str_arg, '\0', precision <= (size_t)0x7fffffffL ? precision : (size_t)0x7fffffffL);
 
                         str_arg_l = (q == NULL) ? precision
                                                       : (size_t)(q - str_arg);
@@ -70914,29 +71196,9 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                     }
                     else
                     {
-                        char    f[6];
-                        int     f_l = 0;
-
-                        f[f_l++] = '%';
-                        if (!length_modifier)
-                        {
-                            ;
-                        }
-                        else if (length_modifier == 'L')
-                        {
-                            f[f_l++] = 'l';
-                            f[f_l++] = 'l';
-                        }
-                        else
-                        {
-                            f[f_l++] = length_modifier;
-                        }
-                        f[f_l++] = fmt_spec;
-                        f[f_l++] = '\0';
-
                         if (fmt_spec == 'p')
                         {
-                            str_arg_l += sprintf(tmp + str_arg_l, f, ptr_arg);
+                            str_arg_l += musl_fmtptr(tmp + str_arg_l, ptr_arg);
                         }
                         else if (fmt_spec == 'b' || fmt_spec == 'B')
                         {
@@ -70952,7 +71214,7 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                             while (bn != 0)
                                 ;
 
-                            memcpy(tmp + str_arg_l, b + sizeof(b) - b_l, b_l);
+                            musl_memcpy(tmp + str_arg_l, b + sizeof(b) - b_l, b_l);
                             str_arg_l += b_l;
                         }
                         else if (fmt_spec == 'd')
@@ -70960,16 +71222,16 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                             switch (length_modifier)
                             {
                             case '\0':
-                                str_arg_l += sprintf(tmp + str_arg_l, f, int_arg);
+                                str_arg_l += musl_fmtnum(tmp + str_arg_l, (unsigned long long)(long long)int_arg, 10, 0, int_arg < 0);
                                        break;
                             case 'h':
-                                str_arg_l += sprintf(tmp + str_arg_l, f, (short)int_arg);
+                                str_arg_l += musl_fmtnum(tmp + str_arg_l, (unsigned long long)(long long)(short)int_arg, 10, 0, (short)int_arg < 0);
                                       break;
                             case 'l':
-                                str_arg_l += sprintf(tmp + str_arg_l, f, long_arg);
+                                str_arg_l += musl_fmtnum(tmp + str_arg_l, (unsigned long long)(long long)long_arg, 10, 0, long_arg < 0);
                                       break;
                             case 'L':
-                                str_arg_l += sprintf(tmp + str_arg_l, f, llong_arg);
+                                str_arg_l += musl_fmtnum(tmp + str_arg_l, (unsigned long long)llong_arg, 10, 0, llong_arg < 0);
                                       break;
                             }
                         }
@@ -70978,16 +71240,16 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                             switch (length_modifier)
                             {
                             case '\0':
-                                str_arg_l += sprintf(tmp + str_arg_l, f, uint_arg);
+                                str_arg_l += musl_fmtnum(tmp + str_arg_l, (unsigned long long)uint_arg, musl_fmtbase(fmt_spec), fmt_spec == 'X', 0);
                                        break;
                             case 'h':
-                                str_arg_l += sprintf(tmp + str_arg_l, f, (unsigned short)uint_arg);
+                                str_arg_l += musl_fmtnum(tmp + str_arg_l, (unsigned long long)(unsigned short)uint_arg, musl_fmtbase(fmt_spec), fmt_spec == 'X', 0);
                                       break;
                             case 'l':
-                                str_arg_l += sprintf(tmp + str_arg_l, f, ulong_arg);
+                                str_arg_l += musl_fmtnum(tmp + str_arg_l, (unsigned long long)ulong_arg, musl_fmtbase(fmt_spec), fmt_spec == 'X', 0);
                                       break;
                             case 'L':
-                                str_arg_l += sprintf(tmp + str_arg_l, f, ullong_arg);
+                                str_arg_l += musl_fmtnum(tmp + str_arg_l, (unsigned long long)ullong_arg, musl_fmtbase(fmt_spec), fmt_spec == 'X', 0);
                                       break;
                             }
                         }
@@ -71058,7 +71320,7 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                     {
                         size_t avail = str_m - str_l;
 
-                         memset((str + str_l), (zero_padding ? '0' : ' '), ((size_t)pn > avail ? avail : (size_t)pn)) ;
+                         musl_memset((str + str_l), (zero_padding ? '0' : ' '), ((size_t)pn > avail ? avail : (size_t)pn)) ;
                     }
                     str_l += pn;
                 }
@@ -71078,7 +71340,7 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                     {
                         size_t avail = str_m - str_l;
 
-                         memmove((char *)(str + str_l), (char *)(str_arg), (size_t)zn > avail ? avail : (size_t)zn) ;
+                         musl_memmove((char *)(str + str_l), (char *)(str_arg), (size_t)zn > avail ? avail : (size_t)zn) ;
                     }
                     str_l += zn;
                 }
@@ -71090,7 +71352,7 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                     {
                         size_t avail = str_m - str_l;
 
-                         memset((str + str_l), ('0'), ((size_t)zn > avail ? avail : (size_t)zn)) ;
+                         musl_memset((str + str_l), ('0'), ((size_t)zn > avail ? avail : (size_t)zn)) ;
                     }
                     str_l += zn;
                 }
@@ -71105,7 +71367,7 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                     {
                         size_t avail = str_m - str_l;
 
-                         memmove((char *)(str + str_l), (char *)(str_arg + zero_padding_insertion_ind), (size_t)sn > avail ? avail : (size_t)sn) ;
+                         musl_memmove((char *)(str + str_l), (char *)(str_arg + zero_padding_insertion_ind), (size_t)sn > avail ? avail : (size_t)sn) ;
                     }
                     str_l += sn;
                 }
@@ -71121,7 +71383,7 @@ vim_vsnprintf_typval(char        *str, size_t      str_m, const char  *fmt, va_l
                     {
                         size_t avail = str_m - str_l;
 
-                         memset((str + str_l), (' '), ((size_t)pn > avail ? avail : (size_t)pn)) ;
+                         musl_memset((str + str_l), (' '), ((size_t)pn > avail ? avail : (size_t)pn)) ;
                     }
                     str_l += pn;
                 }
@@ -71719,11 +71981,11 @@ find_builtin_term(char_u *term)
         {
             break;
         }
-        if ( strcmp((char *)(name), (char *)("xterm"))  == 0 && vim_is_xterm(term))
+        if ( musl_strcmp((char *)(name), (char *)("xterm"))  == 0 && vim_is_xterm(term))
         {
             return builtin_terminals[i].bitc_table;
         }
-        if ( strcmp((char *)(term), (char *)(name))  == 0)
+        if ( musl_strcmp((char *)(term), (char *)(name))  == 0)
         {
             return builtin_terminals[i].bitc_table;
         }
@@ -71755,7 +72017,7 @@ apply_builtin_tcap(char_u *term, tcap_entry_T *entries, int overwrite)
                             if (term_7to8bit(t))
                             {
                                 *t = term_7to8bit(t);
-                                  memmove((char *)((t + 1)), (char *)((t + 2)),  strlen((char *)(t + 2))  + 1)  ;
+                                  musl_memmove((char *)((t + 1)), (char *)((t + 2)),  musl_strlen((char *)(t + 2))  + 1)  ;
                             }
                         }
                         term_strings[p->bt_entry] = s;
@@ -71817,7 +72079,7 @@ set_color_count(int nr)
     t_colors = nr;
     if (t_colors > 1)
     {
-        sprintf((char *)nr_colors, "%d", t_colors);
+        vim_snprintf((char *)nr_colors, sizeof(nr_colors), "%d", t_colors);
     }
     else
     {
@@ -71874,7 +72136,7 @@ report_default_term(char_u *term)
     static keyprot_T
 match_keyprotocol(char_u *term)
 {
-    int         len = (int) strlen((char *)(p_kpc))  + 1;
+    int         len = (int) musl_strlen((char *)(p_kpc))  + 1;
     char_u      *buf = alloc(len);
     if (buf == NULL)
     {
@@ -71894,15 +72156,15 @@ match_keyprotocol(char_u *term)
         *colon = NUL;
 
         keyprot_T prot;
-        if ( strcmp((char *)(colon + 1), (char *)("none"))  == 0)
+        if ( musl_strcmp((char *)(colon + 1), (char *)("none"))  == 0)
         {
             prot = KEYPROTOCOL_NONE;
         }
-        else if ( strcmp((char *)(colon + 1), (char *)("mok2"))  == 0)
+        else if ( musl_strcmp((char *)(colon + 1), (char *)("mok2"))  == 0)
         {
             prot = KEYPROTOCOL_MOK2;
         }
-        else if ( strcmp((char *)(colon + 1), (char *)("kitty"))  == 0)
+        else if ( musl_strcmp((char *)(colon + 1), (char *)("kitty"))  == 0)
         {
             prot = KEYPROTOCOL_KITTY;
         }
@@ -71912,7 +72174,7 @@ match_keyprotocol(char_u *term)
         }
 
         regmatch_T regmatch;
-          memset((&(regmatch)), (0), (sizeof(regmatch)))  ;
+          musl_memset((&(regmatch)), (0), (sizeof(regmatch)))  ;
         regmatch.rm_ic = TRUE;
         regmatch.regprog = vim_regcomp(buf, RE_MAGIC);
         if (regmatch.regprog == NULL)
@@ -71975,7 +72237,7 @@ set_termname(char_u *term)
                 clear_termoptions();
             parse_builtin_tcap(term);
 
-            if (strstr((char *)requested, "256color") != NULL && (term_strings_not_set(KS_CCO) || atoi((char *) ( term_strings[(int)(KS_CCO)] ) ) < 256))
+            if (musl_strstr((char *)requested, "256color") != NULL && (term_strings_not_set(KS_CCO) || atoi((char *) ( term_strings[(int)(KS_CCO)] ) ) < 256))
             {
                 apply_builtin_tcap(term, builtin_256colors, TRUE);
             }
@@ -71988,7 +72250,7 @@ set_termname(char_u *term)
 
     }
 
-    if ( strcmp((char *)(term), (char *)("pcterm"))  == 0)
+    if ( musl_strcmp((char *)(term), (char *)("pcterm"))  == 0)
     {
          ( term_strings[(int)(KS_CCS)] )  = (char_u *)"yes";
     }
@@ -71997,7 +72259,7 @@ set_termname(char_u *term)
          ( term_strings[(int)(KS_CCS)] )  = empty_option;
     }
 
-    if (strstr((char *)term, "kitty") != NULL && ( ( term_strings[(int)(KS_CRV)] )  == NULL || * ( term_strings[(int)(KS_CRV)] )  == NUL))
+    if (musl_strstr((char *)term, "kitty") != NULL && ( ( term_strings[(int)(KS_CRV)] )  == NULL || * ( term_strings[(int)(KS_CRV)] )  == NUL))
     {
          ( term_strings[(int)(KS_CRV)] )  = (char_u *)"\033[>c";
     }
@@ -72113,13 +72375,13 @@ add_termcap_entry(char_u *name, int force)
     static int
 term_is_builtin(char_u *name)
 {
-    return ( strncmp((char *)(name), (char *)("builtin_"), ((size_t)8))  == 0);
+    return ( musl_strncmp((char *)(name), (char *)("builtin_"), ((size_t)8))  == 0);
 }
 
     static int
 term_is_8bit(char_u *name)
 {
-    return (detected_8bit || strstr((char *)name, "8bit") != NULL);
+    return (detected_8bit || musl_strstr((char *)name, "8bit") != NULL);
 }
 
     static int
@@ -72395,7 +72657,7 @@ term_font(int n)
     if (* ( term_strings[(int)(KS_CF)] ) )
     {
         char buf[20];
-        sprintf(buf, (char *) ( term_strings[(int)(KS_CF)] ) , 9 + n);
+        vim_snprintf(buf, sizeof(buf), (char *) ( term_strings[(int)(KS_CF)] ) , 9 + n);
          out_str((char_u *)(buf)) ;
     }
 }
@@ -72406,14 +72668,14 @@ term_color(char_u *s, int n)
     char        buf[20];
     int         i = *s == CSI ? 1 : 2;
 
-    if (n >= 8 && t_colors >= 16 && ((s[0] == ESC && s[1] == '[') || (s[0] == CSI && (i = 1) == 1)) && s[i] != NUL && ( strcmp((char *)(s + i + 1), (char *)("%p1%dm"))  == 0 ||  strcmp((char *)(s + i + 1), (char *)("%dm"))  == 0) && (s[i] == '3' || s[i] == '4'))
+    if (n >= 8 && t_colors >= 16 && ((s[0] == ESC && s[1] == '[') || (s[0] == CSI && (i = 1) == 1)) && s[i] != NUL && ( musl_strcmp((char *)(s + i + 1), (char *)("%p1%dm"))  == 0 ||  musl_strcmp((char *)(s + i + 1), (char *)("%dm"))  == 0) && (s[i] == '3' || s[i] == '4'))
     {
         char *format = "%s%s%%dm";
         char *lead = i == 2 ? ("\033[") : "\233";
         char *tail = s[i] == '3' ? (n >= 16 ? "38;5;" : "9")
                                  : (n >= 16 ? "48;5;" : "10");
 
-        sprintf(buf, format, lead, tail);
+        vim_snprintf(buf, sizeof(buf), format, lead, tail);
          out_str((char_u *)(tgoto(buf, 0, n >= 16 ? n : n - 8))) ;
     }
     else
@@ -72461,7 +72723,7 @@ term_ul_color(int n)
 term_bg_default(void)
 {
 
-    if ( strcmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("linux"))  == 0 ||  strcmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("screen.linux"))  == 0 ||  strncmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("cygwin"), (6))  == 0 ||  strncmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("putty"), (5))  == 0)
+    if ( musl_strcmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("linux"))  == 0 ||  musl_strcmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("screen.linux"))  == 0 ||  musl_strncmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("cygwin"), (6))  == 0 ||  musl_strncmp((char *)( ( term_strings[(int)(KS_NAME)] ) ), (char *)("putty"), (5))  == 0)
     {
         return (char_u *)"dark";
     }
@@ -73051,11 +73313,11 @@ add_termcode(char_u *name, char_u *string, int flags)
 
     if (flags != 0 && flags != ATC_FROM_TERM && term_7to8bit(string) != 0)
     {
-          memmove((char *)((s)), (char *)((s + 1)),  strlen((char *)(s + 1))  + 1)  ;
+          musl_memmove((char *)((s)), (char *)((s + 1)),  musl_strlen((char *)(s + 1))  + 1)  ;
         s[0] = term_7to8bit(string);
     }
 
-    len = (int) strlen((char *)(s)) ;
+    len = (int) musl_strlen((char *)(s)) ;
 
     need_gather = TRUE;
 
@@ -73093,7 +73355,7 @@ add_termcode(char_u *name, char_u *string, int flags)
             {
                 if (flags == ATC_FROM_TERM && (j = termcode_star(termcodes[i].code, termcodes[i].len)) > 0)
                 {
-                    if (len == termcodes[i].len - j &&  strncmp((char *)(s), (char *)(termcodes[i].code), (len - 1))  == 0 && s[len - 1] == termcodes[i].code[termcodes[i].len - 1])
+                    if (len == termcodes[i].len - j &&  musl_strncmp((char *)(s), (char *)(termcodes[i].code), (len - 1))  == 0 && s[len - 1] == termcodes[i].code[termcodes[i].len - 1])
                     {
                         vim_free(s);
                         return;
@@ -73127,7 +73389,7 @@ add_termcode(char_u *name, char_u *string, int flags)
 accept_modifiers_for_function_keys(void)
 {
     regmatch_T regmatch;
-      memset((&(regmatch)), (0), (sizeof(regmatch)))  ;
+      musl_memset((&(regmatch)), (0), (sizeof(regmatch)))  ;
     regmatch.rm_ic = TRUE;
     regmatch.regprog = vim_regcomp((char_u *)"^\033[\\d\\+\\~$", RE_MAGIC);
 
@@ -73146,12 +73408,12 @@ accept_modifiers_for_function_keys(void)
         char_u *s = termcodes[i].code;
         if (s != NULL && vim_regexec(&regmatch, s, (colnr_T)0))
         {
-            size_t len =  strlen((char *)(s)) ;
+            size_t len =  musl_strlen((char *)(s)) ;
             char_u *ns = alloc(len + 3);
             if (ns != NULL)
             {
-                 memmove((char *)(ns), (char *)(s), len - 1) ;
-                 memmove((char *)(ns + len - 1), (char *)(";*~"), 4) ;
+                 musl_memmove((char *)(ns), (char *)(s), len - 1) ;
+                 musl_memmove((char *)(ns + len - 1), (char *)(";*~"), 4) ;
                 vim_free(s);
                 termcodes[i].code = ns;
                 termcodes[i].len += 2;
@@ -73243,7 +73505,7 @@ switch_to_8bit(void)
             c = term_7to8bit(termcodes[i].code);
             if (c != 0)
             {
-                  memmove((char *)((termcodes[i].code + 1)), (char *)((termcodes[i].code + 2)),  strlen((char *)(termcodes[i].code + 2))  + 1)  ;
+                  musl_memmove((char *)((termcodes[i].code + 1)), (char *)((termcodes[i].code + 2)),  musl_strlen((char *)(termcodes[i].code + 2))  + 1)  ;
                 termcodes[i].code[0] = c;
             }
         }
@@ -73272,13 +73534,13 @@ put_string_in_typebuf(int     offset, int     slen, char_u  *string, int     new
             }
         }
 
-         memmove((char *)(typebuf.tb_buf + typebuf.tb_off + offset), (char *)(string), (size_t)new_slen) ;
+         musl_memmove((char *)(typebuf.tb_buf + typebuf.tb_off + offset), (char *)(string), (size_t)new_slen) ;
     }
     else
     {
         if (extra < 0)
         {
-             memmove((char *)(buf + offset), (char *)(buf + offset - extra), (size_t)(*buflen + offset + extra)) ;
+             musl_memmove((char *)(buf + offset), (char *)(buf + offset - extra), (size_t)(*buflen + offset + extra)) ;
         }
         else if (extra > 0)
         {
@@ -73286,9 +73548,9 @@ put_string_in_typebuf(int     offset, int     slen, char_u  *string, int     new
             {
                 return FAIL;
             }
-             memmove((char *)(buf + offset + extra), (char *)(buf + offset), (size_t)(*buflen - offset)) ;
+             musl_memmove((char *)(buf + offset + extra), (char *)(buf + offset), (size_t)(*buflen - offset)) ;
         }
-         memmove((char *)(buf + offset), (char *)(string), (size_t)new_slen) ;
+         musl_memmove((char *)(buf + offset), (char *)(string), (size_t)new_slen) ;
         *buflen = *buflen + extra + new_slen;
     }
     return OK;
@@ -73357,7 +73619,7 @@ handle_u7_response(int *arg, char_u *tp  __attribute__((unused)) , int csi_len  
         {
             aw = "double";
         }
-        if (aw != NULL &&  strcmp((char *)(aw), (char *)(p_ambw))  != 0)
+        if (aw != NULL &&  musl_strcmp((char *)(aw), (char *)(p_ambw))  != 0)
         {
             set_option_value_give_err((char_u *)"ambw", 0L, (char_u *)aw, 0);
             redraw_asap(UPD_CLEAR);
@@ -73947,7 +74209,7 @@ check_for_color_response(char_u *resp, int len)
                 int is_4digit = i - j >= 21 && resp[j + 11] == '/'
                                                   && resp[j + 16] == '/';
 
-                if (i - j >= 15 &&  strncmp((char *)(resp + j + 3), (char *)("rgb:"), (4))  == 0 && (is_4digit || (resp[j + 9] == '/' && resp[j + 12] == '/')))
+                if (i - j >= 15 &&  musl_strncmp((char *)(resp + j + 3), (char *)("rgb:"), (4))  == 0 && (is_4digit || (resp[j + 9] == '/' && resp[j + 12] == '/')))
                 {
                     char_u *tp_r = resp + j + 7;
                     char_u *tp_g = resp + j + (is_4digit ? 12 : 10);
@@ -73956,7 +74218,7 @@ check_for_color_response(char_u *resp, int len)
                     {
                         char *new_bg_val = (3 * '6' < *tp_r + *tp_g + *tp_b) ? "light" : "dark";
 
-                        if (!option_was_set((char_u *)"bg") &&  strcmp((char *)(p_bg), (char *)(new_bg_val))  != 0)
+                        if (!option_was_set((char_u *)"bg") &&  musl_strcmp((char *)(p_bg), (char *)(new_bg_val))  != 0)
                         {
                             set_option_value_give_err((char_u *)"bg", 0L, (char_u *)new_bg_val, 0);
                             reset_option_was_set((char_u *)"bg");
@@ -74212,7 +74474,7 @@ check_termcode(int         max_offset, char_u      *buf, int         bufsize, in
                 {
                     continue;
                 }
-                if ( strncmp((char *)(termcodes[idx].code), (char *)(tp), ((size_t)(slen > len ? len : slen)))  == 0)
+                if ( musl_strncmp((char *)(termcodes[idx].code), (char *)(tp), ((size_t)(slen > len ? len : slen)))  == 0)
                 {
 
                     if (len < slen)
@@ -74245,7 +74507,7 @@ check_termcode(int         max_offset, char_u      *buf, int         bufsize, in
                     {
                         continue;
                     }
-                    if ( strncmp((char *)(termcodes[idx].code), (char *)(tp), ((size_t)(modslen > len ? len : modslen)))  == 0)
+                    if ( musl_strncmp((char *)(termcodes[idx].code), (char *)(tp), ((size_t)(modslen > len ? len : modslen)))  == 0)
                     {
                         int         n;
 
@@ -74426,7 +74688,7 @@ replace_termcodes(char_u      *from, char_u      **bufp, scid_T      sid_arg  __
     src = from;
 
     ga_init2(&ga, 1L, 100);
-    if (ga_grow(&ga, (int)( strlen((char *)(src))  * 6 + 1)) == FAIL)
+    if (ga_grow(&ga, (int)( musl_strlen((char *)(src))  * 6 + 1)) == FAIL)
     {
         *bufp = NULL;
         return from;
@@ -74450,7 +74712,7 @@ replace_termcodes(char_u      *from, char_u      **bufp, scid_T      sid_arg  __
 
     while (*src != NUL)
     {
-        if (do_special && ((flags & REPTERM_DO_LT) ||  strncmp((char *)(src), (char *)("<lt>"), (4))  != 0))
+        if (do_special && ((flags & REPTERM_DO_LT) ||  musl_strncmp((char *)(src), (char *)("<lt>"), (4))  != 0))
         {
             int fsk_flags = FSK_KEYCODE
                         | ((flags & REPTERM_NO_SIMPLIFY) ? 0 : FSK_SIMPLIFY)
@@ -74521,7 +74783,7 @@ find_term_bykeys(char_u *src, int *matchlen)
 {
     int i;
     int j;
-    int         len = (int) strlen((char *)(src)) ;
+    int         len = (int) musl_strlen((char *)(src)) ;
     int         found = -1;
     int         foundlen = 1;
     int slen;
@@ -74544,7 +74806,7 @@ find_term_bykeys(char_u *src, int *matchlen)
 
         if (modslen > 0)
         {
-            if (len > modslen &&  strncmp((char *)(termcodes[i].code), (char *)(src), ((size_t)modslen))  == 0)
+            if (len > modslen &&  musl_strncmp((char *)(termcodes[i].code), (char *)(src), ((size_t)modslen))  == 0)
             {
                 thislen = 0;
 
@@ -74588,7 +74850,7 @@ find_term_bykeys(char_u *src, int *matchlen)
         }
         else
         {
-            if (slen > foundlen && len >= slen &&  strncmp((char *)(termcodes[i].code), (char *)(src), ((size_t)slen))  == 0)
+            if (slen > foundlen && len >= slen &&  musl_strncmp((char *)(termcodes[i].code), (char *)(src), ((size_t)slen))  == 0)
             {
                 found = i;
                 foundlen = slen;
@@ -74727,13 +74989,13 @@ show_one_termcode(char_u *name, char_u *code, int printit)
     p = get_special_key_name( (-((name[0]) + ((int)(name[1]) << 8))) , 0);
     if (p[1] != 't')
     {
-         strcpy((char *)(IObuff + 5), (char *)(p)) ;
+         musl_strcpy((char *)(IObuff + 5), (char *)(p)) ;
     }
     else
     {
         IObuff[5] = NUL;
     }
-    len = (int) strlen((char *)(IObuff)) ;
+    len = (int) musl_strlen((char *)(IObuff)) ;
     do
     {
         IObuff[len++] = ' ';
@@ -74786,7 +75048,7 @@ term_set_win_resize(bool state)
         }
         win_resize_enabled = false;
     }
-    else if ((*p_trz == NUL ||  strcmp((char *)(p_trz), (char *)("inband"))  == 0) && !win_resize_enabled)
+    else if ((*p_trz == NUL ||  musl_strcmp((char *)(p_trz), (char *)("inband"))  == 0) && !win_resize_enabled)
     {
         if (win_resize_setting == 2)
         {
@@ -76189,7 +76451,7 @@ get_input_buf(void)
         gap->ga_data = alloc(inbufcount + 1);
         if (gap->ga_data != NULL)
         {
-             memmove((char *)(gap->ga_data), (char *)(inbuf), (size_t)inbufcount) ;
+             musl_memmove((char *)(gap->ga_data), (char *)(inbuf), (size_t)inbufcount) ;
         }
         gap->ga_len = inbufcount;
     }
@@ -76211,13 +76473,13 @@ set_input_buf(char_u *p, int overwrite)
     {
         if (overwrite || inbufcount + gap->ga_len >= INBUFLEN)
         {
-             memmove((char *)(inbuf), (char *)(gap->ga_data), gap->ga_len) ;
+             musl_memmove((char *)(inbuf), (char *)(gap->ga_data), gap->ga_len) ;
             inbufcount = gap->ga_len;
         }
         else
         {
-             memmove((char *)(inbuf + gap->ga_len), (char *)(inbuf), inbufcount) ;
-             memmove((char *)(inbuf), (char *)(gap->ga_data), gap->ga_len) ;
+             musl_memmove((char *)(inbuf + gap->ga_len), (char *)(inbuf), inbufcount) ;
+             musl_memmove((char *)(inbuf), (char *)(gap->ga_data), gap->ga_len) ;
             inbufcount += gap->ga_len;
         }
         vim_free(gap->ga_data);
@@ -76242,11 +76504,11 @@ read_from_input_buf(char_u *buf, long maxlen)
     {
         maxlen = inbufcount;
     }
-     memmove((char *)(buf), (char *)(inbuf), (size_t)maxlen) ;
+     musl_memmove((char *)(buf), (char *)(inbuf), (size_t)maxlen) ;
     inbufcount -= maxlen;
     if (inbufcount > 0 && maxlen > 0)
     {
-         memmove((char *)(inbuf), (char *)(inbuf + maxlen), (size_t)inbufcount) ;
+         musl_memmove((char *)(inbuf), (char *)(inbuf + maxlen), (size_t)inbufcount) ;
     }
     return (int)maxlen;
 }
@@ -76304,9 +76566,9 @@ fill_input_buf(int exit_on_error  __attribute__((unused)) )
     {
         while (len > 0)
         {
-            if (ctrl_c_interrupts && ((inbuf[inbufcount] == Ctrl_C && !key_protocol_enabled()) || (len >= 10 &&  strncmp((char *)(inbuf + inbufcount), (char *)("\033[27;5;99~"), (10))  == 0) || (len >= 10 &&  strncmp((char *)(inbuf + inbufcount), (char *)("\033[27;5;67~"), (10))  == 0) || (len >= 7 &&  strncmp((char *)(inbuf + inbufcount), (char *)("\033[99;5u"), (7))  == 0) || (len >= 7 &&  strncmp((char *)(inbuf + inbufcount), (char *)("\033[67;5u"), (7))  == 0)))
+            if (ctrl_c_interrupts && ((inbuf[inbufcount] == Ctrl_C && !key_protocol_enabled()) || (len >= 10 &&  musl_strncmp((char *)(inbuf + inbufcount), (char *)("\033[27;5;99~"), (10))  == 0) || (len >= 10 &&  musl_strncmp((char *)(inbuf + inbufcount), (char *)("\033[27;5;67~"), (10))  == 0) || (len >= 7 &&  musl_strncmp((char *)(inbuf + inbufcount), (char *)("\033[99;5u"), (7))  == 0) || (len >= 7 &&  musl_strncmp((char *)(inbuf + inbufcount), (char *)("\033[67;5u"), (7))  == 0)))
             {
-                 memmove((char *)(inbuf), (char *)(inbuf + inbufcount), (size_t)(len)) ;
+                 musl_memmove((char *)(inbuf), (char *)(inbuf + inbufcount), (size_t)(len)) ;
                 inbufcount = 0;
                 got_int = TRUE;
             }
@@ -76319,7 +76581,7 @@ fill_input_buf(int exit_on_error  __attribute__((unused)) )
     static void
 read_error_exit(void)
 {
-     strcpy((char *)(IObuff), (char *)(_("Vim: Error reading input, exiting...\n"))) ;
+     musl_strcpy((char *)(IObuff), (char *)(_("Vim: Error reading input, exiting...\n"))) ;
     preserve_exit();
 }
 
@@ -76617,7 +76879,7 @@ u_savecommon(linenr_T    top, linenr_T    bot, linenr_T    newbot, int         r
         uhp->uh_flags = (curbuf->b_changed ? UH_CHANGED : 0) +
                        ((curbuf->b_ml.ml_flags & ML_EMPTY) ? UH_EMPTYBUF : 0);
 
-         memmove((char *)(uhp->uh_namedm), (char *)(curbuf->b_namedm), sizeof(pos_T) *  ('z' - 'a' + 1) ) ;
+         musl_memmove((char *)(uhp->uh_namedm), (char *)(curbuf->b_namedm), sizeof(pos_T) *  ('z' - 'a' + 1) ) ;
         uhp->uh_visual = curbuf->b_visual;
 
         curbuf->b_u_newhead = uhp;
@@ -76690,7 +76952,7 @@ u_savecommon(linenr_T    top, linenr_T    bot, linenr_T    newbot, int         r
     {
         goto nomem;
     }
-      memset(((uep)), (0), (sizeof(*(uep))))  ;
+      musl_memset(((uep)), (0), (sizeof(*(uep))))  ;
 
     uep->ue_size = size;
     uep->ue_top = top;
@@ -77238,7 +77500,7 @@ u_undoredo(int undo)
                ((curbuf->b_ml.ml_flags & ML_EMPTY) ? UH_EMPTYBUF : 0);
     setpcmark();
 
-     memmove((char *)(namedm), (char *)(curbuf->b_namedm), sizeof(pos_T) *  ('z' - 'a' + 1) ) ;
+     musl_memmove((char *)(namedm), (char *)(curbuf->b_namedm), sizeof(pos_T) *  ('z' - 'a' + 1) ) ;
     visualinfo = curbuf->b_visual;
     curbuf->b_op_start.lnum = curbuf->b_ml.ml_line_count;
     curbuf->b_op_start.col = 0;
@@ -77278,7 +77540,7 @@ u_undoredo(int undo)
                 {
                     char_u *p = ml_get(top + 1 + i);
 
-                    if (curbuf->b_ml.ml_line_len != uep->ue_array[i].ul_len || memcmp(uep->ue_array[i].ul_line, p, curbuf->b_ml.ml_line_len) != 0)
+                    if (curbuf->b_ml.ml_line_len != uep->ue_array[i].ul_len || musl_memcmp(uep->ue_array[i].ul_line, p, curbuf->b_ml.ml_line_len) != 0)
                     {
                         break;
                     }
@@ -77630,7 +77892,7 @@ ex_undolist(exarg_T *eap  __attribute__((unused)) )
             len = vim_snprintf((char *)IObuff,  (1024+1) , "%6ld %7d  ", uhp->uh_seq, changes);
             add_time(IObuff + len,  (1024+1)  - len, uhp->uh_time);
 
-            len += (int) strlen((char *)(IObuff + len)) ;
+            len += (int) musl_strlen((char *)(IObuff + len)) ;
             if (uhp->uh_save_nr > 0)
             {
                 int n = (len >= 33) ? 0 : 33 - len;
@@ -78045,10 +78307,10 @@ init_longVersion(void)
 
     char *date_time = __DATE__ " " __TIME__;
     char *msg = _("%s (%s, compiled %s)");
-    size_t len = strlen(msg)
+    size_t len = musl_strlen(msg)
         + sizeof(VIM_VERSION_LONG_ONLY) - 1
         + sizeof(VIM_VERSION_DATE_ONLY) - 1
-        + strlen(date_time);
+        + musl_strlen(date_time);
 
     longVersion = alloc(len);
     if (longVersion == NULL)
@@ -79560,7 +79822,7 @@ main
 (int argc, char **argv)
 {
 
-      memset((&(params)), (0), (sizeof(params)))  ;
+      musl_memset((&(params)), (0), (sizeof(params)))  ;
     params.argc = argc;
     params.argv = argv;
     params.want_full_screen = TRUE;
