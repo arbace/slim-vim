@@ -1113,29 +1113,31 @@ cut the file at the first `#include` and compile the upper part with
 header-free and self-contained — and it cannot pass vacuously, because a core still
 needing a header fails loudly.
 
-**`NULL` becomes `nil`, and it is an enumerator: `enum { nil = 0 };`** — one line, pure
-C, no directive. Settled by the user, 2026-09-18. It is a null pointer constant by
-C11 6.3.2.3p3 — *an integer constant expression with the value 0* — and an
-enumeration constant is an integer constant expression, so it works everywhere the
-file uses `NULL` today. MEASURED clean under `-Wall -Wextra` in a static initialiser,
-an aggregate initialiser, a comparison, a `return` and a prototyped argument.
+**`NULL` becomes `nullptr`, and there is nothing to declare.** Settled by the user,
+2026-09-18, in place of an earlier `enum { nil = 0 };` which this supersedes
+entirely. `nullptr` is a **C23 keyword**, and gcc here defaults to C23 — MEASURED,
+`__STDC_VERSION__` is `202311L` — so the core needs no declaration, no enumerator and
+no line at all for it. That is consistent with what the file already relies on: `enum
+: long` and `static_assert` are both C23 and both already load-bearing here.
 
-The name is not `NULL` deliberately. MEASURED, there is no hard collision —
-`enum { NULL = 0 };` followed later by `#include <stddef.h>` compiles clean, because
-the macro governs only the textual occurrences after it — but the token would then
-mean an enumerator above the boundary and a macro below it, which reads fine and
-misleads later. `nil` is also a character shorter than `NULL` at 2,558 occurrences.
+**It also disposes of the varargs hazard rather than managing it.** An enumerator
+with the value 0 is a null pointer constant everywhere *except* a variadic argument,
+where it would pass a four-byte `int` to a callee reading an eight-byte pointer with
+no warning from gcc — measured. `nullptr` is typed: MEASURED,
+`sizeof(nullptr) == sizeof(void *)`, so a variadic argument is pointer-sized and the
+rule the phase would otherwise have had to prove and then assert for ever — *no bare
+null constant inside a variadic argument list* — is not needed at all.
 
-**The one hazard is varargs, and it is silent.** In a variadic argument position
-`nil` passes a four-byte `int` where the callee reads an eight-byte pointer, and
-MEASURED, **gcc does not warn**. The file looks clean — of the nineteen lines where
-`NULL` appears near a variadic call, every one is the comma expression's own value
-(`return (semsg(…), rc_did_emsg = TRUE, (void *)NULL);`), an argument to a prototyped
-inner call such as `transchar_buf(NULL, name)`, or a comparison — but a line-grep is
-not proof for a bug that compiles silently, so the phase must verify it properly. The
-convention is already right in the source: those eighteen sites write `(void *)NULL`
-and become `(void *)nil`. **The check states it as a rule: no bare `nil` inside a
-variadic argument list.**
+**`size_t` becomes `usize`, derived rather than asserted:
+`typedef typeof(sizeof(0)) usize;`.** Settled by the user with the same message.
+`typeof` is C23 and `sizeof(0)` has type `size_t` by definition, so this *is* `size_t`
+on any target — MEASURED with `_Generic((usize)0, size_t: 1, default: 0)`, which holds,
+so the two are the same type and not merely the same width. The alternative that was
+on the table, `typedef unsigned long size_t;`, is correct on this target and silently
+wrong on one where `size_t` is not `unsigned long`; this spelling cannot be. The
+distinct name keeps the core from shadowing a name libc typedefs again below the
+boundary, and nothing outside forces libc's spelling any more, the vendored
+`musl_mem*`/`musl_str*` signatures being the core's own since phases 14 and 15.
 
 **MEASURED, the size of what is left to do.** Moving the eleven `#include`s down to
 just above the host block leaves a core of **79,928 lines** and a host of **235**,
