@@ -101,6 +101,15 @@ zero-vim.c: force
 # The rest of the awk drops trailing blank lines, so the file ends on its last line
 # of code rather than on whatever blank separated the core from the host.
 #
+# THE PATTERN IS `^ *# *include `, NEVER `^#include`, and tools/macros.py already
+# carries the reason: whitespace between `#` and the keyword is insignificant to C,
+# and this tree has had plenty of `# define` -- what the conditional-resolution pass
+# left when it dedented `#  define` by one level and stopped.  A cut that missed
+# ` # include` would not fail, it would run PAST the boundary and take the host with
+# it.  So the rule also refuses if the file it wrote holds a `#` of any kind: the
+# defining property of the upper part is that it has no directive, and a cut that
+# produced one has found the wrong line.
+#
 # IT DOES NOT COMPILE ON ITS OWN, AND THAT IS CORRECT, not a defect to fix: the core
 # calls the musl_ functions the host defines below, so the upper part declares them
 # and defines none.  What it must do is PARSE -- `gcc -fsyntax-only` with no errors
@@ -113,8 +122,13 @@ zero-vim.c: force
 # the phase changes the source and not the makefile.
 .PHONY: editor.c
 editor.c: zero-vim.c
-	@awk '/^#include/ { exit } { a[NR] = $$0; if (NF) last = NR } \
+	@awk '/^ *# *include / { exit } { a[NR] = $$0; if (NF) last = NR } \
 	      END { for (i = 1; i <= last; i++) print a[i] }' $< > $@
+	@if grep -q '#' $@; then \
+	    echo "  editor.c     REFUSED -- the cut holds a directive, so it found the wrong line:"; \
+	    grep -n '#' $@ | head -3 | sed 's/^/               /'; \
+	    rm -f $@; exit 1; \
+	 fi
 	@printf '  %-12s %s lines, cut at the first #include of %s\n' "$@" \
 	    "`grep -c '' $@ | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`" \
 	    "`grep -c '' $< | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'`"
