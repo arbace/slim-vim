@@ -15,7 +15,15 @@ set -eu
 row() {
     name=$1; src=$2; bin=$3; ldflags=${4:--static -s}; cflags=${5:--O0}
     [ -f "$src" ] || { printf '  %-10s %s\n' "$name" "absent"; return; }
-    if [ ! -f "$bin" ]; then
+    # BUILD WHEN THE BINARY IS MISSING **OR OLDER THAN THE SOURCE**.  Testing only
+    # for absence reports the bytes of whatever was lying about: measured, after
+    # zero phases 14-16 this printed 799,816 for a source that builds to 805,544,
+    # because the binary on disk predated them by eight hours.  The lines and the
+    # symbols were right -- both are recomputed from the source below -- so the one
+    # stale column was the plausible-looking one.  That is CLAUDE.md's "a clean
+    # rebuild is byte-identical check passes if the rebuild never happened", in the
+    # place that reports the number rather than the place that checks it.
+    if [ ! -f "$bin" ] || [ "$src" -nt "$bin" ]; then
         ( cd "$(dirname "$src")" >/dev/null 2>&1 || true
           gcc $cflags $ldflags -o "$bin" "$src" 2>/dev/null ) || true
     fi
