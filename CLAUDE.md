@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Three hundred and eighty-two tracked files once all three pipelines have run
+Three hundred and eighty-four tracked files once all three pipelines have run
 (`git ls-files`): nineteen at the root, 198 under `pipes/` — the phase programs,
-twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and seventeen for
-`zero.mk`'s ten, and each staged pipeline's stage manifest and declared delta — and
+twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and nineteen for
+`zero.mk`'s eleven, and each staged pipeline's stage manifest and declared delta — and
 165 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
 phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Four of the nineteen are products
@@ -84,7 +84,7 @@ phase in `pipes/` is either one file, `<pipeline><N>.sh`, or two,
 `<pipeline><N>-edit.sh` and `<pipeline><N>-check.sh`, and is run by the memoize
 driver as phase N of that pipeline and by nothing else; everything a phase calls
 lives in `tools/`. Every slim phase, whim phase 0 and zero phases 0, 1 and 3 are one file;
-whim phases 1–82 and zero phases 2 and 4–9 are split.
+whim phases 1–82 and zero phases 2 and 4–10 are split.
 
 **A split phase is an edit and a check, and the sweep is the driver's.** The
 programs' last sweep used to be the line between the two, and 70–90% of every
@@ -142,10 +142,10 @@ Both run from the repository root, so a path in either names the other directly.
 scratch roots of `whim-verify` and `whim-specpass` link both in.
 
 **The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed, a flag,
-seven cuts and an instrument.**
+eight cuts and an instrument.**
 `ZERO-GOAL.md` states what it is for — an embeddable editor core that keeps the
 screen and all visual editing and loses the filesystem, with `main()` demoted to a
-host launcher and the text later held as a tree — and has ten phases:
+host launcher and the text later held as a tree — and has eleven phases:
 `pipes/zero0.sh`, the seed; `pipes/zero1.sh`, which adds `-fno-stack-protector`;
 `pipes/zero2-edit.sh` with `pipes/zero2-check.sh`, the first source cut — the two
 "not to a terminal" warnings, the two-second pause after them and `--ttyfail`;
@@ -168,10 +168,26 @@ surviving handlers and not `nv_cmds[]` rows, six anchors and seventeen functions
 sweep finds; and `pipes/zero9-edit.sh` with `pipes/zero9-check.sh`, which takes the
 machinery under all of those — `readfile()`, `read_buffer()` and the message layer
 that reported what had been read, four anchors all inside `open_buffer()` and sixteen
-functions the sweep finds — so `zero-vim.c` is now 82,572 lines
+functions the sweep finds; and `pipes/zero10-edit.sh` with `pipes/zero10-check.sh`,
+which takes the buffer's **name** — `:file`, `buflist_new()`'s two name parameters,
+sixteen folds of `b_ffname`/`b_sfname`/`b_fname`, and three further folds that free
+the last three questions the core asked the filesystem — seven parts and **sixty**
+functions the sweep finds, the most any zero phase has handed it — so `zero-vim.c` is
+now 80,387 lines
 against `whim-vim.c`'s 86,614, and `access`, `fcntl` and `open` join the six libc
-symbols phase 6 freed: phases 7 and 8 free none and say so as an equality, and
-phase 9 names the set it frees rather than the count.
+symbols phase 6 freed, with `getcwd`, `stat` and `strerror` at phase 10: phases 7
+and 8 free none and say so as an equality, and phases 9 and 10 name the set each
+frees rather than the count.
+
+**After zero phase 10 the core cannot acquire a file descriptor, and that is an
+invariant rather than a count.** `open`, `access` and `fcntl` went at phase 9 and
+`stat`, `getcwd` and `strerror` at phase 10, with `chmod fchmod fstat ftruncate
+lstat unlink` already gone at phase 6 — so nothing in `zero-vim.c` can name anything
+on a disk, and `read`, `write`, `close` and `dup` work on fds 0, 1 and 2 alone.
+Phase 10's check asserts it in both directions: the undefined set must move by
+exactly `getcwd stat strerror`, none of the eleven may be back, and `read close dup
+fsync` must still be there — `fsync` being `ui_write()`'s and the `FILE *` phase's.
+`ZERO-PLAN.md` §4b states the invariant and is assertable from here on.
 
 **Phase 9 is the one zero phase no recording can see, and it says so.** `readfile()`
 was already unreachable when it ran — phases 5 to 8 had taken every way to name a
@@ -187,7 +203,7 @@ Phases are added one at a time, on request. Its input is the **committed**
 `whim-vim.c`, immutable, and `whim.sha` records the one a committed `zero-vim.c` was
 produced from, exactly as `slim.sha` does for whim. It is born staged:
 `pipes/zero.stages` (a stage per phase and six packages: `seed 0`, `build 1`,
-`terminal 2`, `harness 3`, `streams 4 5`, `files 6 7 8 9`, with `apart 2 4` — phase 2's
+`terminal 2`, `harness 3`, `streams 4 5`, `files 6 7 8 9 10`, with `apart 2 4` — phase 2's
 check runs both its binaries with `-e -s`, which phase 4 removes — `apart 4 5`,
 because phase 4's check names `EDIT_STDIN`, `had_minmin`, `buflist_add` and
 `ME_TOO_MANY_ARGS` as things the argv phase is still to take, `apart 5 6`,
@@ -196,16 +212,20 @@ six, `apart 6 7`, because phase 6's check names `do_bang` as a later phase's and
 requires 105 rows, `apart 7 8`, because phase 7's check names `do_ecmd` and
 `otherfile` as a later phase's and requires 104 rows with `:edit` among them,
 `apart 8 9`, because phase 8's check requires `readfile` at 5 mentions and
-`read_buffer` at 17 and phase 9 takes both to 0, and
-three `need`s, `need 7 swept` — phase 7's `usefilter` anchor counts eleven mentions on
+`read_buffer` at 17 and phase 9 takes both to 0, `apart 9 10`, because phase 9's
+check draws its line against the name phase as counts — `b_ffname` 32, `b_fname` 29
+and sixteen more — and phase 10 takes every one to 0, and
+four `need`s, `need 7 swept` — phase 7's `usefilter` anchor counts eleven mentions on
 the text phase 6's edit leaves and ten on the swept one — `need 8 swept`, phase
 8's `readfile` anchor counting seven where it wants five, `ex_read` still being there
 to make two of them, and `need 9 swept`, phase 9's `open_buffer` anchor counting six
 where it wants five, `do_ecmd` still being there to make the one call site its
-signature fold would not rewrite) and `pipes/zero.delta`
+signature fold would not rewrite, and `need 10 swept`, phase 10's `b_ffname` anchor
+counting forty where it wants 32, `readfile()` still being there to make eight of
+them) and `pipes/zero.delta`
 (`2 stderr-moved`, phase 4's six records, phase 5's six command lines, phase 6's
 two cases and six command rows, phase 7's two cases and one, phase 8's two cases
-and five, and **nothing at all for phase 9**), checked
+and five, **nothing at all for phase 9**, and phase 10's one case and one row), checked
 by `tools/stages.sh zero` and `tools/packages.sh zero` as whim's are.
 
 **A phase can break a harness rather than change behaviour, and the two must not be
@@ -292,7 +312,7 @@ zero-vim.c     whim-vim.c, on its way to an embeddable core
 Makefile       the seed: builds all three, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
-zero.mk        zero-vim.c = H(whim-vim.c), the same construct, ten phases so far
+zero.mk        zero-vim.c = H(whim-vim.c), the same construct, eleven phases so far
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
 whim.sha       the whim-vim.c zero-vim.c was produced from
@@ -789,11 +809,11 @@ re-indents a line of it, shows up here rather than as a wrong answer later.
 constraint. `zero-vim.c` has no `ex_cmdidxs.h` banners left — whim's Phase 80 took
 the derived index with the 489 stub rows — so what zero uses is `names()`, and
 `tools/zexcmds.py` enumerates the whole command sweep through it. Zero phase 6
-deleted six rows, phase 7 a seventh and phase 8 five more, 111 → 99 — **which is
-why the floor is 80 and was 100**. It was lowered in phase 8's own commit, which is
-the phase that crosses it (`ZERO-PLAN.md` decision 8), never silently and with the
-reason in the tool's docstring; the margin is **19 rows** and the next row the plan
-removes is `:file`'s. Two things that edit taught, both measured. The failure is not
+deleted six rows, phase 7 a seventh, phase 8 five more and phase 10 `:file`'s,
+111 → 98 — **which is why the floor is 80 and was 100**. It was lowered in phase 8's
+own commit, which is the phase that crosses it (`ZERO-PLAN.md` decision 8), never
+silently and with the reason in the tool's docstring; the margin is **18 rows**.
+Two things that edit taught, both measured. The failure is not
 the one the name suggests — `names()` tries both parsers with `check=False`, so a
 99-row table came back as `no command table found in either shape` rather than as a
 count. And **it moved 28 of the 115 implementation keys**: 6 whim stages, 15 whim

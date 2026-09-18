@@ -514,17 +514,17 @@ permutation — §2g's fifth break is what happens otherwise.
 | 6 | no read — **built, as zero phase 7** | the `CMD_read` row and enumerator and `do_one_cmd`'s `:r!`/`:r !cmd` parse; the sweep then takes `ex_read`, `do_bang`, `do_shell`, `do_filter`, `check_secure` and `prevcmd_is_set` — **6 functions exact; the file 84,675 → 84,453**, which is 222 lines and not 194, the extra being the `usefilter` fold below | — | **`cmd_read` and `read_cmd_gone`; the sweep row `read` CEASES TO EXIST — but NOT `filter_gone`**, which was E492 on the input binary already |
 | 7 | no `:edit`, and no `gf` — **built, as zero phase 8** | the five rows and enumerators, `do_one_cmd`'s `curbuf_locked()` exemption for `:edit` and its `++opt` parse, and the `gf`/`gF` and `[f`/`]f` **arms** — there are no `nv_cmds[]` rows for them; the sweep then takes `do_ecmd` (328), `do_exedit`, `ex_edit`, `grab_file_name`, `otherfile`, `nv_gotofile`, `text_or_buf_locked`, `check_lnums*`, `prepare_help_buffer`, `getargopt` and six more — **17 functions; the file 84,453 → 83,755** | — | **`cmd_edit` and `key_gf`; the five sweep rows CEASE TO EXIST** |
 | 8 | nothing reads a byte — **built, as zero phase 9** | `open_buffer`'s two read arms, its `read_fifo` local and its signature; the sweep then takes `readfile` (787), `read_buffer`, `read_eintr`, `readfile_linenr`, `filemess`, `msg_add_fname`, `msg_add_lines`, `msg_add_eol` and eight more — **16 functions; the file 83,755 → 82,572**. `read_stdin` here is the ARGUMENT, not the function: `read_stdin()` was argv's and went with zero phase 5. `mch_isdir` and `set_rw_fname` land here and not in row 9 | `open access fcntl`, exactly | **nothing at all**: two full recordings byte-identical. The evidence is an instrumented build, not a record — see below |
-| 9 | the buffer has no name | `b_ffname`/`b_sfname`/`b_fname` (58/30/42 mentions), `setfname`, `buflist_new`'s naming, `otherfile_buf`, `buf_setino`, `buf_spname`, `shorten_*`, `home_replace*`, `fix_fname`, `vim_FullName`, `mch_FullName`, `mch_dirname`, `mch_isdir`, `mch_getperm`, `eval_vars` (242), `expand_filename` (132), `find_cmdline_var`, `get_spec_reg`'s `%`/`#`/CTRL-F/CTRL-P, `:file`, `get_trans_bufname`, `set_b0_fname`, `ml_upd_block0`, `ml_timestamp`, `check_changed_any`, the wildcard remnants; **`mch_isdir` and `set_rw_fname` are not here — zero phase 9 took both**, and `setfname` has one caller left because of it | `stat getcwd strerror`; **not `fsync`**, whose only caller is `ui_write` and which is row 12's | `cmd_file`, `reg_percent`, `ctrl_g` (the name in the info line), `startup`/`ruler_move` if the status line changes; sweep row `file` |
+| 9 | the buffer has no name — **built, as zero phase 10** | `:file`'s row, enumerator and BOTH of `do_one_cmd`'s `CMD_file` tests; `buflist_new`'s two name parameters and everything it did with them; sixteen folds of `b_ffname`/`b_sfname`/`b_fname` (**32/26/29 mentions, not 58/30/42** — phase 9 had already taken eleven of them); `do_one_cmd`'s `EX_XFILE` call, which reaches zero rows here; `readonlymode` and `b_dev_valid`'s last write; `shorten_fnames`' cwd; and `find_file_name_in_path`'s `FNAME_EXP` arm. The sweep then takes **60 functions** — `setfname`, `ex_file`, `rename_buffer`, `otherfile_buf`, `buf_setino`, `fix_fname`, `ml_upd_block0`, `ml_timestamp`, `eval_vars`, `expand_filename`, `find_cmdline_var`, the whole `ExpandOne`/`gen_expand_wildcards` layer, `vim_FullName`, `mch_FullName`, `mch_dirname`, `mch_getperm`, `shorten_*`, `home_replace_save` and the `ff_*` remnants — with twelve `buf_T` fields and 43 string literals; **the file 82,572 → 80,387**. `buf_spname` and `get_spec_reg` are NOT removed: both survive folded, `[No Name]` being the only answer left. **`mch_isdir` and `set_rw_fname` are not here — zero phase 9 took both**, and `setfname` had one caller left because of it | `stat getcwd strerror`, exactly — and **only with the `shorten_fnames` and `FNAME_EXP` folds**: `stat`'s last caller is `mch_getperm`, `getcwd`'s and `strerror`'s is `mch_dirname`. **Not `fsync`**, whose only caller is `ui_write` and which is row 12's | **`cmd_file` and the sweep row `file`, and nothing else**: `reg_percent` and `ctrl_g` are byte-identical, `b_fname` having been NULL since row 4 and `[No Name]` already what they printed |
 | 10 | `:q` quits, `ZZ` is `ZQ` | `check_changed`, `no_write_message`, `no_write_message_nobang`; **`nv_Zet`'s `:x` is not here — zero phase 6 took it** | — | **`quit_modified` and the sweep row `quit`, and nothing else**: the measurement below was taken before zero phase 8, which has since moved `cmd_edit` and removed the rows `edit enew ex view visual` |
 | 11 | the options nothing reads | `'fsync'`, `'write'`, `'writeany'`, `'undoreload'`, and `'readonly'` by decision; `'shortmess'` and `'cpoptions'` letters that lost their readers. **`'paste'` is exempt and the phase says so** | — | none (`:set` is not swept); `tools/dropoptions.py --strict` refuses while a reader exists, which is the check |
 | 12 | no `FILE *` that is never opened | `scriptin[]` (3739, never assigned), `redir_fd` (3777, never assigned), `ui_write`'s `console` (its only caller passes `FALSE`) | `fclose getc fputs putc` | none |
 
-**Seven rows are built, and the numbering is not the table's.** Row 2 ran as zero
+**Eight rows are built, and the numbering is not the table's.** Row 2 ran as zero
 phase 2, row 3 as zero **phase 4**, row 4 as zero **phase 5**, row 5 as zero
-**phase 6**, row 6 as zero **phase 7**, row 7 as zero **phase 8** and row 8 as zero
-**phase 9**, because the harness switch of §2 landed between rows 2 and 3 as
-phase 3. `ZERO-GOAL.md` is what each one did; where this table turned out to be wrong is
-said at the row.
+**phase 6**, row 6 as zero **phase 7**, row 7 as zero **phase 8**, row 8 as zero
+**phase 9** and row 9 as zero **phase 10**, because the harness switch of §2 landed
+between rows 2 and 3 as phase 3. `ZERO-GOAL.md` is what each one did; where this
+table turned out to be wrong is said at the row.
 
 #### P2 — nothing asks whether this is a terminal
 
@@ -654,7 +654,7 @@ program names none of them.
 a table of fewer than 100 rows, and it is what the command sweep enumerates — had
 five rows of margin after P5 and **four** after P6, not eleven. P7 spent the rest
 (104 → 99) and lowered the floor to **80** in its own commit, as decision 8 says.
-The margin is 19 rows and the next row this plan removes is P9's `:file`.
+The margin is 19 rows and P9's `:file` spent one of them, 99 → 98: 18 left.
 
 **As built (zero phase 7), four things the P6 row did not foresee.** *`filter_gone`
 is not this phase's delta*: `:!` has not existed since whim, so `:%!sort` already
@@ -709,7 +709,31 @@ and then in `open_buffer()` (104 of 106, the identical instrument). The row's
 "probed by the argv record and by `startup`" could not have worked: those records do
 not move.
 
-Two things P9 must decide rather than compute, both already measured:
+**As built (zero phase 10), six things the P9 row did not foresee.** *The three
+name fields are 32/26/29 mentions, not 58/30/42*: zero phase 9 took eleven of them
+with `readfile()`, and the count the row carried was whim-vim's. *`buf_spname()`,
+`buf_get_fname()`, `get_spec_reg()`, `get_trans_bufname()`, `fileinfo()` and
+`check_fname()` are NOT removed* — the row lists them among what goes, and every one
+survives folded, because `[No Name]` is what they answer and `fileinfo()` still has
+three callers. *There is an anchor the row does not list and it is the largest part
+of the phase*: `EX_XFILE` reaches zero rows once `:file`'s goes — `:read` was one of
+its six and phase 7 took it, four more went with the `:edit` family at phase 8 — so
+`do_one_cmd`'s `expand_filename()` call can never be entered, and folding it hands
+the sweep 32 of the sixty functions. It is phase 8's `EX_ARGOPT` exactly. *The freed
+set is right only with two further folds*: `getcwd` and `strerror` need
+`shorten_fnames()` to stop fetching a cwd for a now-empty `shorten_buf_fname()`, and
+`stat` needs `find_file_name_in_path`'s `FNAME_EXP` arm folded away — which costs
+CTRL-F and CTRL-P their difference, both becoming pure text extraction, and is the
+charter reading. *The delta is one case and one row, not four*: `reg_percent` and
+`ctrl_g` are byte-identical, `b_fname` having been NULL since zero phase 5 and
+`[No Name]` already what they printed, and `:registers` never printed its `"%` and
+`"#` lines at all. And *`buflist_name_nr` must be folded at its callers and never in
+place*: folding `buf == NULL || b_fname == NULL` away inside it returns OK with
+`*fname` never written, a silent behaviour change in the direction that crashes,
+where the truth is that it returns FAIL always.
+
+Two things P9 must decide rather than compute, both already measured — and both
+came out as written:
 
 * **`[No Name]` is already the answer.** `buf_get_fname()` (5617) returns
   `_("[No Name]")` when `b_fname` is `NULL`, and `win_redr_status` (11277) already
@@ -845,9 +869,11 @@ The rows are the order the *measurement* was taken in, not the order the phases
 run in: P8's own cut is what is left of `readfile` once P7 has taken a caller of
 `open_buffer` — **not of `readfile`**, which is the same correction the `uses` line
 above carries, measured as zero phase 8 — and P9's is the largest of them whichever
-side of P8 it falls. `stat` is not in any
-row because its last call site is `buflist_new`'s naming branch, which P9 folds
-rather than deletes.
+side of P8 it falls. **`stat` is P9's, and not for the reason this said**: the last
+call site is not `buflist_new`'s naming branch but `mch_getperm()`, reached from
+`find_file_in_path()`, so it goes only because P9 also folds
+`find_file_name_in_path`'s `FNAME_EXP` arm — measured as zero phase 10, where the
+undefined set moves by exactly `getcwd stat strerror`.
 
 5,636 lines is **6.5 %** of 86,614. The folds add to it and are **estimated**, not
 measured: `exmode_active` (49 mentions), `silent_mode` (23), `stdout_isatty` (6),
@@ -885,7 +911,10 @@ Almost nothing, and the residue is nameable:
 * **`read`/`write`/`close`/`dup` on fds 0, 1 and 2.** After P8 there is no `open`,
   so the process cannot acquire a fourth descriptor — an invariant a phase check can
   assert mechanically (no `open`/`creat`/`openat`/`mkdir`/`rename`/`unlink`/
-  `readlink`/`opendir` in the source, and none in `nm -u`).
+  `readlink`/`opendir` in the source, and none in `nm -u`). **It is asserted from
+  zero phase 10 on**, which is where the last of them went: `access fcntl open` at
+  phase 9 and `getcwd stat strerror` at phase 10, and phase 10's check requires all
+  eleven to be absent from `nm -u` while `read close dup fsync` stay.
 * **`time()` and `gettimeofday()`.** `vim_time()` feeds undo's *"1 second ago"* and
   the command-line history's timestamps; `gettimeofday` times `:sleep`, the bell,
   key timeouts and OSC replies. The undo message is the one nondeterminism the
