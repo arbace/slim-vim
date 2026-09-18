@@ -1142,8 +1142,9 @@ boundary, and nothing outside forces libc's spelling any more, the vendored
 **MEASURED, the size of what is left to do.** Moving the eleven `#include`s down to
 just above the host block leaves a core of **79,928 lines** and a host of **235**,
 and the compile gives **660 errors, every one of them a libc type or macro the core
-takes from a header**: `size_t` 263, `va_list` 11 (which the variadic collapse
-removes anyway), `INT_MAX` 8, `time_t` 5, `sig_atomic_t` 5, and `NULL`. Giving the
+takes from a header**: `size_t` 263, `va_list` 11 — which zero phase 22 has since
+taken to 8, in four functions that all go below the boundary, so the core declares
+nothing for it — `INT_MAX` 8, `time_t` 5, `sig_atomic_t` 5, and `NULL`. Giving the
 core its own declarations for those is the whole of the remaining work, and it is the
 same work the two-file version needed — the difference is everything else it was
 going to cost.
@@ -1255,13 +1256,26 @@ already use. Counts: `semsg` ~94, `vim_snprintf_safelen` ~11, `smsg` ~10, `siems
 ~10, the rest ~3, and `vim_snprintf`'s ~66 sites are a pure rename. About **130
 sites**.
 
-**It splits into two steps and only the second needs two files.** The wrapper
-expansion can be done in one translation unit against the core's own `vim_snprintf`,
-taking `va_start` from eight functions to one; the split then moves `vim_snprintf`,
-`vim_vsnprintf` and `vim_vsnprintf_typval` to the host, and the core keeps the
-prototype alone. The first step's declared delta must be nothing at all and is
-checkable as a byte-identical recording, which is a much stronger position to do 130
-mechanical edits from than doing them during a file split.
+**It splits into two steps, and the first of them is DONE — zero phase 22.** The
+wrapper expansion ran in one translation unit against the core's own `vim_snprintf`,
+taking `va_start` from eight functions to one; the reorganisation then puts the
+remaining variadic functions below the first `#include`, and above it there is only
+the prototype. The first step's declared delta was nothing at all and was checked as
+a byte-identical recording, which is a much stronger position to make the mechanical
+edits from than making them while the file is being rearranged.
+
+**As built, and two corrections the phase forced on the paragraph above.** It was
+**129** sites, not ~130, and the split by wrapper is `semsg` 94, `vim_snprintf_safelen`
+11, `smsg` 10, `siemsg` 10, `smsg_attr` 2, `smsg_attr_keep` 1, `vim_snprintf_add` 1.
+And **four functions still hold a `va_list`, not three**: `vim_snprintf`,
+`vim_vsnprintf`, `vim_vsnprintf_typval` and **`skip_to_arg`**, the positional-argument
+walker, which this section had missed. All four go below the boundary.
+
+**The counts in the table above are now the INPUT figures, not the tree's.** After
+phase 22: `va_start` 1, `va_list` 8, `va_end` 3, `va_arg` 21 unchanged. And under the
+one-file design nothing "moves to the host" in the sense of leaving the file — the
+four functions end up below the first `#include`, in the same translation unit, which
+is why the phase freed no symbol and asserted that as an equality.
 
 **The split necessarily ends "nothing is global but `main()`" — and replaces it with
 a named list rather than with nothing.** The user's constraint, 2026-09-18: *"of
