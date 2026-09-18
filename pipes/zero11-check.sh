@@ -629,7 +629,7 @@ PY
 # `:q` and the `:q!` reaches nothing.  An ordinary editing session beside it must be
 # identical either side.
 python3 - "$state/old" "$bin" <<'PY'
-import os, sys, tempfile
+import os, re, sys, tempfile
 sys.path.insert(0, 'tools')
 import ptyrun
 TAG = 'noquit'
@@ -672,7 +672,26 @@ if ':q!' not in o:
 # TERMINAL, and E37 is the whole of that.
 eo, eos = session(sys.argv[1], EDIT)
 en, ens = session(sys.argv[2], EDIT)
-if eo != en or eos != ens:
+# THE EDITING SESSION IS COMPARED WHOLE, WITH ONE FIELD BLINDED, AND THE FIELD IS A
+# WALL CLOCK.  The `u` prints `1 change; before #3  N second(s) ago`, where N is how
+# long ago the change was made -- a reading of the clock, which neither binary
+# decides.  ptyrun writes the keystrokes 0.6 s apart, so the elapsed time from the
+# `A-tail` ESC to the `u` sits ON the one-second boundary, and which side of it the
+# two sessions fall is how busy the machine is.  That, and nothing else, is what
+# failed `make zero-pass` here on a tree whose r11 `make zero-verify` had reproduced
+# minutes earlier.  MEASURED, on the two binaries this check is handed, under a load
+# that crosses the boundary and comes back: 30 of 240 runs of this section failed
+# (12.5 %), every one of them with the message below and differing in that field
+# ALONE -- 480 sessions produced exactly two texts, `0 seconds ago` and `1 second
+# ago` -- and 0 of 120 failed with the field blinded.  Everything else in the stream,
+# `1 change; before #3` included, is still compared byte for byte, and the guard
+# below is what stops the blinding from quietly becoming a blinding of nothing.
+AGO = re.compile(r'\d+ seconds? ago')
+if 'change; before #' not in eo or not AGO.search(eo):
+    fail.append('the undo report with its `N seconds ago` is not in the pty session '
+                'on the input binary, so blinding the clock blinds nothing and the '
+                'comparison below is not the one described: %r' % eo[-200:])
+if AGO.sub('<ago>', eo) != AGO.sub('<ago>', en) or eos != ens:
     fail.append('an ordinary pty editing session moved, and nothing here may move it')
 if 'alpha' not in en:
     fail.append('the pty editing session did nothing, so "identical" is two '
