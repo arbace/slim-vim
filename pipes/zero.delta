@@ -690,3 +690,44 @@
 # bytes: the identical 115 in the identical 53 functions before and after -- phase 22's
 # invariant -- with two controls that break it in opposite directions, vim_snprintf's
 # `format(printf, 3, 4)` removed giving 0 and `_()`'s `format_arg(1)` removed giving 135.
+#
+# 25 DECLARES NOTHING AT ALL, and it is NOT phase 23's and 24's kind: THE BINARY IS NOT
+# BYTE-IDENTICAL AND THE PHASE DOES NOT AIM FOR IT.  The core reached the host through
+# two function pointers -- `vim_host_exit`, phase 19's, and `vim_host_message`, phase
+# 21's -- each a file-scope object installed through a parameter of `vim_main()` that
+# `main()` passed.  The one reason they were pointers is gone: pipes/zero19-edit.sh put
+# it plainly, "a pointer the launcher installs through a parameter adds no external
+# symbol, where a `musl_exit(int)` the host defines would", which was true of a design
+# with TWO TRANSLATION UNITS.  ZERO-PLAN.md 4c is now ONE FILE with the first `#include`
+# as the boundary, so the host's definitions sit below the core in the same translation
+# unit and a `static` forward declaration plus a direct call does the same job with less
+# machinery and no global to avoid.  Two objects, two parameters, two assignments and two
+# arguments go; two prototypes arrive, at the end of the nine `musl_` ones phase 20 left,
+# so the core -> host boundary is ONE block of eleven declarations.  80,178 -> 80,173
+# lines, and `vim_main(int argc, char **argv)` is the signature phase 18 wrote.
+#
+# THE BINARY IS THE SAME SIZE AND NOT THE SAME BYTES, both measured: 788,488 either side,
+# 347,279 of them differing.  An indirect call through a pointer loads the pointer and
+# calls a register where a direct call is a relative call to a known address, and
+# removing two file-scope objects moves what follows them; at -O0 that is simply
+# different code.  So this phase cannot use tier 1 of CLAUDE.md's verification table, and
+# its evidence is what every zero phase before 23 used -- TWO FULL RECORDINGS, `diff -r`
+# empty across all 106 records: the 102 screen cases, every Ex command typed at `:`,
+# every command line the parser may see, the four pty scenarios and the terminal table.
+#
+# AND IT CAN FAIL, ONCE FOR EACH NAME THE PHASE MAKES DIRECT, which is what keeps an
+# empty `diff -r` from being a harness that recorded nothing.  host_exit's own statement
+# `host_code = r;` changed to `r + 1` moves 105 of the 106 records -- every one but the
+# terminal table, which records no exit status -- and host_message's `write(err ? 2 : 1,
+# ...)` with the two streams swapped moves ref-argv.txt AND NOTHING ELSE, which is phase
+# 21's finding read back: everything reaching that function is a message printed before
+# there is a screen.
+#
+# THE PHASE FREES NO SYMBOL AND SAYS SO AS AN EQUALITY.  `nm -u` is the same set as a cmp
+# in both directions, and `exit` does not come back -- the host still records a status
+# and jumps, phase 19's __builtin_longjmp launcher being untouched here.  `nm
+# --extern-only --defined-only` is still exactly `main`, which is the assertion that
+# matters most in a phase that makes the core NAME the host's two functions: with
+# `static` off the two prototypes gcc refuses, and with it off the prototypes and the
+# definitions the build is silent and two symbols become external.  pipes/zero25-check.sh
+# builds both.
