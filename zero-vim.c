@@ -3431,7 +3431,7 @@ static int musl_get_winsize(int *rows, int *cols);
 static void musl_term_start(void);
 static void musl_term_stop(void);
 static int musl_tty_keys(int fd, int *bs, int *intr, int *cr, int *nlcr);
-static void musl_gettimeofday(long *sec, long *usec);
+static long musl_now_ms(void);
 static void musl_delay(long ms, int interruptible);
 static int musl_wait_for_input(long ms);
 static int musl_read_input(char *buf, int len);
@@ -4097,12 +4097,6 @@ enum { MSCR_DOWN = 0 };
 enum { MSCR_UP = 1 };
 
 enum { KEYLEN_REMOVED = 9999 };
-
-typedef struct {
-    long        tv_sec;
-    long        tv_usec;
-} elapsed_T;
-static long elapsed(elapsed_T *start_tv);
 
 enum { REPTERM_FROM_PART = 1 };
 enum { REPTERM_DO_LT = 2 };
@@ -18084,9 +18078,9 @@ do_sleep(long msec, int hide_cursor)
 {
     long        done = 0;
     long        wait_now;
-    elapsed_T   start_tv;
+    long        start_tv;
 
-     musl_gettimeofday(&start_tv.tv_sec, &start_tv.tv_usec) ;
+    start_tv = musl_now_ms();
 
     if (hide_cursor)
     {
@@ -18105,7 +18099,7 @@ do_sleep(long msec, int hide_cursor)
 
             ui_breakcheck();
 
-        done =  elapsed(&(start_tv)) ;
+        done = musl_now_ms() - start_tv;
     }
 
     if (got_int)
@@ -38446,12 +38440,12 @@ vim_beep(unsigned val)
     if (!((bo_flags & val) || (bo_flags & BO_ALL)))
     {
         static int              did_init = FALSE;
-        static elapsed_T        start_tv;
+        static long             start_tv;
 
-        if (!did_init ||  elapsed(&(start_tv))  > 500)
+        if (!did_init || musl_now_ms() - start_tv > 500)
         {
             did_init = TRUE;
-             musl_gettimeofday(&start_tv.tv_sec, &start_tv.tv_usec) ;
+            start_tv = musl_now_ms();
             if (p_vb)
             {
                 out_str_cf( ( term_strings[(int)(KS_VB)] ) );
@@ -40042,16 +40036,6 @@ get_real_state(void)
         }
     }
     return State;
-}
-
-    static long
-elapsed(elapsed_T *start_tv)
-{
-    elapsed_T       now_tv;
-
-    musl_gettimeofday(&now_tv.tv_sec, &now_tv.tv_usec);
-    return (now_tv.tv_sec - start_tv->tv_sec) * 1000L
-         + (now_tv.tv_usec - start_tv->tv_usec) / 1000L;
 }
 
     static int
@@ -69958,7 +69942,7 @@ typedef struct
     char_u          start_char;
     garray_T        buf;
 
-    elapsed_T       start_tv;
+    long            start_tv;
 } oscstate_T;
 
 static termrequest_T crv_status =  {STATUS_GET, -1} ;
@@ -72783,7 +72767,7 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
         }
 
         ga_init2(&osc_state.buf, 1, 1024);
-         musl_gettimeofday(&osc_state.start_tv.tv_sec, &osc_state.start_tv.tv_usec) ;
+        osc_state.start_tv = musl_now_ms();
         osc_state.processing = TRUE;
         osc_state.start_char = tp[0];
         last_char = 0;
@@ -72819,7 +72803,7 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
 
     key_name[1] = (int)KE_IGNORE;
 
-    if ( elapsed(&(osc_state.start_tv))  >= p_ost)
+    if (musl_now_ms() - osc_state.start_tv >= p_ost)
     {
         vim_snprintf((char *)IObuff, emsg_iobuff_room(), _(e_osc_response_timed_out), osc_state.buf.ga_len, osc_state.buf.ga_data);
         emsg(iobuff_or(_(e_osc_response_timed_out)));
@@ -74786,9 +74770,9 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
     int         did_call_wait_func = FALSE;
     long        wait_time;
     long        elapsed_time = 0;
-    elapsed_T   start_tv;
+    long        start_tv;
 
-     musl_gettimeofday(&start_tv.tv_sec, &start_tv.tv_usec) ;
+    start_tv = musl_now_ms();
 
     for (;;)
     {
@@ -74803,7 +74787,7 @@ inchar_loop(char_u      *buf, int         maxlen, long        wtime, int        
         }
         else
         {
-            elapsed_time =  elapsed(&(start_tv)) ;
+            elapsed_time = musl_now_ms() - start_tv;
             wait_time = wtime - elapsed_time;
 
             if (wait_time <= 0 && did_call_wait_func)
@@ -79956,6 +79940,8 @@ static volatile sig_atomic_t host_int_pending = FALSE;
 static struct termios host_tty_saved;
 static int host_tty_valid = FALSE;
 static int host_tty_raw = FALSE;
+static long host_now_base = 0;
+static int host_now_based = FALSE;
 
     static void
 host_catch(int sig, void (*f)(int))
@@ -80082,14 +80068,18 @@ musl_tty_keys(int fd, int *bs, int *intr, int *cr, int *nlcr)
     return OK;
 }
 
-    static void
-musl_gettimeofday(long *sec, long *usec)
+    static long
+musl_now_ms(void)
 {
     struct timeval tv;
 
     gettimeofday(&tv, nullptr);
-    *sec = tv.tv_sec;
-    *usec = tv.tv_usec;
+    if (!host_now_based)
+    {
+        host_now_based = TRUE;
+        host_now_base = tv.tv_sec;
+    }
+    return (tv.tv_sec - host_now_base) * 1000L + tv.tv_usec / 1000L;
 }
 
     static void

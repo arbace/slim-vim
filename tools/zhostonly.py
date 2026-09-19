@@ -47,10 +47,16 @@ import sys
 # The words that belong to the host.  `read` and `write` are NOT here: the core's
 # `mch_write` still writes to fd 1 and `fill_input_buf` still asks the host for bytes,
 # which is ZERO-PLAN.md 4c's next step and not this phase's.
+#
+# `gettimeofday` IS here, from zero phase 28.  `\b` does not match inside
+# `musl_gettimeofday` -- `_` is a word character -- so this is the bare libc name and
+# nothing else, and the core's five calls to it are named as exceptions below with the
+# count they had before phase 26 moved them.  The core asks the host `musl_now_ms()`
+# now and the clock is the host's as the terminal is.
 VOCAB = re.compile(
     r'\b(?:sigaction|sigemptyset|sigaddset|sigismember|sigprocmask|sighandler_T'
     r'|raise|kill|ioctl|TIOCGWINSZ|SIG_?[A-Z][A-Z0-9_]*'
-    r'|tcgetattr|tcsetattr|nanosleep|select|isatty|close|dup'
+    r'|tcgetattr|tcsetattr|nanosleep|select|isatty|close|dup|gettimeofday'
     r'|FD_SET|FD_ZERO|FD_ISSET|fd_set|TCSANOW'
     r'|ICANON|ECHO|ISIG|ECHOE|IEXTEN|ICRNL|IXON|ONLCR|XTABS'
     r'|VMIN|VTIME|VERASE|VINTR|EINTR|errno)\b'
@@ -117,8 +123,22 @@ EXCEPTIONS = (
      '{ long tv_sec; long tv_usec; }`'),
     ('elapsed', 'struct timeval', (0, 2),
      'the same clock, in the one function that reads it, and 0 from the same phase: '
-     'the five `gettimeofday` calls go through `musl_gettimeofday(long *, long *)` in '
-     'the host block'),
+     'the five `gettimeofday` calls go through the host block.  Zero phase 28 deletes '
+     '`elapsed()` itself, so from that boundary this bucket cannot exist at all -- it '
+     'stays here because the tool is run at r20, r21 and r25 too, where the function '
+     'and its `struct timeval` are both there'),
+    ('do_sleep', 'gettimeofday', (0, 1),
+     "do_sleep's stamp, 1 up to zero phase 25 and 0 from phase 26, which routed it "
+     'through the host.  It is one of five, and from phase 28 the core stamps with '
+     '`start_tv = musl_now_ms();`'),
+    ('vim_beep', 'gettimeofday', (0, 1), "vim_beep's stamp, the second of the five"),
+    ('elapsed', 'gettimeofday', (0, 1),
+     "elapsed()'s own read of the clock, the third of the five -- and the only one "
+     'that was a READ rather than a stamp.  Phase 28 deletes the function'),
+    ('handle_osc', 'gettimeofday', (0, 1),
+     "handle_osc's stamp into osc_state.start_tv, the fourth"),
+    ('inchar_loop', 'gettimeofday', (0, 1),
+     "inchar_loop's stamp, the fifth and last"),
 )
 
 
