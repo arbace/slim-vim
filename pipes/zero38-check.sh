@@ -722,7 +722,11 @@ echo "  symbols      \`nm -u\` is THE SAME $(grep -c '' "$tmp/u-new") symbols, a
 for side in old new; do
     src=$f
     [ "$side" = old ] && src=$state/old.c
-    awk '/^ *# *include / { exit } { print }' "$src" > "$tmp/cut-$side.c"
+    # zero.mk's rule ENTIRE, trailing-blank-line drop included: `if (NF) last`
+    # is why `make editor.c` is one line shorter than a naive prefix, and a check
+    # that reports the prefix's number disagrees with the product by one for ever.
+    awk '/^ *# *include / { exit } { a[NR] = $0; if (NF) last = NR } \
+         END { for (i = 1; i <= last; i++) print a[i] }' "$src" > "$tmp/cut-$side.c"
     d=$(grep -c '^ *#' "$tmp/cut-$side.c" || true)
     n=$(grep -c '' "$tmp/cut-$side.c")
     i=$(grep -c '^ *# *include ' "$src" || true)
