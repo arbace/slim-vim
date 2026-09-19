@@ -24,7 +24,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29
 
 #   stage   phases
 stage       0
@@ -56,6 +56,7 @@ stage       25
 stage       26
 stage       27
 stage       28
+stage       29
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -357,6 +358,23 @@ apart       26 27
 # thirteen-name set is computed from its own output.  It is the shape of `apart 26 27`
 # directly above, and of `apart 16 17` before that.
 apart       27 28
+# MEASURED rather than predicted, with `tools/phaserun.sh zero 28-29` on r27: both edits
+# run, the sweep runs once and is a complete no-op, and phase 28's check stops on ONE
+# message -- `the core is 77978 lines and was 78359, a difference of -381 where -16 was
+# expected: -6 for the typedef and the prototype with a blank and -10 for elapsed() with
+# a blank`.  Phase 28 states its arithmetic as a line count of THE CORE -- the cut above
+# the first `#include`, which is where its typedef, its prototype and `elapsed()` all
+# lived -- and this phase takes 365 more lines off that same cut, 366 deleted and one
+# row written.  -16 - 365 = -381, which is the number it reports.
+# ONE DIRECTION ONLY, AND THAT WAS MEASURED TOO rather than reasoned: phase 29's own
+# check was then run on the tree that stage leaves, with the stage's own state
+# directory, and every part of it passed -- the union over all 1,114,112 codepoints in
+# all three directions, 17 symbols as a `comm` empty both ways, 1,189 enumerators
+# unmoved, the same thirteen boundary names, the six probes moving and the six not, both
+# controls failing as they must, and two byte-identical recordings.  It compares against the text and the binary ITS OWN edit was handed and
+# takes nothing from the stage's symbol snapshot that 28 moves -- 28 frees nothing for
+# this phase to be blamed for.
+apart       28 29
 #
 # NO `apart 23 24`, AND IT WAS MEASURED RATHER THAN PREDICTED.  `tools/phaserun.sh zero
 # 23-24` on r22 runs both edits, one sweep and BOTH CHECKS, and every one of them passes:
@@ -513,6 +531,18 @@ need        11 swept
 #                  every set it acts on is COMPUTED BY COMPILING, which cannot shrink
 #                  silently the way a counted cut can.  The sweep between the two is a
 #                  complete no-op at this point in the pipeline.
+#   NO `need 29 swept`, AND IT WAS MEASURED RATHER THAN ASSUMED, in the same run that
+#                  measured `apart 28 29`.  Phase 29's edit came from the EDIT CACHE
+#                  there, and that is the measurement rather than a shortcut past it:
+#                  the cache is keyed on the DIGEST of the tree the edit is handed, so a
+#                  hit says the unswept text phase 28's edit leaves IS the tree this
+#                  edit was handed on the real pass, byte for byte -- the sweep between
+#                  them being a complete no-op, one round and 0 of all six kinds.  It is
+#                  `NO need 26`'s measurement exactly.  The edit could hardly need a
+#                  sweep in any case, because it asserts NO count of its input that one
+#                  could move: its anchors are the four tables' EXACT ROW TEXT, which it
+#                  proves by re-emitting them byte for byte before it changes anything,
+#                  and every number it states is COMPUTED from the tables it just read.
 #   NO `need 26`, AND IT WAS MEASURED RATHER THAN ASSUMED, in the same run that measured
 #                  `apart 25 26`.  Both edits came from the edit cache, which is keyed on
 #                  the DIGEST of the tree each is handed -- so the unswept text phase 25's
@@ -654,6 +684,16 @@ package  boundary     23 25 26 27 28
 # AND 26 -- the two host calls, the header types and macros the core can own, and the
 # move itself -- ARE NOW 25, 26 AND 27; the section's numbering is the plan's and this
 # is the tree's.
+# `casemap` is a package of one and it is NOT `vendor`, although the data it deletes is
+# phase 15's.  `vendor` is "nothing is brought in": the libc that is pure computation
+# becomes the core's own static definitions.  This phase brings nothing in and takes
+# nothing out of the libc surface -- what it decides is WHAT THE CORE'S CASE MAP IS.
+# `zero-vim.c` carried two complete Unicode simple-case maps, vim's own and musl's, and
+# 'casemap' chose between them; a core with no C library has nothing to choose between,
+# so the two become one and the one is the UNION.  That is `options` phase 12's argument
+# and whim Phase 18's -- a concept the table has and the code does not -- applied to
+# data rather than to an option row, and it is not what `vendor` means.
+package  casemap      29
 package  dialect      24
 
 # Phase 26 is `boundary` and phase 23 is too: both are the core learning to say for
@@ -744,3 +784,6 @@ uses  boundary:28 seed:0      mechanical  tools/zerodelta.sh compares its record
 uses  boundary:28 harness:3   mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one -- though here it is the WEAKEST part of the evidence and the check says so: no screen case rings the bell twice, so vim_beep's 500 ms limit is never asked to suppress anything and the corpus cannot see a clock at all
 uses  boundary:28 host:20     mechanical  musl_now_ms is DEFINED where musl_gettimeofday was, above musl_delay, inside the block phase 20 created -- tools/zhostonly.py reads the host region as the lines from host_winch_pending to musl_suspend's last brace, and the function names `struct timeval`, so a definition outside it would make the tool refuse
 uses  boundary:28 host:18     mechanical  the phase's own probes are the evidence the corpus cannot give, and they rest on the editor being an ordinary program a keystroke file can drive to exit -- `gs` is do_sleep(count * 1000) and `1gs` is measured against the wall clock.  That the process ends with a status at all is phase 18's launcher and phase 19's host_exit
+uses  casemap:29 seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase declares that nothing in them moved -- although both arms of 'casemap' really did
+uses  casemap:29 harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one -- and here that statement is about the HARNESS and not the phase, which is why the check owes twelve probes of its own
+uses  casemap:29 vendor:15  mechanical  musl_toUpper[], musl_toLower[] and the two three-line wrappers that read them are phase 15's, range-compressed into the convertStruct shape this phase merges them out of; without that phase there is one case table already and no union to take
