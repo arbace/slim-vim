@@ -34,7 +34,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39
 
 #   stage   phases
 stage       0
@@ -91,6 +91,7 @@ stage       36
 # was measured in BOTH directions; there is no `need 37`, and that was measured too.
 stage       37
 stage       38
+stage       39
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -858,6 +859,30 @@ apart       36 37
 # shared stage moves nothing it reads.
 apart       37 38
 
+# apart 38 39.  ONE DIRECTION ONLY, AND BOTH HALVES MEASURED IN THE SAME RUN.  Phase
+# 38's check builds its first control by finding the fallback in set_termname() --
+# `set_termname() names %d of the surviving rows and this check needs one` -- and phase
+# 39 deletes the fallback outright, so `tools/phaserun.sh zero 38-39` on r37 runs both
+# edits and one sweep and then stops in phase 38's check at its FIRST act with
+# `set_termname() names 0 of the surviving rows and this check needs one -- the
+# fallback`, exit 1.  That is a check depending on the code it repaired still being
+# there, which is the sharpest form of `apart 22 23`'s lesson: phase 38's repair is
+# phase 39's dead code.  The other direction was RUN rather than reasoned -- phase 39's
+# check, given that stage's swept tree and its own state directory, passes every part,
+# and the tree the pair produces is BYTE-IDENTICAL to the one the two phases produce in
+# sequence.
+apart       38 39
+#   NO `need 39`, MEASURED IN THE SAME RUN.  Phase 39's edit was handed phase 38's
+#                  UNSWEPT output -- `builtin_ansi`, `builtin_vt100` and `builtin_dumb`
+#                  still defined, report_default_term() still called -- and every part
+#                  of it held, printing the same lines as on swept text.  It asserts no
+#                  count a sweep can move: the option letters are READ OUT of the
+#                  switch, which ME_* enumerators die is COMPUTED as those whose only
+#                  mention left is their own `enum` line, the fallback is found by
+#                  walking out from the `if (termp == nullptr)` arm, and the one thing
+#                  the sweep does take -- report_default_term()'s definition -- is left
+#                  FOR the sweep and asserted at one mention rather than zero.
+
 #        name         phases
 package  seed         0
 package  build        1
@@ -875,7 +900,23 @@ package  build        1
 # side.  And it is not `tidy`: the rows removed are live code that a `:set term=` still
 # reaches, which is exactly why this phase declares a delta where phase 13 declared
 # nothing.
-package  terminal     2 38
+# 39 IS IN `terminal` TOO, AND `streams` HAS A REAL CLAIM ON IT THAT IS ANSWERED HERE.
+# The phase removes `-T {term}`, so the obvious home is the package that shaped the
+# command line: phase 5 left argv as exactly `+{command}` and `-T {term}` and this
+# removes the half it kept, in the same parser, with the same
+# `mainerr(ME_UNKNOWN_OPTION)` answering what is left.  It is in `terminal` instead
+# because of what the six cuts ARE: one is that parser arm and the other five are all
+# terminal code -- termcapinit() losing the name it can no longer be given,
+# set_termname()'s no-screen fallback, report_default_term(), the message that promised
+# a default, and the `requested` that existed only because the fallback reassigned
+# `term`.  And the sentence the package is making reads straight on: phase 2 removed
+# the QUESTION the core asked about the terminal, 38 removed the VOCABULARY it could
+# describe one with, and 39 removes the TELLING -- after it nothing outside the process
+# can say what terminal this is, and `+set term=` inside the editor is the only way.
+# It is not `streams`: what goes is not a stream and not a file descriptor, and the
+# `uses` line below records the dependency on phase 5 rather than hiding it in a
+# package. It is not `tidy`: four command lines change what they do.
+package  terminal     2 38 39
 # `harness` is the package that changes no source at all: both its phases replace an
 # instrument, and both exist because the pipeline was about to measure itself with a
 # question that could not see the answer.  3 replaced the file-based harnesses with
@@ -1155,3 +1196,7 @@ uses  terminal:38  seed:0       mechanical  tools/zerodelta.sh compares its reco
 uses  terminal:38  harness:33   mechanical  the terminal table says something real only because phase 33 changed the question from $TERM to `+set term={name}` -- and phase 33's own reason for existing was a prototype of THIS cut, which deleted eight names and three tables and passed tools/zcompare.py declaring nothing at all
 uses  terminal:38  streams:5    mechanical  the no-screen fallback this phase retargets is reachable only through `-T {term}`, which phase 5 kept; without it termcapinit() can only ever be handed nothing, the compiled default always resolves, and there would be no dangling name to repair
 uses  terminal:38  host:21      mechanical  the marker that proves the xterm-family clause dead is written with host_message(), which is phase 21's and the core's only declared way to reach stderr -- the core has had no write() of its own outside mch_write since phase 35, so the instrument adds no name the file does not already have
+uses  terminal:39  seed:0       mechanical  tools/zerodelta.sh compares its four declared command lines with the baselines phase 0 records
+uses  terminal:39  harness:3    mechanical  the four records that move are tools/zargv.py's, and phase 3 is what put an argv record in a zero recording at all
+uses  terminal:39  streams:5    mechanical  `-T {term}` is the one option phase 5 kept when it made every other word ME_UNKNOWN_OPTION, so this phase's whole subject is that phase's leftover -- and the ME_* enumerators it removes with their main_errors[] rows are the table phase 5 renumbered, checked here against DWARF in phase 5's own shape
+uses  terminal:39  host:21      mechanical  the marker that proves the fallback dead is written with host_message(), which is phase 21's and the core's only declared way to reach stderr -- the same instrument phase 38 used, for the same reason
