@@ -379,16 +379,29 @@
      // the match priorities.
 --- a/src/option.c
 +++ b/src/option.c
-@@ -709,8 +709,10 @@
+@@ -709,8 +709,23 @@
      langmap_init();
  #endif
- 
+
 -    // Be Vi compatible by default
 -    p_cp = TRUE;
 +    // Not Vi compatible by default.  'compatible' has an initialiser of its
 +    // own because vim only clears it when it finds a vimrc, and this build
 +    // ships none: the defaults are the vimrc.
 +    p_cp = FALSE;
++
++    // 'keymodel' needs one too, and for a second reason.  An option's row in
++    // optiondefs.h gives its VALUE, and set_options_default() installs that
++    // value without running any callback -- but km_startsel and km_stopsel are
++    // computed nowhere except did_set_keymodel(), so a build that ships no
++    // vimrc never computes them at all.  `:set km?` answered startsel while
++    // the flag stayed FALSE and a shifted arrow did a word motion instead of
++    // starting a selection.  'keymodel' is the only one of the eighteen
++    // defaults shaped like this: the only P_STRING among them, and the only
++    // one whose whole effect is a flag a callback derives.  The default is
++    // "startsel", not "startsel,stopsel", hence TRUE and FALSE.
++    km_startsel = TRUE;
++    km_stopsel = FALSE;
  
      // Use POSIX compatibility when $VIM_POSIX is set.
      if (mch_getenv((char_u *)"VIM_POSIX") != NULL)
