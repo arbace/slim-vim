@@ -22,7 +22,6 @@ enum { SIGHUP = 1 };
 enum { SIGTERM = 15 };
 
 void *malloc(usize n);
-void *realloc(void *p, usize n);
 void free(void *p);
 int getpid(void);
 int kill(int pid, int sig);
@@ -4293,12 +4292,17 @@ ga_grow_inner(garray_T *gap, int n)
         return FAIL;
     }
     new_len = (usize)gap->ga_itemsize * (gap->ga_len + n);
-    pp =  realloc((gap->ga_data), (new_len)) ;
+    old_len = (usize)gap->ga_itemsize * gap->ga_maxlen;
+    pp = malloc(new_len);
     if (pp == nullptr)
     {
         return FAIL;
     }
-    old_len = (usize)gap->ga_itemsize * gap->ga_maxlen;
+    if (gap->ga_data != nullptr)
+    {
+        musl_memcpy(pp, gap->ga_data, old_len);
+        free(gap->ga_data);
+    }
      musl_memset((pp + old_len), (0), (new_len - old_len)) ;
     gap->ga_maxlen = gap->ga_len + n;
     gap->ga_data = pp;
@@ -37853,12 +37857,18 @@ get_keystroke(void)
         else if (maxlen < 10)
         {
             char_u  *t_buf = buf;
+            int     t_buflen = buflen;
 
             buflen += 100;
-            buf =  realloc((buf), (buflen)) ;
+            buf = malloc(buflen);
             if (buf == nullptr)
             {
                 vim_free(t_buf);
+            }
+            else
+            {
+                musl_memcpy(buf, t_buf, t_buflen);
+                free(t_buf);
             }
             maxlen = (buflen - 6 - len) / 3;
         }
