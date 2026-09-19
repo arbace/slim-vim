@@ -34,7 +34,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41
 
 #   stage   phases
 stage       0
@@ -93,6 +93,7 @@ stage       37
 stage       38
 stage       39
 stage       40
+stage       41
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -894,6 +895,36 @@ apart       38 39
 #                  the sweep does take -- report_default_term()'s definition -- is left
 #                  FOR the sweep and asserted at one mention rather than zero.
 
+# THERE IS NO `apart` AND NO `need` FOR 41, AND BOTH ARE STATEMENTS ABOUT A STAGE OF ONE
+# RATHER THAN THINGS NOBODY LOOKED AT.
+#   NO `need 41`.  A `need` is a claim about text a stage's EARLIER edits have left
+#                  unswept, and 41 begins its stage, so the text it is handed is a
+#                  recorded boundary and is swept by construction.  Nothing in the edit
+#                  could care either way: its four anchors are exact runs of text --
+#                  host_alloc's body, host_free's body, format_overflow_error's free of
+#                  argcopy and adjust_types's realloc with the failure test below it --
+#                  and it asserts a PARTITION of the mentions of three libc names rather
+#                  than a count of anything, so a sweep that removed a function has
+#                  nothing to move.  The one number it computes, the line delta, is
+#                  computed from its own four replacements.
+#   NO `apart`.    Every zero phase is its own stage, so an `apart` line here would be a
+#                  statement and not a constraint (see `apart 2 4`).  The statement worth
+#                  writing is the SHAPE it would have, because the next phase that thinks
+#                  of sharing a sweep needs it: 41's check states its gone set as EXACTLY
+#                  `free malloc realloc` and requires the rest of `nm -u` to be unmoved,
+#                  as a `comm` in both directions against the stage's ONE snapshot -- so
+#                  it is `apart 5 6`'s shape, and it cannot share a stage with any phase
+#                  that frees or adds a libc symbol.  It also states the editor.c cut as
+#                  a `cmp` against the input's, so it cannot share one with any phase
+#                  that changes a core line at all, which is most of them.
+#                  AND WITH ITS ACTUAL PREDECESSOR IT COULD NOT SHARE ONE ANYWAY, for
+#                  phase 34's reason rather than for any of its own: pipes/zero40.sh is
+#                  ONE file, so a stage holding 40 and 41 is refused by tools/stages.sh
+#                  before a check runs -- `phase 40 is in stage 40-41 but is not an edit
+#                  and a check`.  An `apart 40 41` would be unreachable as well as
+#                  unnecessary, which is what the `stage 33` and `stage 34` notes above
+#                  say in their own words.
+
 #        name         phases
 package  seed         0
 package  build        1
@@ -972,7 +1003,23 @@ package  includes     16
 # allocate, free or write a byte.  It is NOT `boundary`: nothing about WHERE the line
 # falls changes, and 23, 25, 26, 27 and 28 drew it; and it is not `tidy`, because three
 # libc calls go on being made, by the other side of a line that already existed.
-package  host         17 18 19 20 21 30 32 35 36
+# 41 IS IN THIS PACKAGE, AND THE CLAIM HAS TO BE ARGUED BECAUSE THE OBVIOUS READING IS
+# THE WRONG ONE.  Every other phase here MOVES something across the boundary -- host_exit
+# (19), host_message (21), host_time (32), host_alloc/host_free/host_write (35),
+# host_raise (36) -- and this phase moves nothing at all: the line was drawn, the three
+# calls crossed it at 35, and what changes now is what is on the far side.  It is in
+# `host` all the same, because this package is not "phases that move a call", it is THE
+# HOST: what the core asks for, and what answers.  Phase 35 wrote the answer as a
+# forwarding wrapper and said so; this is the phase where the answer stops being libc's.
+# It is NOT `boundary` -- 23, 25, 26, 27 and 28 drew the line and this phase does not
+# touch it, which the check states as a `cmp` of the editor.c cut.  It is NOT `vendor`:
+# 14, 15 and 31 brought libc implementations INTO the file to be called as before, and a
+# bump allocator is not an implementation of malloc, it is a different contract -- nothing
+# is ever given back.  And it is not `tidy`: nothing dead is removed, a living thing is
+# replaced.  Being one package with 35 is the statement, and `uses` records only a
+# dependency ACROSS packages, so there is no `uses host:41 host:35` line --
+# tools/packages.sh --check refuses one.
+package  host         17 18 19 20 21 30 32 35 36 41
 # `format` is a new package, and it is not `vendor`: nothing is brought in.  A layer
 # is FLATTENED -- seven wrappers over one formatter become 129 call sites and five
 # helpers, so that `va_start` appears once and the formatter becomes movable.
@@ -1215,3 +1262,10 @@ uses  harness:40  seed:0       mechanical  tools/zerodelta.sh compares its recor
 uses  harness:40  files:8      mechanical  a case types its own text because there is nothing else left: phase 7 took :read and phase 8 took the whole :edit family, so the only way to a 25,000-line buffer is one line under 'paste' and a macro replayed with a count
 uses  harness:40  streams:5    mechanical  every buffer is built IN THE EDITOR, by typing one line and replaying a macro with a count, because phase 5 made a file argument ME_UNKNOWN_OPTION -- there is no file to open, and phases 7 and 8 took :read and :edit as well, so a corpus of 25,000 lines has no other way in
 uses  harness:40  host:21      mechanical  the seven markers of the instrumented pair are written with host_message(), phase 21's and the core's only declared way to reach stderr -- the same instrument phases 38 and 39 used, for the same reason: it adds no name the file does not already have
+uses  host:41     seed:0       mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  host:41     harness:3    mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one -- and here it is strong rather than weak, because every one of the 122 records runs on the arena from its first allocation: this is not a subject the corpus has to be steered towards
+uses  host:41     harness:40   mechanical  THE ARENA IS SIZED FROM PHASE 40'S CORPUS AND COULD NOT HAVE BEEN SIZED WITHOUT IT.  Measured on the input: the heaviest of the 102 screen cases asks host_alloc for 1,722,512 bytes and the heaviest of the 16 memline cases for 200,458,672 -- 115 times more -- so an arena sized from the 102 alone would have been sized from a corpus that cannot reach the text layer, which is the defect phase 40 exists to have ended.  The instrument and both moving controls run over both corpora here
+uses  host:41     boundary:27  mechanical  the whole claim is `make editor.c`'s cut being BYTE-IDENTICAL in and out, and the cut is the lines above the first `#include` only because phase 27 moved the eleven directives below the core.  The same phase is why the arena may name `max_align_t` and `alignof` at all: everything in the launcher region is below <stddef.h>
+uses  host:41     boundary:34  mechanical  adjust_types()'s realloc is rewritten by phase 34's own pattern -- allocate, copy, free -- with phase 34's three traps read off this site; and it is here at all because phase 34 named this one call "the host's and not this phase's" while host_alloc still WAS malloc
+uses  host:41     format:22    mechanical  the two sites below the boundary this phase must also rewrite are in the formatter's private island, and that island is four functions rather than eleven because phase 22 collapsed the seven va_list wrappers into their call sites
+uses  host:41     vendor:14    mechanical  the copy in the realloc rewrite is musl_memcpy and the exhaustion message is built with musl_strlen, both phase 14's static definitions -- the host formats its own dying words rather than calling the editor's vim_snprintf, which would call alloc_clear() from the failure path of the allocator
