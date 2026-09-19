@@ -21,11 +21,8 @@ enum { EXIT_FAILURE = 1 };
 enum { SIGHUP = 1 };
 enum { SIGTERM = 15 };
 
-void *malloc(usize n);
-void free(void *p);
 int getpid(void);
 int kill(int pid, int sig);
-long write(int fd, const void *buf, usize n);
 
     static void *
 musl_memcpy(void *dest, const void *src, usize n)
@@ -3445,6 +3442,9 @@ static int musl_read_input(char *buf, int len);
 static void musl_suspend(void);
 static void host_exit(int r);
 static void host_message(const char *msg, int len, int err);
+static void *host_alloc(usize n);
+static void host_free(void *p);
+static int host_write(const char *s, int len);
 static long host_time(void);
 static void starttermcap(void);
 static void stoptermcap(void);
@@ -4164,7 +4164,7 @@ lalloc(usize size, int message)
         return nullptr;
     }
 
-    p = malloc(size);
+    p = host_alloc(size);
     if (p == nullptr && !releasing)
     {
         releasing = TRUE;
@@ -4218,7 +4218,7 @@ vim_free(void *x)
 {
     if (x != nullptr && !really_exiting)
     {
-        free(x);
+        host_free(x);
     }
 }
 
@@ -4293,7 +4293,7 @@ ga_grow_inner(garray_T *gap, int n)
     }
     new_len = (usize)gap->ga_itemsize * (gap->ga_len + n);
     old_len = (usize)gap->ga_itemsize * gap->ga_maxlen;
-    pp = malloc(new_len);
+    pp = host_alloc(new_len);
     if (pp == nullptr)
     {
         return FAIL;
@@ -4301,7 +4301,7 @@ ga_grow_inner(garray_T *gap, int n)
     if (gap->ga_data != nullptr)
     {
         musl_memcpy(pp, gap->ga_data, old_len);
-        free(gap->ga_data);
+        host_free(gap->ga_data);
     }
      musl_memset((pp + old_len), (0), (new_len - old_len)) ;
     gap->ga_maxlen = gap->ga_len + n;
@@ -26706,7 +26706,7 @@ update_wincolor(win_T *wp, char_u *opt)
 
     if (*opt != NUL)
     {
-        free(str);
+        host_free(str);
     }
     return errmsg;
 }
@@ -37860,7 +37860,7 @@ get_keystroke(void)
             int     t_buflen = buflen;
 
             buflen += 100;
-            buf = malloc(buflen);
+            buf = host_alloc(buflen);
             if (buf == nullptr)
             {
                 vim_free(t_buf);
@@ -37868,7 +37868,7 @@ get_keystroke(void)
             else
             {
                 musl_memcpy(buf, t_buf, t_buflen);
-                free(t_buf);
+                host_free(t_buf);
             }
             maxlen = (buflen - 6 - len) / 3;
         }
@@ -55124,7 +55124,7 @@ static struct signalinfo
     static void
 mch_write(char_u *s, int len)
 {
-    vim_ignored = (int)write(1, (char *)s, len);
+    vim_ignored = host_write((char *)s, len);
     if (p_wd)
     {
         RealWaitForChar(read_cmd_fd, p_wd, nullptr, nullptr);
@@ -79773,6 +79773,24 @@ host_message(const char *msg, int len, int err)
         }
         off += w;
     }
+}
+
+    static void *
+host_alloc(usize n)
+{
+    return malloc(n);
+}
+
+    static void
+host_free(void *p)
+{
+    free(p);
+}
+
+    static int
+host_write(const char *s, int len)
+{
+    return (int)write(1, s, (usize)len);
 }
 
     int
