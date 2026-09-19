@@ -917,3 +917,53 @@
 # the non-internal arm: the union equals musl's table at every one of 128..255, the two
 # having disagreed below U+0100 at U+00DF alone and the union taking musl's answer
 # there.
+# 30 DECLARES NOTHING AT ALL, and it is PHASE 12'S KIND -- the one where the code CAN
+# run and the instrument never sees it -- which is stated because phase 9's kind is the
+# obvious reading and is not available here.  `msg_puts_attr_len()`'s
+# `if (msg_use_printf())` arm is folded to the two lines
+# `host_message((char *)str, maxlen, !info_message); msg_didout = TRUE;`, and
+# `msg_puts_printf()` (75 lines), its prototype, and `vim_strlen_maxlen()` and its
+# prototype -- which the sweep finds, that call being its only one -- go with it.  Two
+# full recordings, of the binary the phase was handed and of its own, are BYTE-IDENTICAL
+# across all 106 records; the binary is 788,488 bytes either side and `nm -u` is the same
+# seventeen names, phase 21 having taken printf, fprintf, fflush and stderr with the
+# CALLS.
+#
+# THE PREDICATE IS NOT DEAD AND THE PHASE DOES NOT CLAIM IT IS.  `msg_use_printf()`
+# answers TRUE 23 times in a recording AFTER this fold -- every one at
+# `msg_clr_eos_force()`, every one in ref-argv.txt, one per `mainerr` row -- with
+# `full_screen` FALSE in all 23, so the body it guards does nothing.  What is dead is ONE
+# of its four call sites: the input built with `write(2, "PP-ENTERED\n", 11)` as the
+# first statement of `msg_puts_printf()` marks 0 of 106 records, and the IDENTICAL
+# instrument in `msg_puts_display()` marks 103 of 106.  That pair is the phase's whole
+# positive evidence, and phase 12 is where this pipeline learned it owes one.
+#
+# THE RECORDING CANNOT FAIL THIS PHASE AND CANNOT PASS IT EITHER, which is why the check
+# is 36 probes and an instrumented pair rather than a `diff -r`.  The two folds this
+# phase DECLINES also record byte-identically, and one of them is wrong.
+#
+# WHAT WAS MEASURED AND NOT DONE, as a RESULT and not an omission:
+#
+#   `msg_clr_eos_force()`'s test CANNOT BE FOLDED SAFELY.  Its false arm calls
+#   `screen_fill()`, which returns early on `ScreenLines == nullptr` -- and ScreenLines
+#   IS null in all 23 `mainerr` cases, the only 23 places the predicate is TRUE in a
+#   recording.  So the corpus is blind to it.  Two probes are not: `t_ti_stopterm`
+#   (`:set t_ti=X`, `:set t_te=Y`, `ZQ`) goes 2,266 -> 2,280 bytes, and `hup_clean`
+#   (`kill -HUP` on a clean pty) 2,124 -> 2,142, the extra eighteen being
+#   `\x1b[24;63H\x1b[K\x1b[24;1H` AFTER `Vim: Finished.`  Guarding with
+#   `msg_check_screen()` instead is NOT a cheaper spelling of the same thing: it drops
+#   the `swapping_screen() && !termcap_active` disjunct, which is exactly what
+#   `t_ti_stopterm` reaches, and it moves the same two probes to the same two numbers.
+#   Both folds are built by pipes/zero30-check.sh and REQUIRED to move.
+#
+#   `exit_scroll()`'s printf arm IS ALIVE, and phase 21 was wrong to name it a follow-up
+#   beside `msg_puts_printf()`.  Both "fire in ZERO of 106 records" is true of the
+#   CORPUS and true of the editor only for the first.  With NO SIGNAL AT ALL the arm
+#   fires in three of this phase's 32 stream probes -- `t_ti_more`, `debug_more`,
+#   `term_ti_then_ti`, each `:set t_ti=X` or `-T debug`, a paged `:set all`, exit -- and
+#   in three of its four deadly-signal probes.  Folding it to `out_char('\n')` emits the
+#   same two bytes and moves them from FD 2 TO FD 1, which on a pty where both are the
+#   same device is byte-identical and therefore UNDECLARABLE here.  It belongs to the
+#   phase that decides the core writes nothing to fd 2 at all -- ZERO-PLAN.md 4c's
+#   host-boundary question -- and the check builds that fold too, so "this phase did not
+#   disturb it" is measured rather than asserted.
