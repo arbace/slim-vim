@@ -607,10 +607,21 @@ for who in ('old', 'new', 'ceil', 'epoch'):
     if one < 950:
         fail.append('%s: `1gs` returned after %d ms and do_sleep(1000) cannot be shorter '
                     'than 1,000' % (who, one))
-    if two - one < 900:
-        fail.append('%s: `2gs` took %d ms and `1gs` %d, a difference of %d where a whole '
-                    'second of sleeping was expected -- do_sleep\'s loop is not '
-                    'measuring time' % (who, two, one, two - one))
+    # A LOWER BOUND ON A SLEEP, NEVER A DIFFERENCE BETWEEN TWO RUNS.  This asked for
+    # `two - one >= 900` until phase 30's verify caught it: both are wall-clock times
+    # taken from OUTSIDE, around whole editor runs, so each carries its own startup
+    # jitter -- and under a loaded machine `one` inflated to 1,133 ms while `two` stayed
+    # at 2,006, a difference of 873, and a correct phase failed.  Widening the threshold
+    # would move that boundary rather than remove it, which is the lesson commit b66e982
+    # recorded about a clock in the pty harness.  A lower bound cannot flake in that
+    # direction: a sleep takes AT LEAST as long as it asks for, and load can only make it
+    # longer.  `2gs` is two capped 1,000 ms waits, so 1,900 leaves 100 ms of slack for a
+    # short final tick and none for the failure this replaces.  The `fast` control still
+    # breaks it -- a clock running 1000x returns from `2gs` after one wait, measured at
+    # 1,008 ms, which is below the bound.
+    if two < 1900:
+        fail.append('%s: `2gs` took %d ms, where two capped 1,000 ms waits were expected '
+                    '-- do_sleep\'s loop is not measuring time' % (who, two))
 
 # AND EACH HALF OF THE PROBE IS PROVEN ABLE TO FAIL, by a control aimed at THAT half.
 #
@@ -620,11 +631,11 @@ for who in ('old', 'new', 'ceil', 'epoch'):
 fone, ftwo = res['fast']['1gs'][0], res['fast']['2gs'][0]
 if fone is None or ftwo is None:
     fail.append('the `fast` control did not return, and it was chosen because it does')
-elif ftwo - fone > 200:
-    fail.append('the `fast` control -- a clock running 1000x -- gave `2gs` %d ms against '
-                '`1gs` %d, a difference of %d.  It should collapse to nothing, and if it '
-                'does not the timing assertion above proves nothing'
-                % (ftwo, fone, ftwo - fone))
+elif ftwo >= 1900:
+    fail.append('the `fast` control -- a clock running 1000x -- gave `2gs` %d ms, which '
+                'is over the bound the assertion above uses.  It should return after ONE '
+                'wait, and if it does not that assertion proves nothing'
+                % ftwo)
 if res['froze']['1gs'][0] is not None:
     fail.append('the `froze` control -- a clock that never advances -- returned from '
                 '`1gs` after %d ms.  do_sleep\'s `done` can never reach 1,000 with a '
