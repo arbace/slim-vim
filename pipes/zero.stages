@@ -34,7 +34,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45
 
 #   stage   phases
 stage       0
@@ -100,6 +100,9 @@ stage       43
 # measured in one direction; there is NO `need 44`, and that was measured in the
 # strongest form there is -- see below.
 stage       44
+# 45 is a stage of one, as every zero phase is.  `apart 44 45` is written below and was
+# measured in one direction; there is NO `need 45`, and that was measured too.
+stage       45
 
 # `apart 43 44` IS THE NAME-PARTITION FORM OF `apart 36 37`, AND IT IS SHARPER.
 # tools/phaserun.sh zero 43-44 on r42 runs both edits, one sweep and phase 43's check,
@@ -906,6 +909,19 @@ apart       37 38
 apart       38 39
 apart       43 44
 apart       41 42
+# `apart 44 45` IS PHASE 44'S OWN SCOPE STATEMENT READ FROM THE OTHER END, and it needed
+# no reasoning: that phase wrote "ml_new_ptr()'s `offsetof(PTR_BL, pb_pointer)` measures
+# a POINTER block, which is still a page of entries and is not the leaf.  De-paging the
+# branch is a phase of its own ... this one leaves it alone and says so", and its check
+# says it as `new.count('offsetof(PTR_BL') != 1`.  This is that phase.  MEASURED by
+# running pipes/zero44-check.sh on the r45 tree with phase 44's own state directory:
+#
+#   partition    ml_new_ptr's offsetof moved, and a POINTER block is still a page and
+#                is not this phase's
+#
+# ONE DIRECTION ONLY, and there is nothing to observe in the other because the stage
+# cannot run at all -- `need 45 swept` below forbids it before any check is reached.
+apart       44 45
 #   NO `apart 39 40` AND NO `need 40`, AND NEITHER IS AN OMISSION.  Phase 40 is a
 #                  WHOLE-PHASE program, pipes/zero40.sh -- zero phase 3's shape and
 #                  zero phase 33's -- so it cannot share a stage with anything at all,
@@ -989,6 +1005,23 @@ apart       41 42
 #   the stage is unreachable, and it is written down so the next reader knows it was
 #   checked rather than assumed.
 need        43 swept
+# `need 45 swept` IS THE FIRST ONE IN THIS PIPELINE THAT IS ABOUT BLANK LINES, and it is
+# the CLAUDE.md rule "blank lines, indentation and paragraphing ... a pass that touches
+# those needs a count of them as its own check" meeting a shared sweep.  Phase 45's edit
+# deletes whole functions and single statements out of the middle of others, so it
+# asserts that it leaves no run of two blank lines anywhere in the file -- and that is a
+# statement about THIS edit only if the text it was handed had none.  It had one:
+# measured, phase 44's edit leaves a run of two at line 33,815 of its own UNSWEPT output
+# and tools/canon.py removes it in phase 44's sweep.  So the edit asks the INPUT first
+# and refuses there, which is what `tools/phaserun.sh zero 44-45 work` on r43 prints:
+#
+#   node   the input already has a run of two blank lines, so this edit cannot say it
+#          left none: it needs swept text (pipes/zero.stages, `need 45 swept`)
+#
+# The order of those two tests is the whole of it: asked the other way round the message
+# would have been `the edit left a run of two blank lines` and would have blamed this
+# phase for the previous one's residue.
+need        45 swept
 
 #        name         phases
 package  seed         0
@@ -1202,8 +1235,20 @@ package  dialect      24
 # which is phase 11 and is about an Ex-level refusal to quit, and it is not `tidy`, which
 # is 13, 37 and 42 and is about leftovers of cuts already made -- this is the STORAGE
 # under ml_get(), and what it changes is how the editor reaches a block rather than
-# whether it still needs to.  Phase 44 replaces the leaf, so the package grows.
-package  memline      43 44
+# whether it still needs to.  Phase 44 replaces the leaf, so the package grows, and
+# phase 45 folds the node types and takes the memfile with them, which is the same
+# subject read from the allocator's end: 43 took the block NUMBER, 44 took the leaf's
+# PAGE, and 45 takes the page itself, the header that hung off it and the memfile that
+# owned the list of them.  After it a node is one allocation of its own size and the
+# tree is the only structure left.  THE 45-ON-44 DEPENDENCY IS THE STRONGEST IN THE ARC
+# AND IT IS NOT A `uses` LINE, because both phases are in this package: 45 is 44's own
+# named next step, quoted in its program -- "Allocating a block at its own size means
+# giving memfile a byte size where it has a page count ... it would take the leaf from
+# 112 bytes a line to 64, and it would MAKE AN OFF-BY-ONE IN THE CAPACITY BOUND VISIBLE,
+# which today it is not."  Both halves are measured in 45's check rather than repeated:
+# phase 44's own `cap` control moves 0 of 118 records on 45's input and 4 of 118 on its
+# output, built and recorded in the same run.
+package  memline      43 44 45
 
 # Phase 26 is `boundary` and phase 23 is too: both are the core learning to say for
 # itself what a header says for it today.  23 took `NULL` and `size_t`, which the
@@ -1382,3 +1427,11 @@ uses  memline:44  harness:40   mechanical  THE PHASE IS NOT CHECKABLE WITHOUT IT
 uses  memline:44  host:21      mechanical  the five markers of the instrumented pair are written with host_message(), phase 21's and the core's only declared way to reach stderr -- the same instrument phases 38, 39 and 40 used, for the same reason: it adds no name the file does not already have
 uses  memline:44  vendor:14    mechanical  a record move is musl_memmove, phase 14's static definition, and so is the copy that gives a line its own text: the leaf shifts records where it used to shift bytes, and both spellings are that function
 uses  memline:44  host:35      mechanical  a line's text is now its own allocation, so every append asks alloc() -> lalloc() -> host_alloc(), which is phase 35's name for what used to be malloc -- and the check states as a `comm` empty both ways that this adds no undefined symbol, because the call already went to the host
+uses  memline:45  seed:0       mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  memline:45  harness:3    mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one
+uses  memline:45  harness:40   mechanical  THE PHASE IS NOT CHECKABLE WITHOUT IT, AND IT IS ALSO THE PHASE THAT COULD HAVE DESTROYED IT.  pb_count_max is (4096 - 8) / sizeof(PTR_EN) = 255 and it is the tree's fanout; mem_deep_jumps builds 391 data blocks and is the ONE case of sixteen that reaches a root split, which no screen case reaches at all.  This phase fixes the fanout at 255 as an enumerator and asserts sizeof(PTR_EN) == 16 against both cuts, and its `fanout` control -- PB_COUNT_MAX = 511, which an 8-byte entry would give -- moves 0 of 118 records and takes MLSPLITPTR, MLSPLITROOT and MLDEEP from 1 to 0
+uses  memline:45  host:21      mechanical  the five markers of the instrumented pair are written with host_message(), phase 21's and the core's only declared way to reach stderr -- the same instrument phases 38, 39, 40, 43 and 44 used, for the same reason: it adds no name the file does not already have
+uses  memline:45  host:35      mechanical  a node is now one alloc_clear() of its own size, which is alloc() -> lalloc() -> host_alloc(), phase 35's name for what used to be malloc -- and the check states as a `comm` empty both ways that this frees and adds no undefined symbol, because both allocations already went to the host
+uses  memline:45  host:41      rationale   mf_close() walked a used list to free every block and ml_free_tree() walks the TREE to free the same set, which is only cheap to say because phase 41 made host_free() a return: a `nofree` control measures that removing the whole teardown moves 0 of 118 records, so what the core gives back is unobservable by construction
+uses  memline:45  vendor:14    mechanical  the root split stops copying a whole 4,096-byte page and copies the count and the entries in use with musl_memmove, phase 14's static definition
+uses  memline:45  boundary:27  mechanical  sizeof(PTR_EN) == 16 is compiled AGAINST THE CUT -- the lines above the first #include -- on both sides, and that line is the boundary between the core and the host only because phase 27 moved the eleven directives below the core
