@@ -44,8 +44,12 @@ zero/
 # The transient insight log, folded into SLIM-GOAL.md and CLAUDE.md and then deleted.
 PROGRESS.md
 
-# Editing this tree with the editor it builds.
-*.swp
+# Editing this tree with the editor it builds.  Vim names the FIRST swap file
+# .swp and then walks backwards -- .swo, .swn, .swm and on down -- so a second
+# session on the same file, or a crashed one, leaves a name this pattern has to
+# cover.  Naming only *.swp left .swn and .swo untracked-but-reported in the
+# root, which is how this was noticed.
+*.sw[a-p]
 
 # Python leaves these beside tools/.
 __pycache__/
