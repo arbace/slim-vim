@@ -24,7 +24,6 @@ enum { SIGTERM = 15 };
 void *malloc(usize n);
 void *realloc(void *p, usize n);
 void free(void *p);
-long time(long *tp);
 int getpid(void);
 int kill(int pid, int sig);
 long write(int fd, const void *buf, usize n);
@@ -3447,6 +3446,7 @@ static int musl_read_input(char *buf, int len);
 static void musl_suspend(void);
 static void host_exit(int r);
 static void host_message(const char *msg, int len, int err);
+static long host_time(void);
 static void starttermcap(void);
 static void stoptermcap(void);
 static int swapping_screen(void);
@@ -3483,7 +3483,6 @@ static int current_quote(oparg_T *oap, long count, int include, int quotechar);
 static void internal_format(int textwidth, int second_indent, int flags, int format_only, int c);
 static int comp_textwidth(void);
 
-static time_T vim_time(void);
 static void ui_write(char_u *s, int len);
 static int ui_inchar(char_u *buf, int maxlen, long wtime, int tb_change_cnt);
 static int inchar_loop(char_u *buf, int maxlen, long wtime, int tb_change_cnt, int (*wait_func)(long wtime, int *interrupted, int ignore_input), int (*resize_func)(int check_only));
@@ -7854,7 +7853,7 @@ in_history(int     type, char_u  *str, int     move_to_front, int     sep, int  
     history[type][i].viminfo = FALSE;
     history[type][i].hisstr = str;
     history[type][i].hisstrlen = len;
-    history[type][i].time_set = vim_time();
+    history[type][i].time_set = host_time();
     return TRUE;
 }
 
@@ -7943,7 +7942,7 @@ add_to_history(int         histype, char_u      *new_entry, usize      new_entry
 
     hisptr->hisnum = ++hisnum[histype];
     hisptr->viminfo = FALSE;
-    hisptr->time_set = vim_time();
+    hisptr->time_set = host_time();
     if (histype == HIST_SEARCH && in_map)
     {
         last_maptick = maptick;
@@ -74269,16 +74268,10 @@ abort_search:
     return FALSE;
 }
 
-    static time_T
-vim_time(void)
-{
-    return time(nullptr);
-}
-
     static void
 add_time(char_u *buf, usize buflen, time_T tt)
 {
-    long seconds = (long)(vim_time() - tt);
+    long seconds = (long)(host_time() - tt);
 
     vim_snprintf((char *)buf, buflen, NGETTEXT("%ld second ago", "%ld seconds ago", seconds), seconds);
 }
@@ -74650,9 +74643,9 @@ ui_focus_change(int         in_focus)
 {
     static time_T       last_time = (time_T)0;
 
-    if (in_focus && last_time + 2 < time(nullptr))
+    if (in_focus && last_time + 2 < host_time())
     {
-        last_time = time(nullptr);
+        last_time = host_time();
     }
 
 }
@@ -74891,7 +74884,7 @@ u_savecommon(linenr_T    top, linenr_T    bot, linenr_T    newbot, int         r
 
         uhp->uh_seq = ++curbuf->b_u_seq_last;
         curbuf->b_u_seq_cur = uhp->uh_seq;
-        uhp->uh_time = vim_time();
+        uhp->uh_time = host_time();
         uhp->uh_save_nr = 0;
         curbuf->b_u_time_cur = uhp->uh_time + 1;
 
@@ -75250,7 +75243,7 @@ undo_time(long        step, int         sec, int         file, int         absol
         {
             if (dosec)
             {
-                closest = (long)(vim_time() + 1);
+                closest = (long)(host_time() + 1);
             }
             else if (dofile)
             {
@@ -77919,6 +77912,7 @@ static_assert(4096 == PATH_MAX, "PATH_MAX");
 static_assert(1 == EXIT_FAILURE, "EXIT_FAILURE");
 static_assert(1 == SIGHUP, "SIGHUP");
 static_assert(15 == SIGTERM, "SIGTERM");
+static_assert(_Generic((time_T)0, time_t: 1, default: 0), "time_T is time_t");
 
 enum { TMP_LEN = 350 };
 
@@ -79634,6 +79628,12 @@ musl_now_ms(void)
         host_now_base = tv.tv_sec;
     }
     return (tv.tv_sec - host_now_base) * 1000L + tv.tv_usec / 1000L;
+}
+
+    static long
+host_time(void)
+{
+    return time(nullptr);
 }
 
     static void
