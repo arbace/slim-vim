@@ -78043,12 +78043,18 @@ adjust_types(const char ***ap_types, int arg, int *num_posarg, const char *type)
         }
         else
         {
-            new_types =  realloc(((char **)*ap_types), (arg * sizeof(const char *))) ;
+            new_types = (const char **)host_alloc(arg * sizeof(const char *));
         }
 
         if (new_types == nullptr)
         {
             return FAIL;
+        }
+
+        if (*ap_types != nullptr)
+        {
+            musl_memcpy((char **)new_types, *ap_types, (usize)*num_posarg * sizeof(const char *));
+            host_free((char **)*ap_types);
         }
 
         for (idx = *num_posarg; idx < arg; ++idx)
@@ -78119,7 +78125,7 @@ format_overflow_error(const char *pstart)
         musl_strncpy(argcopy, pstart, arglen);
         vim_snprintf((char *)IObuff, emsg_iobuff_room(), _( e_val_too_large), argcopy);
         emsg(iobuff_or(_( e_val_too_large)));
-        free(argcopy);
+        host_free(argcopy);
     }
     else
     {
@@ -79563,16 +79569,78 @@ host_message(const char *msg, int len, int err)
     }
 }
 
+enum { HOST_ARENA_BYTES = 1024 * 1024 * 1024 };
+
+static max_align_t host_arena[HOST_ARENA_BYTES / sizeof(max_align_t)];
+static usize host_arena_used;
+
+    static int
+host_arena_say(char *b, int at, const char *s)
+{
+    usize       n = musl_strlen(s);
+
+    musl_memcpy(b + at, s, n);
+    return at + (int)n;
+}
+
+    static int
+host_arena_num(char *b, int at, usize v)
+{
+    char        d[24];
+    int         i = 24;
+
+    if (v == 0)
+    {
+        d[--i] = '0';
+    }
+    while (v > 0)
+    {
+        d[--i] = (char)('0' + (int)(v % 10));
+        v /= 10;
+    }
+    while (i < 24)
+    {
+        b[at++] = d[i++];
+    }
+    return at;
+}
+
+    static void
+host_arena_exhausted(usize n)
+{
+    char        m[160];
+    int         at = 0;
+
+    at = host_arena_say(m, at, "zero-vim: host arena exhausted: ");
+    at = host_arena_num(m, at, sizeof(host_arena));
+    at = host_arena_say(m, at, " bytes, ");
+    at = host_arena_num(m, at, host_arena_used);
+    at = host_arena_say(m, at, " used, request ");
+    at = host_arena_num(m, at, n);
+    at = host_arena_say(m, at, "\n");
+    host_message(m, at, TRUE);
+    host_exit(1);
+}
+
     static void *
 host_alloc(usize n)
 {
-    return malloc(n);
+    usize       want = (n + (alignof(max_align_t) - 1)) & ~(usize)(alignof(max_align_t) - 1);
+    char        *p;
+
+    if (want < n || want > sizeof(host_arena) - host_arena_used)
+    {
+        host_arena_exhausted(n);
+    }
+    p = (char *)host_arena + host_arena_used;
+    host_arena_used += want;
+    return p;
 }
 
     static void
 host_free(void *p)
 {
-    free(p);
+    (void)p;
 }
 
     static int
