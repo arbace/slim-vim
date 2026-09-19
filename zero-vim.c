@@ -28,8 +28,6 @@ long time(long *tp);
 int getpid(void);
 int kill(int pid, int sig);
 long write(int fd, const void *buf, usize n);
-long labs(long n);
-int abs(int n);
 
     static void *
 musl_memcpy(void *dest, const void *src, usize n)
@@ -348,6 +346,18 @@ musl_atol(const char *s)
         n = 10 * n - (*s++ - '0');
     }
     return neg ? n : -n;
+}
+
+    static int
+musl_abs(int a)
+{
+    return a > 0 ? a : -a;
+}
+
+    static long
+musl_labs(long a)
+{
+    return a > 0 ? a : -a;
 }
 
     static void *
@@ -8148,7 +8158,7 @@ handle_lnum_col(win_T           *wp, winlinevars_T   *wlv, int             sign_
               }
               else
               {
-                  num = labs((long)get_cursor_rel_lnum(wp, wlv->lnum));
+                  num = musl_labs((long)get_cursor_rel_lnum(wp, wlv->lnum));
                   if (num == 0 && wp-> w_onebuf_opt.wo_nu  && wp-> w_onebuf_opt.wo_rnu )
                   {
                       num = wlv->lnum;
@@ -41744,7 +41754,7 @@ static int scroll_with_sms(int dir, long count, long *curscount)
     if (!prev_sms && curwin->w_skipcol > 0)
     {
         int fixdir = dir;
-        if (labs(curwin->w_topline - prev_topline) > (dir ==  (-1) ))
+        if (musl_labs(curwin->w_topline - prev_topline) > (dir ==  (-1) ))
         {
             fixdir = dir * -1;
         }
@@ -77285,7 +77295,7 @@ last_status_rec(frame_T *fr, int statusline)
         comp_col();
         redraw_all_later(UPD_SOME_VALID);
     }
-    if (abs(wp->w_height - wp->w_prev_height) == 1)
+    if (musl_abs(wp->w_height - wp->w_prev_height) == 1)
     {
         wp->w_prev_height = wp->w_height;
     }

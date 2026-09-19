@@ -19,12 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are thirty-one phases, 0 to 30.  Phases are added one at a time, each on its
+# There are thirty-two phases, 0 to 31.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
 
 #   stage   phases
 stage       0
@@ -58,6 +58,7 @@ stage       27
 stage       28
 stage       29
 stage       30
+stage       31
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -359,6 +360,17 @@ apart       26 27
 # thirteen-name set is computed from its own output.  It is the shape of `apart 26 27`
 # directly above, and of `apart 16 17` before that.
 apart       27 28
+#   apart 30 31  MEASURED, and in one direction only.  `tools/phaserun.sh zero 30-31` on
+#                r29 runs both edits, one sweep and both checks, and stops in phase 30's:
+#                "the output is 79776 lines and the input was 79857, a difference of 81
+#                where 91 was expected -- the edit adds 1 and the sweep takes 92".  The
+#                ten lines phase 31's edit adds land in the same swept text, so 30's line
+#                arithmetic reads 81 where it wants 91.  It is `apart 17 18`'s shape
+#                exactly.  The other direction passes: phase 31's own check ran on that
+#                shared stage and every part of it held -- which is also where
+#                `need 31 swept` was measured NOT to be required, 31's edit applying
+#                unchanged to phase 30's UNSWEPT output with all five anchors holding.
+apart       30 31
 # MEASURED rather than predicted, with `tools/phaserun.sh zero 28-29` on r27: both edits
 # run, the sweep runs once and is a complete no-op, and phase 28's check stops on ONE
 # message -- `the core is 77978 lines and was 78359, a difference of -381 where -16 was
@@ -603,7 +615,7 @@ package  files        6 7 8 9 10
 package  buffers      11
 package  options      12
 package  tidy         13
-package  vendor       14 15
+package  vendor       14 15 31
 package  includes     16
 # 30 IS PHASE 21'S OWN FOLLOW-UP, WHICH IS WHY IT IS IN THIS PACKAGE AND NOT IN `tidy`:
 # the four statements msg_puts_printf() is made of are phase 21's -- it rewrote two
@@ -822,3 +834,7 @@ uses  casemap:29 vendor:15  mechanical  musl_toUpper[], musl_toLower[] and the t
 uses  host:30     seed:0       mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
 uses  host:30     harness:3    mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one -- and the instrument this phase owes is phase 3's shape too: an instrumented pair over 106 records with a control that marks 103 of them
 uses  host:30     boundary:25  mechanical  host_message() is a forward-declared call and one of the names the editor.c cut enumerates because phase 25 turned the function pointer into a declaration -- so the fold widens no core -> host interface, and the check can say so by comparing the cut's warning set with the input's
+uses  vendor:31    seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  vendor:31    harness:3  mechanical  the corpus reaches NONE of the three call sites -- measured, an instrumented build enters none of them in 106 records -- so the phase owes three probes of its own, and a probe here is a screen recorded from a keystroke file, which is what phase 3 made one
+uses  vendor:31    boundary:26  mechanical  the two prototypes this phase deletes are phase 26's, written into the core's libc declaration block while the headers were still above them; the block is found by its shape and not by line number, but it exists because of 26
+uses  vendor:31    boundary:27  mechanical  the check asserts that both definitions land ABOVE the first `#include`, and the first `#include` is the boundary only because phase 27 moved the eleven of them to the bottom
