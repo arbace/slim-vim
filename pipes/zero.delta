@@ -1460,3 +1460,51 @@
 # and wrote "the count stays 18" into its own program.  Eleven stays eleven: a phase that
 # changes two things cannot say which one a difference came from, and the removal is free
 # for whoever asks for it.
+# ---------------------------------------------------------------------------------------
+# PHASE 43 DECLARES NOTHING AT ALL, and it is CLAUDE.md's SIXTH kind: the code runs, and
+# the instrument sees it do the same thing.  Phases 18, 19, 21, 25, 32, 34 and 35 are the
+# others, and this is the strongest instance of it any zero phase has had -- not because
+# the phase is careful but because of WHERE it is.  Every keystroke this editor draws
+# reaches its text through `ml_find_line()`, and this phase changes how that function
+# reaches every block: `pe_bnum` and `ip_bnum` become `bhdr_T *`, `memline_T` gains
+# `ml_root`, and `mf_get(mfp, nr, page_count)` becomes `mf_get(mfp, hp)`.  An integer key
+# into a side hash table becomes an object reference.
+#
+# AND IT IS ONLY THE SIXTH KIND BECAUSE ZERO PHASE 40 EXISTS.  Before it, a recording was
+# 102 screen cases that allocate exactly ONE data block each, and a binary with one line
+# deleted from `ml_find_line()`'s pointer bookkeeping recorded every one of them byte for
+# byte.  A phase that rewrites the descent, measured against that, would have been the
+# SECOND kind -- the code runs and the instrument cannot see it -- and would have owed
+# probes for the whole text layer.  The sixteen memline cases are what make the empty
+# declaration evidence: 16 of them reach a data-block split and one, `mem_deep_jumps`,
+# splits the ROOT, and the phase's check measures every case's tree events on both
+# binaries and requires them to agree case for case rather than asserting they do.
+#
+# THE ONE THING THAT COULD HAVE BEEN DECLARED AND IS NOT, stated here rather than left to
+# be found.  `E323: Line count wrong in block %ld` is the only message in the file that
+# printed a block number, and there is no number left to print, so it becomes `E323: Line
+# count wrong in block`.  That IS a change to what the editor would draw -- and it is
+# phase 12's kind inside a phase of phase 21's kind: the arm is `ml_find_line()`'s
+# integrity check, the one that fires when the line counts under a pointer block do not
+# add up to the tree's own count, and it is reachable only from a tree that is already
+# corrupt.  So the phase owes a probe and runs two.  The input built with
+# `host_message("MARK-E323\n", 10, TRUE);` on that arm carries the marker in 0 of a whole
+# recording's records, and the IDENTICAL marker on the line above it -- the descent into a
+# pointer block, which every case reaches -- is carried by most of them, which is phase
+# 9's instrumented pair and phase 13's.  Then both sources are built with the pointer-block
+# scan forced to find nothing, and both DO draw E323, so what the phase changed is
+# exhibited rather than argued: `E323: Line count wrong in block 0` against `E323: Line
+# count wrong in block`.
+#
+# `E298: Didn't get block nr 0?` and `E298: Didn't get block nr 1?` are not changed but
+# DELETED, with the two tests in `ml_open()` that were the only thing that could raise
+# them -- it asked whether the first two blocks came back numbered 0 and 1, which has no
+# meaning once no block has a number.  Both objects are left standing for tools/sweep.sh.
+#
+# WHAT THE PHASE DOES NOT BUY, because the claim is easy to overstate.  The pointer
+# BETWEEN pages is a reference; the page itself is still a byte array with interior
+# offsets read back as pointers.  ZERO-PLAN.md 4d's list -- `db_index[1]` indexed to the
+# line count, the fourteen `(char_u *)dp + start` interior pointers, the top bit of an
+# offset used as a flag, the padding that is part of the layout -- is untouched, and the
+# arena and its interior pointers survive until phase 44.  This is half of the thing a
+# JVM cannot express, not the whole of it.
