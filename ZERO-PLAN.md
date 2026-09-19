@@ -993,9 +993,17 @@ Every row of §3b has landed, as zero phases 2 and 4 to 13; §4a and §4b below 
 corrected from measurement in place. **And §4c has landed too**: `main()` is a launcher
 (18, 19), the terminal and the signal set are the host's (20), both stream calls went
 (21, 35), and the line between the core and the host is the file's first `#include`
-(23, 25, 26, 27). What the charter still asks for after that is the **text
+(23, 25, 26, 27). **Phase 36 finished the sentence the whole of §4 was reaching for**:
+the core's own block of plain libc declarations is empty and gone, so it names no libc
+function at all — asserted on the cut compiled to an **object**, because a bare `extern`
+is invisible to the warning check the boundary otherwise relies on. What the charter
+still asks for after that is the **text
 representation**, from lines to a tree — and §4d, added afterwards, is that same move
-measured from the porter's end. Two smaller things are named here
+measured from the porter's end. **Two phases have landed that are in no part of this
+plan**, and they are named here so the plan is not read as the whole account: 38 cut
+`builtin_terminals[]` from ten names to `xterm-256color` and `debug`, and 39 removed
+`-T {term}`, so `+{command}` is the whole command line and nothing outside the process
+can say what terminal this is. Two smaller things are named here
 rather than planned, because each is a decision and not a computation — **and the
 first of the two has since been built, which is why its bullet is struck through**:
 
@@ -1387,8 +1395,12 @@ check all assume one product per pipeline.
 
 §4c's rule is *the core is optimised for transpilation, not for performance*, and the
 question that rule implies has been asked of the cut `make editor.c` writes: **which
-constructs in the 77,899 lines would a JVM port have to be told about, rather than
-translate?** Three answers, and they are of very different sizes.
+constructs in the 77,678 lines would a JVM port have to be told about, rather than
+translate?** Three answers, and they are of very different sizes. **Every count below was
+re-measured on the phase 39 core and not one of them has moved** — 34, 45, 14, three and
+65 — which is itself worth knowing: the phases since this section was written have
+taken the terminal, the command line, two libc names and six degenerate unions, and have
+not touched the memline or the regexp stack at all.
 
 **The memline page is the one that would THROW rather than compute a wrong answer, and
 it is already scheduled.** `ZERO-GOAL.md`'s charter says the text moves from lines to a
@@ -1412,10 +1424,23 @@ cut:
 * The **padding is part of the layout**. `db_id` is a `short_u` followed by two bytes of
   padding, and the page-count arithmetic reads the result back:
   `(space_needed + offsetof(DATA_BL, db_index) + page_size - 1) / page_size`, where
-  `offsetof` is **24** of a **32**-byte struct. There is no file to write it to any more
-  — zero phases 6 to 13 took every one — but `ml_open()` still stamps `b0_magic_long`
-  and `mf_open()` still hands out page-sized blocks, so the swap-file format survives as
-  a **memory** layout with its arithmetic intact.
+  `offsetof` is **24** of a **32**-byte struct — `short_u` + two bytes of padding + three
+  `unsigned` + an 8-aligned `linenr_T`, computed from the declaration and confirmed
+  against the arithmetic. The core spells it `__builtin_offsetof`, phase 26 having made
+  the macro its own, and there are **nine** uses of it above the boundary.
+
+  **But it is no longer a disk format, and that is the correction this bullet most
+  needed.** There is no file to write a page to — zero phases 6 to 13 took every one —
+  and the memfile is now purely in memory: `mf_open()` takes no name and sets
+  `mf_page_size` from a constant, `mf_alloc_bhdr()` gets every page from `alloc()`,
+  `mf_sync()` clears the dirty flag and returns `FAIL`, and `mf_write`, `mf_read`,
+  `mf_release`, `mf_fd` and `ml_recover` have **0 mentions in `zero-vim.c`**.
+  `ml_open()` still stamps `b0_magic_long` into a block zero nothing reads back. So
+  `DATA_BL` is an **internal layout with no compatibility constraint on it**: the
+  arithmetic above is what the code does today and not a format a port has to honour,
+  and the lines→tree move is free to choose any representation it likes. That is the
+  opposite of `slim-vim.c`, where `tools/deadfields.py` **refuses while `ml_recover()`
+  exists** precisely because block zero and the memfile's pages are a disk format there.
 
 **One other construct has the same shape and is much smaller**: the regexp backtracking
 stack builds typed pointers into a byte buffer at a computed byte offset,
