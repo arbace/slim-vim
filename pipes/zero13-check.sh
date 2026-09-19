@@ -16,7 +16,9 @@
 #   probe  `(void)write(2, "FILESTAR-ENTERED\n", 17);` at FIVE places -- the top of
 #          `closescript()`, inside `inchar()`'s `getc(scriptin[curscript])` loop,
 #          inside `redir_write()`'s `redirecting()` block, inside `undo_cmdmod`'s,
-#          and the top of `vim_fsync()`.  ZERO of the 106 records may carry it.
+#          and the top of `vim_fsync()`.  ZERO of the records may carry it -- 106 of
+#          them when this phase was written, 122 since zero phase 40 added the
+#          memline corpus, and the check counts rather than pins.
 #   ctl    the IDENTICAL instrument at the top of `ui_write()`, which is reached by
 #          every byte the editor draws.  It must mark almost all of them, and the
 #          zero above is worth nothing without it.
@@ -333,8 +335,13 @@ wait $pid_rc || rc=1
 total=$(find "$tmp/REC.probe" -type f | wc -l)
 marked=$(grep -rl 'FILESTAR-ENTERED' "$tmp/REC.probe" | wc -l)
 cmarked=$(grep -rl 'FILESTAR-ENTERED' "$tmp/REC.ctl" | wc -l)
-if [ "$total" != 106 ]; then
-    echo "  nofile       a recording is $total files, not the 106 this phase counted"
+if [ "$total" -lt 100 ]; then
+    echo "  nofile       a recording is $total files, and a comparison of two things"
+    echo "               nothing wrote passes.  The COUNT is reported and not pinned:"
+    echo "               a recording held 106 records when this phase was written and"
+    echo "               holds 122 since zero phase 40 added the memline corpus, so"
+    echo "               what is asserted is 0 marked here and the identical"
+    echo "               instrument marking nearly all of them on ui_write()."
     exit 1
 fi
 if [ "$marked" != 0 ]; then

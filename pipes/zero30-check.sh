@@ -670,9 +670,11 @@ def marks(rec, token):
 # cannot be the difference -- only where it is.
 pp, pp_n, n_rec = marks(tmp + '/REC.i_pp', 'PP-ENTERED')
 ctl, ctl_n, _ = marks(tmp + '/REC.i_ctl', 'PP-ENTERED')
-if n_rec != 106:
-    fail.append('a recording is %d records and must be 106 -- 102 screen cases and four '
-                'files' % n_rec)
+if n_rec < 100:
+    fail.append('a recording is %d records, and a measurement over a corpus nothing '
+                'wrote passes.  The count is REPORTED and not pinned: it was 106 when '
+                'this phase was written -- 102 screen cases and four files -- and is '
+                '122 since zero phase 40 added the memline corpus' % n_rec)
 if pp:
     fail.append('the instrument inside msg_puts_printf() marks %d of %d records (%s), '
                 'and the whole claim of this phase is that it marks NONE'
