@@ -34,7 +34,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37
 
 #   stage   phases
 stage       0
@@ -87,6 +87,9 @@ stage       33
 stage       34
 stage       35
 stage       36
+# 37 is a stage of its own, as every zero phase is.  `apart 36 37` is written below and
+# was measured in BOTH directions; there is no `need 37`, and that was measured too.
+stage       37
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -785,6 +788,38 @@ apart       35 36
 #                  there is nothing that could shrink silently.  MEASURED on the unswept
 #                  text as well: the block is there exactly once either way, and the
 #                  input to this phase is always a swept boundary.
+#   apart 36 37  MEASURED as a real shared stage, r35 restored and both edits run with
+#                one sweep between them and both checks after -- which 36 and 37 make
+#                possible, both being split phases, where the 33-34 pair could not be
+#                measured that way at all.  IT IS BOTH DIRECTIONS, and the driver only
+#                ever sees the first.  Phase 36's check stops with `the file is 79786
+#                lines and the input was 79804 (79804 recorded) -- expected 79799: 1 in
+#                above the boundary and 6 below, 12 out above it`, and then `the boundary
+#                moved from line 77901 to line 77877`: phase 36 states its own arithmetic
+#                as a line count and phase 37 takes 13 more lines out of the core.  That
+#                is `apart 17 18`'s shape and `apart 30 31`'s.
+#
+#                THE OTHER DIRECTION WAS OBSERVED AND NOT REASONED, by running phase 37's
+#                check on exactly the tree and the state directory the driver would have
+#                handed it next: `the file is 79786 lines and the input was 79801 -- the
+#                six declarations are 13 lines shorter between them`, then `the boundary
+#                moved by 15 lines and the file by 13`.  THE TWO EXTRA LINES ARE PHASE
+#                36'S RESIDUE -- `static long mch_get_pid(void);` and the `b0_pid` member,
+#                which 36 deliberately leaves FOR the sweep -- arriving inside phase 37's
+#                arithmetic because a stage sweeps ONCE, at the end.  A phase that states
+#                its line count against its own edit cannot share a sweep with a phase
+#                that leaves work for it.
+apart       36 37
+#   NO `need 37`, MEASURED IN THE SAME RUN.  Phase 37's edit was handed phase 36's
+#                  UNSWEPT output -- `mch_get_pid()`'s forward declaration still there,
+#                  `b0_pid` still a field -- and every part of it held, at exactly the
+#                  counts it gets on swept text: uh_next 1 + 27, uh_prev 1 + 23,
+#                  uh_alt_next 1 + 28, uh_alt_prev 1 + 26, vval 1 + 19, es_info 1 + 0.
+#                  It asserts no count a sweep can move: which unions are degenerate is
+#                  COMPUTED by matching braces and counting members, and each name's
+#                  mentions are PARTITIONED into its declaration and its `.member`
+#                  accesses, with how many of each read off the text.  The two lines the
+#                  sweep does take are phase 36's and touch nothing of this phase's.
 
 
 #        name         phases
@@ -801,7 +836,14 @@ package  streams      4 5
 package  files        6 7 8 9 10
 package  buffers      11
 package  options      12
-package  tidy         13
+# 37 IS `tidy` AND NOT `dialect`.  Five of the six unions it removes are LEFTOVERS of
+# cuts this pipeline and whim's already made -- u_header's four link fields lost their
+# swapfile arm, typval_S.vval lost eight of its nine -- so the phase is 13's kind: a
+# thing that is still there only because nothing came back for it.  Only the sixth, the
+# EMPTY union, has a dialect argument (ISO C forbids it; gcc takes it as an extension),
+# and one of six does not name the package.  `dialect` is 24, which changes how the core
+# SPELLS things it still does; this phase removes things it no longer does.
+package  tidy         13 37
 package  vendor       14 15 31
 package  includes     16
 # 30 IS PHASE 21'S OWN FOLLOW-UP, WHICH IS WHY IT IS IN THIS PACKAGE AND NOT IN `tidy`:

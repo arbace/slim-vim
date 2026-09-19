@@ -1207,3 +1207,29 @@
 # 1 and 2 by BOTH the double-signal arm and `v_dying = entered`, whose value reaches
 # getout()'s two `if (v_dying <= 1)` tests.  deathtrap() is byte-identical in and out and
 # the check asserts that rather than leaving it to be believed.
+# ---------------------------------------------------------------------------------------
+# PHASE 37 DECLARES NOTHING AT ALL, and it is the STRONGEST kind of empty declaration
+# rather than the weakest -- phase 16's and phase 23's kind, a BYTE-IDENTICAL BINARY.
+#
+# The phase removes the six `union` keywords of thirteen that union nothing with
+# anything: the four single-member `u_header` link fields, whose swapfile-block arm went
+# with the swapfile; `typval_S.vval`, which had nine arms and has had one since the eval
+# layer went; and `estack_T.es_info`, an EMPTY union with zero uses -- one mention in the
+# whole file, its own declaration.  A union of one member has the size, the alignment and
+# the offset of that member, and an empty union contributes no storage, so no layout
+# moves, no expression changes value and `uh_next.ptr` and `uh_next` name the same object
+# at the same address.
+#
+# Measured on r36: 782,760 bytes either side, `cmp`-identical, both built with
+# SOURCE_DATE_EPOCH=0 and the boundary's own flags.  That subsumes every screen case,
+# every Ex-command row, every command line and every pty scenario at once, because the
+# program that would be run is literally the same program -- so unlike phase 20's and
+# phase 22's empty declarations this phase owes no probes, and unlike phases 14 and 15 it
+# is not asking anybody to believe a replacement does what the original did.
+#
+# The control that keeps the cmp from being two numbers agreeing is the output with the
+# two fields the phase PROMOTED -- `uh_next` and `uh_prev` -- exchanged: a pure layout
+# permutation of the very struct it rewrites, which builds and differs in 31,056 bytes.
+# Two further controls move nothing and are reported: the empty union put back, and one
+# single-member union put back with its `.member` accesses, each byte-identical, which is
+# the phase's own claim stated in the only direction a control can state it in.
