@@ -990,11 +990,12 @@ longer the measure it was.
 
 **THE PLAN IS BUILT AND WHAT REMAINS IS NOT WHAT THIS SECTION WAS WRITTEN FOR.**
 Every row of §3b has landed, as zero phases 2 and 4 to 13; §4a and §4b below are
-corrected from measurement in place. What is actually left of `ZERO-PLAN.md` is
-**§4c and nothing else**: the filesystem work is finished, and what the charter still
-asks for is the host boundary — `main()` demoted to a launcher, the terminal, the
-signal set and the two stream calls moved out of the core, and the text
-representation changed from lines to a tree. Two smaller things are named here
+corrected from measurement in place. **And §4c has landed too**: `main()` is a launcher
+(18, 19), the terminal and the signal set are the host's (20), both stream calls went
+(21, 35), and the line between the core and the host is the file's first `#include`
+(23, 25, 26, 27). What the charter still asks for after that is the **text
+representation**, from lines to a tree — and §4d, added afterwards, is that same move
+measured from the porter's end. Two smaller things are named here
 rather than planned, because each is a decision and not a computation — **and the
 first of the two has since been built, which is why its bullet is struck through**:
 
@@ -1009,11 +1010,14 @@ first of the two has since been built, which is why its bullet is struck through
   twelve** — and its evidence is a `cmp`: 805,544 bytes either side, both built with
   `SOURCE_DATE_EPOCH=0`. `ZERO-GOAL.md`'s charter now says a phase may remove a
   directive and may not add one.
-* **the clock.** `time()` and `gettimeofday()` are still asked, for undo's
-  *"1 second ago"*, the command-line history's timestamps, `:sleep`, the bell, key
-  timeouts and OSC replies — and the undo message is the one nondeterminism the
-  corpus has to scrub (§2e). *"The editor stops asking what time it is"* is a phase
-  of its own and frees `time`.
+* ~~**the clock.**~~ **BUILT, AS ZERO PHASES 28 AND 32, AND THE LAST CLAUSE IS WRONG.**
+  It took two phases and not one, the elapsed-milliseconds clock crossing as
+  `long musl_now_ms(void)` and the wall clock as `long host_time(void)` — and neither
+  **frees** anything. `gettimeofday` and `time` are both still in `nm -u`, because a
+  symbol leaves when its last *caller* leaves the **file** and both callers moved to the
+  other side of a boundary inside one translation unit. What the core no longer does is
+  *name* either one; the bullet predicted a symbol count and what it bought was a place.
+  The undo message is still the one nondeterminism the corpus has to scrub (§2e).
 
 ### 4a. The surviving libc, by reason
 
@@ -1378,6 +1382,75 @@ One smaller consequence: each pipeline's product rule extracts **one** file from
 last boundary's tar (`zero.mk`, and the same shape in `slim.mk` and `whim.mk`). After
 the split zero has two, and `make score`, the file census and `zero-pass`'s flags
 check all assume one product per pipeline.
+
+### 4d. What a JVM target cannot express, measured on the core as it stands
+
+§4c's rule is *the core is optimised for transpilation, not for performance*, and the
+question that rule implies has been asked of the cut `make editor.c` writes: **which
+constructs in the 77,899 lines would a JVM port have to be told about, rather than
+translate?** Three answers, and they are of very different sizes.
+
+**The memline page is the one that would THROW rather than compute a wrong answer, and
+it is already scheduled.** `ZERO-GOAL.md`'s charter says the text moves from lines to a
+tree; this is the same work seen from the porter's end, which is worth knowing because
+it means the hard case has a plan and not merely a warning. Four measurements, on the
+cut:
+
+* `struct data_block`'s last member is `unsigned db_index[1]`, **declared length 1 and
+  indexed to the block's line count** — 34 mentions in the core, `dp->db_index[idx]`,
+  `[db_idx + 1]`, `[i + 1]`, `[lnum - ml_locked_low]`. `struct pointer_block`'s
+  `PTR_EN pb_pointer[1]` is the same idiom, 45 mentions. On a JVM a member array has the
+  length it was given and index 40 of a 1-element array is an exception, not a value.
+* Its entries are **byte offsets into the same block, read back as interior pointers**:
+  **fourteen** of the shape `(char_u *)dp + start`, `(char *)dp + dp->db_txt_start`,
+  `(char *)dp_left + dp_left->db_txt_start`. A JVM object has no interior address at
+  all, so these are not translatable-but-wrong; they are untranslatable as written.
+* The **top bit of an offset is a flag**: `DB_MARKED` is
+  `((unsigned)1 << ((sizeof(unsigned) * 8) - 1))`, masked off at every read and or-ed in
+  at every write. That one is merely arithmetic and ports fine — it is listed because a
+  port that changed the offset's width would silently lose it.
+* The **padding is part of the layout**. `db_id` is a `short_u` followed by two bytes of
+  padding, and the page-count arithmetic reads the result back:
+  `(space_needed + offsetof(DATA_BL, db_index) + page_size - 1) / page_size`, where
+  `offsetof` is **24** of a **32**-byte struct. There is no file to write it to any more
+  — zero phases 6 to 13 took every one — but `ml_open()` still stamps `b0_magic_long`
+  and `mf_open()` still hands out page-sized blocks, so the swap-file format survives as
+  a **memory** layout with its arithmetic intact.
+
+**One other construct has the same shape and is much smaller**: the regexp backtracking
+stack builds typed pointers into a byte buffer at a computed byte offset,
+`rp = (regitem_T *)((char *)regstack.ga_data + regstack.ga_len);`, at **three** sites. It
+is a growarray used as a stack of variable-sized records, and a port has to give it a
+representation of its own exactly as the memline page does — but three sites against the
+memline's 34 + 45 + 14 is a different order of work.
+
+**Two porter notes that are the opposite finding**, recorded because each looks like a
+hazard and measures as nearly none:
+
+* **`>>` is almost a non-issue.** The cut has **65** right-shift operators, 63 `>>` and
+  two `>>=`. **45 carry an explicit `(unsigned)` cast at the shift itself** —
+  `(unsigned)(c) >> 3`, `((unsigned)(-(key)) >> 8) & 0xff` — six more are the `~0u`,
+  `~0ul` and `~0ull` of the limit enumerators, and the rest are on `long_u`, `hash_T` or
+  `uvarnumber_T`. **Exactly three are on a signed operand**, and all three mask
+  immediately afterwards: two in `blend_cterm_colors()` on `int default_rgb`
+  (`(default_rgb >> 16) & 0xFF`) and one in `mf_hash_grow()` on `blocknr_T mhi_key`,
+  which is `long`. So Java's `>>` versus `>>>` decides three expressions in the whole
+  core, and in each the `& 0xFF` or `& (MHT_GROWTH_FACTOR - 1)` makes the two agree
+  anyway.
+* **`%` is NOT**, and a Clojure port must use `quot` and `rem` rather than `/` and
+  `mod`. C's `%` takes the sign of its left operand; Clojure's `mod` is the floored
+  modulus and is never negative for a positive divisor. `ex_history()` relies on the C
+  rule and compensates for it by hand, at two adjacent sites:
+  `hist[(hislen + j + idx + 1) % hislen].hisnum` **adds the modulus first** precisely
+  because `j` is negative there. Under `mod` the bias is applied twice; under `rem` the
+  line means what it means today.
+
+**The core uses no floating point at all**, which is the third answer and the one that
+costs a port nothing: it is why nothing above needs to say anything about rounding
+modes, `strtod` or a soft-float library. It is met **by construction** and not by any
+phase — the configuration is `tiny`, which has no `+float`, and whim removed the eval
+layer `float_T` belonged to — and `CLAUDE.md` states it as a tree invariant with what
+was measured.
 
 ## 5. Decision points
 
