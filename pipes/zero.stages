@@ -20,7 +20,7 @@
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
 # There are thirty-five phases, 0 to 34.  Phases are added one at a time, each on its
-# There are thirty-six phases, 0 to 35, and THE LIST IS CONTIGUOUS BECAUSE IT HAS TO BE.
+# There are thirty-seven phases, 0 to 36, and THE LIST IS CONTIGUOUS BECAUSE IT HAS TO BE.
 # 33, 34 and 35 were written at the same time, each on its own branch off the same
 # boundary, and for a while this list had a hole where the ones that had not landed yet
 # would go.  That is illegal and now fails loudly: tools/memo.sh reads the boundary
@@ -34,7 +34,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36
 
 #   stage   phases
 stage       0
@@ -86,6 +86,7 @@ stage       33
 # a phase whose predecessor can never share its stage is handed a boundary either way.
 stage       34
 stage       35
+stage       36
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -731,6 +732,43 @@ apart       28 35
 apart       30 35
 apart       32 35
 apart       34 35
+
+#   apart 35 36  MEASURED as a real shared stage, r34 restored and both edits run with
+#                one sweep between them and both checks after.  Phase 35's check stops
+#                THREE ways, and the first is the block it exists to shrink: it finds the
+#                input's run of ordinary declarations, subtracts its own three lines and
+#                requires the OUTPUT to hold exactly what is left -- which is `int
+#                getpid(void);` and `int kill(int pid, int sig);`, the two lines phase 36
+#                takes.  `the ordinary declarations above the boundary are none and the
+#                input's block minus the three is int getpid(void); / int kill(int pid,
+#                int sig);`.  Then `the file is 79799 lines and the input was 79786 --
+#                expected 18 more`, phase 35's arithmetic meeting phase 36's net of -5,
+#                and `the boundary moved from line 77901 to line 77890, and it must not`,
+#                which is phase 35's own statement that IT moves no line above the first
+#                `#include` -- true of 35 and not of a stage holding 36.  ONE DIRECTION
+#                ONLY: phase 36's check was then run on that same tree and every part of
+#                it held, and the tree itself is BYTE-IDENTICAL to the one the two phases
+#                produce in sequence.
+#
+# AND SIX LINES THAT ARE NOT WRITTEN, WITH THE REASON, because a redundant `apart` that
+# nobody measured is worse than none.  Phases 26, 27, 28, 30, 32 and 34 all have checks
+# that phase 36's output breaks -- 26's and 27's nine-entry PROTOS list reaches ZERO of
+# nine on it, which is this arc read from the losing side, and 27's and 28's written-out
+# boundary sets are thirteen and fourteen names against eighteen.  But every one of them
+# was ALREADY broken by phase 35 and is recorded against it above, and any stage holding
+# 36 and one of the six would have to hold 35 as well, so the six lines above already
+# forbid it.  What phase 36 newly breaks is phase 35's check, and that is the line that
+# is written.
+apart       35 36
+#   NO `need 36`, MEASURED IN THE SAME RUN that measured `apart 35 36`: phase 36's edit
+#                  was handed phase 35's UNSWEPT output -- the prototype of the function
+#                  its own edit is about to delete still there, `b0_pid` still a field --
+#                  and every part of it held, because it asserts no count a sweep can
+#                  move.  The block is found by walking out from a line; `getpid` and
+#                  `kill` are PARTITIONED above the boundary into a declaration and the
+#                  call sites, and how many there are is read off the text; and the two
+#                  lines the sweep does take, mch_get_pid()'s forward declaration and the
+#                  `b0_pid` member, are left FOR the sweep rather than counted before it.
 #   NO `need 35`, AND IT WAS MEASURED THREE TIMES, once on each base this phase was
 #                  built against: phase 30's UNSWEPT output, phase 32's, and phase 34's
 #                  in the run that measured `apart 34 35` above.  The partition held
@@ -790,7 +828,7 @@ package  includes     16
 # allocate, free or write a byte.  It is NOT `boundary`: nothing about WHERE the line
 # falls changes, and 23, 25, 26, 27 and 28 drew it; and it is not `tidy`, because three
 # libc calls go on being made, by the other side of a line that already existed.
-package  host         17 18 19 20 21 30 32 35
+package  host         17 18 19 20 21 30 32 35 36
 # `format` is a new package, and it is not `vendor`: nothing is brought in.  A layer
 # is FLATTENED -- seven wrappers over one formatter become 129 call sites and five
 # helpers, so that `va_start` appears once and the formatter becomes movable.
@@ -1017,3 +1055,7 @@ uses  host:35     harness:3    mechanical  "nothing moved" is a statement about 
 uses  host:35     boundary:25  mechanical  a `static` forward declaration above and a `static` definition below is all a direct call to the host needs, and it adds no external symbol -- which is phase 25's finding and the shape these three prototypes take.  They go at the END of the ONE block phase 25 made of eleven, so the core -> host boundary stays one run of declarations and not a block plus three
 uses  host:35     boundary:27  mechanical  `above the boundary` and `below it` are a LINE NUMBER in this check -- the first `#include` -- and phase 27 is what moved the eleven directives down to make that line the split.  Before it the whole file was above the includes and `malloc` 2 -> 0 could not have been stated as a place
 uses  host:35     boundary:23  rationale   `host_alloc(usize n)` and `host_write(const char *s, int len)` are spelled in the core's own type names, and `usize` is phase 23's -- a signature in `size_t` would name something no header above the boundary declares
+uses  host:36     seed:0       mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  host:36     harness:3    mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one -- and here it is the WEAKEST part of the evidence and the check says so: the corpus executes the b0_pid write in all 102 screen cases and cannot see it, and reaches the re-raise in NONE, so the phase owes probes of its own
+uses  host:36     boundary:25  mechanical  the one prototype goes at the END of the single run of core -> host declarations phase 25 made of eleven, so the boundary stays ONE block; and a `static` forward declaration above with a `static` definition below is all a direct call to the host needs, which is phase 25's finding
+uses  host:36     boundary:27  mechanical  the whole claim is stated as a property of the CUT -- `nm -u` on an object of the lines above the first `#include` -- and the first `#include` is the line between the core and the host only because phase 27 moved the eleven directives below the core

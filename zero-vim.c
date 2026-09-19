@@ -21,9 +21,6 @@ enum { EXIT_FAILURE = 1 };
 enum { SIGHUP = 1 };
 enum { SIGTERM = 15 };
 
-int getpid(void);
-int kill(int pid, int sig);
-
     static void *
 musl_memcpy(void *dest, const void *src, usize n)
 {
@@ -2694,7 +2691,6 @@ enum { EXFLAG_NR = 0x02 };
 enum { EXFLAG_PRINT = 0x04 };
 
 static int vim_handle_signal(int sig);
-static long mch_get_pid(void);
 static void mch_exit(int r);
 static int get_tty_info(int fd, ttyinfo_T *info);
 
@@ -3446,6 +3442,7 @@ static void *host_alloc(usize n);
 static void host_free(void *p);
 static int host_write(const char *s, int len);
 static long host_time(void);
+static void host_raise(int sig);
 static void starttermcap(void);
 static void stoptermcap(void);
 static int swapping_screen(void);
@@ -33607,7 +33604,6 @@ struct block0
     char_u      b0_id[2];
     char_u      b0_version[10];
     char_u      b0_page_size[4];
-    char_u      b0_pid[4];
     char_u      b0_fname[B0_FNAME_SIZE_ORG];
     long        b0_magic_long;
     int         b0_magic_int;
@@ -33684,7 +33680,6 @@ ml_open(buf_T *buf)
     {
         b0p-> b0_fname[B0_FNAME_SIZE_ORG - 1]  = buf->b_changed ? B0_DIRTY : 0;
         set_b0_fname(b0p, buf);
-        long_to_char(mch_get_pid(), b0p->b0_pid);
     }
 
     mf_put(mfp, hp, TRUE, FALSE);
@@ -55230,7 +55225,7 @@ vim_handle_signal(int sig)
             blocked = FALSE;
                              if (got_signal != 0)
                              {
-                                 kill(getpid(), got_signal);
+                                 host_raise(got_signal);
                                  got_signal = 0;
                              }
                              break;
@@ -55255,12 +55250,6 @@ vim_is_xterm(char_u *name)
         return FALSE;
     }
     return (( musl_strncasecmp((char *)(name), (char *)("xterm"), (5))  == 0 &&  musl_strncasecmp((char *)(name), (char *)("xterm-kitty"), (11))  != 0) ||  musl_strncasecmp((char *)(name), (char *)("nxterm"), (6))  == 0 ||  musl_strncasecmp((char *)(name), (char *)("kterm"), (5))  == 0 ||  musl_strncasecmp((char *)(name), (char *)("mlterm"), (6))  == 0 ||  musl_strncasecmp((char *)(name), (char *)("rxvt"), (4))  == 0 ||  musl_strncasecmp((char *)(name), (char *)("screen.xterm"), (12))  == 0 ||  musl_strcmp((char *)(name), (char *)("builtin_xterm"))  == 0);
-}
-
-    static long
-mch_get_pid(void)
-{
-    return (long)getpid();
 }
 
     static void
@@ -79733,6 +79722,12 @@ musl_read_input(char *buf, int len)
         }
     }
     return (int)read(0, buf, (usize)len);
+}
+
+    static void
+host_raise(int sig)
+{
+    kill(getpid(), sig);
 }
 
     static void
