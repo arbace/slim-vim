@@ -1,6 +1,7 @@
 """What each TERM resolves to, and how many colours it gets."""
+import atexit
 import concurrent.futures
-import os, sys, tempfile
+import os, shutil, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # The import below reaches a tool that tools/implhash.sh would otherwise not see.
 # implhash extracts dependencies by grepping for tools/ PATHS, and an `import`
@@ -14,6 +15,9 @@ import ptyrun
     # must now resolve to the xterm fallback, and a row saying so is what
     # would catch one creeping back in.
 _HOME = tempfile.mkdtemp(prefix="termcheck-home-")
+# One per process, and it used to be one per process FOREVER.  See ask() below
+# for what that cost; this is the same leak in its smaller half.
+atexit.register(shutil.rmtree, _HOME, True)
 # No -u NONE.  An empty $HOME, $VIM and $VIMRUNTIME are the isolation instead:
 # slim-vim finds no ~/.vimrc, system vimrc or runtime defaults in them, and
 # whim-vim, which has no -u from its Phase 18, looks for none of them anyway.
@@ -30,10 +34,21 @@ TERMS = ['xterm', 'xterm-256color', 'screen', 'screen-256color',
 
 def ask(t, settle):
     d = tempfile.mkdtemp(prefix='termcheck-')
-    open(os.path.join(d, 'f.txt'), 'w').write('one\ntwo\nthree\n')
-    text, st = ptyrun.session(binary_path, ['f.txt'],
-                              [b':set term? t_Co?\r', b':q!\r'],
-                              term=t, cwd=d, settle=settle, env=ENV)
+    try:
+        open(os.path.join(d, 'f.txt'), 'w').write('one\ntwo\nthree\n')
+        text, st = ptyrun.session(binary_path, ['f.txt'],
+                                  [b':set term? t_Co?\r', b':q!\r'],
+                                  term=t, cwd=d, settle=settle, env=ENV)
+    finally:
+        # AND IT IS REMOVED.  This made a directory per pty session and left it:
+        # measured, 182,319 were lying in /tmp -- 100,280 from here and 82,039
+        # from tools/ztermcheck.py -- and an ext4 directory that full answers
+        # `mkdir` with ENOSPC on a disk with 70 GB free.  It failed zero phase 9
+        # mid-run, a phase that has nothing to do with terminals, which is how
+        # this kind of leak is always found: somewhere else.  Zero's copy was
+        # fixed first; this is whim's and slim's, and it is why the count above
+        # has two halves.
+        shutil.rmtree(d, ignore_errors=True)
     s = text.decode('utf-8', 'replace')
         # The screen is full of '~' filler and the two answers land on
         # different screen lines; take each from its keyword onwards.
