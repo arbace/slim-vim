@@ -6579,12 +6579,27 @@ three records move, `undo_after_ins`, `undo_block` and `undo_redo`, which are ex
 the three whose screen carries `<ago>`, and in each exactly **one line** moves, the
 `--- stream` line, with all 24 screen lines byte-identical. One 33-way concurrent `make
 zero-verify` failed here on `undo_after_ins` alone. **It is not this phase's to fix** —
-hashing the scrubbed stream in `tools/zrec.py` would close it and would re-key all 33
+hashing the scrubbed stream in `tools/zrec.py` would re-key all 33
 phases and require `.reference/zero-baselines` to be recorded again — **and not this
 phase's to paper over either**, a private exclusion being a check narrowed to fit what
 it saw. The comparison stays an exact `diff -rq` and the hazard is written into the
 check's header. What matters for this phase is that the exposure is **unchanged** by it,
 which is what the instrumented pair measures.
+
+**AND HASHING THE SCRUBBED STREAM WOULD NOT CLOSE IT, which zero phase 40 measured
+afterwards and which this paragraph got wrong.** The scrub rewrites the age's TEXT,
+padded; the leak is *arithmetic on that text's width*. An undo reports its age and the
+editor then positions the cursor to clear the line, so `0 seconds ago` emits
+`\033[24;40H\033[K` and `1 second ago` emits `\033[24;39H` — a column derived from a
+scrubbed string's length, in a byte sequence the scrub never touches. It failed zero
+phase 16, whose binary is byte-identical either side, which is the only reason it was
+catchable at all. The fix that does work is phase 40's: record `stream N redraws`, a
+count of `\x1b[?25h`, instead of a digest, and let a clock control carry the evidence —
+both readable clocks replaced by runaway counters move 0 of 16 memline records against
+9 of 102 screen cases, which says the record does not depend on the clock AT ALL, and a
+digest never could. `tools/zmemline.py` does this; `tools/zcases.py` still digests the
+raw stream, and the change is expensive rather than hard: the `--- stream` line is named
+in eighty files, forty-seven times in zero phase 12's check alone.
 
 ### Its placement
 
