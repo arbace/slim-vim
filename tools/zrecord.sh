@@ -7,13 +7,20 @@
 # and keeps what it drew (ZERO-PLAN.md 2):
 #
 #   screen/          tools/zcases.py   102 keystroke cases, one record each
+#   memline/         tools/zmemline.py 16 big-buffer cases, one record each (below)
 #   ref-excmds.txt   tools/zexcmds.py  every Ex command name typed at `:`
 #   ref-argv.txt     tools/zargv.py    every command line the parser may see
 #   ref-pty.txt      tools/zpty.py     the window size and raw mode, on a real pty
 #   ref-term.txt     tools/ztermcheck.py the terminal table, whim's termcheck.py
 #                                      asked with no file argument (see below)
 #
-# The five are independent and run at once.  A recording is the unit both the
+# tools/zmemline.py is the sixth part and zero phase 40 is why: every one of the
+# 102 screen cases allocates exactly ONE data block, so nothing above ml_get() was
+# ever asked a question the memline TREE answers -- measured, a binary with one
+# line deleted from ml_find_line's pointer bookkeeping records all 102 of them byte
+# for byte.  These cases build buffers of 200 to 25,000 lines instead.
+#
+# The six are independent and run at once.  A recording is the unit both the
 # baselines and a phase's comparison are made of, so it is made here once and
 # never twice in two shapes.
 set -eu
@@ -27,6 +34,8 @@ mkdir -p "$out"
 
 python3 tools/zcases.py "$bin" "$out/screen" >/dev/null &
 p1=$!
+python3 tools/zmemline.py "$bin" "$out/memline" >/dev/null &
+p6=$!
 python3 tools/zexcmds.py "$bin" "$src" "$out/ref-excmds.txt" >/dev/null &
 p2=$!
 python3 tools/zargv.py "$bin" "$out/ref-argv.txt" >/dev/null &
@@ -45,6 +54,7 @@ wait $p2 || rc=1
 wait $p3 || rc=1
 wait $p4 || rc=1
 wait $p5 || rc=1
+wait $p6 || rc=1
 if [ "$rc" != 0 ]; then
     echo "  record       a harness failed on $bin"
     exit 1
@@ -52,4 +62,6 @@ fi
 for f in "$out/ref-excmds.txt" "$out/ref-argv.txt" "$out/ref-pty.txt" "$out/ref-term.txt"; do
     [ -s "$f" ] || { echo "  record       $f is empty"; exit 1; }
 done
-[ -n "$(ls -A "$out/screen" 2>/dev/null)" ] || { echo "  record       $out/screen is empty"; exit 1; }
+for d in "$out/screen" "$out/memline"; do
+    [ -n "$(ls -A "$d" 2>/dev/null)" ] || { echo "  record       $d is empty"; exit 1; }
+done

@@ -34,7 +34,7 @@
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
 
 #   stage   phases
 stage       0
@@ -92,6 +92,7 @@ stage       36
 stage       37
 stage       38
 stage       39
+stage       40
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -872,6 +873,16 @@ apart       37 38
 # and the tree the pair produces is BYTE-IDENTICAL to the one the two phases produce in
 # sequence.
 apart       38 39
+#   NO `apart 39 40` AND NO `need 40`, AND NEITHER IS AN OMISSION.  Phase 40 is a
+#                  WHOLE-PHASE program, pipes/zero40.sh -- zero phase 3's shape and
+#                  zero phase 33's -- so it cannot share a stage with anything at all,
+#                  and that is enforced rather than agreed: `tools/stages.sh zero` with
+#                  `stage 39-40` in this file refuses before any check runs, with
+#                  `phase 40 is in stage 39-40 but is not an edit and a check`, and
+#                  `tools/phaserun.sh zero 39-40` answers `zero phase 40 has no edit and
+#                  check to run in stage 39-40`.  Both measured.  `need` is a statement about what a
+#                  phase's EDIT part needs of its input and phase 40 has no edit part;
+#                  it changes no source, so there is nothing for a sweep to have done.
 #   NO `need 39`, MEASURED IN THE SAME RUN.  Phase 39's edit was handed phase 38's
 #                  UNSWEPT output -- `builtin_ansi`, `builtin_vt100` and `builtin_dumb`
 #                  still defined, report_default_term() still called -- and every part
@@ -922,7 +933,7 @@ package  terminal     2 38 39
 # question that could not see the answer.  3 replaced the file-based harnesses with
 # the screen; 32 replaced the one part of that recording still asking the ENVIRONMENT
 # about the terminal, which whim phase 19 stopped reading.
-package  harness      3 33
+package  harness      3 33 40
 package  streams      4 5
 package  files        6 7 8 9 10
 package  buffers      11
@@ -1200,3 +1211,7 @@ uses  terminal:39  seed:0       mechanical  tools/zerodelta.sh compares its four
 uses  terminal:39  harness:3    mechanical  the four records that move are tools/zargv.py's, and phase 3 is what put an argv record in a zero recording at all
 uses  terminal:39  streams:5    mechanical  `-T {term}` is the one option phase 5 kept when it made every other word ME_UNKNOWN_OPTION, so this phase's whole subject is that phase's leftover -- and the ME_* enumerators it removes with their main_errors[] rows are the table phase 5 renumbered, checked here against DWARF in phase 5's own shape
 uses  terminal:39  host:21      mechanical  the marker that proves the fallback dead is written with host_message(), which is phase 21's and the core's only declared way to reach stderr -- the same instrument phase 38 used, for the same reason
+uses  harness:40  seed:0       mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and the memline/ part is in them only because phase 0 records whatever tools/zrecord.sh produces -- which is why a new PART of a recording needs .reference/zero-baselines removed as well as .cache/r0
+uses  harness:40  files:8      mechanical  a case types its own text because there is nothing else left: phase 7 took :read and phase 8 took the whole :edit family, so the only way to a 25,000-line buffer is one line under 'paste' and a macro replayed with a count
+uses  harness:40  streams:5    mechanical  every buffer is built IN THE EDITOR, by typing one line and replaying a macro with a count, because phase 5 made a file argument ME_UNKNOWN_OPTION -- there is no file to open, and phases 7 and 8 took :read and :edit as well, so a corpus of 25,000 lines has no other way in
+uses  harness:40  host:21      mechanical  the seven markers of the instrumented pair are written with host_message(), phase 21's and the core's only declared way to reach stderr -- the same instrument phases 38 and 39 used, for the same reason: it adds no name the file does not already have

@@ -795,8 +795,11 @@ for tok in ('GA-NULL\n', 'GA-HAVE\n'):
                     % (tok.strip(), seen[('i_old', tok)], seen[('i_new', tok)]))
 nh, nt, nf = seen[('i_new', 'GA-NULL\n')]
 hh, ht, _ = seen[('i_new', 'GA-HAVE\n')]
-if nf != 106:
-    fail.append('a recording is %d records and must be 106' % nf)
+if nf < 100:
+    fail.append('a recording is %d records, and a measurement over a corpus nothing '
+                'wrote passes.  The count is REPORTED and not pinned: it was 106 when '
+                'this phase was written and is 122 since zero phase 40 added the '
+                'memline corpus' % nf)
 if nt < 1000 or ht < 500:
     fail.append('ga_grow_inner is called %d times with a null ga_data and %d times with '
                 'one, and this phase\'s claim that a byte-identical recording is STRONG '

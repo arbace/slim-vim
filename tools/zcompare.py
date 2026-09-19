@@ -12,6 +12,7 @@ THE GRAMMAR, which `pipes/zero.delta` states and this reads:
 
     word            an Ex command name: its block in ref-excmds.txt may differ
     case:NAME       a screen case (tools/zcases.py) whose record may differ
+    mem:NAME        a memline case (tools/zmemline.py) whose record may differ
     argv:NAME       an invocation (tools/zargv.py); spaces are written as `_`
     term-moved      the terminal table (tools/ztermcheck.py) differs
     pty-moved       the pty scenarios (tools/zpty.py) differ
@@ -117,6 +118,7 @@ def main():
     fail, report = [], []
 
     for what, kind, prefix in (('screen', 'dir', 'case:'),
+                               ('memline', 'dir', 'mem:'),
                                ('ref-excmds.txt', 'blocks', ''),
                                ('ref-argv.txt', 'blocks', 'argv:')):
         path_b, path_n = os.path.join(basedir, what), os.path.join(newdir, what)

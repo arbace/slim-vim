@@ -23,6 +23,9 @@
 #
 #   probe   old.c with `(void)write(2, "READFILE-ENTERED\n", 17);` as readfile()'s
 #           first statement.  Recorded with tools/zrecord.sh: ZERO of the 106
+#           records a recording held WHEN THIS PHASE WAS WRITTEN -- it is 122 since
+#           zero phase 40 added the memline corpus, and the assertions below are
+#           written against the count the run measures, not against that number --
 #           records may carry the marker.  That is the claim -- on the binary this
 #           phase was handed, nothing the instrument can do enters readfile().
 #   ctl     old.c with the IDENTICAL instrument in open_buffer(), which IS reached.
@@ -377,8 +380,14 @@ total=$(find "$tmp/REC.probe" -type f | wc -l)
 marked=$(grep -rl 'READFILE-ENTERED' "$tmp/REC.probe" | wc -l)
 cmarked=$(grep -rl 'READFILE-ENTERED' "$tmp/REC.ctl" | wc -l)
 cquiet=$(grep -rL 'READFILE-ENTERED' "$tmp/REC.ctl" | sed "s|$tmp/REC.ctl/||" | sort | tr '\n' ' ')
-if [ "$total" != 106 ]; then
-    echo "  nobyte       a recording is $total files, not the 106 this phase counted"
+if [ "$total" -lt 100 ]; then
+    echo "  nobyte       a recording is $total files, and a comparison of two things"
+    echo "               nothing wrote passes.  The COUNT is reported and not pinned:"
+    echo "               zero phase 40 added a sixth part to a recording and this"
+    echo "               phase said \`not the 106 this phase counted\` at a corpus that"
+    echo "               had grown on purpose.  What is asserted below is the SHAPE --"
+    echo "               0 marked, and the control marked everywhere but the two"
+    echo "               records that keep what a pty drew rather than stderr."
     exit 1
 fi
 if [ "$marked" != 0 ]; then
@@ -387,9 +396,9 @@ if [ "$marked" != 0 ]; then
     echo "               so this phase removes code that CAN run, and the cut is wrong"
     exit 1
 fi
-if [ "$cmarked" != 104 ] || [ "$cquiet" != "ref-pty.txt ref-term.txt " ]; then
+if [ "$cmarked" != "$((total - 2))" ] || [ "$cquiet" != "ref-pty.txt ref-term.txt " ]; then
     echo "  nobyte       the control marked $cmarked of $total records, quiet in: $cquiet"
-    echo "               it must be 104, quiet only in ref-pty.txt and ref-term.txt,"
+    echo "               it must be $((total - 2)), quiet only in ref-pty.txt and ref-term.txt,"
     echo "               which keep what was DRAWN on a pty and not stderr.  Without"
     echo "               that the zero above is a probe that cannot fail."
     exit 1
