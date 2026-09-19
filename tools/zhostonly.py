@@ -53,9 +53,18 @@ import sys
 # nothing else, and the core's five calls to it are named as exceptions below with the
 # count they had before phase 26 moved them.  The core asks the host `musl_now_ms()`
 # now and the clock is the host's as the terminal is.
+#
+# `getpid` IS here, from zero phase 36, and it is the same construction twice over.  It
+# belongs with `kill`: the two were one expression, `kill(getpid(), got_signal)`, the
+# core's re-raise of a deferred deadly signal, and they left the core together -- the
+# re-raise became `host_raise(sig)`, which names no pid because a core that cannot ask
+# for its own must not be handed one.  `\b` does not match inside `mch_get_pid` or
+# `host_raise` for `\bgetpid\b`'s and `\braise\b`'s reason, so the three exceptions below
+# are the bare libc name in three places and the word list did not have to be loosened
+# for either the function this pipeline deleted or the host function it wrote.
 VOCAB = re.compile(
     r'\b(?:sigaction|sigemptyset|sigaddset|sigismember|sigprocmask|sighandler_T'
-    r'|raise|kill|ioctl|TIOCGWINSZ|SIG_?[A-Z][A-Z0-9_]*'
+    r'|raise|kill|getpid|ioctl|TIOCGWINSZ|SIG_?[A-Z][A-Z0-9_]*'
     r'|tcgetattr|tcsetattr|nanosleep|select|isatty|close|dup|gettimeofday'
     r'|FD_SET|FD_ZERO|FD_ISSET|fd_set|TCSANOW'
     r'|ICANON|ECHO|ISIG|ECHOE|IEXTEN|ICRNL|IXON|ONLCR|XTABS'
@@ -95,17 +104,38 @@ EXCEPTIONS = (
      'deadly signal` before the editor ends, and the host installs it rather than '
      'replacing it'),
     ('deathtrap', 'SIGTERM', (1,), 'the same test'),
-    ('vim_handle_signal', 'kill', (1,),
-     're-raising a deadly signal that arrived while the editor was not reading.  '
-     'This is the ONLY core mention of any of these words that is not a message, and '
-     'it is kept because deleting it would make a deadly signal act in the middle of '
-     'a screen update -- a behaviour change no recording can see'),
+    ('vim_handle_signal', 'kill', (0, 1),
+     're-raising a deadly signal that arrived while the editor was not reading.  It '
+     'was the ONLY core mention of any of these words that was not a message, and it '
+     'was kept -- up to zero phase 35 -- because deleting it would make a deadly '
+     'signal act in the middle of a screen update, a behaviour change no recording can '
+     'see.  0 from phase 36: the DEFERRAL stays and only the re-raise crosses the '
+     'boundary, as `host_raise(got_signal)`, so the core still decides WHEN the signal '
+     'acts and the host is what raises it'),
+    ('vim_handle_signal', 'getpid', (0, 1),
+     'the other half of that one expression -- `kill(getpid(), got_signal)` asked for '
+     'this process by number, and 0 from zero phase 36 because `host_raise(int sig)` '
+     'names no pid.  A core that can no longer ask for its own process id must not be '
+     'handed one, which is the same rule that kept fd 1 out of host_write (phase 35) '
+     'and fd 0 out of musl_read_input (phase 20)'),
+    ('mch_get_pid', 'getpid', (0, 1),
+     "the core's other getpid, `return (long)getpid();`, whose ONE caller wrote a "
+     '`b0_pid` into block zero that nothing has read since the filesystem phases.  0 '
+     'from zero phase 36, which took the write, the function and the field: that '
+     "getpid was AVOIDABLE outright and crossed no boundary.  Zero phase 20 said so in "
+     'advance -- "one line frees it whenever block zero is somebody\'s phase"'),
     ('<file scope>', 'kill', (0, 1),
-     "1 from zero phase 26, which gave the core its own PROTOTYPE for it; 0 before.  "
-     'It is the exception above wearing its other face -- the core still re-raises a '
-     'deadly signal, and from that phase it DECLARES what it calls instead of taking '
-     'the declaration from <signal.h>, because the headers are on their way below the '
+     "1 from zero phase 26, which gave the core its own PROTOTYPE for it; 0 before, and "
+     '0 again from phase 36, which took the last core call and the declaration with it.  '
+     'It is the exception above wearing its other face -- the core re-raised a deadly '
+     'signal, and from phase 26 it DECLARED what it called instead of taking the '
+     'declaration from <signal.h>, because the headers were on their way below the '
      'boundary'),
+    ('<file scope>', 'getpid', (0, 1),
+     "1 from zero phase 26, which wrote `int getpid(void);` into the core's block of "
+     'ordinary declarations, and 0 before and after.  Phase 36 empties that block: the '
+     'two lines it took were this one and `kill`, and from that boundary the core names '
+     'NO libc function at all'),
     ('<file scope>', 'SIGHUP', (0, 2),
      '2 from zero phase 27, which moved the eleven `#include`s below the core: the '
      "core's own `enum { SIGHUP = 1 };` above the boundary, and the "

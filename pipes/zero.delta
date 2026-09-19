@@ -1148,3 +1148,62 @@
 # `free(nullptr) is defined and does nothing` measured on the wrapper.  The core does not
 # rely on it -- 0 of the corpus's 22,417 frees are null, every call site guarding -- but
 # the wrapper inherits it rather than adding a test of its own.
+
+# 36 DECLARES NOTHING AT ALL, and it is phase 2's kind and phase 12's: the code RUNS and
+# the instrument cannot see it -- so the phase owes probes, and it runs six binaries of
+# its own.  The core's block of ordinary declarations, the libc it names, is EMPTY: the
+# two lines left in it were `int getpid(void);` and `int kill(int pid, int sig);`, and
+# they are reached two different ways and only one of them needed a host call.
+#
+# `getpid` IS AVOIDED OUTRIGHT.  mch_get_pid() is `return (long)getpid();` and had one
+# caller, `long_to_char(mch_get_pid(), b0p->b0_pid)` in ml_open(); `b0_pid` is the
+# process id written into block zero of a swap file and had TWO mentions in the whole
+# file, its declaration and that write.  It is WRITE-ONLY, and not by anything zero did:
+# whim-vim.c, this pipeline's immutable input, already has exactly those two.  So the
+# write goes, mch_get_pid() goes with it, and the sweep takes the forward declaration and
+# the field.  `kill` IS MOVED: `kill(getpid(), got_signal)` in vim_handle_signal(),
+# re-raising a deadly signal that arrived while the editor was not reading, becomes
+# `host_raise(got_signal)`, with `static void host_raise(int sig);` at the end of the
+# core -> host block and a definition inside the host region that calls
+# `kill(getpid(), sig)`.  IT TAKES NO PID: a core that can no longer ask for its own
+# process id must not be handed one, which is host_write's rule (phase 35) and
+# musl_read_input's (phase 20).  79,804 -> 79,799 lines.
+#
+# THE CLAIM IS MEASURED FROM THE CUT AND NOT FROM THE BLOCK, because those are two
+# different assertions.  A bare `extern` declaration is INVISIBLE to `-fsyntax-only` --
+# gcc warns `used but never defined` for a `static` function and says nothing about an
+# ordinary one -- so the check compiles `make editor.c`'s cut to an OBJECT and takes
+# `nm -u` of it: 19 names in, 18 out, and every one of the 18 is DEFINED below the
+# boundary in the same file, computed from the text.  The identical computation on the
+# input finds two that are not, `getpid` and `kill`, which is what keeps the emptiness
+# from being two numbers agreeing.  The core names no libc function at all.
+#
+# THE PHASE FREES NO SYMBOL AND SAYS SO AS AN EQUALITY.  `nm -u` is the same set in and
+# out, and `getpid` and `kill` are both still in it: host_raise() calls both where
+# vim_handle_signal() did, musl_suspend() calls `kill` as well, and a symbol leaves when
+# its last CALLER leaves the FILE.  The binary is 782,760 bytes either side and 397,978
+# of them differ.
+#
+# NEITHER HALF IS VISIBLE TO THE CORPUS, AND THEY ARE INVISIBLE FOR OPPOSITE REASONS,
+# measured on an instrumented build of the input over all 102 screen cases: the b0_pid
+# write runs in 102 of 102 cases and the recording still does not move, because nothing
+# reads the field; the re-raise fires in 0 of 102, because nothing in the corpus sends
+# the editor a deadly signal.  So the two controls are on the ONE line the phase deletes
+# -- that line replaced by `return FAIL;` moves 106 of 106 records, so the corpus really
+# executes it, and the same line writing a CONSTANT moves 0 of 106, which is `write-only`
+# measured rather than argued -- and the probe is a forced deferral driven identically
+# into BOTH binaries: `vim_handle_signal(SIGTERM)` with `blocked` still TRUE and then
+# `vim_handle_signal(-2)`, appended to mch_init().  Input and output agree in every byte
+# of stdout (48), stderr (0) and status (1), and the screen carries `Vim: Caught deadly
+# signal TERM` and `Vim: Finished.`.  It can fail twice: with the re-raise DELETED the
+# deferred signal is lost and the editor runs on to end of input (157 bytes), and with
+# the re-raise given SIGHUP instead of the signal that was deferred the screen says
+# `Caught deadly signal HUP` (47 bytes).
+#
+# AND THE FOLD THAT WAS SURVEYED AND NOT TAKEN.  Phase 17 removed deathtrap()'s
+# `entered >= 3` ladder, which leaves `entered` able to reach 2 and no further, and the
+# question was whether that makes the `if (entered == 2)` arm foldable.  It does not:
+# `entered` has three reachable values and every one is read -- 0 by the entry guard, and
+# 1 and 2 by BOTH the double-signal arm and `v_dying = entered`, whose value reaches
+# getout()'s two `if (v_dying <= 1)` tests.  deathtrap() is byte-identical in and out and
+# the check asserts that rather than leaving it to be believed.
