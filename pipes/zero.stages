@@ -19,12 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are twenty-nine phases, 0 to 28.  Phases are added one at a time, each on its
+# There are thirty-one phases, 0 to 30.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
 
 #   stage   phases
 stage       0
@@ -57,6 +57,7 @@ stage       26
 stage       27
 stage       28
 stage       29
+stage       30
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -568,6 +569,28 @@ need        11 swept
 #                  no-op at this point in the pipeline: one round, 0 prototypes, 0
 #                  functions, 0 variables, 0 types, 0 fields, 0 enumerators, canon
 #                  settled, the file not one line shorter than the edit left it.
+# pipes/zero21-check.sh pins `msg_puts_printf` at 3 mentions -- "a prototype, a
+# definition and one call -- all 75 lines stay and only what they call changes" -- and
+# this phase takes it to 0.  MEASURED by applying phase 21's whole thirteen-name pin
+# table to the tree this phase was handed and to the tree it leaves: SEVEN of the
+# thirteen are already broken by phases 22-29 (`vim_host_message` 10 -> 0,
+# `vim_snprintf` 73 -> 201, `host_message` 2 -> 10 and four more), four are untouched by
+# this phase, and exactly TWO move here -- `msg_puts_printf` 3 -> 0 and `info_message`
+# 9 -> 7.  `msg_use_printf` stays at 6, which is the OTHER half of phase 21's assertion
+# and survives intact; that is what makes this a narrow requirement rather than a wide
+# one.  The whole of phase 21's check cannot be run on this tree to watch it fail,
+# because its state directory is written by ITS edit and phases 22-29 sit between -- so
+# the measurement is the pin table, applied directly.  Zero's one-stage-per-phase
+# schedule keeps the two apart anyway; this line is what would stop a stage holding both
+# the day one is built, exactly as `apart 2 4` is.
+apart       21 30
+#   NO `need 30`, AND IT WAS CHECKED RATHER THAN ASSUMED.  The edit has ONE anchor, a
+#                  four-line block of exact text whose count is 1, and three further
+#                  blocks of exact text it asserts present and does not touch.  None of
+#                  the four is a count a sweep can move, and the fold is not computed, so
+#                  there is nothing that could shrink silently.  MEASURED on the unswept
+#                  text as well: the block is there exactly once either way, and the
+#                  input to this phase is always a swept boundary.
 
 
 #        name         phases
@@ -582,7 +605,16 @@ package  options      12
 package  tidy         13
 package  vendor       14 15
 package  includes     16
-package  host         17 18 19 20 21
+# 30 IS PHASE 21'S OWN FOLLOW-UP, WHICH IS WHY IT IS IN THIS PACKAGE AND NOT IN `tidy`:
+# the four statements msg_puts_printf() is made of are phase 21's -- it rewrote two
+# printf and two fprintf into four host_message() calls and then KEPT the function,
+# naming its removal as a later phase's and measuring 0 of 106 records.  This is that
+# phase; the replacement at msg_puts_attr_len() is phase 21's host_message(); and phase
+# 21 is also why `nm -u` cannot move here, because it took printf, fprintf, fflush and
+# stderr with the CALLS and not with the function.  Being one package is the statement,
+# and `uses` records only a dependency ACROSS packages, so there is no `uses host:30
+# host:21` line -- tools/packages.sh --check refuses one.
+package  host         17 18 19 20 21 30
 # `format` is a new package, and it is not `vendor`: nothing is brought in.  A layer
 # is FLATTENED -- seven wrappers over one formatter become 129 call sites and five
 # helpers, so that `va_start` appears once and the formatter becomes movable.
@@ -787,3 +819,6 @@ uses  boundary:28 host:18     mechanical  the phase's own probes are the evidenc
 uses  casemap:29 seed:0     mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase declares that nothing in them moved -- although both arms of 'casemap' really did
 uses  casemap:29 harness:3  mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one -- and here that statement is about the HARNESS and not the phase, which is why the check owes twelve probes of its own
 uses  casemap:29 vendor:15  mechanical  musl_toUpper[], musl_toLower[] and the two three-line wrappers that read them are phase 15's, range-compressed into the convertStruct shape this phase merges them out of; without that phase there is one case table already and no union to take
+uses  host:30     seed:0       mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase's whole declaration is that nothing in them moved
+uses  host:30     harness:3    mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one -- and the instrument this phase owes is phase 3's shape too: an instrumented pair over 106 records with a control that marks 103 of them
+uses  host:30     boundary:25  mechanical  host_message() is a forward-declared call and one of the names the editor.c cut enumerates because phase 25 turned the function pointer into a declaration -- so the fold widens no core -> host interface, and the check can say so by comparing the cut's warning set with the input's

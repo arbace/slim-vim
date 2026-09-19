@@ -3386,7 +3386,6 @@ static void vim_strup(char_u *p);
 static void del_trailing_spaces(char_u *ptr);
 static void vim_strncpy(char_u *to, char_u *from, usize len);
 static void vim_strcat(char_u *to, char_u *from, usize tosize);
-static usize vim_strlen_maxlen(char *s, usize maxlen);
 static int vim_strnicmp_asc(char *s1, char *s2, usize len);
 static char_u *vim_strchr(char_u *string, int c);
 static char_u *vim_strbyte(char_u *string, int c);
@@ -35122,7 +35121,6 @@ static void msg_scroll_up(void);
 static void inc_msg_scrolled(void);
 static void store_sb_text(char_u **sb_str, char_u *s, int attr, int *sb_col, int finish);
 static void t_puts(int *t_col, char_u *t_s, char_u *s, int attr);
-static void msg_puts_printf(char_u *str, int maxlen);
 static int do_more_prompt(int typed_char);
 static void msg_screen_putchar(int c, int attr);
 static void msg_moremsg(int full);
@@ -36667,7 +36665,8 @@ msg_puts_attr_len(char *str, int maxlen, int attr)
 
     if (msg_use_printf())
     {
-        msg_puts_printf((char_u *)str, maxlen);
+        host_message((char *)str, maxlen, !info_message);
+        msg_didout = TRUE;
     }
     else
     {
@@ -37138,82 +37137,6 @@ t_puts(int         *t_col, char_u      *t_s, char_u      *s, int         attr)
 msg_use_printf(void)
 {
     return (!msg_check_screen() || (swapping_screen() && !termcap_active));
-}
-
-    static void
-msg_puts_printf(char_u *str, int maxlen)
-{
-    char_u      *s = str;
-    char_u      *buf = nullptr;
-    char_u      *p = s;
-
-    while ((maxlen < 0 || (int)(s - str) < maxlen) && *s != NUL)
-    {
-        if (*s == NL)
-        {
-            int n = (int)(s - p);
-
-            buf = alloc(n + 3);
-            if (buf != nullptr)
-            {
-                musl_memcpy(buf, p, n);
-                if (!info_message)
-                {
-                    buf[n++] = CAR;
-                }
-                buf[n++] = NL;
-                buf[n++] = NUL;
-                if (info_message)
-                {
-                    host_message((char *)buf, -1, FALSE);
-                }
-                else
-                {
-                    host_message((char *)buf, -1, TRUE);
-                }
-                vim_free(buf);
-            }
-            p = s + 1;
-        }
-
-        {
-            if (*s == CAR || *s == NL)
-            {
-                msg_col = 0;
-            }
-            else
-            {
-                ++msg_col;
-            }
-        }
-        ++s;
-    }
-
-    if (*p != NUL)
-    {
-        char_u *tofree = nullptr;
-
-        if (maxlen > 0 && vim_strlen_maxlen((char *)p, (usize)maxlen) >= (usize)maxlen)
-        {
-            tofree = vim_strnsave(p, (usize)maxlen);
-            p = tofree;
-        }
-        if (p != nullptr)
-        {
-            if (info_message)
-            {
-                host_message((char *)p, -1, FALSE);
-            }
-            else
-            {
-                host_message((char *)p, -1, TRUE);
-            }
-            vim_free(tofree);
-        }
-    }
-
-    msg_didout = TRUE;
-
 }
 
     static int
@@ -69415,20 +69338,6 @@ vim_strcat(char_u *to, char_u *from, usize tosize)
     {
          musl_memmove((char *)(to + tolen), (char *)(from), fromlen + 1) ;
     }
-}
-
-    static usize
-vim_strlen_maxlen(char *s, usize maxlen)
-{
-    usize i;
-    for (i = 0; i < maxlen; ++i)
-    {
-        if (s[i] == NUL)
-        {
-            break;
-        }
-    }
-    return i;
 }
 
     static int
