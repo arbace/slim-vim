@@ -1290,3 +1290,47 @@
 # is called `xterm` its first conjunct is false for every row, gcc has no warning for
 # a condition that is false at run time, and nothing in tools/sweep.sh reads one.
 38    term-moved
+
+# Phase 39 -- `-T {term}` goes, and the command line is `+{command}` alone.
+#
+# FOUR OF tools/zargv.py's THIRTY INVOCATIONS, and they are exactly the four that
+# spell the removed option letter.  The set is not written from memory: the check
+# computes it as the letters the input's `switch (c)` accepted and the output's does
+# not, over zargv.py's own list, and requires a row to move IF AND ONLY IF one of its
+# words is an option spelling one of them.
+#
+#   -T xterm             started and drew 2,117 bytes      -> exit 1, Unknown option
+#   -T no-such-term-9x   started and drew 2,117 bytes      -> exit 1, Unknown option
+#   -T                   Argument missing after: "-T"      -> exit 1, Unknown option
+#   -Txterm              Garbage after option argument     -> exit 1, Unknown option
+#
+# The last two are the interesting half: they were already errors, and they moved
+# anyway, because the two messages they gave are ME_ARG_MISSING and ME_GARBAGE --
+# enumerators whose last use was the `-T` argument block, removed here with the
+# main_errors[] rows they index.  A row that was already `Unknown option argument`
+# before -- the file arguments, `--`, `-e`, `-R` and the rest of phase 5's leftovers --
+# must NOT move, and the check requires that of all twenty-six.
+#
+# NOTHING ELSE MOVES, and three things that could have are worth naming.  The 102
+# screen cases, the 98 Ex-command rows and the four pty scenarios are recorded from a
+# binary started with no `-T` at all, so the compiled default applies either way.  The
+# nineteen terminal rows are asked with `+set term={name}` (zero phase 33), which
+# reaches did_set_term() and not termcapinit(), and that path is untouched: `term-moved`
+# is declared at phase 38 and carries forward, but this phase's recording of the table
+# is the INPUT's byte for byte.  And the fallback that phase 38 repaired is deleted
+# here rather than fixed again -- it was reachable only through `-T`, which is the
+# whole reason phase 38 had to repair it and this one may remove it.
+#
+# TWO CHANGES THIS DELTA CANNOT NAME, both measured by the phase's own probes because
+# no harness records them:
+#   * report_term_error()'s message. It still runs -- the run-time refusal calls it
+#     before it fails -- and it now says `'vt320' not known` where it said
+#     `defaulting to 'xterm-256color'`, which after this phase would be a promise
+#     nothing keeps. ztermcheck.py drops every line that carries no `term=`, so the
+#     message appears in no recording at all; a pty probe on both binaries is the
+#     evidence, with E522 and the terminal the editor is left at unchanged.
+#   * the `requested` fold. It changes what the 256-colour test reads only for a name
+#     spelled `builtin_...`, which nothing in the corpus ever types; the probe is
+#     `+set term=builtin_xterm-256color` and `+set term=builtin_debug` on both
+#     binaries, identical.
+39    argv:-T argv:-T_xterm argv:-Txterm argv:-T_no-such-term-9x
