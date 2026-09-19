@@ -1027,7 +1027,7 @@ package  terminal     2 38 39
 # `harness` is the package that changes no source at all: both its phases replace an
 # instrument, and both exist because the pipeline was about to measure itself with a
 # question that could not see the answer.  3 replaced the file-based harnesses with
-# the screen; 32 replaced the one part of that recording still asking the ENVIRONMENT
+# the screen; 33 replaced the one part of that recording still asking the ENVIRONMENT
 # about the terminal, which whim phase 19 stopped reading.
 package  harness      3 33 40
 package  streams      4 5
@@ -1322,6 +1322,7 @@ uses  host:36     seed:0       mechanical  tools/zerodelta.sh compares its recor
 uses  host:36     harness:3    mechanical  "nothing moved" is a statement about a zero recording, and a zero recording is what phase 3 made one -- and here it is the WEAKEST part of the evidence and the check says so: the corpus executes the b0_pid write in all 102 screen cases and cannot see it, and reaches the re-raise in NONE, so the phase owes probes of its own
 uses  host:36     boundary:25  mechanical  the one prototype goes at the END of the single run of core -> host declarations phase 25 made of eleven, so the boundary stays ONE block; and a `static` forward declaration above with a `static` definition below is all a direct call to the host needs, which is phase 25's finding
 uses  host:36     boundary:27  mechanical  the whole claim is stated as a property of the CUT -- `nm -u` on an object of the lines above the first `#include` -- and the first `#include` is the line between the core and the host only because phase 27 moved the eleven directives below the core
+uses  tidy:37      seed:0       mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and this phase, like every other, is held to them -- its check names the tool twice.  The line was MISSING until it was noticed that 37 was the only phase after the seed with no dependency at all; the omission was defensible-looking, because what CARRIES this phase is a `cmp` of the binary and not the recording, but the delta check still runs at its stage end and the other two cmp-evidenced phases, 16 and 23, both declare it
 uses  terminal:38  seed:0       mechanical  tools/zerodelta.sh compares its recording with the baselines phase 0 records, and `term-moved` is a difference FROM those nineteen rows
 uses  terminal:38  harness:33   mechanical  the terminal table says something real only because phase 33 changed the question from $TERM to `+set term={name}` -- and phase 33's own reason for existing was a prototype of THIS cut, which deleted eight names and three tables and passed tools/zcompare.py declaring nothing at all
 uses  terminal:38  streams:5    mechanical  the no-screen fallback this phase retargets is reachable only through `-T {term}`, which phase 5 kept; without it termcapinit() can only ever be handed nothing, the compiled default always resolves, and there would be no dangling name to repair
