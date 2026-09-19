@@ -1233,3 +1233,60 @@
 # Two further controls move nothing and are reported: the empty union put back, and one
 # single-member union put back with its `.member` accesses, each byte-identical, which is
 # the phase's own claim stated in the only direction a control can state it in.
+#
+# 38 keeps two of `builtin_terminals[]`' ten rows -- `xterm-256color` and `debug` --
+# and is THE FIRST ZERO PHASE TO DECLARE `term-moved`.  The token has been in this
+# grammar since phase 0 and no phase has used it: the terminal table was nineteen
+# ways of recording that the environment decided nothing until zero phase 33 changed
+# the question to `+set term={name}`, and this is the phase that question was changed
+# for.  So the declaration is a real delta and not a harness artefact -- which is the
+# distinction ZERO-GOAL.md rule 2 and CLAUDE.md's *A phase can break a harness rather
+# than change behaviour* exist to keep apart, and this phase is on the other side of
+# it from zero phase 5's.
+#
+# `term-moved` is a whole-file token, so what MOVED is written here rather than left
+# to it.  EIGHT of the nineteen rows move and every one of them is a name this phase
+# deletes:
+#
+#   xterm  screen  screen-256color  tmux  tmux-256color  vt100  ansi  dumb
+#
+# each from `term=<itself>` -- the only answer that says a name reached a table -- to
+# `E522 term=xterm-256color t_Co=256`, which is the answer the eight names that never
+# had a row (`alacritty-256color vt320 vt52 iris-ansi pcansi win32 amiga
+# no-such-term-9x`) already gave.  A refused name leaves the terminal alone, and what
+# it is left at is MEASURED from the binary rather than written down.
+#
+# THE OTHER ELEVEN ROWS ARE BYTE-IDENTICAL.  `xterm-256color` and `debug` still
+# resolve to themselves; the eight above were already refusals; and `''` is still
+# E529, which is `'term'` refusing an empty string before any table is consulted.
+#
+# NOTHING ELSE MOVES, and the two things that could have are worth naming.  The 102
+# screen cases and the 98 Ex-command rows are recorded on a pipe where the
+# window-size ioctl fails and the compiled default applies, and that default is
+# `xterm-256color`, which keeps its row.  And `-T {term}` reaches `set_termname()`
+# BEFORE there is a screen, where an unknown name is not refused but replaced by a
+# fallback written in the source -- and that fallback named `xterm`, which this phase
+# deletes.  Left alone it would have moved `-T xterm` and `-T no-such-term-9x` into
+# `E437: Terminal capability "cm" required`, an editor with no cursor motion, drawing
+# 2,045 bytes where the baseline draws 2,117.  The phase retargets the fallback onto
+# the compiled default instead, so those two rows are the baseline's again and the
+# declaration below is the whole of the difference.  pipes/zero38-check.sh builds the
+# repair-left-out form as a control and requires it to move exactly those two.
+#
+# NOT DECLARED BECAUSE NO HARNESS ASKS IT, and stated here rather than omitted:
+# THE `xterm` ROW WAS THE WHOLE XTERM FAMILY AND NOT ONE NAME.  `find_builtin_term()`
+# carried a special case -- if the ROW is called `xterm` and `vim_is_xterm(term)`,
+# that row's table serves -- so every name `vim_is_xterm()` accepts resolved through
+# it: anything beginning with `xterm`, `nxterm`, `kterm`, `mlterm`, `rxvt` or
+# `screen.xterm`, and `builtin_xterm` exactly, with `xterm-kitty` the one exclusion.
+# Deleting the row deletes all of it, and only the exact `xterm-256color` is left.
+# None of those names is among the nineteen `tools/termcheck.py` asks about, so the
+# phase owes probes and pipes/zero38-check.sh runs six, derived from
+# `vim_is_xterm()`'s own prefix list: every one resolves on the binary the phase was
+# handed and every one is E522 here.  `:set term=builtin_xterm` is the same finding
+# through `term_is_builtin()`, which strips the prefix and leaves `xterm`.
+#
+# And the clause itself goes with the row, in the EDIT and not the sweep: once no row
+# is called `xterm` its first conjunct is false for every row, gcc has no warning for
+# a condition that is false at run time, and nothing in tools/sweep.sh reads one.
+38    term-moved
