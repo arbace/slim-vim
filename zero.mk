@@ -246,6 +246,38 @@ zero-tip:
 	@tools/packages.sh zero --check && \
 	 $(MAKE) --no-print-directory zero-phase-$(ZEROLAST) && \
 	 $(MAKE) --no-print-directory zero-record | tail -1
+	@$(MAKE) --no-print-directory zero-product-check
+
+# Is the TRACKED product the boundary the pipeline just recorded?
+#
+# `zero-tip` records a boundary; `zero-pass` copies the product out of the last
+# boundary's tar into the repository root.  They are different targets and
+# running only the first leaves `zero-vim.c` behind -- measured, it went TWO
+# phases stale that way, r36's 79,799 lines while the pipeline was at r38's
+# 79,668, and it was PUSHED.
+#
+# Nothing else can catch it.  A boundary is a tar and a digest under
+# .build-zero, and tools/verifypass.sh reproduces each one from the boundary
+# before it in a scratch root -- none of that reads the tracked product.  It is
+# an OUTPUT of the memoize and an input to nothing, so it can be arbitrarily
+# wrong while `make zero-verify` reports every boundary reproducing, which is
+# exactly what happened.
+#
+# So this says so, and says the fix, and is deliberately a WARNING rather than a
+# failure: mid-arc the product is expected to lag its boundary between a phase
+# landing and `zero-pass` running, and a target that refused there would be
+# refusing the normal case.  zero.mk is in no implementation digest, so none of
+# this is in any key.
+.PHONY: zero-product-check
+zero-product-check:
+	@t=$(ZEROBUILD)/r$(ZEROLAST).tar; \
+	 if [ -f "$$t" ] && [ -f zero-vim.c ]; then \
+	     if ! (tar -xOf "$$t" ./zero-vim.c 2>/dev/null || tar -xOf "$$t" zero-vim.c) \
+	          | cmp -s - zero-vim.c; then \
+	         echo "  product      the tracked zero-vim.c is NOT r$(ZEROLAST) -- `grep -c '' zero-vim.c` lines here"; \
+	         echo "               against the boundary just recorded.  Run: make zero-pass"; \
+	     fi; \
+	 fi
 
 # Every recorded boundary, checked at once, each stage on the recorded boundary
 # before it in a scratch root of its own (tools/verifypass.sh).
