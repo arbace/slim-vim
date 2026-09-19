@@ -1459,18 +1459,10 @@ struct u_entry
 
 struct u_header
 {
-    union {
-        u_header_T *ptr;
-    } uh_next;
-    union {
-        u_header_T *ptr;
-    } uh_prev;
-    union {
-        u_header_T *ptr;
-    } uh_alt_next;
-    union {
-        u_header_T *ptr;
-    } uh_alt_prev;
+    u_header_T *uh_next;
+    u_header_T *uh_prev;
+    u_header_T *uh_alt_next;
+    u_header_T *uh_alt_prev;
     long        uh_seq;
     int         uh_walk;
     u_entry_T   *uh_entry;
@@ -1858,10 +1850,7 @@ struct typval_S
 {
     vartype_T   v_type;
     char        v_lock;
-    union
-    {
-        varnumber_T     v_number;
-    }           vval;
+    varnumber_T     vval;
 };
 
 enum { VAR_FIXED = 2 };
@@ -1960,8 +1949,6 @@ typedef struct {
     long      es_lnum;
     char_u    *es_name;
     etype_T   es_type;
-    union {
-    } es_info;
 } estack_T;
 
 typedef struct {
@@ -4419,9 +4406,9 @@ open_buffer(void)
         unchanged(curbuf, FALSE, TRUE);
     }
 
-    curbuf->b_last_changedtick =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-    curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
-    curbuf->b_last_changedtick_pum =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
+    curbuf->b_last_changedtick =  ((curbuf)->b_ct_di.di_tv.vval) ;
+    curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval) ;
+    curbuf->b_last_changedtick_pum =  ((curbuf)->b_ct_di.di_tv.vval) ;
 
     if (got_int)
     {
@@ -4659,7 +4646,7 @@ init_changedtick(buf_T *buf)
     di->di_flags = DI_FLAGS_FIX | DI_FLAGS_RO;
     di->di_tv.v_type = VAR_NUMBER;
     di->di_tv.v_lock = VAR_FIXED;
-    di->di_tv.vval.v_number = 0;
+    di->di_tv.vval = 0;
 
 }
 
@@ -5043,7 +5030,7 @@ changed(void)
 
         changed_internal();
     }
-    ++ ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
+    ++ ((curbuf)->b_ct_di.di_tv.vval) ;
 
     highlight_match = FALSE;
 }
@@ -5317,11 +5304,11 @@ unchanged(buf_T *buf, int ff, int always_inc_changedtick)
         ml_setflags(buf);
         check_status(buf);
         redraw_tabline = TRUE;
-        ++ ((buf)->b_ct_di.di_tv.vval.v_number) ;
+        ++ ((buf)->b_ct_di.di_tv.vval) ;
     }
     else if (always_inc_changedtick)
     {
-        ++ ((buf)->b_ct_di.di_tv.vval.v_number) ;
+        ++ ((buf)->b_ct_di.di_tv.vval) ;
     }
 }
 
@@ -11400,9 +11387,9 @@ doESCkey:
                 }
                 did_cursorhold = FALSE;
 
-                if (!char_avail() && curbuf->b_last_changedtick_i ==  ((curbuf)->b_ct_di.di_tv.vval.v_number) )
+                if (!char_avail() && curbuf->b_last_changedtick_i ==  ((curbuf)->b_ct_di.di_tv.vval) )
                 {
-                    curbuf->b_last_changedtick =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
+                    curbuf->b_last_changedtick =  ((curbuf)->b_ct_di.di_tv.vval) ;
                 }
                 return (c == Ctrl_O);
             }
@@ -11511,12 +11498,12 @@ doESCkey:
         case   (-((KS_EXTRA) + ((int)(KE_SCRIPT_COMMAND) << 8)))  :
             {
                 bufref_T    save_curbuf;
-                varnumber_T tick =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
+                varnumber_T tick =  ((curbuf)->b_ct_di.di_tv.vval) ;
 
                 set_bufref(&save_curbuf, curbuf);
                 do_cmdkey_command(c, 0);
 
-                if (curbuf->b_u_synced || (bufref_valid(&save_curbuf) && curbuf == save_curbuf.br_buf && tick !=  ((curbuf)->b_ct_di.di_tv.vval.v_number) ))
+                if (curbuf->b_u_synced || (bufref_valid(&save_curbuf) && curbuf == save_curbuf.br_buf && tick !=  ((curbuf)->b_ct_di.di_tv.vval) ))
                 {
                     ins_need_undo = TRUE;
                 }
@@ -46125,7 +46112,7 @@ n_opencmd(cmdarg_T *cap)
         return;
     }
 
-    curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
+    curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval) ;
     if (u_save((linenr_T)(curwin->w_cursor.lnum - (cap->cmdchar == 'O' ? 1 : 0)), (linenr_T)(curwin->w_cursor.lnum + (cap->cmdchar == 'o' ? 1 : 0))) == OK && open_line(cap->cmdchar == 'O' ?  (-1)  : FORWARD, 0, 0, nullptr) == OK)
     {
         if (vim_strchr(p_cpo, CPO_HASH) != nullptr)
@@ -46726,7 +46713,7 @@ invoke_edit(cmdarg_T    *cap, int         repl, int         cmd, int         sta
 
     if (cap->cmdchar != 'O' && cap->cmdchar != 'o')
     {
-        curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
+        curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval) ;
     }
     if (edit(cmd, startln, cap->count1))
     {
@@ -50352,7 +50339,7 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
                     restart_edit_save = 0;
                 }
                 restart_edit = 0;
-                curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
+                curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval) ;
 
                 if (op_change(oap))
                 {
@@ -50396,7 +50383,7 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
             {
                 restart_edit_save = restart_edit;
                 restart_edit = 0;
-                curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
+                curbuf->b_last_changedtick_i =  ((curbuf)->b_ct_di.di_tv.vval) ;
 
                 op_insert(oap, cap->count1);
 
@@ -69128,7 +69115,7 @@ update_search_stat(int                 dirc, pos_T               *pos, pos_T    
 
     wraparound = ((dirc == '?' &&  (((lastpos).lnum != (p).lnum)               ? (lastpos).lnum < (p).lnum                   : (lastpos).col != (p).col                        ? (lastpos).col < (p).col                     : (lastpos).coladd < (p).coladd) ) || (dirc == '/' &&  (((p).lnum != (lastpos).lnum)               ? (p).lnum < (lastpos).lnum                   : (p).col != (lastpos).col                        ? (p).col < (lastpos).col                     : (p).coladd < (lastpos).coladd) ));
 
-    if (!(chgtick ==  ((curbuf)->b_ct_di.di_tv.vval.v_number)  && (lastpat != nullptr &&  musl_strncmp((char *)(lastpat), (char *)(spats[last_idx].pat), (lastpatlen))  == 0 && lastpatlen == spats[last_idx].patlen) &&  (((lastpos).lnum == (*cursor_pos).lnum) && ((lastpos).col == (*cursor_pos).col) && ((lastpos).coladd == (*cursor_pos).coladd))  && lbuf == curbuf) || wraparound || cur < 0 || (maxcount > 0 && cur > maxcount) || recompute)
+    if (!(chgtick ==  ((curbuf)->b_ct_di.di_tv.vval)  && (lastpat != nullptr &&  musl_strncmp((char *)(lastpat), (char *)(spats[last_idx].pat), (lastpatlen))  == 0 && lastpatlen == spats[last_idx].patlen) &&  (((lastpos).lnum == (*cursor_pos).lnum) && ((lastpos).col == (*cursor_pos).col) && ((lastpos).coladd == (*cursor_pos).coladd))  && lbuf == curbuf) || wraparound || cur < 0 || (maxcount > 0 && cur > maxcount) || recompute)
     {
         cur = 0;
         cnt = 0;
@@ -69185,7 +69172,7 @@ update_search_stat(int                 dirc, pos_T               *pos, pos_T    
             {
                 lastpatlen = spats[last_idx].patlen;
             }
-            chgtick =  ((curbuf)->b_ct_di.di_tv.vval.v_number) ;
+            chgtick =  ((curbuf)->b_ct_di.di_tv.vval) ;
             lbuf = curbuf;
             lastpos = p;
         }
@@ -69517,105 +69504,6 @@ typedef struct
     char        *bt_string;
 } tcap_entry_T;
 
-static tcap_entry_T builtin_ansi[] = {
-    {(int)KS_CE,        "\033[K"},
-    {(int)KS_AL,        "\033[L"},
-    {(int)KS_CAL,       "\033[%dL"},
-    {(int)KS_DL,        "\033[M"},
-    {(int)KS_CDL,       "\033[%dM"},
-    {(int)KS_CL,        "\033[H\033[2J"},
-    {(int)KS_ME,        "\033[0m"},
-    {(int)KS_MR,        "\033[7m"},
-    {(int)KS_MS,        "y"},
-    {(int)KS_UT,        "y"},
-    {(int)KS_LE,        "\b"},
-    {(int)KS_CM,        "\033[%i%d;%dH"},
-    {(int)KS_CRI,       "\033[%dC"},
-    {(int)KS_CCO,       "8"},
-    {(int)KS_CAB,       "\033[4%dm"},
-    {(int)KS_CAF,       "\033[3%dm"},
-    {(int)KS_OP,        "\033[0m"},
-
-    {(int)KS_NAME,      nullptr}
-};
-
-static tcap_entry_T builtin_vt100[] = {
-    {(int)KS_CE,        "\033[K"},
-    {(int)KS_AL,        "\033[L"},
-    {(int)KS_CAL,       "\033[%dL"},
-    {(int)KS_DL,        "\033[M"},
-    {(int)KS_CDL,       "\033[%dM"},
-    {(int)KS_CL,        "\033[H\033[2J"},
-    {(int)KS_CD,        "\033[J"},
-    {(int)KS_CCO,       "8"},
-    {(int)KS_ME,        "\033[0m"},
-    {(int)KS_MR,        "\033[7m"},
-    {(int)KS_MD,        "\033[1m"},
-    {(int)KS_SE,        "\033[22m"},
-    {(int)KS_UE,        "\033[24m"},
-    {(int)KS_US,        "\033[4m"},
-    {(int)KS_CZH,       "\033[34;43m"},
-    {(int)KS_CZR,       "\033[0m"},
-    {(int)KS_CAB,       "\033[4%dm"},
-    {(int)KS_CAF,       "\033[3%dm"},
-    {(int)KS_CSB,       "\033[102;%dm"},
-    {(int)KS_CSF,       "\033[101;%dm"},
-    {(int)KS_MS,        "y"},
-    {(int)KS_UT,        "y"},
-    {(int)KS_XN,        "y"},
-    {(int)KS_LE,        "\b"},
-    {(int)KS_CM,        "\033[%i%d;%dH"},
-    {(int)KS_CRI,       "\033[%dC"},
-    {  (-(('k') + ((int)('u') << 8)))  ,              "\033[A"},
-    {  (-(('k') + ((int)('d') << 8)))  ,            "\033[B"},
-    {  (-(('k') + ((int)('r') << 8)))  ,           "\033[C"},
-    {  (-(('k') + ((int)('l') << 8)))  ,            "\033[D"},
-    {  (-(('k') + ((int)('1') << 8)))  ,              "\033[11~"},
-    {  (-(('k') + ((int)('2') << 8)))  ,              "\033[12~"},
-    {  (-(('k') + ((int)('3') << 8)))  ,              "\033[13~"},
-    {  (-(('k') + ((int)('4') << 8)))  ,              "\033[14~"},
-    {  (-(('k') + ((int)('5') << 8)))  ,              "\033[15~"},
-    {  (-(('k') + ((int)('6') << 8)))  ,              "\033[17~"},
-    {  (-(('k') + ((int)('7') << 8)))  ,              "\033[18~"},
-    {  (-(('k') + ((int)('8') << 8)))  ,              "\033[19~"},
-    {  (-(('k') + ((int)('9') << 8)))  ,              "\033[20~"},
-    {  (-(('k') + ((int)(';') << 8)))  ,             "\033[21~"},
-    {  (-(('F') + ((int)('1') << 8)))  ,             "\033[23~"},
-    {  (-(('F') + ((int)('2') << 8)))  ,             "\033[24~"},
-    {  (-(('F') + ((int)('3') << 8)))  ,             "\033[25~"},
-    {  (-(('F') + ((int)('4') << 8)))  ,             "\033[26~"},
-    {  (-(('F') + ((int)('5') << 8)))  ,             "\033[28~"},
-    {  (-(('F') + ((int)('6') << 8)))  ,             "\033[29~"},
-    {  (-(('F') + ((int)('7') << 8)))  ,             "\033[31~"},
-    {  (-(('F') + ((int)('8') << 8)))  ,             "\033[32~"},
-    {  (-(('F') + ((int)('9') << 8)))  ,             "\033[33~"},
-    {  (-(('F') + ((int)('A') << 8)))  ,             "\033[34~"},
-    {  (-(('k') + ((int)('I') << 8)))  ,             "\033[2~"},
-    {  (-(('k') + ((int)('D') << 8)))  ,             "\033[3~"},
-    {  (-(('k') + ((int)('h') << 8)))  ,            "\033[1~"},
-    {  (-(('@') + ((int)('7') << 8)))  ,             "\033[4~"},
-    {  (-(('k') + ((int)('P') << 8)))  ,          "\033[5~"},
-    {  (-(('k') + ((int)('N') << 8)))  ,        "\033[6~"},
-    {  (-(('K') + ((int)('6') << 8)))  ,           "\033Ok"},
-    {  (-(('K') + ((int)('7') << 8)))  ,          "\033Om"},
-    {  (-(('K') + ((int)('8') << 8)))  ,         "\033Oo"},
-    {  (-(('K') + ((int)('9') << 8)))  ,       "\033Oj"},
-    {  (-(('K') + ((int)('A') << 8)))  ,          "\033OM"},
-    {  (-(('K') + ((int)('C') << 8)))  ,              "\033Op"},
-    {  (-(('K') + ((int)('D') << 8)))  ,              "\033Oq"},
-    {  (-(('K') + ((int)('E') << 8)))  ,              "\033Or"},
-    {  (-(('K') + ((int)('F') << 8)))  ,              "\033Os"},
-    {  (-(('K') + ((int)('G') << 8)))  ,              "\033Ot"},
-    {  (-(('K') + ((int)('H') << 8)))  ,              "\033Ou"},
-    {  (-(('K') + ((int)('I') << 8)))  ,              "\033Ov"},
-    {  (-(('K') + ((int)('J') << 8)))  ,              "\033Ow"},
-    {  (-(('K') + ((int)('K') << 8)))  ,              "\033Ox"},
-    {  (-(('K') + ((int)('L') << 8)))  ,              "\033Oy"},
-    {  (-(('k') + ((int)('b') << 8)))  ,              "\x7f"},
-
-    {(int)KS_NAME,      nullptr}
-};
-
 static tcap_entry_T builtin_xterm[] = {
     {(int)KS_CE,        "\033[K"},
     {(int)KS_AL,        "\033[L"},
@@ -69788,13 +69676,6 @@ static tcap_entry_T builtin_kitty[] = {
     {(int)KS_NAME,      nullptr}
 };
 
-static tcap_entry_T builtin_dumb[] = {
-    {(int)KS_CL,        "\014"},
-    {(int)KS_CM,        "\033[%i%d;%dH"},
-
-    {(int)KS_NAME,      nullptr}
-};
-
 static tcap_entry_T builtin_debug[] = {
     {(int)KS_CE,        "[CE]"},
     {(int)KS_CD,        "[CD]"},
@@ -69960,15 +69841,7 @@ static tcap_entry_T builtin_256colors[] = {
 };
 
 static builtin_tcap_T builtin_terminals[] = {
-    {"ansi",        builtin_ansi},
-    {"vt100",       builtin_vt100},
-    {"xterm",       builtin_xterm},
     {"xterm-256color", builtin_xterm},
-    {"screen",      builtin_xterm},
-    {"screen-256color", builtin_xterm},
-    {"tmux",        builtin_xterm},
-    {"tmux-256color", builtin_xterm},
-    {"dumb",        builtin_dumb},
     {"debug",       builtin_debug},
 
     {nullptr,          nullptr},
@@ -70038,10 +69911,6 @@ find_builtin_term(char_u *term)
         if (name == nullptr)
         {
             break;
-        }
-        if ( musl_strcmp((char *)(name), (char *)("xterm"))  == 0 && vim_is_xterm(term))
-        {
-            return builtin_terminals[i].bitc_table;
         }
         if ( musl_strcmp((char *)(term), (char *)(name))  == 0)
         {
@@ -70173,11 +70042,11 @@ report_term_error(char *error_msg, char_u *term)
 
     if (error_msg != nullptr)
     {
-        vim_snprintf(buf, sizeof(buf), "\r\n%s\r\n'%s%s\r\n", error_msg, (char *)term, _("' not known, defaulting to 'xterm'"));
+        vim_snprintf(buf, sizeof(buf), "\r\n%s\r\n'%s%s\r\n", error_msg, (char *)term, _("' not known, defaulting to 'xterm-256color'"));
     }
     else
     {
-        vim_snprintf(buf, sizeof(buf), "\r\n'%s%s\r\n", (char *)term, _("' not known, defaulting to 'xterm'"));
+        vim_snprintf(buf, sizeof(buf), "\r\n'%s%s\r\n", (char *)term, _("' not known, defaulting to 'xterm-256color'"));
     }
     host_message(buf, -1, TRUE);
 }
@@ -70287,7 +70156,7 @@ set_termname(char_u *term)
                     wait_return(TRUE);
                     return FAIL;
                 }
-                term =  (char_u *)"xterm" ;
+                term =  (char_u *)"xterm-256color" ;
                 report_default_term(term);
                 set_string_option_direct((char_u *)"term", -1, term, OPT_FREE, 0);
             }
@@ -74820,7 +74689,7 @@ u_savecommon(linenr_T    top, linenr_T    bot, linenr_T    newbot, int         r
         old_curhead = curbuf->b_u_curhead;
         if (old_curhead != nullptr)
         {
-            curbuf->b_u_newhead = old_curhead->uh_next.ptr;
+            curbuf->b_u_newhead = old_curhead->uh_next;
             curbuf->b_u_curhead = nullptr;
         }
 
@@ -74832,15 +74701,15 @@ u_savecommon(linenr_T    top, linenr_T    bot, linenr_T    newbot, int         r
             {
                 u_freebranch(curbuf, uhfree, &old_curhead);
             }
-            else if (uhfree->uh_alt_next.ptr == nullptr)
+            else if (uhfree->uh_alt_next == nullptr)
             {
                 u_freeheader(curbuf, uhfree, &old_curhead);
             }
             else
             {
-                while (uhfree->uh_alt_next.ptr != nullptr)
+                while (uhfree->uh_alt_next != nullptr)
                 {
-                    uhfree = uhfree->uh_alt_next.ptr;
+                    uhfree = uhfree->uh_alt_next;
                 }
                 u_freebranch(curbuf, uhfree, &old_curhead);
             }
@@ -74856,17 +74725,17 @@ u_savecommon(linenr_T    top, linenr_T    bot, linenr_T    newbot, int         r
             return OK;
         }
 
-        uhp->uh_prev.ptr = nullptr;
-        uhp->uh_next.ptr = curbuf->b_u_newhead;
-        uhp->uh_alt_next.ptr = old_curhead;
+        uhp->uh_prev = nullptr;
+        uhp->uh_next = curbuf->b_u_newhead;
+        uhp->uh_alt_next = old_curhead;
         if (old_curhead != nullptr)
         {
-            uhp->uh_alt_prev.ptr = old_curhead->uh_alt_prev.ptr;
-            if (uhp->uh_alt_prev.ptr != nullptr)
+            uhp->uh_alt_prev = old_curhead->uh_alt_prev;
+            if (uhp->uh_alt_prev != nullptr)
             {
-                uhp->uh_alt_prev.ptr->uh_alt_next.ptr = uhp;
+                uhp->uh_alt_prev->uh_alt_next = uhp;
             }
-            old_curhead->uh_alt_prev.ptr = uhp;
+            old_curhead->uh_alt_prev = uhp;
             if (curbuf->b_u_oldhead == old_curhead)
             {
                 curbuf->b_u_oldhead = uhp;
@@ -74874,11 +74743,11 @@ u_savecommon(linenr_T    top, linenr_T    bot, linenr_T    newbot, int         r
         }
         else
         {
-            uhp->uh_alt_prev.ptr = nullptr;
+            uhp->uh_alt_prev = nullptr;
         }
         if (curbuf->b_u_newhead != nullptr)
         {
-            curbuf->b_u_newhead->uh_prev.ptr = uhp;
+            curbuf->b_u_newhead->uh_prev = uhp;
         }
 
         uhp->uh_seq = ++curbuf->b_u_seq_last;
@@ -75096,7 +74965,7 @@ u_doit(int startcount)
             }
             else if (get_undolevel() > 0)
             {
-                curbuf->b_u_curhead = curbuf->b_u_curhead->uh_next.ptr;
+                curbuf->b_u_curhead = curbuf->b_u_curhead->uh_next;
             }
             if (curbuf->b_u_numhead == 0 || curbuf->b_u_curhead == nullptr)
             {
@@ -75133,11 +75002,11 @@ u_doit(int startcount)
 
             u_undoredo(FALSE);
 
-            if (curbuf->b_u_curhead->uh_prev.ptr == nullptr)
+            if (curbuf->b_u_curhead->uh_prev == nullptr)
             {
                 curbuf->b_u_newhead = curbuf->b_u_curhead;
             }
-            curbuf->b_u_curhead = curbuf->b_u_curhead->uh_prev.ptr;
+            curbuf->b_u_curhead = curbuf->b_u_curhead->uh_prev;
         }
     }
     u_undo_end(undo_undoes, FALSE);
@@ -75197,7 +75066,7 @@ undo_time(long        step, int         sec, int         file, int         absol
                 uhp = curbuf->b_u_curhead;
                 if (uhp != nullptr)
                 {
-                    uhp = uhp->uh_next.ptr;
+                    uhp = uhp->uh_next;
                 }
                 else
                 {
@@ -75312,35 +75181,35 @@ undo_time(long        step, int         sec, int         file, int         absol
                 break;
             }
 
-            if (uhp->uh_prev.ptr != nullptr && uhp->uh_prev.ptr->uh_walk != nomark && uhp->uh_prev.ptr->uh_walk != mark)
+            if (uhp->uh_prev != nullptr && uhp->uh_prev->uh_walk != nomark && uhp->uh_prev->uh_walk != mark)
             {
-                uhp = uhp->uh_prev.ptr;
+                uhp = uhp->uh_prev;
             }
 
-            else if (uhp->uh_alt_next.ptr != nullptr && uhp->uh_alt_next.ptr->uh_walk != nomark && uhp->uh_alt_next.ptr->uh_walk != mark)
+            else if (uhp->uh_alt_next != nullptr && uhp->uh_alt_next->uh_walk != nomark && uhp->uh_alt_next->uh_walk != mark)
             {
-                uhp = uhp->uh_alt_next.ptr;
+                uhp = uhp->uh_alt_next;
             }
 
-            else if (uhp->uh_next.ptr != nullptr && uhp->uh_alt_prev.ptr == nullptr && uhp->uh_next.ptr->uh_walk != nomark && uhp->uh_next.ptr->uh_walk != mark)
+            else if (uhp->uh_next != nullptr && uhp->uh_alt_prev == nullptr && uhp->uh_next->uh_walk != nomark && uhp->uh_next->uh_walk != mark)
             {
                 if (uhp == curbuf->b_u_curhead)
                 {
                     uhp->uh_walk = nomark;
                 }
-                uhp = uhp->uh_next.ptr;
+                uhp = uhp->uh_next;
             }
 
             else
             {
                 uhp->uh_walk = nomark;
-                if (uhp->uh_alt_prev.ptr != nullptr)
+                if (uhp->uh_alt_prev != nullptr)
                 {
-                    uhp = uhp->uh_alt_prev.ptr;
+                    uhp = uhp->uh_alt_prev;
                 }
                 else
                 {
-                    uhp = uhp->uh_next.ptr;
+                    uhp = uhp->uh_next;
                 }
             }
         }
@@ -75395,7 +75264,7 @@ target_zero:
             }
             else
             {
-                uhp = uhp->uh_next.ptr;
+                uhp = uhp->uh_next;
             }
             if (uhp == nullptr || (target > 0 && uhp->uh_walk != mark) || (uhp->uh_seq == target && !above))
             {
@@ -75420,41 +75289,41 @@ target_zero:
                     break;
                 }
 
-                while (uhp->uh_alt_prev.ptr != nullptr && uhp->uh_alt_prev.ptr->uh_walk == mark)
+                while (uhp->uh_alt_prev != nullptr && uhp->uh_alt_prev->uh_walk == mark)
                 {
-                    uhp = uhp->uh_alt_prev.ptr;
+                    uhp = uhp->uh_alt_prev;
                 }
 
                 last = uhp;
-                while (last->uh_alt_next.ptr != nullptr && last->uh_alt_next.ptr->uh_walk == mark)
+                while (last->uh_alt_next != nullptr && last->uh_alt_next->uh_walk == mark)
                 {
-                    last = last->uh_alt_next.ptr;
+                    last = last->uh_alt_next;
                 }
                 if (last != uhp)
                 {
-                    while (uhp->uh_alt_prev.ptr != nullptr)
+                    while (uhp->uh_alt_prev != nullptr)
                     {
-                        uhp = uhp->uh_alt_prev.ptr;
+                        uhp = uhp->uh_alt_prev;
                     }
-                    if (last->uh_alt_next.ptr != nullptr)
+                    if (last->uh_alt_next != nullptr)
                     {
-                        last->uh_alt_next.ptr->uh_alt_prev.ptr =
-                                                        last->uh_alt_prev.ptr;
+                        last->uh_alt_next->uh_alt_prev =
+                                                        last->uh_alt_prev;
                     }
-                    last->uh_alt_prev.ptr->uh_alt_next.ptr =
-                                                        last->uh_alt_next.ptr;
-                    last->uh_alt_prev.ptr = nullptr;
-                    last->uh_alt_next.ptr = uhp;
-                    uhp->uh_alt_prev.ptr = last;
+                    last->uh_alt_prev->uh_alt_next =
+                                                        last->uh_alt_next;
+                    last->uh_alt_prev = nullptr;
+                    last->uh_alt_next = uhp;
+                    uhp->uh_alt_prev = last;
 
                     if (curbuf->b_u_oldhead == uhp)
                     {
                         curbuf->b_u_oldhead = last;
                     }
                     uhp = last;
-                    if (uhp->uh_next.ptr != nullptr)
+                    if (uhp->uh_next != nullptr)
                     {
-                        uhp->uh_next.ptr->uh_prev.ptr = uhp;
+                        uhp->uh_next->uh_prev = uhp;
                     }
                 }
                 curbuf->b_u_curhead = uhp;
@@ -75472,11 +75341,11 @@ target_zero:
 
                 u_undoredo(FALSE);
 
-                if (uhp->uh_prev.ptr == nullptr)
+                if (uhp->uh_prev == nullptr)
                 {
                     curbuf->b_u_newhead = uhp;
                 }
-                curbuf->b_u_curhead = uhp->uh_prev.ptr;
+                curbuf->b_u_curhead = uhp->uh_prev;
                 did_undo = FALSE;
 
                 if (uhp->uh_seq == target)
@@ -75484,7 +75353,7 @@ target_zero:
                     break;
                 }
 
-                uhp = uhp->uh_prev.ptr;
+                uhp = uhp->uh_prev;
                 if (uhp == nullptr || uhp->uh_walk != mark)
                 {
                     internal_error("undo_time()");
@@ -75761,9 +75630,9 @@ u_undoredo(int undo)
     curbuf->b_u_seq_cur = curhead->uh_seq;
     if (undo)
     {
-        if (curhead->uh_next.ptr != nullptr)
+        if (curhead->uh_next != nullptr)
         {
-            curbuf->b_u_seq_cur = curhead->uh_next.ptr->uh_seq;
+            curbuf->b_u_seq_cur = curhead->uh_next->uh_seq;
         }
         else
         {
@@ -75837,9 +75706,9 @@ u_undo_end(int         did_undo, int         absolute)
 
     if (curbuf->b_u_curhead != nullptr)
     {
-        if (absolute && curbuf->b_u_curhead->uh_next.ptr != nullptr)
+        if (absolute && curbuf->b_u_curhead->uh_next != nullptr)
         {
-            uhp = curbuf->b_u_curhead->uh_next.ptr;
+            uhp = curbuf->b_u_curhead->uh_next;
             did_undo = FALSE;
         }
         else if (did_undo)
@@ -75848,7 +75717,7 @@ u_undo_end(int         did_undo, int         absolute)
         }
         else
         {
-            uhp = curbuf->b_u_curhead->uh_next.ptr;
+            uhp = curbuf->b_u_curhead->uh_next;
         }
     }
     else
@@ -75909,7 +75778,7 @@ ex_undolist(exarg_T *eap)
     uhp = curbuf->b_u_oldhead;
     while (uhp != nullptr)
     {
-        if (uhp->uh_prev.ptr == nullptr && uhp->uh_walk != nomark && uhp->uh_walk != mark)
+        if (uhp->uh_prev == nullptr && uhp->uh_walk != nomark && uhp->uh_walk != mark)
         {
             if (ga_grow(&ga, 1) == FAIL)
             {
@@ -75930,33 +75799,33 @@ ex_undolist(exarg_T *eap)
 
         uhp->uh_walk = mark;
 
-        if (uhp->uh_prev.ptr != nullptr && uhp->uh_prev.ptr->uh_walk != nomark && uhp->uh_prev.ptr->uh_walk != mark)
+        if (uhp->uh_prev != nullptr && uhp->uh_prev->uh_walk != nomark && uhp->uh_prev->uh_walk != mark)
         {
-            uhp = uhp->uh_prev.ptr;
+            uhp = uhp->uh_prev;
             ++changes;
         }
 
-        else if (uhp->uh_alt_next.ptr != nullptr && uhp->uh_alt_next.ptr->uh_walk != nomark && uhp->uh_alt_next.ptr->uh_walk != mark)
+        else if (uhp->uh_alt_next != nullptr && uhp->uh_alt_next->uh_walk != nomark && uhp->uh_alt_next->uh_walk != mark)
         {
-            uhp = uhp->uh_alt_next.ptr;
+            uhp = uhp->uh_alt_next;
         }
 
-        else if (uhp->uh_next.ptr != nullptr && uhp->uh_alt_prev.ptr == nullptr && uhp->uh_next.ptr->uh_walk != nomark && uhp->uh_next.ptr->uh_walk != mark)
+        else if (uhp->uh_next != nullptr && uhp->uh_alt_prev == nullptr && uhp->uh_next->uh_walk != nomark && uhp->uh_next->uh_walk != mark)
         {
-            uhp = uhp->uh_next.ptr;
+            uhp = uhp->uh_next;
             --changes;
         }
 
         else
         {
             uhp->uh_walk = nomark;
-            if (uhp->uh_alt_prev.ptr != nullptr)
+            if (uhp->uh_alt_prev != nullptr)
             {
-                uhp = uhp->uh_alt_prev.ptr;
+                uhp = uhp->uh_alt_prev;
             }
             else
             {
-                uhp = uhp->uh_next.ptr;
+                uhp = uhp->uh_next;
                 --changes;
             }
         }
@@ -76060,34 +75929,34 @@ u_freeheader(buf_T           *buf, u_header_T      *uhp, u_header_T      **uhpp)
 {
     u_header_T      *uhap;
 
-    if (uhp->uh_alt_next.ptr != nullptr)
+    if (uhp->uh_alt_next != nullptr)
     {
-        u_freebranch(buf, uhp->uh_alt_next.ptr, uhpp);
+        u_freebranch(buf, uhp->uh_alt_next, uhpp);
     }
 
-    if (uhp->uh_alt_prev.ptr != nullptr)
+    if (uhp->uh_alt_prev != nullptr)
     {
-        uhp->uh_alt_prev.ptr->uh_alt_next.ptr = nullptr;
+        uhp->uh_alt_prev->uh_alt_next = nullptr;
     }
 
-    if (uhp->uh_next.ptr == nullptr)
+    if (uhp->uh_next == nullptr)
     {
-        buf->b_u_oldhead = uhp->uh_prev.ptr;
+        buf->b_u_oldhead = uhp->uh_prev;
     }
     else
     {
-        uhp->uh_next.ptr->uh_prev.ptr = uhp->uh_prev.ptr;
+        uhp->uh_next->uh_prev = uhp->uh_prev;
     }
 
-    if (uhp->uh_prev.ptr == nullptr)
+    if (uhp->uh_prev == nullptr)
     {
-        buf->b_u_newhead = uhp->uh_next.ptr;
+        buf->b_u_newhead = uhp->uh_next;
     }
     else
     {
-        for (uhap = uhp->uh_prev.ptr; uhap != nullptr; uhap = uhap->uh_alt_next.ptr)
+        for (uhap = uhp->uh_prev; uhap != nullptr; uhap = uhap->uh_alt_next)
         {
-            uhap->uh_next.ptr = uhp->uh_next.ptr;
+            uhap->uh_next = uhp->uh_next;
         }
     }
 
@@ -76109,20 +75978,20 @@ u_freebranch(buf_T           *buf, u_header_T      *uhp, u_header_T      **uhpp)
         return;
     }
 
-    if (uhp->uh_alt_prev.ptr != nullptr)
+    if (uhp->uh_alt_prev != nullptr)
     {
-        uhp->uh_alt_prev.ptr->uh_alt_next.ptr = nullptr;
+        uhp->uh_alt_prev->uh_alt_next = nullptr;
     }
 
     next = uhp;
     while (next != nullptr)
     {
         tofree = next;
-        if (tofree->uh_alt_next.ptr != nullptr)
+        if (tofree->uh_alt_next != nullptr)
         {
-            u_freebranch(buf, tofree->uh_alt_next.ptr, uhpp);
+            u_freebranch(buf, tofree->uh_alt_next, uhpp);
         }
-        next = tofree->uh_prev.ptr;
+        next = tofree->uh_prev;
         u_freeentries(buf, tofree, uhpp);
     }
 }
@@ -77645,14 +77514,14 @@ getout(int exitval)
         if (curwin->w_buffer != nullptr && buf_valid(curwin->w_buffer))
         {
             buf = curwin->w_buffer;
-            if ( ((buf)->b_ct_di.di_tv.vval.v_number)  != -1)
+            if ( ((buf)->b_ct_di.di_tv.vval)  != -1)
             {
                 bufref_T bufref;
 
                 set_bufref(&bufref, buf);
                 if (bufref_valid(&bufref))
                 {
-                     ((buf)->b_ct_di.di_tv.vval.v_number)  = -1;
+                     ((buf)->b_ct_di.di_tv.vval)  = -1;
                 }
             }
         }
