@@ -1603,9 +1603,6 @@ typedef struct memline
 
 enum { ML_DEL_MESSAGE = 1 };
 enum { ML_DEL_UNDO = 2 };
-enum { ML_DEL_NOPROP = 4 };
-
-enum { ML_APPEND_MARK = 2 };
 enum { ML_APPEND_UNDO = 4 };
 
 enum { MAX_HL_ID = 20000 };
@@ -33069,6 +33066,7 @@ mf_free_bhdr(bhdr_T *hp)
 
 typedef struct pointer_block    PTR_BL;
 typedef struct data_block       DATA_BL;
+typedef struct data_line        DATA_LN;
 typedef struct pointer_entry    PTR_EN;
 
 struct pointer_entry
@@ -33085,15 +33083,23 @@ struct pointer_block
     PTR_EN      pb_pointer[1];
 };
 
+enum { DB_LINE_MAX = 64 };
+
+struct data_line
+{
+    char_u      *dl_text;
+    colnr_T     dl_len;
+    char        dl_marked;
+};
+
 struct data_block
 {
     short_u     db_id;
-    unsigned    db_free;
-    unsigned    db_txt_start;
-    unsigned    db_txt_end;
     linenr_T    db_line_count;
-    unsigned    db_index[1];
+    DATA_LN     db_line[DB_LINE_MAX];
 };
+
+static_assert(sizeof(DATA_BL) <= MEMFILE_PAGE_SIZE, "a leaf is one memfile page");
 
 enum { STACK_INCR = 5 };
 
@@ -33105,11 +33111,25 @@ enum { ML_FIND = 0x13 };
 enum { ML_FLUSH = 0x02 };
 
 static void ml_flush_line(buf_T *);
-static bhdr_T *ml_new_data(memfile_T *, int);
+static bhdr_T *ml_new_data(memfile_T *);
 static bhdr_T *ml_new_ptr(memfile_T *);
 static bhdr_T *ml_find_line(buf_T *, linenr_T, int);
 static int ml_add_stack(buf_T *);
 static void ml_lineadd(buf_T *, int);
+
+    static char_u *
+ml_alloc_line(char_u *line, colnr_T len)
+{
+    char_u      *text;
+
+    text = alloc((usize)len);
+    if (text != nullptr)
+    {
+         musl_memmove((char *)(text), (char *)(line), (usize)(len)) ;
+    }
+
+    return text;
+}
 
     static int
 ml_open(buf_T *buf)
@@ -33146,17 +33166,20 @@ ml_open(buf_T *buf)
     pp->pb_pointer[0].pe_line_count = 1;
     mf_put(hp);
 
-    if ((hp = ml_new_data(mfp, 1)) == nullptr)
+    if ((hp = ml_new_data(mfp)) == nullptr)
     {
         goto error;
     }
     ((PTR_BL *)(buf->b_ml.ml_root->bh_data))->pb_pointer[0].pe_block = hp;
 
     dp = (DATA_BL *)(hp->bh_data);
-    dp->db_index[0] = --dp->db_txt_start;
-    dp->db_free -= 1 +  (sizeof(unsigned)) ;
+    dp->db_line[0].dl_text = ml_alloc_line((char_u *)"", 1);
+    if (dp->db_line[0].dl_text == nullptr)
+    {
+        goto error;
+    }
+    dp->db_line[0].dl_len = 1;
     dp->db_line_count = 1;
-    *((char_u *)dp + dp->db_txt_start) = NUL;
 
     return OK;
 
@@ -33316,8 +33339,6 @@ errorret:
 
     if (buf->b_ml.ml_line_lnum != lnum)
     {
-        unsigned start;
-        unsigned end;
         int         idx;
 
         ml_flush_line(buf);
@@ -33339,18 +33360,9 @@ errorret:
         dp = (DATA_BL *)(hp->bh_data);
 
         idx = lnum - buf->b_ml.ml_locked_low;
-        start = ((dp->db_index[idx]) &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) );
-        if (idx == 0)
-        {
-            end = dp->db_txt_end;
-        }
-        else
-        {
-            end = ((dp->db_index[idx - 1]) &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) );
-        }
 
-        buf->b_ml.ml_line_ptr = (char_u *)dp + start;
-        buf->b_ml.ml_line_len = end - start;
+        buf->b_ml.ml_line_ptr = dp->db_line[idx].dl_text;
+        buf->b_ml.ml_line_len = dp->db_line[idx].dl_len;
             buf->b_ml.ml_line_textlen = buf->b_ml.ml_line_len;
         buf->b_ml.ml_line_lnum = lnum;
         buf->b_ml.ml_flags &= ~(ML_LINE_DIRTY | ML_ALLOCATED);
@@ -33375,12 +33387,8 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
     colnr_T     len = len_arg;
     int         i;
     int         line_count;
-    int         offset;
-    int from;
-    int to;
-    long        space_needed;
+    char_u      *text;
     int         page_size;
-    int         page_count;
     int         db_idx;
     bhdr_T      *hp;
     memfile_T   *mfp;
@@ -33404,7 +33412,11 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         len = (colnr_T) musl_strlen((char *)(line))  + 1;
     }
 
-    space_needed = len +  (sizeof(unsigned)) ;
+    text = ml_alloc_line(line, len);
+    if (text == nullptr)
+    {
+        goto theend;
+    }
 
     mfp = buf->b_ml.ml_mfp;
     page_size = mfp->mf_page_size;
@@ -33428,7 +33440,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
 
     dp = (DATA_BL *)(hp->bh_data);
 
-    if ((long)dp->db_free < space_needed && db_idx == line_count - 1 && lnum < buf->b_ml.ml_line_count)
+    if (dp->db_line_count >= DB_LINE_MAX && db_idx == line_count - 1 && lnum < buf->b_ml.ml_line_count)
     {
         --(buf->b_ml.ml_locked_lineadd);
         --(buf->b_ml.ml_locked_high);
@@ -33445,39 +33457,16 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
 
     ++buf->b_ml.ml_line_count;
 
-    if ((long)dp->db_free >= space_needed)
+    if (dp->db_line_count < DB_LINE_MAX)
     {
-        dp->db_txt_start -= len;
-        dp->db_free -= space_needed;
-        ++(dp->db_line_count);
-
         if (line_count > db_idx + 1)
         {
-            if (db_idx < 0)
-            {
-                offset = dp->db_txt_end;
-            }
-            else
-            {
-                offset = ((dp->db_index[db_idx]) &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) );
-            }
-             musl_memmove((char *)((char *)dp + dp->db_txt_start), (char *)((char *)dp + dp->db_txt_start + len), (usize)(offset - (dp->db_txt_start + len))) ;
-            for (i = line_count - 1; i > db_idx; --i)
-            {
-                dp->db_index[i + 1] = dp->db_index[i] - len;
-            }
-            dp->db_index[db_idx + 1] = offset - len;
+             musl_memmove((char *)(&dp->db_line[db_idx + 2]), (char *)(&dp->db_line[db_idx + 1]), (usize)(line_count - db_idx - 1) * sizeof(DATA_LN)) ;
         }
-        else
-        {
-            dp->db_index[db_idx + 1] = dp->db_txt_start;
-        }
-
-         musl_memmove((char *)((char *)dp + dp->db_index[db_idx + 1]), (char *)(line), (usize)len) ;
-        if (flags & ML_APPEND_MARK)
-        {
-            dp->db_index[db_idx + 1] |=  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ;
-        }
+        dp->db_line[db_idx + 1].dl_text = text;
+        dp->db_line[db_idx + 1].dl_len = len;
+        dp->db_line[db_idx + 1].dl_marked = FALSE;
+        ++(dp->db_line_count);
 
     }
     else
@@ -33488,7 +33477,6 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         bhdr_T      *hp_right;
         bhdr_T      *hp_new;
         int         lines_moved;
-        int         data_moved = 0;
         int         total_moved = 0;
         DATA_BL *dp_right;
         DATA_BL *dp_left;
@@ -33508,30 +33496,10 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         else
         {
             lines_moved = line_count - db_idx - 1;
-            if (lines_moved == 0)
-            {
-                in_left = FALSE;
-            }
-            else
-            {
-                data_moved = ((dp->db_index[db_idx]) &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) ) -
-                                                            dp->db_txt_start;
-                total_moved = data_moved + lines_moved *  (sizeof(unsigned)) ;
-                if ((long)dp->db_free + total_moved >= space_needed)
-                {
-                    in_left = TRUE;
-                    space_needed = total_moved;
-                }
-                else
-                {
-                    in_left = FALSE;
-                    space_needed += total_moved;
-                }
-            }
+            in_left = (lines_moved != 0);
         }
 
-        page_count = ((space_needed +  (__builtin_offsetof(DATA_BL, db_index)) ) + page_size - 1) / page_size;
-        if ((hp_new = ml_new_data(mfp, page_count)) == nullptr)
+        if ((hp_new = ml_new_data(mfp)) == nullptr)
         {
             --(buf->b_ml.ml_locked_lineadd);
             --(buf->b_ml.ml_locked_high);
@@ -33558,45 +33526,23 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
 
         if (!in_left)
         {
-            dp_right->db_txt_start -= len;
-            dp_right->db_free -= len +  (sizeof(unsigned)) ;
-            dp_right->db_index[0] = dp_right->db_txt_start;
-            if (flags & ML_APPEND_MARK)
-            {
-                dp_right->db_index[0] |=  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ;
-            }
-
-             musl_memmove((char *)((char *)dp_right + dp_right->db_txt_start), (char *)(line), (usize)len) ;
+            dp_right->db_line[0].dl_text = text;
+            dp_right->db_line[0].dl_len = len;
+            dp_right->db_line[0].dl_marked = FALSE;
             ++line_count_right;
         }
         if (lines_moved)
         {
-            dp_right->db_txt_start -= data_moved;
-            dp_right->db_free -= total_moved;
-             musl_memmove((char *)((char *)dp_right + dp_right->db_txt_start), (char *)((char *)dp_left + dp_left->db_txt_start), (usize)data_moved) ;
-            offset = dp_right->db_txt_start - dp_left->db_txt_start;
-            dp_left->db_txt_start += data_moved;
-            dp_left->db_free += total_moved;
-
-            to = line_count_right;
-            for (from = db_idx + 1; from < line_count_left; ++from, ++to)
-            {
-                dp_right->db_index[to] = dp->db_index[from] + offset;
-            }
+             musl_memmove((char *)(&dp_right->db_line[line_count_right]), (char *)(&dp->db_line[db_idx + 1]), (usize)(lines_moved) * sizeof(DATA_LN)) ;
             line_count_right += lines_moved;
             line_count_left -= lines_moved;
         }
 
         if (in_left)
         {
-            dp_left->db_txt_start -= len;
-            dp_left->db_free -= len +  (sizeof(unsigned)) ;
-            dp_left->db_index[line_count_left] = dp_left->db_txt_start;
-            if (flags & ML_APPEND_MARK)
-            {
-                dp_left->db_index[line_count_left] |=  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ;
-            }
-             musl_memmove((char *)((char *)dp_left + dp_left->db_txt_start), (char *)(line), (usize)len) ;
+            dp_left->db_line[line_count_left].dl_text = text;
+            dp_left->db_line[line_count_left].dl_len = len;
+            dp_left->db_line[line_count_left].dl_marked = FALSE;
             ++line_count_left;
         }
 
@@ -33827,9 +33773,6 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
     int         count;
     int         idx;
     int         stack_idx;
-    int         text_start;
-    int         line_start;
-    long        line_size;
     int         i;
     int         ret = FAIL;
 
@@ -33868,16 +33811,6 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
     idx = lnum - buf->b_ml.ml_locked_low;
 
     --buf->b_ml.ml_line_count;
-
-    line_start = ((dp->db_index[idx]) &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) );
-    if (idx == 0)
-    {
-        line_size = dp->db_txt_end - line_start;
-    }
-    else
-    {
-        line_size = ((dp->db_index[idx - 1]) &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) ) - line_start;
-    }
 
     if (count == 1)
     {
@@ -33928,16 +33861,10 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
     }
     else
     {
-        text_start = dp->db_txt_start;
-         musl_memmove((char *)((char *)dp + text_start + line_size), (char *)((char *)dp + text_start), (usize)(line_start - text_start)) ;
-
-        for (i = idx; i < count - 1; ++i)
+        if (idx < count - 1)
         {
-            dp->db_index[i] = dp->db_index[i + 1] + line_size;
+             musl_memmove((char *)(&dp->db_line[idx]), (char *)(&dp->db_line[idx + 1]), (usize)(count - idx - 1) * sizeof(DATA_LN)) ;
         }
-
-        dp->db_free += line_size +  (sizeof(unsigned)) ;
-        dp->db_txt_start += line_size;
         --(dp->db_line_count);
 
     }
@@ -33987,7 +33914,7 @@ ml_setmarked(linenr_T lnum)
     }
 
     dp = (DATA_BL *)(hp->bh_data);
-    dp->db_index[lnum - curbuf->b_ml.ml_locked_low] |=  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ;
+    dp->db_line[lnum - curbuf->b_ml.ml_locked_low].dl_marked = TRUE;
 }
 
     static linenr_T
@@ -34014,9 +33941,9 @@ ml_firstmarked(void)
 
         for (i = lnum - curbuf->b_ml.ml_locked_low; lnum <= curbuf->b_ml.ml_locked_high; ++i, ++lnum)
         {
-            if ((dp->db_index[i]) &  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) )
+            if (dp->db_line[i].dl_marked)
             {
-                (dp->db_index[i]) &=  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) ;
+                dp->db_line[i].dl_marked = FALSE;
                 lowest_marked = lnum + 1;
                 return lnum;
             }
@@ -34050,9 +33977,9 @@ ml_clearmarked(void)
 
         for (i = lnum - curbuf->b_ml.ml_locked_low; lnum <= curbuf->b_ml.ml_locked_high; ++i, ++lnum)
         {
-            if ((dp->db_index[i]) &  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) )
+            if (dp->db_line[i].dl_marked)
             {
-                (dp->db_index[i]) &=  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) ;
+                dp->db_line[i].dl_marked = FALSE;
             }
         }
     }
@@ -34067,14 +33994,7 @@ ml_flush_line(buf_T *buf)
     DATA_BL     *dp;
     linenr_T    lnum;
     char_u      *new_line;
-    char_u      *old_line;
-    colnr_T     new_len;
-    int         old_len;
-    int         extra;
     int         idx;
-    int         start;
-    int         count;
-    int         i;
     static int  entered = FALSE;
 
     if (buf->b_ml.ml_line_lnum == 0 || buf->b_ml.ml_mfp == nullptr)
@@ -34103,46 +34023,10 @@ ml_flush_line(buf_T *buf)
         {
             dp = (DATA_BL *)(hp->bh_data);
             idx = lnum - buf->b_ml.ml_locked_low;
-            start = ((dp->db_index[idx]) &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) );
-            old_line = (char_u *)dp + start;
-            if (idx == 0)
-            {
-                old_len = dp->db_txt_end - start;
-            }
-            else
-            {
-                old_len = (dp->db_index[idx - 1] &  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) ) - start;
-            }
-            new_len = buf->b_ml.ml_line_len;
-            extra = new_len - old_len;
 
-            if ((int)dp->db_free >= extra)
-            {
-                count = buf->b_ml.ml_locked_high - buf->b_ml.ml_locked_low + 1;
-                if (extra != 0 && idx < count - 1)
-                {
-                     musl_memmove((char *)((char *)dp + dp->db_txt_start - extra), (char *)((char *)dp + dp->db_txt_start), (usize)(start - dp->db_txt_start)) ;
-
-                    for (i = idx + 1; i < count; ++i)
-                    {
-                        dp->db_index[i] -= extra;
-                    }
-                }
-                dp->db_index[idx] -= extra;
-
-                dp->db_free -= extra;
-                dp->db_txt_start -= extra;
-
-                 musl_memmove((char *)(old_line - extra), (char *)(new_line), (usize)new_len) ;
-            }
-            else
-            {
-                (void)ml_append_int(buf, lnum, new_line, new_len, ((dp->db_index[idx] &  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) ? ML_APPEND_MARK : 0));
-                (void)ml_delete_int(buf, lnum, ML_DEL_NOPROP);
-            }
+            dp->db_line[idx].dl_text = new_line;
+            dp->db_line[idx].dl_len = buf->b_ml.ml_line_len;
         }
-        vim_free(new_line);
-
         entered = FALSE;
     }
     else if (buf->b_ml.ml_flags & ML_ALLOCATED)
@@ -34155,20 +34039,18 @@ ml_flush_line(buf_T *buf)
 }
 
     static bhdr_T *
-ml_new_data(memfile_T *mfp, int page_count)
+ml_new_data(memfile_T *mfp)
 {
     bhdr_T      *hp;
     DATA_BL     *dp;
 
-    if ((hp = mf_new(mfp, page_count)) == nullptr)
+    if ((hp = mf_new(mfp, 1)) == nullptr)
     {
         return nullptr;
     }
 
     dp = (DATA_BL *)(hp->bh_data);
     dp->db_id =  (('d' << 8) + 'a') ;
-    dp->db_txt_start = dp->db_txt_end = page_count * mfp->mf_page_size;
-    dp->db_free = dp->db_txt_start -  (__builtin_offsetof(DATA_BL, db_index)) ;
     dp->db_line_count = 0;
 
     return hp;
