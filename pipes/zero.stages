@@ -19,13 +19,12 @@
 # exactly once and in order; tools/packages.sh zero --check requires every phase in
 # exactly one package.  `make zero-verify` and `make zero-tip` run the second.
 #
-# There are thirty-three phases, 0 to 32.  Phases are added one at a time, each on its
-# own
+# There are thirty-four phases, 0 to 33.  Phases are added one at a time, each on its
 # own request
 # (ZERO-GOAL.md): write the program, declare its delta in pipes/zero.delta, add it
 # to `phases`, place it in a stage and a package.
 
-phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
+phases      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33
 
 #   stage   phases
 stage       0
@@ -61,6 +60,13 @@ stage       29
 stage       30
 stage       31
 stage       32
+# 33 CANNOT SHARE A STAGE WITH ANYTHING AND NEEDS NO `apart` TO SAY SO, exactly as
+# phase 3 does not.  A stage of more than one phase is made of split programs, and
+# pipes/zero33.sh is ONE file: measured, `tools/phaserun.sh --parts zero 33` prints
+# one line, which is the condition tools/stages.sh already refuses on.  Nor is there
+# a `need`: a whole-phase program is handed the previous boundary's tree and there is
+# no edit part for a sweep to precede.
+stage       33
 
 # What the schedule must respect (pipes/whim.stages defines the two words).
 #   apart 2 4   phase 2's check runs the binary it was handed AND the one it made
@@ -661,7 +667,12 @@ apart       31 32
 package  seed         0
 package  build        1
 package  terminal     2
-package  harness      3
+# `harness` is the package that changes no source at all: both its phases replace an
+# instrument, and both exist because the pipeline was about to measure itself with a
+# question that could not see the answer.  3 replaced the file-based harnesses with
+# the screen; 32 replaced the one part of that recording still asking the ENVIRONMENT
+# about the terminal, which whim phase 19 stopped reading.
+package  harness      3 33
 package  streams      4 5
 package  files        6 7 8 9 10
 package  buffers      11
@@ -903,3 +914,5 @@ uses  host:32     harness:3    mechanical  "nothing moved" is a statement about 
 uses  host:32     boundary:26  mechanical  `long time(long *tp);` is phase 26's, and so is `typedef long time_T;` -- that phase chose the width BECAUSE the prototype was cross-checked against <time.h> below it.  This phase removes the prototype, so it owes the guarantee back, and it pays it as a static_assert.  MEASURED that the prototype really was the check (26's own m1 control, re-run on the input here) and that what replaces it is stronger: the prototype pinned `long == time_t` and never `time_T == long`
 uses  host:32     boundary:27  mechanical  the static_assert can only be written BELOW the includes, and the includes are below the core only because of phase 27 -- it joins the twelve constants that phase put there, which are the only place in the file where a core name and a header name are both in scope
 uses  host:32     boundary:28  rationale   musl_now_ms is the other half of the clock and it crossed at phase 28; host_time is defined immediately below it and returns `long` for that phase's reason -- the definition is below the boundary, so it cannot name a core typedef once the file is cut, and every core -> host signature takes scalars only.  Phase 28's sentence about `gettimeofday` not leaving `nm -u` is also this phase's about `time`
+uses  harness:33  seed:0       mechanical  the nineteen rows it re-records are phase 0's, taken from whim-vim.c with whim's own compile line -- and phase 0 REFUSES to overwrite a set that differs, so the changed harness is why the incantation names .reference/zero-baselines as well as .cache/r0
+uses  harness:33  streams:5    mechanical  the question is `+set term={name}` on a command line with NO FILE on it, because phase 5 made a file argument an unknown option -- which is also what made the old question ask $TERM with an empty buffer, and left it asking something whim phase 19 had already stopped reading

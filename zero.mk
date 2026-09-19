@@ -164,7 +164,17 @@ zero-baselines-check:
 	 echo "               (tools/zrecord.sh).  Zero phase 0 records them only when it"; \
 	 echo "               runs, and r0 came from the tier 3 cache.  Every later zero"; \
 	 echo "               delta compares with them.  Fix:"; \
-	 echo "                 rm -rf .cache/r0 && make zero-phase-0"; \
+	 echo "                 rm -rf .reference/zero-baselines .cache/r0 && make zero-phase-0"; \
+	 echo; \
+	 echo "               BOTH PATHS, and the first is not redundant.  This target only"; \
+	 echo "               sees the MISSING case, but the other way to get here is a"; \
+	 echo "               CHANGED HARNESS -- zero phase 33 changed what tools/ztermcheck.py"; \
+	 echo "               asks -- and pipes/zero0.sh REFUSES a set that differs rather than"; \
+	 echo "               overwriting it, naming the file that moved and exiting 1.  It is"; \
+	 echo "               right to refuse: whim-vim.c is this pipeline's immutable input, so"; \
+	 echo "               the same input recorded differently means a harness moved or the"; \
+	 echo "               frozen whim-vim.c did, and which one must be NAMED before the"; \
+	 echo "               recording is thrown away.  Measured: .cache/r0 alone exits 1."; \
 	 exit 1
 
 # --- what a zero pass is --------------------------------------------------
