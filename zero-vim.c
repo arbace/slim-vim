@@ -405,7 +405,6 @@ musl_qsort(void *base, usize nel, usize width, int (*cmp)(const void *, const vo
 static int musl_towupper(int a);
 static int musl_towlower(int a);
 
-enum { BH_DIRTY = 1 };
 enum { BH_LOCKED = 2 };
 enum { CMOD_SILENT = 0x0002 };
 enum { CMOD_ERRSILENT = 0x0004 };
@@ -416,8 +415,6 @@ enum { CMOD_LOCKMARKS = 0x0800 };
 enum { CMOD_KEEPPATTERNS = 0x1000 };
 enum { ML_EMPTY = 0x01 };
 enum { ML_LINE_DIRTY = 0x02 };
-enum { ML_LOCKED_DIRTY = 0x04 };
-enum { ML_LOCKED_POS = 0x08 };
 enum { ML_ALLOCATED = 0x10 };
 enum { RULER_BUF_LEN = 70 };
 enum { INPUT_BUFLEN = 100 };
@@ -894,8 +891,6 @@ enum { DOCMD_KEEPLINE = 0x20 };
 enum { BL_WHITE = 1 };
 enum { BL_SOL = 2 };
 enum { BL_FIX = 4 };
-
-enum { MFS_ZERO = 8 };
 
 enum { BCO_ENTER = 1 };
 enum { BCO_ALWAYS = 2 };
@@ -1513,15 +1508,6 @@ struct block_hdr
     char        bh_flags;
 };
 
-typedef struct nr_trans NR_TRANS;
-
-struct nr_trans
-{
-    mf_hashitem_T nt_hashitem;
-
-    blocknr_T   nt_new_bnum;
-};
-
 typedef struct buffblock buffblock_T;
 typedef struct buffheader buffheader_T;
 
@@ -1601,24 +1587,14 @@ typedef struct
     int         cmod_did_esilent;
 } cmdmod_T;
 
-typedef enum {
-    MF_DIRTY_NO = 0,
-    MF_DIRTY_YES,
-    MF_DIRTY_YES_NOSYNC,
-} mfdirty_T;
-
 struct memfile
 {
     bhdr_T      *mf_free_first;
     bhdr_T      *mf_used_first;
     bhdr_T      *mf_used_last;
     mf_hashtab_T mf_hash;
-    mf_hashtab_T mf_trans;
     blocknr_T   mf_blocknr_max;
-    blocknr_T   mf_blocknr_min;
-    blocknr_T   mf_neg_count;
     unsigned    mf_page_size;
-    mfdirty_T   mf_dirty;
 };
 
 typedef struct info_pointer
@@ -1656,7 +1632,6 @@ enum { ML_DEL_MESSAGE = 1 };
 enum { ML_DEL_UNDO = 2 };
 enum { ML_DEL_NOPROP = 4 };
 
-enum { ML_APPEND_NEW = 1 };
 enum { ML_APPEND_MARK = 2 };
 enum { ML_APPEND_UNDO = 4 };
 
@@ -2959,7 +2934,7 @@ static colnr_T ml_get_cursor_len(void);
 static colnr_T ml_get_buf_len(buf_T *buf, linenr_T lnum);
 static char_u *ml_get_buf(buf_T *buf, linenr_T lnum, int will_change);
 static int ml_line_alloced(void);
-static int ml_append(linenr_T lnum, char_u *line, colnr_T len, int newfile);
+static int ml_append(linenr_T lnum, char_u *line, colnr_T len);
 static int ml_append_flags(linenr_T lnum, char_u *line, colnr_T len, int flags);
 static int ml_replace(linenr_T lnum, char_u *line, int copy);
 static int ml_replace_len(linenr_T lnum, char_u *line_arg, colnr_T len_arg, int has_props, int copy);
@@ -2968,7 +2943,6 @@ static int ml_delete_flags(linenr_T lnum, int flags);
 static void ml_setmarked(linenr_T lnum);
 static linenr_T ml_firstmarked(void);
 static void ml_clearmarked(void);
-static void ml_setflags(buf_T *buf);
 
 static int vim_snprintf(char *, usize, const char *, ...)  __attribute__((format(printf, 3, 4))) ;
 static int emsg_not_now(void);
@@ -3677,8 +3651,6 @@ static int          redraw_vseps  = FALSE ;
 
 static buf_T    *curbuf  = nullptr ;
 
-static int      mf_dont_release  = FALSE ;
-
 static int      ru_col;
 static int      sc_col;
 
@@ -3848,7 +3820,6 @@ static int      replace_offset  = 0 ;
 
 static char_u   *empty_option  = (char_u *)"" ;
 
-static const char *Version;
 static char *longVersion;
 
 static int      km_stopsel  = FALSE ;
@@ -3945,7 +3916,6 @@ static char e_invalid_count_for_del_bytes_nr[]  = "E292: Invalid count for del_b
 static char e_block_was_not_locked[]  = "E293: Block was not locked" ;
 static char e_didnt_get_block_nr_zero[]  = "E298: Didn't get block nr 0?" ;
 static char e_didnt_get_block_nr_one[]  = "E298: Didn't get block nr 1?" ;
-static char e_didnt_get_block_nr_two[]  = "E298: Didn't get block nr 2?" ;
 static char e_ml_get_invalid_lnum_nr[]  = "E315: ml_get: Invalid lnum: %ld" ;
 static char e_ml_get_cannot_find_line_nr_in_buffer_nr_str[]  = "E316: ml_get: Cannot find line %ld in buffer %d %s" ;
 static char e_pointer_block_id_wrong[]  = "E317: Pointer block id wrong" ;
@@ -4373,20 +4343,10 @@ open_buffer(void)
         getout(2);
     }
 
-    if (curbuf->b_ml.ml_mfp != nullptr)
-    {
-        curbuf->b_ml.ml_mfp->mf_dirty = MF_DIRTY_YES_NOSYNC;
-    }
-
     set_bufref(&old_curbuf, curbuf);
     curbuf->b_modified_was_set = false;
 
     curwin->w_valid = 0;
-
-    if (curbuf->b_ml.ml_mfp != nullptr && curbuf->b_ml.ml_mfp->mf_dirty == MF_DIRTY_YES_NOSYNC)
-    {
-        curbuf->b_ml.ml_mfp->mf_dirty = MF_DIRTY_YES;
-    }
 
     if (curbuf->b_flags & BF_NEVERLOADED)
     {
@@ -4991,7 +4951,6 @@ enum { VIM_VERSION_MAJOR = 9 };
 enum { VIM_VERSION_MINOR = 2 };
 static const char VIM_VERSION_DATE_ONLY[] = "2026 Feb 14";
 
-static const char VIM_VERSION_SHORT[] = {'0' + VIM_VERSION_MAJOR, '.', '0' + VIM_VERSION_MINOR, NUL};
 static const char VIM_VERSION_LONG_ONLY[] = {'V', 'I', 'M', ' ', '-', ' ', 'V', 'i', ' ', 'I', 'M', 'p', 'r', 'o', 'v', 'e', 'd', ' ', '0' + VIM_VERSION_MAJOR, '.', '0' + VIM_VERSION_MINOR, NUL};
 
     static int
@@ -5035,7 +4994,6 @@ changed(void)
 changed_internal(void)
 {
     curbuf->b_changed = TRUE;
-    ml_setflags(curbuf);
     check_status(curbuf);
     redraw_tabline = TRUE;
 }
@@ -5297,7 +5255,6 @@ unchanged(buf_T *buf, int ff, int always_inc_changedtick)
     if (buf->b_changed)
     {
         buf->b_changed = 0;
-        ml_setflags(buf);
         check_status(buf);
         redraw_tabline = TRUE;
         ++ ((buf)->b_ct_di.di_tv.vval) ;
@@ -5832,7 +5789,7 @@ open_line(int         dir, int         flags, int         second_line_indent, in
     }
     if (!(State & VREPLACE_FLAG) || old_cursor.lnum >= orig_line_count)
     {
-        if (ml_append(curwin->w_cursor.lnum, p_extra, (colnr_T)0, FALSE) == FAIL)
+        if (ml_append(curwin->w_cursor.lnum, p_extra, (colnr_T)0) == FAIL)
         {
             goto theend;
         }
@@ -14372,7 +14329,7 @@ do_move(linenr_T line1, linenr_T line2, linenr_T dest)
         str = vim_strnsave(ml_get(l + extra), ml_get_len(l + extra));
         if (str != nullptr)
         {
-            ml_append(dest + l - line1, str, (colnr_T)0, FALSE);
+            ml_append(dest + l - line1, str, (colnr_T)0);
             vim_free(str);
             if (dest < line1)
             {
@@ -14475,7 +14432,7 @@ ex_copy(linenr_T line1, linenr_T line2, linenr_T n)
         p = vim_strnsave(ml_get(line1), ml_get_len(line1));
         if (p != nullptr)
         {
-            ml_append(curwin->w_cursor.lnum, p, (colnr_T)0, FALSE);
+            ml_append(curwin->w_cursor.lnum, p, (colnr_T)0);
             vim_free(p);
         }
         if (line1 == n)
@@ -14660,7 +14617,7 @@ ex_append(exarg_T *eap)
         }
 
         did_undo = TRUE;
-        ml_append(lnum, theline, (colnr_T)0, FALSE);
+        ml_append(lnum, theline, (colnr_T)0);
         if (empty)
         {
             appended_lines(lnum, 1L);
@@ -15682,7 +15639,7 @@ ex_substitute(exarg_T *eap)
                             colnr_T     plen = (colnr_T)(p1 - new_start.string + 1);
 
                             *p1 = NUL;
-                            ml_append(lnum - 1, new_start.string, plen, FALSE);
+                            ml_append(lnum - 1, new_start.string, plen);
                             mark_adjust(lnum + 1, (linenr_T) LONG_MAX , 1L, 0L);
                             if (subflags.do_ask)
                             {
@@ -33005,10 +32962,8 @@ static bhdr_T *mf_alloc_bhdr(memfile_T *, int);
 static void mf_free_bhdr(bhdr_T *);
 static void mf_ins_free(memfile_T *, bhdr_T *);
 static bhdr_T *mf_rem_free(memfile_T *);
-static int  mf_trans_add(memfile_T *, bhdr_T *);
 static void mf_hash_init(mf_hashtab_T *);
 static void mf_hash_free(mf_hashtab_T *);
-static void mf_hash_free_all(mf_hashtab_T *);
 static mf_hashitem_T *mf_hash_find(mf_hashtab_T *, blocknr_T);
 static void mf_hash_add_item(mf_hashtab_T *, mf_hashitem_T *);
 static void mf_hash_rem_item(mf_hashtab_T *, mf_hashitem_T *);
@@ -33027,13 +32982,9 @@ mf_open(void)
     mfp->mf_free_first = nullptr;
     mfp->mf_used_first = nullptr;
     mfp->mf_used_last = nullptr;
-    mfp->mf_dirty = MF_DIRTY_NO;
     mf_hash_init(&mfp->mf_hash);
-    mf_hash_init(&mfp->mf_trans);
     mfp->mf_page_size = MEMFILE_PAGE_SIZE;
     mfp->mf_blocknr_max = 0;
-    mfp->mf_blocknr_min = -1;
-    mfp->mf_neg_count = 0;
 
     return mfp;
 }
@@ -33058,12 +33009,11 @@ mf_close(memfile_T *mfp, int del_file)
         vim_free(mf_rem_free(mfp));
     }
     mf_hash_free(&mfp->mf_hash);
-    mf_hash_free_all(&mfp->mf_trans);
     vim_free(mfp);
 }
 
     static bhdr_T *
-mf_new(memfile_T *mfp, int negative, int page_count)
+mf_new(memfile_T *mfp, int page_count)
 {
     bhdr_T      *hp;
     bhdr_T      *freep;
@@ -33072,7 +33022,7 @@ mf_new(memfile_T *mfp, int negative, int page_count)
     hp = nullptr;
 
     freep = mfp->mf_free_first;
-    if (!negative && freep != nullptr && freep->bh_page_count >= page_count)
+    if (freep != nullptr && freep->bh_page_count >= page_count)
     {
         if (freep->bh_page_count > page_count)
         {
@@ -33106,19 +33056,10 @@ mf_new(memfile_T *mfp, int negative, int page_count)
         {
             return nullptr;
         }
-        if (negative)
-        {
-            hp-> bh_hashitem.mhi_key  = mfp->mf_blocknr_min--;
-            mfp->mf_neg_count++;
-        }
-        else
-        {
-            hp-> bh_hashitem.mhi_key  = mfp->mf_blocknr_max;
-            mfp->mf_blocknr_max += page_count;
-        }
+        hp-> bh_hashitem.mhi_key  = mfp->mf_blocknr_max;
+        mfp->mf_blocknr_max += page_count;
     }
-    hp->bh_flags = BH_LOCKED | BH_DIRTY;
-    mfp->mf_dirty = MF_DIRTY_YES;
+    hp->bh_flags = BH_LOCKED;
     hp->bh_page_count = page_count;
     mf_ins_used(mfp, hp);
     mf_ins_hash(mfp, hp);
@@ -33132,7 +33073,7 @@ mf_new(memfile_T *mfp, int negative, int page_count)
 mf_get(memfile_T *mfp, blocknr_T nr, int page_count)
 {
     bhdr_T    *hp;
-    if (nr >= mfp->mf_blocknr_max || nr <= mfp->mf_blocknr_min)
+    if (nr >= mfp->mf_blocknr_max || nr < 0)
     {
         return nullptr;
     }
@@ -33156,30 +33097,13 @@ mf_get(memfile_T *mfp, blocknr_T nr, int page_count)
 }
 
     static void
-mf_put(memfile_T   *mfp, bhdr_T      *hp, int         dirty, int         infile)
+mf_put(bhdr_T *hp)
 {
-    int         flags;
-
-    flags = hp->bh_flags;
-
-    if ((flags & BH_LOCKED) == 0)
+    if ((hp->bh_flags & BH_LOCKED) == 0)
     {
         iemsg(e_block_was_not_locked);
     }
-    flags &= ~BH_LOCKED;
-    if (dirty)
-    {
-        flags |= BH_DIRTY;
-        if (mfp->mf_dirty != MF_DIRTY_YES_NOSYNC)
-        {
-            mfp->mf_dirty = MF_DIRTY_YES;
-        }
-    }
-    hp->bh_flags = flags;
-    if (infile)
-    {
-        mf_trans_add(mfp, hp);
-    }
+    hp->bh_flags &= ~BH_LOCKED;
 }
 
     static void
@@ -33188,22 +33112,7 @@ mf_free(memfile_T *mfp, bhdr_T *hp)
     vim_free(hp->bh_data);
     mf_rem_hash(mfp, hp);
     mf_rem_used(mfp, hp);
-    if (hp-> bh_hashitem.mhi_key  < 0)
-    {
-        vim_free(hp);
-        mfp->mf_neg_count--;
-    }
-    else
-    {
-        mf_ins_free(mfp, hp);
-    }
-}
-
-    static int
-mf_sync(memfile_T *mfp, int flags)
-{
-    mfp->mf_dirty = MF_DIRTY_NO;
-    return FAIL;
+    mf_ins_free(mfp, hp);
 }
 
     static void
@@ -33304,81 +33213,6 @@ mf_rem_free(memfile_T *mfp)
     return hp;
 }
 
-    static int
-mf_trans_add(memfile_T *mfp, bhdr_T *hp)
-{
-    bhdr_T      *freep;
-    blocknr_T   new_bnum;
-    NR_TRANS    *np;
-    int         page_count;
-
-    if (hp-> bh_hashitem.mhi_key  >= 0)
-    {
-        return OK;
-    }
-
-    if ((np =  (NR_TRANS *)alloc(sizeof(NR_TRANS)) ) == nullptr)
-    {
-        return FAIL;
-    }
-
-    freep = mfp->mf_free_first;
-    page_count = hp->bh_page_count;
-    if (freep != nullptr && freep->bh_page_count >= page_count)
-    {
-        new_bnum = freep-> bh_hashitem.mhi_key ;
-        if (freep->bh_page_count > page_count)
-        {
-            freep-> bh_hashitem.mhi_key  += page_count;
-            freep->bh_page_count -= page_count;
-        }
-        else
-        {
-            freep = mf_rem_free(mfp);
-            vim_free(freep);
-        }
-    }
-    else
-    {
-        new_bnum = mfp->mf_blocknr_max;
-        mfp->mf_blocknr_max += page_count;
-    }
-
-    np-> nt_hashitem.mhi_key  = hp-> bh_hashitem.mhi_key ;
-    np->nt_new_bnum = new_bnum;
-
-    mf_rem_hash(mfp, hp);
-    hp-> bh_hashitem.mhi_key  = new_bnum;
-    mf_ins_hash(mfp, hp);
-
-    mf_hash_add_item(&mfp->mf_trans, (mf_hashitem_T *)np);
-
-    return OK;
-}
-
-    static blocknr_T
-mf_trans_del(memfile_T *mfp, blocknr_T old_nr)
-{
-    NR_TRANS    *np;
-    blocknr_T   new_bnum;
-
-    np = (NR_TRANS *)mf_hash_find(&mfp->mf_trans, old_nr);
-
-    if (np == nullptr)
-    {
-        return old_nr;
-    }
-
-    mfp->mf_neg_count--;
-    new_bnum = np->nt_new_bnum;
-
-    mf_hash_rem_item(&mfp->mf_trans, (mf_hashitem_T *)np);
-
-    vim_free(np);
-
-    return new_bnum;
-}
-
 enum { MHT_LOG_LOAD_FACTOR = 6 };
 enum { MHT_GROWTH_FACTOR = 2 };
 
@@ -33397,25 +33231,6 @@ mf_hash_free(mf_hashtab_T *mht)
     {
         vim_free(mht->mht_buckets);
     }
-}
-
-    static void
-mf_hash_free_all(mf_hashtab_T *mht)
-{
-    long_u          idx;
-    mf_hashitem_T   *mhi;
-    mf_hashitem_T   *next;
-
-    for (idx = 0; idx <= mht->mht_mask; idx++)
-    {
-        for (mhi = mht->mht_buckets[idx]; mhi != nullptr; mhi = next)
-        {
-            next = mhi->mhi_next;
-            vim_free(mhi);
-        }
-    }
-
-    mf_hash_free(mht);
 }
 
     static mf_hashitem_T *
@@ -33543,18 +33358,14 @@ mf_hash_grow(mf_hashtab_T *mht)
     return OK;
 }
 
-typedef struct block0           ZERO_BL;
 typedef struct pointer_block    PTR_BL;
 typedef struct data_block       DATA_BL;
 typedef struct pointer_entry    PTR_EN;
 
-enum { BLOCK0_ID0 = 'b' };
-enum { BLOCK0_ID1 = '0' };
 struct pointer_entry
 {
     blocknr_T   pe_bnum;
     linenr_T    pe_line_count;
-    linenr_T    pe_old_lnum;
     int         pe_page_count;
 };
 
@@ -33576,26 +33387,6 @@ struct data_block
     unsigned    db_index[1];
 };
 
-enum { B0_FNAME_SIZE_ORG = 900 };
-enum { B0_MAGIC_LONG = 0x30313233L };
-enum { B0_MAGIC_INT = 0x20212223L };
-enum { B0_MAGIC_SHORT = 0x10111213L };
-enum { B0_MAGIC_CHAR = 0x55 };
-
-struct block0
-{
-    char_u      b0_id[2];
-    char_u      b0_version[10];
-    char_u      b0_page_size[4];
-    char_u      b0_fname[B0_FNAME_SIZE_ORG];
-    long        b0_magic_long;
-    int         b0_magic_int;
-    short       b0_magic_short;
-    char_u      b0_magic_char;
-};
-
-enum { B0_DIRTY = 0x55 };
-
 enum { STACK_INCR = 5 };
 
 static linenr_T lowest_marked = 0;
@@ -33605,21 +33396,18 @@ enum { ML_INSERT = 0x12 };
 enum { ML_FIND = 0x13 };
 enum { ML_FLUSH = 0x02 };
 
-static void set_b0_fname(ZERO_BL *, buf_T *buf);
 static void ml_flush_line(buf_T *);
-static bhdr_T *ml_new_data(memfile_T *, int, int);
+static bhdr_T *ml_new_data(memfile_T *, int);
 static bhdr_T *ml_new_ptr(memfile_T *);
 static bhdr_T *ml_find_line(buf_T *, linenr_T, int);
 static int ml_add_stack(buf_T *);
 static void ml_lineadd(buf_T *, int);
-static void long_to_char(long, char_u *);
 
     static int
 ml_open(buf_T *buf)
 {
     memfile_T   *mfp;
     bhdr_T      *hp = nullptr;
-    ZERO_BL     *b0p;
     PTR_BL      *pp;
     DATA_BL     *dp;
 
@@ -33639,7 +33427,7 @@ ml_open(buf_T *buf)
     buf->b_ml.ml_flags = ML_EMPTY;
     buf->b_ml.ml_line_count = 1;
 
-    if ((hp = mf_new(mfp, FALSE, 1)) == nullptr)
+    if ((hp = ml_new_ptr(mfp)) == nullptr)
     {
         goto error;
     }
@@ -33648,53 +33436,20 @@ ml_open(buf_T *buf)
         iemsg(e_didnt_get_block_nr_zero);
         goto error;
     }
-    b0p = (ZERO_BL *)(hp->bh_data);
+    pp = (PTR_BL *)(hp->bh_data);
+    pp->pb_count = 1;
+    pp->pb_pointer[0].pe_bnum = 1;
+    pp->pb_pointer[0].pe_page_count = 1;
+    pp->pb_pointer[0].pe_line_count = 1;
+    mf_put(hp);
 
-    b0p->b0_id[0] = BLOCK0_ID0;
-    b0p->b0_id[1] = BLOCK0_ID1;
-    b0p->b0_magic_long = (long)B0_MAGIC_LONG;
-    b0p->b0_magic_int = (int)B0_MAGIC_INT;
-    b0p->b0_magic_short = (short)B0_MAGIC_SHORT;
-    b0p->b0_magic_char = B0_MAGIC_CHAR;
-     musl_memmove((char *)(b0p->b0_version), (char *)("VIM "), 4) ;
-     musl_strncpy((char *)(b0p->b0_version + 4), (char *)(Version), (6)) ;
-    long_to_char((long)mfp->mf_page_size, b0p->b0_page_size);
-
-    {
-        b0p-> b0_fname[B0_FNAME_SIZE_ORG - 1]  = buf->b_changed ? B0_DIRTY : 0;
-        set_b0_fname(b0p, buf);
-    }
-
-    mf_put(mfp, hp, TRUE, FALSE);
-    if (!buf->b_help && ! (0) )
-    {
-        (void)mf_sync(mfp, 0);
-    }
-
-    if ((hp = ml_new_ptr(mfp)) == nullptr)
+    if ((hp = ml_new_data(mfp, 1)) == nullptr)
     {
         goto error;
     }
     if (hp-> bh_hashitem.mhi_key  != 1)
     {
         iemsg(e_didnt_get_block_nr_one);
-        goto error;
-    }
-    pp = (PTR_BL *)(hp->bh_data);
-    pp->pb_count = 1;
-    pp->pb_pointer[0].pe_bnum = 2;
-    pp->pb_pointer[0].pe_page_count = 1;
-    pp->pb_pointer[0].pe_old_lnum = 1;
-    pp->pb_pointer[0].pe_line_count = 1;
-    mf_put(mfp, hp, TRUE, FALSE);
-
-    if ((hp = ml_new_data(mfp, FALSE, 1)) == nullptr)
-    {
-        goto error;
-    }
-    if (hp-> bh_hashitem.mhi_key  != 2)
-    {
-        iemsg(e_didnt_get_block_nr_two);
         goto error;
     }
 
@@ -33711,7 +33466,7 @@ error:
     {
         if (hp)
         {
-            mf_put(mfp, hp, FALSE, FALSE);
+            mf_put(hp);
         }
         mf_close(mfp, TRUE);
     }
@@ -33756,14 +33511,6 @@ ml_close_notmod(void)
     {
         ml_close(buf, TRUE);
     }
-}
-
-    static void
-set_b0_fname(ZERO_BL *b0p, buf_T *buf)
-{
-
-    b0p->b0_fname[0] = NUL;
-
 }
 
     static char_u  *
@@ -33868,7 +33615,7 @@ errorret:
         return (char_u *)"";
     }
 
-    if (buf->b_ml.ml_line_lnum != lnum || mf_dont_release)
+    if (buf->b_ml.ml_line_lnum != lnum)
     {
         unsigned start;
         unsigned end;
@@ -33911,7 +33658,6 @@ errorret:
     }
     if (will_change)
     {
-        buf->b_ml.ml_flags |= (ML_LOCKED_DIRTY | ML_LOCKED_POS);
     }
 
     return buf->b_ml.ml_line_ptr;
@@ -34034,11 +33780,6 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             dp->db_index[db_idx + 1] |=  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ;
         }
 
-        buf->b_ml.ml_flags |= ML_LOCKED_DIRTY;
-        if (!(flags & ML_APPEND_NEW))
-        {
-            buf->b_ml.ml_flags |= ML_LOCKED_POS;
-        }
     }
     else
     {
@@ -34059,8 +33800,6 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         int         lineadd;
         blocknr_T bnum_left;
         blocknr_T bnum_right;
-        linenr_T lnum_left;
-        linenr_T lnum_right;
         int         pb_idx;
         PTR_BL      *pp_new;
 
@@ -34095,7 +33834,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         }
 
         page_count = ((space_needed +  (__builtin_offsetof(DATA_BL, db_index)) ) + page_size - 1) / page_size;
-        if ((hp_new = ml_new_data(mfp, flags & ML_APPEND_NEW, page_count)) == nullptr)
+        if ((hp_new = ml_new_data(mfp, page_count)) == nullptr)
         {
             --(buf->b_ml.ml_locked_lineadd);
             --(buf->b_ml.ml_locked_high);
@@ -34166,35 +33905,10 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             ++line_count_left;
         }
 
-        if (db_idx < 0)
-        {
-            lnum_left = lnum + 1;
-            lnum_right = 0;
-        }
-        else
-        {
-            lnum_left = 0;
-            if (in_left)
-            {
-                lnum_right = lnum + 2;
-            }
-            else
-            {
-                lnum_right = lnum + 1;
-            }
-        }
         dp_left->db_line_count = line_count_left;
         dp_right->db_line_count = line_count_right;
 
-        if (lines_moved || in_left)
-        {
-            buf->b_ml.ml_flags |= ML_LOCKED_DIRTY;
-        }
-        if (!(flags & ML_APPEND_NEW) && db_idx >= 0 && in_left)
-        {
-            buf->b_ml.ml_flags |= ML_LOCKED_POS;
-        }
-        mf_put(mfp, hp_new, TRUE, FALSE);
+        mf_put(hp_new);
 
         lineadd = buf->b_ml.ml_locked_lineadd;
         buf->b_ml.ml_locked_lineadd = 0;
@@ -34212,7 +33926,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             if (pp->pb_id !=  (('p' << 8) + 't') )
             {
                 iemsg(e_pointer_block_id_wrong_three);
-                mf_put(mfp, hp, FALSE, FALSE);
+                mf_put(hp);
                 goto theend;
             }
             if (pp->pb_count < pp->pb_count_max)
@@ -34229,16 +33943,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 pp->pb_pointer[pb_idx + 1].pe_bnum = bnum_right;
                 pp->pb_pointer[pb_idx + 1].pe_page_count = page_count_right;
 
-                if (lnum_left != 0)
-                {
-                    pp->pb_pointer[pb_idx].pe_old_lnum = lnum_left;
-                }
-                if (lnum_right != 0)
-                {
-                    pp->pb_pointer[pb_idx + 1].pe_old_lnum = lnum_right;
-                }
-
-                mf_put(mfp, hp, TRUE, FALSE);
+                mf_put(hp);
                 buf->b_ml.ml_stack_top = stack_idx + 1;
 
                 if (lineadd)
@@ -34261,7 +33966,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 }
                 pp_new = (PTR_BL *)(hp_new->bh_data);
 
-                if (hp-> bh_hashitem.mhi_key  != 1)
+                if (hp-> bh_hashitem.mhi_key  != 0)
                 {
                     break;
                 }
@@ -34270,9 +33975,8 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 pp->pb_count = 1;
                 pp->pb_pointer[0].pe_bnum = hp_new-> bh_hashitem.mhi_key ;
                 pp->pb_pointer[0].pe_line_count = buf->b_ml.ml_line_count;
-                pp->pb_pointer[0].pe_old_lnum = 1;
                 pp->pb_pointer[0].pe_page_count = 1;
-                mf_put(mfp, hp, TRUE, FALSE);
+                mf_put(hp);
                 hp = hp_new;
                 pp = pp_new;
                 ip->ip_index = 0;
@@ -34287,10 +33991,6 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 pp->pb_pointer[pb_idx + 1].pe_bnum = bnum_right;
                 pp->pb_pointer[pb_idx + 1].pe_line_count = line_count_right;
                 pp->pb_pointer[pb_idx + 1].pe_page_count = page_count_right;
-                if (lnum_right)
-                {
-                    pp->pb_pointer[pb_idx + 1].pe_old_lnum = lnum_right;
-                }
             }
             else
             {
@@ -34298,17 +33998,10 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 pp_new->pb_pointer[0].pe_bnum = bnum_right;
                 pp_new->pb_pointer[0].pe_line_count = line_count_right;
                 pp_new->pb_pointer[0].pe_page_count = page_count_right;
-                pp_new->pb_pointer[0].pe_old_lnum = lnum_right;
             }
             pp->pb_pointer[pb_idx].pe_bnum = bnum_left;
             pp->pb_pointer[pb_idx].pe_line_count = line_count_left;
             pp->pb_pointer[pb_idx].pe_page_count = page_count_left;
-            if (lnum_left)
-            {
-                pp->pb_pointer[pb_idx].pe_old_lnum = lnum_left;
-            }
-            lnum_left = 0;
-            lnum_right = 0;
 
             line_count_right = 0;
             for (i = 0; i < (int)pp_new->pb_count; ++i)
@@ -34325,8 +34018,8 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             bnum_right = hp_new-> bh_hashitem.mhi_key ;
             page_count_left = 1;
             page_count_right = 1;
-            mf_put(mfp, hp, TRUE, FALSE);
-            mf_put(mfp, hp_new, TRUE, FALSE);
+            mf_put(hp);
+            mf_put(hp_new);
 
         }
 
@@ -34360,9 +34053,9 @@ ml_append_flush(buf_T       *buf, linenr_T    lnum, char_u      *line, colnr_T  
 }
 
     static int
-ml_append(linenr_T    lnum, char_u      *line, colnr_T     len, int         newfile)
+ml_append(linenr_T    lnum, char_u      *line, colnr_T     len)
 {
-    return ml_append_flags(lnum, line, len, newfile ? ML_APPEND_NEW : 0);
+    return ml_append_flags(lnum, line, len, 0);
 }
 
     static int
@@ -34517,7 +34210,7 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
             if (pp->pb_id !=  (('p' << 8) + 't') )
             {
                 iemsg(e_pointer_block_id_wrong_four);
-                mf_put(mfp, hp, FALSE, FALSE);
+                mf_put(hp);
                 goto theend;
             }
             count = --(pp->pb_count);
@@ -34531,7 +34224,7 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
                 {
                      musl_memmove((char *)(&pp->pb_pointer[idx]), (char *)(&pp->pb_pointer[idx + 1]), (usize)(count - idx) * sizeof(PTR_EN)) ;
                 }
-                mf_put(mfp, hp, TRUE, FALSE);
+                mf_put(hp);
 
                 buf->b_ml.ml_stack_top = stack_idx;
                 if (buf->b_ml.ml_locked_lineadd != 0)
@@ -34560,7 +34253,6 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
         dp->db_txt_start += line_size;
         --(dp->db_line_count);
 
-        buf->b_ml.ml_flags |= (ML_LOCKED_DIRTY | ML_LOCKED_POS);
     }
 
     ret = OK;
@@ -34609,7 +34301,6 @@ ml_setmarked(linenr_T lnum)
 
     dp = (DATA_BL *)(hp->bh_data);
     dp->db_index[lnum - curbuf->b_ml.ml_locked_low] |=  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ;
-    curbuf->b_ml.ml_flags |= ML_LOCKED_DIRTY;
 }
 
     static linenr_T
@@ -34639,7 +34330,6 @@ ml_firstmarked(void)
             if ((dp->db_index[i]) &  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) )
             {
                 (dp->db_index[i]) &=  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) ;
-                curbuf->b_ml.ml_flags |= ML_LOCKED_DIRTY;
                 lowest_marked = lnum + 1;
                 return lnum;
             }
@@ -34676,7 +34366,6 @@ ml_clearmarked(void)
             if ((dp->db_index[i]) &  ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) )
             {
                 (dp->db_index[i]) &=  (~ ((unsigned)1 << ((sizeof(unsigned) * 8) - 1)) ) ;
-                curbuf->b_ml.ml_flags |= ML_LOCKED_DIRTY;
             }
         }
     }
@@ -34758,7 +34447,6 @@ ml_flush_line(buf_T *buf)
                 dp->db_txt_start -= extra;
 
                  musl_memmove((char *)(old_line - extra), (char *)(new_line), (usize)new_len) ;
-                buf->b_ml.ml_flags |= (ML_LOCKED_DIRTY | ML_LOCKED_POS);
             }
             else
             {
@@ -34780,12 +34468,12 @@ ml_flush_line(buf_T *buf)
 }
 
     static bhdr_T *
-ml_new_data(memfile_T *mfp, int negative, int page_count)
+ml_new_data(memfile_T *mfp, int page_count)
 {
     bhdr_T      *hp;
     DATA_BL     *dp;
 
-    if ((hp = mf_new(mfp, negative, page_count)) == nullptr)
+    if ((hp = mf_new(mfp, page_count)) == nullptr)
     {
         return nullptr;
     }
@@ -34805,7 +34493,7 @@ ml_new_ptr(memfile_T *mfp)
     bhdr_T      *hp;
     PTR_BL      *pp;
 
-    if ((hp = mf_new(mfp, FALSE, 1)) == nullptr)
+    if ((hp = mf_new(mfp, 1)) == nullptr)
     {
         return nullptr;
     }
@@ -34828,8 +34516,6 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
     memfile_T   *mfp;
     linenr_T    t;
     blocknr_T bnum;
-    blocknr_T bnum2;
-    int         dirty;
     linenr_T low;
     linenr_T high;
     int         top;
@@ -34840,7 +34526,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
 
     if (buf->b_ml.ml_locked)
     {
-        if ( ((action) & 0x10)  && buf->b_ml.ml_locked_low <= lnum && buf->b_ml.ml_locked_high >= lnum && !mf_dont_release)
+        if ( ((action) & 0x10)  && buf->b_ml.ml_locked_low <= lnum && buf->b_ml.ml_locked_high >= lnum)
         {
             if (action == ML_INSERT)
             {
@@ -34855,7 +34541,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
             return (buf->b_ml.ml_locked);
         }
 
-        mf_put(mfp, buf->b_ml.ml_locked, buf->b_ml.ml_flags & ML_LOCKED_DIRTY, buf->b_ml.ml_flags & ML_LOCKED_POS);
+        mf_put(buf->b_ml.ml_locked);
         buf->b_ml.ml_locked = nullptr;
 
         if (buf->b_ml.ml_locked_lineadd != 0)
@@ -34869,7 +34555,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
         return nullptr;
     }
 
-    bnum = 1;
+    bnum = 0;
     page_count = 1;
     low = 1;
     high = buf->b_ml.ml_line_count;
@@ -34921,7 +34607,6 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
             buf->b_ml.ml_locked_low = low;
             buf->b_ml.ml_locked_high = high;
             buf->b_ml.ml_locked_lineadd = 0;
-            buf->b_ml.ml_flags &= ~(ML_LOCKED_DIRTY | ML_LOCKED_POS);
             return hp;
         }
 
@@ -34942,7 +34627,6 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
         ip->ip_high = high;
         ip->ip_index = -1;
 
-        dirty = FALSE;
         for (idx = 0; idx < (int)pp->pb_count; ++idx)
         {
             t = pp->pb_pointer[idx].pe_line_count;
@@ -34953,17 +34637,6 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
                 page_count = pp->pb_pointer[idx].pe_page_count;
                 high = low - 1;
                 low -= t;
-
-                if (bnum < 0)
-                {
-                    bnum2 = mf_trans_del(mfp, bnum);
-                    if (bnum != bnum2)
-                    {
-                        bnum = bnum2;
-                        pp->pb_pointer[idx].pe_bnum = bnum;
-                        dirty = TRUE;
-                    }
-                }
 
                 break;
             }
@@ -34986,18 +34659,16 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
         if (action == ML_DELETE)
         {
             pp->pb_pointer[idx].pe_line_count--;
-            dirty = TRUE;
         }
         else if (action == ML_INSERT)
         {
             pp->pb_pointer[idx].pe_line_count++;
-            dirty = TRUE;
         }
-        mf_put(mfp, hp, dirty, FALSE);
+        mf_put(hp);
     }
 
 error_block:
-    mf_put(mfp, hp, FALSE, FALSE);
+    mf_put(hp);
 error_noblock:
     if (action == ML_DELETE)
     {
@@ -35058,48 +34729,13 @@ ml_lineadd(buf_T *buf, int count)
         pp = (PTR_BL *)(hp->bh_data);
         if (pp->pb_id !=  (('p' << 8) + 't') )
         {
-            mf_put(mfp, hp, FALSE, FALSE);
+            mf_put(hp);
             iemsg(e_pointer_block_id_wrong_two);
             break;
         }
         pp->pb_pointer[ip->ip_index].pe_line_count += count;
         ip->ip_high += count;
-        mf_put(mfp, hp, TRUE, FALSE);
-    }
-}
-
-    static void
-long_to_char(long n, char_u *s)
-{
-    s[0] = (char_u)(n & 0xff);
-    n = (unsigned)n >> 8;
-    s[1] = (char_u)(n & 0xff);
-    n = (unsigned)n >> 8;
-    s[2] = (char_u)(n & 0xff);
-    n = (unsigned)n >> 8;
-    s[3] = (char_u)(n & 0xff);
-}
-
-    static void
-ml_setflags(buf_T *buf)
-{
-    bhdr_T      *hp;
-    ZERO_BL     *b0p;
-
-    if (!buf->b_ml.ml_mfp)
-    {
-        return;
-    }
-    for (hp = buf->b_ml.ml_mfp->mf_used_last; hp != nullptr; hp = hp->bh_prev)
-    {
-        if (hp-> bh_hashitem.mhi_key  == 0)
-        {
-            b0p = (ZERO_BL *)(hp->bh_data);
-            b0p-> b0_fname[B0_FNAME_SIZE_ORG - 1]  = buf->b_changed ? B0_DIRTY : 0;
-            hp->bh_flags |= BH_DIRTY;
-            mf_sync(buf->b_ml.ml_mfp, MFS_ZERO);
-            break;
-        }
+        mf_put(hp);
     }
 }
 
@@ -46623,7 +46259,7 @@ nv_edit(cmdarg_T *cap)
                 {
                     if (u_save_cursor() == OK)
                     {
-                        ml_append(curwin->w_cursor.lnum, (char_u *)"", 0, FALSE);
+                        ml_append(curwin->w_cursor.lnum, (char_u *)"", 0);
                         appended_lines(curwin->w_cursor.lnum++, 1L);
                     }
                 }
@@ -48031,7 +47667,7 @@ op_replace(oparg_T *oap, int c)
             ml_replace(curwin->w_cursor.lnum, newp, FALSE);
             if (after_p != nullptr)
             {
-                ml_append(curwin->w_cursor.lnum++, after_p, 0, FALSE);
+                ml_append(curwin->w_cursor.lnum++, after_p, 0);
                 appended_lines_mark(curwin->w_cursor.lnum, 1L);
                 oap->end.lnum++;
                 vim_free(after_p);
@@ -62741,7 +62377,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
             {
                 goto end;
             }
-            ml_append(curwin->w_cursor.lnum, ptr, (colnr_T)0, FALSE);
+            ml_append(curwin->w_cursor.lnum, ptr, (colnr_T)0);
             vim_free(ptr);
 
             oldp = ml_get_curline();
@@ -62900,7 +62536,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
 
             if (curwin->w_cursor.lnum > curbuf->b_ml.ml_line_count)
             {
-                if (ml_append(curbuf->b_ml.ml_line_count, (char_u *)"", (colnr_T)1, FALSE) == FAIL)
+                if (ml_append(curbuf->b_ml.ml_line_count, (char_u *)"", (colnr_T)1) == FAIL)
                 {
                     break;
                 }
@@ -63204,7 +62840,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                     }
                      musl_strcpy((char *)(newp), (char *)(y_array[y_size - 1].string)) ;
                      musl_strcpy((char *)(newp + totlen), (char *)(ptr)) ;
-                    ml_append(lnum, newp, (colnr_T)0, FALSE);
+                    ml_append(lnum, newp, (colnr_T)0);
                     ++new_lnum;
                     vim_free(newp);
 
@@ -63226,7 +62862,7 @@ do_put(int         regname, char_u      *expr_result, int         dir, long     
                 {
                     if (y_type != MCHAR || i < y_size - 1)
                     {
-                        if (ml_append(lnum, y_array[i].string, (colnr_T)0, FALSE) == FAIL)
+                        if (ml_append(lnum, y_array[i].string, (colnr_T)0) == FAIL)
                         {
                             goto error;
                         }
@@ -76160,8 +75796,6 @@ uc_fun_cmd(void)
     IObuff[i] = NUL;
     return (char *)IObuff;
 }
-
-static const char      *Version = VIM_VERSION_SHORT;
 
 static char    *longVersion = nullptr;
 
