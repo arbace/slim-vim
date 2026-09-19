@@ -45,8 +45,28 @@ phase=${unit#*-}          # the boundary a unit ends at is its last phase's
 cache=.cache/$TAG$unit
 mkdir -p "$cache"
 
-in_digest=$(cat "$build/$TAG$(($first - 1)).sha256" 2>/dev/null \
-            || cat "$build/input.sha256")
+# The input half of the key, and it must be a FUNCTION of the input.  `input`
+# is the pipeline's own immutable input, and it is right for the first unit
+# only: a unit that starts at 0 has no boundary before it.  Anything else must
+# read the boundary before it and REFUSE when that file is absent -- a missing
+# r$((first - 1)) means the phase list has a gap, and falling back to `input`
+# there keys the unit on a digest that never moves, so a cached result is served
+# back whatever the real input became.  Measured: phase 36's result, cached
+# against r30, was a hit after a rebase onto r32, and the pass reported a
+# boundary in twelve seconds that was the phase applied to the wrong tree.
+# tools/verifypass.sh tests `first = 0` and this used to test `cat` failing,
+# which is the same answer to a different question.
+if [ "$first" = 0 ]; then
+    in_digest=$(cat "$build/input.sha256")
+else
+    in_prev=$build/$TAG$(($first - 1)).sha256
+    [ -f "$in_prev" ] || {
+        echo "memo: $PIPE unit $unit wants $TAG$(($first - 1)), which does not exist." >&2
+        echo "      Phases must be contiguous; $PIPE's list has a gap before $first." >&2
+        exit 1
+    }
+    in_digest=$(cat "$in_prev")
+fi
 impl=$(tools/implhash.sh "$unit" "$PIPE")
 key=$(printf '%s\n%s\n%s\n' "$unit" "$in_digest" "$impl" | sha256sum | cut -c1-32)
 
@@ -96,8 +116,11 @@ tier=
 if [ "$(tools/phaserun.sh --parts "$PIPE" "$unit" | grep -c '')" -ge "$((phase - first + 1))" ]; then
     # Keep the input, so that a failure can still be handed to tier 1 from the
     # state the phase was actually given.
-    cp "$build/$TAG$(($first - 1)).tar" "$build/.memo-in.tar" 2>/dev/null \
-        || cp "$build/input.tar" "$build/.memo-in.tar"
+    if [ "$first" = 0 ]; then
+        cp "$build/input.tar" "$build/.memo-in.tar"
+    else
+        cp "$build/$TAG$(($first - 1)).tar" "$build/.memo-in.tar"
+    fi
     # Indented, so the tools' own reports read as subordinate to the phase
     # lines rather than competing with them.
     # tools/phaserun.sh runs a whole program as it is, and a split one as its
