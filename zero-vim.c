@@ -1474,36 +1474,12 @@ enum { UH_EMPTYBUF = 0x02 };
 
 typedef struct block_hdr    bhdr_T;
 typedef struct memfile      memfile_T;
-typedef long                blocknr_T;
-
-typedef struct mf_hashitem_S mf_hashitem_T;
-
-struct mf_hashitem_S
-{
-    mf_hashitem_T   *mhi_next;
-    mf_hashitem_T   *mhi_prev;
-    blocknr_T       mhi_key;
-};
-
-enum { MHT_INIT_SIZE = 64 };
-
-typedef struct mf_hashtab_S
-{
-    long_u          mht_mask;
-    long_u          mht_count;
-    mf_hashitem_T   **mht_buckets;
-    mf_hashitem_T   *mht_small_buckets[MHT_INIT_SIZE];
-    char            mht_fixed;
-} mf_hashtab_T;
 
 struct block_hdr
 {
-    mf_hashitem_T bh_hashitem;
-
     bhdr_T      *bh_next;
     bhdr_T      *bh_prev;
     char_u      *bh_data;
-    int         bh_page_count;
 
     char        bh_flags;
 };
@@ -1589,17 +1565,13 @@ typedef struct
 
 struct memfile
 {
-    bhdr_T      *mf_free_first;
     bhdr_T      *mf_used_first;
-    bhdr_T      *mf_used_last;
-    mf_hashtab_T mf_hash;
-    blocknr_T   mf_blocknr_max;
     unsigned    mf_page_size;
 };
 
 typedef struct info_pointer
 {
-    blocknr_T   ip_bnum;
+    bhdr_T      *ip_block;
     linenr_T    ip_low;
     linenr_T    ip_high;
     int         ip_index;
@@ -1610,6 +1582,7 @@ typedef struct memline
     linenr_T    ml_line_count;
 
     memfile_T   *ml_mfp;
+    bhdr_T      *ml_root;
 
     infoptr_T   *ml_stack;
     int         ml_stack_top;
@@ -3914,8 +3887,6 @@ static char e_mapping_already_exists_for_str[]  =  "E227: Mapping already exists
 static char e_no_marks_matching_str[]  =  "E283: No marks matching \"%s\""  ;
 static char e_invalid_count_for_del_bytes_nr[]  = "E292: Invalid count for del_bytes(): %ld" ;
 static char e_block_was_not_locked[]  = "E293: Block was not locked" ;
-static char e_didnt_get_block_nr_zero[]  = "E298: Didn't get block nr 0?" ;
-static char e_didnt_get_block_nr_one[]  = "E298: Didn't get block nr 1?" ;
 static char e_ml_get_invalid_lnum_nr[]  = "E315: ml_get: Invalid lnum: %ld" ;
 static char e_ml_get_cannot_find_line_nr_in_buffer_nr_str[]  = "E316: ml_get: Cannot find line %ld in buffer %d %s" ;
 static char e_pointer_block_id_wrong[]  = "E317: Pointer block id wrong" ;
@@ -3925,7 +3896,7 @@ static char e_pointer_block_id_wrong_four[]  = "E317: Pointer block id wrong 4" 
 static char e_updated_too_many_blocks[]  = "E318: Updated too many blocks?" ;
 static char e_cannot_find_line_nr[]  = "E320: Cannot find line %ld" ;
 static char e_line_number_out_of_range_nr_past_the_end[]  = "E322: Line number out of range: %ld past the end" ;
-static char e_line_count_wrong_in_block_nr[]  = "E323: Line count wrong in block %ld" ;
+static char e_line_count_wrong_in_block[]  = "E323: Line count wrong in block" ;
 static char e_pattern_too_long[]  =  "E339: Pattern too long"  ;
 static char e_internal_error_please_report_a_bug[]  =  "E340: Internal error; if you can reproduce please report a bug"  ;
 static char e_internal_error_lalloc_zero[]  = "E341: Internal error: lalloc(0, )" ;
@@ -32953,21 +32924,10 @@ mb_fix_col(int col, int row)
 
 enum { MEMFILE_PAGE_SIZE = 4096 };
 
-static void mf_ins_hash(memfile_T *, bhdr_T *);
-static void mf_rem_hash(memfile_T *, bhdr_T *);
-static bhdr_T *mf_find_hash(memfile_T *, blocknr_T);
 static void mf_ins_used(memfile_T *, bhdr_T *);
 static void mf_rem_used(memfile_T *, bhdr_T *);
 static bhdr_T *mf_alloc_bhdr(memfile_T *, int);
 static void mf_free_bhdr(bhdr_T *);
-static void mf_ins_free(memfile_T *, bhdr_T *);
-static bhdr_T *mf_rem_free(memfile_T *);
-static void mf_hash_init(mf_hashtab_T *);
-static void mf_hash_free(mf_hashtab_T *);
-static mf_hashitem_T *mf_hash_find(mf_hashtab_T *, blocknr_T);
-static void mf_hash_add_item(mf_hashtab_T *, mf_hashitem_T *);
-static void mf_hash_rem_item(mf_hashtab_T *, mf_hashitem_T *);
-static int mf_hash_grow(mf_hashtab_T *);
 
     static memfile_T *
 mf_open(void)
@@ -32979,12 +32939,8 @@ mf_open(void)
         return nullptr;
     }
 
-    mfp->mf_free_first = nullptr;
     mfp->mf_used_first = nullptr;
-    mfp->mf_used_last = nullptr;
-    mf_hash_init(&mfp->mf_hash);
     mfp->mf_page_size = MEMFILE_PAGE_SIZE;
-    mfp->mf_blocknr_max = 0;
 
     return mfp;
 }
@@ -33004,11 +32960,6 @@ mf_close(memfile_T *mfp, int del_file)
         nextp = hp->bh_next;
         mf_free_bhdr(hp);
     }
-    while (mfp->mf_free_first != nullptr)
-    {
-        vim_free(mf_rem_free(mfp));
-    }
-    mf_hash_free(&mfp->mf_hash);
     vim_free(mfp);
 }
 
@@ -33016,53 +32967,13 @@ mf_close(memfile_T *mfp, int del_file)
 mf_new(memfile_T *mfp, int page_count)
 {
     bhdr_T      *hp;
-    bhdr_T      *freep;
-    char_u      *p;
 
-    hp = nullptr;
-
-    freep = mfp->mf_free_first;
-    if (freep != nullptr && freep->bh_page_count >= page_count)
+    if ((hp = mf_alloc_bhdr(mfp, page_count)) == nullptr)
     {
-        if (freep->bh_page_count > page_count)
-        {
-            if (hp == nullptr && (hp = mf_alloc_bhdr(mfp, page_count)) == nullptr)
-            {
-                return nullptr;
-            }
-            hp-> bh_hashitem.mhi_key  = freep-> bh_hashitem.mhi_key ;
-            freep-> bh_hashitem.mhi_key  += page_count;
-            freep->bh_page_count -= page_count;
-        }
-        else if (hp == nullptr)
-        {
-            if ((p = alloc((usize)mfp->mf_page_size * page_count)) == nullptr)
-            {
-                return nullptr;
-            }
-            hp = mf_rem_free(mfp);
-            hp->bh_data = p;
-        }
-        else
-        {
-            freep = mf_rem_free(mfp);
-            hp-> bh_hashitem.mhi_key  = freep-> bh_hashitem.mhi_key ;
-            vim_free(freep);
-        }
-    }
-    else
-    {
-        if (hp == nullptr && (hp = mf_alloc_bhdr(mfp, page_count)) == nullptr)
-        {
-            return nullptr;
-        }
-        hp-> bh_hashitem.mhi_key  = mfp->mf_blocknr_max;
-        mfp->mf_blocknr_max += page_count;
+        return nullptr;
     }
     hp->bh_flags = BH_LOCKED;
-    hp->bh_page_count = page_count;
     mf_ins_used(mfp, hp);
-    mf_ins_hash(mfp, hp);
 
     (void) musl_memset(((char *)(hp->bh_data)), (0), ((usize)mfp->mf_page_size * page_count)) ;
 
@@ -33070,28 +32981,17 @@ mf_new(memfile_T *mfp, int page_count)
 }
 
     static bhdr_T *
-mf_get(memfile_T *mfp, blocknr_T nr, int page_count)
+mf_get(memfile_T *mfp, bhdr_T *hp)
 {
-    bhdr_T    *hp;
-    if (nr >= mfp->mf_blocknr_max || nr < 0)
+    if (hp == nullptr)
     {
         return nullptr;
     }
 
-    hp = mf_find_hash(mfp, nr);
-    if (hp == nullptr)
-    {
-            return nullptr;
-        }
-    else
-    {
-        mf_rem_used(mfp, hp);
-        mf_rem_hash(mfp, hp);
-    }
+    mf_rem_used(mfp, hp);
 
     hp->bh_flags |= BH_LOCKED;
     mf_ins_used(mfp, hp);
-    mf_ins_hash(mfp, hp);
 
     return hp;
 }
@@ -33109,28 +33009,8 @@ mf_put(bhdr_T *hp)
     static void
 mf_free(memfile_T *mfp, bhdr_T *hp)
 {
-    vim_free(hp->bh_data);
-    mf_rem_hash(mfp, hp);
     mf_rem_used(mfp, hp);
-    mf_ins_free(mfp, hp);
-}
-
-    static void
-mf_ins_hash(memfile_T *mfp, bhdr_T *hp)
-{
-    mf_hash_add_item(&mfp->mf_hash, (mf_hashitem_T *)hp);
-}
-
-    static void
-mf_rem_hash(memfile_T *mfp, bhdr_T *hp)
-{
-    mf_hash_rem_item(&mfp->mf_hash, (mf_hashitem_T *)hp);
-}
-
-    static bhdr_T *
-mf_find_hash(memfile_T *mfp, blocknr_T nr)
-{
-    return (bhdr_T *)mf_hash_find(&mfp->mf_hash, nr);
+    mf_free_bhdr(hp);
 }
 
     static void
@@ -33139,11 +33019,7 @@ mf_ins_used(memfile_T *mfp, bhdr_T *hp)
     hp->bh_next = mfp->mf_used_first;
     mfp->mf_used_first = hp;
     hp->bh_prev = nullptr;
-    if (hp->bh_next == nullptr)
-    {
-        mfp->mf_used_last = hp;
-    }
-    else
+    if (hp->bh_next != nullptr)
     {
         hp->bh_next->bh_prev = hp;
     }
@@ -33152,11 +33028,7 @@ mf_ins_used(memfile_T *mfp, bhdr_T *hp)
     static void
 mf_rem_used(memfile_T *mfp, bhdr_T *hp)
 {
-    if (hp->bh_next == nullptr)
-    {
-        mfp->mf_used_last = hp->bh_prev;
-    }
-    else
+    if (hp->bh_next != nullptr)
     {
         hp->bh_next->bh_prev = hp->bh_prev;
     }
@@ -33185,7 +33057,6 @@ mf_alloc_bhdr(memfile_T *mfp, int page_count)
         vim_free(hp);
         return nullptr;
     }
-    hp->bh_page_count = page_count;
     return hp;
 }
 
@@ -33196,177 +33067,14 @@ mf_free_bhdr(bhdr_T *hp)
     vim_free(hp);
 }
 
-    static void
-mf_ins_free(memfile_T *mfp, bhdr_T *hp)
-{
-    hp->bh_next = mfp->mf_free_first;
-    mfp->mf_free_first = hp;
-}
-
-    static bhdr_T *
-mf_rem_free(memfile_T *mfp)
-{
-    bhdr_T      *hp;
-
-    hp = mfp->mf_free_first;
-    mfp->mf_free_first = hp->bh_next;
-    return hp;
-}
-
-enum { MHT_LOG_LOAD_FACTOR = 6 };
-enum { MHT_GROWTH_FACTOR = 2 };
-
-    static void
-mf_hash_init(mf_hashtab_T *mht)
-{
-      musl_memset(((mht)), (0), (sizeof(*(mht))))  ;
-    mht->mht_buckets = mht->mht_small_buckets;
-    mht->mht_mask = MHT_INIT_SIZE - 1;
-}
-
-    static void
-mf_hash_free(mf_hashtab_T *mht)
-{
-    if (mht->mht_buckets != mht->mht_small_buckets)
-    {
-        vim_free(mht->mht_buckets);
-    }
-}
-
-    static mf_hashitem_T *
-mf_hash_find(mf_hashtab_T *mht, blocknr_T key)
-{
-    mf_hashitem_T   *mhi;
-
-    mhi = mht->mht_buckets[key & mht->mht_mask];
-    while (mhi != nullptr && mhi->mhi_key != key)
-    {
-        mhi = mhi->mhi_next;
-    }
-
-    return mhi;
-}
-
-    static void
-mf_hash_add_item(mf_hashtab_T *mht, mf_hashitem_T *mhi)
-{
-    long_u          idx;
-
-    idx = mhi->mhi_key & mht->mht_mask;
-    mhi->mhi_next = mht->mht_buckets[idx];
-    mhi->mhi_prev = nullptr;
-    if (mhi->mhi_next != nullptr)
-    {
-        mhi->mhi_next->mhi_prev = mhi;
-    }
-    mht->mht_buckets[idx] = mhi;
-
-    mht->mht_count++;
-
-    if (mht->mht_fixed == 0 && (mht->mht_count >> MHT_LOG_LOAD_FACTOR) > mht->mht_mask)
-    {
-        if (mf_hash_grow(mht) == FAIL)
-        {
-            mht->mht_fixed = 1;
-        }
-    }
-}
-
-    static void
-mf_hash_rem_item(mf_hashtab_T *mht, mf_hashitem_T *mhi)
-{
-    if (mhi->mhi_prev == nullptr)
-    {
-        mht->mht_buckets[mhi->mhi_key & mht->mht_mask] = mhi->mhi_next;
-    }
-    else
-    {
-        mhi->mhi_prev->mhi_next = mhi->mhi_next;
-    }
-
-    if (mhi->mhi_next != nullptr)
-    {
-        mhi->mhi_next->mhi_prev = mhi->mhi_prev;
-    }
-
-    mht->mht_count--;
-
-}
-
-    static int
-mf_hash_grow(mf_hashtab_T *mht)
-{
-    long_u i;
-    long_u j;
-    int             shift;
-    mf_hashitem_T   *mhi;
-    mf_hashitem_T   *tails[MHT_GROWTH_FACTOR];
-    mf_hashitem_T   **buckets;
-    usize          size;
-
-    size = (mht->mht_mask + 1) * MHT_GROWTH_FACTOR * sizeof(void *);
-    buckets = lalloc_clear(size, FALSE);
-    if (buckets == nullptr)
-    {
-        return FAIL;
-    }
-
-    shift = 0;
-    while ((mht->mht_mask >> shift) != 0)
-    {
-        shift++;
-    }
-
-    for (i = 0; i <= mht->mht_mask; i++)
-    {
-          musl_memset((&(tails)), (0), (sizeof(tails)))  ;
-
-        for (mhi = mht->mht_buckets[i]; mhi != nullptr; mhi = mhi->mhi_next)
-        {
-            j = (mhi->mhi_key >> shift) & (MHT_GROWTH_FACTOR - 1);
-            if (tails[j] == nullptr)
-            {
-                buckets[i + (j << shift)] = mhi;
-                tails[j] = mhi;
-                mhi->mhi_prev = nullptr;
-            }
-            else
-            {
-                tails[j]->mhi_next = mhi;
-                mhi->mhi_prev = tails[j];
-                tails[j] = mhi;
-            }
-        }
-
-        for (j = 0; j < MHT_GROWTH_FACTOR; j++)
-        {
-            if (tails[j] != nullptr)
-            {
-                tails[j]->mhi_next = nullptr;
-            }
-        }
-    }
-
-    if (mht->mht_buckets != mht->mht_small_buckets)
-    {
-        vim_free(mht->mht_buckets);
-    }
-
-    mht->mht_buckets = buckets;
-    mht->mht_mask = (mht->mht_mask + 1) * MHT_GROWTH_FACTOR - 1;
-
-    return OK;
-}
-
 typedef struct pointer_block    PTR_BL;
 typedef struct data_block       DATA_BL;
 typedef struct pointer_entry    PTR_EN;
 
 struct pointer_entry
 {
-    blocknr_T   pe_bnum;
+    bhdr_T      *pe_block;
     linenr_T    pe_line_count;
-    int         pe_page_count;
 };
 
 struct pointer_block
@@ -33412,6 +33120,7 @@ ml_open(buf_T *buf)
     DATA_BL     *dp;
 
     buf->b_ml.ml_stack_size = 0;
+    buf->b_ml.ml_root = nullptr;
     buf->b_ml.ml_stack = nullptr;
     buf->b_ml.ml_stack_top = 0;
     buf->b_ml.ml_locked = nullptr;
@@ -33431,15 +33140,9 @@ ml_open(buf_T *buf)
     {
         goto error;
     }
-    if (hp-> bh_hashitem.mhi_key  != 0)
-    {
-        iemsg(e_didnt_get_block_nr_zero);
-        goto error;
-    }
+    buf->b_ml.ml_root = hp;
     pp = (PTR_BL *)(hp->bh_data);
     pp->pb_count = 1;
-    pp->pb_pointer[0].pe_bnum = 1;
-    pp->pb_pointer[0].pe_page_count = 1;
     pp->pb_pointer[0].pe_line_count = 1;
     mf_put(hp);
 
@@ -33447,11 +33150,7 @@ ml_open(buf_T *buf)
     {
         goto error;
     }
-    if (hp-> bh_hashitem.mhi_key  != 1)
-    {
-        iemsg(e_didnt_get_block_nr_one);
-        goto error;
-    }
+    ((PTR_BL *)(buf->b_ml.ml_root->bh_data))->pb_pointer[0].pe_block = hp;
 
     dp = (DATA_BL *)(hp->bh_data);
     dp->db_index[0] = --dp->db_txt_start;
@@ -33785,8 +33484,6 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
     {
         long line_count_left;
         long line_count_right;
-        int page_count_left;
-        int page_count_right;
         bhdr_T      *hp_left;
         bhdr_T      *hp_right;
         bhdr_T      *hp_new;
@@ -33798,8 +33495,8 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         int         stack_idx;
         int         in_left;
         int         lineadd;
-        blocknr_T bnum_left;
-        blocknr_T bnum_right;
+        bhdr_T      *bp_left;
+        bhdr_T      *bp_right;
         int         pb_idx;
         PTR_BL      *pp_new;
 
@@ -33856,10 +33553,8 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         }
         dp_right = (DATA_BL *)(hp_right->bh_data);
         dp_left = (DATA_BL *)(hp_left->bh_data);
-        bnum_left = hp_left-> bh_hashitem.mhi_key ;
-        bnum_right = hp_right-> bh_hashitem.mhi_key ;
-        page_count_left = hp_left->bh_page_count;
-        page_count_right = hp_right->bh_page_count;
+        bp_left = hp_left;
+        bp_right = hp_right;
 
         if (!in_left)
         {
@@ -33918,7 +33613,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         {
             ip = &(buf->b_ml.ml_stack[stack_idx]);
             pb_idx = ip->ip_index;
-            if ((hp = mf_get(mfp, ip->ip_bnum, 1)) == nullptr)
+            if ((hp = mf_get(mfp, ip->ip_block)) == nullptr)
             {
                 goto theend;
             }
@@ -33937,11 +33632,9 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 }
                 ++pp->pb_count;
                 pp->pb_pointer[pb_idx].pe_line_count = line_count_left;
-                pp->pb_pointer[pb_idx].pe_bnum = bnum_left;
-                pp->pb_pointer[pb_idx].pe_page_count = page_count_left;
+                pp->pb_pointer[pb_idx].pe_block = bp_left;
                 pp->pb_pointer[pb_idx + 1].pe_line_count = line_count_right;
-                pp->pb_pointer[pb_idx + 1].pe_bnum = bnum_right;
-                pp->pb_pointer[pb_idx + 1].pe_page_count = page_count_right;
+                pp->pb_pointer[pb_idx + 1].pe_block = bp_right;
 
                 mf_put(hp);
                 buf->b_ml.ml_stack_top = stack_idx + 1;
@@ -33966,16 +33659,15 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 }
                 pp_new = (PTR_BL *)(hp_new->bh_data);
 
-                if (hp-> bh_hashitem.mhi_key  != 0)
+                if (hp != buf->b_ml.ml_root)
                 {
                     break;
                 }
 
                  musl_memmove((char *)(pp_new), (char *)(pp), (usize)page_size) ;
                 pp->pb_count = 1;
-                pp->pb_pointer[0].pe_bnum = hp_new-> bh_hashitem.mhi_key ;
+                pp->pb_pointer[0].pe_block = hp_new;
                 pp->pb_pointer[0].pe_line_count = buf->b_ml.ml_line_count;
-                pp->pb_pointer[0].pe_page_count = 1;
                 mf_put(hp);
                 hp = hp_new;
                 pp = pp_new;
@@ -33988,20 +33680,17 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                  musl_memmove((char *)(&pp_new->pb_pointer[0]), (char *)(&pp->pb_pointer[pb_idx + 1]), (usize)(total_moved) * sizeof(PTR_EN)) ;
                 pp_new->pb_count = total_moved;
                 pp->pb_count -= total_moved - 1;
-                pp->pb_pointer[pb_idx + 1].pe_bnum = bnum_right;
+                pp->pb_pointer[pb_idx + 1].pe_block = bp_right;
                 pp->pb_pointer[pb_idx + 1].pe_line_count = line_count_right;
-                pp->pb_pointer[pb_idx + 1].pe_page_count = page_count_right;
             }
             else
             {
                 pp_new->pb_count = 1;
-                pp_new->pb_pointer[0].pe_bnum = bnum_right;
+                pp_new->pb_pointer[0].pe_block = bp_right;
                 pp_new->pb_pointer[0].pe_line_count = line_count_right;
-                pp_new->pb_pointer[0].pe_page_count = page_count_right;
             }
-            pp->pb_pointer[pb_idx].pe_bnum = bnum_left;
+            pp->pb_pointer[pb_idx].pe_block = bp_left;
             pp->pb_pointer[pb_idx].pe_line_count = line_count_left;
-            pp->pb_pointer[pb_idx].pe_page_count = page_count_left;
 
             line_count_right = 0;
             for (i = 0; i < (int)pp_new->pb_count; ++i)
@@ -34014,10 +33703,8 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 line_count_left += pp->pb_pointer[i].pe_line_count;
             }
 
-            bnum_left = hp-> bh_hashitem.mhi_key ;
-            bnum_right = hp_new-> bh_hashitem.mhi_key ;
-            page_count_left = 1;
-            page_count_right = 1;
+            bp_left = hp;
+            bp_right = hp_new;
             mf_put(hp);
             mf_put(hp_new);
 
@@ -34202,7 +33889,7 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
             buf->b_ml.ml_stack_top = 0;
             ip = &(buf->b_ml.ml_stack[stack_idx]);
             idx = ip->ip_index;
-            if ((hp = mf_get(mfp, ip->ip_bnum, 1)) == nullptr)
+            if ((hp = mf_get(mfp, ip->ip_block)) == nullptr)
             {
                 goto theend;
             }
@@ -34515,11 +34202,10 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
     bhdr_T      *hp;
     memfile_T   *mfp;
     linenr_T    t;
-    blocknr_T bnum;
+    bhdr_T      *bp;
     linenr_T low;
     linenr_T high;
     int         top;
-    int         page_count;
     int         idx;
 
     mfp = buf->b_ml.ml_mfp;
@@ -34555,8 +34241,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
         return nullptr;
     }
 
-    bnum = 0;
-    page_count = 1;
+    bp = buf->b_ml.ml_root;
     low = 1;
     high = buf->b_ml.ml_line_count;
 
@@ -34567,7 +34252,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
             ip = &(buf->b_ml.ml_stack[top]);
             if (ip->ip_low <= lnum && ip->ip_high >= lnum)
             {
-                bnum = ip->ip_bnum;
+                bp = ip->ip_block;
                 low = ip->ip_low;
                 high = ip->ip_high;
                 buf->b_ml.ml_stack_top = top;
@@ -34586,7 +34271,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
 
     for (;;)
     {
-        if ((hp = mf_get(mfp, bnum, page_count)) == nullptr)
+        if ((hp = mf_get(mfp, bp)) == nullptr)
         {
             goto error_noblock;
         }
@@ -34622,7 +34307,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
             goto error_block;
         }
         ip = &(buf->b_ml.ml_stack[top]);
-        ip->ip_bnum = bnum;
+        ip->ip_block = bp;
         ip->ip_low = low;
         ip->ip_high = high;
         ip->ip_index = -1;
@@ -34633,8 +34318,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
             if ((low += t) > lnum)
             {
                 ip->ip_index = idx;
-                bnum = pp->pb_pointer[idx].pe_bnum;
-                page_count = pp->pb_pointer[idx].pe_page_count;
+                bp = pp->pb_pointer[idx].pe_block;
                 high = low - 1;
                 low -= t;
 
@@ -34651,8 +34335,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
 
             else
             {
-                vim_snprintf((char *)IObuff, emsg_iobuff_room(), e_line_count_wrong_in_block_nr, bnum);
-                iemsg(iobuff_or(e_line_count_wrong_in_block_nr));
+                iemsg(e_line_count_wrong_in_block);
             }
             goto error_block;
         }
@@ -34722,7 +34405,7 @@ ml_lineadd(buf_T *buf, int count)
     for (idx = buf->b_ml.ml_stack_top - 1; idx >= 0; --idx)
     {
         ip = &(buf->b_ml.ml_stack[idx]);
-        if ((hp = mf_get(mfp, ip->ip_bnum, 1)) == nullptr)
+        if ((hp = mf_get(mfp, ip->ip_block)) == nullptr)
         {
             break;
         }
