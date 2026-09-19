@@ -866,3 +866,54 @@
 # +0.4996 ms).  No caller can see it: the `ceil` variant rounds every reading UP instead
 # of down, which perturbs each one by up to a full millisecond -- twice what the change
 # can -- and its probes and its full recording are the product's too.
+
+# 29 DECLARES NOTHING AT ALL, AND IT IS PHASE 2'S KIND AND 20'S AND 22'S -- the code
+# runs, it does something DIFFERENT, and the instrument cannot see it.  It is not phase
+# 9's kind (code that could not run), not 16's or 23's (a byte-identical binary), not
+# 26's or 27's (a move), and not 14's or 15's (a replacement computing the same answer).
+# THIS PHASE CHANGES WHAT THE EDITOR DOES, on both arms of one option, and no recorded
+# record moves.
+#
+# WHAT IT DOES.  `zero-vim.c` carried two complete Unicode simple-case maps -- vim's own
+# `toUpper[]`/`toLower[]` and the `musl_toUpper[]`/`musl_toLower[]` phase 15 vendored --
+# and `'casemap'` chose between them: `internal` reads vim's, its absence reads musl's.
+# This phase makes it ONE table and the table is the UNION.  Expanded over all of
+# Unicode the two disagree at 97 upper codepoints and 96 lower, at none of which both
+# map to different characters, and the split is lopsided: vim knows 96 and 96 that musl
+# does not -- all of Vithkuqi, all of Garay, the enclosed Latin letters, Glagolitic
+# U+2C2F/U+2C5F, the recent Latin Extended-D additions, U+019B, U+0264, U+1C89, U+1C8A,
+# vim's table being NEWER than a casemap.h that predates Unicode 14 and 16 -- and musl
+# knows EXACTLY ONE that vim does not, U+00DF -> U+1E9E.  Each knew something the other
+# did not, so the union keeps both.
+#
+# IT MOVES ON BOTH ARMS AND THAT IS THE THING TO GET RIGHT.  On the NON-INTERNAL arm --
+# `:set casemap=` or `casemap=keepascii`, which read musl's table and now read the union
+# -- 96 upper and 96 lower codepoints GAIN A MAPPING THEY NEVER HAD and `ß` KEEPS the
+# one it had.  On the DEFAULT arm, which reads vim's own table, the single row arrives:
+# `:s/.*/\U&/` on `ß` now yields `ẞ` where it yielded `ß`.
+#
+# THE ROW IS A DELIBERATE DIVERGENCE FROM UNICODE, taken knowingly.  Unicode's SIMPLE
+# uppercase of U+00DF is U+00DF; U+1E9E is musl's tailoring.  What it buys is that the
+# file stops contradicting itself: `swapchar()` has hard-coded `ß -> ẞ` for `gU`, `g~`
+# and `~` all along, so today the table and the keystroke give different answers for the
+# same character, and after this phase they agree.
+#
+# AND THE CORPUS CANNOT SEE ANY OF IT.  All 102 screen cases seed themselves by typing
+# ASCII and none of them touches 'casemap'; the Ex sweep reads the message a command
+# prints; the argv records are command lines; the pty scenarios are the window size and
+# raw mode; the terminal table is `:set term? t_Co?`.  Two full recordings of the binary
+# the phase was handed and the binary it makes are byte-identical in all 106 records, so
+# this file gains no line -- and a phase whose declaration is empty because THE HARNESS
+# IS BLIND owes probes of its own (zero phase 2 is where that distinction was first made
+# and paid for).  There are twelve, six that move and six that must not, with a control
+# for each half of the union.
+#
+# TWO TRAPS THE PROBES HAD TO GET RIGHT, both measured.  `gU`, `g~` and `~` CANNOT show
+# the sharp s: `swapchar()` hard-codes U+00DF -> U+1E9E before any table is consulted,
+# so `gUU` draws `ẞ` under every 'casemap' on both binaries and a probe built on it
+# would have reported nothing -- the row is reachable only through `\u`/`\U` in a
+# substitution.  And the chartab the 892 startup calls of `towupper`/`towlower` build
+# does NOT move, although those calls run with `cmp_flags` still 0 and therefore take
+# the non-internal arm: the union equals musl's table at every one of 128..255, the two
+# having disagreed below U+0100 at U+00DF alone and the union taking musl's answer
+# there.
