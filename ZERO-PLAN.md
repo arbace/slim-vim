@@ -1139,6 +1139,47 @@ distinct name keeps the core from shadowing a name libc typedefs again below the
 boundary, and nothing outside forces libc's spelling any more, the vendored
 `musl_mem*`/`musl_str*` signatures being the core's own since phases 14 and 15.
 
+**THE CORE IS OPTIMISED FOR TRANSPILATION, NOT FOR PERFORMANCE, AND SO IT MAY NOT
+DEPEND ON LATENT COMPILER BEHAVIOUR.** The user's rule, 2026-09-19, and it governs
+the phases still to come. The core is a text that another runtime will read; what
+matters is that its meaning is on the page, not that gcc happens to compile it well.
+Where the two conflict, the page wins — `-O0` was already that trade made once, and
+this is the same trade made about *semantics* rather than speed.
+
+It has teeth. `abs` and `labs` were called by the core and **never appeared in
+`nm -u`**, because gcc lowers both to inline arithmetic — nothing in the language
+promises that, and a compiler that emitted calls would silently have added two libc
+symbols to a file whose whole claim is the shortness of that list. Vendoring them as
+`musl_abs`/`musl_labs` removes the dependence, and MEASURED it frees no symbol at all:
+the phase's value is that the core stops relying on something no standard states.
+
+**It does not follow that every compiler-specific spelling must go, and one measured
+case argues the other way.** All nine `__builtin_offsetof` uses in the core are
+runtime expressions — `alloc(offsetof(T, tail) + len)`, pointer arithmetic, one
+division — and MEASURED, none sits where an integer constant expression is required,
+so the plain-C form compiles and agrees:
+
+```c
+(usize)&(((struct T *)0)->b)      /* "standard" C, and a null-pointer trick */
+__builtin_offsetof(struct T, b)   /* a gcc token, and unmistakable */
+```
+
+The first only *looks* portable: it is a null dereference by the letter of the
+standard, and a transpiler must pattern-match it out of ordinary pointer arithmetic —
+failing silently into plausible nonsense if it does not. The second is one token with
+two arguments that a reader of the text can special-case by name. For a target that
+has no struct offsets at all, the explicit spelling is the safer one, so the builtin
+stays and this paragraph is the reason. The rule is *do not depend on behaviour
+nothing states*, not *avoid every extension*.
+
+By that reading the core is clean. `typeof`, `nullptr`, `static_assert`, `enum : T`
+and `[[fallthrough]]` are C23 and stated. The only `__attribute__` above the boundary
+are `format_arg` on `_()` and `NGETTEXT` and `format(printf, 3, 4)` on `vim_snprintf`
+— pure diagnostics that generate no code and that a transpiler drops. And
+`__builtin_setjmp`/`__builtin_longjmp` are **below** the boundary, in the host, which
+is where platform-specific code is allowed to live and the reason phase 19's choice
+was acceptable.
+
 **MEASURED, the size of what is left to do.** Moving the eleven `#include`s down to
 just above the host block leaves a core of **79,928 lines** and a host of **235**,
 and the compile gives **660 errors, every one of them a libc type or macro the core
