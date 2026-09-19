@@ -128,11 +128,36 @@ the concept is, as the user has stated it, and in no particular order of phases:
   type into; what goes is the editor's reach outside itself.
 - **No filesystem access.** Reading and writing files is the host's business, not
   the core's.
-- **The text representation moves, later, from lines to a structure.** A tree that
-  mirrors an abstract syntax tree, with the line view that every motion, command and
-  redraw expects simulated on top of it. **That move is also the one piece of the core
-  a JVM target cannot express at all**, rather than express wrongly, and the two are the
-  same work: the memline page is a `struct data_block` whose last member is
+- **The text representation is PREPARED for a move it does not make.** The move from
+  lines to a structure — a tree mirroring an abstract syntax tree, with the line view
+  every motion, command and redraw expects simulated on top of it — **is not this
+  repository's work and never was**: it happens after transpilation, in the repository
+  that receives the core. What belongs here is everything that makes that move possible
+  for somebody else: preparation, simplification and canonicalization, so the thing
+  handed over is a representation a porter can read rather than one they must decode.
+  Earlier drafts of this bullet had the move itself happening here, and that was the
+  right plan for what was known then: the boundary had not been drawn, and where the
+  core ended and its host began was exactly the question the pipeline was still
+  answering. Once the core turned out to name no libc function at all, the handover
+  point moved, and the move went with it. **The work argued for on the old premise is
+  unaffected** — every reason to simplify the memline survives the move leaving, and
+  the bullet below is why. A plan that shifts as the thing it plans comes into focus is
+  the process working; this line records the shift so that a reader meeting both
+  versions knows which is current and why they differ.
+- **A GARBAGE COLLECTOR IS ASSUMED FROM HERE ON**, and it is assumed precisely so the
+  core may stop earning its memory. The target is a JVM, where allocation is cheap and
+  freeing is somebody else's problem, so the core is free to allocate finely — a record
+  per line rather than a byte arena per page — and simply not free it. No real collector
+  is built: `host_alloc` becomes a bump allocator in the host with enough arena for the
+  test suite and `host_free` returns without doing anything, which is a change entirely
+  below the boundary and touches no core line. **This is what makes the memline
+  simplification cheap rather than clever.** The page arena exists for exactly one
+  reason — to avoid a `malloc` per line — and once that reason is gone the arena, its
+  fourteen interior pointers, its thirty-four `db_index` subscripts, its stolen flag bit
+  and its three `offsetof` all go with it, by having nothing left to measure.
+- **The memline page is the worst of what a JVM cannot express**, and it is the thing
+  the two bullets above are aimed at: the page is a `struct data_block` whose last
+  member is
   `unsigned db_index[1]` indexed to the block's line count, whose entries are byte
   offsets **into the same block** read back as fourteen interior pointers of the shape
   `(char_u *)dp + start`, whose top bit is stolen as the `DB_MARKED` flag, and whose
