@@ -267,9 +267,20 @@ fi
 if [ -d .build-zero ]; then
     mkdir -p "$tmp/bins" "$tmp/rows"
     n=0
-    for t in .build-zero/r*.tar; do
+    # UP TO THIS PHASE, and not `r*.tar`.  The claim is that the table has not
+    # moved between whim-vim and here, which is a statement about the boundaries
+    # that existed when this phase ran; a later phase is entitled to move the
+    # table, and zero phase 38 does -- it removes eight of the ten names.  An
+    # unbounded glob turned that entitlement into this check failing, which is a
+    # phase asserting something about its own future.  `make zero-verify` never
+    # saw it (a verify scratch root has no .build-zero), so it would have struck
+    # only a sequential `make zero-repass` in the repository root.
+    self=$(basename "$0" .sh | sed 's/^zero//')
+    i=-1
+    while [ "$((i += 1))" -le "$self" ]; do
+        t=.build-zero/r$i.tar
         [ -f "$t" ] || continue
-        r=$(basename "$t" .tar)
+        r=r$i
         tar -xOf "$t" ./zero-vim > "$tmp/bins/$r" 2>/dev/null \
             || tar -xOf "$t" zero-vim > "$tmp/bins/$r" 2>/dev/null || continue
         [ -s "$tmp/bins/$r" ] || continue
@@ -294,7 +305,7 @@ if [ -d .build-zero ]; then
             echo "               The baseline and the recordings do NOT move together, and re-recording would change an earlier phase's declared delta."
             exit 1
         fi
-        echo "  boundaries   all $n recorded boundary binaries record the SAME table as whim-vim and as this one, one digest across every one of them"
+        echo "  boundaries   all $n recorded boundary binaries up to r$self record the SAME table as whim-vim and as this one, one digest across every one of them"
     fi
 else
     echo "  boundaries   no .build-zero here -- the pipeline-wide check runs where the tars are"
