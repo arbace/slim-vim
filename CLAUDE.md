@@ -68,10 +68,10 @@ it is the only one.
 
 ## Layout
 
-Four hundred and fifteen tracked files once all three pipelines have run
-(`git ls-files`): nineteen at the root, 226 under `pipes/` — the phase programs,
-twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and forty-five for
-`zero.mk`'s twenty-four, and each staged pipeline's stage manifest and declared delta — and
+Four hundred and twenty-three tracked files once all three pipelines have run
+(`git ls-files`): nineteen at the root, 234 under `pipes/` — the phase programs,
+twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and fifty-three for
+`zero.mk`'s twenty-eight, and each staged pipeline's stage manifest and declared delta — and
 170 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
 phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
 `renames.txt`, `patches/` and `templates/`. Four of the nineteen are products
@@ -84,7 +84,7 @@ phase in `pipes/` is either one file, `<pipeline><N>.sh`, or two,
 `<pipeline><N>-edit.sh` and `<pipeline><N>-check.sh`, and is run by the memoize
 driver as phase N of that pipeline and by nothing else; everything a phase calls
 lives in `tools/`. Every slim phase, whim phase 0 and zero phases 0, 1 and 3 are one file;
-whim phases 1–82 and zero phases 2 and 4–23 are split.
+whim phases 1–82 and zero phases 2 and 4–27 are split.
 
 **A split phase is an edit and a check, and the sweep is the driver's.** The
 programs' last sweep used to be the line between the two, and 70–90% of every
@@ -142,19 +142,21 @@ Both run from the repository root, so a path in either names the other directly.
 scratch roots of `whim-verify` and `whim-specpass` link both in.
 
 **The zero pipeline is `zero-vim.c = H(whim-vim.c)`, and so far it is a seed, a flag,
-sixteen cuts, an instrument, two demotions, a host block, a variadic collapse and the
-first of the four boundary phases — the filesystem work is finished, the libc that is
-pure computation is
+sixteen cuts, an instrument, two demotions, a host block, a variadic collapse, a dialect
+phase and the four that draw the boundary — the filesystem work is finished, the libc
+that is pure computation is
 inside the file, seven of the eighteen `#include`s are gone, the core has no `exit()`
-call at all — it asks a host callback to end the process and the launcher at the bottom
+call at all — it asks the host to end the process and the launcher at the bottom
 of the same file returns the status out of `main()` — it installs no signal handler,
 sets no terminal mode, runs no `select`, asks the kernel nothing about a window and
-writes to no stream, `va_start` appears once in the whole file and `NULL` and `size_t`
-are gone in favour of two names the language supplies. What it still does for itself is
+writes to no stream, `va_start` appears once in the whole file, `NULL` and `size_t`
+are gone in favour of two names the language supplies, and **the eleven `#include`s are
+no longer at the top**: they sit at line 78,360 and the first of them is the line
+between the core and the host. What the core still does for itself is
 one `read` of fd 0 and one `write` of fd 1.**
 `ZERO-GOAL.md` states what it is for — an embeddable editor core that keeps the
 screen and all visual editing and loses the filesystem, with `main()` demoted to a
-host launcher and the text later held as a tree — and has twenty-four phases:
+host launcher and the text later held as a tree — and has twenty-eight phases:
 `pipes/zero0.sh`, the seed; `pipes/zero1.sh`, which adds `-fno-stack-protector`;
 `pipes/zero2-edit.sh` with `pipes/zero2-check.sh`, the first source cut — the two
 "not to a terminal" warnings, the two-second pause after them and `--ttyfail`;
@@ -226,16 +228,30 @@ calls through one `vim_host_message(msg, len, err)` the launcher installs, with
 already had, five helpers against seven deleted definitions, so `va_start` appears
 **once**; and `pipes/zero23-edit.sh` with `pipes/zero23-check.sh`, **`nullptr` and
 `usize`** — `NULL` 2,555 → 3 and `size_t` 437 → 0, two names the language supplies
-instead of a header, on a **byte-identical binary** — so
+instead of a header, on a **byte-identical binary**; `pipes/zero24-edit.sh` with
+`pipes/zero24-check.sh`, **the attributes** — 139 GNU `__attribute__` to six, the 113
+`unused` deleted (**21 of them false**, marking a parameter the code reads), the 20
+`fallthrough` respelled as the C23 `[[fallthrough]]`, and the three `format` and three
+`format_arg` kept because they *are* the check `-Wformat` performs; `pipes/zero25-edit.sh`
+with `pipes/zero25-check.sh`, **the plain host calls** — the two function pointers the
+launcher installed become a forward declaration and a direct call, so `vim_main(int argc,
+char **argv)` is phase 18's signature again; `pipes/zero26-edit.sh` with
+`pipes/zero26-check.sh`, **the header types and macros the core can own** — `time_t`,
+`sig_atomic_t`, `uintptr_t`, `struct timeval`, `MIN`, `MAX` and `offsetof` become the
+core's own and nine libc prototypes are written out, **while the headers are still above
+them to be cross-checked against**; and `pipes/zero27-edit.sh` with
+`pipes/zero27-check.sh`, **the move** — the eleven `#include`s go to line 78,360, twelve
+header-supplied constants become enumerators asserted from below, and the formatter's
+private island follows the four `va_list` functions down, so
 `zero-vim.c` is
-now 80,178 lines
+now 80,232 lines
 against `whim-vim.c`'s 86,614, and `access`, `fcntl` and `open` join the six libc
 symbols phase 6 freed, with `getcwd`, `stat` and `strerror` at phase 10, `fclose`,
 `getc`, `putc` and `fsync` at phase 13, seventeen at phase 14, eleven at phase 15 and
 `_exit` at phase 17, `exit` at phase 19, `close dup isatty raise sigaddset
 sigismember sigprocmask` at phase 20 and `fflush fputc fputs fwrite printf putchar
 stderr` at phase 21:
-phases 7, 8, 11, 12, 16, 18, 22 and 23 free none and say so as an equality, and phases
+phases 7, 8, 11, 12, 16, 18 and 22 to 27 free none and say so as an equality, and phases
 9, 10, 13, 14, 15, 17, 19, 20 and 21 name the set each frees rather than the count.
 
 **After zero phase 13 the core cannot acquire a file descriptor and holds no stdio
@@ -253,13 +269,17 @@ strerror fopen fdopen opendir` absent from **both** the source and `nm -u`. The 
 can read, write, close and dup fds 0, 1 and 2 and nothing else. `ZERO-PLAN.md` §4b
 states the invariant and it is assertable in that strongest form from here on.
 
-**After twenty-four phases zero-vim is 80,178 lines and 17 libc symbols, and what is
-left of the host boundary is two syscalls.** From `whim-vim.c`'s 86,614 lines, 869,512
-bytes and 79 symbols that is **−6,436 lines (7.4 %), −81,024 bytes and −62 symbols**;
+**After twenty-eight phases zero-vim is 80,232 lines and 17 libc symbols, and what is
+left of the host boundary is two syscalls — and a line in the file.** From
+`whim-vim.c`'s 86,614 lines, 869,512
+bytes and 79 symbols that is **−6,382 lines (7.4 %), −81,024 bytes and −62 symbols**;
 the binary is 788,488 bytes, still `EXEC` with no `INTERP`, no dynamic section and no
 relocation. **The file grew for the first time at phases 14 and 15** — 79,603 →
 80,440 lines — because those phases move code *in*, which is the trade the symbol
-count is the measure of, and 21, 22 and 23 each grew it again for the same reason.
+count is the measure of, and 21, 22, 23, 26 and 27 each grew it again for the same
+reason. **Phases 23, 24, 25, 26 and 27 all leave the binary at exactly 788,488 bytes**,
+and only the first two leave it the same *bytes*: 24 is a `cmp`, 25 differs in 347,279
+bytes, and 26 and 27 differ because a call and a move at `-O0` are different code.
 **Phases 17, 18 and 19 each leave the image at exactly the same 805,544
 bytes** — different bytes, the same size, the difference absorbed by alignment padding
 — although 17 removed nine lines, 18 added five and 19 added eighteen. Their measure is
@@ -282,18 +302,25 @@ character classes, numbers or sorting any more**: those 28 were the pure computa
 and phases 14 and 15 put them inside the file as `static` definitions rather than asking
 a host for them.
 
-**Eight of the 17 are now called from the host block and from nowhere else** —
-`read ioctl select tcgetattr tcsetattr nanosleep sigaction sigemptyset`, measured by
-splitting the file at the block — and that is the thing `nm -u` cannot show: moving a
+**Nine of the 17 are now called from the host and from nowhere else** —
+`read ioctl select tcgetattr tcsetattr nanosleep sigaction sigemptyset` and, since phase
+26 put `musl_gettimeofday` in the host block, `gettimeofday` — **measured by splitting
+the file at the first `#include`**, which since phase 27 is an exact line and not a
+region anybody has to identify. That is the thing `nm -u` cannot show: moving a
 call from the core into the host inside ONE translation unit frees no symbol, because a
 symbol leaves when its last *caller* leaves the file and that is the split.
 `tools/zhostonly.py` is the assertion instead — 43 host words, every mention inside the
-block, seven named exceptions in the core that are the deadly-signal message and the
-clock. `kill` is the ninth and is the interesting one: one call in `musl_suspend()` and
+block, and a named exception with a reason for each thing the core still says: the
+deadly-signal message, the `kill` that re-raises it, the core's own prototype for that
+call, and — since phase 27 — the `enum { SIGHUP = 1 };` and the `static_assert` that
+checks it against the header below. `kill` is the interesting one: one call in `musl_suspend()` and
 one in `vim_handle_signal()`, re-raising a deadly signal that arrived while the editor
 was not reading, which is the only core mention of any host word that is not a message.
 `write` is shared from phase 21 on, `mch_write`'s `write(1, …)` in the core and
-`host_message`'s in the launcher; the three allocations and the clock are the core's.
+`host_message`'s in the launcher; the three allocations are the core's, and **the clock
+is now split** — `time` has three core call sites and `gettimeofday` none, phase 26
+having routed all five through the host's `musl_gettimeofday(long *, long *)` because
+`struct timeval` is a layout the core must not name.
 `getpid` is not the host's either: it is `mch_get_pid()`'s,
 writing a `b0_pid` that nothing reads, and that same `vim_handle_signal()` re-raise. `__errno_location` is not either, and phase 21 says so rather than implying
 otherwise: `errno` has three mentions and did not move at all when stdio went — the
@@ -312,11 +339,15 @@ there after the move, and both are gone; and it expected the third step to take
 out of `nm -u`, which it does not and cannot. **`isatty` was the terminal's and not the
 filesystem's** — three call sites, `ZERO-PLAN.md` §4a had it going, and §1's decision 7
 (*"do not ask whether stdin or stdout is a terminal"*) was only two thirds kept until
-phase 20 took all three. **What is left of §4c is the boundary itself**, which
-`pipes/zero.stages` declares as the `boundary` package and four phases, 23 to 26: the
-`#include`s move to the bottom and **the first one becomes the line between the core and
-the host**, in one file with two parts rather than two files. Phase 23 is the first of
-them and deliberately the smallest, because it is the one a `cmp` can check.
+phase 20 took all three. **§4c's boundary is now drawn, and it is the `boundary`
+package: phases 23, 25, 26 and 27** — one file with two parts rather than two files, the
+`#include`s moved to line 78,360 and **the first one the line between the core and the
+host**, marked by nothing else. 23 was first and deliberately the smallest, because it
+is the one a `cmp` can check; 25 made the two host calls plain; 26 gave the core its own
+types and macros *while the headers were still above them to check against*; and 27
+performed the move. Phase 24, the attributes, sits between them in a package of its own,
+`dialect`, and moves no line at all. See *The core and the host are one file with a line
+in it* below.
 
 **Phase 12 is the other zero phase that declares nothing, and for the opposite
 reason.** Phase 9 removed code that could not run; phase 12 removes code that *can*
@@ -381,10 +412,10 @@ implementations do what the ones they replace did. Their own checks argue that.
 Phases are added one at a time, on request. Its input is the **committed**
 `whim-vim.c`, immutable, and `whim.sha` records the one a committed `zero-vim.c` was
 produced from, exactly as `slim.sha` does for whim. It is born staged:
-`pipes/zero.stages` (a stage per phase and fourteen packages: `seed 0`, `build 1`,
+`pipes/zero.stages` (a stage per phase and fifteen packages: `seed 0`, `build 1`,
 `terminal 2`, `harness 3`, `streams 4 5`, `files 6 7 8 9 10`, `buffers 11`,
 `options 12`, `tidy 13`, `vendor 14 15`, `includes 16`, `host 17 18 19 20 21`,
-`format 22` and `boundary 23`, with `apart 2 4` — phase 2's
+`format 22`, `boundary 23 25 26 27` and `dialect 24`, with `apart 2 4` — phase 2's
 check runs both its binaries with `-e -s`, which phase 4 removes — `apart 4 5`,
 because phase 4's check names `EDIT_STDIN`, `had_minmin`, `buflist_add` and
 `ME_TOO_MANY_ARGS` as things the argv phase is still to take, `apart 5 6`,
@@ -420,10 +451,14 @@ and five, **nothing at all for phase 9**, phase 10's one case and one row, and p
 11's one case and one row — where the row `quit` is the first zero has declared that
 **changes message rather than ceasing to exist** — and **nothing at all for phases
 12 and 13**, and **nothing at all for 14, 15, 16, 17, 18, 19, 20, 21, 22 and 23** —
-where 16's and 23's empty declarations are the fourth kind above, a byte-identical
-binary; 18's, 19's and 21's are a sixth, the code runs and the instrument sees it do the
-same thing; and 20's and 22's are phase 2's, the code runs and the instrument cannot see
-it, so both phases owe probes and run fifteen and 263 of them), checked
+where 16's, 23's and 24's empty declarations are the fourth kind above, a byte-identical
+binary; 18's, 19's, 21's and 25's are a sixth, the code runs and the instrument sees it
+do the same thing; 20's and 22's are phase 2's, the code runs and the instrument cannot
+see it, so both phases owe probes and run fifteen and 263 of them; 26's is a seventh,
+six of its seven changes a `cmp` and only the clock a recording; and 27's is an eighth,
+**the source is the same lines rearranged** — not one of the input's 80,197 lines
+missing and 35 added — because a phase that moves 1,568 lines of definitions can have no
+`cmp` at all), checked
 by `tools/stages.sh zero` and `tools/packages.sh zero` as whim's are. The last two
 `apart` lines are the same shape as `apart 5 6`: `apart 14 15`, because each of those
 two checks states that the undefined set moved by exactly *its* symbols and a stage
@@ -463,6 +498,22 @@ hold `if (IObuff == NULL)`, and phase 23 spells that `nullptr` — so it stops a
 first act with ``iobuff_room` is not in the output exactly once, so the controls below
 would not be controls`. **A check that quotes C is a dependency on spelling**, and that
 is the general form of it.
+
+**The last four continue the pattern, and one of them is the general form of a second
+dependency.** There is **no `apart 23 24` and no `need 24`** — measured in one run,
+where `tools/phaserun.sh zero 23-24` on r22 runs both edits, one sweep and both checks
+and every part passes. `apart 24 25`'s first complaint is the one nobody would predict:
+**phase 24 records the six `format`/`format_arg` lines it keeps by LINE NUMBER**, and
+phase 25 deletes an object with its blank line at 495, so everything below moves up by
+two and the check stops at *"a line carrying a kept attribute is not the line it was,
+byte for byte"*. **A check that pins a line number is a dependency on every line above
+it**, which is the spelling trap one level up. `apart 25 26` is phase 25's line-count
+assertion meeting the twenty-four lines phase 26 adds, and `apart 26 27` is phase 26's
+sixteen `static_assert`s and four wrong declarations, **every one of which needs the
+headers above the core** and none of which can compile once they are below. Each is one
+direction only, the later phase's check passing on the shared stage, and **`need 25`,
+`need 26` and `need 27` are all measured not to be required** — phase 26's case by a
+direct `cmp`, phase 25's edit on r24 giving a `zero-vim.c` byte-identical to r25's.
 
 **A phase can break a harness rather than change behaviour, and the two must not be
 confused.** `tools/termcheck.py` — whim's, and the one instrument the three
@@ -548,7 +599,7 @@ zero-vim.c     whim-vim.c, on its way to an embeddable core
 Makefile       the seed: builds all three, and produces them when their input moves
 slim.mk        slim-vim.c = F(upstream@sha), twelve phases as make targets
 whim.mk        whim-vim.c = G(slim-vim.c), the same construct
-zero.mk        zero-vim.c = H(whim-vim.c), the same construct, 24 phases so far
+zero.mk        zero-vim.c = H(whim-vim.c), the same construct, 28 phases so far
 upstream.sha   the commit slim-vim.c was produced from
 slim.sha       the slim-vim.c whim-vim.c was produced from
 whim.sha       the whim-vim.c zero-vim.c was produced from
@@ -676,10 +727,13 @@ before a push, and whenever a
 `typereach.py`, `funcreach.py`, `deadfields.py`, `deadenums.py`,
 `phasecheck.sh`, `whimdelta.sh`, `cutil.py` —
 though those are in every phase's implhash, so everything re-runs then anyway.
-`tools/zhostonly.py` is deliberately **not** in that list: it is named by
-`pipes/zero20-check.sh` and by nothing else, so it enters exactly one key. Adding it
-moved no whim, slim or zero key at all — measured as 107 whim and slim keys and 20
-existing zero unit keys, all identical either side.
+`tools/zhostonly.py` is deliberately **not** in that list: it is named by zero phase
+checks and by nothing else, so it enters no whim or slim key at all. Adding it moved
+none — measured as 107 whim and slim keys and 20 existing zero unit keys, all identical
+either side — and **editing it since has cost only zero keys**, six when phase 26 changed
+its exception grammar and four when phase 27 added two named exceptions, with 107 whim
+and slim keys identical each time. It is now named by the checks of phases 20, 21, 25, 26
+and 27, each of which runs it on **its own** output.
 
 **`upstream.sha` is tracked, and that is load-bearing rather than tidy.** It is
 what `make` compares the branch head against, so a checkout without one has
@@ -1050,8 +1104,8 @@ constraint. `zero-vim.c` has no `ex_cmdidxs.h` banners left — whim's Phase 80 
 the derived index with the 489 stub rows — so what zero uses is `names()`, and
 `tools/zexcmds.py` enumerates the whole command sweep through it. Zero phase 6
 deleted six rows, phase 7 a seventh, phase 8 five more and phase 10 `:file`'s,
-111 → 98, where it has stayed — phases 11 to 23 remove no row, and 20, 21, 22 and 23
-touch no `cmdnames[]` row at all — **which is why
+111 → 98, where it has stayed — phases 11 to 27 remove no row, and every phase from 20
+on touches no `cmdnames[]` row at all — **which is why
 the floor is 80 and was 100**. It was lowered in phase 8's
 own commit, which is the phase that crosses it (`ZERO-PLAN.md` decision 8), never
 silently and with the reason in the tool's docstring; the margin is **18 rows**.
@@ -1078,7 +1132,7 @@ unit keys and 3 zero edit keys, and no slim key** — `whimdelta.sh` names the t
 everywhere, `slim-vim.c`, `whim-vim.c` and every zero boundary being far above either
 floor, so no boundary can move and the cost is CPU in a repass; `make whim-verify` and
 `make slim-verify` are the gate and both were run. Zero phase 20 takes `'termresize'`,
-and 21, 22 and 23 take no row, so the two figures are still **107 rows and 95
+and every phase after it takes no row, so the two figures are still **107 rows and 95
 globals**, 15 of margin.
 
 **`tools/zhostonly.py` is zero's third tool of this kind, and it asserts a place rather
@@ -1089,18 +1143,25 @@ symbol leaves when its last *caller* leaves the file. So the phase's real claim 
 **where** the code is, and this is that claim as an assertion: 43 host words —
 `sigaction`, `kill`, `ioctl`, `tcsetattr`, `select`, `nanosleep`, every `SIG*`, `struct
 termios`, `fd_set`, `ICANON`, `VMIN` — and every mention of every one of them must be
-inside the block. Seven exceptions are named with their reason and their exact count,
-and they are the whole of what the core still says: `signal_info[]` and `deathtrap`
+inside the block. Exceptions are named with their reason and their exact count — and since zero phase 26
+**a count is a tuple of the values it takes**, one per phase that runs the tool, because
+the core's vocabulary shrinks between them and a single number would make a phase that
+narrowed it look like a breakage. They are the whole of what the core still says: `signal_info[]` and `deathtrap`
 name `SIGHUP` and `SIGTERM` because that is the *message* the editor prints,
-`vim_handle_signal` re-raises a deferred deadly signal with `kill`, and `elapsed_T` is
-`struct timeval` because it is the clock. It ignores string literals — the file
+`vim_handle_signal` re-raises a deferred deadly signal with `kill`, and the core
+declares that `kill` itself. **The clock's exception ended at phase 26**, which is what
+the tuple is for: `elapsed_T` was `struct timeval` because it was the clock, and it is
+now the core's own tagless struct of two `long`s, with `musl_gettimeofday` in the host
+block. It ignores string literals — the file
 contains `hash_remove(&buf_hashtab, hi, "close buffer")`, and a tool that read that as
 a `close()` would report the buffer layer as filesystem code — and `#` lines, because
 `#include <errno.h>` and `#include <sys/ioctl.h>` name two of the words. Like the two
 floors above it **refuses to pass vacuously**: the host region must be found, must
 define all fourteen of its functions, and must itself mention `sigaction ioctl
-tcsetattr nanosleep select kill`. It is the check that survives into the file split,
-where the block becomes the second file and the tool becomes `grep` over the first.
+tcsetattr nanosleep select kill`. **There is no file split for it to survive into** — `ZERO-PLAN.md` §4c settled on one
+file with two parts — so what it reads is a *region*, from `host_winch_pending` to
+`musl_suspend`'s last brace, and that is why zero phase 26 had to define
+`musl_gettimeofday` inside the block rather than below it.
 
 ### Four things a harness here has to get right
 
@@ -1262,6 +1323,25 @@ Three checks that pass while doing nothing:
 And one thing no tier can see: **blank lines, indentation and paragraphing.** A
 pass that touches those needs a count of them as its own check.
 
+**When tier 1 is out of reach there is more than one thing to do about it, and zero's
+last five phases used four.** Each is stronger than *the harness agreed*, and which one
+applies is decided by what the change can and cannot move:
+
+| the change | what it cannot move | the evidence |
+| --- | --- | --- |
+| renames, expansions, deleted attributes (23, 24, 26's six) | a single instruction | **`cmp` of the binary** — tier 1, and it subsumes every case at once |
+| code motion inside one function's reach (25, 26's clock) | what the editor draws | **a byte-identical recording**, with a control that moves it |
+| a self-declaration replacing a header's (26) | the header, which is still above it | **`static_assert` and deliberately wrong declarations**, compiled against the thing about to leave |
+| moving 1,568 lines past the rest (27) | the *lines* | **a multiset equality on the source**: no input line missing, only the 32 written added |
+
+The third and the fourth are the ones worth remembering. **Cross-checking against a
+header that is about to leave** is a check with an expiry date, and the phase that can
+write it is the phase before the one that makes it impossible — which is the whole
+reason zero 26 and 27 are two phases rather than one. **A multiset equality on the
+source** is tier 1 one level up: when every address must move, the thing that must not
+change is the text, and *the output is the input's lines rearranged, plus exactly these
+thirty-two* is a claim a phase that altered a character on the way could not make.
+
 ## The shape of slim-vim.c
 
 ### One translation unit, one namespace
@@ -1313,12 +1393,15 @@ they are the first thing in the file. No `#define`, no `#undef`, no `#if`,
 `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif`, `#pragma` or `#line`.
 Preprocessing this file does nothing but paste in libc.
 
-**`whim-vim.c` has 18 of them and `zero-vim.c` has 12**, and zero's twelve are the
-only ones any pipeline has ever *removed*: zero phase 16 took six that nothing named.
+**`whim-vim.c` has 18 of them and `zero-vim.c` has 11**, and zero's are the
+only ones any pipeline has ever *removed*: zero phase 16 took six that nothing named and
+phase 21 took `<stdio.h>` with the seven symbols it freed.
 `ZERO-GOAL.md`'s charter is the rule — no phase adds a directive, and a phase may
 remove one — and the count is checked rather than believed, both by that phase's edit
 and by a loop in its check that drops each survivor in turn and requires the compile
 to fail.
+
+**And zero's eleven are not at the top of the file any more.** See below.
 
 That the includes can come first is only possible because nothing in `slim-vim.c` is
 read by a header. The five feature-test macros (`_XOPEN_SOURCE`, `_BSD_SOURCE`,
@@ -1345,6 +1428,70 @@ The 3,433 `#define`s became:
 `P_COLON = 0x80000000L` keep its width. A `static const int` will not do for
 most of these — it cannot appear in a case label, an array size, an enumerator
 initialiser or a static initialiser, and these do.
+
+### The core and the host are one file with a line in it
+
+This is `zero-vim.c` and not `slim-vim.c`, and it is the thing the whole zero pipeline
+was for. From zero phase 27 the eleven `#include`s are **not** the first thing in the
+file: they sit at **line 78,360**, and **the first `#include` is the boundary between
+the editor core and its host**. Nothing else marks it — no comment, no banner, no name,
+because `zero-vim.c` carries no comments at all.
+
+```sh
+make editor.c        # 78,358 lines, cut at the first #include of 80,232
+```
+
+That rule is `awk '/^ *# *include / { exit }'` — one clause, no judgement — and what it
+writes is a **complete translation unit** with three properties the ordinary build
+cannot see:
+
+- **0 lines beginning with `#`.** Above the boundary there is no preprocessor syntax at
+  all: the core is plain C. `[[fallthrough]]` (zero phase 24) is C23 *statement* syntax
+  and not a directive, which is why the swap was allowed. The guard is `^ *#` and not
+  `#`, because **`#` is an ordinary character in 63 places** in the cut —
+  `enum { CPO_HASH = '#' };`, `if (ptr[0] == '#')`, the two latin1 case tables, an
+  `E1281` message — and a guard that refuses any `#` refuses every valid cut for ever.
+- **0 errors under `-fsyntax-only`.**
+- **A warning set that IS the interface.** Thirteen names, every one
+  `used but never defined`: `vim_snprintf`, `host_exit`, `host_message` and the ten
+  `musl_*`. The check computes the same thirteen a second way — the names defined below
+  the cut and mentioned above it — and requires the two to match.
+
+Three mistakes are **silent in an ordinary build and caught by nothing else**: a
+`#define` above the cut (1 directive where 0 are allowed), an `#include` back at line 1
+(the cut is 0 lines, which is what the line floor catches), and one core function
+quietly moved below the boundary, which changes the thirteen by exactly its name.
+
+**Only the core → host direction ever needs a declaration.** Everything above the cut is
+visible below it, in one translation unit, so the host calls `vim_main`, `deathtrap`
+and `musl_memcpy` for free and the core pays for **one block of twelve prototypes**, the
+ten `musl_*` and `host_exit`/`host_message` — thirteen names with `vim_snprintf`, whose
+own prototype sits where the formatter used to be defined. That
+asymmetry is why the design is one file and not two; `.claude/briefs/zero-split.md`
+surveyed the two-file alternative, measured it at 130 implementation keys to teach the
+tools, and it was abandoned.
+
+**Three things the core no longer takes from a header**, each a phase: `NULL` and
+`size_t` are `nullptr` and `typedef typeof(sizeof(0)) usize;` (23); `time_t`,
+`sig_atomic_t`, `uintptr_t`, `struct timeval`, `MIN`, `MAX` and `offsetof` are the
+core's own, with nine plain libc prototypes (26); and twelve constants — the eight
+`*_MAX`/`*_MIN`, `SIZE_MAX`, `PATH_MAX`, `EXIT_FAILURE`, `SIGHUP`, `SIGTERM` — are
+enumerators, eight derived from the type system and four asserted (27). **An enumerator
+and not a `static const int`, because `PATH_MAX` is an array bound.**
+
+**Below the boundary a constant's own name is the macro**, so `static_assert(INT_MAX ==
+INT_MAX)` is a tautology about `<limits.h>` and says nothing about the core. Each assert
+restates the **deriving expression** — `static_assert((int)(~0u >> 1) == INT_MAX,
+"INT_MAX");` — emitted from the same table as the enumerator's own initialiser so it is
+not typed twice. Measured: the wrong derivation in both places fails, and the same wrong
+enumerator with the naive assert **builds in silence**.
+
+**The order of the last four phases was forced by the preprocessor**, and it is worth
+knowing before anything here is rearranged. `enum : int { INT_MAX = … };` placed *after*
+`<limits.h>` is `enum : int { 0x7fffffff = … };`, a syntax error — so the constants can
+only be written once the includes have moved. And every cross-check of a core-owned
+spelling against the header it replaces can only be written *while the header is still
+above it*. Hence 26 then 27, and nothing else.
 
 ### Nothing is global but main()
 
