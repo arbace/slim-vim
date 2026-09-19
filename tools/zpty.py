@@ -16,7 +16,15 @@ test, so this keeps a handful of pty scenarios and nothing else --
   * the arrow keys move in Normal mode, which is a second opinion on
     `tools/nvidxcheck.py` -- a deleted `nv_cmds[]` row under the precomputed
     index is the accident that went twelve whim phases unnoticed, because every
-    harness that pressed an arrow pressed it in Insert mode.
+    harness that pressed an arrow pressed it in Insert mode;
+  * **a SHIFTED arrow starts a selection**, which is a different code path
+    again -- the `NV_SS`/`NV_SSS` arms of `normal_cmd()`, gated on
+    `km_startsel` -- and until this scenario existed NO harness in ANY of the
+    three pipelines pressed a modified key at all.  `keymodel=startsel` is one
+    of slim Phase 1's eighteen compiled-in defaults and its flag was never
+    computed, because `set_options_default()` installs a value without running
+    the callback; `:set km?` answered `startsel` and the editor behaved as if
+    it did not.  Forty phases of verification could not see it.
 
 **What is recorded is an extraction, not a screen.**  `tools/ptycheck.py` learned
 this first: a pty's screen dump is timing-dependent and a recording of it is a
@@ -77,8 +85,14 @@ import zstream
 
 ESC = b'\x1b'
 DOWN, RIGHT = ESC + b'[B', ESC + b'[C'
+S_RIGHT = ESC + b'[1;2C'
 # tools/zscreen.py snapshots here, and for the same reason this waits here.
 SHOW_CURSOR = b'\x1b[?25h'
+
+# Every mode the editor announces on the message line.  Which of them a scenario
+# entered is a fact about the editor, and `sel_arrows` is a scenario whose whole
+# answer is one of them.
+MODES = ('VISUAL', 'SELECT', 'INSERT', 'REPLACE')
 
 SCENARIOS = [
     # name, rows, cols, TERM, keys
@@ -86,6 +100,11 @@ SCENARIOS = [
     ('size_30x100', 30, 100, 'xterm', [b':set lines? columns?\r', b'\x1b:q!\r']),
     ('raw_typing',  24,  80, 'xterm', [b'ihello world', ESC, b':set term?\r', b'\x1b:q!\r']),
     ('nav_arrows',  24,  80, 'xterm', [b'il1\rl2\rl3', ESC, b'gg', DOWN + DOWN + RIGHT,
+                                       b'x', b'\x1b:q!\r']),
+    # Two SHIFTED rights on `alpha one` select `alp` under 'keymodel'=startsel,
+    # so `x` leaves `ha one`; without the flag they are two `w` motions and `x`
+    # leaves `alpha ne`.  Both the mode and the text move, together.
+    ('sel_arrows',  24,  80, 'xterm', [b'ialpha one', ESC, b'0', S_RIGHT + S_RIGHT,
                                        b'x', b'\x1b:q!\r']),
 ]
 
@@ -213,6 +232,7 @@ def answers(scr):
     out = []
     for pat in (r'lines=\d+', r'columns=\d+', r'term=[\w.+-]+'):
         out += sorted(set(re.findall(pat, text)))
+    out += ['mode=' + m for m in MODES if '-- %s --' % m in text]
     body = [l for l in scr.dump().split('\n') if l.strip() and l.strip() != '~']
     return out, body[:3]
 
