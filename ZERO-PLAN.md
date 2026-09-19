@@ -57,9 +57,30 @@ costs, because several of them are the reason a phase exists.
 8. **`+{command}` and `'paste'` survive every phase**, as harness infrastructure.
    No phase may retire either; a phase that would (a command-line cut, an options
    tidy that drops rows whose readers went) must exempt them and say so.
-9. **argv accepts `+{command}` and `-T {term}`, and nothing else.** `--` goes too:
-   with no file argument it only means "treat the next `+cmd` as a file", which
-   then errors.
+9. **argv accepts `+{command}` and nothing else** — **reversed by the user on
+   2026-09-19**, and the decision it replaces is kept here because a reversed
+   decision is worth more than an absent one: it read *"argv accepts
+   `+{command}` and `-T {term}`, and nothing else"*, `--` going too, since with
+   no file argument it only means "treat the next `+cmd` as a file", which then
+   errors. That half stands. What changed is `-T`: which terminal the core
+   drives is the **host's** business by the same argument as decision 7, and a
+   core that keeps a command-line option for it is keeping a program's facility
+   inside a component. **The option buys nothing that `+{command}` — which
+   decision 8 promises to keep for ever — does not already buy**, measured here
+   on the r32 binary: `-T ansi` and `+set term=ansi` both answer `term=ansi`,
+   `t_ti=`, `t_te=`, and `-T debug` and `+set term=debug` both answer
+   `t_ti=[TI]`. **Two things it costs, measured in the same run and not hidden.**
+   The fallback goes: `-T no-such-term-9x` resolves to `xterm` and runs, where
+   `+set term=no-such-term-9x` is `E522: Not found in termcap` — arguably the
+   better answer, a core that does not claim to be a terminal it is not, but the
+   fallback's own code becomes dead. And a probe that wants a non-default
+   terminal table **before the editor's first screen** cannot be written
+   afterwards: `-T debug` writes `[24CWS80][TI][KS]…` from byte 0, where
+   `+set term=debug` writes 111 bytes of xterm prologue first. The phase that
+   removes it is not landed; `-T {term}` is what phases 5 to 32 left, and four
+   existing checks type it, which costs nothing — a phase check runs only against
+   the two binaries of its own phase. `.claude/briefs/zero-terminals.md` §6d and
+   §10 are the survey the reversal came from.
 
 ## 2. The harness
 
@@ -597,7 +618,9 @@ lines, five functions, `nm -u` 80 → 78 (`setvbuf`, `stdout`), the binary 869,5
 
 #### P4 — argv is `+{command}` and `-T {term}`
 
-Decision 9. What is left of `command_line_scan` after P2 and P3 is `+cmd`, `-T`,
+Decision 9, **as it read when this was written** — §1 records the reversal, and
+`-T {term}` is to go in a later phase, leaving `+{command}` as the whole of argv.
+What is left of `command_line_scan` after P2 and P3 is `+cmd`, `-T`,
 bare `-`, `--` and the file argument; this phase takes the last three. A bare word
 becomes `ME_UNKNOWN_OPTION` — *"Unknown option argument: \"foo\""* — and
 `ME_TOO_MANY_ARGS` loses both call sites.

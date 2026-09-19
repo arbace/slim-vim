@@ -15,7 +15,7 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has twenty-eight phases.** Phase 0 is the
+**This document is iterative, and so far it has thirty-three phases.** Phase 0 is the
 seed, phase 1 is a compiler flag, phase 2 is the first cut in the source — the first
 piece of *a component, not a program* — phase 3 changes no source at all: it
 replaces the instrument every later phase is measured with; phase 4 removes Ex mode,
@@ -64,10 +64,25 @@ calls plain, a forward declaration and a direct call where there was a function 
 the launcher installed; 26 gives the core its own `time_T`, `volatile int`, `usize`,
 tagless clock struct, `MIN`/`MAX` and `__builtin_offsetof`, and nine plain libc
 prototypes, **while the real headers are still above them to be cross-checked against**;
-and 27 moves the eleven `#include`s to line 78,360, so that **above them there is not
+and 27 moves the eleven `#include`s below the core, so that **above them there is not
 one preprocessor directive** and the first `#include` is the line between the core and
-the host. `make editor.c` writes the 78,358 lines above it, and they are a complete
-translation unit whose thirteen warnings are the interface.
+the host. `make editor.c` writes the lines above it — **77,889** of `zero-vim.c`'s
+79,776 today — and they are a complete translation unit whose warnings are the
+interface. Phases 28 to 32 are five separate answers to *what the core may still name
+and still call*: 28 gives the elapsed-milliseconds clock to the host as one scalar,
+`long musl_now_ms(void)`, and deletes the tagless `struct timeval` mirror phase 26 had
+to invent because a struct could not cross the line; 29 merges vim's Unicode case map
+and the musl one phase 15 vendored into **one table, and it is the union** — a core
+with no C library has nothing left for `'casemap'` to choose between; 30 folds the arm
+of `msg_puts_attr_len()` that reached a terminal without a screen into two lines
+addressed to the host, and is where phase 21's `exit_scroll` claim was measured and
+corrected; 31 vendors `abs` and `labs`, which the core **called** and which never
+appeared in `nm -u` because gcc lowers both to inline arithmetic — the first
+application of `ZERO-PLAN.md` §4c's rule that the core is optimised for transpilation
+and may not depend on latent compiler behaviour; and 32 sends the wall clock across
+too, `host_time()` below the boundary where `vim_time()` was above it, replacing the
+`long time(long *tp);` prototype with a `static_assert` that is strictly stronger than
+what it removes.
 Phases
 are added one at a time, each on the user's own
 request, and each is written into this document, into `pipes/` and into
@@ -83,7 +98,7 @@ the concept is, as the user has stated it, and in no particular order of phases:
   calls — the part that talks to an operating system — is a host, and the core is what
   it drives. **The shape that was settled is one file with two parts, not two files**,
   and `editor.c` is the name of the *core*, not of the launcher this bullet first gave
-  it to: from phase 27 `make editor.c` is the cut at the first `#include`, the 78,358
+  it to: from phase 27 `make editor.c` is the cut at the first `#include`, the 77,889
   lines above the boundary, and the host is everything below it in the same translation
   unit. `ZERO-PLAN.md` §4c is where that was decided and `.claude/briefs/zero-split.md`
   is the survey of the two-file design it replaced — abandoned, and worth reading only
@@ -100,7 +115,7 @@ the concept is, as the user has stated it, and in no particular order of phases:
 - **`zero-vim.c` stays pure C without a preprocessor** — it inherited 18 directives
   from `whim-vim.c` and is down to **eleven**, every one an `#include` of a system
   header, and **since phase 27 not one of them is above the boundary**: the core, the
-  78,358 lines `make editor.c` writes, has **no preprocessor syntax at all**, and
+  77,889 lines `make editor.c` writes, has **no preprocessor syntax at all**, and
   **no phase adds a `#define`, a conditional or an `#include`** — because a
   following repository transpiles it to the JVM, and every construct in the file is one
   that translation has to understand. **A phase may remove one**, and phase 16 is the
@@ -4476,6 +4491,23 @@ Folding either would run `screen_fill()` on a screen the test has just called un
 separate question — *"the screen is always usable in this build"* — and phase 12's kind
 of evidence to gather, and **it would free nothing, because the symbols are gone here**.
 
+**PHASE 30 CORRECTED THIS, AND THE PART THAT IS WRONG IS THE PART ABOUT
+`exit_scroll`.** This phase's check says the two speakers "fire in ZERO of 106
+records", which is true of the **corpus** and true of the **editor** only for
+`msg_puts_printf()`. `exit_scroll()`'s printf arm is **alive**, with no signal at all:
+measured in phase 30's check, it moves **three of that phase's 32 stream probes**
+(`t_ti_more`, `debug_more`, `term_ti_then_ti` — each `:set t_ti=X` or `-T debug`, a
+paged `:set all`, exit) and **three of its four deadly-signal probes**. It is invisible
+here because a recording drives one pty on which fd 1 and fd 2 are the same device and
+the two bytes are the same two bytes either way — `out_char('\n')` emits `\r` first —
+so the fold moves them from **fd 2 to fd 1** and nothing in this pipeline's instrument
+can see that. It is therefore not merely undone but **undeclarable**, and it belongs to
+whichever phase decides the core writes nothing to fd 2 at all. The other half of the
+sentence survives intact: `msg_clr_eos_force()`'s test cannot be folded safely, and
+phase 30 measured *why* — `screen_fill()` returns early on `ScreenLines == nullptr`, so
+the fold leaves the whole 106-record recording byte-identical and two probes see the
+eighteen extra bytes it emits after `Vim: Finished.`
+
 ### The bound that comes with the buffer, stated rather than declared
 
 `mainerr`'s `str` and `report_term_error`'s `term` are both argv, so assembling into a
@@ -5541,10 +5573,22 @@ has to be **asserted**, which is what three of the sixteen `static_assert`s do. 
 that rests on a diagnostic the standard has since removed is a rule with a shelf life.
 
 **There is no `musl_time`.** The brief has the core calling its own
-`long musl_time(long *)`. `time` keeps its name, because `long time(long *tp);` as a
-plain prototype is **precisely what pins `time_T`'s width**: a wrapper would have cast
-the mismatch away at its own boundary and destroyed the property the phase exists for.
-The declaration is the assertion.
+`long musl_time(long *)`. `time` keeps its name, so that `long time(long *tp);` sits
+above `<time.h>`'s own declaration of the same function and gcc compares the two, where
+a wrapper would have cast any mismatch away at its own boundary.
+
+**AND WHAT THAT PROTOTYPE PINNED IS NOT WHAT THIS SECTION SAID IT WAS.** It read
+*"precisely what pins `time_T`'s width"*, and so does this phase's commit; **phase 32
+measured it and both are wrong**. The prototype pinned `long == time_t` — real, and
+phase 32's `m1` compile re-ran this phase's own control to confirm it, `int time(int
+*tp);` giving `conflicting types for 'time'`. Nothing in it ever mentioned `time_T`, and
+phase 32's `m2` is the proof: **this phase's output with `typedef long time_T;` changed
+to `int` and the prototype left untouched compiles in SILENCE.** What checked
+`time_T == time_t` here was `_Generic((time_T)0, time_t: 1, default: 0)`, one of the
+sixteen `static_assert`s above — a **control in the check**, never in the product —
+which is exactly why phase 32 had to
+put `static_assert(_Generic((time_T)0, time_t: 1, default: 0), "time_T is time_t");`
+into `zero-vim.c` when it took the prototype away.
 
 ### The tool changed, and that is the tool working
 
@@ -5895,3 +5939,643 @@ nearly blind and 263 probes stand in (22), the binary is the same bytes (23, 24)
 seven changes are a `cmp` and one is a recording (26), and the source is the same lines
 rearranged (27). The last is new, and it is the one a pipeline needs the day it starts
 moving code rather than deleting it.
+
+## Phase 28 — the scalar clock
+
+`pipes/zero28-edit.sh` and `pipes/zero28-check.sh`, `stage 28`, `package boundary`.
+The core's whole use of time is *stamp now, then ask how many milliseconds have
+passed*. That is four places — `do_sleep`'s `done < msec` loop, `vim_beep`'s 500 ms
+rate limit, `handle_osc`'s `>= p_ost` timeout and `inchar_loop`'s deadline — and **not
+one of them reads a field, prints a reading or compares two stamps**. So the core never
+needed the *layout* of a clock, only a scalar, and this phase gives it one:
+
+```c
+    long musl_now_ms(void)          replaces    void musl_gettimeofday(long *, long *)
+    X = musl_now_ms();                          a stamp
+    musl_now_ms() - X                           a reading
+```
+
+Three things phase 26 created go together and are at **0** afterwards: `elapsed_T`, its
+tagless mirror of `struct timeval`, whose layout that phase had to `static_assert`
+equal; `elapsed()`, whose whole body was one clock read and one subtraction; and
+`musl_gettimeofday`, **whose out-parameter pair existed only because a struct could not
+cross the boundary**. 80,232 → 80,222 lines.
+
+### What it earns, and the check is careful not to claim more
+
+Every one of the thirteen core → host signatures takes **scalars and byte buffers
+only** — `void`, `int`, `long`, `usize`, `char *` and `int *`, with `vim_snprintf`'s
+`...` held to printf arguments by `format(printf, 3, 4)` on a `-Wall -Wextra` clean
+build. **That was already true at r27**, phase 26 having chosen `long *, long *`
+precisely so that `struct timeval` would not cross, and the check computes the property
+on the *input* as well as the output for exactly that reason. What is new is that the
+**workaround** is gone: no host call's shape is decided any more by a type the core
+cannot name.
+
+`nm -u` is the same 17 names and **`gettimeofday` is still one of them**, stated as an
+equality because a reader expects a clock phase to free a clock symbol. It cannot: the
+host still calls it to implement `musl_now_ms`, and a symbol leaves when its last
+*caller* leaves the **file**, which is the split and not this phase.
+
+### Two decisions, both measured
+
+**The origin is the whole second of the first call, not 1970.** Every core use is a
+difference, so the origin is free — and on a target where `long` is 32 bits `tv_sec *
+1000` is signed overflow on the **first** call and every call after it, measured with
+`-fsanitize=signed-integer-overflow` as *`1789797927 * 1000 cannot be represented in
+type 'int'`*, where `(tv_sec - base) * 1000` is exact for 2^31 ms, **24.86 days** of
+uptime. The base is taken **lazily** rather than in `musl_host_init()`, because an
+ordering dependency between two host functions is what a host rewrite breaks silently.
+The origin being a whole second is what makes it behaviourally invisible, and the
+`epoch` variant's probes and full recording are the product's.
+
+**Precision is not lost and the rounding point moves.** `elapsed()` subtracted and
+*then* divided; `musl_now_ms` divides at each reading and the caller subtracts.
+Microseconds were already discarded either way — but the two roundings are not the same
+function, and the check compiles a probe and runs it over **20,000,000 random pairs**:
+the difference is exactly ±1 ms and never more, 24.95 % one lower, 50.08 % equal,
+24.97 % one higher, with neither formula closer to the truth. The control is the `ceil`
+variant, which rounds every reading **up** — twice the perturbation this change can
+cause — and whose probes and full recording are also the product's.
+
+### The declared delta is nothing at all, and it is phase 2's kind
+
+The code runs and the instrument cannot see it, **measured rather than inferred**: of
+the 102 screen cases, 95 ring the bell once and 7 not at all, and **not one rings it
+twice**, so `vim_beep`'s 500 ms limit — the only clock reading a screen case can reach
+— is never asked to suppress anything. Three controls say it from the other side: a
+clock that never advances, one that runs backwards and one that runs 1000× fast each
+move **0 of the 102**.
+
+So the phase owes probes, and they are built on **`gs`** — `nv_g_cmd`'s `s` arm is
+`do_sleep(count * 1000)`, the one call site a keystroke file can drive and the only way
+real time passes inside the editor. `1gs` is 1,009 ms on the binary the phase was
+handed and 1,008 on its own, `2gs` 2,005 and 2,004, and `hgshh` rings **2** bells on
+both — `vim_beep`'s threshold in both directions in one probe. Each half fails on a
+control aimed at it: with the clock 1000× fast `2gs` returns after one wait; with a
+clock that never advances `1gs` **never returns**; with `vim_beep`'s 500 written
+500000 `hgshh` rings 1 bell and with it written −1 it rings 3.
+
+**The sleep assertion was wrong once and the fix is the interesting part** (commit
+`6ef24b7`, after the phase landed). It asked for `2gs - 1gs >= 900`, and **both numbers
+are wall-clock times taken from outside, around whole editor runs**, so each carries its
+own startup jitter: phase 30's verify caught it on a loaded machine with `1gs` inflated
+to 1,133 ms against `2gs` at 2,006, and a correct phase failed. Widening the threshold
+would move the boundary rather than remove it. **A lower bound on a sleep cannot flake
+in that direction** — a sleep takes at least as long as it asks for and load can only
+make it longer — so the assertion is `2gs >= 1900`, and the `fast` control still breaks
+it at 1,008 ms.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,232 | **80,222 (−10)** |
+| `elapsed_T` / `elapsed()` / `musl_gettimeofday` | 3 things | **0** |
+| `make editor.c` | 78,358 lines | **78,342**, 0 directives, 13 boundary names |
+| the boundary | 13 names | **13**, `musl_gettimeofday` → `musl_now_ms`, asserted as a *set* |
+| `nm -u` | 17 | **17, the same set**, `gettimeofday` among them |
+| external symbols | `main` | `main` |
+| binary | 788,488 | **788,488 bytes, and not the same bytes** |
+| records that moved | | **0 of 106**, on four recordings — input, output, `ceil`, `epoch` |
+
+### Its placement
+
+`stage 28`, `package boundary` — **not `host`**, and the phase argues it: `boundary` is
+not only where the line falls but what the core may **name** at it, which is what 23, 25
+and 26 each did, and this is 26's clock item finished; `host` would be wrong more
+plainly, since 17 to 21 move code into the launcher and this phase moves none. Four
+`uses`: `seed:0` and `harness:3` for the recording — where the check says outright that
+the recording is the **weakest** part of the evidence — `host:20`, because `musl_now_ms`
+is defined inside the block that phase created and `tools/zhostonly.py` reads the host
+region from `host_winch_pending`, and `host:18`, because the probes rest on the editor
+being an ordinary program a keystroke file can drive to exit.
+
+`apart 27 28` is measured by running phase 27's check on the tree this phase leaves: it
+stops at its first act with *"`elapsed` is not defined exactly once above the boundary,
+so the control that moves one core function below it would not be a control"* — **phase
+27's boundary argument rests on moving one core function below the cut, and the function
+it picked is the one this phase deletes**. One direction only. `need 28 swept` is
+measured *not* to be required: run on the unswept tree from phase 27's edit cache, this
+edit gives a byte-identical `zero-vim.c` and the sweep after it is a complete no-op.
+
+`tools/zhostonly.py` gains `gettimeofday` as a host word, which this phase is what makes
+permanently true, with the five core call sites phase 26 moved named as exceptions at
+the counts they had at r20, r21 and r25. Measured: exactly ten keys move — zero units
+and edits 20, 21, 25, 26 and 27 — and **not one slim or whim key of the 107**.
+
+## Phase 29 — the case tables become one, and it is the union
+
+`pipes/zero29-edit.sh` and `pipes/zero29-check.sh`, `stage 29`, `package casemap`.
+`zero-vim.c` carried **two complete Unicode simple-case maps** and they did the same
+job: vim's own `toUpper[]`/`toLower[]`, there since whim, and musl's, which phase 15
+added as `musl_toUpper[]`/`musl_toLower[]` range-compressed into the same
+`convertStruct` shape so that `towupper` and `towlower` could leave `nm -u`. Which one
+the editor consults is decided by `'casemap'`. **A core with no C library has nothing
+to choose between**, so this phase makes it one table — and the table is the **union**.
+
+### The survey said the two "differ on 2 of 5 probes", and five characters cannot see 193 codepoints
+
+Expanded over the whole of `0..0x10FFFF`, from the file and again from this machine's
+libc through `ctypes`, the two disagree at **97 upper and 96 lower** codepoints, at
+none of which both map to different characters, and the split is lopsided:
+
+* **vim maps and musl does not, 96 and 96**: all of Vithkuqi, all of Garay, the enclosed
+  Latin letters `U+24B6..U+24CF` and `U+24D0..U+24E9`, Glagolitic `U+2C2F`/`U+2C5F`, the
+  recent Latin Extended-D additions, `U+019B`, `U+0264`, `U+1C89`, `U+1C8A`. **vim's
+  table is simply newer** — it knows Unicode 14's Vithkuqi and Unicode 16's Garay, and
+  musl's `casemap.h` predates both.
+* **musl maps and vim does not, exactly one**: `U+00DF → U+1E9E`, the sharp s.
+
+So *use vim's* loses the sharp s and *use musl's* loses ninety-six. **Each table knew
+something the other did not, and the union is the only answer that keeps both.** It is
+**computed, not written down**: the edit expands both tables, refuses on a codepoint
+they map differently, requires that no existing row covers one it is about to insert —
+`utf_convert()` binary-searches on `rangeEnd`, so a row inside another row is
+unreachable — inserts `{0xdf,0xdf,-1,7615}` at its sorted place, and re-expands and
+requires the result to be exactly the union. It also parses and re-emits all four
+tables **before** changing anything and refuses unless the re-emission is byte-identical
+to the text it came from, so the row it writes is in `tools/canon.sh`'s shape by
+construction.
+
+### The one row is a deliberate divergence from Unicode, taken knowingly
+
+Unicode's **simple** uppercase of `U+00DF` is `U+00DF`; `U+1E9E` is musl's tailoring,
+and putting it into vim's own table changes the **default** `'casemap'`. What it buys is
+that the file stops contradicting itself: `swapchar()` has hard-coded `ß → ẞ` for `gU`,
+`g~` and `~` all along, so before this phase the table and the keystroke gave different
+answers for the same character.
+
+### The delta runs on both arms, and that is what a reader gets wrong
+
+On the **non-internal** arm — `:set casemap=` or `casemap=keepascii`, which read musl's
+table and now read the union — 96 upper and 96 lower codepoints **gain a mapping they
+never had** and `ß` **keeps** the one it had. On the **default** arm the single row
+arrives. Six probe sessions move and six must not, and the six that must not are the
+ninety-six proving they did not regress on the arm that always had them, the sharp s
+keeping what it had on the arm that always had it, `g~g~` on `ß`, and `:set isk=@` then
+`dw` on `café naïve`.
+
+**Two traps the probes had to get right, both measured.** `gU`, `g~` and `~` **cannot
+show the sharp s at all**, `swapchar()` hard-coding the mapping before it consults any
+table — so the row is reachable only through `\u`/`\U` in a substitution, which goes
+`do_upper` → `vim_toupper` → `utf_toupper` and hits the table directly. And the chartab
+that the 892 startup calls of `towupper`/`towlower` build **does not move**, although
+those calls run with `cmp_flags` still 0 and therefore take the non-internal arm: the
+union equals musl's table at every one of `128..255`, the two having disagreed below
+`U+0100` at `U+00DF` alone.
+
+### The declared delta is nothing at all, and that is the harness and not the phase
+
+The corpus cannot see any of this — all 102 screen cases seed themselves by typing
+ASCII and none touches `'casemap'`, the Ex sweep reads the message a command prints, the
+argv records are command lines, the pty scenarios are the window size and raw mode. Two
+full recordings are byte-identical in all 106 records, so `pipes/zero.delta` gains no
+line. **That is phase 2's situation — a blind harness rather than a static phase — and a
+phase in it owes probes of its own.** Two controls, each computed from the two sources
+rather than spelled out: `vimonly` is the output with musl's contribution taken back
+out, and the default-arm probe then records exactly what the **input** recorded;
+`vimless` is the output with `toUpper[]` replaced by the input's `musl_toUpper[]` — the
+merge done the careless way round — and the circled letter goes, which is the regression
+no record could report.
+
+**The check's strongest assertion is not a row count.** The produced tables are expanded
+over all 1,114,112 codepoints and required to be exactly the union in three directions,
+with the musl half **re-derived from libc** rather than from the bytes the phase
+deleted, and a perturbed row proving the comparison can fail. Beside it is a rule rather
+than a number: what the phase changes on the default arm, and what it stops mapping, are
+both **computed** from the two input tables, and every member of both must appear in the
+probe text.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| `toUpper[]` | 198 rows, 1,477 codepoints | **199 rows, 1,478** |
+| `toLower[]` | 183 rows, 1,460 codepoints | **183, 1,460** — musl's lower table added nothing |
+| `musl_toUpper[]` / `musl_toLower[]` | present | **gone** |
+| lines | 80,222 | **79,857 (−365)** — 358 sixteen-byte rows out and one in |
+| `make editor.c` | 78,342 | **77,977**, the same −365 |
+| binary | 788,488 | **782,760 (−5,728)** |
+| `nm -u` | 17 | **17, the same set** — changing *data* frees no symbol and needs none |
+| DWARF enumerators | 1,189 | **1,189**, none gone, arrived or renumbered |
+| `options[]` / `cmdnames[]` | 107 / 98 | 107 / 98 |
+| records that moved | | **0 of 106**, against twelve probes that carry the phase |
+
+### Its placement
+
+A package of one, `casemap`, deliberately **not** `vendor`: `vendor` is *nothing is
+brought in*, and this phase brings nothing in and frees no symbol — what it decides is
+what the core's case map **is**, which is phase 12's argument and whim's Phase 18's
+applied to data instead of to an option row. Three `uses`: `seed:0` and `harness:3`,
+and `vendor:15`, because without phase 15 there is one case table already and no union
+to take.
+
+`apart 28 29` is measured with `tools/phaserun.sh zero 28-29` on r27: phase 28 states
+its arithmetic as a line count of **the core** and stops at *"the core is 77978 lines
+and was 78359, a difference of −381 where −16 was expected"* — its own −16 less this
+phase's 365. One direction only, measured too: phase 29's check was then run on the tree
+that stage leaves and every part of it passed. **No `need 29 swept`**, measured in the
+same run.
+
+**Two things about the pipeline this phase ran into, recorded and not acted on.** `make
+zero-verify` cannot run while the phase list has a gap — `tools/verifypass.sh` takes the
+previous boundary as `r$((first - 1))`, so a reserved-but-unlanded number makes it die
+on a missing tar. And `make zero-tip` in a fresh worktree re-runs every phase, because
+`git worktree add` gives `whim-vim.c` a new mtime and `$(ZEROBUILD)/input.sha256`
+depends on it.
+
+## Phase 30 — the message fold: `msg_puts_printf()` and the branch that reaches it
+
+`pipes/zero30-edit.sh` and `pipes/zero30-check.sh`, `stage 30`, `package host`.
+`msg_puts_attr_len()` ends in a two-armed test: the true arm handed the message to
+`msg_puts_printf()`, 75 lines that reach the terminal **without a screen**, and the
+false arm draws it. The true arm is never taken, and this phase folds it to two lines
+that say the same thing to the host:
+
+```c
+    host_message((char *)str, maxlen, !info_message);
+    msg_didout = TRUE;
+```
+
+`msg_puts_printf()`, its prototype, and `vim_strlen_maxlen()` and its prototype — which
+the sweep finds, that function's only call being inside it — go with it. **Two
+functions, not one**: 1,756 definitions → 1,754, and 79,857 → 79,766 lines, the edit
+adding one and the sweep taking 92.
+
+### Which kind of dead, and it is not phase 9's
+
+Phase 9 removed code that **could not run**. This removes code that **can** run and
+never does, which is phase 12's kind, and the difference decides what evidence is owed.
+`msg_use_printf()` is a live predicate: instrumented on this phase's own output it
+answers TRUE **23 times**, every one at `msg_clr_eos_force()`, every one in
+`ref-argv.txt`, one per `mainerr` row — with `full_screen` FALSE in all 23, so the body
+it guards is a no-op. The phase therefore leaves the predicate at six mentions and
+claims only that **one of its four call sites is dead**. The evidence is phase 12's
+shape: the input source built twice with the identical `write(2, "PP-ENTERED\n", 11)`,
+first in `msg_puts_printf()` — **0 of 106 records** — and then in `msg_puts_display()` —
+**103 of 106, 5,749 occurrences**.
+
+### Why the message is kept rather than dropped
+
+Deleting the arm's body outright is five lines smaller and records identically. It was
+rejected: **a phase about removing dead *code* must not quietly remove a
+*capability*.** `host_message(msg, len, err)` takes `len < 0` as `strlen` and `len >= 0`
+as an exact count, which **is** `msg_puts_printf`'s own `maxlen` contract, measured by
+reading both. The arm is never executed, so equivalence is not claimed: what the two
+lines do not reproduce is the CR-before-NL insertion and the `msg_col` bookkeeping, and
+no recording or probe in this pipeline can reach either.
+
+### That the recording did not move is not the check, and this is where that matters most
+
+**The two folds this phase declines also record byte-identically, and one of them is
+wrong.** So the check is 36 probes and an instrumented pair, and it **builds the
+rejected folds and requires each to move a named probe**:
+
+* **`msg_clr_eos_force()`'s test cannot be folded safely.** Phase 21 said folding it
+  "would run `screen_fill()` with no valid screen". That is right, and the number behind
+  it is the interesting part: `screen_fill()` returns early on `ScreenLines == nullptr`,
+  and `ScreenLines` **is** null in all 23 `mainerr` cases, which are the only 23 places
+  the predicate is TRUE in a recording — **so the fold leaves the whole 106-record
+  recording byte-identical and a phase checked only against the corpus would ship it**.
+  Two probes see it: `t_ti_stopterm` 2,266 → 2,280 bytes and `hup_clean` 2,124 → 2,142,
+  the extra eighteen being `\x1b[24;63H\x1b[K\x1b[24;1H` **after** `Vim: Finished.` —
+  the editor erasing the last line of a screen it has just declared unusable, on its way
+  out. Guarding with `msg_check_screen()` instead is **not** a cheaper spelling of the
+  same thing: it drops the `swapping_screen() && !termcap_active` disjunct, which is
+  exactly what `t_ti_stopterm` reaches.
+* **`exit_scroll()`'s printf arm is ALIVE, and phase 21 was wrong to name it a follow-up
+  beside `msg_puts_printf()`.** `pipes/zero21-check.sh` says the two "fire in ZERO of
+  106 records"; that is true of the **corpus** and true of the editor only for the
+  first. With **no signal at all** the arm fires in **three of this phase's 32 stream
+  probes** — `t_ti_more`, `debug_more`, `term_ti_then_ti` — and in **three of its four
+  deadly-signal probes**. Folding it to `out_char('\n')` is not a crash risk:
+  `out_char('\n')` emits `\r` first, so the bytes on the wire are the same two. It moves
+  them **from fd 2 to fd 1**, and on a pty where both descriptors are the same device
+  the combined stream is byte-identical — which is why `tools/zpty.py` could never see
+  it and why folding it here would be **undeclarable**. It belongs to whichever phase
+  decides the core writes nothing to fd 2 at all. The check builds that fold too and
+  requires it to move exactly those three stream probes and those three signal probes,
+  so *"this phase did not disturb it"* is measured rather than asserted — and that is
+  what the four deadly-signal probes are for, and why they run **with fd 2 on a pipe of
+  its own**.
+
+### A counting trap that cost a first attempt at the anchor
+
+`    if (msg_use_printf())` at four spaces is a **substring** of the same line at eight,
+so `str.count()` says 3 where `grep -c '^    if (msg_use_printf())$'` says 2 — the third
+match being `exit_scroll`'s. And there are **four** call sites, not three: the fourth is
+written `if (!msg_use_printf())` in `hit_return_msg()`, and an edit that greps for the
+positive spelling misses it. The anchor is the four-line block, whose count is 1, and
+all three untouched sites are asserted verbatim before and after.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 79,857 | **79,766** — the edit adds 1, the sweep takes 92 |
+| function definitions | 1,756 | **1,754** |
+| `make editor.c` | 77,977 | **77,886**, 0 directives, 0 errors, the boundary unchanged |
+| `nm -u` | 17 | **17, the same set** |
+| binary | 782,760 | **782,760** |
+| records that moved | | **0 of 106**, with 32 stream probes and 4 signal probes identical |
+
+### Its placement
+
+`stage 30`, `package host 17 18 19 20 21 30`, because this is phase 21's own follow-up
+and not a tidy-up. Three `uses`: `seed:0` and `harness:3` for the recording, and
+`boundary:25`, because `host_message()` is a name the `editor.c` cut enumerates only
+since phase 25 turned the function pointer into a declaration. There is deliberately
+**no `uses host:30 host:21`** — `uses` records a dependency *across* packages and
+`tools/packages.sh --check` refuses one inside a package — so that relation is written
+as a comment on the `package host` line instead.
+
+`apart 21 30`, measured rather than assumed: phase 21's check pins thirteen names, of
+which **seven are already broken by phases 22–29**, four are untouched here, and exactly
+**two** move at this phase — `msg_puts_printf` 3 → 0 and `info_message` 9 → 7.
+`msg_use_printf` stays at 6, which is the other half of phase 21's assertion and
+survives intact. **No `need 30`**: the edit's one anchor is a four-line block of exact
+text whose count is 1, and no count a sweep can move.
+
+**Phases 28 and 29 landed while this one was being written**, and the independence was
+measured rather than assumed: every counted anchor has the same value on r27, on r28 and
+on r29. One thing did move — phase 28 renames `musl_gettimeofday` to `musl_now_ms`, and
+that name is one of the boundary names the `editor.c` cut prints. This check never
+writes that set out: it computes it from the input and from the output and requires the
+two to be equal, so the rename cost it nothing. **That is the whole argument for
+counting a set as a rule rather than as a table of constants.**
+
+## Phase 31 — `abs` and `labs`, the two the core took on trust
+
+`pipes/zero31-edit.sh` and `pipes/zero31-check.sh`, `stage 31`, `package vendor`.
+**The core is optimised for transpilation, not for performance, and so it may not depend
+on latent compiler behaviour** (`ZERO-PLAN.md` §4c, the user's rule). This is the first
+application of it, and by every number this pipeline usually reports it does nothing:
+`nm -u` is the same 17 names either side, as a `comm` empty in both directions.
+
+**That is the phase.** `abs` and `labs` were **called** by the core, at three sites, and
+were in the undefined set **zero times** — measured here, the input's whole assembly
+(`gcc -S -O0`) mentions neither name, because gcc lowers both to inline arithmetic.
+Nothing in the language promises that. A compiler that emitted the calls the source
+literally asks for would have added two libc symbols to a file whose whole claim is the
+shortness of that list, **and nothing in the pipeline would have said so until it
+happened**. So the phase frees nothing and says so as an equality; what it removes is a
+dependence on behaviour nothing states.
+
+Two prototypes leave the core's libc declaration block, which phase 26 wrote and which
+goes **9 entries to 7** — found by its *shape*, a contiguous run of top-level
+declarations above the first `static`, and never by line number. The three call sites
+become `musl_abs` and `musl_labs`, by the literal-aware single pass `CLAUDE.md` asks
+for. And two definitions land in the `musl_` block phases 14 and 15 built, immediately
+above `musl_bsearch`, so the four `<stdlib.h>` functions the core owns — `musl_atoi`,
+`musl_atol`, `musl_abs`, `musl_labs` — sit together and above every use.
+
+### musl's spelling is copied and not improved, and the undefined behaviour with it
+
+`/root/musl/src/stdlib/abs.c` and `labs.c` are one line each, `a>0 ? a : -a`, and the
+check proves that choosing it **costs nothing** rather than arguing it: `a > 0 ? a : -a`
+and `a < 0 ? -a : a`, both taken out of the output, compile to byte-identical machine
+code at `-O0` and at `-O2`, and agree at all 4,294,967,296 `int` values and at
+20,000,006 `long` ones including `LONG_MIN` and `LONG_MAX`.
+
+`-a` overflows at `INT_MIN` and at `LONG_MIN`, so both vendored functions are undefined
+there — **and so are libc's, by the same expression, and so is musl's own source**. The
+pair is *faithful rather than safer*: a phase that quietly made the core's arithmetic
+differ from the libc it replaces would be a behaviour change wearing a vendoring phase's
+clothes. What is measured instead is whether the three sites can be driven there, and
+they cannot — `last_status_rec`'s two operands are window heights, which
+`limit_screen_size()` clamps at 1,000 rows, and the two `labs` arguments are differences
+of line numbers, so `LONG_MIN` needs a buffer of 2^63 lines. Instrumented, the largest
+magnitude any of the three is ever handed over 51 probe calls is **22**.
+
+### What the image may do is a rule and not a coincidence
+
+There is no `cmp` to be had — at `-O0` a call to a static function is a call and inline
+arithmetic is not — so what is asserted is that the difference is **accounted for
+instruction by instruction**: the object's `.text` grows by exactly **42 bytes**, which
+is `musl_abs` (19) plus `musl_labs` (24) plus what the three callers gained or lost
+(−2, +1, 0) **and nothing else**, and the linked image is 782,760 bytes either side with
+604,650 of them different, which is what putting a definition near the front of a file
+does.
+
+**Only `.text` and `.eh_frame` change size** — no data section moves a byte, which is
+the *this phase changes code, not data* claim — and neither changes by more than one
+alignment unit. Which of the two happens is a property of the **input**, measured both
+ways for the identical edit: 0 on the r29 tree and 64 here. Written as *"every section
+but `.eh_frame` keeps its size and its address"* — true on r29 — the check **refused
+this rebase**, naming `.text` and `.fini`, and that is the assertion working and the
+phase being fine.
+
+### The corpus cannot see this phase at all
+
+Measured rather than assumed: the output built with a probe on each of the three
+arguments enters **none** of them in 106 records, and its recording is byte-identical to
+the product's. So the phase owes probes, and runs three, one per site — `+set rnu` with
+sixty lines (46 calls, arguments −21 to 22), sixty long wrapped lines then CTRL-F CTRL-F
+CTRL-B CTRL-B (3 calls), and `:set laststatus=2` then `=0` (2 calls). **Two of the three
+are proven able to fail**, by a control whose `musl_abs` and `musl_labs` return their
+argument unchanged. **`stl` does not, and the check reports it rather than hiding it**:
+its site is reached twice and its answer guards only `w_prev_height = w_height`, which
+`win_new_height()` already assigns on every path that changes a height. That site is
+proven **reached** and not proven **observable**, and the equivalence above is its
+evidence.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 79,766 | **79,776 (+10)**, all of it core |
+| `make editor.c` | 77,886 | **77,896** |
+| the libc prototype block | 9 entries | **7** |
+| `abs` / `labs` in `nm -u` | 0 | **0** — they were never there, and that is the point |
+| `nm -u` | 17 | **17, the same set** |
+| object `.text` | | **+42 bytes**, accounted for instruction by instruction |
+| binary | 782,760 | **782,760**, 604,650 bytes different |
+| records that moved | | **0 of 106**, against three probes the corpus cannot reach |
+
+### Its placement
+
+`stage 31`, `package vendor 14 15 31`. Four `uses`: `seed:0` and `harness:3`, the corpus
+reaching none of the three call sites so a probe here is a screen recorded from a
+keystroke file; `boundary:26`, the two prototypes it deletes being that phase's; and
+`boundary:27`, the check asserting that both definitions land **above** the first
+`#include`, which is the boundary only because of the move.
+
+**Both schedule declarations are measured, in one run.** `tools/phaserun.sh zero 30-31`
+on r29 runs both edits, one sweep and both checks and stops in phase 30's — *"the output
+is 79776 lines and the input was 79857, a difference of 81 where 91 was expected"* —
+because the ten lines this edit adds land in the same swept text. That is `apart 17 18`'s
+shape exactly, and it is one direction only. The same run measures that **`need 31
+swept` is not required**, this edit applying unchanged to phase 30's unswept output with
+all five anchors holding.
+
+## Phase 32 — the clock crosses the boundary
+
+`pipes/zero32-edit.sh` and `pipes/zero32-check.sh`, `stage 32`, `package host`.
+The core read **two** clocks and only one of them had crossed. Phase 28 gave the
+elapsed-milliseconds clock to the host as `long musl_now_ms(void)`; the wall clock
+stayed behind as `static time_T vim_time(void) { return time(nullptr); }`, with five
+call sites, `long time(long *tp);` in the core's own libc prototype block, and **two
+more reads that bypassed the wrapper altogether** inside `ui_focus_change()`. Two steps,
+in order: those two become `vim_time()`, and the wrapper then moves below the first
+`#include` as `host_time()`, declared in the core's host block beside `host_exit` and
+`host_message`.
+
+Afterwards **the core does not name `time` at all** — four mentions in the input's core
+to none, counted on the **literal-stripped** text because two `NGETTEXT` strings in
+`op_shift()` say the English word and a count that read those would be counting English.
+`host_time` is 8 above the boundary (the declaration and seven call sites, the input's
+five plus the two that bypassed the wrapper) and 1 below. The libc prototype block goes
+**7 entries to 6**, losing `time` and nothing else — `malloc realloc free getpid kill
+write` — phase 31 having vendored `abs` and `labs` out of it immediately before. The
+block is found by its **shape**, a run of non-blank lines around a line already required
+to be unique, so phase 31 landing under this phase cost it no edit at all. The file is
+**79,776 lines either side**: the core loses 7 and the host gains exactly 7.
+
+### The prototype never pinned `time_T`, and that corrects something written down twice
+
+Phase 26's commit and the brief for this one both say that `typedef long time_T;` is
+correct because `long time(long *tp);` sits above `<time.h>`'s declaration of the same
+function, where gcc compares the two. **Half of that is true and the important half is
+not**, and the `m2` compile is what says so: the input with `time_T` changed to `int`
+and the prototype **left alone** compiles in **silence**. The prototype pinned
+`long == time_t`; nothing ever checked `time_T == long`. So this phase does not preserve
+a guarantee, it **replaces a weaker one with a stronger one**:
+
+```c
+    static_assert(_Generic((time_T)0, time_t: 1, default: 0), "time_T is time_t");
+```
+
+beside the twelve constants phase 27 put below the includes, **which is the only place
+in the file where a core name and a header name are both in scope**. Four compiles, all
+in the check. `m1`: the input with the prototype written `int time(int *tp);` is
+`conflicting types for 'time'` — that *was* the guarantee, and it is a real one. `m2`,
+as above: silent. `p1`: the output with the assert deleted and `time_T` perturbed
+compiles in silence too — **the regression this phase would otherwise have shipped, and
+the reason the prototype could not simply be deleted**. `p2` and `p3`: with the assert
+present, `int` and `long long` both give `static assertion failed: "time_T is time_t"`.
+The one line names `time_T` itself, which the prototype could not.
+
+### `host_time()` returns `long` and not `time_T`, which is a decision
+
+Its definition is below the boundary and `time_T` is a core typedef above it, so the
+host half could not name it once the file is cut at the first `#include`.
+`musl_now_ms()` returns `long` for that reason and this is its sibling — the two halves
+of the clock now cross in the same shape, and the boundary's stated property that every
+core → host signature takes scalars and byte buffers only survives a **fourteenth**
+name. Nothing is converted at any call site, `time_T` being `long` on the page, and the
+check asserts the typedef line itself.
+
+### The recording is the weakest part of the evidence, and the check says so
+
+Two full recordings are byte-identical across all 106 records — but **not one of the 102
+screen cases reaches `ui_focus_change()`**, which is the only function whose reads this
+phase respells in place. So the phase owes an instrument, and it has two.
+
+An **instrumented pair**: `write(2, "TICK\n", 5)` at every clock read on each side —
+three sites on the input (the wrapper, and `ui_focus_change`'s two, as comma expressions
+so that the tick is exactly where the read is), one on the output, because afterwards
+there is only one — with the two instrumented 102-case recordings required to be
+byte-identical. They are, and the instrument is not silent: it marks **100 of 102 cases
+with 410 reads** in all, the two it misses being `ctrl_c_clean` and `ctrl_c_changed`,
+which exit before a key is looked up.
+
+And **focus probes**, because a keystroke file *can* reach `ui_focus_change()`: `\033[I`
+and `\033[O` are `KE_FOCUSGAINED` and `KE_FOCUSLOST`, and `set_termname()` registers
+both unconditionally — **`ZERO-PLAN.md` §2l's hazard, that a typed Escape followed by
+`[` is read as a key code, used deliberately**. `\033[O \033[I` reads the clock 3 times
+and `\033[O \033[I \033[O \033[I` reads it 4, identically on both binaries; the
+arithmetic is 0 + 2 + 0 + 1 at the four calls plus one for the `:q!`, `focus_state`
+starting MAYBE so that the first FocusLost reads nothing and the first FocusGained finds
+`last_time` at 0 and takes both reads. **The two reads are still two reads**, in the
+same two statements and the same order, so they straddle a second neither more nor less
+often than before — and the control is that question made into a program: `hoist` is the
+output with the two reads collapsed into one local, and it gives 5 on the second probe
+where the product gives 4. `focus` does **not** separate them (3 either way, by a
+different route), which is why there are two probes and the check says which one is
+load-bearing.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 79,776 | **79,776** — the core loses 7 and the host gains 7 |
+| `time` named in the core | 4 | **0**, on the literal-stripped text |
+| the libc prototype block | 7 entries | **6** |
+| `make editor.c` | 77,896 | **77,889**, 0 directives, 0 errors |
+| the boundary | 13 names | **14**, `host_time` arriving and nothing gone |
+| `nm -u` | 17 | **17, the same set** — `time` does not leave, and that is said as an equality |
+| external symbols | `main` | `main` |
+| binary | 782,760 | **782,760 bytes, and not the same bytes** |
+| records that moved | | **0 of 106**, with an instrumented pair and two focus probes behind it |
+
+### A hazard this phase found in the shared recording, recorded and deliberately not worked around
+
+Comparing two **full** recordings is load-sensitive in exactly three records, and the
+clock phase is the one that would notice. `tools/zrec.py` scrubs the undo message's
+elapsed time to `<ago>` **padded to the width it replaces**, so the *screen* is
+protected — but the record also carries `--- stream <len> sha=<…>`, taken over the
+**raw** byte stream, where `0 seconds ago` and `1 second ago` are 13 bytes and 12.
+Measured with a control built for it — `add_time()` reporting one second more — exactly
+three records move, `undo_after_ins`, `undo_block` and `undo_redo`, which are exactly
+the three whose screen carries `<ago>`, and in each exactly **one line** moves, the
+`--- stream` line, with all 24 screen lines byte-identical. One 33-way concurrent `make
+zero-verify` failed here on `undo_after_ins` alone. **It is not this phase's to fix** —
+hashing the scrubbed stream in `tools/zrec.py` would close it and would re-key all 33
+phases and require `.reference/zero-baselines` to be recorded again — **and not this
+phase's to paper over either**, a private exclusion being a check narrowed to fit what
+it saw. The comparison stays an exact `diff -rq` and the hazard is written into the
+check's header. What matters for this phase is that the exposure is **unchanged** by it,
+which is what the instrumented pair measures.
+
+### Its placement
+
+`stage 32`, `package host 17 18 19 20 21 30 32`, because this is what that package is:
+a thing the core did for itself becomes a thing it asks the host to do, declared in the
+one host block and defined below the boundary — `host_exit` (19), `host_message` (21),
+`host_time`. It is deliberately **not** `boundary`, which *draws* the line (23, 25, 26,
+27, 28); this phase moves one function across a line already drawn. Five `uses`:
+`seed:0` and `harness:3`; `boundary:26` for the prototype and the typedef it replaces;
+`boundary:27` for the only place the `static_assert` can be written; and `boundary:28`
+for `musl_now_ms`, whose shape and whose `nm -u` sentence this phase takes.
+
+**Four `apart` lines.** Three are one fact measured three ways, phase 30's method of
+applying each check's own assertion directly to the tree this phase leaves: 26 and 27
+both carry the nine-entry `PROTOS` list and now find **three** of the nine at 0 — `labs`
+and `abs`, already phase 31's, and `time`, which is this phase's — and 27 and 28 both
+**write out** the boundary as thirteen names where this phase makes it fourteen, the
+symmetric difference being exactly `{host_time}`. The fourth was measured with
+`tools/phaserun.sh zero 31-32` on r30: `apart 31 32`, one direction only, where phase
+31's check stops on three messages — the block losing `time` as well as `labs`/`abs`,
+the core at a difference of 3 where 10 was expected, and *"the host changed size, and
+this phase does not touch it"*. **No `need 32`**, measured in the same run.
+
+### What zero-vim is after thirty-three phases
+
+```
+zero-vim.c        79,776 lines          from whim-vim.c's 86,614  (-6,838, 7.9%)
+                  77,889 above the boundary, 1,887 below it
+functions         1,756
+type definitions  908
+DWARF enumerators 1,189
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    107, 95 distinct globals  (orphanopts floor 80; 15 of margin)
+#include          11, at line 77,891, and NOT ONE DIRECTIVE above them
+core -> host      14 names: vim_snprintf, host_exit, host_message, host_time, ten musl_*
+libc prototypes   6 in the core: malloc realloc free getpid kill write
+libc symbols      17 with zero's flags, 18 as tools/symbols.sh counts
+binary            782,760 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    nothing since phase 11 -- 2 stderr-moved and the records of 4 to 11
+make editor.c     77,889 lines: 0 directives, 0 errors, 14 warnings, all of them
+                  `used but never defined` and all of them the interface
+```
+
+**Twelve phases in a row have declared nothing** — 21 through 32 — and the kinds of
+evidence that stand in for a recording now number eight. Phases 28 to 32 add two: an
+**instrumented pair at every call site of the thing that moved**, which is what 32's
+`TICK` and 30's `PP-ENTERED` are, and a **property computed over the whole input space**,
+which is 29's union checked at all 1,114,112 codepoints against a musl half re-derived
+from libc. **Ten of the seventeen libc symbols are now called from the host and from
+nowhere else**, `time` having joined them here and `gettimeofday` at phase 28: what the
+core still does for itself is one syscall, `mch_write`'s `write(1, …)`.
