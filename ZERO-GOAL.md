@@ -15,7 +15,7 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has twenty-four phases.** Phase 0 is the
+**This document is iterative, and so far it has twenty-eight phases.** Phase 0 is the
 seed, phase 1 is a compiler flag, phase 2 is the first cut in the source — the first
 piece of *a component, not a program* — phase 3 changes no source at all: it
 replaces the instrument every later phase is measured with; phase 4 removes Ex mode,
@@ -55,7 +55,19 @@ wrappers that walk a `va_list` at their 129 call sites, so that `va_start` appea
 **once** in the file and the formatter becomes movable, and 23 replaces `NULL` and
 `size_t` with `nullptr` and a `usize` of the core's own — two names the **language**
 supplies instead of a header — with a binary that is byte for byte the one it was
-handed.
+handed. Phase 24 is the one phase of the last five that is not about the boundary at
+all: it asks which dialect of C the core is written in, takes 139 GNU attributes to
+six — deleting 113 `unused`, **21 of which were false claims about code that uses its
+parameter** — and keeps the six `format`/`format_arg` that are themselves the check
+`-Wformat` performs. Phases 25, 26 and 27 finish the boundary: 25 makes the two host
+calls plain, a forward declaration and a direct call where there was a function pointer
+the launcher installed; 26 gives the core its own `time_T`, `volatile int`, `usize`,
+tagless clock struct, `MIN`/`MAX` and `__builtin_offsetof`, and nine plain libc
+prototypes, **while the real headers are still above them to be cross-checked against**;
+and 27 moves the eleven `#include`s to line 78,360, so that **above them there is not
+one preprocessor directive** and the first `#include` is the line between the core and
+the host. `make editor.c` writes the 78,358 lines above it, and they are a complete
+translation unit whose thirteen warnings are the interface.
 Phases
 are added one at a time, each on the user's own
 request, and each is written into this document, into `pipes/` and into
@@ -67,9 +79,15 @@ Zero vim is an **embeddable editor core**: a library-shaped piece of C that a ho
 links in or translates, rather than a process that owns a terminal and a disk. What
 the concept is, as the user has stated it, and in no particular order of phases:
 
-- **A component, not a program.** `main()` is demoted. A small host launcher,
-  `editor.c`, holds what remains of the C library calls — the part that talks to an
-  operating system — and `zero-vim.c` is what it drives.
+- **A component, not a program.** `main()` is demoted. What remains of the C library
+  calls — the part that talks to an operating system — is a host, and the core is what
+  it drives. **The shape that was settled is one file with two parts, not two files**,
+  and `editor.c` is the name of the *core*, not of the launcher this bullet first gave
+  it to: from phase 27 `make editor.c` is the cut at the first `#include`, the 78,358
+  lines above the boundary, and the host is everything below it in the same translation
+  unit. `ZERO-PLAN.md` §4c is where that was decided and `.claude/briefs/zero-split.md`
+  is the survey of the two-file design it replaced — abandoned, and worth reading only
+  for what it measured the split would have cost.
 - **No musl dependencies** in `zero-vim.c` itself. Whatever the core still needs
   from the world, the host provides.
 - **The screen and all visual editing stay.** This is still vim to look at and to
@@ -81,17 +99,21 @@ the concept is, as the user has stated it, and in no particular order of phases:
   redraw expects simulated on top of it.
 - **`zero-vim.c` stays pure C without a preprocessor** — it inherited 18 directives
   from `whim-vim.c` and is down to **eleven**, every one an `#include` of a system
-  header, and **no phase adds a `#define`, a conditional or an `#include`** — because a
+  header, and **since phase 27 not one of them is above the boundary**: the core, the
+  78,358 lines `make editor.c` writes, has **no preprocessor syntax at all**, and
+  **no phase adds a `#define`, a conditional or an `#include`** — because a
   following repository transpiles it to the JVM, and every construct in the file is one
   that translation has to understand. **A phase may remove one**, and phase 16 is the
   first that did, phase 21 the second, taking `<stdio.h>` with the seven symbols it
   freed. That permission is stated here because the old reading — a count the
   pipeline preserves — is exactly why phase 13 measured that removing three of them was
   free and declined, writing *"the count stays 18"* into its own program. Nothing is
-  ever added back: the eleven reach `select`, `gettimeofday`, `fd_set`, `struct
-  timeval` and every `*_MAX` only through musl's own `sys/param.h` →
-  `sys/resource.h` → `sys/time.h` → `sys/select.h`, which is recorded as a fragility
-  rather than repaired with three more directives.
+  ever added back: the eleven reach `select`, `gettimeofday`, `fd_set` and `struct
+  timeval` only through musl's own `sys/param.h` → `sys/resource.h` → `sys/time.h` →
+  `sys/select.h`, which is recorded as a fragility rather than repaired with three more
+  directives. **The `*_MAX` are no longer among them**: phase 27 made all twelve
+  header-supplied constants the core used enumerators of its own, each one asserted
+  against the header from **below** the boundary.
 
 None of that is done by phase 0, and none of it is a commitment to an order. Each
 item becomes a phase, or several, when one is asked for.
@@ -4850,7 +4872,8 @@ translation unit as the real `<stddef.h>` with `_Generic((usize)0, size_t: 1, de
 size_t;` is correct here and silently wrong elsewhere, and silent when it is right, so
 nothing in this repository could have told the two apart.
 
-The `#include`s stay at the top. Moving them is phase 26. Eleven directives sit on the
+The `#include`s stay at the top. Moving them is phase 27 — 26 when this was written,
+before the attributes took the number 24. Eleven directives sit on the
 first eleven lines and the typedef on line 13, which is the whole of **+2 lines**.
 
 ### The binary is byte-identical, and that is the whole of the evidence
@@ -4927,7 +4950,7 @@ leaves **five of the 437 `size_t` behind** — and leaves a file that still **co
 whose binary is still **byte-identical**, because `<stddef.h>` is still above every line
 of it. Every check this phase has passes on that file except the count.
 
-It would have surfaced at phase 26, as five unexplained errors in a move that had
+It would have surfaced at phase 27, as five unexplained errors in a move that had
 nothing to do with them and nothing pointing back here. **A whole-file substitution is
 literal-aware and single-pass**, and `CLAUDE.md` records it as a pattern now rather than
 as this phase's incident.
@@ -4955,7 +4978,9 @@ Reverting one `usize` to `size_t` compiles cleanly and gives a byte-identical bi
 because the `#include`s are still at the **top** of the file and `size_t` is therefore
 still declared above every line of it. That is the honest statement of what this phase's
 evidence cannot reach: **the rename is not yet load-bearing**, and it becomes so at
-phase 26, where the same control is three hard errors. It is phase 22's b3/b4 in this
+phase 27, where the same control is three hard errors — measured there and exactly
+three: reverting one `usize` in `musl_bsearch`'s signature gives two `unknown type name
+'size_t'` and one implicit declaration at its call site. It is phase 22's b3/b4 in this
 phase's shape.
 
 ### Measured
@@ -4983,11 +5008,13 @@ phase's shape.
 ### Its placement
 
 `stage 23`, `package boundary`. **The package is `boundary` and not `language`**,
-although `language` is what this phase and phase 25 do: phases 23 to 26 are one idea —
-23, the two names the language supplies instead of a header; 24, the two host calls that
-become plain ones; 25, the header types and macros the core can own; 26, the move itself
-— and `language` would have named 23 and 25 while leaving 24 and 26 in a package that
-did not describe them. Its `uses` are `boundary:23 seed:0 mechanical`,
+although `language` is what this phase and the plain-host-call phase do: the four are one
+idea — 23, the two names the language supplies instead of a header; then the two host
+calls that become plain ones; then the header types and macros the core can own; then the
+move itself — and `language` would have named the first and the second of those while
+leaving the other two in a package that did not describe them. **They were numbered 23 to
+26 when this was written and they are 23, 25, 26 and 27**: the attributes were asked for
+in between and took the number 24, which is `package dialect` and not this idea at all. Its `uses` are `boundary:23 seed:0 mechanical`,
 `boundary:23 vendor:14 rationale` and `boundary:23 vendor:15 rationale` for the eleven
 vendored signatures above, and `boundary:23 host:21 mechanical` — this edit puts the
 typedef directly below the **last** `#include` and asserts eleven directives on the
@@ -5038,3 +5065,833 @@ NULL / size_t     3 (all in string literals) / 0
 instrument is nearly blind to it, so 263 probes stand in; 23 **the binary is the same
 bytes**, which is the strongest kind this pipeline has — phase 16's, and the reason this
 phase was made the smallest of the four rather than the first convenient one.
+
+## Phase 24 — the attributes
+
+`pipes/zero24-edit.sh` and `pipes/zero24-check.sh`, `stage 24`, `package dialect`.
+`__attribute__` is a GNU extension, and a core on its way to another runtime was
+carrying 139 of them. This phase looks at all 139, in three groups, and takes a
+different decision on each:
+
+```
+    113   __attribute__((unused))         deleted
+     20   __attribute__((fallthrough));   respelled  [[fallthrough]];
+      6   format / format_arg             kept
+```
+
+139 → 6, **117 lines changed, not one line added or removed**, and not one statement
+changed. None of the three kinds emits code — `unused` suppresses a diagnostic,
+`fallthrough` gives one a hint, `format` decides what gcc will check — so the binary is
+byte-identical, 788,488 bytes either side.
+
+### Why the 113 said nothing, and why upstream needs them
+
+Every dead-code compile in this pipeline is `-Wall -Wextra -Wno-unused-parameter`
+(`tools/deadsweep.py`, `tools/phasecheck.sh`), so an unused **parameter** is not
+diagnosed whatever is written on it. Upstream carries the marker because upstream
+compiles this file in configurations where a parameter is used and others where it is
+not; there are no configurations here, and have not been since slim's Phase 5. Measured:
+with all 113 gone the sweep's own command line prints nothing at all.
+
+### All 113 were on parameters, computed twice rather than assumed
+
+Every one sits inside a parenthesised group whose innermost enclosing `(` is preceded by
+exactly a function name, and the **97 lines** that carry them are all function
+*definition* headers, each followed by a line that is `{` — so not one is on a variable,
+an object, a type or a field. No parenthesised group in this file spans a line break
+(`CLAUDE.md`), so that is a computation on one line and not a parse of C.
+
+The compiler says it a second way. With `-Wunused-parameter` turned back **on**, the
+output warns **135** times against the input's **43**, and every one of the 92 new
+warnings is `-Wunused-parameter` at a line that carried an attribute — **not one
+`-Wunused-variable`**, which is what a deletion that had reached an object would have
+produced.
+
+### Twenty-one of the 113 were false, and that is the find of the phase
+
+113 sites, 92 warnings. **The difference is 21 attributes that marked a parameter this
+build uses**:
+
+```
+    ex_cquit(exarg_T *eap)         reads eap->addr_count on its first line
+    check_winopt(winopt_T *wop)    dereferences wop five times
+    deathtrap(int sigarg)          compares sigarg against SIGHUP
+```
+
+There the attribute was not redundant, it was a **claim the code contradicts** — a
+statement some earlier whim or zero phase made untrue, and nothing in either pipeline
+checked. So the phase does not delete 113 redundant markers: it deletes 92 unnecessary
+ones and **21 wrong statements**, and the check names them rather than letting the
+arithmetic swallow them.
+
+### `[[fallthrough]]` is not refused under `-std=c11`, which is an argument against the swap
+
+The swap is one-for-one and textual: all 20 sites were standalone statements on lines of
+their own, `[[` occurs **0** times in the input and **20** in the output, and
+`-Wimplicit-fallthrough` is silent either side, so not one suppression was lost. It is
+not a directive either — C23 attribute syntax is a *statement* in the grammar, spelled
+with brackets, and the charter's rule is about preprocessor syntax.
+
+What it costs is stated rather than glossed, and it is **weaker than phase 23's
+`typeof`**, which `-std=c11` refuses outright. Measured: gcc accepts `[[fallthrough]]`
+under every `-std` it has, as an extension; below C23 `-Wpedantic` says *ISO C does not
+support '[[]]' attributes before C23* and **`-pedantic-errors` refuses it** — where the
+GNU spelling it replaces is accepted even there, being a reserved identifier. So taken
+alone **the swap narrows the dialects this file compiles under**. It costs nothing in
+practice, because the file has been C23 by four other routes since before this phase,
+and that too is computed rather than argued: `-std=c11` on the whole file gives the
+**same 729 errors** before and after.
+
+An honest argument against a change belongs in the phase that makes it, not in the
+commit of the phase that has to undo it.
+
+### Two of the twenty are already redundant, and are named rather than pruned
+
+Lines 11480 and 20181, after `case ESC:` and `case Ctrl_P:`: each follows a case label
+with **no statement at all**, where C falls through silently and gcc has nothing to
+diagnose. They are computed from the structure and required to agree with the control's
+count — two independent methods for one number — and then **kept**. What makes a
+fallthrough deliberate is the author saying so, not the compiler currently asking, and a
+phase that quietly drops what it noticed was unnecessary is how a real suppression goes
+missing later.
+
+### The evidence splits in two, and the phase says so
+
+For the **133** that go or change spelling, the binary is the evidence: `cmp`-identical,
+which is `CLAUDE.md`'s tier 1 and subsumes every screen case, every Ex-command row,
+every command line and every pty scenario at once, because the program that would be run
+is the same program.
+
+For the **6** that stay, **the binary is blind** — measured, removing all six as well
+leaves it *still* `cmp`-identical while `-Wformat=2` goes from **115**
+`-Wformat-nonliteral` warnings to **zero**. So the warnings are their evidence, and the
+form is phase 22's invariant reused verbatim: the identical 115 warnings in the
+identical **53** functions before and after, compared as list equality, with two controls
+that break it in opposite directions — `vim_snprintf`'s `format(printf, 3, 4)` removed
+gives **0**, and `_()`'s `format_arg(1)` removed gives **135**, gcc having lost its way
+through the translation wrapper.
+
+That is what the six are for. Phase 22 expanded seven wrappers into 129 direct calls, so
+**one attribute now type-checks 201 `vim_snprintf` mentions**, and `format_arg` on `_()`
+and `NGETTEXT` is why `CLAUDE.md` records that those two were never macro-expanded. The
+rule the phase applies is therefore not *remove GNU extensions* but **remove every
+attribute whose job another flag already does, and keep every attribute that IS the
+flag**.
+
+### Four controls, and one of them is the one that makes `cmp` mean something
+
+c1 and c2 are the two above. c3 blanks all 20 `[[fallthrough]];` and gets **18** warnings
+where there were none — which is also how the two redundant sites are confirmed from the
+other end. c4 replaces **one** of them by `break;` — the smallest change at those sites
+that is a change to the *program* rather than to a diagnostic — and moves **512,594
+bytes** of binary. Without c4 the byte-identical binary is two numbers agreeing.
+
+### One fact about the tools, which is why the check is seconds and not minutes
+
+`CLAUDE.md` records that `-fsyntax-only` does not report `-Wunused-function`. It does not
+report **`-Wimplicit-fallthrough`** either, which needs the CFG — measured, the c3
+control warns 18 times under `-c` and **zero** times under `-fsyntax-only`. A fallthrough
+section written with it would have passed while checking nothing. It *does* report
+`-Wunused-parameter` and `-Wformat-nonliteral`, which is what the other sections use.
+
+### The trap was the whitespace, not the attribute
+
+Each attribute was written with **two** spaces before it and **one** after, so deleting
+the text alone leaves a doubled space or a space before a paren — and `tools/canon.sh`
+does not fix either. The check measures it: the count of doubled spaces before a `,` or
+a `)` is **639 either side**, and canon is a no-op on the output.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,178 | **80,178** — 117 lines changed, none added, none removed |
+| bytes | 2,139,325 | **2,136,127** |
+| `__attribute__` | 139 | **6** — three `format`, three `format_arg` |
+| `__attribute__((unused))` | 113 | **0** — on 97 definition headers, 21 of them false |
+| `__attribute__((fallthrough))` | 20 | **0** |
+| `[[fallthrough]]` | 0 | **20** |
+| `-Wunused-parameter` when asked for | 43 | **135** — 92 new, not one `-Wunused-variable` |
+| `-Wformat-nonliteral` under `-Wformat=2` | 115 in 53 functions | **115 in the same 53** |
+| `-std=c11` errors on the whole file | 729 | **729** |
+| functions / type definitions / DWARF enumerators | 1,756 / 905 / 1,177 | 1,756 / 905 / 1,177 |
+| `nm -u` with zero's own flags | 17 | **17, the same set**, a `comm` empty both ways |
+| external symbols | `main` | `main` |
+| `#include` | 11 | 11, on the first eleven lines |
+| `options[]` / `cmdnames[]` / `nv_cmds[]` rows | 107 / 98 / 194 | 107 / 98 / 194 |
+| binary | 788,488 | **788,488 — `cmp`-identical** |
+| sweep | | takes nothing, canon a no-op |
+| phase | | **22 s** |
+
+### Its placement
+
+`stage 24`, and **a package of its own, `dialect`**, which is the one placement decision
+here. The boundary is where the line between core and host falls, and this phase moves
+no line: it asks which dialect of C the core is written in and which of its extensions
+are still being paid for. `boundary` would have made the package mean two things.
+Its `uses` are `dialect:24 seed:0 mechanical`; `dialect:24 tidy:13 rationale`, because
+phase 13 dropped `ui_write()`'s `console` parameter rather than leaving
+`__attribute__((unused))` on it and said so in as many words — that was this phase's
+judgement one phase at a time; `dialect:24 format:22 mechanical`, phase 22's 129 direct
+calls being why one `format` attribute now carries 201 mentions; and
+`dialect:24 boundary:23 mechanical`, the `%d` probe being built from the output's own
+lines — `vim_snprintf`'s prototype and the `typedef typeof(sizeof(0)) usize;` it needs to
+compile — both of which read `usize` because of phase 23.
+
+**`apart 23 24` and `need 24` are both measured NOT to be required**, in one run:
+`tools/phaserun.sh zero 23-24` on r22 runs both edits, one sweep and both checks, and
+every part passes. This phase touches no `NULL`, no `size_t` and none of the helpers
+phase 23's controls quote, and phase 23 neither creates nor destroys an attribute; the
+edit asserts no count of its input that a sweep could move, what it asserts being a
+partition and a shape.
+
+**This phase renumbered the three that follow it, and this document had the old numbers
+until now.** `ZERO-PLAN.md` §4c's reorganisation steps 24, 25 and 26 are phases 25, 26
+and 27, which `pipes/zero.stages` states; *Phase 23 — `nullptr` and `usize`* above said
+*"26, the move itself"* and has been corrected to say 27. The phase *programs* are
+deliberately **not** corrected — `pipes/zero23-*.sh` still says "phase 26" where it means
+the move — because every byte of a phase program is in its unit's implementation digest,
+and a comment fixed there re-keys a boundary to change nothing.
+
+### What zero-vim is after twenty-four phases
+
+```
+zero-vim.c        80,178 lines          from whim-vim.c's 86,614  (-6,436, 7.4%)
+functions         1,756
+type definitions  905
+DWARF enumerators 1,177
+GNU attributes    6, all format or format_arg
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    107, 95 distinct globals  (orphanopts floor 80; 15 of margin)
+#include          11, on the first eleven lines; no #define, no conditional
+libc symbols      17 with zero's flags, 18 as tools/symbols.sh counts
+binary            788,488 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    nothing since phase 11 -- 2 stderr-moved and the records of 4 to 11
+```
+
+**Four phases in a row have now declared nothing**, and 23 and 24 are the same kind: the
+binary is the same bytes. The difference between them is what that kind can and cannot
+carry. Phase 23's whole content was inside the `cmp`; a sixth of this phase's — the six
+attributes it keeps — is outside it, and the phase had to go and get a second instrument
+for that part rather than let the strongest evidence it had cover a decision the evidence
+cannot see.
+
+## Phase 25 — the plain host calls
+
+`pipes/zero25-edit.sh` and `pipes/zero25-check.sh`, `stage 25`, `package boundary`.
+The core reached the host through two function pointers:
+
+```c
+    static void (*vim_host_exit)(int);                          phase 19's, one call site
+    static void (*vim_host_message)(const char *, int, int);    phase 21's, eight
+```
+
+each a file-scope object installed through a parameter of `vim_main()` that `main()`
+passed. This phase makes both of them ordinary calls to `static` functions declared
+above and defined below. **Two objects, two parameters, two assignments and two
+arguments go; two prototypes arrive**, and `vim_main(int argc, char **argv)` is exactly
+the signature phase 18 wrote when it demoted `main()`. 80,178 → 80,173 lines.
+
+### The indirection had one reason, and the design changed underneath it
+
+`pipes/zero19-edit.sh` states it in as many words: *a pointer the launcher installs
+through a parameter adds no external symbol, where a `musl_exit(int)` the host defines
+would.* The invariant it was protecting is `nm --extern-only --defined-only` printing
+exactly `main`, and under **two translation units** the sentence is true — the host's
+definition of a function the core calls has external linkage by construction.
+
+`ZERO-PLAN.md` §4c is now one file with two parts and the first `#include` as the
+boundary, so the host's definitions sit below the core in the **same** translation unit.
+A `static` forward declaration above and a `static` definition below is all a direct call
+needs, and the global the indirection existed to avoid does not appear at all. The
+machinery outlived its argument by six phases, which is the ordinary way a design change
+leaves debris.
+
+### The control that matters is the one that would have passed unnoticed
+
+This is the phase that makes the core **name** the host's two functions, so
+`nm --extern-only --defined-only` is the assertion it could have broken, and both halves
+of the `static` trap are built on the phase's own output:
+
+```
+    static off the two PROTOTYPES                gcc refuses --
+                                                 "static declaration of 'host_exit'
+                                                  follows non-static declaration"
+    static off the prototypes AND the            the build is SILENT and the object
+    definitions                                  defines host_exit, host_message, main
+```
+
+The second is the mistake nothing else here would have caught: it compiles, it links, it
+runs, every recording matches, and the core has quietly acquired two external symbols.
+The check runs it every time. A third control deletes the two prototype lines and
+requires the file **not** to compile, which is what makes *load-bearing* a measurement
+rather than a description.
+
+Each prototype is built out of its definition's own lines rather than retyped, so the two
+cannot disagree. Measured on the output: `host_exit` declared at line 3533, called at
+55872, defined at 80137; `host_message` declared at 3534, called at eight sites from
+37649 to 79847, defined at 80144 — declared above every use and defined below every one,
+which is the shape that keeps the declaration serving when a later phase moves the
+definitions further down. It did: phase 27 moved them, and these two lines did not change.
+
+### The evidence is the recording, because the binary moves
+
+788,488 bytes either side and **347,279 of them differing**. An indirect call through a
+pointer loads the pointer and calls a register where a direct call is relative to a known
+address, and removing two file-scope objects moves what follows them; at `-O0` that is
+simply different code. So this phase cannot use tier 1, does not pretend to, and falls
+back on what every zero phase before 23 used: **two full recordings, `diff -r` empty
+across all 106 records** — the 102 screen cases, every Ex command typed at `:`, every
+command line the parser may see, the four pty scenarios and the terminal table.
+
+And it can fail, **once for each name the phase makes direct**, which is what keeps an
+empty `diff -r` from being a harness that recorded nothing. `host_exit`'s own
+`host_code = r;` changed to `r + 1` moves **105 of the 106** records — every one but the
+terminal table, which records no exit status. `host_message`'s `write(err ? 2 : 1, …)`
+with the two streams swapped moves **`ref-argv.txt` and nothing else**, which is phase
+21's own finding read back: everything reaching that function is a message printed before
+there is a screen.
+
+### The two prototypes join phase 20's nine, and that is the point of doing it here
+
+The core → host boundary is now **one block of eleven declarations** rather than nine in
+a block and two wherever an object happened to sit. `tools/zhostonly.py` — phase 20's
+structural check — is run rather than assumed: its vocabulary is libc's terminal, signal
+and descriptor names, `host_exit` and `host_message` are not in it, and it passes
+unchanged at 60 mentions of 43 words, all inside the host block, with the same seven
+named exceptions.
+
+### It answers phase 22's open question rather than leaving it
+
+Phase 22's survey flagged that 20 of its 129 new call sites sat inside the functions a
+**split** would have moved, so host code would be calling back into the core's `emsg()`
+and reading the core's `IObuff` — a genuine boundary question with three unattractive
+answers. Under one file there is no question, and the measurement is here rather than in
+a note somebody has to find: the four functions that still hold a `va_list` —
+`vim_snprintf`, `vim_vsnprintf`, `vim_vsnprintf_typval` and `skip_to_arg` — call
+**twenty distinct core functions at forty-one sites** and read `IObuff` once, and not one
+of those costs a declaration. **Everything above the cut is visible below it**; only the
+core → host direction ever needs a name declared, which is why this phase costs two
+prototypes and not four.
+
+### The declared delta is nothing at all, and it is phase 21's kind
+
+The code runs, the instrument sees it, and it does the same thing. Not a `cmp` — that
+kind belongs to 16, 23 and 24 — and not a blindness either: the recording is shown able
+to see both names change.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,178 | **80,173 (−5)** |
+| `vim_host_exit` / `vim_host_message` | 3 / 10 | **0 / 0** |
+| `host_exit` / `host_message` | 2 / 2 | **3 / 10** |
+| `exit_fn` / `message_fn` | 2 / 2 | **0 / 0** |
+| `vim_main`'s signature | four parameters | `(int argc, char **argv)` — phase 18's, back again |
+| core → host prototypes | 9 | **11**, one block |
+| functions / type definitions / DWARF enumerators | 1,756 / 905 / 1,177 | 1,756 / 905 / 1,177 |
+| `nm -u` with zero's own flags | 17 | **17, the same set**, a `comm` empty both ways |
+| external symbols | `main` | **`main`**, with both halves of the trap built |
+| `#include` | 11 | 11, on the first eleven lines |
+| `options[]` / `cmdnames[]` / `nv_cmds[]` rows | 107 / 98 / 194 | 107 / 98 / 194 |
+| binary | 788,488 | **788,488 bytes, 347,279 of them differing** |
+| records that moved | | **0 of 106** |
+| sweep | | takes nothing, one round, canon a no-op |
+| phase | | **25 s** |
+
+### Its placement
+
+`stage 25`, `package boundary` with 23, 26 and 27 — it writes no C23 and removes no GNU
+extension, so `dialect` would be wrong; what it changes is how the core names what is on
+the other side of the line. Its `uses` are `boundary:25 seed:0 mechanical`;
+`boundary:25 harness:3 mechanical`, its evidence being a recording and not a `cmp`;
+`boundary:25 host:18 rationale`, the signature it gives back being the one phase 18
+wrote; `boundary:25 host:19 mechanical`, for the pointer, the parameter, the assignment
+and the reason they were a pointer — and for the launcher it must leave untouched, `exit`
+staying out of `nm -u` because `host_exit()` still records a status and jumps; and
+`boundary:25 host:20 mechanical` and `boundary:25 host:21 mechanical` for the block the
+two prototypes join and the eight call sites and the control that reads back phase 21's
+finding.
+
+**`apart 24 25` is measured, and its first complaint is one nobody would predict.**
+`tools/phaserun.sh zero 24-25` on r23 stops inside **phase 24's** check with *"a line
+carrying a kept attribute is not the line it was, byte for byte: lines 847 852 3081
+3092"* — phase 24 records the six `format`/`format_arg` lines it keeps **by line
+number**, and this phase deletes the `vim_host_message` object with its blank line at
+495, so everything below moves up by two. A check that pins a line number is a dependency
+on every line above it, exactly as a check that quotes C is a dependency on spelling
+(`apart 22 23`). One direction only, measured: phase 25's check passes on the tree that
+stage leaves.
+
+**`need 25 swept` is measured NOT to be required**: this edit applies unchanged to the
+unswept text phase 24's edit leaves, giving the same 80,178 → 80,173 and the same line
+numbers.
+
+### What zero-vim is after twenty-five phases
+
+```
+zero-vim.c        80,173 lines          from whim-vim.c's 86,614  (-6,441, 7.4%)
+functions         1,756
+type definitions  905
+DWARF enumerators 1,177
+core -> host      11 prototypes in one block; no function pointer left between them
+#include          11, on the first eleven lines; no #define, no conditional
+libc symbols      17 with zero's flags, 18 as tools/symbols.sh counts
+binary            788,488 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    nothing since phase 11 -- 2 stderr-moved and the records of 4 to 11
+```
+
+**The product was not in this phase's branch.** `zero-vim.c` landed in a commit of its
+own after the merge, as phase 26's did, where phases 24 and 27 carried theirs in the
+branch. Nothing was lost — the file is r25's boundary either way, and `make zero-verify`
+reproduces it — but a merge whose diff holds the programs and not the thing they produce
+is easy to read as a phase that changed no source, and it is worth knowing that two of
+these four look like that in `git log`.
+
+## Phase 26 — the header types and macros the core can own
+
+`pipes/zero26-edit.sh` and `pipes/zero26-check.sh`, `stage 26`, `package boundary`.
+Eight things the core took from a header stop coming from one:
+
+```
+    time_t          →  typedef long time_T;  plus  long time(long *tp);
+    sig_atomic_t    →  volatile int                       2 in the core; the host's 3 stay
+    uintptr_t       →  usize                              1 site
+    struct timeval  →  a TAGLESS struct of two longs, and musl_gettimeofday(long *, long *)
+    MIN / MAX       →  the text the preprocessor gives, at 19 lines
+    offsetof        →  __builtin_offsetof                 9 sites
+```
+
+and the nine libc functions the core still calls — `malloc realloc free time getpid kill
+write labs abs` — get plain prototypes, none of them `static`. 80,173 → 80,197 lines,
+exactly the 24 the edit adds.
+
+### It comes BEFORE the move, and the ordering is the whole of its evidence
+
+Every declaration here replaces something a header **still supplies from above it**, so
+the ordinary build cross-checks each one for free. After the move there is nothing left
+to check against, and the check that can be written then is only *it compiles*.
+
+**Sixteen `static_assert`s**, all silent, compare every core-owned spelling against the
+header type it replaces:
+
+```c
+    sizeof(elapsed_T) == sizeof(struct timeval)              and both offsets, both widths
+    _Generic((usize)0,  uintptr_t: 1, default: 0)            and again against size_t
+    _Generic((time_T)0, time_t:    1, default: 0)
+    _Generic((int)0,    sig_atomic_t: 1, default: 0)
+    _Generic(time, long (*)(long *): 1, default: 0)
+    __builtin_offsetof(T, m) == offsetof(T, m)               at all six types the 9 sites use
+```
+
+Every one of them **names a header type**, so not one can be written once phase 27 moves
+the includes below. They are a control in the check and never in the product, and a
+seventeenth with one comparison deliberately wrong must fail — so they are compiled and
+not merely present.
+
+**Four deliberately wrong declarations give four diagnostics**, which is the same
+argument from the other side: `int time(int *tp);`, `void *malloc(int n);` and
+`long getpid(void);` are each `conflicting types`, and `static void *malloc(usize n);` —
+the trap the survey names — is `error: static declaration of 'malloc' follows non-static
+declaration`. After the move the first three become **nothing at all** and the fourth
+changes shape entirely. One more argument for doing this first, and phase 27 measured
+where the fourth went.
+
+### Six of the seven changes are tier 1, and the check says so as an equality
+
+Six of them are a rename or an expansion the preprocessor was already performing, so
+none can generate a different instruction. That is stated rather than claimed: **with the
+clock ALONE reverted, the binary is `cmp`-identical** to the 788,488-byte one the phase
+was handed. So `time_T`, `volatile int`, `usize`, the 23 `MIN`/`MAX` expansions,
+`__builtin_offsetof` and the nine prototypes are `CLAUDE.md`'s tier 1 — literally the
+same program — and only the clock has anything to answer for.
+
+**The seventh is the clock, and it is the only libc *type* the core could not rename
+away.** `struct timeval` is a **layout**, so `elapsed_T` becomes the core's own tagless
+`struct { long tv_sec; long tv_usec; }` and the five `gettimeofday(&X, nullptr)` calls go
+through a new `musl_gettimeofday(long *, long *)` in the host block. That is a call and
+two stores where there was a syscall wrapper, so the binary moves, and **two full
+recordings, `diff -r` empty across all 106 records**, are what answers for it.
+
+The recording is not blind to it: `musl_gettimeofday` writing its two fields the wrong
+way round moves **six of the 102 screen cases** — `key_Q`, `key_gQ`, `key_gf`, `macro_q`,
+`reg_percent` and `ruler_move`.
+
+### `MIN` and `MAX` are read from the header, not written into the program
+
+The edit sends `MIN(ZZA,ZZB)` and `MAX(ZZA,ZZB)` through the preprocessor with
+`<sys/param.h>` included and turns what comes back — `(((ZZA)<(ZZB))?(ZZA):(ZZB))` —
+into its template. That is the only honest meaning of *the exact text the header gives*,
+and the check re-derives the same two shapes and requires 7 more `MIN` expansions and 16
+more `MAX` ones, with the repeated argument really repeated. **Two of the 19 lines pass a
+call as an argument and so evaluate it twice** — exactly as the macro did, which is what
+the `cmp` proves and what writing `<` by hand would have quietly fixed into a different
+program.
+
+### Two corrections to the brief, both measured, and both make the rule stronger
+
+**A core-defined `struct timeval` tag is NOT a hard error.** The brief says it is
+`error: redefinition`. Measured: **C23 permits a struct to be redeclared with the same
+members**, so gcc 15's default dialect is *silent* both ways round, and only `-std=c11`
+and `-std=c17` refuse it. The tagless struct is still mandatory, for a better reason than
+a diagnostic — **the core must not define a libc tag at all**, and the layout equality
+has to be **asserted**, which is what three of the sixteen `static_assert`s do. A rule
+that rests on a diagnostic the standard has since removed is a rule with a shelf life.
+
+**There is no `musl_time`.** The brief has the core calling its own
+`long musl_time(long *)`. `time` keeps its name, because `long time(long *tp);` as a
+plain prototype is **precisely what pins `time_T`'s width**: a wrapper would have cast
+the mismatch away at its own boundary and destroyed the property the phase exists for.
+The declaration is the assertion.
+
+### The tool changed, and that is the tool working
+
+`tools/zhostonly.py` refused, as predicted — its two `struct timeval` exceptions read
+*"the clock's, and not this phase's … somebody else's later phase"*, and this is that
+phase; `kill` acquires one for the core's own prototype. But a swapped exception list was
+not enough. The tool runs in the checks of phases **20, 21, 25 and 26, each on its own
+output**, and the core's vocabulary shrinks between them — so an exception's count is now
+the **tuple of values it takes**, each written with the phase that made it true. What it
+refuses is still a count nobody has written down, so *an exception that stops being true
+is a fact this tool is meant to notice* holds, and the phase that ends one comes here and
+says so. Measured with `tools/implhash.sh`: 107 whim and slim keys identical either side,
+six zero keys move — the units and edits whose programs name the tool.
+
+### A control can be right and still be a bad check
+
+The must-differ control — `musl_gettimeofday` writing its two fields the wrong way round
+— **stalls `tools/zpty.py`**. An editor whose clock runs backwards has timeouts that
+never expire, so the harness waits out its deadline, writes `stalled` and exits 1 two
+minutes later, which is correct behaviour on a deliberately broken binary and a flaky
+check. The control is `zcases.py` alone for that reason. **A check should not depend on
+how long a harness takes to give up.**
+
+### The declared delta is nothing at all, and it is a sixth kind
+
+Not code that could not run (9, 17), not code the instrument cannot see (12), not a
+possibility removed (13), not a `cmp` of the binary (16, 23, 24), and not phase 25's *the
+code runs and the instrument sees it do the same thing* either. It is **six of seven
+changes that are a `cmp` and one that is a recording**, and the phase separates them
+rather than taking the weaker evidence for all of it.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,173 | **80,197 (+24)** |
+| `time_t` / `time_T` | 6 / 5 | **0 / 10** |
+| `sig_atomic_t` | 5 | **3**, all three the host block's |
+| `uintptr_t` | 1 | **0** |
+| `offsetof` / `__builtin_offsetof` | 9 / 0 | **0 / 9** |
+| `MIN(` + `MAX(` | 7 + 16, on 19 lines | **0**, expanded in place |
+| `struct timeval` | 6 — 4 core, 2 host | **3**, all host |
+| `gettimeofday` | 5 | **1**, inside `musl_gettimeofday` |
+| libc prototypes in the core | 0 | **9**, none `static` |
+| functions | 1,756 | **1,757** (`musl_gettimeofday`) |
+| type definitions / DWARF enumerators | 905 / 1,177 | 905 / 1,177 |
+| `nm -u` with zero's own flags | 17 | **17, the same set**, a `comm` empty both ways |
+| external symbols | `main` | `main` |
+| `#include` | 11 | 11, on the first eleven lines |
+| `options[]` / `cmdnames[]` / `nv_cmds[]` rows | 107 / 98 / 194 | 107 / 98 / 194 |
+| binary | 788,488 | **788,488** — and `cmp`-identical with the clock alone reverted |
+| records that moved | | **0 of 106**; the wrong-way-round clock moves 6 of 102 cases |
+| sweep | | takes nothing, canon a no-op |
+| phase | | **27 s** |
+
+### Its placement
+
+`stage 26`, `package boundary` beside 23, 25 and 27. Its `uses` are
+`boundary:26 seed:0 mechanical` and `boundary:26 harness:3 mechanical` for the recording;
+`boundary:26 host:20 mechanical`, because `musl_gettimeofday` is **defined inside the
+host block phase 20 created**, immediately above `musl_delay` — `tools/zhostonly.py`
+reads the host region as the lines from `host_winch_pending` to `musl_suspend`'s last
+brace, so a definition below `musl_suspend` would put a `struct timeval` outside it and
+the tool would refuse; and `boundary:26 host:19 rationale`, because the two
+`sig_atomic_t` this phase respells are the core's and the three it leaves alone are the
+host block's — the split that makes that sentence meaningful is the launcher phases 18
+and 19 put at the bottom of the file.
+
+**`apart 25 26` is measured, not predicted.** `tools/phaserun.sh zero 25-26` on r24 runs
+both edits, one sweep and then **phase 25's** check, which stops at *"the file is 80197
+lines and the input was 80178 (80178 recorded) — expected exactly five fewer"*: this
+phase adds twenty-four lines to the text before that check reads it. **`need 26 swept` is
+measured NOT to be required**, in the same run — both edits came from the edit cache,
+which is keyed on the digest of the tree each is handed, and a direct `cmp` confirms it:
+phase 25's edit applied to r24 gives a `zero-vim.c` byte-identical to r25's, so the sweep
+between them is a complete no-op.
+
+### What zero-vim is after twenty-six phases
+
+```
+zero-vim.c        80,197 lines          from whim-vim.c's 86,614  (-6,417, 7.4%)
+functions         1,757
+type definitions  905
+DWARF enumerators 1,177
+header names left above the host block   the twelve *_MAX, PATH_MAX, EXIT_FAILURE,
+                                         SIGHUP and SIGTERM -- and nothing else
+#include          11, on the first eleven lines; no #define, no conditional
+libc symbols      17 with zero's flags, 18 as tools/symbols.sh counts
+binary            788,488 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    nothing since phase 11 -- 2 stderr-moved and the records of 4 to 11
+```
+
+**Recorded as a follow-up rather than done here.** Every core use of the clock is *stamp
+now, then ask how many milliseconds have passed*: `elapsed()` is one `gettimeofday` and a
+subtraction, and its four callers all compare the result against a millisecond count. So
+the core never needs the **layout**, only a scalar, and a `long musl_now_ms(void)` would
+take `struct timeval`, `gettimeofday` and the tagless-struct question out of the core
+together. The tagless struct is an interim shape, kept because it is what was surveyed
+and what the evidence above was measured against; the scalar clock is a phase of its own,
+if it is asked for.
+
+**Its product landed separately too**, like phase 25's: the branch and the merge hold the
+programs, and `zero-vim.c` came in the commit after.
+
+## Phase 27 — the move: the first `#include` becomes the boundary
+
+`pipes/zero27-edit.sh` and `pipes/zero27-check.sh`, `stage 27`, `package boundary`.
+This is what the pipeline had been clearing the ground for. **The eleven `#include`s
+move from the first eleven lines to line 78,360, and above them there is not one
+preprocessor directive.** `zero-vim.c` is now one translation unit with a core editor on
+top, written in plain C with no directives at all, and a host below that begins with the
+includes. **The first `#include` IS the boundary**, marked by nothing else — no comment,
+no banner, no name — and `make editor.c` writes the **78,358 lines** above it.
+
+That target existed before this phase, writing an empty file on purpose, so that the
+phase that fills it would change the source and not the makefile. It did.
+
+### The order was forced, and it is why 26 and 27 are two phases
+
+```c
+    enum : int { INT_MAX = (int)(~0u >> 1) };       placed AFTER <limits.h> is
+    enum : int { 0x7fffffff = (int)(~0u >> 1) };    a syntax error
+```
+
+So the derived constants can only be written **once the includes have moved**, and phase
+26's sixteen `static_assert`s against the headers can only be written **while they are
+still above**. Two phases, in that order, and neither could have held the other's work.
+The check proves the first half on the product rather than arguing it: with `<limits.h>`
+put back at line 1 the build stops on that line with *expected identifier before numeric
+constant*.
+
+### The constants are asked for, not remembered
+
+The edit performs the move, compiles the cut alone, and **collects every name gcc says is
+undeclared: 23 errors naming exactly twelve**. A thirteenth would mean phase 26 did not
+finish; one this program declared and gcc did not ask for would be a declaration nobody
+needs. Eight are derived from the type system and four asserted:
+
+```
+    INT_MAX 14   INT_MIN 2   LONG_MAX 51   LONG_MIN 1        derived: (int)(~0u >> 1) and kin
+    LLONG_MAX 3  LLONG_MIN 1 ULLONG_MAX 10 SIZE_MAX 1
+    PATH_MAX 12  EXIT_FAILURE 1  SIGHUP 2  SIGTERM 2         asserted against the header below
+```
+
+(the counts are the core's mentions at r26). **All twelve are enumerators**, including
+the four asserted ones, because `PATH_MAX` is an **array bound** — and a `static const
+int` cannot appear in an array bound, a case label or an enumerator initialiser
+(`CLAUDE.md`, *Add a constant*).
+
+Re-measured from the product: delete the twenty enumerator lines from `editor.c` and gcc
+gives the same **23 errors over exactly those twelve names**, `INT_MAX` eight times,
+`PATH_MAX` five and the other ten once each.
+
+### Below the includes, `INT_MAX` IS the macro, so each assert restates the derivation
+
+This is the design point the brief could not have foreseen, and it is what the move costs.
+Phase 26 could compare every core-owned spelling against the header still above it. Here
+the headers are **below**, and below them the name `INT_MAX` is `<limits.h>`'s macro — so
+
+```c
+    static_assert(INT_MAX == INT_MAX, "INT_MAX");        a tautology about the header
+    static_assert((int)(~0u >> 1) == INT_MAX, "INT_MAX");  what the phase writes
+```
+
+The twelve asserts the phase puts **into the product** compare the **deriving
+expression** against the header, and the left-hand side is not typed twice: it is emitted
+from the same table as the enumerator's own initialiser, and the check reads both back
+out of the source and requires them equal as text. Measured both ways — the wrong
+derivation in both places is `static assertion failed`, and **the same wrong enumerator
+with the assert written the naive way builds in silence**.
+
+### What moves below is computed to a fixpoint, not listed
+
+The four functions that hold a `va_list` are named, because `va_list` is `<stdarg.h>`'s
+and the core cannot declare it: `vim_snprintf`, `vim_vsnprintf`, `vim_vsnprintf_typval`
+and `skip_to_arg` — the fourth being the one `ZERO-PLAN.md` §4c missed and phase 22
+counted. **Everything else follows from compiling the cut**: move what gcc calls unused,
+compile again, repeat.
+
+The brief's single round is only the first of **five**. The fixpoint takes **15
+functions, 18 objects and 3 enum blocks** — the formatter's whole private island, down to
+`musl_strchr`, `format_typeof` and the eleven `typename_*` strings — where one round
+takes seven things. The stopping rule is `vim_main` and `deathtrap`, the two the **host**
+calls, which are unused above the cut by construction and stay there. Enum blocks are
+found by **counting**, not by compiling: no warning gcc has can see a dead enumerator
+(`CLAUDE.md`).
+
+That is **78,358 lines** in the cut where one round gives 79,079, and it is the right
+answer because **the cut is the deliverable**: shipping 15 dead functions inside it would
+be a defect, and *nothing above the boundary is dead* is now a checkable sentence.
+Measured on the product, the moved island is lines 78,385–79,952 — **1,568 lines** — and
+1,874 lines sit below the cut in all, of which the 280-line host block was already at the
+bottom and did not move.
+
+### There is no `cmp` to be had, so tier 1 moved up a level, onto the source
+
+Every address below the first moved definition moves with it, so the binary cannot be the
+evidence and the phase does not pretend otherwise. What replaces it is `CLAUDE.md`'s tier
+1 **one level up**, stated and checked as a **multiset**:
+
+> not one of the input's 80,197 lines is missing from the output, and the only lines the
+> output adds are the **32** this phase writes — twenty enumerator lines and twelve
+> `static_assert`s — plus three blanks where an emptied paragraph left two.
+
+**A phase that moved code and altered a character of it on the way could not say that.**
+Re-measured independently by sorting both files: 0 lines missing, 35 added, and the 35
+are exactly the 32 and three blanks. 80,197 → 80,232 lines.
+
+The recording answers for the thirty-two: two full recordings, of the binary the phase
+was handed and of its own, **byte-identical across all 106 records**. `nm -u` is the same
+17 names in both directions — **moving a definition inside ONE translation unit frees
+nothing and needs nothing**, because a symbol leaves when its last caller leaves the
+*file* — and `nm --extern-only --defined-only` is still exactly `main`. The claim of this
+phase is structural and not a symbol count.
+
+### The cut's own check is four parts, and three of them are silent in an ordinary build
+
+`awk '/^ *# *include / { exit }'` — one clause, no judgement — gives the prefix, and then:
+
+```
+    0 lines beginning with #                 a #define above the cut gives 1
+    a floor of 70,000 lines                  an #include back at line 1 gives a cut of 0
+    0 errors under -fsyntax-only
+    a warning set EQUAL to the declared boundary
+```
+
+The fourth is the interesting one. The cut's warnings **are** the core → host interface:
+**thirteen names, every one `used but never defined`** — `vim_snprintf`, `host_exit`,
+`host_message` and the ten `musl_*` — computed a second way from the text, as the names
+defined below the cut and mentioned above it, and required to match. Verified here
+independently: 0 errors, 13 warnings, and the cut an exact byte prefix of `zero-vim.c`.
+
+Each of the three mistakes is built both ways in the check, and **each is silent in the
+ordinary build**: a `#define` above the cut, an `#include` back at line 1, and one core
+function — `elapsed` — quietly moved below the boundary, which changes the thirteen by
+exactly its name. Nothing else in this pipeline can see any of them.
+
+### Two corrections, and one of them was in the makefile
+
+**The brief's `static` trap is wrong.** It says a `static` libc prototype above the
+boundary makes the link fail. It does not: gcc gives `<stdlib.h>`'s own declaration
+internal linkage too, warns on **that** line — *'malloc' declared 'static' but never
+defined* — links against libc regardless, and produces a binary `cmp`-identical to the
+product's. So the trap phase 26 caught with a hard error is now a warning, and what
+stands between the core and it is the sweep's rule that the build print **nothing**, plus
+this check's assertion that none of the nine prototypes is `static`.
+
+**And `zero.mk`'s `editor.c` guard was wrong, in a way it could only be once the cut was
+not empty.** It refused if the cut held a `#` of **any** kind — but `#` is an ordinary
+character, and the editor is full of it:
+
+```c
+    enum { CPO_HASH = '#' };
+    if (ptr[0] == '#')
+    "E1281: Atom '\%%#=%c' must be at the start of the pattern"
+    the two latin1 case tables
+```
+
+Measured on the first cut this rule ever produced, **63 lines** hold one and none is a
+directive — so the guard would have refused every valid cut for ever. It is `^ *#` now,
+which is what the rule's own paragraph already said it meant, and it is 0 on the cut and
+11 on the whole file. The agent was told not to touch that file and changed it anyway,
+with the measurement and a flag saying so, which was the right call. **The phase's merge
+commit says 54 lines and the tree says 63**; 63 is the number `zero.mk` and the phase
+commit carry, and the number reproduced here.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 80,197 | **80,232 (+35)** — 32 written, 3 blanks |
+| input lines missing from the output | | **0**, as a multiset |
+| first `#include` | line 1 | **line 78,360** |
+| directives above the first `#include` | 11 | **0** |
+| `make editor.c` | an empty file | **78,358 lines**, 0 directives, 0 errors, 13 warnings |
+| moved below | | 4 va_list functions + 15 functions, 18 objects, 3 enum blocks, 5 rounds |
+| the island's extent | | lines 78,385–79,952, **1,568 lines** |
+| constants written above | 0 | **12 enumerators**, 8 derived and 4 asserted |
+| `static_assert` in the product | 1 | **13** — the `cmdnames[]` one and this phase's twelve |
+| functions | 1,757 | 1,757 |
+| type definitions | 905 | **909** |
+| DWARF enumerators | 1,177 | **1,189 (+12)** |
+| `nm -u` with zero's own flags | 17 | **17, the same set**, a `comm` empty both ways |
+| external symbols | `main` | `main` |
+| `options[]` / `cmdnames[]` / `nv_cmds[]` rows | 107 / 98 / 194 | 107 / 98 / 194 |
+| binary | 788,488 | **788,488 bytes, and not the same bytes** |
+| records that moved | | **0 of 106** |
+| sweep | | takes nothing, canon a no-op |
+| phase | | **64 s**, the longest any zero phase has taken |
+
+### Its placement
+
+`stage 27`, `package boundary`, the last of the four. Its `uses` are
+`boundary:27 seed:0 mechanical` and `boundary:27 harness:3 mechanical`, the evidence
+being a recording; `boundary:27 format:22 mechanical`, because what moves below is **four**
+functions and not eleven only because phase 22 collapsed the seven `va_list` wrappers into
+their call sites; `boundary:27 host:20 mechanical`, the includes landing immediately above
+`host_winch_pending`, the first line of the block phase 20 created and where
+`tools/zhostonly.py` starts reading; and `boundary:27 host:21 mechanical`, the eleven
+directives on the first eleven lines being what phase 21 left, which this edit asserts
+before lifting the block.
+
+`tools/zhostonly.py` gained two named exceptions here and nothing else:
+`<file scope>` now says `SIGHUP` and `SIGTERM` twice each — the core's own
+`enum { SIGHUP = 1 };` and the `static_assert` below the includes that checks it — both
+outside the host region because that region begins at `host_winch_pending` and the
+includes are above it. Measured: the tool passes on the phase's input and on its output,
+and the edit moves **four zero unit keys (20, 21, 25, 26**, the phases whose checks name
+it**) and no whim, whim edit or slim key at all**.
+
+**`apart 26 27` is measured, not predicted**, by running phase 26's check on the tree
+phase 27 leaves: it stops with *"the output is 80232 lines and the input was 80173, a
+difference of 59 where 24 was expected"* and *"the output does not have exactly eleven
+directives on its first eleven lines"* — and behind those, its sixteen `static_assert`s
+and four mismatched declarations **cannot compile at all**, because every one of them
+needs the headers above the core. One direction only: phase 27's own check passes on that
+stage. **There is no `need 27`**, also measured — the edit applied to phase 26's unswept
+output gives a `zero-vim.c` `cmp`-identical to the swept path's, and it asserts no count
+of its input that a sweep could move.
+
+### What zero-vim is after twenty-seven phases
+
+```
+zero-vim.c        80,232 lines          from whim-vim.c's 86,614  (-6,382, 7.4%)
+                  78,358 above the boundary, 1,874 below it
+functions         1,757
+type definitions  909
+DWARF enumerators 1,189
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    107, 95 distinct globals  (orphanopts floor 80; 15 of margin)
+#include          11, at line 78,360, and NOT ONE DIRECTIVE above them
+core -> host      13 names: vim_snprintf, host_exit, host_message, ten musl_*
+libc symbols      17 with zero's flags, 18 as tools/symbols.sh counts
+binary            788,488 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    nothing since phase 11 -- 2 stderr-moved and the records of 4 to 11
+make editor.c     78,358 lines: 0 directives, 0 errors, 13 warnings, all of them
+                  `used but never defined` and all of them the interface
+```
+
+**`ZERO-PLAN.md` §4c is built out.** Its design was one file with two parts and the first
+`#include` as the boundary, and the four phases that draw it are done: 23 replaced the two
+names a header supplied with two the language does, 25 made the two host calls plain, 26
+gave the core its own types and macros, and 27 moved the includes. **Seven phases in a row
+have declared nothing** — 21 through 27 — and among them are five distinct kinds of
+evidence: the code runs and the instrument sees it (21, 25, 26's clock), the instrument is
+nearly blind and 263 probes stand in (22), the binary is the same bytes (23, 24), six of
+seven changes are a `cmp` and one is a recording (26), and the source is the same lines
+rearranged (27). The last is new, and it is the one a pipeline needs the day it starts
+moving code rather than deleting it.
