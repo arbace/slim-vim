@@ -434,9 +434,7 @@ enum { INC3 = 27 };
 enum { INC2 = 40 };
 enum { TERMCODE_GAP = 2 };
 enum { ME_UNKNOWN_OPTION = 0 };
-enum { ME_ARG_MISSING = 1 };
-enum { ME_GARBAGE = 2 };
-enum { ME_EXTRA_CMD = 3 };
+enum { ME_EXTRA_CMD = 1 };
 
 enum { VIM_SIZEOF_INT = 4 };
 
@@ -2333,7 +2331,6 @@ typedef struct
     char_u      cmds_tofree[MAX_ARG_CMDS];
 
     int         want_full_screen;
-    char_u      *term;
 
 } mparm_T;
 
@@ -2923,7 +2920,6 @@ static int work_pending(void);
 static void may_trigger_deferred_events(void);
 static void main_loop(int cmdwin);
 static void getout(int exitval);
-static void mainerr_arg_missing(char_u *str);
 
 static mapblock_T *get_maphash_list(int state, int c);
 static mapblock_T *get_buf_maphash_list(int state, int c);
@@ -70042,23 +70038,13 @@ report_term_error(char *error_msg, char_u *term)
 
     if (error_msg != nullptr)
     {
-        vim_snprintf(buf, sizeof(buf), "\r\n%s\r\n'%s%s\r\n", error_msg, (char *)term, _("' not known, defaulting to 'xterm-256color'"));
+        vim_snprintf(buf, sizeof(buf), "\r\n%s\r\n'%s%s\r\n", error_msg, (char *)term, _("' not known"));
     }
     else
     {
-        vim_snprintf(buf, sizeof(buf), "\r\n'%s%s\r\n", (char *)term, _("' not known, defaulting to 'xterm-256color'"));
+        vim_snprintf(buf, sizeof(buf), "\r\n'%s%s\r\n", (char *)term, _("' not known"));
     }
     host_message(buf, -1, TRUE);
-}
-
-    static void
-report_default_term(char_u *term)
-{
-    if (emsg_silent == 0 && !in_assert_fails)
-    {
-        screen_start();
-        out_flush();
-    }
 }
 
     static keyprot_T
@@ -70135,7 +70121,6 @@ set_termname(char_u *term)
     char        *error_msg = nullptr;
     char_u *bs_p;
     char_u *del_p;
-    char_u      *requested = term;
 
     detected_8bit = FALSE;
 
@@ -70150,21 +70135,15 @@ set_termname(char_u *term)
             {
                 report_term_error(error_msg, term);
 
-                if (starting != NO_SCREEN)
-                {
-                    screen_start();
-                    wait_return(TRUE);
-                    return FAIL;
-                }
-                term =  (char_u *)"xterm-256color" ;
-                report_default_term(term);
-                set_string_option_direct((char_u *)"term", -1, term, OPT_FREE, 0);
+                screen_start();
+                wait_return(TRUE);
+                return FAIL;
             }
             out_flush();
                 clear_termoptions();
             parse_builtin_tcap(term);
 
-            if (musl_strstr((char *)requested, "256color") != nullptr && (term_strings_not_set(KS_CCO) || musl_atoi((char *) ( term_strings[(int)(KS_CCO)] ) ) < 256))
+            if (musl_strstr((char *)term, "256color") != nullptr && (term_strings_not_set(KS_CCO) || musl_atoi((char *) ( term_strings[(int)(KS_CCO)] ) ) < 256))
             {
                 apply_builtin_tcap(term, builtin_256colors, TRUE);
             }
@@ -70404,19 +70383,10 @@ tgoto(char *cm, int x, int y)
 }
 
     static void
-termcapinit(char_u *name)
+termcapinit(void)
 {
-    char_u      *term = name;
+    char_u      *term = (char_u *)"xterm-256color" ;
 
-    if (term != nullptr && *term == NUL)
-    {
-        term = nullptr;
-    }
-
-    if (term == nullptr || *term == NUL)
-    {
-        term =  (char_u *)"xterm-256color" ;
-    }
     set_string_option_direct((char_u *)"term", -1, term, OPT_FREE, 0);
 
     set_string_default("term", term);
@@ -77230,8 +77200,6 @@ static void exe_commands(mparm_T *parmp);
 static char *(main_errors[]) =
 {
      "Unknown option argument" ,
-     "Argument missing after" ,
-     "Garbage after option argument" ,
      "Too many \"+command\", \"-c command\" or \"--cmd command\" arguments" ,
      "Invalid argument for" ,
 };
@@ -77559,8 +77527,6 @@ command_line_scan(mparm_T *parmp)
     int         argc = parmp->argc;
     char        **argv = parmp->argv;
     int         argv_idx;
-    int         want_argument;
-    int         c;
 
     --argc;
     ++argv;
@@ -77581,45 +77547,6 @@ command_line_scan(mparm_T *parmp)
             else
             {
                 parmp->commands[parmp->n_commands++] = (char_u *)&(argv[0][1]);
-            }
-        }
-
-        else if (argv[0][0] == '-')
-        {
-            want_argument = FALSE;
-            c = argv[0][argv_idx++];
-            switch (c)
-            {
-            case 'T':
-                want_argument = TRUE;
-                break;
-
-            default:
-                mainerr(ME_UNKNOWN_OPTION, (char_u *)argv[0]);
-            }
-
-            if (want_argument)
-            {
-                if (argv[0][argv_idx] != NUL)
-                {
-                    mainerr(ME_GARBAGE, (char_u *)argv[0]);
-                }
-
-                --argc;
-                if (argc < 1)
-                {
-                    mainerr_arg_missing((char_u *)argv[0]);
-                }
-                ++argv;
-                argv_idx = -1;
-
-                switch (c)
-                {
-                case 'T':
-                        parmp->term = (char_u *)argv[0];
-                    break;
-
-                }
             }
         }
 
@@ -77704,12 +77631,6 @@ mainerr(int         n, char_u      *str)
     mch_exit(1);
 }
 
-    static void
-mainerr_arg_missing(char_u *str)
-{
-    mainerr(ME_ARG_MISSING, str);
-}
-
     static int
 vim_main(int argc, char **argv)
 {
@@ -77731,7 +77652,7 @@ vim_main(int argc, char **argv)
 
     if (params.want_full_screen)
     {
-        termcapinit(params.term);
+        termcapinit();
         screen_start();
     }
 
