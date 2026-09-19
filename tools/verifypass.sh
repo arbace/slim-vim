@@ -58,8 +58,23 @@ if [ "${1:-}" = "--one" ]; then
     d=$scratch/$TAG$u
     res=$scratch/$TAG$u.result
     mkdir -p "$d/.reference" "$d/.cache"
-    ln -s "$root/tools" "$d/tools"
-    ln -s "$root/pipes" "$d/pipes"
+    # tools/ and pipes/ are the code that RUNS, and they come from a snapshot the
+    # parent took once, never from the live tree.  `sh` reads a script by byte
+    # offset as it executes it, so rewriting one IN PLACE while a check is running
+    # makes the shell resume at a stale offset in new content -- and every unit
+    # used to symlink the one live pipes/, so a single edit could reach 36 running
+    # checks at once.  Measured, and the quiet case is the reason this matters:
+    # a tear landing mid-token gives `syntax error: unexpected "("` at a line that
+    # exists in neither version, but a tear landing at a command boundary in a
+    # SHORTER file just ends the script -- 10 truncation points out of 10 exited
+    # ZERO, with nothing printed and the remaining assertions never run.  A check
+    # that reports success without executing its assertions is the failure this
+    # whole construct exists to prevent.  git is not the hazard: it writes by
+    # atomic rename, so a running shell keeps its fd on the old inode and reads it
+    # to the end (measured, both ways).  In-place writers are -- an editor saving
+    # over a file, `sed -i` without a temp, a `cp` onto the original.
+    ln -s "$scratch/.src/tools" "$d/tools"
+    ln -s "$scratch/.src/pipes" "$d/pipes"
     ln -s "$root/.reference/baselines" "$d/.reference/baselines"
     # The whim pipeline's declared input, which its phase 0 compares the seed
     # against by name, and, for zero only, zero's.  Read-only, like everything else
@@ -82,8 +97,27 @@ if [ "${1:-}" = "--one" ]; then
             exit 0
         fi
         rm -f in.tar
-        if ! tools/phaserun.sh "$PIPE" "$u" "$PWORK" > log 2>&1; then
-            echo "$TAG$u FAILED $(( $(date +%s) - start ))s -- $d/log" > "$res"
+        # The status is REPORTED and not merely tested.  A unit killed by a
+        # signal, one whose script was torn by a concurrent rewrite, and one
+        # whose assertion genuinely failed are three different events, and
+        # `if ! ...` renders all three as the same word.  128+N is a signal
+        # (137 SIGKILL, 141 SIGPIPE), 2 is a shell syntax error -- which here
+        # means the check was rewritten while it ran, since every unit symlinks
+        # the one pipes/ directory -- and 1 is usually the check saying no.
+        # A log that simply ends with nothing after it is the case this exists
+        # for: without the number there is nothing to tell those apart.
+        if tools/phaserun.sh "$PIPE" "$u" "$PWORK" > log 2>&1; then
+            rc=0
+        else
+            rc=$?
+        fi
+        if [ "$rc" != 0 ]; then
+            case $rc in
+                2)   why=' (rc 2: shell syntax -- a torn read?)' ;;
+                13[0-9]|14[0-9]) why=" (rc $rc: killed by signal $((rc - 128)))" ;;
+                *)   why=" (rc $rc)" ;;
+            esac
+            echo "$TAG$u FAILED $(( $(date +%s) - start ))s$why -- $d/log" > "$res"
             exit 0
         fi
         tools/snapshot.sh "$PWORK" out.tar out.sha256 >/dev/null
@@ -108,6 +142,14 @@ jobs=${JOBS:-$(nproc)}
 UNITS=$(tools/stages.sh "$PIPE")
 if [ $# -gt 0 ]; then UNITS=$*; fi
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/verifypass-$PIPE.XXXXXX")
+# One snapshot of the code, taken before any unit starts, that every unit links
+# to instead of the live tree -- see the note beside those links above.  4 MB and
+# a fraction of a second against a run of minutes, and it makes the whole verify
+# a function of the tree as it was when the run began rather than of whatever the
+# working tree happens to be while it executes.
+mkdir -p "$scratch/.src"
+cp -a tools "$scratch/.src/tools"
+cp -a pipes "$scratch/.src/pipes"
 start=$(date +%s)
 n=0; for _p in $UNITS; do n=$((n + 1)); done
 printf '  %-12s %d units of %s, %d at a time, in %s\n' "verifypass" "$n" "$PIPE" "$jobs" "$scratch"
