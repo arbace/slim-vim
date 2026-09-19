@@ -405,7 +405,6 @@ musl_qsort(void *base, usize nel, usize width, int (*cmp)(const void *, const vo
 static int musl_towupper(int a);
 static int musl_towlower(int a);
 
-enum { BH_LOCKED = 2 };
 enum { CMOD_SILENT = 0x0002 };
 enum { CMOD_ERRSILENT = 0x0004 };
 enum { CMOD_UNSILENT = 0x0008 };
@@ -1473,15 +1472,10 @@ enum { UH_CHANGED = 0x01 };
 enum { UH_EMPTYBUF = 0x02 };
 
 typedef struct block_hdr    bhdr_T;
-typedef struct memfile      memfile_T;
 
 struct block_hdr
 {
-    bhdr_T      *bh_next;
-    bhdr_T      *bh_prev;
-    char_u      *bh_data;
-
-    char        bh_flags;
+    short_u     bh_id;
 };
 
 typedef struct buffblock buffblock_T;
@@ -1563,12 +1557,6 @@ typedef struct
     int         cmod_did_esilent;
 } cmdmod_T;
 
-struct memfile
-{
-    bhdr_T      *mf_used_first;
-    unsigned    mf_page_size;
-};
-
 typedef struct info_pointer
 {
     bhdr_T      *ip_block;
@@ -1581,7 +1569,6 @@ typedef struct memline
 {
     linenr_T    ml_line_count;
 
-    memfile_T   *ml_mfp;
     bhdr_T      *ml_root;
 
     infoptr_T   *ml_stack;
@@ -3883,7 +3870,6 @@ static char e_abbreviation_already_exists_for_str[]  =  "E226: Abbreviation alre
 static char e_mapping_already_exists_for_str[]  =  "E227: Mapping already exists for %s"  ;
 static char e_no_marks_matching_str[]  =  "E283: No marks matching \"%s\""  ;
 static char e_invalid_count_for_del_bytes_nr[]  = "E292: Invalid count for del_bytes(): %ld" ;
-static char e_block_was_not_locked[]  = "E293: Block was not locked" ;
 static char e_ml_get_invalid_lnum_nr[]  = "E315: ml_get: Invalid lnum: %ld" ;
 static char e_ml_get_cannot_find_line_nr_in_buffer_nr_str[]  = "E316: ml_get: Cannot find line %ld in buffer %d %s" ;
 static char e_pointer_block_id_wrong[]  = "E317: Pointer block id wrong" ;
@@ -4349,7 +4335,7 @@ open_buffer(void)
         return retval;
     }
 
-    if (bufref_valid(&old_curbuf) && old_curbuf.br_buf->b_ml.ml_mfp != nullptr)
+    if (bufref_valid(&old_curbuf) && old_curbuf.br_buf->b_ml.ml_root != nullptr)
     {
         curbuf->b_flags &= ~(BF_CHECK_RO | BF_NEVERLOADED);
     }
@@ -4505,7 +4491,7 @@ buf_clear_file(buf_T *buf)
     buf->b_ml.ml_line_count = 1;
     unchanged(buf, TRUE, TRUE);
     buf->b_shortname = false;
-    buf->b_ml.ml_mfp = nullptr;
+    buf->b_ml.ml_root = nullptr;
     buf->b_ml.ml_flags = ML_EMPTY;
 }
 
@@ -4518,7 +4504,7 @@ buf_freeall(buf_T *buf, int flags)
     ++buf->b_locked;
     ++buf->b_locked_split;
     set_bufref(&bufref, buf);
-    if (buf->b_ml.ml_mfp != nullptr)
+    if (buf->b_ml.ml_root != nullptr)
     {
     }
     if (flags & BFA_WIPE)
@@ -4612,7 +4598,7 @@ free_wininfo(wininfo_T *wip)
     static int
 curbuf_reusable(void)
 {
-    return (curbuf != nullptr && curbuf->b_nwindows <= 1 && (curbuf->b_ml.ml_mfp == nullptr ||  (curbuf->b_ml.ml_line_count == 1 && *ml_get((linenr_T)1) == NUL) ) && !curbufIsChanged());
+    return (curbuf != nullptr && curbuf->b_nwindows <= 1 && (curbuf->b_ml.ml_root == nullptr ||  (curbuf->b_ml.ml_line_count == 1 && *ml_get((linenr_T)1) == NUL) ) && !curbufIsChanged());
 }
 
     static buf_T *
@@ -14172,7 +14158,7 @@ ins_ctrl_ey(int tc)
     static colnr_T
 get_nolist_virtcol(void)
 {
-    if (curwin->w_buffer == nullptr || curwin->w_buffer->b_ml.ml_mfp == nullptr || curwin->w_cursor.lnum > curwin->w_buffer->b_ml.ml_line_count)
+    if (curwin->w_buffer == nullptr || curwin->w_buffer->b_ml.ml_root == nullptr || curwin->w_cursor.lnum > curwin->w_buffer->b_ml.ml_line_count)
     {
         return 0;
     }
@@ -32919,151 +32905,6 @@ mb_fix_col(int col, int row)
     return col;
 }
 
-enum { MEMFILE_PAGE_SIZE = 4096 };
-
-static void mf_ins_used(memfile_T *, bhdr_T *);
-static void mf_rem_used(memfile_T *, bhdr_T *);
-static bhdr_T *mf_alloc_bhdr(memfile_T *, int);
-static void mf_free_bhdr(bhdr_T *);
-
-    static memfile_T *
-mf_open(void)
-{
-    memfile_T           *mfp;
-
-    if ((mfp =  (memfile_T *)alloc(sizeof(memfile_T)) ) == nullptr)
-    {
-        return nullptr;
-    }
-
-    mfp->mf_used_first = nullptr;
-    mfp->mf_page_size = MEMFILE_PAGE_SIZE;
-
-    return mfp;
-}
-
-    static void
-mf_close(memfile_T *mfp, int del_file)
-{
-    bhdr_T *hp;
-    bhdr_T *nextp;
-
-    if (mfp == nullptr)
-    {
-        return;
-    }
-    for (hp = mfp->mf_used_first; hp != nullptr; hp = nextp)
-    {
-        nextp = hp->bh_next;
-        mf_free_bhdr(hp);
-    }
-    vim_free(mfp);
-}
-
-    static bhdr_T *
-mf_new(memfile_T *mfp, int page_count)
-{
-    bhdr_T      *hp;
-
-    if ((hp = mf_alloc_bhdr(mfp, page_count)) == nullptr)
-    {
-        return nullptr;
-    }
-    hp->bh_flags = BH_LOCKED;
-    mf_ins_used(mfp, hp);
-
-    (void) musl_memset(((char *)(hp->bh_data)), (0), ((usize)mfp->mf_page_size * page_count)) ;
-
-    return hp;
-}
-
-    static bhdr_T *
-mf_get(memfile_T *mfp, bhdr_T *hp)
-{
-    if (hp == nullptr)
-    {
-        return nullptr;
-    }
-
-    mf_rem_used(mfp, hp);
-
-    hp->bh_flags |= BH_LOCKED;
-    mf_ins_used(mfp, hp);
-
-    return hp;
-}
-
-    static void
-mf_put(bhdr_T *hp)
-{
-    if ((hp->bh_flags & BH_LOCKED) == 0)
-    {
-        iemsg(e_block_was_not_locked);
-    }
-    hp->bh_flags &= ~BH_LOCKED;
-}
-
-    static void
-mf_free(memfile_T *mfp, bhdr_T *hp)
-{
-    mf_rem_used(mfp, hp);
-    mf_free_bhdr(hp);
-}
-
-    static void
-mf_ins_used(memfile_T *mfp, bhdr_T *hp)
-{
-    hp->bh_next = mfp->mf_used_first;
-    mfp->mf_used_first = hp;
-    hp->bh_prev = nullptr;
-    if (hp->bh_next != nullptr)
-    {
-        hp->bh_next->bh_prev = hp;
-    }
-}
-
-    static void
-mf_rem_used(memfile_T *mfp, bhdr_T *hp)
-{
-    if (hp->bh_next != nullptr)
-    {
-        hp->bh_next->bh_prev = hp->bh_prev;
-    }
-    if (hp->bh_prev == nullptr)
-    {
-        mfp->mf_used_first = hp->bh_next;
-    }
-    else
-    {
-        hp->bh_prev->bh_next = hp->bh_next;
-    }
-}
-
-    static bhdr_T *
-mf_alloc_bhdr(memfile_T *mfp, int page_count)
-{
-    bhdr_T      *hp;
-
-    if ((hp =  (bhdr_T *)alloc(sizeof(bhdr_T)) ) == nullptr)
-    {
-        return nullptr;
-    }
-
-    if ((hp->bh_data = alloc((usize)mfp->mf_page_size * page_count)) == nullptr)
-    {
-        vim_free(hp);
-        return nullptr;
-    }
-    return hp;
-}
-
-    static void
-mf_free_bhdr(bhdr_T *hp)
-{
-    vim_free(hp->bh_data);
-    vim_free(hp);
-}
-
 typedef struct pointer_block    PTR_BL;
 typedef struct data_block       DATA_BL;
 typedef struct data_line        DATA_LN;
@@ -33075,12 +32916,13 @@ struct pointer_entry
     linenr_T    pe_line_count;
 };
 
+enum { PB_COUNT_MAX = 255 };
+
 struct pointer_block
 {
-    short_u     pb_id;
+    bhdr_T      pb_hdr;
     short_u     pb_count;
-    short_u     pb_count_max;
-    PTR_EN      pb_pointer[1];
+    PTR_EN      pb_pointer[PB_COUNT_MAX];
 };
 
 enum { DB_LINE_MAX = 64 };
@@ -33094,12 +32936,14 @@ struct data_line
 
 struct data_block
 {
-    short_u     db_id;
+    bhdr_T      db_hdr;
     linenr_T    db_line_count;
     DATA_LN     db_line[DB_LINE_MAX];
 };
 
-static_assert(sizeof(DATA_BL) <= MEMFILE_PAGE_SIZE, "a leaf is one memfile page");
+static_assert(sizeof(PTR_EN) == 16, "a pointer entry is one node reference and one line count");
+static_assert(PB_COUNT_MAX == (4096 - 8) / sizeof(PTR_EN), "the fanout the 4096-byte page gave, kept when the page went");
+static_assert(sizeof(DATA_BL) == 16 + DB_LINE_MAX * sizeof(DATA_LN), "a leaf is its tag, its count and its records");
 
 enum { STACK_INCR = 5 };
 
@@ -33111,11 +32955,32 @@ enum { ML_FIND = 0x13 };
 enum { ML_FLUSH = 0x02 };
 
 static void ml_flush_line(buf_T *);
-static bhdr_T *ml_new_data(memfile_T *);
-static bhdr_T *ml_new_ptr(memfile_T *);
+static bhdr_T *ml_new_data(void);
+static bhdr_T *ml_new_ptr(void);
 static bhdr_T *ml_find_line(buf_T *, linenr_T, int);
 static int ml_add_stack(buf_T *);
 static void ml_lineadd(buf_T *, int);
+
+    static void
+ml_free_tree(bhdr_T *hp)
+{
+    PTR_BL      *pp;
+    int         i;
+
+    if (hp == nullptr)
+    {
+        return;
+    }
+    if (hp->bh_id == (('p' << 8) + 't'))
+    {
+        pp = (PTR_BL *)(hp);
+        for (i = 0; i < (int)pp->pb_count; ++i)
+        {
+            ml_free_tree(pp->pb_pointer[i].pe_block);
+        }
+    }
+    vim_free(hp);
+}
 
     static char_u *
 ml_alloc_line(char_u *line, colnr_T len)
@@ -33134,7 +32999,6 @@ ml_alloc_line(char_u *line, colnr_T len)
     static int
 ml_open(buf_T *buf)
 {
-    memfile_T   *mfp;
     bhdr_T      *hp = nullptr;
     PTR_BL      *pp;
     DATA_BL     *dp;
@@ -33146,33 +33010,25 @@ ml_open(buf_T *buf)
     buf->b_ml.ml_locked = nullptr;
     buf->b_ml.ml_line_lnum = 0;
 
-    mfp = mf_open();
-    if (mfp == nullptr)
-    {
-        goto error;
-    }
-
-    buf->b_ml.ml_mfp = mfp;
     buf->b_ml.ml_flags = ML_EMPTY;
     buf->b_ml.ml_line_count = 1;
 
-    if ((hp = ml_new_ptr(mfp)) == nullptr)
+    if ((hp = ml_new_ptr()) == nullptr)
     {
         goto error;
     }
     buf->b_ml.ml_root = hp;
-    pp = (PTR_BL *)(hp->bh_data);
+    pp = (PTR_BL *)(hp);
     pp->pb_count = 1;
     pp->pb_pointer[0].pe_line_count = 1;
-    mf_put(hp);
 
-    if ((hp = ml_new_data(mfp)) == nullptr)
+    if ((hp = ml_new_data()) == nullptr)
     {
         goto error;
     }
-    ((PTR_BL *)(buf->b_ml.ml_root->bh_data))->pb_pointer[0].pe_block = hp;
+    ((PTR_BL *)(buf->b_ml.ml_root))->pb_pointer[0].pe_block = hp;
 
-    dp = (DATA_BL *)(hp->bh_data);
+    dp = (DATA_BL *)(hp);
     dp->db_line[0].dl_text = ml_alloc_line((char_u *)"", 1);
     if (dp->db_line[0].dl_text == nullptr)
     {
@@ -33184,32 +33040,25 @@ ml_open(buf_T *buf)
     return OK;
 
 error:
-    if (mfp != nullptr)
-    {
-        if (hp)
-        {
-            mf_put(hp);
-        }
-        mf_close(mfp, TRUE);
-    }
-    buf->b_ml.ml_mfp = nullptr;
+    ml_free_tree(buf->b_ml.ml_root);
+    buf->b_ml.ml_root = nullptr;
     return FAIL;
 }
 
     static void
 ml_close(buf_T *buf, int del_file)
 {
-    if (buf->b_ml.ml_mfp == nullptr)
+    if (buf->b_ml.ml_root == nullptr)
     {
         return;
     }
-    mf_close(buf->b_ml.ml_mfp, del_file);
+    ml_free_tree(buf->b_ml.ml_root);
     if (buf->b_ml.ml_line_lnum != 0 && (buf->b_ml.ml_flags & (ML_LINE_DIRTY | ML_ALLOCATED)))
     {
         vim_free(buf->b_ml.ml_line_ptr);
     }
     vim_free(buf->b_ml.ml_stack);
-    buf->b_ml.ml_mfp = nullptr;
+    buf->b_ml.ml_root = nullptr;
 
     buf->b_flags &= ~BF_RECOVERED;
 }
@@ -33330,7 +33179,7 @@ errorret:
         lnum = 1;
     }
 
-    if (buf->b_ml.ml_mfp == nullptr)
+    if (buf->b_ml.ml_root == nullptr)
     {
         buf->b_ml.ml_line_len = 1;
         buf->b_ml.ml_line_textlen = buf->b_ml.ml_line_len;
@@ -33357,7 +33206,7 @@ errorret:
             goto errorret;
         }
 
-        dp = (DATA_BL *)(hp->bh_data);
+        dp = (DATA_BL *)(hp);
 
         idx = lnum - buf->b_ml.ml_locked_low;
 
@@ -33388,16 +33237,14 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
     int         i;
     int         line_count;
     char_u      *text;
-    int         page_size;
     int         db_idx;
     bhdr_T      *hp;
-    memfile_T   *mfp;
     DATA_BL     *dp;
     PTR_BL      *pp;
     infoptr_T   *ip;
     int         ret = FAIL;
 
-    if (lnum > buf->b_ml.ml_line_count || buf->b_ml.ml_mfp == nullptr)
+    if (lnum > buf->b_ml.ml_line_count || buf->b_ml.ml_root == nullptr)
     {
         return FAIL;
     }
@@ -33418,9 +33265,6 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         goto theend;
     }
 
-    mfp = buf->b_ml.ml_mfp;
-    page_size = mfp->mf_page_size;
-
     if ((hp = ml_find_line(buf, lnum == 0 ? (linenr_T)1 : lnum, ML_INSERT)) == nullptr)
     {
         goto theend;
@@ -33438,7 +33282,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
     }
     line_count = buf->b_ml.ml_locked_high - buf->b_ml.ml_locked_low;
 
-    dp = (DATA_BL *)(hp->bh_data);
+    dp = (DATA_BL *)(hp);
 
     if (dp->db_line_count >= DB_LINE_MAX && db_idx == line_count - 1 && lnum < buf->b_ml.ml_line_count)
     {
@@ -33452,7 +33296,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         db_idx = -1;
         line_count = buf->b_ml.ml_locked_high - buf->b_ml.ml_locked_low;
 
-        dp = (DATA_BL *)(hp->bh_data);
+        dp = (DATA_BL *)(hp);
     }
 
     ++buf->b_ml.ml_line_count;
@@ -33499,7 +33343,7 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             in_left = (lines_moved != 0);
         }
 
-        if ((hp_new = ml_new_data(mfp)) == nullptr)
+        if ((hp_new = ml_new_data()) == nullptr)
         {
             --(buf->b_ml.ml_locked_lineadd);
             --(buf->b_ml.ml_locked_high);
@@ -33519,8 +33363,8 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             line_count_left = line_count;
             line_count_right = 0;
         }
-        dp_right = (DATA_BL *)(hp_right->bh_data);
-        dp_left = (DATA_BL *)(hp_left->bh_data);
+        dp_right = (DATA_BL *)(hp_right);
+        dp_left = (DATA_BL *)(hp_left);
         bp_left = hp_left;
         bp_right = hp_right;
 
@@ -33549,8 +33393,6 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         dp_left->db_line_count = line_count_left;
         dp_right->db_line_count = line_count_right;
 
-        mf_put(hp_new);
-
         lineadd = buf->b_ml.ml_locked_lineadd;
         buf->b_ml.ml_locked_lineadd = 0;
         ml_find_line(buf, (linenr_T)0, ML_FLUSH);
@@ -33559,18 +33401,14 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
         {
             ip = &(buf->b_ml.ml_stack[stack_idx]);
             pb_idx = ip->ip_index;
-            if ((hp = mf_get(mfp, ip->ip_block)) == nullptr)
-            {
-                goto theend;
-            }
-            pp = (PTR_BL *)(hp->bh_data);
-            if (pp->pb_id !=  (('p' << 8) + 't') )
+            hp = ip->ip_block;
+            pp = (PTR_BL *)(hp);
+            if (hp->bh_id !=  (('p' << 8) + 't') )
             {
                 iemsg(e_pointer_block_id_wrong_three);
-                mf_put(hp);
                 goto theend;
             }
-            if (pp->pb_count < pp->pb_count_max)
+            if (pp->pb_count < PB_COUNT_MAX)
             {
                 if (pb_idx + 1 < (int)pp->pb_count)
                 {
@@ -33582,7 +33420,6 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
                 pp->pb_pointer[pb_idx + 1].pe_line_count = line_count_right;
                 pp->pb_pointer[pb_idx + 1].pe_block = bp_right;
 
-                mf_put(hp);
                 buf->b_ml.ml_stack_top = stack_idx + 1;
 
                 if (lineadd)
@@ -33598,23 +33435,23 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
             }
             for (;;)
             {
-                hp_new = ml_new_ptr(mfp);
+                hp_new = ml_new_ptr();
                 if (hp_new == nullptr)
                 {
                     goto theend;
                 }
-                pp_new = (PTR_BL *)(hp_new->bh_data);
+                pp_new = (PTR_BL *)(hp_new);
 
                 if (hp != buf->b_ml.ml_root)
                 {
                     break;
                 }
 
-                 musl_memmove((char *)(pp_new), (char *)(pp), (usize)page_size) ;
+                pp_new->pb_count = pp->pb_count;
+                 musl_memmove((char *)(&pp_new->pb_pointer[0]), (char *)(&pp->pb_pointer[0]), (usize)pp->pb_count * sizeof(PTR_EN)) ;
                 pp->pb_count = 1;
                 pp->pb_pointer[0].pe_block = hp_new;
                 pp->pb_pointer[0].pe_line_count = buf->b_ml.ml_line_count;
-                mf_put(hp);
                 hp = hp_new;
                 pp = pp_new;
                 ip->ip_index = 0;
@@ -33651,8 +33488,6 @@ ml_append_int(buf_T       *buf, linenr_T    lnum, char_u      *line_arg, colnr_T
 
             bp_left = hp;
             bp_right = hp_new;
-            mf_put(hp);
-            mf_put(hp_new);
 
         }
 
@@ -33694,7 +33529,7 @@ ml_append(linenr_T    lnum, char_u      *line, colnr_T     len)
     static int
 ml_append_flags(linenr_T    lnum, char_u      *line, colnr_T     len, int         flags)
 {
-    if (curbuf->b_ml.ml_mfp == nullptr && open_buffer() == FAIL)
+    if (curbuf->b_ml.ml_root == nullptr && open_buffer() == FAIL)
     {
         return FAIL;
     }
@@ -33724,7 +33559,7 @@ ml_replace_len(linenr_T    lnum, char_u      *line_arg, colnr_T     len_arg, int
         return FAIL;
     }
 
-    if (curbuf->b_ml.ml_mfp == nullptr && open_buffer() == FAIL)
+    if (curbuf->b_ml.ml_root == nullptr && open_buffer() == FAIL)
     {
         return FAIL;
     }
@@ -33766,7 +33601,6 @@ ml_replace_len(linenr_T    lnum, char_u      *line_arg, colnr_T     len_arg, int
 ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
 {
     bhdr_T      *hp;
-    memfile_T   *mfp;
     DATA_BL     *dp;
     PTR_BL      *pp;
     infoptr_T   *ip;
@@ -33794,8 +33628,7 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
         return i;
     }
 
-    mfp = buf->b_ml.ml_mfp;
-    if (mfp == nullptr)
+    if (buf->b_ml.ml_root == nullptr)
     {
         return FAIL;
     }
@@ -33805,7 +33638,7 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
         return FAIL;
     }
 
-    dp = (DATA_BL *)(hp->bh_data);
+    dp = (DATA_BL *)(hp);
     count = (long)(buf->b_ml.ml_locked_high)
                                         - (long)(buf->b_ml.ml_locked_low) + 2;
     idx = lnum - buf->b_ml.ml_locked_low;
@@ -33814,7 +33647,7 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
 
     if (count == 1)
     {
-        mf_free(mfp, hp);
+        vim_free(hp);
         buf->b_ml.ml_locked = nullptr;
 
         for (stack_idx = buf->b_ml.ml_stack_top - 1; stack_idx >= 0; --stack_idx)
@@ -33822,21 +33655,17 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
             buf->b_ml.ml_stack_top = 0;
             ip = &(buf->b_ml.ml_stack[stack_idx]);
             idx = ip->ip_index;
-            if ((hp = mf_get(mfp, ip->ip_block)) == nullptr)
-            {
-                goto theend;
-            }
-            pp = (PTR_BL *)(hp->bh_data);
-            if (pp->pb_id !=  (('p' << 8) + 't') )
+            hp = ip->ip_block;
+            pp = (PTR_BL *)(hp);
+            if (hp->bh_id !=  (('p' << 8) + 't') )
             {
                 iemsg(e_pointer_block_id_wrong_four);
-                mf_put(hp);
                 goto theend;
             }
             count = --(pp->pb_count);
             if (count == 0)
             {
-                mf_free(mfp, hp);
+                vim_free(hp);
             }
             else
             {
@@ -33844,7 +33673,6 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
                 {
                      musl_memmove((char *)(&pp->pb_pointer[idx]), (char *)(&pp->pb_pointer[idx + 1]), (usize)(count - idx) * sizeof(PTR_EN)) ;
                 }
-                mf_put(hp);
 
                 buf->b_ml.ml_stack_top = stack_idx;
                 if (buf->b_ml.ml_locked_lineadd != 0)
@@ -33898,7 +33726,7 @@ ml_setmarked(linenr_T lnum)
 {
     bhdr_T    *hp;
     DATA_BL *dp;
-    if (lnum < 1 || lnum > curbuf->b_ml.ml_line_count || curbuf->b_ml.ml_mfp == nullptr)
+    if (lnum < 1 || lnum > curbuf->b_ml.ml_line_count || curbuf->b_ml.ml_root == nullptr)
     {
         return;
     }
@@ -33913,7 +33741,7 @@ ml_setmarked(linenr_T lnum)
         return;
     }
 
-    dp = (DATA_BL *)(hp->bh_data);
+    dp = (DATA_BL *)(hp);
     dp->db_line[lnum - curbuf->b_ml.ml_locked_low].dl_marked = TRUE;
 }
 
@@ -33925,7 +33753,7 @@ ml_firstmarked(void)
     linenr_T    lnum;
     int         i;
 
-    if (curbuf->b_ml.ml_mfp == nullptr)
+    if (curbuf->b_ml.ml_root == nullptr)
     {
         return (linenr_T) 0;
     }
@@ -33937,7 +33765,7 @@ ml_firstmarked(void)
             return (linenr_T)0;
         }
 
-        dp = (DATA_BL *)(hp->bh_data);
+        dp = (DATA_BL *)(hp);
 
         for (i = lnum - curbuf->b_ml.ml_locked_low; lnum <= curbuf->b_ml.ml_locked_high; ++i, ++lnum)
         {
@@ -33961,7 +33789,7 @@ ml_clearmarked(void)
     linenr_T    lnum;
     int         i;
 
-    if (curbuf->b_ml.ml_mfp == nullptr)
+    if (curbuf->b_ml.ml_root == nullptr)
     {
         return;
     }
@@ -33973,7 +33801,7 @@ ml_clearmarked(void)
             return;
         }
 
-        dp = (DATA_BL *)(hp->bh_data);
+        dp = (DATA_BL *)(hp);
 
         for (i = lnum - curbuf->b_ml.ml_locked_low; lnum <= curbuf->b_ml.ml_locked_high; ++i, ++lnum)
         {
@@ -33997,7 +33825,7 @@ ml_flush_line(buf_T *buf)
     int         idx;
     static int  entered = FALSE;
 
-    if (buf->b_ml.ml_line_lnum == 0 || buf->b_ml.ml_mfp == nullptr)
+    if (buf->b_ml.ml_line_lnum == 0 || buf->b_ml.ml_root == nullptr)
     {
         return;
     }
@@ -34021,7 +33849,7 @@ ml_flush_line(buf_T *buf)
         }
         else
         {
-            dp = (DATA_BL *)(hp->bh_data);
+            dp = (DATA_BL *)(hp);
             idx = lnum - buf->b_ml.ml_locked_low;
 
             dp->db_line[idx].dl_text = new_line;
@@ -34039,58 +33867,51 @@ ml_flush_line(buf_T *buf)
 }
 
     static bhdr_T *
-ml_new_data(memfile_T *mfp)
+ml_new_data(void)
 {
-    bhdr_T      *hp;
     DATA_BL     *dp;
 
-    if ((hp = mf_new(mfp, 1)) == nullptr)
+    dp =  (DATA_BL *)alloc_clear(sizeof(DATA_BL)) ;
+    if (dp == nullptr)
     {
         return nullptr;
     }
 
-    dp = (DATA_BL *)(hp->bh_data);
-    dp->db_id =  (('d' << 8) + 'a') ;
+    dp->db_hdr.bh_id = (('d' << 8) + 'a');
     dp->db_line_count = 0;
 
-    return hp;
+    return (bhdr_T *)dp;
 }
 
     static bhdr_T *
-ml_new_ptr(memfile_T *mfp)
+ml_new_ptr(void)
 {
-    bhdr_T      *hp;
     PTR_BL      *pp;
 
-    if ((hp = mf_new(mfp, 1)) == nullptr)
+    pp =  (PTR_BL *)alloc_clear(sizeof(PTR_BL)) ;
+    if (pp == nullptr)
     {
         return nullptr;
     }
 
-    pp = (PTR_BL *)(hp->bh_data);
-    pp->pb_id =  (('p' << 8) + 't') ;
+    pp->pb_hdr.bh_id = (('p' << 8) + 't');
     pp->pb_count = 0;
-    pp->pb_count_max =  (short_u)(((mfp)->mf_page_size - __builtin_offsetof(PTR_BL, pb_pointer)) / sizeof(PTR_EN)) ;
 
-    return hp;
+    return (bhdr_T *)pp;
 }
 
     static bhdr_T *
 ml_find_line(buf_T *buf, linenr_T lnum, int action)
 {
-    DATA_BL     *dp;
     PTR_BL      *pp;
     infoptr_T   *ip;
     bhdr_T      *hp;
-    memfile_T   *mfp;
     linenr_T    t;
     bhdr_T      *bp;
     linenr_T low;
     linenr_T high;
     int         top;
     int         idx;
-
-    mfp = buf->b_ml.ml_mfp;
 
     if (buf->b_ml.ml_locked)
     {
@@ -34109,7 +33930,6 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
             return (buf->b_ml.ml_locked);
         }
 
-        mf_put(buf->b_ml.ml_locked);
         buf->b_ml.ml_locked = nullptr;
 
         if (buf->b_ml.ml_locked_lineadd != 0)
@@ -34153,10 +33973,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
 
     for (;;)
     {
-        if ((hp = mf_get(mfp, bp)) == nullptr)
-        {
-            goto error_noblock;
-        }
+        hp = bp;
 
         if (action == ML_INSERT)
         {
@@ -34167,8 +33984,7 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
             --high;
         }
 
-        dp = (DATA_BL *)(hp->bh_data);
-        if (dp->db_id ==  (('d' << 8) + 'a') )
+        if (hp->bh_id ==  (('d' << 8) + 'a') )
         {
             buf->b_ml.ml_locked = hp;
             buf->b_ml.ml_locked_low = low;
@@ -34177,8 +33993,8 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
             return hp;
         }
 
-        pp = (PTR_BL *)(dp);
-        if (pp->pb_id !=  (('p' << 8) + 't') )
+        pp = (PTR_BL *)(hp);
+        if (hp->bh_id !=  (('p' << 8) + 't') )
         {
             iemsg(e_pointer_block_id_wrong);
             goto error_block;
@@ -34229,12 +34045,9 @@ ml_find_line(buf_T *buf, linenr_T lnum, int action)
         {
             pp->pb_pointer[idx].pe_line_count++;
         }
-        mf_put(hp);
     }
 
 error_block:
-    mf_put(hp);
-error_noblock:
     if (action == ML_DELETE)
     {
         ml_lineadd(buf, 1);
@@ -34281,26 +34094,20 @@ ml_lineadd(buf_T *buf, int count)
     int         idx;
     infoptr_T   *ip;
     PTR_BL      *pp;
-    memfile_T   *mfp = buf->b_ml.ml_mfp;
     bhdr_T      *hp;
 
     for (idx = buf->b_ml.ml_stack_top - 1; idx >= 0; --idx)
     {
         ip = &(buf->b_ml.ml_stack[idx]);
-        if ((hp = mf_get(mfp, ip->ip_block)) == nullptr)
+        hp = ip->ip_block;
+        pp = (PTR_BL *)(hp);
+        if (hp->bh_id !=  (('p' << 8) + 't') )
         {
-            break;
-        }
-        pp = (PTR_BL *)(hp->bh_data);
-        if (pp->pb_id !=  (('p' << 8) + 't') )
-        {
-            mf_put(hp);
             iemsg(e_pointer_block_id_wrong_two);
             break;
         }
         pp->pb_pointer[ip->ip_index].pe_line_count += count;
         ip->ip_high += count;
-        mf_put(hp);
     }
 }
 
@@ -76696,7 +76503,7 @@ getout(int exitval)
             }
         }
 
-        if (curbuf->b_ml.ml_mfp != nullptr)
+        if (curbuf->b_ml.ml_root != nullptr)
         {
             bufref_T bufref;
 
@@ -76772,7 +76579,7 @@ create_windows(mparm_T *parmp)
 {
 
     curbuf = curwin->w_buffer;
-    if (curbuf->b_ml.ml_mfp == nullptr)
+    if (curbuf->b_ml.ml_root == nullptr)
     {
         (void)open_buffer();
     }
