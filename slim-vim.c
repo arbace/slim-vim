@@ -110176,6 +110176,9 @@ set_init_1(int clean_arg)
 {
     p_cp = FALSE;
 
+    km_startsel = TRUE;
+    km_stopsel = FALSE;
+
     if ( (char_u *)getenv((char *)((char_u *)"VIM_POSIX"))  != NULL)
     {
         set_string_default("cpo", (char_u *) "aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>#{|&/\\.;~" );

@@ -50989,6 +50989,9 @@ set_init_1(void)
 {
     p_cp = FALSE;
 
+    km_startsel = TRUE;
+    km_stopsel = FALSE;
+
     set_options_default(0);
 
     curbuf->b_p_initialized = true;
