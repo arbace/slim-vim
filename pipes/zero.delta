@@ -808,3 +808,61 @@
 # that and by nothing else: a `#define` above the cut, an `#include` back at line 1, and
 # one core function quietly moved below the boundary, which changes the thirteen by
 # exactly its name.
+#
+# 28 DECLARES NOTHING AT ALL, and it is PHASE 2'S KIND -- the code runs, and the
+# instrument CANNOT SEE IT.  That is measured here rather than inferred, and it is the
+# reason the phase owes probes of its own.  Of the 102 screen cases, 95 ring the bell
+# once and 7 not at all, and NOT ONE rings it twice -- so vim_beep's 500 ms rate limit,
+# the only clock reading a screen case could reach, is never asked to suppress anything.
+# Three controls built from this phase's own source say the same thing from the other
+# side: a clock that NEVER ADVANCES, one that RUNS BACKWARDS and one that runs 1000x
+# FAST each move 0 of the 102.  (Phase 26's control moved six, and it was not a clock
+# control: swapping musl_gettimeofday's two output fields makes each reading an
+# independent random number rather than a consistently wrong one.)
+#
+# WHAT THE PHASE DOES.  The core's whole use of time is STAMP NOW, then ASK HOW MANY
+# MILLISECONDS HAVE PASSED, at four places -- do_sleep's `done < msec` loop, vim_beep's
+# 500 ms rate limit, handle_osc's `>= p_ost` timeout and inchar_loop's deadline -- and
+# not one of them reads a field, prints a reading or compares two stamps.  So phase 26's
+# `elapsed_T`, its tagless mirror of `struct timeval`, and `elapsed()`, whose entire body
+# is one clock read and one subtraction, and `musl_gettimeofday(long *, long *)`, whose
+# out-parameter pair existed only because a struct could not cross the boundary, all go
+# together and are replaced by `long musl_now_ms(void)`.  A stamp is `X = musl_now_ms();`
+# and a reading is `musl_now_ms() - X`.  80,232 -> 80,222 lines; the binary is 788,488
+# bytes on both sides, the same size and not the same bytes.
+#
+# `nm -u` IS THE SAME 17 NAMES AND `gettimeofday` IS STILL ONE OF THEM, which is worth
+# saying because a reader expects a clock phase to free a clock symbol.  It cannot: the
+# host still calls `gettimeofday` to implement musl_now_ms, and a symbol leaves when its
+# last CALLER leaves the FILE, which is the split and not this phase.
+#
+# SO THE EVIDENCE IS FOUR FULL RECORDINGS AND FOUR PROBES.  The recordings -- of the
+# binary the phase was handed, of its own, and of two variants below -- are byte-identical
+# across all 106 records.  The probes are built on `gs`, which is nv_g_cmd's `s` arm and
+# is do_sleep(count * 1000): the one call site a keystroke file can drive and the only
+# way real time passes inside the editor.  `1gs` and `2gs` take ~1,010 ms and ~2,006 ms
+# on both binaries -- do_sleep's loop caps a wait at 1,000 ms, so 2gs is two iterations
+# and 1gs is one -- and `hgshh` rings 2 bells on both, which is vim_beep's threshold in
+# BOTH directions in one probe: h at column 0 rings, gs lets a second pass, the next h
+# rings because more than 500 ms have gone and the third is suppressed because fewer than
+# 500 have.  Each half fails on a control aimed at it: with the clock 1000x fast `2gs`
+# is 1,006 ms against `1gs` 1,010, and with a clock that never advances `1gs` NEVER
+# RETURNS; with vim_beep's 500 written 500000 `hgshh` rings 1 bell and with it written
+# -1 it rings 3.  THE BELL CONTROLS MOVE THE THRESHOLD AND NOT THE CLOCK, because a
+# clock control that breaks the rate limit breaks do_sleep first and `hgshh` then blocks.
+#
+# TWO DECISIONS, AND BOTH ARE MEASURED IN THE CHECK.  What musl_now_ms RETURNS is
+# milliseconds since the whole second of its first call, not since 1970: every core use
+# is a difference, so the origin is free, and on a target where `long` is 32 bits
+# `tv_sec * 1000` is signed overflow on the FIRST call for ever -- undefined, and
+# reported as such by -fsanitize=signed-integer-overflow -- where `(tv_sec - base) * 1000`
+# is exact for 24.86 days of uptime.  The origin being a WHOLE SECOND is what makes it
+# behaviourally invisible: musl_now_ms is then epoch-milliseconds less a constant, so a
+# DIFFERENCE of two readings is identical under both choices, and the `epoch` variant's
+# probes and full recording are the product's.  And the ROUNDING point moves -- elapsed()
+# subtracted and THEN divided, musl_now_ms divides at each reading -- which over
+# 20,000,000 random pairs is a difference of EXACTLY +-1 ms and never more, 24.95% low,
+# 50.08% equal, 24.97% high, with neither formula closer to the truth (+0.4995 ms against
+# +0.4996 ms).  No caller can see it: the `ceil` variant rounds every reading UP instead
+# of down, which perturbs each one by up to a full millisecond -- twice what the change
+# can -- and its probes and its full recording are the product's too.
