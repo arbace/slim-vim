@@ -492,3 +492,9 @@ func runNocomplkeys(args []string) int {
 		return cut.NoComplKeys(t, w)
 	})
 }
+
+func runLfonly(args []string) int {
+	return oneFile(args, "lfonly", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.LfOnly(t, w)
+	})
+}
