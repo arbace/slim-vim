@@ -342,3 +342,9 @@ func runNofloat(args []string) int {
 		return cut.NoFloat(t, w)
 	})
 }
+
+func runKeepbytes(args []string) int {
+	return oneFile(args, "keepbytes", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.KeepBytes(t, w)
+	})
+}

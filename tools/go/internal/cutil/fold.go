@@ -124,7 +124,8 @@ func splitKeepEnds(b []byte) [][]byte {
 
 // guarded returns the line start, the opening brace, the closing brace, and
 // the head text of the block the `if` at m guards.
-func guarded(s, b []byte, m []int) (k, o, c int, head string, err error) {
+// Guarded is exported for the cutters that walk an if-chain themselves.
+func Guarded(s, b []byte, m []int) (k, o, c int, head string, err error) {
 	k = bytes.LastIndexByte(s[:m[0]], '\n') + 1
 	lp := m[0] + bytes.IndexByte(s[m[0]:], '(')
 	rp := Match(b, lp)
@@ -179,7 +180,7 @@ func fold(s []byte, pattern string, count int, what string,
 func FoldAlways(s []byte, pattern string, count int) ([]byte, error) {
 	return fold(s, pattern, count, "fold_always",
 		func(s, b []byte, m []int) ([]byte, error) {
-			k, o, c, head, err := guarded(s, b, m)
+			k, o, c, head, err := Guarded(s, b, m)
 			if err != nil {
 				return nil, err
 			}
@@ -222,7 +223,7 @@ func FoldNever(s []byte, pattern string, count int) ([]byte, error) {
 	}
 	return fold(s, pattern, count, "fold_never",
 		func(s, b []byte, m []int) ([]byte, error) {
-			k, o, c, head, err := guarded(s, b, m)
+			k, o, c, head, err := Guarded(s, b, m)
 			if err != nil {
 				return nil, err
 			}
