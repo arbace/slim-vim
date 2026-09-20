@@ -242,3 +242,49 @@ func lastNewlineBefore(text []byte, i int) int {
 	}
 	return -1
 }
+
+// FoldNeverN folds n occurrences of the same condition, taking the LAST one
+// each time.
+//
+// Why the last and not the first: cutil.FoldNever is written for a pattern that
+// occurs once, so folding several means narrowing the text until it does.
+// Splitting at the last match's line start leaves exactly one match in the tail
+// and none in the head, and does it without the head's offsets moving under the
+// next iteration -- which is the same reason CLAUDE.md gives for rewriting a
+// whole file in ONE pass rather than recomputing spans between two.
+func (e *E) FoldNeverN(pattern string, n int, what string) {
+	if e.err != nil {
+		return
+	}
+	e.CountIs(pattern, n, what)
+	if e.err != nil {
+		return
+	}
+	re := regexp.MustCompile(pattern)
+	for i := 0; i < n; i++ {
+		ms := re.FindAllIndex(e.text, -1)
+		if len(ms) == 0 {
+			e.die("%s -- ran out of matches after %d of %d", what, i, n)
+			return
+		}
+		var out []byte
+		var err error
+		if len(ms) == 1 {
+			out, err = cutil.FoldNever(e.text, pattern, 1)
+		} else {
+			last := ms[len(ms)-1][0]
+			start := lastNewlineBefore(e.text, last) + 1
+			var tail []byte
+			tail, err = cutil.FoldNever(e.text[start:], pattern, 1)
+			if err == nil {
+				out = append(append([]byte{}, e.text[:start]...), tail...)
+			}
+		}
+		if err != nil {
+			e.die("%s -- %v", what, err)
+			return
+		}
+		e.text = out
+	}
+	e.say(what)
+}
