@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"slimvim.local/tools/internal/dead"
 	"slimvim.local/tools/internal/memo"
 	"slimvim.local/tools/internal/pipeline"
 )
@@ -69,6 +70,37 @@ func runOracle(args []string) int {
 		return 1
 	}
 	if err := memo.Oracle(p, args[0], args[1], args[2], os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
+// runPhasecheck is tools/phasecheck.sh.
+func runPhasecheck(args []string) int {
+	if len(args) != 3 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools phasecheck <work-dir> <source> <before-dir>")
+		return 1
+	}
+	if err := memo.PhaseCheck(args[0], args[1], args[2], os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
+// runNvidx is tools/nvidxcheck.py.
+func runNvidx(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools nvidx <file>")
+		return 1
+	}
+	data, err := os.ReadFile(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	line, ok := dead.NvIdxCheck(data)
+	fmt.Println(line)
+	if !ok {
 		return 1
 	}
 	return 0
