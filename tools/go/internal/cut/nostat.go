@@ -27,27 +27,10 @@ var nostatCalls = []struct{ pat, where string }{
 // check_mtime() is NOT touched: it runs only when the user asks to write, and
 // it is what stops a write silently clobbering someone else's edit.
 func NoStat(text []byte, w io.Writer) ([]byte, error) {
-	blanked := cutil.Blank(text)
-	head := regexp.MustCompile(`(?m)^check_timestamps\([^\n]*\n`)
-	m := head.FindIndex(text)
-	if m == nil {
-		return nil, fmt.Errorf("nostat: check_timestamps is not defined at file scope any more")
+	text, was, err := cutil.ReplaceBody(text, "check_timestamps", "    return 0;")
+	if err != nil {
+		return nil, fmt.Errorf("nostat: %v", err)
 	}
-	rel := bytes.IndexByte(blanked[m[1]:], '{')
-	if rel < 0 {
-		return nil, fmt.Errorf("nostat: check_timestamps is unbalanced")
-	}
-	opening := m[1] + rel
-	closing := cutil.Match(blanked, opening)
-	if closing < 0 {
-		return nil, fmt.Errorf("nostat: check_timestamps is unbalanced")
-	}
-	was := bytes.Count(text[opening:closing], []byte{'\n'})
-	var buf []byte
-	buf = append(buf, text[:opening]...)
-	buf = append(buf, "{\n    return 0;\n}"...)
-	buf = append(buf, text[closing+1:]...)
-	text = buf
 	fmt.Fprintf(w, "  nostat       check_timestamps was %d lines, and now looks at nothing\n", was)
 
 	for _, c := range nostatCalls {

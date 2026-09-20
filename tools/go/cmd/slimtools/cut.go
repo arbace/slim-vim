@@ -238,3 +238,59 @@ func runNoterm(args []string) int {
 		return cut.NoTerm(t, w)
 	})
 }
+
+func runNoshellout(args []string) int {
+	return oneFile(args, "noshellout", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoShellOut(t, w)
+	})
+}
+
+func runNoruntime(args []string) int {
+	return oneFile(args, "noruntime", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoRuntime(t, w)
+	})
+}
+
+func runNoabbr(args []string) int {
+	return oneFile(args, "noabbr", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoAbbr(t, w)
+	})
+}
+
+// runDropopts is tools/dropopts.py -- NOT tools/dropoptions.py, which is a
+// different tool with a confusingly similar name: that one removes rows from
+// options[], this one removes options from command_line_scan.
+func runDropopts(args []string) int {
+	if len(args) < 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools dropopts <file> <-x|--long>...")
+		return 1
+	}
+	path := args[0]
+	text, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	out, err := cut.DropOpts(text, args[1:], os.Stdout)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if err := writeFile(path, out); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+func runNostartup(args []string) int {
+	return oneFile(args, "nostartup", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoStartup(t, w)
+	})
+}
+
+func runNohome(args []string) int {
+	return oneFile(args, "nohome", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoHome(t, w)
+	})
+}

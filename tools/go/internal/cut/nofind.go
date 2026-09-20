@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"regexp"
 
 	"slimvim.local/tools/internal/cutil"
 )
@@ -38,20 +37,9 @@ const nofindBody = `    char_u      *name;
 // file it has not seen from one it has already cut, rather than replacing its
 // own output with itself.
 func NoFind(text []byte, w io.Writer) ([]byte, error) {
-	blanked := cutil.Blank(text)
-	head := regexp.MustCompile(`(?m)^find_file_in_path\([^\n]*\n`)
-	m := head.FindIndex(text)
-	if m == nil {
-		return nil, fmt.Errorf("nofind: find_file_in_path is not defined at file scope any more")
-	}
-	rel := bytes.IndexByte(blanked[m[1]:], '{')
-	if rel < 0 {
-		return nil, fmt.Errorf("nofind: find_file_in_path is unbalanced")
-	}
-	opening := m[1] + rel
-	closing := cutil.Match(blanked, opening)
-	if closing < 0 {
-		return nil, fmt.Errorf("nofind: find_file_in_path is unbalanced")
+	opening, closing, err := cutil.FindBody(text, "find_file_in_path")
+	if err != nil {
+		return nil, fmt.Errorf("nofind: %v", err)
 	}
 	if !bytes.Contains(text[opening:closing], []byte("find_file_in_path_option")) {
 		return nil, fmt.Errorf("nofind: find_file_in_path no longer delegates to the " +

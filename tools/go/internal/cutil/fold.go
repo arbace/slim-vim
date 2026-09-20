@@ -7,22 +7,25 @@ import (
 	"strings"
 )
 
-// pyPattern renders a pattern the way Python's %r does, and drops a leading
-// (?m).
+// PyRepr renders a plain string the way Python's %r does: single quotes, with
+// a backslash and a single quote escaped.  Go's %q would print DOUBLE quotes,
+// and these strings land in refusal messages that are compared against the
+// Python's byte for byte.
+func PyRepr(v string) string {
+	v = strings.ReplaceAll(v, `\`, `\\`)
+	v = strings.ReplaceAll(v, `'`, `\'`)
+	return "'" + v + "'"
+}
+
+// pyPattern is PyRepr for a pattern, and drops a leading (?m).
 //
 // Go needs the multiline flag INSIDE the pattern where Python passes re.M as
 // an argument, so the two spell the same regex differently -- and both
 // implementations echo the pattern in their refusal.  Without this the
 // messages would differ on every refusal while the behaviour was identical,
 // which is a difference in the harness rather than in the tool.
-// It also doubles backslashes and escapes a single quote, which is what
-// Python's repr does to a string holding a regex: '\t' in the pattern is two
-// characters, and repr shows them as \\t.
 func pyPattern(p string) string {
-	p = strings.TrimPrefix(p, "(?m)")
-	p = strings.ReplaceAll(p, `\`, `\\`)
-	p = strings.ReplaceAll(p, `'`, `\'`)
-	return "'" + p + "'"
+	return PyRepr(strings.TrimPrefix(p, "(?m)"))
 }
 
 // DropIf deletes an `if (...)` and the block it guards, BY MATCHING BRACES.
@@ -91,8 +94,8 @@ func DropIf(s []byte, pattern string, count int) ([]byte, error) {
 	return s, nil
 }
 
-// dedent4 strips one four-space level, line by line.
-func dedent4(body []byte) []byte {
+// Dedent4 strips one four-space level, line by line.
+func Dedent4(body []byte) []byte {
 	var out []byte
 	for _, line := range splitKeepEnds(body) {
 		if bytes.HasPrefix(line, []byte("    ")) {
@@ -178,10 +181,10 @@ func FoldAlways(s []byte, pattern string, count int) ([]byte, error) {
 		func(s, b []byte, m []int) ([]byte, error) {
 			k, o, c, head, err := guarded(s, b, m)
 			if err != nil {
-				return nil, fmt.Errorf("fold_always: %v", err)
+				return nil, err
 			}
 			if head != "if" {
-				return nil, fmt.Errorf("fold_always: only a plain if, not %q", head)
+				return nil, fmt.Errorf("fold_always: only a plain if, not %s", PyRepr(head))
 			}
 			end := c + bytes.IndexByte(s[c:], '\n') + 1
 			if regexp.MustCompile(`^[ \t]*else\b`).Match(s[end:]) {
@@ -189,7 +192,7 @@ func FoldAlways(s []byte, pattern string, count int) ([]byte, error) {
 			}
 			bodyStart := o + bytes.IndexByte(s[o:], '\n') + 1
 			bodyEnd := bytes.LastIndexByte(s[:c], '\n') + 1
-			body := dedent4(s[bodyStart:bodyEnd])
+			body := Dedent4(s[bodyStart:bodyEnd])
 			out := make([]byte, 0, len(s))
 			out = append(out, s[:k]...)
 			out = append(out, body...)
@@ -221,7 +224,7 @@ func FoldNever(s []byte, pattern string, count int) ([]byte, error) {
 		func(s, b []byte, m []int) ([]byte, error) {
 			k, o, c, head, err := guarded(s, b, m)
 			if err != nil {
-				return nil, fmt.Errorf("fold_never: %v", err)
+				return nil, err
 			}
 			_ = o
 			end := c + bytes.IndexByte(s[c:], '\n') + 1
@@ -232,7 +235,7 @@ func FoldNever(s []byte, pattern string, count int) ([]byte, error) {
 				return append(out, rest...), nil
 			}
 			if head != "if" {
-				return nil, fmt.Errorf("fold_never: not an if: %q", head)
+				return nil, fmt.Errorf("fold_never: not an if: %s", PyRepr(head))
 			}
 			nxt := elseHead.FindSubmatchIndex(rest)
 			if nxt == nil {
@@ -252,7 +255,7 @@ func FoldNever(s []byte, pattern string, count int) ([]byte, error) {
 			}
 			bodyStart := o2 + bytes.IndexByte(s[o2:], '\n') + 1
 			bodyEnd := bytes.LastIndexByte(s[:c2], '\n') + 1
-			body := dedent4(s[bodyStart:bodyEnd])
+			body := Dedent4(s[bodyStart:bodyEnd])
 			after := c2 + bytes.IndexByte(s[c2:], '\n') + 1
 			out := make([]byte, 0, len(s))
 			out = append(out, s[:k]...)
