@@ -40,6 +40,54 @@ func runSplitheads(args []string) int {
 	})
 }
 
+func runOnestmt(args []string) int {
+	return rewrite(args, "onestmt", func(src []byte) ([]byte, string) {
+		out, changed, nIn, nOut := canon.OneStmt(src)
+		return out, fmt.Sprintf("%d lines split; %d lines -> %d", changed, nIn, nOut)
+	})
+}
+
+func runOnedecl(args []string) int {
+	return rewrite(args, "onedecl", func(src []byte) ([]byte, string) {
+		out, changed, nIn, nOut := canon.OneDecl(src)
+		return out, fmt.Sprintf("%d declarations split; %d lines -> %d", changed, nIn, nOut)
+	})
+}
+
+// runForcomma is the one canonicaliser with a second argument.  --check
+// suppresses the write; nothing in tools/ or pipes/ passes it, and it is here
+// so the CLI is a drop-in rather than nearly one.
+func runForcomma(args []string) int {
+	check := false
+	var files []string
+	for _, a := range args {
+		if a == "--check" {
+			check = true
+			continue
+		}
+		files = append(files, a)
+	}
+	if len(files) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools forcomma <file> [--check]")
+		return 1
+	}
+	src, err := os.ReadFile(files[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	out, found, hoisted, declined, nIn, nOut := canon.ForComma(src, check)
+	if !check {
+		if err := writeFile(files[0], out); err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+	}
+	fmt.Printf("%d init clauses with a comma: %d hoisted, %d declined; %d lines -> %d\n",
+		found, hoisted, declined, nIn, nOut)
+	return 0
+}
+
 // rewrite is the shape every canonicaliser has: one file argument, read it
 // whole, transform it, write it back, print one line.
 func rewrite(args []string, name string, f func([]byte) ([]byte, string)) int {

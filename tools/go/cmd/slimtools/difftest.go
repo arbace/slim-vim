@@ -36,6 +36,9 @@ var specs = map[string]spec{
 	"blankruns":  {script: "tools/blankruns.py"},
 	"joinparens": {script: "tools/joinparens.py"},
 	"splitheads": {script: "tools/splitheads.py"},
+	"onestmt":    {script: "tools/onestmt.py"},
+	"onedecl":    {script: "tools/onedecl.py"},
+	"forcomma":   {script: "tools/forcomma.py"},
 }
 
 func runDifftest(args []string) int {

@@ -37,12 +37,18 @@ type tool struct {
 // the map: ranging a Go map yields a different order every run, which is the
 // Go-shaped version of the determinism trap the Python tools avoid by sorting
 // before they report.
-var order = []string{"blankruns", "joinparens", "splitheads", "parse", "difftest"}
+var order = []string{
+	"blankruns", "joinparens", "splitheads", "onestmt", "onedecl", "forcomma",
+	"parse", "difftest",
+}
 
 var tools = map[string]tool{
 	"blankruns":  {runBlankruns, "blankruns <file>"},
 	"joinparens": {runJoinparens, "joinparens <file>"},
 	"splitheads": {runSplitheads, "splitheads <file>"},
+	"onestmt":    {runOnestmt, "onestmt <file>"},
+	"onedecl":    {runOnedecl, "onedecl <file>"},
+	"forcomma":   {runForcomma, "forcomma <file> [--check]"},
 	"parse":      {runParse, "parse <file.c>"},
 	"difftest":   {runDifftest, "difftest <tool> <file>..."},
 }
