@@ -15,7 +15,7 @@ is handed, memoized in three tiers — and share the driver, the boundaries, the
 oracle, the synthesiser and every harness. What differs is what the phases remove,
 and what each pipeline's behaviour is measured against.
 
-**This document is iterative, and so far it has forty phases.** Phase 0 is the
+**This document is iterative, and so far it has forty-six phases.** Phase 0 is the
 seed, phase 1 is a compiler flag, phase 2 is the first cut in the source — the first
 piece of *a component, not a program* — phase 3 changes no source at all: it
 replaces the instrument every later phase is measured with; phase 4 removes Ex mode,
@@ -66,8 +66,8 @@ tagless clock struct, `MIN`/`MAX` and `__builtin_offsetof`, and nine plain libc
 prototypes, **while the real headers are still above them to be cross-checked against**;
 and 27 moves the eleven `#include`s below the core, so that **above them there is not
 one preprocessor directive** and the first `#include` is the line between the core and
-the host. `make editor.c` writes the lines above it — **77,678** of `zero-vim.c`'s
-79,589 today — and they are a complete translation unit whose warnings are the
+the host. `make editor.c` writes the lines above it — **76,687** of `zero-vim.c`'s
+78,666 today — and they are a complete translation unit whose warnings are the
 interface. Phases 28 to 32 are five separate answers to *what the core may still name
 and still call*: 28 gives the elapsed-milliseconds clock to the host as one scalar,
 `long musl_now_ms(void)`, and deletes the tagless `struct timeval` mirror phase 26 had
@@ -101,7 +101,20 @@ recording can see since phase 11: 38 keeps **two** of the ten built-in terminal 
 `xterm-256color` and `debug`, and declares `term-moved` — the first use of a token that
 had been in the grammar since phase 0 — and 39 removes `-T {term}`, so that
 `+{command}` is the whole command line and nothing outside the process can say what
-terminal this is.
+terminal this is. **And 40 to 45 are the memline, which is one arc and not six phases**,
+the charter's *the text later held as a tree* begun: 40 changes no source and gives the
+pipeline a corpus that can see the text layer at all, because a `zero-vim` with one line
+deleted from `ml_find_line()`'s descent recorded all 102 screen cases byte for byte; 41
+makes `host_alloc()` a bump allocator and `host_free()` a no-op, which is the charter's
+*A GARBAGE COLLECTOR IS ASSUMED FROM HERE ON* and is what makes a record per line cheap;
+42 clears out the swap file's residue, four groups of written-but-never-read bookkeeping
+that no tool in `tools/` can see; 43 turns a **block number into a reference**, which is
+the single thing in this pipeline that buys a JVM port the most; 44 lets the **leaf** stop
+being a byte arena and become an array of line records, so a line's text is its own
+allocation valid for the lifetime of the process; and 45 folds the node types, so that
+there are no pages, no blocks and no memfile left — and turns the arc's standing hazard,
+that shrinking `PTR_EN` would silently take the root split out of the corpus, into a
+`static_assert` that fails to compile.
 Phases
 are added one at a time, each on the user's own
 request, and each is written into this document, into `pipes/` and into
@@ -272,6 +285,19 @@ Only on request, and one at a time:
 4. Write its `## Phase N — ...` section here.
 5. `make zero-tip` runs the last stage and records it; `make zero-verify` then proves
    every stage from the recorded one before it.
+6. **`make zero-pass`, which is the step that copies the product out.** `zero-tip`
+   records a boundary and nothing else; the tracked `zero-vim.c` is an **output** of the
+   memoize and an input to nothing, so it can be arbitrarily wrong while every boundary
+   reproduces. Measured: running only the first left the tracked product **two phases
+   stale** — r36's 79,799 lines while the pipeline was at r38's 79,668 — and it was
+   pushed in that state, with `make zero-verify` reporting every boundary reproducing,
+   correctly, throughout. `zero.mk` now **warns** when the tracked file is not the last
+   boundary's, printing what it is, what it should be and the one command that fixes it;
+   it is a warning and not a failure because between a phase landing and `zero-pass`
+   running the product is *expected* to lag, and a target that refused there would be
+   disabled within a day. The contributing half is that a phase branch need not carry
+   the product — 37, 38 and 39 each committed their programs and their manifest lines
+   and not `zero-vim.c` — so the guard is at the merger's end.
 
 ## Phase 0 — seed, and prove the copy is a copy
 
@@ -467,15 +493,17 @@ then would mean removing the filesystem and the means of noticing it in one step
 `tools/zrecord.sh`: **keystrokes in on stdin, escape sequences out on stdout, and
 a screen rebuilt from them**. No pty, no settle time, no ANSI stripping and no
 Press-ENTER hazard; the terminal is 80x24 by construction because the window-size
-ioctl fails on a pipe. Five parts, and a recording is all five:
+ioctl fails on a pipe. Five parts, and a recording is all five — **six since phase 40**,
+and 122 records where this phase made 106:
 
 | | what it is | how big |
 | --- | --- | --- |
 | `screen/` | `tools/zcases.py`: 102 keystroke cases, one record each | 141 KB |
 | `ref-excmds.txt` | `tools/zexcmds.py`: every Ex command name typed at `:` | 111 rows |
 | `ref-argv.txt` | `tools/zargv.py`: every command line the parser may see | 30 rows |
-| `ref-pty.txt` | `tools/zpty.py`: what only a real terminal shows | 4 scenarios |
+| `ref-pty.txt` | `tools/zpty.py`: what only a real terminal shows | 4 scenarios, 5 since the `keymodel` repair |
 | `ref-term.txt` | `tools/ztermcheck.py`: whim's `termcheck.py` with no file argument (phase 5) | 19 terminals |
+| `memline/` | `tools/zmemline.py`, **phase 40**: buffers big enough to make the text layer a tree | 16 cases |
 
 **One screen per redraw, taken from the bytes.** The editor hides the cursor while
 it draws and shows it when the screen is settled, so `\x1b[?25h` is a step boundary
@@ -7378,11 +7406,23 @@ the phase**; it is not offered as the evidence.
 
 ### Its placement
 
-`stage 37`, `package tidy` and **not `dialect`**: five of the six are leftovers of earlier
-cuts, which is phase 13's kind, and only the sixth has a dialect argument. It is the one
-phase after the seed with **no `uses` line at all**, which reads correctly — its evidence
-is a `cmp` and not the recording, so it does not rest on phase 0's baselines the way every
-other empty declaration does.
+`stage 37`, `package tidy 13 37 42` and **not `dialect`**: five of the six are leftovers of
+earlier cuts, which is phase 13's kind, and only the sixth has a dialect argument.
+
+**It was for a while the one phase after the seed with no `uses` line at all**, and that
+looked defensible — its evidence is a `cmp` and not the recording, so it does not rest on
+phase 0's baselines the way every other empty declaration does. **It was still wrong.**
+`pipes/zero37-check.sh` names `tools/zerodelta.sh` twice, the delta check runs at its stage
+end like every other phase's, and the two **other** `cmp`-evidenced phases, 16 and 23, both
+declare the dependency — five `uses` lines and six respectively. So the line is written now,
+with the reason it was missing recorded in it. It was found by a documentation pass and not
+by anything failing, which is the property of `pipes/zero.stages` worth saying plainly: the
+file is read by `tools/stages.sh` and `tools/packages.sh` and **named by no phase program**,
+so `tools/implhash.sh` never hashes it. **A manifest edit is free, which is why package and
+`uses` data can be kept honest without paying for a repass — and it is also why a wrong one
+is never caught by anything running. The only guard on that file is a reader.** Measured
+either side of the correction: slim 9, whim 13-41, zero 37 and zero 44 are byte-identical,
+and both manifest checks pass.
 
 **`apart 36 37` is written and was measured in both directions**, as a real shared stage on
 r35, which 36 and 37 make possible by both being split. Phase 36's check stops first, with
@@ -7513,9 +7553,24 @@ data** — three static arrays and eight rows — **and data calls nothing**.
 | terminal rows that moved | | **8 of 19**, each `term=<itself>` → `E522 term=xterm-256color t_Co=256` |
 | screen cases / Ex rows / command lines / pty scenarios | | **0 of 102, 0 of 98, 0 of 30, 0 of 4** |
 
-The cut is stated here as its own check counts it, and that is **one more than phase 37's
-77,875 on the same file**: this check takes the naive `awk` prefix and phase 37's takes
-`zero.mk`'s rule, which drops the cut's trailing blank line. Both are the same text.
+The cut was stated here as its own check counted it, and that was **one more than phase
+37's 77,875 on the same file**: this check took the naive `awk` prefix and phase 37's
+takes `zero.mk`'s rule, which drops the cut's trailing blank line. Both are the same text.
+
+**That has since been repaired in both programs, and the repair is worth stating because
+the defect was a comment.** `pipes/zero38-check.sh`'s header said the cut was *"zero.mk's
+own rule"* while the `awk` beside it was not — and 39 had the same line, and is where the
+next phase would have copied it from. **A comment that claims to be the rule and is not is
+the thing that propagates.** Both now carry the rule entire, `{ a[NR] = $0; if (NF) last =
+NR }` and then print up to `last`, with the reason written beside it; so consecutive phase
+commits no longer report cut figures that differ by one **on the same files**, where a
+reader comparing them saw an off-by-one that was in neither phase. The figures above are
+the numbers those checks printed at the time; the product rule makes them 77,875 and
+77,757. The boundaries cannot move and did not — a check produces no tree — and both
+phases were **verified to re-run at tier 2** rather than assumed to, because a tier-3
+replay copies the recorded digest and would have agreed whatever the change did: r38 at
+`9f2b37f26bef` and r39 at `68e450fd6912`. **On this tree a control run through `make` has
+to print `tier 2` to be a control at all.**
 
 ### Its placement
 
@@ -7774,3 +7829,1073 @@ and since phase 36 **so are the other two**: `getpid` and `kill` are `host_raise
 `musl_suspend()`'s, and the core's whole vocabulary of the seventeen is three English
 words inside string literals — the two `NGETTEXT` strings in `op_shift()` that say *time*,
 and `E222`'s *"already read from"*, measured on this file.
+
+## Phase 40 — the instrument could not see the text layer
+
+`pipes/zero40.sh` — one file, like phases 0, 1, 3 and 33 — `stage 40`, `package harness
+3 33 40`. It changes no source at all: r40's `zero-vim.c` is r39's byte for byte and its
+boundary digest is its input's, `68e450fd6912` either side. What it adds is the **sixth
+part of a recording**, `tools/zmemline.py`, and it is here for the reason phase 3 and
+phase 33 were: **a harness that cannot see a phase must be fixed before the phase, never
+after.** Phases 41 to 45 rewrite the memline, and until this phase ran nothing in the
+pipeline could have told a working one from a broken one.
+
+**One thing about every number from here on.** Between phase 39 and this phase the
+`keymodel=startsel` repair landed in slim Phase 1, three lines in `set_init_1()`, and all
+three products were re-passed from it — so every zero boundary gained three lines and
+`r39` is **79,592** where the phase 39 section above says 79,589. Every figure in this
+section and the five below it is post-repair, and every figure above it is pre-repair;
+the difference is those three lines and nothing else. `CLAUDE.md` records what the repair
+was and what it falsified.
+
+### The blindness is measured and not suspected
+
+A `zero-vim` with one line deleted from `ml_find_line()`'s `ML_DELETE` arm —
+`pp->pb_pointer[idx].pe_line_count--;`, the statement that keeps a pointer entry's idea
+of how many lines hang under it — records **all 102 screen cases byte for byte**. That
+binary was built and both corpora run on it before this phase was written: 0 of 102
+differ. **Forty phases had been verified by an instrument that could not see a corrupted
+text layer at all.**
+
+The reason, confirmed with an instrumented r39 rather than reasoned: every one of the
+102 cases allocates **exactly one data block**. The root pointer block holds one entry
+for the whole session, so `idx` is 0 every time, `ml_find_line()` never chooses among
+entries, and `pe_line_count` is never the number that decides anything. A 4,096-byte
+page holds 78 lines of the width these cases type and `pb_count_max` was 127, so a root
+cannot split before **9,984 lines** — and the largest case in the 102 is nowhere near
+it. All seven of the phase's markers fire in **0 of 102**.
+
+### The corpus is sixteen cases, and its depth is measured rather than intended
+
+`tools/zmemline.py` is sixteen cases building buffers of **200 to 25,000 lines**, and
+they are built **in the editor**: there is no file argument (phase 5), no `:edit` (phase
+8) and no `:read` (phase 7), so a case types one line under `'paste'` and replays a
+three-key macro with a count — five keystrokes and about two seconds for 25,000 lines.
+Every line begins with its own number, so a screen drawn with `'number'` shows the
+tree's answer beside the question; each case churns the **middle** of the buffer and
+then reads the whole of it back with a substitute count, and jumps to named lines and to
+both ends.
+
+**The block arithmetic is derived and not written down**, by compiling the struct
+definitions out of the source the phase was handed — page 4,096, data header 24, index
+entry 4, `PTR_EN` 32, so a 47-byte line packs 78 to a block and `pb_count_max` is 127 —
+and the corpus's own sizes are then required to clear those thresholds. **A corpus that
+means to reach a root split and does not is exactly the defect this phase exists to
+end**, so the depth is a measurement:
+
+| marker | 16 memline cases | 102 screen cases |
+| --- | --- | --- |
+| a data block splits | **16** | 0 |
+| a pointer entry chosen at `idx > 0` | **16** | 0 |
+| a data block of more than one page | **3** | 0 |
+| a pointer block full | **4** | 0 |
+| **the root splits** | **4** | 0 |
+| a non-root pointer block splits | **4** | 0 |
+| `ml_find_line()` descends through a second pointer block | **4** | 0 |
+
+### Five controls, and the one that moves nothing is what makes the others mean something
+
+Four are corruptions and each moves **0 of the 102**, which is the premise restated as a
+measurement. Deleting `pe_line_count--` from the descent moves **7 of 16**; deleting
+`ml_lineadd()`'s **deferred** adjustment — the other place a pointer entry's count is
+maintained, and a different shape of mistake — moves **16 of 16**; widening
+`ml_find_line()`'s `ML_FIND` stack by one line moves **4 of 16**, and they are exactly
+the four the probe measured descending past one pointer block, which the check states as
+a **rule** and not as a list of names.
+
+The fifth quarters `pb_count_max` and moves **0 of 16** while the probe shows the root
+split going from 4 cases to 13. That is not a failure: **the corpus records behaviour
+and not tree shape**, and the control proves it is not a no-op by the probe rather than
+by assertion. It is the same finding phase 44 meets again from the other side when it
+has to choose `DB_LINE_MAX`, and phase 45 turns into a `static_assert`.
+
+**A discarded control is reported rather than dropped.** Corrupting the root entry at the
+split site moves nothing, because the next iteration overwrites it — and a control the
+code repairs is not a control.
+
+### It found a real defect, and it is not the one the scrub was written for
+
+One record's stream digest moved in **1 of 48** whole recordings with every screen
+identical. Phase 32's section above has the corrected account: the cause is not the
+timestamp's text, which `tools/zrec.py` already rewrites padded, but **arithmetic on its
+length**. An undo in a buffer this size reports its age and the editor then positions the
+cursor to clear the rest of the line, so `0 seconds ago` emits `\033[24;40H\033[K` and
+`1 second ago` emits `\033[24;39H\033[K`. A column derived from a scrubbed string's width
+leaks the thing the scrub exists to hide, and it failed zero phase 16, whose binary is
+byte-identical either side — which is the only reason it was catchable.
+
+So **a memline record carries `stream N redraws` and no digest**, N being the count of
+`\x1b[?25h`. What replaces the digest as evidence is the fifth control above's sibling:
+both clocks the core can read replaced by counters that run away from the wall move **0
+of 16 memline records against 9 of the 102 screen cases**. That is stronger than a
+digest, because it says the record does not depend on the clock **at all** rather than
+that two runs of it happened to agree. `tools/zcases.py` still digests the raw stream,
+and closing that is expensive rather than difficult — see *What is still open* below.
+
+### Four phases pinned the size of a recording, and had to stop
+
+A new **part** of a recording is a new file whatever shape it takes, so `zpty.py`'s
+precedent — one record however many scenarios it holds — could not be followed. Measured:
+phase 9 stops with *a recording is 122 files, not the 106 this phase counted*. Phases 9,
+13, 30 and 34 each tested the count as an **equality**; phases 25, 35, 36 and 37 tested
+it as a floor of 100 and were unaffected. The four equalities are now **computed** —
+phase 9's control must mark *total − 2*, quiet only in `ref-pty.txt` and `ref-term.txt`,
+and the other three take the floor of 100 their siblings already use — which is
+`CLAUDE.md`'s own rule that **a number a phase cannot move is reported and not pinned**.
+
+### Measured
+
+| | before | after |
+| --- | --- | --- |
+| `zero-vim.c` | 79,592 | **79,592**, byte for byte |
+| the boundary digest | `68e450fd6912` | **`68e450fd6912`** |
+| a recording | 106 records, five parts | **122 records, six parts** |
+| memline cases | — | **16**, 200 to 25,000 lines |
+| the seven markers, memline | — | 16 / 16 / 3 / 4 / **4** / 4 / 4 |
+| the seven markers, screen | 0 of 102 | **0 of 102** |
+| `make zero-verify` | | **41 of 41**, 2,771 s of phases in 129 s |
+| keys moved | | **58 zero**, and not one whim or slim key |
+
+A cold `make zero-repass` from an empty cache reproduces all 40 recorded boundaries and
+adds r40. The 58 are all 40 zero units and 18 zero edits; `tools/zmemline.py`,
+`tools/zrecord.sh` and `tools/zcompare.py` are named by no whim or slim phase, and that
+is the measurement rather than the claim, so rule 9's gate does not apply.
+
+### Its placement
+
+`stage 40`, `package harness 3 33 40`, which is *the phase changed no source and moved
+the instrument instead*. **There is no `apart 39 40` and no `need 40`**, and both are
+refusals rather than omissions: `pipes/zero40.sh` is a whole-phase program, so
+`stage 39-40` is answered by `tools/stages.sh` with *phase 40 is in stage 39-40 but is
+not an edit and a check* and by `tools/phaserun.sh` with *zero phase 40 has no edit and
+check to run in stage 39-40*, both measured — and `need` is a statement about an edit
+part, which this phase has none of. That is `apart 33 34`'s shape exactly.
+
+The declared delta is **nothing at all**, and it is phase 3's and phase 33's kind: the
+phase changes no source, so nothing about the editor's behaviour *can* have moved, and
+what it has to argue is that the **comparison** moved safely. It does that by requiring
+every recorded boundary back.
+
+### What is still open, stated as two things and not one
+
+**The corpus can be made to reach further and the fix cannot land yet.** Branch
+`zmemline-fix`, commit `4e9fb9c`: `tools/zmemline.py` derives its case sizes from the
+block arithmetic instead of carrying them as constants, and chunks the buffer build.
+Measured, it reaches a **root split in 4 of 16 cases** both at the real fanout and at a
+forced `PB_COUNT_MAX = 511` — the value an 8-byte `PTR_EN` would give — where the corpus
+as committed reaches **1 and 0**. It is blocked because **two merged checks assert the
+corpus's insufficiency as a requirement**: `pipes/zero42-check.sh:686` requires
+root-split coverage to *decrease* under phase 42's wider pointer block, and
+`pipes/zero43-check.sh:557` requires identical tree-event tuples across a fanout change.
+Both pass today **only because the instrument is too small to see otherwise**, so
+landing the better corpus means rewriting two checks that were correct when they were
+written. That is a phase's worth of work and is recorded here rather than done quietly.
+
+**And the `ago` leak is still open in `tools/zcases.py`.** The fix that works is this
+phase's — count redraws, and let a clock control carry the evidence — and applying it to
+the other 106 records is expensive rather than hard: the `--- stream` line is named in
+**eighty files**, forty-seven times in zero phase 12's check alone. It deserves a pass of
+its own. Phase 32's section states the hazard and phase 16 is where it struck.
+
+## Phase 41 — freeing is free, and the arena is measured
+
+`pipes/zero41-edit.sh` and `pipes/zero41-check.sh`, `stage 41`, `package host`.
+`host_alloc()` becomes a **bump allocator** into a fixed 1 GiB arena and `host_free()`
+returns without doing anything. That is the charter bullet *A GARBAGE COLLECTOR IS
+ASSUMED FROM HERE ON* built, and it is what makes the four phases after it cheap rather
+than clever: the core may now allocate a record per line and simply not free it.
+
+**The claim is "freeing is now free" and not "the core stopped freeing".** Every
+`host_free()` call the core makes is still there and still made; a later phase may delete
+them, which is the reason for doing this one first. Phase 35 moved `malloc` and `free`
+across the line and wrote the two wrappers; this changes what is behind the two names and
+nothing else.
+
+### The strongest thing it says is a `cmp`, and it is a `cmp` of the core
+
+The phase is host-only from end to end, so `make editor.c` — **77,681 lines, 2,064,232
+bytes** — is **byte-identical in and out**. That subsumes every screen case, every
+memline case, every Ex command, every command line and every pty scenario at once *for
+the part of the file the project is for*, because the program a port would be handed is
+literally the same text. It is the cleanest proof a phase is host-only that this pipeline
+has, and it is a tier-1 check one level in from the whole binary. The recording is then
+what says the **host** still answers the same way.
+
+### The size could not have been measured one boundary earlier
+
+The input built with a counter on `host_alloc()` that totals every request as the
+allocator rounds it, dumped from `host_exit()`, over the whole of `tools/zrecord.sh`:
+**268 sessions in 122 records, largest 200,458,672 bytes**, two recordings and the same
+number. It is **one case**, phase 40's `mem_deep_jumps`, a 25,000-line buffer churned in
+the middle; the next three memline cases are near 52 million, and the heaviest of the
+**102 screen cases is 1,722,512**, which is **115 times less**.
+
+So an arena sized from the 102 alone would have been sized from a corpus provably unable
+to reach the text layer — the defect phase 40 exists to have ended, arriving one phase
+later in a shape nobody predicted. **This phase found that out the hard way and the
+record says so**: 64 MiB was written first and the recording refused it, *THE RECORDING
+MOVED, in 1 of 122 records: memline/mem_deep_jumps*, the case dying with
+`host arena exhausted: 67108864 bytes, 67058640 used, request 60263`, with 0 of 102
+screen cases and 0 of the four sweeps moving.
+
+1 GiB is **5.36 times** the measured high-water and 18.67 % used at its worst. The check
+re-measures the high-water on its **own** output over both corpora every run and refuses
+an arena less than four times it — and refuses as well if the heaviest memline case is
+not heavier than the heaviest screen case, which is the lesson above written down as an
+assertion rather than as a paragraph. So the size is a checked property and not a
+remembered one, and a later phase that makes the memline allocate more is told by its own
+check instead of by a crash.
+
+### The phase overturns its own earlier reasoning, and the correction is worth more than the number
+
+It first justified 64 MiB by *the abort path costs the arena times the harness's
+concurrency* — "64 MiB across 64 threads is 4 GiB on a 62 GiB machine". **That is false
+except for a runaway session**: an ordinary session's resident memory is its traffic,
+which the arena does not change, and an untouched arena page costs nothing. Measured, the
+same source at 64 MiB and at 1 GiB gives a **byte-identical image**, 772,872 either way,
+because `.bss` is `NOBITS`. The size buys one thing, how far a runaway goes before it
+dies loudly, and costs one thing, address space. The wrong argument and the measurement
+that killed it are both in `pipes/zero.delta`, so the correction survives outside the git
+log.
+
+### And one measurement says why no number is safe
+
+With nothing freed an arena holds a session's whole allocation **traffic** and not its
+live data, and this editor's traffic is **quadratic in the length of a single line being
+typed**: `+normal 200000ax` asks for 20,013,114,624 bytes across 400,475 calls, and
+`+normal 500000ax` for 44,075,360,179. Phase 35's own by-hand probe was that command, so
+a later phase that writes one like it will hit the wall. Buffers are linear and cheap by
+comparison — 100,000 lines cost 12,862,224 bytes and 300,000 lines 35,157,264, about 112
+a line. **It is churn and not size that fills an arena.**
+
+### The real cost is not the arena, it is the resident memory
+
+A bump allocator makes a session's peak RSS equal to its traffic. Measured with
+`getrusage(RUSAGE_CHILDREN)` over a whole `tools/zmemline.py` run: the worst child peaks
+at **13.6 MiB on the input and 191.8 MiB here**, fourteen times more, at either arena
+size. Across a whole `make zero-verify` — 42 units at once — the peak is **13.7 GiB of a
+62 GiB machine against 13.1 GiB** measured the same way on the boundary before it: 591
+MiB and 4.4 % more, with 41 GiB still available. That is the charter's trade under
+harness concurrency, on the record for the phases behind it, and it is the number to
+watch as phases 42 to 45 change how much the memline allocates.
+
+### Two of the four rewrites are not in the allocator, and without them the phase is wrong
+
+The formatter's private island — the functions phase 27 moved below the includes because
+they need `va_list` — still called libc's `free()` and libc's `realloc()` directly, on
+pointers that came from `alloc_clear()`, which is to say from `host_alloc`. Phase 35 named
+one in its own program (*"and `format_overflow_error()` below the boundary"*) and phase 34
+named the other (*"`realloc` call is the host's and is not this phase's"*). **Both were
+right while `host_alloc` WAS `malloc`**: the two allocators were one allocator. From this
+phase a `free()` or a `realloc()` of an arena pointer is undefined, so they move — the
+`realloc` by phase 34's own allocate-copy-free with phase 34's three traps read off this
+site — and the byte-identical cut is what proves the phase did it without touching a core
+line.
+
+Neither is reachable by any recording and one cannot run at all, so the check owes a
+probe and runs one: `adjust_types()` grows `*ap_types` only for a format string carrying
+a **positional** spec, and not one string literal in this file has one, so the same
+driver built into the input and the output runs six ascending positional formats through
+it, enters the grow arm **17 times in each**, and the two binaries print the same bytes.
+`format_overflow_error()` cannot be probed because it cannot run — its guard is
+`overflow_err`, which is `tvs != nullptr`, and `vim_vsnprintf_typval()` has one caller in
+this file passing `nullptr`. That is phase 9's and phase 17's kind, and it is kept correct
+rather than left to rot.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 79,592 | **79,660 (+68)**, every one below the first `#include` |
+| `make editor.c` | 77,681 | **77,681**, byte-identical, 2,064,232 bytes |
+| `nm -u` | 17 | **14**, the set moving by exactly `free malloc realloc`, a `comm` empty the other way |
+| `.bss` | 24,600 | **1,073,766,424** |
+| binary | 781,064 | **772,872 — smaller**, because `.bss` is `NOBITS` and musl's allocator left the link |
+| arena high-water | | **200,458,672 bytes**, one case, 5.36x under the ceiling |
+| worst child RSS | 13.6 MiB | **191.8 MiB** |
+| records that moved | | **0 of 122**, two full recordings byte-identical |
+
+It is the **first zero phase since 28 to free a symbol, and it frees three**. The `.bss`
+growth is the arena less 960 bytes, and the 960 is musl's own `__malloc_context` and five
+smaller objects leaving with it. `EXEC`, no `INTERP`, no dynamic section and no
+relocation are all still true of a gigabyte object.
+
+**The controls, over both corpora.** `host_alloc` returning `nullptr` moves **122 of
+122**. **The offset never advancing** moves 102 of 102 screen cases and 16 of 16 memline
+cases, and it is the only one that tests the *allocator* rather than the wrapper: a
+`host_alloc` that returned the arena's base for ever would pass the symbol check, the cut
+and the size assertion. `host_free` doing nothing moves **0 of 102 and 0 of 16** — phase
+35's own `cf` control re-run on this phase's input rather than a new claim, on a corpus
+phase 35 did not have, and reported rather than hidden, because a leak is invisible to
+this corpus too and it is `free` leaving `nm -u` that says the freeing changed. And the
+guard, which no recording can take: a 256 KiB arena aborts with
+`host arena exhausted: 262144 bytes, 113024 used, request 319968` and exits 1 — the
+request being the screen, this editor's single largest allocation — while the identical
+session on the real output is silent and exits 0.
+
+**`<stdlib.h>` is now dead and it stays**, measured rather than argued: the output built
+with the directive deleted is byte-identical, 772,872 either way. Eleven stays eleven,
+on phase 13's precedent for declining — a phase that changes two things cannot say which
+one a difference came from, and the removal is free for whoever asks for it.
+
+### Its placement
+
+`stage 41`, `package host 17 18 19 20 21 30 32 35 36 41`, because that is what the
+package is: a thing the core did for itself becomes a thing it asks the host to do. Here
+it is one step further — the core already asked, and what changes is the answer.
+`tools/zhostonly.py` needed no new word and no new exception: `host_alloc` and `host_free`
+have sat below `musl_suspend()`'s brace since phase 35, and none of `malloc`, `free`,
+`realloc`, `max_align_t` or `alignof` is in its vocabulary.
+
+**`apart 41 42` is measured and is not the mechanism the phase predicted.** It expected
+`apart 14 15`'s shape, an undefined-set equality against a stage's one snapshot. What
+actually fires is **this phase's own promise**: `tools/phaserun.sh zero 41-42` on r40
+stops with *the text above the first `#include` is not byte-identical in and out, and
+this phase is entirely below it*, and again on the directives' line numbers. **A phase
+that promises to touch no core line cannot share a stage with one that deletes 366 of
+them.** The other direction is reasoning: phase 42's check compares the undefined set of
+the text its own edit was handed with its output, and on a shared stage phase 41's edit
+has already taken the three symbols by then, so it would pass.
+
+**There is no `need 42`, for a reason stronger than one stage's measurement**: phase 41's
+**sweep is a no-op** — its edit's output on r40 is byte-identical to r41 — so there is no
+unswept text for phase 42 to be handed at all. `make zero-verify` is 42 of 42.
+
+## Phase 42 — the swap file's residue, and what no sweep could find
+
+`pipes/zero42-edit.sh` and `pipes/zero42-check.sh`, `stage 42`, `package tidy 13 37 42`.
+The filesystem went at phases 6 to 10 and the swap file's **bookkeeping** did not:
+memline and memfile still kept a header block carrying the editor's version and the
+buffer's name, a translation table for blocks not yet written out, a three-valued
+dirtiness state, and a record of where each block's lines used to be. None of it can be
+reached, none of it is read — and **not one of the four is visible to any tool in
+`tools/`, because every one of them is written.**
+
+`tools/deadfields.py` takes a field named nowhere outside its own type, and each of these
+is named; run against the input it reports **0 fields**. gcc has no warning for a struct
+member nothing reads, for an enumerator only ever OR-ed into a word nothing tests, or for
+a file-scope object read twice and assigned nowhere;
+`-Wunused-but-set-variable` does not reach a file-scope object and
+`tools/deadsweep.py` does not act on it at all. So this is an **edit** and not a sweep,
+and the check states the division rather than assuming it: **22 names leave in the edit
+and 39 more in the sweep**, both sets named with the reason each is in the half it is in.
+
+### The four, each proved as a partition over every mention
+
+* **`struct block0`, the header.** **Eight** fields, not the survey's nine — phase 36
+  already took `b0_pid`, so the edit reads the list **out of the struct** rather than
+  from a list typed into it, which was already a phase out of date. 8 declarations, 12
+  writes, **0 reads**. `ml_open()`'s thirty-two-line preamble goes with
+  `set_b0_fname()`, `long_to_char()`, `ml_setflags()` and its two call sites, and the two
+  surviving blocks move down by one: the pointer block is block nr 0 and the data block
+  block nr 1.
+* **Negative block numbers.** `mf_trans_add()` returns before doing anything unless a
+  block number is negative, and the chain that could make one is **computed** in the
+  edit: `mf_new()`'s callers pass `FALSE` or `ml_new_data()`'s own parameter,
+  `ml_new_data()`'s pass `FALSE` or `flags & ML_APPEND_NEW`, `ML_APPEND_NEW` comes only
+  from `ml_append()`'s `newfile`, and `newfile` is `FALSE` at **all eleven call sites**.
+  `mf_trans_add`, `mf_trans_del`, three memfile fields, the parameter and two flags.
+* **The dirtiness, write-only in all three layers.** `mf_dirty` has six writes and two
+  reads and **each read is the condition of an `if` whose only statement writes the field
+  again**, which the edit checks structurally; `bh_flags` is read in exactly one place
+  and that read tests `BH_LOCKED`, so `BH_DIRTY` is set three times and **tested
+  nowhere**; and `ML_LOCKED_DIRTY` and `ML_LOCKED_POS` are read at one place between
+  them, the two arguments `mf_put()` stops taking. `mf_put()` is now `mf_put(bhdr_T *hp)`.
+* **`pe_old_lnum`, 7 writes and 0 reads — and the three locals that go with it.** Taking
+  the field leaves `lnum_left`, `lnum_right` and `ml_find_line()`'s `dirty` written and
+  never read, which is `-Wunused-but-set-variable`, which `tools/deadsweep.py` does not
+  act on, so they are the edit's for the same reason the fields are. And
+  `mf_dont_release`, `static int mf_dont_release = FALSE;`, read twice and **assigned
+  nowhere in the file**.
+
+**A fifth the survey missed: `ML_LOCKED_DIRTY`'s ml-level twin.** `ML_LOCKED_DIRTY` is
+set 8 times, cleared once and tested nowhere once `mf_put()` loses its state arguments —
+and no warning covers a bit in a struct field. Leaving it would have created exactly the
+invisible write-only state this phase exists to remove.
+
+### And `BH_LOCKED` is not dead, which is the distinction worth keeping
+
+It looks like `BH_DIRTY`'s twin and it **is** read, by `mf_put()`'s own
+`e_block_was_not_locked` test. Measured: a binary whose `mf_put()` **sets** the bit
+instead of clearing it draws all 102 screen cases identically, because the only reader is
+an internal-error test that then never fires. **That is unreachable evidence, not
+unreachable code**, and the phase leaves it alone and says so.
+
+### The declared delta is nothing at all, and it is two kinds at once
+
+The negative-block half is **phase 9's kind**, code that could not run; the block-zero
+half is **phase 12's**, code that runs everywhere and the instrument cannot see. One
+instrumented build of the input says both, over **252 records** — 102 screen, 16 memline,
+126 from the two sweeps and eight stress sessions: the four markers on the negative-block
+island fire in **0 of 252**, against a control of identical shape in `ml_new_data()`
+firing in **227 of them, 2,141 times**, and the three markers on the header writes fire
+in **227 / 214 / 227**, so that code runs nearly everywhere and the two full recordings
+are byte-identical anyway.
+
+**The check caught itself failing, and that is reported rather than smoothed away.** An
+earlier draft computed each marker's indent from its anchor, which put two counters
+**outside** the `if` they belonged in, and it refused with *`neg_new neg_find` fired in a
+recorded session* — reporting the unreachable island as reachable. Every marker's
+placement is now written out in full, with that measurement as the reason.
+
+### The fanout changes, and that is what phase 40 is for
+
+`pe_old_lnum` is a member of `PTR_EN`, so every pointer-block entry gets smaller and more
+of them fit in a page: `sizeof(PTR_EN)` 32 → 24 and `pb_count_max` **127 → 170**, and the
+root pointer block overflows **later**. A binary with `ml_append_int()`'s root test left
+at the old block number — a real bug, the root not kept where `ml_find_line()` starts —
+draws all 102 screen cases and all four of the survey's own deep cases **identically**;
+what moves it is `mem_deep_jumps`, and that corpus is the only recorded thing that can.
+
+**It also narrows what phase 40 reaches, measured 4 cases to 1** — `mem_root_split` among
+them, the case named for the thing it no longer does — because phase 40 derived its
+buffer sizes from `sizeof(PTR_EN)`. **A case named for the root split is a case sized for
+a fanout.** The check asserts that as an *inequality* rather than a count, because this
+phase can only make a pointer block hold more children. The corpus fix that would undo
+the narrowing exists and cannot land; phase 40's section says why.
+
+Section 8 of the check is the direct proof with an instrument: at sixty thousand lines
+the output preserves the root once and never overflows, the control preserves it never
+and reaches `e_updated_too_many_blocks`, and the two draw different screens. Four sessions
+of sixty thousand lines and more then agree between the input and the output. Undo's
+message carries a wall clock — four of five runs said `0 seconds ago` and one said
+`1 second ago`, a difference between a binary and **itself** — so that phrase is folded to
+a constant, and the check requires it present so the folding cannot hide anything.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 79,660 | **79,294 (−366)** — the edit takes 280 and the sweep 86 |
+| names that leave | | **22 in the edit, 39 in the sweep**, both sets named |
+| `sizeof(PTR_EN)` / `pb_count_max` | 32 / 127 | **24 / 170** |
+| `make editor.c` | 77,681 | **77,315**, 0 directives, the same 18 interface names |
+| `nm -u` | 14 | **14**, an equality: a phase that deletes core code and crosses no boundary can free nothing |
+| binary | 772,872 | **768,744** |
+| arena high-water | 200,458,672 | **200,449,792 — lower**, every memline case allocating less |
+| records that moved | | **0 of 122** |
+
+Every one of the sixteen memline cases allocates less, smaller structs outweighing the
+free-list reuse that goes; phase 41's instrument reproduces its own published figure to
+the byte on r41, which is what makes the r42 number trustworthy. `tools/canon.sh` is a
+no-op on the output, and `zhostonly`, `orphanopts`, `nvidxcheck` and `phasecheck` all
+pass unchanged.
+
+### Its placement
+
+`stage 42`, `package tidy 13 37 42`, which is *leftovers of cuts already made* — phase
+13's `FILE *` that had never been opened and phase 37's unions that unite nothing are the
+same shape as a swap file's header in an editor that has had no swap file since phase 6.
+It is not `memline`, which is phases 43 to 45 and is about **representation**.
+
+`apart 41 42` is phase 41's, above. **There is no `need 42`** — phase 41's sweep is a
+no-op, so there is no unswept text to be handed — and the 41-42 run confirms it end to
+end anyway: the stage's one sweep leaves a `zero-vim.c` byte-identical to r42.
+
+The check is proven able to fail three ways, two of them while it was being written: the
+indent draft above; the output with `ml_find_line()`'s descent put back to block nr 1
+refuses at the block numbers; and the edit run on its own output refuses at
+`struct block0`. `make zero-verify` is 43 of 43.
+
+## Phase 43 — a block number becomes a reference
+
+`pipes/zero43-edit.sh` and `pipes/zero43-check.sh`, `stage 43`, `package memline 43 44
+45`. `pe_bnum` and `ip_bnum` become `bhdr_T *`, `memline_T` gains `ml_root`, and
+`mf_get(mfp, nr, page_count)` becomes `mf_get(mfp, hp)`. The hash table that turned an
+integer block number into a page then has nothing left to look up, so it goes — with the
+free list it was keyed alongside, with `mf_blocknr_max` that handed the numbers out, and
+with `pe_page_count`, whose one reader in the whole file was the argument `mf_get()` no
+longer takes. `blocknr_T` 13 → 0, `mf_hashitem_T` 18 → 0, `mf_hashtab_T` 14 → 0, eleven
+functions, 180 lines.
+
+**This is the phase that buys the port the most, and it is worth being precise about what
+it buys.** An integer key into a side hash table becomes an **object reference**, which is
+the one thing a JVM has and C does not make you say. `ZERO-PLAN.md` §4d lists what a port
+would have to be told about rather than translate, and the memline page is the whole of
+that list; this removes the **outer** half of it, the indirection *between* pages. It does
+**not** remove the inner half, and the phase says so rather than letting the headline
+stand: the page is still a byte array, `db_index[1]` is still declared length 1 and
+indexed to the block's line count, the fourteen `(char_u *)dp + start` interior pointers
+are untouched, the top bit of an offset is still a flag, and the arena and its interior
+pointers survive until phase 44. **A reference to a block whose innards are still a byte
+array is halfway.**
+
+### Why the lookup could not miss, which is the whole argument that a pointer is the same answer
+
+Read off the text by the edit rather than asserted: the hash is inserted into by
+`mf_new()` and `mf_get()` and removed from by `mf_free()` and `mf_get()`, which removes
+and re-inserts in one breath to move a block to the head of the used list — so **every
+live block has been in the hash since it was made**. Nothing has been written to a disk
+since zero phase 6 and nothing could be read from one since phase 9, so there has never
+been a block number in this build that named a page not already in memory.
+
+No invariant broke, and both were looked for rather than assumed. **No block number is
+stored anywhere else** — every mention of `pe_bnum`, `ip_bnum`, `mhi_key` and
+`bh_hashitem` is partitioned by its owning function. **The hash provided no ordering
+anything reads**: `mf_used_last` is write-only, there is no release path left, and one
+`ml_root` suffices because a root split **preserves the root block's identity**.
+
+### Four write-only fields go in the edit and not the sweep, and that is the rule rather than a choice
+
+`tools/deadfields.py` takes a field named nowhere outside its own type and reports **0
+fields** in this region, because every one of `mf_used_last`, `bh_page_count`,
+`pe_page_count` and `pe_bnum` is **written**; gcc has no warning for a struct member in
+either direction; and phase 20's trap is the other half — remove a member and leave its
+initialiser and the compile says `excess elements in struct initializer`, which is a
+correct phase failing. `mf_used_last` had been write-only since phase 42 took
+`ml_setflags()`, its last reader. `bh_page_count` and `pe_page_count` become write-only
+**here**, and that cascade was measured rather than predicted: with `pe_page_count`'s one
+read gone, gcc reports `page_count_left` and `page_count_right` as
+`-Wunused-but-set-variable`, which `tools/deadsweep.py` does not act on, so those two
+locals are the edit's as well.
+
+**Every assertion is a partition and not a count.** Phase 35 had to repair phase 34's
+counted anchors, and phase 42 is this phase's direct predecessor and removes four fields
+from the same two structs. So the edit asserts the **set of functions** that says each
+name — `mhi_key` in eight places, `pe_bnum` in four, `ip_bnum` in five — and a name said
+somewhere the phase does not account for refuses. The check states the difference the same
+way: the names that leave in the edit (**47**), the names that leave in the sweep (**2**)
+and the names that **arrive** (**6**) are three computed sets compared against three
+written ones, over identifiers with string and character literals masked out first.
+
+### It caught a lie the prototype would have shipped
+
+`E323: Line count wrong in block %ld` is the only message in the file that printed a
+block number, and there are none left. The survey's prototype passed `(long)0`, which
+would have printed a falsehood for ever; the message becomes **`E323: Line count wrong in
+block`**. The evidence is phase 9's shape: the input built with a latching marker on that
+arm carries it in **0 of 122 records** and the identical marker one line above — the
+descent into a pointer block — in **120 of 122**; then both sources are forced to take the
+arm and both do draw it, `...in block 0` against `...in block`.
+
+**How the arm is forced was arrived at by measurement, and two wrong ways are recorded
+because each looks right.** Emptying the scan loop leaves `idx` at 0, `0 >= pb_count` is
+false and the descent simply goes round again. Forcing the arm alone is not enough either:
+`ml_find_line()` then returns `nullptr`, the editor dies of it — SIGSEGV, measured — and
+the message never reaches the stream. What works is reading every entry's line count as 0,
+which leaves `idx` at `pb_count`, and then making the arm draw and stop with `out_flush()`
+and `host_exit(0)` right after the `iemsg`. That last edit is found by the **shape** of the
+call and not its text, which is what lets one rule serve two sources that spell it
+differently: the input formats a block number into `IObuff` and the output does not.
+
+`E298: Didn't get block nr 0?` and `E298: Didn't get block nr 1?` are not changed but
+**deleted**, with the two `ml_open()` tests that were the only thing that could raise them,
+and both objects are left standing for `tools/sweep.sh` — which is the whole of what the
+sweep does here, because the eleven functions that go all name a type or a field the edit
+removes and leaving them would hand the sweep a file that does not compile.
+
+### The declared delta is nothing at all, and it is the strongest instance of the sixth kind any zero phase has had
+
+The code runs and the instrument sees it do the same thing — and it is strongest here for
+a reason about **where** the phase is rather than how careful it was: **every keystroke
+this editor draws reaches its text through `ml_find_line()`**. Two whole recordings are
+byte-identical across all 122 records.
+
+**And it is only the sixth kind because phase 40 exists.** Before it a recording was 102
+screen cases that allocate exactly one data block each, and a binary with one line deleted
+from `ml_find_line()`'s pointer bookkeeping recorded every one of them byte for byte; a
+phase that rewrites the descent, measured against that, would have been the **second**
+kind and would have owed probes for the whole text layer. So the check does not merely
+diff the recording: it plants five counters — root splits, pointer-block splits,
+data-block splits, deepest descent, data blocks made — in **both** sources and requires the
+sixteen memline cases to agree event for event, which they do.
+
+**Five controls, and the fifth moves nothing and is reported.** `c_root` (the root test
+made a test nothing passes) and `c_stack` (every stack entry remembers the root) move a
+65,149-line session and leave a two-hundred-line one alone — and that two-hundred-line
+session is not an easy target: 200 lines of 20 bytes already fill two data blocks, so it
+descends through a real pointer block and still cannot see either control. `c_descend`
+(every descent takes the first child) moves both, and `c_mlroot` (`ml_open()` never writes
+`ml_root`) moves all three sessions, which keeps the finding from being a session nothing
+could fail. `c_pages` (`mf_alloc_bhdr()` sizing every block one page) moves **nothing**,
+and the reason is worth having rather than hiding: since phase 41 `host_alloc` is a bump
+allocator with no redzone and no free, so a block written past its end scribbles on arena
+bytes nothing has handed out yet. **A short allocation there is a memory bug and not a
+difference** — the last row of `CLAUDE.md`'s verification table, the one that needs a
+sanitizer and not an instrument — and it is built, run and reported, which is phase 34's
+seventh control exactly.
+
+### The pointer entry shrinks and the tree gets wider, which is the thing a later phase has to know
+
+Derived by compiling the structs out of both sources rather than written down:
+`sizeof(PTR_EN)` **24 → 16** bytes, so `pb_count_max` — children per pointer block — goes
+**170 → 255**, and a root split needs more than that many live data blocks. It was 127
+before phase 42. The corpus's largest case makes **321**, so it still splits the root,
+with 66 blocks of margin. Because of this the check's own deep session states the data
+layer as an equality and the pointer layer as an **inequality**: at 65,149 lines — derived
+from `pb_count_max` and the lines a data block holds, not typed in — both binaries make
+386 data blocks, descend 2 deep and split the root once and draw the same stream, while
+the output splits a pointer block **once** against the input's twice, because a wider
+block splits no more often than a narrower one.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 79,294 | **78,977 (−317)** — the edit takes 315 and the sweep 2 |
+| names | | **47 leave in the edit, 2 in the sweep, 6 arrive**, three computed sets |
+| `blocknr_T` / `mf_hashitem_T` / `mf_hashtab_T` | 13 / 18 / 14 | **0 / 0 / 0** |
+| `sizeof(PTR_EN)` / `pb_count_max` | 24 / 170 | **16 / 255** |
+| `make editor.c` | 77,315 | **76,998**, 0 directives, the same 18 interface names |
+| `nm -u` | 14 | **14**, an equality with its reason |
+| binary | 768,744 | **760,456** |
+| records that moved | | **0 of 122**, with five tree counters agreeing case for case |
+
+`nm -u` does not move, and the reason is stated rather than the number: the hash, the free
+list and the block numbers were **pure computation inside the file**, reaching the outside
+only through `alloc()` and `vim_free()`, which have been `host_alloc` and `host_free`
+since phase 35. `tools/zerodelta.sh --phase 43` reports *exactly as declared* — screen
+102/102, memline 16/16, `ref-excmds.txt` 111/111 and `ref-argv.txt` 30/30 — which is a
+different comparison from the check's own `diff -r` of two recordings: one asks whether
+the output matches its input, the other whether it matches whim. The synthetic input the
+phase was designed against is **byte-identical** to the real r42.
+
+### Its placement
+
+`stage 43`, `package memline 43 44 45`, which the charter names as the end of the road —
+*the text later held as a tree*. It is not `buffers`, which is phase 11 and an Ex-level
+refusal to quit, and not `tidy`, which is leftovers of cuts already made.
+
+**`need 43 swept` is required and what breaks without it is not the anchor a reader would
+guess.** Measured on exactly the text phase 42's edit leaves, the edit runs to its last
+act and refuses with *names this phase removes are still said: `blocknr_T` 1,
+`mf_hashitem_T` 1, `mf_hashtab_T` 1* — phase 42 leaves `mf_hash_free_all` standing for the
+sweep and its **forward declaration** names all three of the types this phase deletes.
+**The cut applied cleanly and the partition refused, which is what a partition is for.**
+
+**There is deliberately no `apart 42 43`, and both halves are measured rather than
+argued.** Phase 42's check quotes verbatim the two lines this phase rewrites —
+`pp->pb_pointer[0].pe_bnum = 1;` 1 → 0 and `if (hp-> bh_hashitem.mhi_key != 0)` 2 → 0 — so
+it would stop. But with `stage 42-43` in the manifest `tools/stages.sh` answers *43 needs
+swept input and does not start a stage (42-43)* and exits 1 **before any check runs**:
+`need 43 swept` already forbids the only stage that could hold both, and an `apart`
+nobody can measure is phase 36's rule. Both halves are written down so the next reader
+knows it was checked and not assumed.
+
+## Phase 44 — de-page the leaf
+
+`pipes/zero44-edit.sh` and `pipes/zero44-check.sh`, `stage 44`, `package memline`. A data
+block stops being a **page of bytes** and becomes an **array of line records**. Until this
+phase a leaf is a header, an index of byte offsets growing up from it and a text arena
+growing down from the end of the page, with `db_free` bytes of gap where they meet: a
+line's text lives inside the block, so inserting a line in the middle memmoves the arena
+and rewrites every index below it, a line that grows past the gap is appended-and-deleted
+into another block, and a line longer than a page makes the block two pages. After it the
+leaf is
+
+```c
+struct { char_u *dl_text; colnr_T dl_len; char dl_marked; } db_line[DB_LINE_MAX];
+```
+
+and a line's text is **its own allocation**: inserting shifts records, not bytes, and
+replacing stores a pointer.
+
+**Why it is cheap now.** The arena exists for exactly one reason, to avoid a `malloc` per
+line, and the charter has retired it — *A GARBAGE COLLECTOR IS ASSUMED FROM HERE ON*. This
+phase spends what phase 41 bought. And the target representation is **today's dirty-line
+path made permanent**, which is why the rewrite is 184 lines out and 71 in and not a
+thousand: `ml_line_ptr` under `ML_LINE_DIRTY` is already a separately allocated `char_u *`
+with `ml_line_len` beside it, so `ml_flush_line()`'s sixty-line *does the new text still
+fit* branch — the memmove, the index fixup and the append-then-delete fallback — has
+nothing left to decide and becomes one store.
+
+### What goes, every count measured on the input and asserted as a partition
+
+`db_free` 14 mentions, `db_txt_start` 29, `db_txt_end` 6 and `db_index` **34** all to
+**zero**; the fourteen interior pointers of the shape `(char_u *)dp + start` to zero;
+`DB_MARKED`'s stolen top bit, 17 expressions, to a real field; `ML_APPEND_MARK` 5; and
+**both `offsetof(DATA_BL, db_index)` — by having nothing left to measure**, which is a
+stronger removal than respelling them as `sizeof`, and which a prior survey verified was
+byte-identical and recommended against for exactly this reason. The edit classifies every
+mention of every one of them by its enclosing function and refuses on one that is not in
+the struct, the enumerator or one of the eight memline functions it rewrites; the check
+re-reads the input's counts **off the input** rather than trusting the numbers. **The
+third memline `offsetof` stays and is named as not this phase's**: `ml_new_ptr()`'s
+measures a *pointer* block, which is the branch and not the leaf.
+
+### `DB_LINE_MAX` is a free parameter now, and it is chosen by instrument reachability
+
+A leaf used to hold whatever fitted in a page and nothing decides it any more. **The
+corpus cannot see the value at all**: 32, 64, 128 and even 1 record all 118 cases byte for
+byte, so any argument from *the recording agrees* would have been vacuous. What it does
+decide is how much of the tree the corpus **reaches**, measured with phase 40's markers on
+r43, this phase's actual input:
+
+| `DB_LINE_MAX` | SPLITDATA | SPLITPTR | SPLITROOT | IDXNZ | DEEP |
+| --- | --- | --- | --- | --- | --- |
+| 32 | 16 | 5 | 5 | 16 | 5 |
+| **64** | **16** | **1** | **1** | **16** | **1** |
+| 128 | 16 | 0 | 0 | 16 | 0 |
+| 255 | 14 | 0 | 0 | 14 | 0 |
+| r43, the input | 16 | 1 | 1 | 16 | 1 |
+
+64 reaches exactly what the input reaches. **255 is the value that would fill the page and
+it is the one that must not be chosen**: the natural-looking pick, the one that wastes
+nothing, reaches no pointer-block split at all and would have blinded the instrument on
+the very phase that rewrites the tree. That is phase 40's lesson applied to a parameter
+instead of a corpus.
+
+**And the margin is one case, which has narrowed under this phase.** The same table taken
+on r40, where this was prototyped, read 6 / 5 / 1 / 0 in the SPLITROOT column: **128 was a
+live choice then and reaches zero now.** Phase 42 took `pe_old_lnum` out of `PTR_EN` and
+phase 43 took the block number and the page count, so `pb_count_max` has gone 127 → 170 →
+255 while the corpus's buffer sizes have not moved. Measured directly with a counter on
+`ml_new_data()`: `mem_deep_jumps` builds **321 data blocks on the input and 391 here**
+against a `pb_count_max` of 255, and no other case comes near it on either side (204 / 155
+/ 154 and 248 / 192 / 188). **A `PTR_EN` of 8 bytes would put `pb_count_max` at 511 and
+take even 64 to zero** — at which point the corpus needs resizing or `DB_LINE_MAX` needs
+lowering. The measurement stands; its margin does not, and that is the finding phase 45
+turns into a compile error. The number, and that 32 reaches five, are written into the
+edit, the delta and the commit, so lowering `DB_LINE_MAX` stays available if it is ever
+preferred to resizing the corpus.
+
+**This phase does not move `sizeof(PTR_EN)`**: 16 bytes either side, `struct
+pointer_entry` byte-identical in and out, and the check pins `offsetof(PTR_BL,
+pb_pointer)` at 1 → 1.
+
+### The lifetime rule is pinned as a partition and not as prose
+
+341 call sites depend on what `ml_get()` returns. It used to be a pointer **into the
+page**, invalidated by any insert or delete in the same block, any flush of any line in it
+and any split — the arena memmoves. It is now the record's own allocation and nothing
+frees it, so **a pointer returned by `ml_get*()` is valid for the lifetime of the
+process**. Stated as a partition — a record's text is written in exactly **five** places,
+`ml_open` once, `ml_append_int` three times and `ml_flush_line` once, and freed in
+**none** — and probed: a build that poisons the text a record stops owning moves **0 of
+118**, which is the rule measured and not asserted.
+
+**`ml_line_alloced()` is deliberately not simplified and the check enforces that.**
+`del_bytes()` shortens `ml_line_len` in place under it and nothing would write that length
+back, so `ML_LINE_DIRTY` must keep meaning *a replacement is pending* and not *the text is
+allocated*. **It looks like an invitation and is a trap.**
+
+### What it spends is measured, and it is the one cost no recording can see
+
+The heaviest memline session asks the host for **201,927,792 bytes where the input asks
+200,438,864**, +0.7 %, `mem_deep_jumps` either side. With nothing freed that is a
+session's **traffic** and not its live data, which is why it is two hundred megabytes and
+why phase 41's arena is a gigabyte. The counter is calibrated against a known answer
+before it is believed — on the 233 non-memline sessions it reproduces phase 41's own
+published high-water to the byte, **1,734,544** — and phase 41, rebased onto phase 40,
+reached the same two numbers independently with an instrument written apart from this one.
+The bound is **proven able to fail** rather than chosen: `ml_alloc_line()` over-allocating
+by one page a line — the blunder the section is for — asks **304,354,000**, 1.52 times the
+input, against the real output's 1.007.
+
+### The leaf is still allocated as one memfile page, and that is deliberate scope with a measured cost
+
+1,040 bytes of 4,096, asserted by a `static_assert` rather than left to be discovered. The
+cost is reported and not hidden: the `cap` control, the capacity bound off by one, moves
+**0 of 118**, because the 65th record lands in the page's spare room. Allocating a block
+at its own size means giving memfile a **byte size where it has a page count**, which is
+block *numbering* as well as block size — the machinery phase 43 has just rewritten — and a
+phase that replaced the leaf's representation and changed how blocks are allocated in one
+act would have two claims and one set of evidence. Phase 45 is that phase, and it measures
+this prediction rather than repeating it. One prediction of this phase's had already come
+true from the other side: `pe_page_count` and `bh_page_count` would be constant 1 after
+it, and phase 43 removed both before it.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 78,977 | **78,859 (−118)** — 184 out and 71 in, and the sweep finds exactly one thing |
+| `db_free` / `db_txt_start` / `db_txt_end` / `db_index` | 14 / 29 / 6 / 34 | **0 / 0 / 0 / 0** |
+| interior pointers `(char_u *)dp + start` | 14 | **0** |
+| `offsetof(DATA_BL, db_index)` | 2 | **0**, by having nothing left to measure |
+| `make editor.c` | 76,998 | **76,880**, 0 directives, the same 18 interface names |
+| `nm -u` | 14 | **14**, a `comm` empty both ways |
+| binary | 760,456 | **760,456** — the same size, different bytes, absorbed by alignment padding |
+| arena high-water | 200,438,864 | **201,927,792 (+0.7 %)** |
+| records that moved | | **0 of 118** |
+
+The declared delta is **nothing at all** and it is the **weakest** kind on the list, phases
+14 and 15's: the code changes, the binary moves, and the claim is that a replacement does
+what the original did. There is no `cmp` to be had, so the two byte-identical recordings
+are the **floor** and the **eleven controls** are the evidence. Eight must move and do —
+the text not copied 2 of 118, the stored length dropped 36, a mark never set 4, the delete
+shifting one record too few 6, the insert opening its gap the wrong way 8, the split
+moving one record too few 4, every read taking the block's first record 52, every length
+short by one 38 — and three must not, each with the reason it cannot be seen: `poison`,
+`cap` and `DB_LINE_MAX = 1`. **The split control is the one that says why phase 40 was not
+optional: 0 of the 102 screen cases and 4 of the 16 memline cases.** The corpus per case is
+the input's own numbers — MLSPLITDATA 16, MLSPLITPTR 1, MLSPLITROOT 1, MLIDXNZ 16, MLDEEP
+1 — and one marker goes down because the code is gone: phase 40's MLBIGLINE, a data block
+of more than one page, fires in 3 of 16 on the input and has **no anchor in the output at
+all**.
+
+### The rebase cost exactly two anchors and both refused loudly
+
+Which is the design working. The edit is written so that every region is located by a
+function name and its own first and last line, every call whose arity changes is rewritten
+by **place** and not by argument text, and every `ml_flags |=` inside a replaced region is
+**carried forward as found** — and that last one paid for itself exactly as intended, phase
+42 having deleted `ML_LOCKED_DIRTY` and `ML_LOCKED_POS`, so `ml_flush_line()` now carries
+nothing and the edit needed no change. What did move: `ml_alloc_line`'s insertion point was
+anchored on `long_to_char()`, which phase 42 deleted with block zero, and now goes
+immediately above `ml_open()`, its first caller, so it depends on the function it is about;
+and the probe's depth counter was declared at `ml_find_line()`'s `bnum = 1;`, which phase
+43 deleted with block numbers themselves, and is now at `low = 1;` beside it — the line
+that says the same thing about the **search** rather than about the representation.
+
+### Its placement
+
+`stage 44`, `package memline`, which phase 43 opened and whose comment says *phase 44
+replaces the leaf, so the package grows*.
+
+**`apart 43 44` is `apart 36 37` in its sharper form.** `tools/phaserun.sh zero 43-44` on
+r42 runs both edits, one sweep and phase 43's check and stops with *the sweep: the names
+that leave are ['ML_APPEND_MARK', 'ML_DEL_NOPROP', 'data_moved', 'db_free', 'db_index',
+'db_txt_end', 'db_txt_start', 'e_didnt_get_block_nr_one', 'e_didnt_get_block_nr_zero',
+'line_start', 'space_needed', 'text_start'] and this phase accounts for
+['e_didnt_get_block_nr_one', 'e_didnt_get_block_nr_zero']*. Phase 43 states the division
+between its edit and its sweep as a **partition over names**, a stage sweeps **once** at
+the end, and the ten names this edit orphans land in phase 43's sweep set. **36-37 was that
+lesson in a line count; this is the same lesson in a set, and a set is what a later phase
+is more likely to state.** One direction only: phase 44's check was then run on exactly the
+tree the shared stage produced and every part passes.
+
+**And there is no `need 44`, measured as an equality and not as a run that did not
+refuse.** The same 43-44 stage hands this edit phase 43's **unswept** output, and the file
+the one sweep leaves is byte-identical to the sequential run's, 78,859 lines either way.
+**The edit does not merely survive unswept text; it cannot tell the difference.**
+
+`tools/phaserun.sh zero 44` exits 0 in 70 s and `make zero-tip` records r44 as
+`5677d3f826f4`. The sweep finds exactly one thing in the whole phase, `ML_DEL_NOPROP`, and
+the check states that division: **`ML_APPEND_MARK` is reachable code that can never be
+true once the fallback goes**, so no sweep can see it and the edit takes it.
+`make zero-verify` is 45 of 45.
+
+## Phase 45 — fold the node types
+
+`pipes/zero45-edit.sh` and `pipes/zero45-check.sh`, `stage 45`, `package memline`. The
+memfile goes, and with it the last thing between the tree and its nodes. Until this phase
+a memline node is **two** allocations: a `bhdr_T` of four members — two used-list
+pointers, a `char_u *bh_data` and a lock flag — and, hanging off it, a 4,096-byte page cast
+to `PTR_BL *` or `DATA_BL *` by the two-byte id at its front, with a `memfile_T` of two
+members owning the list head and the page size. After it
+
+```c
+struct block_hdr     { short_u bh_id; };
+struct pointer_block { bhdr_T pb_hdr; short_u pb_count; PTR_EN pb_pointer[PB_COUNT_MAX]; };
+struct data_block    { bhdr_T db_hdr; linenr_T db_line_count; DATA_LN db_line[DB_LINE_MAX]; };
+```
+
+**There are no pages, no blocks and no memfile left — just a counted tree of nodes holding
+line records.** A node is **one allocation at its own size**, 1,040 bytes for a leaf and
+4,088 for a branch against 4,128 for either of them before. `bhdr_T` is the node's **tag**
+and the first member of both, so `(PTR_BL *)hp` and `(bhdr_T *)pp` are the same address
+and the file needs no union; `memfile_T` has nothing left to hold and is gone; and
+`ml_root` answers *does this buffer have a memline* where `ml_mfp` did, taking `memline_T`
+from 104 bytes to 96. `mf_open/close/new/get/put/free/ins_used/rem_used/alloc_bhdr/
+free_bhdr` all go, and `mf_close()`'s teardown becomes `ml_free_tree()` walking the tree,
+which is the same set of nodes.
+
+`bhdr_T` was **not** the wrapper around one pointer the brief hedged for, and the phase
+says so: it was four members and 32 bytes, a doubly-linked used list, a `char_u *bh_data`
+pointing at a separate page, and a `BH_LOCKED` flag. It is now two bytes.
+
+### This is phase 44's own named next step, and both halves are measured rather than repeated
+
+Quoted in that phase's program: *"Allocating a block at its own size means giving memfile a
+byte size where it has a page count ... it would take the leaf from 112 bytes a line to 64,
+and it would MAKE AN OFF-BY-ONE IN THE CAPACITY BOUND VISIBLE, which today it is not."*
+
+Phase 44's own `cap` control — the leaf capacity test widened by one — is built from **this
+phase's input and from its output in the same run**: **0 of 118 records on the input**,
+which is the 0 of 118 phase 44 published, and **4 of 118 here**. The 65th record used to
+land in the page's spare room and now lands past the end of a 1,040-byte allocation. Phase
+44's other half does **not** reproduce, and the phase reports what it measured rather than
+what was predicted: the leaf's node cost falls from **64.5 bytes a line to 16.25**, not
+"112 to 64".
+
+### What the phase could have destroyed, and the measurement that says it did not
+
+`pb_count_max` was computed per block as `(4096 - 8) / sizeof(PTR_EN)` = **255**, and it is
+the tree's **fanout**. Phase 40's corpus reaches a root split in exactly one of its sixteen
+cases, `mem_deep_jumps`, which builds **391** data blocks; the other fifteen and all 102
+screen cases reach none of it. A phase that took `sizeof(PTR_EN)` to 8 would put the fanout
+at **511**, and 391 < 511 would take root-split coverage to **zero — silently**, because
+the instrument would still run and still pass, which is the defect phase 40 exists to have
+ended.
+
+So `PTR_EN` is not touched, and the new struct has the same offset **by construction**: a
+two-byte tag and a two-byte count where three shorts were, so `pb_pointer` starts at 8 and
+`PB_COUNT_MAX = 255` is the number the input computes rather than a number chosen.
+`static_assert(sizeof(PTR_EN) == 16, ...)` is appended to the `make editor.c` cut of both
+sides and both compile, with `== 8` required to **fail** against both so the assertion is
+an assertion. The five markers are then measured case by case on both binaries and are
+identical: MLSPLITDATA 16, MLSPLITPTR 1, MLSPLITROOT 1, MLIDXNZ 16, MLDEEP 1, and 0 of 102
+screen cases.
+
+**And the file now carries**
+
+```c
+static_assert(PB_COUNT_MAX == (4096 - 8) / sizeof(PTR_EN), ...)
+```
+
+**which fails to compile if a later phase narrows the entry.** The whole memline arc has
+been shadowed by the risk that shrinking `PTR_EN` to 8 would take `pb_count_max` to 511 and
+root-split coverage to zero without anything noticing. **It is now a build error rather
+than a thing to remember**, which is the arc's standing hazard ended in the only way that
+survives a reader who has not read this document.
+
+### The hazard is demonstrated and not argued
+
+The `fanout` control sets `PB_COUNT_MAX = 511`, what an 8-byte entry would give. It moves
+**0 of 118 records** — and that **is** the point: the same binary takes MLSPLITPTR,
+MLSPLITROOT and MLDEEP **from 1 to 0**, so narrowing the entry would take the root split
+out of the corpus **without moving one record**. It is run under phase 40's instrument as
+well as under the recording, **because the recording is exactly what cannot see it**.
+
+Two other controls move nothing and are reported with their reasons. `noclear` —
+`alloc()` for `alloc_clear()` — moves nothing because the host's arena is a bump pointer
+over fresh pages, so the memory is already zero: **a fact about this host and not a promise
+the core may rest on**, though `ml_open()`'s error path does rest on it, and that zeroing
+is kept and is load-bearing exactly once, the error path walking a root whose single entry
+has not been filled in. `nofree` — `ml_free_tree()` freeing nothing — moves nothing because
+`host_free()` has returned without doing anything since phase 41, so **what a core gives
+back is unobservable by construction**.
+
+### The partition is over the file's whole vocabulary
+
+And not over a list of names the edit happens to know. String literals excluded —
+`zero-vim.c` has no comments and no preprocessor, so the scan is exact — **exactly 30
+identifiers leave and exactly 5 arrive**: 26 the edit takes (236 mentions of `bh_next`,
+`bh_prev`, `bh_data`, `bh_flags`, `mf_used_first`, `mf_page_size`, `memfile`, `memfile_T`,
+`ml_mfp`, `pb_id`, `db_id`, `pb_count_max`, `MEMFILE_PAGE_SIZE`, the ten `mf_*` functions,
+`mfp`, `page_count` and `page_size`), 2 the sweep takes (`BH_LOCKED`, which
+`deadenums.py` finds, and `e_block_was_not_locked`, which `deadsweep.py` does — the whole
+of what the sweep finds in this phase), 2 that go with a function the edit deletes
+(`mf_close`'s `nextp` and `ml_find_line`'s `error_noblock` label), and 5 written
+(`PB_COUNT_MAX`, `bh_id`, `pb_hdr`, `db_hdr`, `ml_free_tree`).
+
+The open-buffer predicate is stated the same way: `ml_root` is compared with `nullptr` in
+**no** function in the input and `ml_mfp` in **fifteen**, and in the output `ml_root` is
+compared in those fifteen **plus `ml_delete_int`**, which asked the same question through
+a local copy.
+
+**Nothing is freed that was not freed before.** `mf_close()` walked the used list at
+`ml_close()` and the used list was exactly the set of live nodes, so `ml_free_tree()` walks
+the **tree** and frees the same set; `mf_free()`'s two call sites become `vim_free(hp)`,
+one allocation where there were two.
+
+### Measured
+
+| | input | after |
+| --- | --- | --- |
+| lines | 78,859 | **78,666 (−193)** |
+| a node | 2 allocations, 4,128 bytes either kind | **1 allocation**, 1,040 leaf / 4,088 branch |
+| `bhdr_T` / `memline_T` | 32 / 104 bytes | **2 / 96 bytes**; `memfile_T` gone |
+| `sizeof(PTR_EN)` / `PB_COUNT_MAX` | 16 / 255 | **16 / 255**, by construction and asserted from the cut |
+| identifiers | | **30 leave, 5 arrive**, a partition over the whole vocabulary |
+| `make editor.c` | 76,880 | **76,687**, 0 directives, the same 18 interface names |
+| `nm -u` | 14 | **14**, a `comm` empty both ways |
+| binary | 760,456 | **760,424** |
+| arena, heaviest case | 201,927,792 | **200,720,256 (−0.6 %)**, the biggest fall `mem_join_split` at −9.2 % |
+| records that moved | | **0 of 118** |
+
+**Every one of the sixteen memline sessions asks the host for less, and the difference is
+arithmetic**: 391 data blocks times (4,128 − 1,040) is 1,207,408 of the 1,207,536 bytes
+that go.
+
+The declared delta is **nothing at all**, phases 14, 15 and 44's weakest kind — the code
+changes, the binary moves, and the claim is that a replacement does what the thing it
+replaces did. Two full recordings are byte-identical to the input's across all 118 cases
+and four tables, so the recordings are the floor and not the evidence. **Twelve controls
+carry the phase**, nine of which must move a recording and do: the leaf tagged wrong 118 of
+118, the branch tagged wrong 118, the leaf test inverted 118, the root split forgetting its
+count 1, the root split copying no entries 1, the branch capacity bound off by one 1, a
+branch allocated at a leaf's size 6, a leaf allocated at half its size 16, the leaf
+capacity bound off by one 4. Three must not, and each is named above with its reason.
+
+### Its placement
+
+`stage 45`, `package memline 43 44 45`. **The 45-on-44 dependency is the strongest in the
+arc and is deliberately not a `uses` line**, both phases being in one package, so it is
+written into the package comment instead; eight `uses` lines record the cross-package ones.
+`tools/stages.sh zero --check` and `tools/packages.sh zero --check` both pass.
+
+**`apart 44 45` is phase 44's own scope statement read from the other end, and it needed no
+reasoning.** That phase wrote that `offsetof(PTR_BL, pb_pointer)` *"measures a POINTER
+block, which is still a page of entries and is not the leaf ... De-paging the branch is a
+phase of its own"*, and its check says it as a count of 1. Measured by running
+`pipes/zero44-check.sh` on the r45 tree with phase 44's own state directory: *`ml_new_ptr`'s
+offsetof moved, and a POINTER block is still a page and is not this phase's*. One direction
+only, because there is nothing to observe in the other — the stage cannot run at all.
+
+**`need 45 swept` is the first in this pipeline that is about blank lines**, and it is
+`CLAUDE.md`'s *a pass that touches those needs a count of them as its own check* meeting a
+shared sweep. The edit deletes whole functions and single statements out of the middle of
+others, so it asserts that it leaves **no run of two blank lines anywhere** — which is a
+statement about this edit only if the text it was handed had none. It had one: phase 44's
+edit leaves a run of two at line 33,815 of its own unswept output, which `canon.py` removes
+in phase 44's sweep. So the edit asks the **input** first, and `tools/phaserun.sh zero
+44-45` on r43 stops with *the input already has a run of two blank lines, so this edit
+cannot say it left none: it needs swept text*. **The order of those two tests is the whole
+of it** — asked the other way round the refusal would have blamed this phase for the
+previous one's residue.
+
+`make zero-tip` records r45 = `698924a46bfa`, and `make zero-verify` reproduces it from r44
+in a scratch root of its own. Two things not this phase's, both stated: r39 failed that
+verify run on `ref-pty.txt` under a 64-way load and passes alone, which is the pty
+flakiness `CLAUDE.md` already records; and **`del_file` is still an unread parameter of
+`ml_close()`**, as it was of `mf_close()` before it — removing it reaches into
+`'cpoptions'` through `CPO_PRESERVE`, which is not this phase's.
+
+### What zero-vim is after phase 45
+
+```
+zero-vim.c        78,666 lines          from whim-vim.c's 86,617  (-7,951, 9.2%)
+                  76,687 above the boundary, 1,979 below it
+functions         1,734
+type definitions  880
+DWARF enumerators 1,167
+cmdnames[] rows   98    (create_cmdidxs floor 80; 18 rows of margin)
+nv_cmds[] rows    194   (nvidxcheck: a permutation)
+options[] rows    109 that are not a t_ capability, 95 distinct globals
+                        (orphanopts floor 80; 15 of margin)
+built-in terminals 2 of whim's 10: xterm-256color and debug
+#include          11, at line 76,689, and NOT ONE DIRECTIVE above them
+core -> host      18 names: vim_snprintf, host_exit, host_message, host_time,
+                  host_alloc, host_free, host_write, host_raise, ten musl_*
+libc prototypes   0 -- the core names no libc function at all
+libc symbols      14 with zero's flags, 15 as tools/symbols.sh counts
+the memline       a tree of nodes, one allocation each: a leaf is 1,040 bytes
+                  holding 64 line records, a branch 4,088 holding 255 children,
+                  and a line's text is its own allocation nothing frees
+binary            760,424 bytes, EXEC, no INTERP, no dynamic section, no relocation
+declared delta    term-moved at 38 and four command lines at 39; 40 to 45 declare
+                  nothing at all -- with 2 stderr-moved and the records of 4 to 11
+                  before them
+make editor.c     76,687 lines: 0 directives, 0 errors, 18 warnings, all of them
+                  `used but never defined` and all of them the interface
+```
+
+**The `options[] rows` figure is stated here as the count that can be reproduced**: rows of
+`options[]` whose name is not a `t_` terminal capability, 109, measured on this file. The
+blocks above this one carry **107**, which no phase between phase 20 and here removed a row
+to justify; the number that the floor actually reads, and that has tracked every removal
+exactly, is the 95 distinct globals — `whim-vim.c`'s 116 and 102, less phase 12's six rows
+and phase 20's `'termresize'`.
+
+**Phases 40 to 45 are one arc and the documents carry it as one.** The instrument had to
+exist before the work was checkable, which is 40; the bump allocator made per-line
+allocation free, which is 41; 42 cleared the swap file's bookkeeping out of the way; 43
+turned a block number into a reference; 44 let the leaf stop being a byte arena; and 45
+ends it by folding the node types and turning the arc's standing hazard — that shrinking
+`PTR_EN` would silently take the root split out of the corpus — into a `static_assert` that
+fails to compile. Every one of 42 to 45 rests on a
+measurement the corpus the pipeline had at phase 39 could not have taken — the fanout
+narrowing, the tree events agreeing case for case, `DB_LINE_MAX`'s reachability table and
+the `fanout` control — which is the whole argument for doing 40 first.
+
+**The six phases declare nothing between them, and they are four different kinds.** 40 is
+phase 3's and 33's — no source changed at all, so what has to be argued is that the
+*comparison* moved safely. 41 is the sixth — the code runs and the instrument sees it do
+the same thing — with a `cmp` of the **core** underneath it that no earlier phase could
+offer. 42 is phase 9's and phase 12's **at once**, one instrumented build carrying both
+halves. 43 is the sixth again and the strongest instance of it this pipeline has, because
+every keystroke reaches its text through the function it rewrites. And 44 and 45 are the
+**weakest** kind, phases 14 and 15's: the code changes, the binary moves, and eleven and
+twelve controls carry each of them because nothing else can.
