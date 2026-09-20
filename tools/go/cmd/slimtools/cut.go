@@ -420,3 +420,15 @@ func runNowinsizes(args []string) int {
 		return cut.NoWinSizes(t, w)
 	})
 }
+
+func runNocompl(args []string) int {
+	return oneFile(args, "nocompl", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoCompl(t, w)
+	})
+}
+
+func runNofenc(args []string) int {
+	return oneFile(args, "nofenc", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoFenc(t, w)
+	})
+}
