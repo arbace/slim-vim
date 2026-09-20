@@ -498,3 +498,9 @@ func runLfonly(args []string) int {
 		return cut.LfOnly(t, w)
 	})
 }
+
+func runNowindows(args []string) int {
+	return oneFile(args, "nowindows", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoWindows(t, w)
+	})
+}
