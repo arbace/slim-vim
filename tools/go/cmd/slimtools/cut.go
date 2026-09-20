@@ -504,3 +504,9 @@ func runNowindows(args []string) int {
 		return cut.NoWindows(t, w)
 	})
 }
+
+func runNoconv(args []string) int {
+	return oneFile(args, "noconv", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoConv(t, w)
+	})
+}
