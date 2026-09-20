@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"slimvim.local/tools/internal/cut"
+	"slimvim.local/tools/internal/cutil"
 )
 
 // oneFile is the shape most cutters have: one file argument, read it whole,
@@ -49,6 +51,51 @@ func runNoglob(args []string) int {
 	return oneFile(args, "noglob", func(t []byte, w *os.File) ([]byte, error) {
 		return cut.NoGlob(t, w)
 	})
+}
+
+// runFold exercises cutil's fold primitives directly.
+//
+// cutil.py has no CLI -- phase programs import it -- so this exists so the
+// three can be compared against the Python on the same input and the same
+// pattern.  A primitive that 142 call sites in pipes/ depend on should be
+// testable without running a phase.
+func runFold(args []string) int {
+	if len(args) != 4 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools fold <always|never|dropif> <file> <pattern> <count>")
+		return 2
+	}
+	kind, path, pattern := args[0], args[1], args[2]
+	count, err := strconv.Atoi(args[3])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 2
+	}
+	text, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	var out []byte
+	switch kind {
+	case "always":
+		out, err = cutil.FoldAlways(text, pattern, count)
+	case "never":
+		out, err = cutil.FoldNever(text, pattern, count)
+	case "dropif":
+		out, err = cutil.DropIf(text, pattern, count)
+	default:
+		fmt.Fprintln(os.Stderr, "usage: slimtools fold <always|never|dropif> <file> <pattern> <count>")
+		return 2
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if err := writeFile(path, out); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
 }
 
 func runNowild(args []string) int {
