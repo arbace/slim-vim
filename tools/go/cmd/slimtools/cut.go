@@ -8,6 +8,55 @@ import (
 	"slimvim.local/tools/internal/cut"
 )
 
+// oneFile is the shape most cutters have: one file argument, read it whole,
+// transform it, write it back, and print what was done.  A cutter that cannot
+// do its work REFUSES rather than reporting a job it did not do.
+func oneFile(args []string, name string, f func([]byte, *os.File) ([]byte, error)) int {
+	if len(args) != 1 {
+		fmt.Fprintf(os.Stderr, "usage: slimtools %s <file>\n", name)
+		return 1
+	}
+	text, err := os.ReadFile(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	out, err := f(text, os.Stdout)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if err := writeFile(args[0], out); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+func runNointro(args []string) int {
+	return oneFile(args, "nointro", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoIntro(t, w)
+	})
+}
+
+func runNoargv0(args []string) int {
+	return oneFile(args, "noargv0", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoArgv0(t, w)
+	})
+}
+
+func runNoglob(args []string) int {
+	return oneFile(args, "noglob", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoGlob(t, w)
+	})
+}
+
+func runNoequiclass(args []string) int {
+	return oneFile(args, "noequiclass", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoEquiClass(t, w)
+	})
+}
+
 // runRetire is tools/retire.py.
 func runRetire(args []string) int {
 	if len(args) < 2 {
