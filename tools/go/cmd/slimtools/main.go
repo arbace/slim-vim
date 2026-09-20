@@ -39,7 +39,8 @@ type tool struct {
 // before they report.
 var order = []string{
 	"blankruns", "joinparens", "splitheads", "brace", "onestmt", "onedecl", "forcomma",
-	"canon", "deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
+	"sweep", "canon",
+	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
 	"parse", "difftest",
 }
 
@@ -58,6 +59,7 @@ var tools = map[string]tool{
 	"deadfields": {runDeadfields, "deadfields <file> [--delete]"},
 	"deadenums":  {runDeadenums, "deadenums <file> <enumvals.txt> [--delete|--verify]"},
 	"deadsweep":  {runDeadsweep, "deadsweep <file> [--keep <dir>]"},
+	"sweep":      {runSweep, "sweep <file.c>"},
 	"parse":      {runParse, "parse <file.c>"},
 	"difftest":   {runDifftest, "difftest <tool> <file>..."},
 }
