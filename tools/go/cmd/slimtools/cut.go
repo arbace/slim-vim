@@ -51,6 +51,12 @@ func runNoglob(args []string) int {
 	})
 }
 
+func runNowild(args []string) int {
+	return oneFile(args, "nowild", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoWild(t, w)
+	})
+}
+
 func runNoequiclass(args []string) int {
 	return oneFile(args, "noequiclass", func(t []byte, w *os.File) ([]byte, error) {
 		return cut.NoEquiClass(t, w)

@@ -116,6 +116,41 @@ func NoGlob(text []byte, w io.Writer) ([]byte, error) {
 	return buf, nil
 }
 
+var (
+	wildCall  = regexp.MustCompile(`\bmch_expand_wildcards\((num_pat, pat, num_file, file)[^)]*\)`)
+	wildProto = regexp.MustCompile(`(?m)^static int mch_expand_wildcards\([^;\n]*\);$`)
+)
+
+// NoWild makes every delegation to the shell expander return the pattern
+// unexpanded.
+//
+// THREE delegations, asserted.  gen_expand_wildcards has been reshaped before,
+// and rewriting it by guesswork is how an editor stops opening files -- which
+// is the same sentence NoGlob carries, for the same function, from the other
+// side.
+func NoWild(text []byte, w io.Writer) ([]byte, error) {
+	calls := len(wildCall.FindAll(text, -1))
+	if calls != 3 {
+		return nil, fmt.Errorf("nowild: expected 3 delegations to the shell expander, "+
+			"found %d -- gen_expand_wildcards has been reshaped and rewriting it by "+
+			"guesswork is how an editor stops opening files", calls)
+	}
+	text = wildCall.ReplaceAll(text, []byte(`save_patterns($1)`))
+
+	n := len(wildProto.FindAll(text, -1))
+	if n != 1 {
+		return nil, fmt.Errorf("nowild: expected one declaration of the shell expander "+
+			"to reuse, found %d", n)
+	}
+	text = wildProto.ReplaceAll(text, []byte(
+		"static int save_patterns(int num_pat, char_u **pat, int *num_file, char_u ***file);"))
+
+	left := bytes.Count(text, []byte("mch_expand_wildcards"))
+	fmt.Fprintf(w, "  nowild       %d delegations now return the pattern unexpanded; "+
+		"%d mch_expand_wildcards mentions left for the sweep\n", calls, left)
+	return text, nil
+}
+
 const equiOld = `                                c_class = get_equi_class(&regparse);
                                 if (c_class != 0)
                                 {
