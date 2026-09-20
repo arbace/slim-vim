@@ -45,7 +45,7 @@
 #    one that must lower it (ZERO-PLAN.md 3a).
 #
 # 3. THE PROBES, on BOTH binaries, because THE CORPUS CANNOT SEE A FILE BEING READ.
-#    Every one of tools/zcases.py's 102 cases types its own text and names no file:
+#    Every one of `zcases`'s 102 cases types its own text and names no file:
 #    `cmd_read` types `:read` with no file name, so the baseline it is compared
 #    against records `E32: No file name` -- an editor that FAILED to read.  A
 #    declared delta of "cmd_read and read_cmd_gone moved" is therefore consistent
@@ -82,7 +82,7 @@
 # probe looks -- and its presence on the old binary is also the proof that no shell
 # ever ran, the stub having refused before one could.
 #
-# A record is built the way tools/zcases.py builds one and scrubbed the same way
+# A record is built the way `zcases` builds one and scrubbed the same way
 # (tools/zrec.py).  tools/zstream.py's session() is not called directly because this
 # check needs the raw stream beside the screens.
 set -eu
@@ -305,7 +305,7 @@ def record(binary, args, keys, timeout=10):
 
 
 def typed(seed, *keys):
-    """tools/zcases.py's shape: type the seed under 'paste', then the real keys."""
+    """zcases's shape: type the seed under 'paste', then the real keys."""
     return (['+set paste'], [b'i' + seed + ESC, b':set nopaste' + CR] + list(keys) + [QUIT])
 
 

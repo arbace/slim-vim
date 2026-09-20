@@ -53,7 +53,7 @@
 #               and every short write; and three sessions drive the paths by hand -- a
 #               200,000-character insert, a free of a null pointer, and the largest
 #               write the corpus can produce.
-#   STRUCTURE   tools/zhostonly.py, phase 20's structural check, still passes.
+#   STRUCTURE   `zhostonly`, phase 20's structural check, still passes.
 set -eu
 
 work=${1:?usage: zero35-check.sh <work-dir> <state-dir>}
@@ -692,14 +692,14 @@ PY
 # A byte-identical recording says the editor did the same thing.  It does not say that
 # these three functions are what carried it, and the controls below say what each one is
 # worth.  The instrument is the output with a counter on each, which prints one line to
-# stderr from host_exit() -- so tools/zcases.py, which records stderr, carries it in
+# stderr from host_exit() -- so `zcases`, which records stderr, carries it in
 # every one of the 102 cases.
 wait $pid_probe || { echo "  hostcall     the instrumented build failed:"; head -5 "$tmp/e.probe" | sed 's/^/               /'; exit 1; }
 for v in cbig cf cw cw2 cnull; do
     eval "wait \$pid_$v" || { echo "  hostcall     the control $v did not build:"; head -5 "$tmp/e.$v" | sed 's/^/               /'; exit 1; }
 done
 for v in probe cbig cf cw cw2 cnull; do
-    ( python3 tools/zcases.py "$tmp/$v" "$tmp/SC-$v" >/dev/null 2>&1 ) &
+    ( tools/st.sh zcases "$tmp/$v" "$tmp/SC-$v" >/dev/null 2>&1 ) &
     eval "pid_sc_$v=$!"
 done
 # The three by-hand sessions, on the instrumented binary, each driving one path.
@@ -847,7 +847,7 @@ print('  %-12s   host_free(nullptr) called on EVERY draw moves 0 of 102 and writ
 PY
 
 # --- 9. phase 20's structural check, which a phase that moves host calls owes ---------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 echo "  hostcall     and that is phase 20's check, undisturbed.  Its vocabulary is libc's terminal, signal and descriptor names and \`write\` is deliberately NOT in it -- its own comment says so, naming mch_write as a later phase's.  THIS is that phase, and the assertion it owes is made directly above instead: \`write\` is 0 mentions above the boundary, computed from the input, which is stronger than a word list"
 
 # tools/phaserun.sh runs tools/zerodelta.sh --phase 35 after this check, and this phase

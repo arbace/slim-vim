@@ -12,6 +12,6 @@ set -eu
 work=${1:?usage: whim47-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 tools/retire.py "$f" startinsert startreplace startgreplace stopinsert
+tools/st.sh retire "$f" startinsert startreplace startgreplace stopinsert
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim47-check.sh.

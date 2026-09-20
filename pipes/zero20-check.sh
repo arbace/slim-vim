@@ -13,7 +13,7 @@
 # WHAT IS CLAIMED, in three parts, and each has its own kind of check:
 #
 #   STRUCTURE   the core names none of the host's vocabulary.  This is the phase's
-#               real content and `tools/zhostonly.py` is the assertion: 43 words,
+#               real content and ``zhostonly`` is the assertion: 43 words,
 #               every mention inside the host block, seven named exceptions in the
 #               core that are the deadly-signal message and the clock.  A count of
 #               `sigaction` would say nothing about WHERE.
@@ -187,7 +187,7 @@ for name, want, why in (
         ('sigemptyset', 1, 'host_catch(), 0 in the core'),
         ('kill', 2, "musl_suspend()'s kill(0, SIGTSTP) and vim_handle_signal()'s "
                     're-raise, which is the one core mention and a named exception in '
-                    'tools/zhostonly.py'),
+                    'zhostonly'),
         ('ioctl', 2, "the #include and the host's one TIOCGWINSZ"),
         ('tcgetattr', 2, 'host_tty_set() and musl_tty_keys()'),
         ('tcsetattr', 1, 'host_tty_set()'),
@@ -241,7 +241,7 @@ print('  %-12s cmdnames[] 98 unchanged, options[] 108 -> 107 (`termresize`), twe
 PY
 
 # --- 3. the structural claim, which is the phase ---------------------------------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 
 # --- 4. the compile, the linkage and the libc surface ----------------------------------
 # ONE comm for the whole phase, because the signals half and the terminal half are one

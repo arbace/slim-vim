@@ -19,7 +19,7 @@
 #               :setfiletype, the engine behind them, and 'eventignore'
 #
 # `-u file` stays, and so do CTRL-Z, :stop and :suspend -- suspending is job
-# control, not a session.  See tools/nosession.py for each cut and why.
+# control, not a session.  See `nosession` for each cut and why.
 #
 # THE DELTA: the ten rows that succeeded run bare and are not implemented now --
 # :sleep, :smile, :vim9script, :autocmd, :augroup, :doautocmd, :doautoall,
@@ -33,24 +33,24 @@ work=${1:?usage: whim35-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- the rows, then what a row cannot reach ---------------------------------
-python3 tools/retire.py "$f" source redir sleep smile \
+tools/st.sh retire "$f" source redir sleep smile \
     scriptencoding scriptversion vim9script legacy \
     autocmd augroup doautocmd doautoall noautocmd sandbox filetype setfiletype
-python3 tools/nosession.py "$f"
+tools/st.sh nosession "$f"
 # 'eventignore' and 'eventignorewin' go BEFORE the sweep, and without --strict.
 # Their shared callback, did_set_eventignore(), calls check_ei(), which reads
 # p_ei -- so while either row stands the reader is live, and the sweep cannot
 # take it.  The check is the post-condition below: after the sweep, nothing reads
 # p_ei and nothing mentions the window field.  eventignorewin is window-local,
 # hence --local; nosession.py took its field.
-python3 tools/dropoptions.py "$f" eventignore
-python3 tools/dropoptions.py "$f" --local eventignorewin
+tools/st.sh dropoptions "$f" eventignore
+tools/st.sh dropoptions "$f" --local eventignorewin
 
 # No sweep here.  One stood here, and the lines after it were written for swept text,
 # but this phase and every stage it has run in reproduce their boundaries without
 # it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
 # The other rows go once their readers have: a row is what initialises its
 # global.
-python3 tools/dropoptions.py "$f" --strict sessionoptions viewoptions viewdir loadplugins
+tools/st.sh dropoptions "$f" --strict sessionoptions viewoptions viewdir loadplugins
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim35-check.sh.

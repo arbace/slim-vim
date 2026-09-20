@@ -29,8 +29,8 @@ work=${1:?usage: whim5-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the choice, and the option that offered it -----------------------
-python3 tools/nonfa.py "$f"
-python3 tools/dropoptions.py "$f" regexpengine
+tools/st.sh nonfa "$f"
+tools/st.sh dropoptions "$f" regexpengine
 
 # The sweep cannot finish this one on its own, and that is the phase's real
 # lesson.  With the entry points cut, six thousand lines of NFA engine are
@@ -39,11 +39,11 @@ python3 tools/dropoptions.py "$f" regexpengine
 # recursive-descent parser and a mutually recursive matcher are both immune to
 # reference counting by construction.
 #
-# tools/funcreach.py is typereach.py's argument applied to functions:
+# `funcreach` is typereach.py's argument applied to functions:
 # reachability from roots, not reference counts.  It found 29 functions holding
 # 4,195 lines, every one of them in the regexp_nfa.c region -- including seven
 # that do not carry the prefix and would have been missed by any rule based on
 # the name.
-python3 tools/funcreach.py "$f" --delete
+tools/st.sh funcreach "$f" --delete
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim5-check.sh.

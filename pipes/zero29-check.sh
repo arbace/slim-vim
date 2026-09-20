@@ -397,8 +397,8 @@ print('  %-12s enumerators %d -> %d: not one went, arrived or renumbered -- this
 PY
 
 # --- 4. the structural tools, and the boundary as a compile --------------------------
-python3 tools/nvidxcheck.py "$f"
-python3 tools/orphanopts.py "$f"
+tools/st.sh nvidx "$f"
+tools/st.sh orphanopts "$f"
 for src in "$f" "$state/old.c"; do
     awk '/^ *# *include / { exit } { a[NR] = $0; if (NF) last = NR } \
          END { for (i = 1; i <= last; i++) print a[i] }' "$src" > "$tmp/cut.c"

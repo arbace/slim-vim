@@ -43,12 +43,12 @@
 # 4. THE INSTRUMENT SWAP, which this phase is the cause of.  tools/termcheck.py is
 #    whim's, and it asks its question with a file argument.  From this boundary on
 #    that is an unknown option and all nineteen of its rows read `(none)` -- so
-#    zero's recording now uses tools/ztermcheck.py, which is termcheck.py with its
+#    zero's recording now uses `ztermcheck`, which is termcheck.py with its
 #    ask() replaced and nothing else.  Both halves are measured here: the new tool
 #    records the baseline's nineteen rows byte for byte from the binary this phase
 #    was handed, and the old tool records nothing but `(none)` from the one it made.
 #
-# A record is built the way tools/zcases.py builds one and scrubbed the same way
+# A record is built the way `zcases` builds one and scrubbed the same way
 # (tools/zrec.py): mainerr() prints the version banner, which carries __DATE__ and
 # __TIME__, so two binaries built a minute apart disagree on stderr for a reason
 # that is not the editor's behaviour.
@@ -196,7 +196,7 @@ old_bin, new_bin = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
 
 
 def typed(seed, *keys):
-    """tools/zcases.py's shape: type the seed under 'paste', then the real keys."""
+    """zcases's shape: type the seed under 'paste', then the real keys."""
     args = ['+set paste']
     return args, [b'i' + seed + ESC, b':set nopaste' + CR] + list(keys) + [QUIT]
 
@@ -379,13 +379,13 @@ PY
 
 # --- 8. the instrument this phase broke, and the one that replaced it --------------
 # tools/termcheck.py asks its question with a file argument, so from this boundary
-# it records nineteen empty rows.  tools/ztermcheck.py is the same tool with its
+# it records nineteen empty rows.  `ztermcheck` is the same tool with its
 # ask() replaced; it must record the BASELINE from the binary this phase was handed,
 # which is what makes the swap a change of instrument and not of recording.
 base=.reference/zero-baselines/ref-term.txt
-python3 tools/ztermcheck.py "$state/old" "$tmp/term-old" >/dev/null
+tools/st.sh ztermcheck "$state/old" "$tmp/term-old" >/dev/null
 cmp -s "$base" "$tmp/term-old" || {
-    echo "  noargv       tools/ztermcheck.py does not record the baseline from the input binary:"
+    echo "  noargv       ztermcheck does not record the baseline from the input binary:"
     diff "$base" "$tmp/term-old" | head -5 | sed 's/^/               /'
     exit 1; }
 python3 tools/termcheck.py "$bin" "$tmp/term-file" >/dev/null

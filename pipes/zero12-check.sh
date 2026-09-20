@@ -10,7 +10,7 @@
 # and `old.c`, the source it was built from.
 #
 # EVERY VISIBLE EFFECT OF THIS PHASE IS OUTSIDE THE INSTRUMENT, and that is the one
-# thing to understand about this check.  `tools/zexcmds.py` records `exit`, `bells`,
+# thing to understand about this check.  ``zexcmds`` records `exit`, `bells`,
 # `stderr`, `text` and `msgs` for the `set` row and NO stream digest, so even a
 # change to what `:set` prints in the stream would be invisible there; no recorded
 # case or row asks `:set ro?`, `:set fsync?`, `:set write?`, `:set wa?`, `:set
@@ -56,7 +56,7 @@
 #    23 of `'cpoptions'` 60 letters and 14 of `'shortmess'` 23 are inert, and THIS
 #    PHASE MAKES EXACTLY ONE MORE SO -- `'shortmess'`'s `r`.
 #
-# 3. THE ROW FLOOR, WHICH THIS PHASE CROSSES.  `tools/orphanopts.py` refused a table
+# 3. THE ROW FLOOR, WHICH THIS PHASE CROSSES.  ``orphanopts`` refused a table
 #    it parsed fewer than 100 distinct `&p_xx` out of, and this phase takes the count
 #    102 -> 96.  `tools/zerodelta.sh` runs that tool beside its harnesses, so crossing
 #    the floor would not fail this phase -- it would fail the delta check of EVERY
@@ -89,7 +89,7 @@
 #    asserted STILL undefined.  `fsync` is still reached from `ui_write` and is the
 #    FILE* phase's.
 #
-# A record is built the way tools/zcases.py builds one and scrubbed the same way
+# A record is built the way `zcases` builds one and scrubbed the same way
 # (tools/zrec.py).
 set -eu
 
@@ -275,14 +275,14 @@ print('  %-12s the later phase\'s line: scriptin 8, redir_fd 6, vim_fsync 3; the
 PY
 
 # --- 3. the row floor, which this phase crosses ---------------------------------------
-# tools/orphanopts.py refused a table it parsed fewer than 100 distinct `&p_xx` out
+# `orphanopts` refused a table it parsed fewer than 100 distinct `&p_xx` out
 # of; this phase takes the count to 96.  tools/zerodelta.sh runs it beside its
 # harnesses, so the floor is checked here BY USING IT -- the tool must not refuse --
 # and by requiring its verdict on this source to be byte-identical to its verdict on
 # the input.  Grepping for the number would prove nothing about either.
-python3 tools/orphanopts.py "$state/old.c" > "$tmp/orph.old" 2>&1 || {
+tools/st.sh orphanopts "$state/old.c" > "$tmp/orph.old" 2>&1 || {
     echo "  noopts       orphanopts refuses the INPUT, so this phase is being checked against a file it was not written for"; cat "$tmp/orph.old"; exit 1; }
-python3 tools/orphanopts.py "$f" > "$tmp/orph.new" 2>&1 || {
+tools/st.sh orphanopts "$f" > "$tmp/orph.new" 2>&1 || {
     echo "  noopts       orphanopts refuses this source -- the row floor is no longer below 96, and that would fail the delta check of every zero phase after this one, not this one:"
     sed 's/^/               /' "$tmp/orph.new"; exit 1; }
 if ! cmp -s "$tmp/orph.old" "$tmp/orph.new"; then

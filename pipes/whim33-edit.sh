@@ -36,7 +36,7 @@ work=${1:?usage: whim33-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- the rows ------------------------------------------------------------------
-python3 tools/retire.py "$f" shell gui gvim cdo cfdo ldo lfdo vim9cmd \
+tools/st.sh retire "$f" shell gui gvim cdo cfdo ldo lfdo vim9cmd \
     endclass endinterface endenum public static this \
     digraphs redrawtabpanel colorscheme
 

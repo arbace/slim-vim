@@ -263,9 +263,9 @@ if ! cmp -s "$f" "$tmp/canon.c"; then
 fi
 echo "  realloc      tools/canon.sh is a NO-OP on the output: the eleven new lines are written the way this file writes everything else"
 
-python3 tools/orphanopts.py "$f"
-python3 tools/nvidxcheck.py "$f"
-python3 tools/zhostonly.py "$f"
+tools/st.sh orphanopts "$f"
+tools/st.sh nvidx "$f"
+tools/st.sh zhostonly "$f"
 
 # --- 3. THE UNIT HARNESS: the two functions, extracted from both sources ---------------------
 # The failure modes of this rewrite are a leak, a double free, a use after free and an
@@ -747,7 +747,7 @@ pid_in=$!
 # The control is the 102 screen cases and not a whole recording: it is the cheap half,
 # and a binary whose growarrays never keep their contents is one whose pty scenarios
 # would be a coin toss.
-python3 tools/zcases.py "$tmp/c_ncopy_full" "$tmp/SCR.nocopy" >/dev/null 2>&1 &
+tools/st.sh zcases "$tmp/c_ncopy_full" "$tmp/SCR.nocopy" >/dev/null 2>&1 &
 pid_rc=$!
 wait $pid_ro
 wait $pid_rn

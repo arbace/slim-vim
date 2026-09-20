@@ -14,7 +14,7 @@
 # :qall, :wall, :wqall and :xall stay: with one buffer they are :q and :w, and
 # every harness here quits with :qa!.  'buflisted' stays too -- its field is
 # internal state the buffer code reads, not only an option.  No command-line
-# option opened more than one buffer.  See tools/onebuffer.py.
+# option opened more than one buffer.  See `onebuffer`.
 #
 # THE DELTA: bnext, bprevious and keepalt, which succeeded run bare.
 set -eu
@@ -22,15 +22,15 @@ set -eu
 work=${1:?usage: whim42-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 tools/retire.py "$f" bnext bprevious keepalt
-python3 tools/onebuffer.py "$f"
+tools/st.sh retire "$f" bnext bprevious keepalt
+tools/st.sh onebuffer "$f"
 # 'hidden' is read by buf_hide(), which the folds above leave with no caller but
 # the sweep has not taken yet; 'bufhidden' by its own callback.  Both rows go
 # before the sweep, and the post-condition is the check.
-python3 tools/dropoptions.py "$f" hidden
-python3 tools/dropoptions.py "$f" --local bufhidden
+tools/st.sh dropoptions "$f" hidden
+tools/st.sh dropoptions "$f" --local bufhidden
 
 tools/sweep.sh "$f"
-python3 tools/droplocal.py "$f" b_p_bh
+tools/st.sh droplocal "$f" b_p_bh
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim42-check.sh.

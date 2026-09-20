@@ -40,6 +40,6 @@ work=${1:?usage: whim26-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nosignals.py "$f"
+tools/st.sh nosignals "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim26-check.sh.

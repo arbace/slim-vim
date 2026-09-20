@@ -85,7 +85,7 @@
 # 7. A REAL TERMINAL, because every probe above went through a pipe: `:file NEWNAME`
 #    and CTRL-G on a pty, and an ordinary editing session required to be identical.
 #
-# A record is built the way tools/zcases.py builds one and scrubbed the same way
+# A record is built the way `zcases` builds one and scrubbed the same way
 # (tools/zrec.py).  tools/zstream.py's session() is not called directly because this
 # check needs the raw stream and the snapshot count beside the screens.
 set -eu
@@ -265,7 +265,7 @@ elif 'CMD_' in m.group(0):
                 % m.group(0).strip())
 
 # 'readonly' and 'undoreload' keep their rows: removing one is the options phase's,
-# and tools/orphanopts.py refuses the opposite direction.
+# and `orphanopts` refuses the opposite direction.
 for opt, var in (("'undoreload'", 'p_ur'), ("'readonly'", 'p_ro')):
     if '(char_u *)&%s,' % var not in new:
         fail.append('%s lost its option row, and that is the options phase\'s: a row '
@@ -454,7 +454,7 @@ def record(binary, args, keys, timeout=10):
 
 
 def typed(seed, *keys):
-    """tools/zcases.py's shape: type the seed under 'paste', then the real keys."""
+    """zcases's shape: type the seed under 'paste', then the real keys."""
     return (['+set paste'], [b'i' + seed + ESC, b':set nopaste' + CR] + list(keys) + [QUIT])
 
 

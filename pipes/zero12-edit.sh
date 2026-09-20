@@ -35,7 +35,7 @@
 # 2d and decision 8, the user's standing promise.  `p_paste` has 12 mentions here and
 # has them afterwards, and its five save slots `p_ai_nopaste p_et_nopaste
 # p_sts_nopaste p_tw_nopaste p_wm_nopaste` are the non-pointer orphans
-# tools/orphanopts.py reports and tolerates, before and after, identically.  THE NEXT
+# `orphanopts` reports and tolerates, before and after, identically.  THE NEXT
 # PERSON TO RUN THE COMPUTATION MUST NOT "FIX" THEM.  `+{command}` is likewise
 # untouched, for the same promise.
 #

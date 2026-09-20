@@ -12,7 +12,7 @@
 #
 # NOTHING BELOW IS A NUMBER THAT WAS OBSERVED.  Which option letters went is the
 # input's `switch (c)` minus the output's; which command lines must therefore move is
-# computed from those letters over tools/zargv.py's own list; what a refused terminal
+# computed from those letters over `zargv`'s own list; what a refused terminal
 # name leaves the terminal as is measured from the new binary; and the boundary's
 # interface is computed from the input.  So the rules stay true of a file this check
 # has never seen, which is what makes them rules.
@@ -26,7 +26,7 @@
 #   THE ROWS     main_errors[] is indexed by the ME_* enumerators, so the check is
 #                DWARF and not the build: exactly the two enumerators removed are
 #                gone, exactly ME_EXTRA_CMD moved, and by exactly one.
-#   THE COMMAND LINE  tools/zargv.py's thirty invocations, before and after, side by
+#   THE COMMAND LINE  `zargv`'s thirty invocations, before and after, side by
 #                side.  A row must move IF AND ONLY IF one of its words is an option
 #                spelling the removed letters -- computed from the two switches, not
 #                written here -- and each row that moves must have done something
@@ -54,7 +54,7 @@
 #   THE CUT (2)  zero.mk's own rule on the INPUT and the OUTPUT: eleven directives,
 #                none above them, 0 errors under -fsyntax-only either side, and the
 #                boundary's warning set -- computed here and never written down --
-#                UNCHANGED.  Then tools/zhostonly.py and tools/phasecheck.sh.
+#                UNCHANGED.  Then `zhostonly` and tools/phasecheck.sh.
 set -eu
 
 work=${1:?usage: zero39-check.sh <work-dir> <state-dir>}
@@ -402,7 +402,7 @@ tools/zrecord.sh "$tmp/i-new" "$tmp/i-new.c" "$tmp/rec-i-new" >/dev/null &
 wait
 
 # --- 4. THE COMMAND LINE, before and after, side by side ---------------------------
-echo "  argv         tools/zargv.py's thirty invocations, before and after -- a row moves if and only if one of its words spells a removed option letter:"
+echo "  argv         zargv's thirty invocations, before and after -- a row moves if and only if one of its words spells a removed option letter:"
 if ! python3 - "$tmp/rec-old" "$tmp/rec-new" "$LETTERS" > "$tmp/argv" 2>&1 <<'PY'
 import os
 import re
@@ -610,8 +610,8 @@ fi
 sed 's/^/  arm          /' "$tmp/arm"
 
 # --- 7. THE 256-COLOUR TEST DOES NOT FOLD ------------------------------------------
-python3 tools/ztermcheck.py "$tmp/cT" "$tmp/term-cT" >/dev/null &
-python3 tools/ztermcheck.py "$tmp/cF" "$tmp/term-cF" >/dev/null &
+tools/st.sh ztermcheck "$tmp/cT" "$tmp/term-cT" >/dev/null &
+tools/st.sh ztermcheck "$tmp/cF" "$tmp/term-cF" >/dev/null &
 wait
 if ! python3 - "$tmp/rec-new/ref-term.txt" "$tmp/term-cT" "$tmp/term-cF" \
      "$(cat "$tmp/needle")" "$state/old" "$new" > "$tmp/colours" 2>&1 <<'PY'
@@ -752,5 +752,5 @@ fi
 echo "  boundary     the cut at the first \`#include\` is $old_lines -> $new_lines lines, 0 directives and 0 errors under -fsyntax-only either side, with $old_inc directives in the file and none above them; and the interface -- the $(grep -c '' "$tmp/iface-new") names \`used but never defined\`, computed here from the input and never written down -- is UNCHANGED, because every line this phase touches is the core talking to itself"
 
 # --- 10. STRUCTURE ------------------------------------------------------------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 tools/phasecheck.sh "$work" "$f" "$state/symbols"

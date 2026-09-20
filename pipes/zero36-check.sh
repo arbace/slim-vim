@@ -28,7 +28,7 @@
 #               the identical computation on the INPUT finds exactly two that are not,
 #               `getpid` and `kill`, and that is the control.  The cut also defines no
 #               external symbol at all.
-#   VOCABULARY  tools/zhostonly.py, phase 20's structural check, plus the stronger thing
+#   VOCABULARY  `zhostonly`, phase 20's structural check, plus the stronger thing
 #               this boundary can say: above the first `#include` the ONLY words of that
 #               tool's host vocabulary left are `SIGHUP` and `SIGTERM`, the two the core
 #               NAMES because it prints them.
@@ -571,7 +571,7 @@ print('  %-12s IT IS EMPTY.  The core names no libc function at all: above the f
 PY
 
 # --- 3. the vocabulary the core has left ---------------------------------------------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 python3 - "$f" "$state/old.c" <<'PY'
 import re
 import sys
@@ -592,14 +592,14 @@ for side, path in (('new', sys.argv[1]), ('old', sys.argv[2])):
             hits.setdefault(re.sub(r'[ \t]+', ' ', m.group(0)), []).append(i + 1)
     res[side] = hits
 if sorted(res['old']) != ['SIGHUP', 'SIGTERM', 'getpid', 'kill']:
-    sys.exit('  %-12s the INPUT\'s core says %s of tools/zhostonly.py\'s vocabulary, and '
+    sys.exit('  %-12s the INPUT\'s core says %s of zhostonly\'s vocabulary, and '
              'this phase was written against SIGHUP SIGTERM getpid kill'
              % (TAG, ' '.join(sorted(res['old'])) or 'nothing'))
 if sorted(res['new']) != ['SIGHUP', 'SIGTERM']:
     sys.exit('  %-12s the core still says %s of the host\'s vocabulary above the '
              'boundary' % (TAG, ' '.join(sorted(res['new']))))
 print('  %-12s AND THE CORE\'S WHOLE REMAINING VOCABULARY OF THE HOST IS TWO WORDS.  '
-      'Above the first `#include`, tools/zhostonly.py\'s host vocabulary now matches only '
+      'Above the first `#include`, zhostonly\'s host vocabulary now matches only '
       '`SIGHUP` (%d times) and `SIGTERM` (%d) -- the two deadly signals the editor NAMES '
       'because it PRINTS them, in signal_info[], in deathtrap\'s own test and in the '
       'core\'s `enum`.  The input said `getpid` %d times and `kill` %d as well, and those '
@@ -640,7 +640,7 @@ if not (proto[0] < uses[0] < defn[0] and bound < defn[0] and hb[0] <= defn[0] <=
     sys.exit('  %-12s `%s`: prototype at %d, call at %d, definition at %d, boundary at '
              '%d, host region %d-%d -- the prototype must be ABOVE the call, the '
              'definition BELOW it, below the boundary AND inside the host region, '
-             'because its body says `kill` and `getpid` and tools/zhostonly.py reads '
+             'because its body says `kill` and `getpid` and zhostonly reads '
              'that region and no other'
              % (TAG, name, proto[0] + 1, uses[0] + 1, defn[0] + 1, bound + 1, hb[0] + 1,
                 end + 1))
@@ -829,7 +829,7 @@ wait $pid_probe || { echo "  noclib       the instrumented build failed:"; head 
 for v in pfin pfout pfin_drop pfout_drop pfin_hup pfout_hup; do
     eval "wait \$pid_$v" || { echo "  noclib       the forced binary $v did not build:"; head -5 "$tmp/e.$v" | sed 's/^/               /'; exit 1; }
 done
-( python3 tools/zcases.py "$tmp/probe" "$tmp/SC-probe" >/dev/null 2>&1 ) &
+( tools/st.sh zcases "$tmp/probe" "$tmp/SC-probe" >/dev/null 2>&1 ) &
 pid_sc=$!
 # THE FORCED SESSIONS.  The environment is emptied exactly as every harness empties it
 # (CLAUDE.md): no $HOME, $VIM, $VIMRUNTIME or $XDG_CONFIG_HOME and no $VIMINIT or

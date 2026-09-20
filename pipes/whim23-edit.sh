@@ -54,6 +54,6 @@ echo "  rounding     $out"
 # and a terminfo capability's `%e` is an `else`, not a conversion.
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nofloat.py "$f"
+tools/st.sh nofloat "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim23-check.sh.

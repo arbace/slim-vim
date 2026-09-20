@@ -31,6 +31,6 @@ work=${1:?usage: whim8-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut above the temp file ----------------------------------------------
-python3 tools/noshellout.py "$f"
+tools/st.sh noshellout "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim8-check.sh.

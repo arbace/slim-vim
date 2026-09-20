@@ -22,7 +22,7 @@
 #   STRUCTURE   the file has exactly TWO bare `write()` call sites -- `mch_write`'s and
 #               `host_message`'s -- and one `vim_host_message` the launcher installs
 #               through vim_main()'s parameter list, exactly as phase 19 installs
-#               `vim_host_exit`.  tools/zhostonly.py is run unchanged, and the phase
+#               `vim_host_exit`.  `zhostonly` is run unchanged, and the phase
 #               deliberately adds nothing to its VOCAB (pipes/zero21-edit.sh says why:
 #               `write` would be false while mch_write holds one, and the stdio words
 #               would fail phase 20's own output and so `make zero-verify` at r20).
@@ -217,7 +217,7 @@ for name, want, why in (
         fail.append('`%s` has %d mentions, expected %d -- %s'
                     % (name, mentions(new, name), want, why))
 
-# THE STRUCTURAL CLAIM THAT tools/zhostonly.py CANNOT MAKE, and pipes/zero21-edit.sh
+# THE STRUCTURAL CLAIM THAT `zhostonly` CANNOT MAKE, and pipes/zero21-edit.sh
 # says why it is not added to its VOCAB.  Two bare write() call sites and no more.
 w = [(i + 1, l.strip()) for i, l in enumerate(new.split('\n'))
      if re.search(r'(?<![_A-Za-z])write\(', l)]
@@ -282,7 +282,7 @@ print('  %-12s directives 12 -> 11, <stdio.h> gone and named nowhere; cmdnames[]
 PY
 
 # --- 3. phase 20's structural check, unchanged and re-run here -------------------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 
 # --- 4. the compile, the linkage and the libc surface ----------------------------------
 # ONE comm.  Four of the seven -- fputc fputs fwrite putchar -- are named NOWHERE in

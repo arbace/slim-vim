@@ -26,8 +26,8 @@ set -eu
 work=${1:?usage: whim37-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 tools/retire.py "$f" browse confirm tmap tnoremap tunmap tmapclear \
+tools/st.sh retire "$f" browse confirm tmap tnoremap tunmap tmapclear \
     winpos behave mode open
-python3 tools/noinert.py "$f"
+tools/st.sh noinert "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim37-check.sh.

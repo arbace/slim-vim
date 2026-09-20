@@ -57,7 +57,7 @@
 #    so after this phase it is a global with an option row and nothing that reads
 #    it -- which is the options phase's to remove, not this one's: removing a row
 #    changes what `:set` answers and nothing here sweeps `:set`, so the delta could
-#    not be checked, and tools/orphanopts.py refuses the opposite direction.  It is
+#    not be checked, and `orphanopts` refuses the opposite direction.  It is
 #    asserted at exactly 2 mentions WITH its row, and the manifest carries
 #    `uses options:11 files:8 mechanical` for the phase that takes it.
 #
@@ -86,7 +86,7 @@
 #    touched: `gf`, `gF`, `[f` and `]f` are arms inside two handlers whose `g`, `[`
 #    and `]` rows dispatch dozens of other keys.  CLAUDE.md's twelve-phase arrow-key
 #    bug was a deleted row under a precomputed index, and the general guard is
-#    tools/nvidxcheck.py, which tools/phasecheck.sh runs.  The specific one is here:
+#    `nvidx`, which tools/phasecheck.sh runs.  The specific one is here:
 #    FIFTY `g*`, `[` and `]` keys are pressed on both binaries and exactly four must
 #    move, which is what proves the two large handlers survived the two cuts inside
 #    them.
@@ -97,7 +97,7 @@
 #    the buffer while this one answers E492.  An ordinary editing session beside it
 #    is required to be identical.
 #
-# A record is built the way tools/zcases.py builds one and scrubbed the same way
+# A record is built the way `zcases` builds one and scrubbed the same way
 # (tools/zrec.py).  tools/zstream.py's session() is not called directly because this
 # check needs the raw stream beside the screens.
 set -eu
@@ -202,7 +202,7 @@ for key in ("'g'", r"'\['", r"'\]'"):
                     'inside the two handlers it names' % key)
 
 # 'undoreload' keeps its row: removing one is the options phase's, and
-# tools/orphanopts.py refuses the opposite direction.
+# `orphanopts` refuses the opposite direction.
 if '(char_u *)&p_ur, PV_NONE' not in new:
     fail.append("'undoreload' lost its option row, and that is the options phase's: "
                 "a row removed here would change what :set answers, which nothing "
@@ -396,7 +396,7 @@ def record(binary, args, keys, timeout=10):
 
 
 def typed(seed, *keys):
-    """tools/zcases.py's shape: type the seed under 'paste', then the real keys."""
+    """zcases's shape: type the seed under 'paste', then the real keys."""
     return (['+set paste'], [b'i' + seed + ESC, b':set nopaste' + CR] + list(keys) + [QUIT])
 
 

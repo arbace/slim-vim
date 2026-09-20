@@ -40,13 +40,13 @@
 #            (musl_read_input, phase 20).
 #
 # THE DEFINITION GOES INSIDE THE HOST BLOCK AND NOT BELOW IT, which is phase 26's lesson
-# about musl_gettimeofday and phase 28's about musl_now_ms.  tools/zhostonly.py reads the
+# about musl_gettimeofday and phase 28's about musl_now_ms.  `zhostonly` reads the
 # host region as the lines from `host_winch_pending` to musl_suspend's last brace, and
 # host_raise's body says `kill` and `getpid`; a definition below musl_suspend would put
 # two host words outside the region and the tool would refuse.  So it is written
 # immediately above musl_suspend, which is the last function of that region.
 #
-# THE NAME PASSES tools/zhostonly.py's PATTERN FOR THE REASON `musl_gettimeofday` DOES.
+# THE NAME PASSES `zhostonly`'s PATTERN FOR THE REASON `musl_gettimeofday` DOES.
 # `raise` is in that tool's vocabulary and `\braise\b` cannot match inside `host_raise`,
 # because `_` is a word character -- the same trick that lets `musl_gettimeofday` sit in
 # the host block while the bare `gettimeofday` is a word the core may not say.  And
@@ -131,7 +131,7 @@ def swap(old, new, what, why):
 def defn(lines, name):
     """The half-open line range of a definition, in this tree's one shape: the name at
     column 0 with `(` after it, `{` at column 0 on the next line, closed by `}` at
-    column 0.  The same shape tools/zhostonly.py reads."""
+    column 0.  The same shape zhostonly reads."""
     heads = [i for i, l in enumerate(lines)
              if re.match(r'^%s\s*\(' % name, l) and i + 1 < len(lines)
              and lines[i + 1] == '{']
@@ -331,7 +331,7 @@ swap('static long host_time(void);\n', 'static long host_time(void);\n%s\n' % PR
      'a declaration happened to fit')
 
 # ---- 7. and the host defines it, INSIDE the host block --------------------------------
-# Not below it.  tools/zhostonly.py reads the host region as the lines from
+# Not below it.  `zhostonly` reads the host region as the lines from
 # host_winch_pending to musl_suspend's last brace, and this body says `kill` and
 # `getpid`; a definition below musl_suspend would put two host words outside the region
 # and the tool would refuse.  Phase 26 learned that for musl_gettimeofday and phase 28
@@ -346,7 +346,7 @@ host_raise(int sig)
 swap('    static void\nmusl_suspend(void)\n{\n', DEF + '    static void\nmusl_suspend(void)\n{\n',
      "musl_suspend()'s head, the last function of the host region",
      'the definition goes immediately above it, so that it is INSIDE the region '
-     'tools/zhostonly.py reads and its two host words are where every other one is')
+     'zhostonly reads and its two host words are where every other one is')
 
 # ---- 8. what the file is now -----------------------------------------------------------
 L = t.split('\n')
@@ -403,7 +403,7 @@ hb = [i for i, l in enumerate(L)
       if l.startswith('static volatile sig_atomic_t host_winch_pending')]
 he = [i for i, l in enumerate(L) if l.startswith('musl_suspend(')]
 if len(hb) != 1 or len(he) != 1:
-    die('the host region does not begin and end exactly once -- tools/zhostonly.py reads '
+    die('the host region does not begin and end exactly once -- zhostonly reads '
         'it from `host_winch_pending` to musl_suspend\'s last brace')
 end = he[0]
 while end < len(L) and L[end] != '}':
@@ -418,7 +418,7 @@ if not (boundary < d[0] and hb[0] <= d[0] <= end):
         'mention of a host word lives in that region' % (d[0] + 1, boundary + 1, hb[0] + 1, end + 1))
 say('`host_raise`: prototype line %d, one call site at line %d, definition line %d, '
     'which is below the boundary at %d and inside the %d-line host region '
-    'tools/zhostonly.py reads' % (p[0] + 1, uses[0] + 1, d[0] + 1, boundary + 1,
+    'zhostonly reads' % (p[0] + 1, uses[0] + 1, d[0] + 1, boundary + 1,
                                   end + 1 - hb[0]))
 
 # ---- 9. the arithmetic, every term of it computed from what was found -----------------

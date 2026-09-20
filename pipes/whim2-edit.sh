@@ -49,7 +49,7 @@ fi
 echo "  commands     all 24 menu and spell commands are already ex_ni"
 
 # --- cut the settings, and let the sweep find the rest --------------------
-python3 tools/dropoptions.py "$f" \
+tools/st.sh dropoptions "$f" \
     spell spellcapcheck spellfile spelllang spelloptions spellsuggest menuitems
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim2-check.sh.

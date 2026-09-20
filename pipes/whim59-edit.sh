@@ -165,6 +165,6 @@ t = in_function(t, 'wc_use_keyname', lambda s: fold_never(s, r'^[ \t]*if \(\(\(l
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-python3 tools/dropoptions.py "$f" wildchar wildcharm wildmode wildoptions wildignore wildignorecase
+tools/st.sh dropoptions "$f" wildchar wildcharm wildmode wildoptions wildignore wildignorecase
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim59-check.sh.

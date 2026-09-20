@@ -35,8 +35,8 @@ work=${1:?usage: whim9-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the locale layer -------------------------------------------------
-python3 tools/nolocale.py "$f"
-python3 tools/retire.py "$f" language
-python3 tools/dropoptions.py "$f" langmap langmenu langnoremap langremap
+tools/st.sh nolocale "$f"
+tools/st.sh retire "$f" language
+tools/st.sh dropoptions "$f" langmap langmenu langnoremap langremap
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim9-check.sh.

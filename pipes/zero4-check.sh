@@ -30,7 +30,7 @@
 #                 arguments, the three `-T` spellings, a plain edit and an editing
 #                 pty session.
 #
-# A record is built the way tools/zcases.py builds one and scrubbed the same way
+# A record is built the way `zcases` builds one and scrubbed the same way
 # (tools/zrec.py): `mainerr()` prints the version banner, which carries __DATE__ and
 # __TIME__, so two binaries built a minute apart disagree on stderr for a reason
 # that is not the editor's behaviour -- which is exactly why `-s` reads as unchanged
@@ -77,7 +77,7 @@ echo "  noexmode     0 mentions of all 21, neither Ex-mode string, isatty down t
 
 # --- 2. what it deliberately kept ---------------------------------------------------
 # A row is repointed, never deleted: a hole in nv_cmds[] moves every key past it
-# (tools/nvidxcheck.py, run by phasecheck.sh below, is the other half of this).
+# (`nvidx`, run by phasecheck.sh below, is the other half of this).
 grep -q "^     {'Q', nv_error, NV_NCW, 0} ,$" "$f" \
     || { echo "  noexmode     the 'Q' row is not a repointed nv_error row"; exit 1; }
 grep -q '^getexline(' "$f" \
@@ -135,7 +135,7 @@ old_bin, new_bin = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
 
 
 def typed(seed, *keys):
-    """tools/zcases.py's shape: type the seed under 'paste', then the real keys."""
+    """zcases's shape: type the seed under 'paste', then the real keys."""
     args = ['+set paste']
     return args, [b'i' + seed + ESC, b':set nopaste' + CR] + list(keys) + [QUIT]
 
@@ -194,7 +194,7 @@ def record(binary, args, keys):
         scr, out, err, rc = zstream.session(binary, keys, args=args, timeout=8)
     except zstream.Blocked:
         # `vim -` reads the keystroke file as buffer text and then waits for keys
-        # that never come.  That is a recording, not a crash (tools/zargv.py).
+        # that never come.  That is a recording, not a crash (`zargv`).
         return zrec.section('blocked', 'took the input over and never returned'), b'', 0
     text = zrec.section('exit %s' % rc)
     text += zrec.section('bells %d' % scr.bells)

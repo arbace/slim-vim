@@ -22,7 +22,7 @@
 # second sweep takes the callees.
 #
 # This was two phases, and the second existed only because the first stopped
-# short.  The sweep between the cuts is kept: tools/nocomplkeys.py counts and
+# short.  The sweep between the cuts is kept: `nocomplkeys` counts and
 # matches text in edit() as the first sweep leaves it, and a count taken over
 # code about to be swept is a different count.
 #
@@ -35,8 +35,8 @@ work=${1:?usage: whim32-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- the predicates, and the options only completion read ------------------
-python3 tools/nocompl.py "$f"
-python3 tools/dropoptions.py "$f" --local \
+tools/st.sh nocompl "$f"
+tools/st.sh dropoptions "$f" --local \
     autocomplete complete completefunc completeopt dictionary infercase \
     pumborder pummaxwidth pumopt \
     pumheight pumwidth thesaurus
@@ -44,7 +44,7 @@ python3 tools/dropoptions.py "$f" --local \
 tools/sweep.sh "$f"
 
 # --- the callers, and the buffer fields those options had ------------------
-python3 tools/droplocal.py "$f" b_p_cpt b_p_cot b_p_dict b_p_tsr b_p_inf b_p_ac
-python3 tools/nocomplkeys.py "$f"
+tools/st.sh droplocal "$f" b_p_cpt b_p_cot b_p_dict b_p_tsr b_p_inf b_p_ac
+tools/st.sh nocomplkeys "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim32-check.sh.

@@ -10,7 +10,7 @@
 # changes no source and replaces an instrument -- and it is here for the same reason:
 # a harness that cannot see a phase must be fixed BEFORE the phase, never after.
 #
-# WHAT WAS WRONG WITH THE OLD QUESTION.  `tools/ztermcheck.py` put the name it was
+# WHAT WAS WRONG WITH THE OLD QUESTION.  ``ztermcheck`` put the name it was
 # asking about in `$TERM`, which is `tools/termcheck.py`'s question and whim's.  But
 # whim phase 19 removed the `getenv("TERM")` from `termcapinit()` -- "the terminal is
 # what the build says" -- and left a compiled `"xterm-256color"` in its place.  So
@@ -163,7 +163,7 @@ fi
 echo "  symbols      \`main\` is still the only external symbol, over $(grep -c '' "$tmp/undef") undefined"
 
 # --- 3. the new table means what it claims ---------------------------------
-python3 tools/ztermcheck.py "$bin" "$tmp/term" >/dev/null
+tools/st.sh ztermcheck "$bin" "$tmp/term" >/dev/null
 if ! python3 - "$f" "$tmp/term" "$bin" > "$tmp/rule" 2>&1 <<'PY'
 """The recording's partition IS builtin_terminals[], and nothing here is a constant.
 
@@ -250,7 +250,7 @@ sed 's/^/  table        /' "$tmp/rule"
 # every binary the pipeline has ever produced.  Then the baseline and every
 # recording move together, and no earlier phase's declared delta can change.
 if [ -n "$whim_pid" ] && wait "$whim_pid"; then
-    python3 tools/ztermcheck.py "$tmp/whim-vim" "$tmp/term-whim" >/dev/null
+    tools/st.sh ztermcheck "$tmp/whim-vim" "$tmp/term-whim" >/dev/null
     if ! cmp -s "$tmp/term" "$tmp/term-whim"; then
         echo "  same         whim-vim.c -- the pipeline's immutable input, and where the baselines come from -- records a DIFFERENT table:"
         diff "$tmp/term-whim" "$tmp/term" | head -20 | sed 's/^/               /'
@@ -285,7 +285,7 @@ if [ -d .build-zero ]; then
             || tar -xOf "$t" zero-vim > "$tmp/bins/$r" 2>/dev/null || continue
         [ -s "$tmp/bins/$r" ] || continue
         chmod +x "$tmp/bins/$r"
-        python3 tools/ztermcheck.py "$tmp/bins/$r" "$tmp/rows/$r" >/dev/null &
+        tools/st.sh ztermcheck "$tmp/bins/$r" "$tmp/rows/$r" >/dev/null &
         n=$((n + 1))
         if [ $((n % 8)) = 0 ]; then wait; fi
     done
@@ -360,7 +360,7 @@ if ! make -C "$tmp/broken" >/dev/null 2>&1; then
     echo "  ablefail     the patched copy did not build -- the break is wrong, not the corpus"
     exit 1
 fi
-python3 tools/ztermcheck.py "$tmp/broken/zero-vim" "$tmp/broken-term" >/dev/null
+tools/st.sh ztermcheck "$tmp/broken/zero-vim" "$tmp/broken-term" >/dev/null
 if ! python3 - "$tmp/term" "$tmp/broken-term" "$gone" > "$tmp/moved" 2>&1 <<'PY'
 """Exactly the deleted name's row moved, and it moved from resolving to refused."""
 import re
@@ -390,7 +390,7 @@ fi
 
 # The question this phase replaces, written out here because it no longer exists in
 # tools/: the name in $TERM, no file argument, and the same scrape.  It is the four
-# lines that were tools/ztermcheck.py's ask() up to this phase.
+# lines that were `ztermcheck`'s ask() up to this phase.
 python3 - "$bin" "$tmp/broken/zero-vim" "$tmp/old-in" "$tmp/old-broken" <<'PY'
 import concurrent.futures, shutil, sys, tempfile
 sys.path.insert(0, 'tools')
@@ -398,7 +398,7 @@ import termcheck, ptyrun
 
 
 def old(binary, t):
-    """tools/ztermcheck.py's ask() as it stood before zero phase 33."""
+    """ztermcheck's ask() as it stood before zero phase 33."""
     d = tempfile.mkdtemp(prefix='ztermcheck-')
     try:
         text, _ = ptyrun.session(binary, [], [b':set term? t_Co?\r', b':q!\r'],

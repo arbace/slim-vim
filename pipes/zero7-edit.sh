@@ -54,7 +54,7 @@
 #
 # THE ROW FLOOR.  `cmdnames[]` goes 105 -> 104 rows, and create_cmdidxs's `names()`
 # refuses a table of fewer than 100 -- a regex that stops matching otherwise yields
-# a plausible all-zero index, so the floor is deliberate.  tools/zexcmds.py
+# a plausible all-zero index, so the floor is deliberate.  `zexcmds`
 # enumerates the table through it, so crossing the floor would stop zero's command
 # sweep rather than give a wrong answer.  After this phase the margin is FOUR rows,
 # and ZERO-PLAN.md 3a gives it to the `:edit` phase, which must lower the floor.
@@ -62,7 +62,7 @@
 # NO ENUMERATOR DUMP, for phase 6's reason.  Deleting one renumbers 46 survivors and
 # every one is a `CMD_*`: `cmdnames[]` is DESIGNATED, so a row lands at its own
 # enumerator whatever the numbering is, the `static_assert` on the row count catches
-# a dropped pair, and all 104 surviving names are dispatched by tools/zexcmds.py
+# a dropped pair, and all 104 surviving names are dispatched by `zexcmds`
 # inside the declared delta.  There is no derived first-two-letters index in this
 # file -- whim's Phase 80 took it with the 489 stub rows -- so nothing else depends
 # on a position.
@@ -70,7 +70,7 @@
 # THE INPUT BINARY IS BUILT HERE, before the edit, from the boundary's own makefile
 # flags, exactly as pipes/zero2-edit.sh, zero4-edit.sh, zero5-edit.sh and
 # zero6-edit.sh do it.  THE CORPUS CANNOT SEE THAT A FILE WAS READ: every one of
-# tools/zcases.py's 102 cases types its own text and names no file, so `cmd_read`
+# `zcases`'s 102 cases types its own text and names no file, so `cmd_read`
 # types `:read` with no file name and has only ever recorded `E32: No file name`.
 # The only evidence that this phase removed reading rather than one error message is
 # a probe that requires the OLD binary to pull a file off the disk, and that needs

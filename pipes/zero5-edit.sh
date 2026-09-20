@@ -65,7 +65,7 @@
 #     touches `b_ffname`, `b_sfname` or `b_fname`: what goes is the one call that
 #     ever gave the startup buffer a name from argv.  `create_windows()` already
 #     opens an unnamed buffer when argv named none -- that is the `(none)` row of
-#     tools/zargv.py -- so the startup path is the one that was always there.
+#     `zargv` -- so the startup path is the one that was always there.
 #
 # WHAT IS KEPT, and asserted by name in the check: `+{command}` with MAX_ARG_CMDS
 # and ME_EXTRA_CMD; `-T {term}` with want_argument, ME_GARBAGE and

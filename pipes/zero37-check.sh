@@ -57,7 +57,7 @@
 #               one member and a plain field are the same program, and an empty union is
 #               no program at all.  If either ever moves, this phase's account of itself
 #               has to be rewritten rather than the number quietly updated.
-#   STRUCTURE   tools/canon.sh is a no-op on the output, and tools/zhostonly.py -- phase
+#   STRUCTURE   tools/canon.sh is a no-op on the output, and `zhostonly` -- phase
 #               20's structural check -- still passes.
 #
 # AND TWO FULL RECORDINGS, WHICH ARE A CHECK ON THE HARNESS AND NOT ON THE PHASE.  With a
@@ -678,7 +678,7 @@ print('  %-12s two full tools/zrecord.sh recordings, all %d records identical --
 PY
 
 # --- 8. phase 20's structural check, which every phase that touches the core owes ------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 echo "  unions       and that is phase 20's check, undisturbed: none of the six names this phase removes is in its vocabulary, and the host block is untouched"
 
 # tools/phaserun.sh runs tools/zerodelta.sh --phase 37 after this check, and this phase

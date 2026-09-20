@@ -104,7 +104,7 @@ if ! make -C "$tmp/broken" >/dev/null 2>&1; then
     echo "  ablefail     the patched copy did not build -- the break is wrong, not the corpus"
     exit 1
 fi
-python3 tools/zcases.py "$tmp/broken/zero-vim" "$tmp/broken-screen" >/dev/null
+tools/st.sh zcases "$tmp/broken/zero-vim" "$tmp/broken-screen" >/dev/null
 moved=$(diff -rq "$tmp/run1/screen" "$tmp/broken-screen" 2>/dev/null \
         | grep -E '^(Files|Only in)' | sed 's/^Only in [^:]*: //; s/ and .*//; s/.*screen\///' \
         | sort -u | tr '\n' ' ')

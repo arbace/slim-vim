@@ -39,7 +39,7 @@ work=${1:?usage: whim20-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nohome.py "$f"
-python3 tools/nogetenv.py "$f"
+tools/st.sh nohome "$f"
+tools/st.sh nogetenv "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim20-check.sh.

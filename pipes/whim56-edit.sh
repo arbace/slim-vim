@@ -106,8 +106,8 @@ t = in_function(t, 'stropt_get_newval', lambda s: fold_never(
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-python3 tools/dropoptions.py "$f" shell shellquote shellredir runtimepath packpath
-python3 tools/dropoptions.py "$f" --local keywordprg
+tools/st.sh dropoptions "$f" shell shellquote shellredir runtimepath packpath
+tools/st.sh dropoptions "$f" --local keywordprg
 
 # No sweep here.  One stood here, and the lines after it were written for swept text,
 # but this phase and every stage it has run in reproduce their boundaries without
@@ -127,6 +127,6 @@ if n != 1:
 open(path, 'w', errors='surrogateescape').write(t)
 print("  noshellrtp   get_varp no longer resolves 'keywordprg' per buffer")
 PY
-python3 tools/droplocal.py "$f" b_p_kp
+tools/st.sh droplocal "$f" b_p_kp
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim56-check.sh.

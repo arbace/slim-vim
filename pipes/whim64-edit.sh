@@ -365,12 +365,12 @@ t = in_function(t, 'insertchar', lambda s: literal(
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-python3 tools/dropoptions.py "$f" paragraphs sections
-python3 tools/dropoptions.py "$f" --local formatoptions formatlistpat comments
+tools/st.sh dropoptions "$f" paragraphs sections
+tools/st.sh dropoptions "$f" --local formatoptions formatlistpat comments
 
 tools/sweep.sh "$f"
 for v in b_p_fo b_p_flp b_p_com; do
-    python3 tools/droplocal.py "$f" $v
+    tools/st.sh droplocal "$f" $v
 done
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim64-check.sh.

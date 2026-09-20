@@ -57,7 +57,7 @@
 # would have to remove first.  `nv_exmode` goes the same way, because an `nv_cmds[]`
 # row is a reference: the row is REPOINTED at `nv_error` and never deleted -- a
 # deleted row shifts `nv_cmd_idx[]` and every key past the hole resolves to another
-# key's handler (CLAUDE.md; tools/nvidxcheck.py is what would catch it).
+# key's handler (CLAUDE.md; `nvidx` is what would catch it).
 #
 # SIX WRITE-ONLY LEFTOVERS GO BY HAND, because no warning covers a variable that is
 # assigned and never read: `ex_pressedreturn`, `ex_no_reprint` (seven writes),
@@ -232,7 +232,7 @@ if len(re.findall(r'\bisatty\(', t)) != 5:
 say('21 identifiers at their counted mentions: exmode_active 49, silent_mode 23, isatty 5 calls')
 
 # ---- 1. the two keys, and the three functions they reach ---------------------------
-# The row is REPOINTED, never deleted (CLAUDE.md, tools/nvidxcheck.py).
+# The row is REPOINTED, never deleted (CLAUDE.md, `nvidx`).
 do(literal("     {'Q', nv_exmode, NV_NCW, 0} ,\n",
            "     {'Q', nv_error, NV_NCW, 0} ,\n",
            "the 'Q' row points at nv_error, so Q beeps like any unused key"))

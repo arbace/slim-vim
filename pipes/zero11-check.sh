@@ -94,7 +94,7 @@
 #    quit is `q_alone`'s to say, by its exit status through a pipe.  An ordinary
 #    editing session beside it must be identical either side.
 #
-# A record is built the way tools/zcases.py builds one and scrubbed the same way
+# A record is built the way `zcases` builds one and scrubbed the same way
 # (tools/zrec.py).  tools/zstream.py's session() is not called directly because this
 # check needs the raw stream, the exit status and the snapshot count beside the
 # screens.
@@ -479,7 +479,7 @@ def record(binary, args, keys, timeout=10):
 
 
 def typed(seed, *keys):
-    """tools/zcases.py's shape: type the seed under 'paste', then the real keys.
+    """zcases's shape: type the seed under 'paste', then the real keys.
 
     IT ENDS WITH `:q!`, which is why the corpus cannot see the exit status of this
     phase: the old binary quits on that too.  `q_alone` below is the one probe that

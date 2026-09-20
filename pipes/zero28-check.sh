@@ -35,7 +35,7 @@
 #   CANON       tools/canon.sh is a NO-OP on the output: the four `long` declarations,
 #               the eight new statements and musl_now_ms are written the way this file
 #               writes everything else.
-#   HOST        tools/zhostonly.py, whose vocabulary this phase EXTENDS: `gettimeofday`
+#   HOST        `zhostonly`, whose vocabulary this phase EXTENDS: `gettimeofday`
 #               is a host word from here, with the five core call sites phase 26 moved
 #               named as exceptions at the counts they had at r20, r21 and r25.
 #   SYMBOLS     `nm -u` is THE SAME SET -- 17 names, `comm` empty in both directions --
@@ -510,7 +510,7 @@ fi
 echo "  clock        tools/canon.sh is a NO-OP on the output: the four \`long\` declarations, the four stamps, the four readings and musl_now_ms are written the way this file writes everything else"
 
 # --- 6. the host's vocabulary, which this phase extends --------------------------------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 
 # --- 7. the symbols -------------------------------------------------------------------------
 wait $pid_new || { echo "  clock        the output did not build with '$cflags' '$ldflags'"; exit 1; }

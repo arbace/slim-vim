@@ -41,11 +41,11 @@ work=${1:?usage: whim3-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nointro.py "$f"
-python3 tools/dropopts.py "$f" \
+tools/st.sh nointro "$f"
+tools/st.sh dropopts "$f" \
     -h '-?' -A -F -H -g -f -X -Y -d -U -l -C -N -n -p -V \
     --help --version --clean --literal --nofork --noplugin --not-a-term \
     --gui-dialog-file --startuptime --log
-python3 tools/optreaders.py "$f"
+tools/st.sh optreaders "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim3-check.sh.

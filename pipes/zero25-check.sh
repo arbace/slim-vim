@@ -48,7 +48,7 @@
 #               swapped moves 24 of the 30 command lines AND NOTHING ELSE -- which is
 #               phase 21's own finding, that everything reaching host_message is a
 #               message printed before there is a screen.
-#   STRUCTURE   tools/zhostonly.py, phase 20's structural check, still passes.  Renaming
+#   STRUCTURE   `zhostonly`, phase 20's structural check, still passes.  Renaming
 #               nine call sites cannot disturb it -- `host_exit` and `host_message` are
 #               not in its vocabulary, which is libc's terminal and signal names -- and
 #               a phase that moves host calls about is exactly the one that should say so
@@ -500,7 +500,7 @@ print('  %-12s AND IT CAN FAIL, ONCE FOR EACH NAME THIS PHASE MAKES DIRECT.  hos
 PY
 
 # --- 7. phase 20's structural check, which a phase that renames host calls owes ------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 echo "  hostcall     and that is phase 20's check, undisturbed: its vocabulary is libc's terminal, signal and descriptor names, and \`host_exit\`/\`host_message\` are not in it -- so renaming nine call sites adds no host WORD to the core.  Running it here rather than assuming it is the point"
 
 # tools/phaserun.sh runs tools/zerodelta.sh --phase 25 after this check, and this phase

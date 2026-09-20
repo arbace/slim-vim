@@ -305,8 +305,8 @@ print('  %-12s enumerators %d -> %d: not one went, arrived or renumbered -- this
 PY
 
 # --- 6. the structural tools, none of whose tables this phase touches -------------------
-python3 tools/nvidxcheck.py "$f"
-python3 tools/orphanopts.py "$f"
+tools/st.sh nvidx "$f"
+tools/st.sh orphanopts "$f"
 
 # --- 7. the binary ----------------------------------------------------------------------
 make -C "$work" clean >/dev/null 2>&1 || true

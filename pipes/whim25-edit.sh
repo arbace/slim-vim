@@ -44,14 +44,14 @@ work=${1:?usage: whim25-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nobackup.py "$f"
-python3 tools/dropoptions.py "$f" --local --strict \
+tools/st.sh nobackup "$f"
+tools/st.sh dropoptions "$f" --local --strict \
     backup backupcopy backupdir backupext backupskip patchmode writebackup
-python3 tools/noowner.py "$f"
+tools/st.sh noowner "$f"
 
 # No sweep here.  One stood here, and the lines after it were written for swept text,
 # but this phase and every stage it has run in reproduce their boundaries without
 # it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
-python3 tools/droplocal.py "$f" b_p_bkc
+tools/st.sh droplocal "$f" b_p_bkc
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim25-check.sh.

@@ -22,7 +22,7 @@ work=${1:?usage: whim29-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/noucmd.py "$f"
-python3 tools/retire.py "$f" command comclear delcommand
+tools/st.sh noucmd "$f"
+tools/st.sh retire "$f" command comclear delcommand
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim29-check.sh.

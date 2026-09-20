@@ -14,6 +14,6 @@ set -eu
 work=${1:?usage: whim45-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 tools/retire.py "$f" drop
+tools/st.sh retire "$f" drop
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim45-check.sh.

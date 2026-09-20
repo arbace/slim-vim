@@ -6,7 +6,7 @@
 # Each becomes what an unknown option is.  +{command} stays and fills the list
 # -c did, which is why the harnesses now pass +{command}: behaviour.py and
 # exsweep.py used -c, and give the same result either way against every binary
-# either pipeline has produced.  See tools/nocmdargs.py.
+# either pipeline has produced.  See `nocmdargs`.
 #
 # THE DELTA: none the Ex sweep records.  No Ex command moves.
 set -eu
@@ -14,6 +14,6 @@ set -eu
 work=${1:?usage: whim43-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 tools/nocmdargs.py "$f"
+tools/st.sh nocmdargs "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim43-check.sh.

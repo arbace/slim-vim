@@ -29,6 +29,6 @@ work=${1:?usage: whim27-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/noequiclass.py "$f"
+tools/st.sh noequiclass "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim27-check.sh.

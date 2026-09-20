@@ -19,7 +19,7 @@ set -eu
 work=${1:?usage: whim44-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 tools/retire.py "$f" '!' sort uniq retab left center right
+tools/st.sh retire "$f" '!' sort uniq retab left center right
 python3 - "$f" <<'EOF'
 import re
 import sys

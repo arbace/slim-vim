@@ -74,7 +74,7 @@
 # -- the declaration, one reader inside `do_ecmd` and the option row -- and after
 # this phase two and no reader.  Removing the row would change what `:set ur?`
 # answers, which nothing here sweeps, so the delta could not be checked; and
-# `tools/orphanopts.py` refuses the opposite direction, a global whose row has
+# ``orphanopts`` refuses the opposite direction, a global whose row has
 # gone.  The check asserts `p_ur` at exactly 2 with its row intact, and the
 # manifest carries `uses options:11 files:8 mechanical` for the phase that takes it.
 #
@@ -82,7 +82,7 @@
 # goes 104 -> 99 and create_cmdidxs's `names()` refused a table of fewer than 100 --
 # not with "too few rows" but with `no command table found in either shape`, because
 # names() tries both parsers with check=False and neither answer clears the bar.
-# tools/zexcmds.py enumerates zero's whole Ex sweep through names(), so the old
+# `zexcmds` enumerates zero's whole Ex sweep through names(), so the old
 # floor would have stopped the sweep, tools/zerodelta.sh, the recording and every
 # later phase's check rather than giving a wrong answer.  ZERO-PLAN.md decision 8:
 # lowered deliberately, to 80, in the phase that crosses it and in the same commit,

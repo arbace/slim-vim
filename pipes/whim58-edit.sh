@@ -121,9 +121,9 @@ PY
 
 python3 tools/create_cmdidxs.py "$f" --check >/dev/null
 
-python3 tools/dropoptions.py "$f" --local iminsert imsearch
+tools/st.sh dropoptions "$f" --local iminsert imsearch
 
 tools/sweep.sh "$f"
-python3 tools/droplocal.py "$f" b_p_iminsert b_p_imsearch
+tools/st.sh droplocal "$f" b_p_iminsert b_p_imsearch
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim58-check.sh.

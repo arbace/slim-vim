@@ -6,15 +6,15 @@
 # The instrument zero has is the screen, so every part of this drives the editor
 # and keeps what it drew (ZERO-PLAN.md 2):
 #
-#   screen/          tools/zcases.py   102 keystroke cases, one record each
-#   memline/         tools/zmemline.py 16 big-buffer cases, one record each (below)
-#   ref-excmds.txt   tools/zexcmds.py  every Ex command name typed at `:`
-#   ref-argv.txt     tools/zargv.py    every command line the parser may see
-#   ref-pty.txt      tools/zpty.py     the window size and raw mode, on a real pty
-#   ref-term.txt     tools/ztermcheck.py the terminal table, whim's termcheck.py
+#   screen/          zcases   102 keystroke cases, one record each
+#   memline/         zmemline 16 big-buffer cases, one record each (below)
+#   ref-excmds.txt   zexcmds  every Ex command name typed at `:`
+#   ref-argv.txt     zargv    every command line the parser may see
+#   ref-pty.txt      zpty     the window size and raw mode, on a real pty
+#   ref-term.txt     ztermcheck the terminal table, whim's termcheck.py
 #                                      asked with no file argument (see below)
 #
-# tools/zmemline.py is the sixth part and zero phase 40 is why: every one of the
+# zmemline is the sixth part and zero phase 40 is why: every one of the
 # 102 screen cases allocates exactly ONE data block, so nothing above ml_get() was
 # ever asked a question the memline TREE answers -- measured, a binary with one
 # line deleted from ml_find_line's pointer bookkeeping records all 102 of them byte
@@ -32,21 +32,21 @@ out=${3:?usage: zrecord.sh <binary> <source> <outdir>}
 rm -rf "$out"
 mkdir -p "$out"
 
-python3 tools/zcases.py "$bin" "$out/screen" >/dev/null &
+tools/st.sh zcases "$bin" "$out/screen" >/dev/null &
 p1=$!
-python3 tools/zmemline.py "$bin" "$out/memline" >/dev/null &
+tools/st.sh zmemline "$bin" "$out/memline" >/dev/null &
 p6=$!
-python3 tools/zexcmds.py "$bin" "$src" "$out/ref-excmds.txt" >/dev/null &
+tools/st.sh zexcmds "$bin" "$src" "$out/ref-excmds.txt" >/dev/null &
 p2=$!
-python3 tools/zargv.py "$bin" "$out/ref-argv.txt" >/dev/null &
+tools/st.sh zargv "$bin" "$out/ref-argv.txt" >/dev/null &
 p3=$!
-python3 tools/zpty.py "$bin" "$out/ref-pty.txt" >/dev/null &
+tools/st.sh zpty "$bin" "$out/ref-pty.txt" >/dev/null &
 p4=$!
-# NOT tools/termcheck.py, and the difference is one argument: it opens a file to
+# NOT termcheck, and the difference is one argument: it opens a file to
 # put something on the screen, and from zero phase 5 a file argument is an unknown
-# option, so every row would read `(none)`.  tools/ztermcheck.py is that tool with
+# option, so every row would read `(none)`.  ztermcheck is that tool with
 # its ask() replaced and nothing else, proven to record the same nineteen rows.
-python3 tools/ztermcheck.py "$bin" "$out/ref-term.txt" >/dev/null &
+tools/st.sh ztermcheck "$bin" "$out/ref-term.txt" >/dev/null &
 p5=$!
 rc=0
 wait $p1 || rc=1

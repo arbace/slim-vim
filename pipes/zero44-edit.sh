@@ -61,7 +61,7 @@
 # change the tree's fanout on purpose; this one leaves it alone and says so.
 #
 # DB_LINE_MAX IS A FREE PARAMETER NOW AND IT IS CHOSEN BY MEASUREMENT.  A leaf used
-# to hold as many lines as fitted in a page -- 78 of tools/zmemline.py's 47-byte
+# to hold as many lines as fitted in a page -- 78 of `zmemline`'s 47-byte
 # lines on the boundary this was first written against -- and nothing decides it any
 # more, so the value is a tuning knob.  The corpus CANNOT SEE IT: measured,
 # DB_LINE_MAX of 32, 64, 128 and even 1 all record the 102 screen cases and the 16

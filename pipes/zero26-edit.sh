@@ -86,7 +86,7 @@
 # writing the two fields the wrong way round moves SEVEN records.
 #
 # WHERE `musl_gettimeofday` GOES, AND IT IS NOT A FREE CHOICE.  It is defined inside
-# the host block, immediately above `musl_delay`, because `tools/zhostonly.py` reads
+# the host block, immediately above `musl_delay`, because ``zhostonly`` reads
 # the host region as the lines from `host_winch_pending` to the last brace of
 # `musl_suspend()` and requires every mention of `struct timeval` to be inside it.  A
 # definition below `musl_suspend` would be outside the region and the tool would refuse.
@@ -355,7 +355,7 @@ say('`elapsed_T` is the core\'s own TAGLESS `struct { long tv_sec; long tv_usec;
     'the three other `struct timeval` in the core are it, and the %d '
     '`gettimeofday(&X, nullptr)` calls go through `musl_gettimeofday(long *, long *)` '
     '-- defined in the host block above musl_delay, which is inside the region '
-    'tools/zhostonly.py reads' % n_gt)
+    'zhostonly reads' % n_gt)
 
 # ---- 9. offsetof -> __builtin_offsetof --------------------------------------------------
 # ZERO-PLAN.md 4c settled this.  The plain-C alternative `(usize)&(((T *)0)->m)` was

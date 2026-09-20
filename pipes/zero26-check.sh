@@ -49,10 +49,10 @@
 # timeouts that never expire, so tools/zpty.py waits out its deadline, writes `stalled`
 # and exits 1 -- correct behaviour on a deliberately broken editor, and two minutes of
 # it.  Letting that exit status reach `set -e` would make a good control into a flaky
-# check, so the control is tools/zcases.py alone, which drives pipes, has its own
+# check, so the control is `zcases` alone, which drives pipes, has its own
 # per-case timeout and is where six of the seven measured differences were.
 #
-# AND tools/zhostonly.py, WHOSE EXCEPTIONS THIS PHASE CHANGED.  The tool named `struct
+# AND `zhostonly`, WHOSE EXCEPTIONS THIS PHASE CHANGED.  The tool named `struct
 # timeval` in the core twice -- "the clock's, not this phase's" -- and this is that
 # phase, so both exceptions go; `kill` acquires one, because the core's call to it now
 # has a prototype at file scope and the prototype is the same fact the tool already
@@ -437,7 +437,7 @@ fi
 echo "  headers      tools/canon.sh is a NO-OP on the output: the tagless struct, the nine prototypes and musl_gettimeofday are written the way this file writes everything else"
 
 # --- 5. the host's vocabulary is still the host's ------------------------------------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 
 # --- 6. the symbols, and the binary ---------------------------------------------------------
 wait $pid_new || { echo "  headers      the output did not build with '$cflags' '$ldflags'"; exit 1; }
@@ -488,7 +488,7 @@ pid_rn=$!
 # `set -e`'s business would turn a good control into a flaky check.  zcases.py drives
 # pipes, has its own per-case timeout, and is where six of the seven differences were
 # measured, so it is the cheap half of the recording and the half that answers.
-python3 tools/zcases.py "$tmp/swap" "$tmp/SCR.swap" >/dev/null 2>&1 &
+tools/st.sh zcases "$tmp/swap" "$tmp/SCR.swap" >/dev/null 2>&1 &
 pid_rs=$!
 wait $pid_ro
 wait $pid_rn

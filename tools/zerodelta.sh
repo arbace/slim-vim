@@ -6,7 +6,7 @@
 #
 # tools/whimdelta.sh's rule against a different instrument.  --phase N records the
 # binary with tools/zrecord.sh and hands the recording, the baselines and
-# pipes/zero.delta to tools/zcompare.py, which requires **exactly** the declared
+# pipes/zero.delta to zcompare, which requires **exactly** the declared
 # difference: every record that moved is declared, every declaration moved
 # something, and nothing else differs at all.  --declared N prints what phase N
 # itself declares, for a phase program that wants to assert its own list.
@@ -34,7 +34,7 @@
 set -eu
 
 if [ "${1:-}" = "--declared" ]; then
-    python3 tools/zcompare.py --declared pipes/zero.delta \
+    tools/st.sh zcompare --declared pipes/zero.delta \
         "${2:?usage: zerodelta.sh --declared N}"
     exit 0
 fi
@@ -50,8 +50,8 @@ trap 'rm -rf "$tmp"' EXIT
 fail=0
 
 # The same source check whimdelta.sh runs beside its harnesses: no option global
-# left without the row that initialises it (tools/orphanopts.py).
-python3 tools/orphanopts.py "$src" > "$tmp/orphanopts" 2>&1 &
+# left without the row that initialises it (orphanopts).
+tools/st.sh orphanopts "$src" > "$tmp/orphanopts" 2>&1 &
 pid_o=$!
 
 orphans() {
@@ -74,5 +74,5 @@ fi
 tools/zrecord.sh "$bin" "$src" "$tmp/now"
 orphans
 
-python3 tools/zcompare.py "$base" "$tmp/now" pipes/zero.delta "$n" || fail=1
+tools/st.sh zcompare "$base" "$tmp/now" pipes/zero.delta "$n" || fail=1
 exit $fail

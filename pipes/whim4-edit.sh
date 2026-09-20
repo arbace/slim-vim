@@ -14,7 +14,7 @@
 # the product to slim-vim needed a side-by-side check first; and every harness
 # here stages the binary under test as `vim` for no reason except this function.
 #
-# NOTHING IS LOST, and tools/noargv0.py checks that rather than asserting it: it
+# NOTHING IS LOST, and `noargv0` checks that rather than asserting it: it
 # refuses to run unless -Z, -R, -y, -e and -E all still select the modes the
 # name could.  Keeping the options was the requirement; proving they are still
 # there is what makes the removal safe.
@@ -27,6 +27,6 @@ work=${1:?usage: whim4-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry point --------------------------------------------------
-python3 tools/noargv0.py "$f"
+tools/st.sh noargv0 "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim4-check.sh.

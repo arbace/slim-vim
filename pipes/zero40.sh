@@ -14,7 +14,7 @@
 # WHAT WAS WRONG.  The editor holds its text in a memline: a memfile of 4,096-byte
 # pages, a tree of pointer blocks over data blocks, with every pointer entry
 # carrying the number of lines under it.  MEASURED with an instrumented build of
-# the source this phase was handed: every one of `tools/zcases.py`'s 102 screen
+# the source this phase was handed: every one of ``zcases``'s 102 screen
 # cases allocates EXACTLY ONE data block.  So the root pointer block holds exactly
 # one entry for the whole session, `ml_find_line()` never chooses among entries --
 # `idx` is 0 every time -- and `pe_line_count` is never the number that decides
@@ -27,7 +27,7 @@
 # terminal table cannot see a text layer at all.  Forty phases had been verified by
 # an instrument blind to the data structure the whole editor stands on.
 #
-# WHAT THE NEW PART IS.  `tools/zmemline.py`, the sixth part of a recording
+# WHAT THE NEW PART IS.  ``zmemline``, the sixth part of a recording
 # (`tools/zrecord.sh`): 16 cases that build buffers of 200 to 25,000 lines IN THE
 # EDITOR -- there is no file argument (phase 5), no `:edit` (phase 8) and no
 # `:read` (phase 7) -- churn them in the middle, and read them back.  Every line
@@ -38,14 +38,14 @@
 # NOTHING HERE IS A NUMBER THAT WAS OBSERVED.  The page size, the data-block
 # header, the pointer-entry size and `pb_count_max` are DERIVED by compiling the
 # struct definitions out of the source the phase was handed; the line counts the
-# corpus uses are read out of `tools/zmemline.py` itself; and which case reaches
+# corpus uses are read out of ``zmemline`` itself; and which case reaches
 # which part of the tree is MEASURED with an instrumented build rather than
 # intended.  A corpus that means to reach a root split and does not is exactly the
 # defect this phase exists to end, so the phase is not allowed to assert it -- it
 # has to show it.
 #
 # AND A MEMLINE RECORD CARRIES NO STREAM DIGEST, which is this phase's one
-# departure from `tools/zcases.py`'s record and was forced by a measurement.  An
+# departure from ``zcases``'s record and was forced by a measurement.  An
 # undo in a buffer this size reports its age, and the editor writes the message and
 # then positions the cursor to clear the rest of the line -- so `0 seconds ago`
 # emits `\033[24;40H\033[K` and `1 second ago` emits `\033[24;39H\033[K`, a COLUMN
@@ -164,7 +164,7 @@ if ! python3 - "$f" > "$tmp/sizes" 2>&1 <<'PY'
 Nothing below is a constant: the four typedefs, the page-size enumerator and the
 three struct definitions are found by name in the source the phase was handed and
 compiled into a tiny program, and the line counts are read out of
-tools/zmemline.py's own SIZES, which build() fills as the cases are built.
+zmemline's own SIZES, which build() fills as the cases are built.
 """
 import os
 import re
@@ -220,7 +220,7 @@ root_split = (pb_count_max + 1) * per_block
 
 sizes = sorted(set(zmemline.SIZES))
 if not sizes:
-    sys.exit('tools/zmemline.py builds no buffer at all: the corpus would be vacuous')
+    sys.exit('zmemline builds no buffer at all: the corpus would be vacuous')
 if sizes[0] <= per_block:
     sys.exit('the corpus\'s smallest buffer is %d lines and one data block holds %d, '
              'so its smallest case need not have a tree at all' % (sizes[0], per_block))
@@ -354,9 +354,9 @@ for p in $pids; do
     fi
 done
 
-python3 tools/zmemline.py "$tmp/probe/zero-vim" "$tmp/probe-mem" >/dev/null
-python3 tools/zcases.py "$tmp/probe/zero-vim" "$tmp/probe-screen" >/dev/null
-python3 tools/zmemline.py "$tmp/reprobe/zero-vim" "$tmp/reprobe-mem" >/dev/null
+tools/st.sh zmemline "$tmp/probe/zero-vim" "$tmp/probe-mem" >/dev/null
+tools/st.sh zcases "$tmp/probe/zero-vim" "$tmp/probe-screen" >/dev/null
+tools/st.sh zmemline "$tmp/reprobe/zero-vim" "$tmp/reprobe-mem" >/dev/null
 if ! python3 - "$tmp/probe-mem" "$tmp/probe-screen" "$marks" "$tmp/deep" > "$tmp/cover" 2>&1 <<'PY'
 """Every marker in at least one memline record, and in NONE of the 102.
 
@@ -435,8 +435,8 @@ echo "  instrument   $cases cases, $mems memline cases, $cmds commands, $argvs c
 # leave the 102 screen cases alone, which is what says the old corpus is blind and
 # not merely lucky.
 for c in descent lineadd cache reshape clock; do
-    python3 tools/zmemline.py "$tmp/$c/zero-vim" "$tmp/mem-$c" >/dev/null
-    python3 tools/zcases.py "$tmp/$c/zero-vim" "$tmp/scr-$c" >/dev/null
+    tools/st.sh zmemline "$tmp/$c/zero-vim" "$tmp/mem-$c" >/dev/null
+    tools/st.sh zcases "$tmp/$c/zero-vim" "$tmp/scr-$c" >/dev/null
 done
 if ! python3 - "$tmp/run1" "$tmp" "$tmp/deep" "$tmp/probe-mem" "$tmp/reprobe-mem" \
         > "$tmp/ablefail" 2>&1 <<'ZPY'

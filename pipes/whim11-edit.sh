@@ -38,9 +38,9 @@ work=${1:?usage: whim11-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/noswap.py "$f"
-python3 tools/retire.py "$f" recover preserve swapname \
+tools/st.sh noswap "$f"
+tools/st.sh retire "$f" recover preserve swapname \
     mkvimrc mkexrc mksession mkview checktime
-python3 tools/dropoptions.py "$f" updatecount swapsync
+tools/st.sh dropoptions "$f" updatecount swapsync
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim11-check.sh.

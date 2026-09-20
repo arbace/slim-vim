@@ -36,6 +36,6 @@ work=${1:?usage: whim19-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/noterm.py "$f"
+tools/st.sh noterm "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim19-check.sh.

@@ -62,7 +62,7 @@
 #                under -fsyntax-only either side, and the boundary's warning set --
 #                which IS the core -> host interface -- UNCHANGED.  The input's set
 #                is computed here and never written down.
-#   STRUCTURE    tools/zhostonly.py, phase 20's structural check, and
+#   STRUCTURE    `zhostonly`, phase 20's structural check, and
 #                tools/phasecheck.sh.
 set -eu
 
@@ -501,12 +501,12 @@ echo "  clause       the xterm-family clause is dead TWICE OVER: the output with
 echo "  clause       -- which is the finding a reader would not predict: the compiled default is $(cut -d' ' -f2 "$tmp/fallback"), the removed row sorted BEFORE it, and vim_is_xterm() answers yes to it, so EVERY startup of the input resolved through the family clause and the surviving row was never reached.  After this phase it is, and it gives the same table"
 
 # --- 6. THE TABLE, before and after ------------------------------------------------
-python3 tools/ztermcheck.py "$state/old" "$tmp/term-old" >/dev/null &
-python3 tools/ztermcheck.py "$tmp/c3" "$tmp/term-c3" >/dev/null &
-python3 tools/ztermcheck.py "$tmp/c4" "$tmp/term-c4" >/dev/null &
+tools/st.sh ztermcheck "$state/old" "$tmp/term-old" >/dev/null &
+tools/st.sh ztermcheck "$tmp/c3" "$tmp/term-c3" >/dev/null &
+tools/st.sh ztermcheck "$tmp/c4" "$tmp/term-c4" >/dev/null &
 wait
 cp "$tmp/rec-new/ref-term.txt" "$tmp/term-new"
-echo "  terminals    the nineteen rows, before and after -- tools/ztermcheck.py, \`+set term={name}\` on a real pty (zero phase 33):"
+echo "  terminals    the nineteen rows, before and after -- ztermcheck, \`+set term={name}\` on a real pty (zero phase 33):"
 python3 - "$tmp/term-old" "$tmp/term-new" <<'PY'
 import sys
 a = open(sys.argv[1]).read().splitlines()
@@ -757,5 +757,5 @@ fi
 echo "  boundary     the cut at the first \`#include\` is $old_lines -> $new_lines lines, 0 directives and 0 errors under -fsyntax-only either side, with $old_inc directives in the file and none above them; and the interface -- the $(grep -c '' "$tmp/iface-new") names \`used but never defined\`, computed here from the input and never written down -- is UNCHANGED, because every line this phase touches is a terminal description in the core"
 
 # --- 10. STRUCTURE ------------------------------------------------------------------
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 tools/phasecheck.sh "$work" "$f" "$state/symbols"

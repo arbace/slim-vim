@@ -201,8 +201,8 @@ t = in_function(t, 'fix_help_buffer', lambda s: drop_if(s, r'^[ \t]*if \( strcmp
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-python3 tools/dropoptions.py "$f" jumpoptions updatetime autowrite autowriteall
-python3 tools/dropoptions.py "$f" --local buflisted buftype filetype
+tools/st.sh dropoptions "$f" jumpoptions updatetime autowrite autowriteall
+tools/st.sh dropoptions "$f" --local buflisted buftype filetype
 
 tools/sweep.sh "$f"
 # 'buflisted' leaves too little plumbing for droplocal.py: buflist_new() was its
@@ -219,6 +219,6 @@ if (a, b) != (1, 1):
 open(path, 'w', errors='surrogateescape').write(t)
 print("  nobufopts    'buflisted''s field and get_varp case removed")
 PY
-python3 tools/droplocal.py "$f" b_p_bt b_p_ft
+tools/st.sh droplocal "$f" b_p_bt b_p_ft
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim62-check.sh.

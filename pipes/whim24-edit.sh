@@ -11,7 +11,7 @@
 # THE ISLAND IS BOUNDED, which is what makes this a cut rather than a rewrite:
 # thirty-five functions mention the mouse and all but two are reached only from
 # each other, so funcreach.py deletes the interior once the roots are gone.
-# tools/nomouse.py removes only the roots -- the tables, the dispatch, the
+# `nomouse` removes only the roots -- the tables, the dispatch, the
 # decoder, setmouse()'s 31 bare calls, and the three conditions outside the
 # island that asked whether the mouse was enabled.
 #
@@ -31,11 +31,11 @@ work=${1:?usage: whim24-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nomouse.py "$f"
+tools/st.sh nomouse "$f"
 
 tools/sweep.sh "$f"
 
-python3 tools/dropoptions.py "$f" --strict mouse mousefocus mousehide \
+tools/st.sh dropoptions "$f" --strict mouse mousefocus mousehide \
     mousemodel mousemoveevent mouseshape mousetime ttymouse
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim24-check.sh.

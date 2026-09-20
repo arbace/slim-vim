@@ -44,7 +44,7 @@ work=${1:?usage: whim7-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the two entry points ---------------------------------------------
-python3 tools/noglob.py "$f"
-python3 tools/retire.py "$f" cd chdir lcd lchdir tcd tchdir pwd
+tools/st.sh noglob "$f"
+tools/st.sh retire "$f" cd chdir lcd lchdir tcd tchdir pwd
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim7-check.sh.

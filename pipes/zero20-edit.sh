@@ -18,7 +18,7 @@
 # re-raise, and `close dup isatty`, which were the two dead descriptor sites and the
 # three questions about terminals that nothing asks any more.  31 -> 24.
 #
-# THE PHASE'S VALUE IS STRUCTURAL, AND `tools/zhostonly.py` IS THAT CLAIM AS AN
+# THE PHASE'S VALUE IS STRUCTURAL, AND ``zhostonly`` IS THAT CLAIM AS AN
 # ASSERTION: every mention of the host's vocabulary -- 43 words, from `sigaction` to
 # `VMIN` -- is inside the host block, with eight named exceptions in the core that are
 # the deadly-signal message and the clock.  Without that tool the strongest available
@@ -133,7 +133,7 @@
 # `vim_handle_signal` STAYS, and it is the one core mention of any host word that is
 # not a message: `kill(getpid(), got_signal)`, re-raising a deadly signal that arrived
 # while the editor was not reading.  Deleting it would make a deadly signal act in the
-# middle of a screen update, which no recording can see.  `tools/zhostonly.py` names
+# middle of a screen update, which no recording can see.  ``zhostonly`` names
 # it as an exception with that reason rather than loosening its pattern.
 #
 # `ui_get_shellsize()` STAYS A QUERY, and this is the design the survey got wrong.

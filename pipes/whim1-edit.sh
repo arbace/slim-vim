@@ -8,7 +8,7 @@
 # the editor cannot keep.  `:help` that opens nothing is more confusing than
 # `:help` that says it is not implemented.
 #
-# The removal is COMPUTED.  tools/noruntime.py cuts four entry points -- six
+# The removal is COMPUTED.  `noruntime` cuts four entry points -- six
 # command rows, the runtime path strings, the runtimepath builders and the
 # branch of vim_getenv() that derives a runtime directory from argv[0] -- and
 # then the ordinary dead-code sweep finds everything unreachable behind them.
@@ -25,7 +25,7 @@ f="$work/whim-vim.c"
 base=.reference/baselines
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/noruntime.py "$f"
+tools/st.sh noruntime "$f"
 
 # --- and let the sweep find the rest --------------------------------------
 # Alternating to a joint fixpoint, exactly as the slim pipeline's phase 8 does:

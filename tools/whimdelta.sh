@@ -87,14 +87,14 @@ fi
 # but it belongs here because it is the whim pipeline that drops rows, and
 # because the thing it catches is invisible to every check that follows -- an
 # orphaned global is *used*, so no warning names it, and it segfaults only on
-# the one command that reaches it.  See tools/orphanopts.py.
+# the one command that reaches it.  See orphanopts.
 #
 # It runs ALONGSIDE the harnesses rather than before them: it reads the source,
 # they run the binary, and neither waits for the other.
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 fail=0
-python3 tools/orphanopts.py "$src" > "$tmp/orphanopts" 2>&1 &
+tools/st.sh orphanopts "$src" > "$tmp/orphanopts" 2>&1 &
 pid_o=$!
 
 orphans() {
@@ -116,11 +116,11 @@ fi
 # They are started here and waited for before the first comparison, rather than
 # each being waited for in turn, because the slowest of the three is the first
 # one compared.
-python3 tools/behaviour.py "$bin" "$tmp/b" >/dev/null &
+tools/st.sh behaviour "$bin" "$tmp/b" >/dev/null &
 pid_b=$!
-python3 tools/termcheck.py "$bin" "$tmp/m" >/dev/null &
+tools/st.sh termcheck "$bin" "$tmp/m" >/dev/null &
 pid_m=$!
-python3 tools/exsweep.py "$bin" "$src" "$tmp/s" >/dev/null &
+tools/st.sh exsweep "$bin" "$src" "$tmp/s" >/dev/null &
 pid_s=$!
 wait $pid_b $pid_m $pid_s
 orphans

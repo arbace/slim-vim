@@ -60,7 +60,7 @@
 # reads into one and moves it.
 #
 # THE ENGLISH WORD `time` IS NOT A CALL.  `op_shift()`'s NGETTEXT strings say "%ld line
-# %sed %d time" / "times", and `tools/zhostonly.py` learned the same lesson about
+# %sed %d time" / "times", and ``zhostonly`` learned the same lesson about
 # `"close buffer"`: every count here is taken with string and character literals blanked
 # out, and the substitutions are exact multi-line blocks, never a bare `time` -> anything.
 set -eu
@@ -101,7 +101,7 @@ def blank_runs(text):
 
 
 def strip_strings(line):
-    """Blank out string and character literals.  tools/zhostonly.py's, and for the same
+    """Blank out string and character literals.  zhostonly's, and for the same
     reason: this file says "%ld line %sed %d time" in two NGETTEXT strings, and a count
     that read those as calls would be counting English."""
     out = []
@@ -300,7 +300,7 @@ host_time(void)
 }
 ''', '', 'the definition, which is one clock read and nothing else')
 # It lands between musl_now_ms and musl_delay: beside the clock that crossed at phase
-# 28, and INSIDE the region tools/zhostonly.py reads as the host.
+# 28, and INSIDE the region `zhostonly` reads as the host.
 t = once(t, '''    static void
 musl_delay(long ms, int interruptible)
 ''', '''    static long

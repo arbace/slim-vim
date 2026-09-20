@@ -7,7 +7,7 @@
 # a forced :w wrote the '?'.  Now the byte is kept, shown as <ff>, written back
 # unchanged, and the buffer stays writable; "[ILLEGAL BYTE in line N]" is still
 # reported.  ++bad goes, since keeping is the only behaviour left.  See
-# tools/keepbytes.py.
+# `keepbytes`.
 #
 # THE DELTA: none the harnesses record -- no case has an invalid byte.  The probe
 # below is the check, against what Phase 12 did.
@@ -16,6 +16,6 @@ set -eu
 work=${1:?usage: whim51-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 tools/keepbytes.py "$f"
+tools/st.sh keepbytes "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim51-check.sh.

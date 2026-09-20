@@ -326,11 +326,11 @@ pn=$!
 po=$!
 wait $pn || { echo "  probe        the instrumented output did not build"; exit 1; }
 wait $po || { echo "  probe        the instrumented input did not build"; exit 1; }
-python3 tools/zmemline.py "$tmp/pnew/zero-vim" "$tmp/pnew-mem" >/dev/null &
+tools/st.sh zmemline "$tmp/pnew/zero-vim" "$tmp/pnew-mem" >/dev/null &
 mn=$!
-python3 tools/zmemline.py "$tmp/pold/zero-vim" "$tmp/pold-mem" >/dev/null &
+tools/st.sh zmemline "$tmp/pold/zero-vim" "$tmp/pold-mem" >/dev/null &
 mo=$!
-python3 tools/zcases.py "$tmp/pnew/zero-vim" "$tmp/pnew-scr" >/dev/null &
+tools/st.sh zcases "$tmp/pnew/zero-vim" "$tmp/pnew-scr" >/dev/null &
 sn=$!
 wait $mn; wait $mo; wait $sn
 if ! python3 - "$tmp/pnew-mem" "$tmp/pold-mem" "$tmp/pnew-scr" "$marks_new" "$marks_old" <<'PY'
@@ -424,9 +424,9 @@ an=$!
 ao=$!
 wait $an || { echo "  arena        the instrumented output did not build"; exit 1; }
 wait $ao || { echo "  arena        the instrumented input did not build"; exit 1; }
-python3 tools/zmemline.py "$tmp/anew/zero-vim" "$tmp/anew-mem" >/dev/null &
+tools/st.sh zmemline "$tmp/anew/zero-vim" "$tmp/anew-mem" >/dev/null &
 an=$!
-python3 tools/zmemline.py "$tmp/aold/zero-vim" "$tmp/aold-mem" >/dev/null &
+tools/st.sh zmemline "$tmp/aold/zero-vim" "$tmp/aold-mem" >/dev/null &
 ao=$!
 wait $an; wait $ao
 if ! python3 - "$tmp/anew-mem" "$tmp/aold-mem" <<'PY'
@@ -566,12 +566,12 @@ cp "$tmp/ctl/fanout/marked.c" "$tmp/fan/zero-vim.c"
 fanpid=$!
 pids=''
 for c in $all_ctl; do
-    ( python3 tools/zcases.py "$tmp/ctl/$c/zero-vim" "$tmp/ctl/$c/screen" >/dev/null 2>&1
-      python3 tools/zmemline.py "$tmp/ctl/$c/zero-vim" "$tmp/ctl/$c/memline" >/dev/null 2>&1 ) &
+    ( tools/st.sh zcases "$tmp/ctl/$c/zero-vim" "$tmp/ctl/$c/screen" >/dev/null 2>&1
+      tools/st.sh zmemline "$tmp/ctl/$c/zero-vim" "$tmp/ctl/$c/memline" >/dev/null 2>&1 ) &
     pids="$pids $!"
 done
 wait $fanpid || { echo "  controls     the instrumented fanout control did not build"; exit 1; }
-python3 tools/zmemline.py "$tmp/fan/zero-vim" "$tmp/fan-mem" >/dev/null 2>&1 || true
+tools/st.sh zmemline "$tmp/fan/zero-vim" "$tmp/fan-mem" >/dev/null 2>&1 || true
 for p in $pids; do wait "$p" || true; done
 if ! python3 - "$tmp/rec1" "$tmp/ctl" "$all_ctl" "$must_ctl" "$tmp/fan-mem" "$marks_new" <<'PY'
 """Nine controls that must move a recording and three that are measured not to."""
@@ -668,8 +668,8 @@ if ! out=$(python3 -c "$OLDCAP_PY" "$state/old.c" "$tmp/oldcap/zero-vim.c" 2>&1)
     exit 1
 fi
 make -C "$tmp/oldcap" >/dev/null 2>&1 || { echo "  prediction   phase 44's control did not build on the input"; exit 1; }
-python3 tools/zcases.py "$tmp/oldcap/zero-vim" "$tmp/oldcap/screen" >/dev/null 2>&1 || true
-python3 tools/zmemline.py "$tmp/oldcap/zero-vim" "$tmp/oldcap/memline" >/dev/null 2>&1 || true
+tools/st.sh zcases "$tmp/oldcap/zero-vim" "$tmp/oldcap/screen" >/dev/null 2>&1 || true
+tools/st.sh zmemline "$tmp/oldcap/zero-vim" "$tmp/oldcap/memline" >/dev/null 2>&1 || true
 if ! python3 - "$tmp/rec0" "$tmp/oldcap" "$tmp/rec1" "$tmp/ctl/leafcap" <<'PY'
 import filecmp
 import os
@@ -746,5 +746,5 @@ echo "  cut          the core is $cut_lines lines and was $(grep -c '' "$tmp/cut
 after_lines=$(grep -c '' "$f")
 echo "  source       $before_lines -> $after_lines lines; the binary is $(stat -c%s "$new") bytes against the input's $(stat -c%s "$old")"
 
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 tools/phasecheck.sh "$work" "$f" "$state/symbols"

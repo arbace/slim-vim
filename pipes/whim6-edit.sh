@@ -49,8 +49,8 @@ work=${1:?usage: whim6-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the two entry points ---------------------------------------------
-python3 tools/nowild.py "$f"
-python3 tools/nowildmenu.py "$f"
-python3 tools/dropoptions.py "$f" wildmenu
+tools/st.sh nowild "$f"
+tools/st.sh nowildmenu "$f"
+tools/st.sh dropoptions "$f" wildmenu
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim6-check.sh.

@@ -136,7 +136,7 @@ say('eleven `#include`s, contiguous, at lines %d-%d, and NOTHING above the first
     'below it' % (cut + 1, cut + 11, cut, len(lines) - cut - 1))
 
 # ---- 1. the host region, which is where the new definition has to land -----------------
-# tools/zhostonly.py reads the host as the lines from `host_winch_pending` to the last
+# `zhostonly` reads the host as the lines from `host_winch_pending` to the last
 # brace of musl_suspend(), and requires every mention of its vocabulary -- `struct
 # timeval` among them -- to be inside it.  musl_now_ms() names `struct timeval`, so it
 # is defined where musl_gettimeofday was, above musl_delay, which is inside that region.

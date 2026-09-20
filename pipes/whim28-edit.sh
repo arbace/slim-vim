@@ -25,15 +25,15 @@ work=${1:?usage: whim28-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nocindent.py "$f"
+tools/st.sh nocindent "$f"
 # --local WITHOUT --strict, which phase 16 settled: the global-read guard runs
 # before droplocal.py, and the reader it finds -- `buf->b_p_cin = p_cin;` -- is
 # the buffer-copy plumbing droplocal owns.  The post-sweep greps below are the
 # check instead.
-python3 tools/dropoptions.py "$f" --local \
+tools/st.sh dropoptions "$f" --local \
     cindent cinkeys cinoptions cinscopedecls cinwords
 
 tools/sweep.sh "$f"
-python3 tools/droplocal.py "$f" b_p_cin b_p_cink b_p_cino b_p_cinsd b_p_cinw
+tools/st.sh droplocal "$f" b_p_cin b_p_cink b_p_cino b_p_cinsd b_p_cinw
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim28-check.sh.

@@ -58,7 +58,7 @@
 # size.  What replaces it is the multiset equality above -- the source is the same
 # lines -- plus the recording.
 #
-# AND tools/zhostonly.py, WHOSE EXCEPTIONS THIS PHASE CHANGED.  The core now writes
+# AND `zhostonly`, WHOSE EXCEPTIONS THIS PHASE CHANGED.  The core now writes
 # `enum { SIGHUP = 1 };` for itself and `static_assert(1 == SIGHUP, "SIGHUP");` below
 # the includes to check it, so `<file scope>` says SIGHUP and SIGTERM twice each where
 # it said neither.  Both are outside the host region -- the region begins at
@@ -367,7 +367,7 @@ if hashes:
                 % (len(hashes), ' '.join(str(i + 1) for i in hashes[:4])))
 # PART 2, the floor.  70,000 against 78,358 today -- eight thousand lines of margin,
 # stated in the same shape and the same sentence as tools/create_cmdidxs.py's 80 and
-# tools/orphanopts.py's 80, and to be lowered only in the phase that crosses it.
+# `orphanopts`'s 80, and to be lowered only in the phase that crosses it.
 FLOOR = 70000
 if last < FLOOR:
     fail.append('PART 2: the cut is %d lines, below the floor of %d.  A cut that found '
@@ -581,7 +581,7 @@ if ! cmp -s "$f" "$tmp/canon.c"; then
     exit 1
 fi
 echo "  boundary     tools/canon.sh is a NO-OP on the output: the eight \`enum : T\` are on two lines, as the file already writes its one existing \`enum : long\`"
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 
 # --- 6. the symbols, and the binary ------------------------------------------------------------------
 gcc -c -O0 -fno-stack-protector -o "$tmp/old.o" "$state/old.c"

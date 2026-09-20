@@ -30,11 +30,11 @@ work=${1:?usage: whim15-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nofencs.py "$f"
+tools/st.sh nofencs "$f"
 
 # No sweep here.  One stood here, and the lines after it were written for swept text,
 # but this phase and every stage it has run in reproduce their boundaries without
 # it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
-python3 tools/dropoptions.py "$f" --strict fileencodings termencoding
+tools/st.sh dropoptions "$f" --strict fileencodings termencoding
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim15-check.sh.

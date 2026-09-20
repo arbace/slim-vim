@@ -95,7 +95,7 @@
 # INTO the host block and kept them.  They leave when the file splits, not here, and
 # this phase's `comm` requires `__errno_location` still present for exactly that reason.
 #
-# `write` IS NOT ADDED TO tools/zhostonly.py's VOCAB, and the reason is that it would
+# `write` IS NOT ADDED TO `zhostonly`'s VOCAB, and the reason is that it would
 # be false: `mch_write()` still holds one `write(1, ...)`, which is ZERO-PLAN.md 4c's
 # remaining step and not this one.  What IS assertable, and what pipes/zero21-check.sh
 # asserts instead, is that the whole file now has exactly TWO bare `write()` call sites

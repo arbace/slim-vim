@@ -16,7 +16,7 @@
 #      a field holds MORE children per page and that is what decides whether phase 40's
 #      corpus still reaches the code this phase changes
 #   3  the build: no warning, one external symbol, tools/phasecheck.sh, tools/canon.sh
-#      a no-op, tools/nvidxcheck.py, tools/orphanopts.py, tools/zhostonly.py
+#      a no-op, `nvidx`, `orphanopts`, `zhostonly`
 #   4  the cut `make editor.c` makes: the core is still plain C above the first
 #      `#include` and its interface to the host is the same thirteen names
 #   5  THE SIXTEEN MEMLINE CASES, MEASURED AND NOT ASSERTED: how many data blocks each
@@ -31,7 +31,7 @@
 #      whole recording reaches the arm, and a forced build that exhibits both messages
 #
 # THE ARENA RIG, AND WHY THIS CHECK RAISES IT.  Zero phase 41 made `host_free` a no-op
-# and gave `host_alloc` a fixed arena.  `tools/zmemline.py` builds its buffers by
+# and gave `host_alloc` a fixed arena.  ``zmemline`` builds its buffers by
 # replaying a macro with a COUNT -- there is no file argument (phase 5), no `:edit`
 # (phase 8) and no `:read` (phase 7), so a counted replay is the only way in -- and
 # stuffing `N@q` into the typeahead grows a buffer N times without freeing any of the
@@ -294,10 +294,10 @@ grep -q 'settled\|no-op\|unchanged' "$tmp/canon.log" || true
 tools/phasecheck.sh "$work" "$f" "$state/symbols" >"$tmp/pc.log" 2>&1 ||
     { cat "$tmp/pc.log" >&2; die "tools/phasecheck.sh refuses the output"; }
 sed 's/^/  /' "$tmp/pc.log"
-python3 tools/nvidxcheck.py "$f" >/dev/null || die "tools/nvidxcheck.py refuses the output"
-python3 tools/orphanopts.py "$f" >"$tmp/oo.log" 2>&1 || { cat "$tmp/oo.log" >&2; die "tools/orphanopts.py refuses the output"; }
-python3 tools/zhostonly.py "$f" >"$tmp/zh.log" 2>&1 || { cat "$tmp/zh.log" >&2; die "tools/zhostonly.py refuses the output"; }
-say "tools/phasecheck.sh, tools/nvidxcheck.py, tools/orphanopts.py and tools/zhostonly.py all pass, and tools/canon.sh is a no-op: this phase touches no option row, no nv_cmds[] row and nothing below the boundary -- $(python3 tools/orphanopts.py "$f" 2>&1 | tr -d '\n')"
+tools/st.sh nvidx "$f" >/dev/null || die "nvidx refuses the output"
+tools/st.sh orphanopts "$f" >"$tmp/oo.log" 2>&1 || { cat "$tmp/oo.log" >&2; die "orphanopts refuses the output"; }
+tools/st.sh zhostonly "$f" >"$tmp/zh.log" 2>&1 || { cat "$tmp/zh.log" >&2; die "zhostonly refuses the output"; }
+say "tools/phasecheck.sh, nvidx, orphanopts and zhostonly all pass, and tools/canon.sh is a no-op: this phase touches no option row, no nv_cmds[] row and nothing below the boundary -- $(tools/st.sh orphanopts "$f" 2>&1 | tr -d '\n')"
 
 # --- 4. the cut `make editor.c` makes --------------------------------------------------
 awk '/^ *# *include / { exit } { print }' "$f" > "$tmp/editor.c"
@@ -533,7 +533,7 @@ RX = re.compile(r'TREE (\d+) (\d+) (\d+) (\d+) (\d+)')
 def corpus(binary, tag):
     out = os.path.join(tmp, 'mem-' + tag)
     shutil.rmtree(out, ignore_errors=True)
-    r = subprocess.run([sys.executable, 'tools/zmemline.py', binary, out],
+    r = subprocess.run(['tools/st.sh', 'zmemline', binary, out],
                        capture_output=True, text=True)
     got = {}
     for name in sorted(os.listdir(out)):

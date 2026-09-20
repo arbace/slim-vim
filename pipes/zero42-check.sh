@@ -457,8 +457,8 @@ say "the cut is $cut_old -> $cut_new lines, every line this phase removes is ABO
 wait $pid_new || { die "the output did not build: $(head -3 "$tmp/e.new")"; }
 new_size=$(stat -c%s "$tmp/new")
 old_size=$(stat -c%s "$state/old")
-python3 tools/zhostonly.py "$f"
-python3 tools/orphanopts.py "$f"
+tools/st.sh zhostonly "$f"
+tools/st.sh orphanopts "$f"
 tools/phasecheck.sh "$work" "$f" "$state/symbols"
 wait $pid_canon || die "tools/canon.sh failed on the output"
 cmp -s "$tmp/canon.c" "$f" || die "tools/canon.sh is not a no-op on the output: $(tail -1 "$tmp/canon.log")"
@@ -497,17 +497,17 @@ say "TWO FULL RECORDINGS, BYTE-IDENTICAL: $(ls "$tmp/REC-new/screen" | grep -c '
 
 # --- 5. the probes, both halves, and they are invisible for OPPOSITE reasons -------------
 wait $pid_probe || { die "the instrumented build failed: $(head -3 "$tmp/e.probe")"; }
-python3 tools/zcases.py "$tmp/probe" "$tmp/SC-probe" >/dev/null 2>&1 &
+tools/st.sh zcases "$tmp/probe" "$tmp/SC-probe" >/dev/null 2>&1 &
 pid_sc=$!
-python3 tools/zexcmds.py "$tmp/probe" "$tmp/probe.c" "$tmp/ex-probe.txt" >/dev/null 2>&1 &
+tools/st.sh zexcmds "$tmp/probe" "$tmp/probe.c" "$tmp/ex-probe.txt" >/dev/null 2>&1 &
 pid_ex=$!
-python3 tools/zargv.py "$tmp/probe" "$tmp/argv-probe.txt" >/dev/null 2>&1 &
+tools/st.sh zargv "$tmp/probe" "$tmp/argv-probe.txt" >/dev/null 2>&1 &
 pid_av=$!
 # PHASE 40'S SIXTEEN CASES ARE PART OF A RECORDING NOW, and they are the part that
 # works the text layer hardest -- which is exactly where a negative block number would
 # appear if anywhere in this pipeline could make one.  So they are instrumented with the
 # rest rather than only in 7b, and the tally below counts their records with the others.
-python3 tools/zmemline.py "$tmp/probe" "$tmp/ML-in" >/dev/null 2>&1 &
+tools/st.sh zmemline "$tmp/probe" "$tmp/ML-in" >/dev/null 2>&1 &
 pid_ml=$!
 # The eight stress sessions the corpus has no room for: they are what reaches the
 # pointer-block machinery at all, and the instrument is asked about them too.
@@ -636,7 +636,7 @@ wait $pid_c_open || die "c_open did not build"
 wait $pid_c_bnum || die "c_bnum did not build"
 wait $pid_c_root || die "c_root did not build"
 for v in c_open c_bnum c_root; do
-    python3 tools/zcases.py "$tmp/$v" "$tmp/SC-$v" >/dev/null 2>&1 &
+    tools/st.sh zcases "$tmp/$v" "$tmp/SC-$v" >/dev/null 2>&1 &
     eval "pid_sc_$v=\$!"
 done
 for v in c_open c_bnum c_root; do
@@ -666,9 +666,9 @@ say "BH_LOCKED stays: it is read by mf_put()'s \`e_block_was_not_locked\` test, 
 # THAT CORPUS EXISTS, and the corpus is part of tools/zrecord.sh, so section 4's
 # byte-identical recording already includes its sixteen cases.  What is measured here is
 # the other half: that the corpus can TELL, and how this phase changes what it reaches.
-python3 tools/zmemline.py "$tmp/c_root" "$tmp/ML-croot" >/dev/null 2>&1 ||
+tools/st.sh zmemline "$tmp/c_root" "$tmp/ML-croot" >/dev/null 2>&1 ||
     die "phase 40's corpus failed on the c_root control"
-python3 tools/zmemline.py "$tmp/wkp" "$tmp/ML-out" >/dev/null 2>&1 ||
+tools/st.sh zmemline "$tmp/wkp" "$tmp/ML-out" >/dev/null 2>&1 ||
     die "phase 40's corpus failed on the instrumented output"
 [ -d "$tmp/ML-in" ] || die "section 5 left no instrumented memline record"
 [ -d "$tmp/REC-new/memline" ] ||

@@ -32,7 +32,7 @@ work=${1:?usage: whim14-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nofind.py "$f"
-python3 tools/retire.py "$f" find sfind tabfind
+tools/st.sh nofind "$f"
+tools/st.sh retire "$f" find sfind tabfind
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim14-check.sh.

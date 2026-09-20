@@ -535,9 +535,9 @@ done
 # from a corpus that cannot reach the memline at all, which is the defect phase 40 exists
 # to have ended.  The two controls run over both for the same reason.
 for v in probe cnb cf; do
-    ( python3 tools/zcases.py "$tmp/$v" "$tmp/SC-$v" >/dev/null 2>&1 ) &
+    ( tools/st.sh zcases "$tmp/$v" "$tmp/SC-$v" >/dev/null 2>&1 ) &
     eval "pid_sc_$v=$!"
-    ( python3 tools/zmemline.py "$tmp/$v" "$tmp/ML-$v" >/dev/null 2>&1 ) &
+    ( tools/st.sh zmemline "$tmp/$v" "$tmp/ML-$v" >/dev/null 2>&1 ) &
     eval "pid_ml_$v=$!"
 done
 
@@ -771,8 +771,8 @@ print('  %-12s THE PROBE FOR WHAT NO RECORDING CAN REACH: adjust_types() grows *
 PY
 
 # --- 9. the host's vocabulary is still the host's -------------------------------------------
-python3 tools/zhostonly.py "$f"
-echo "  arena        and that is phase 20's check, undisturbed and unamended.  tools/zhostonly.py reads the host region from host_winch_pending to musl_suspend's last brace, and this phase writes NOTHING in it: host_alloc and host_free have sat BELOW that brace since phase 35 put them beside main.  Neither \`malloc\`, \`free\`, \`realloc\`, \`max_align_t\` nor \`alignof\` is in that tool's vocabulary, so it needed no new word and no new exception -- the phase moves memory, not a syscall"
+tools/st.sh zhostonly "$f"
+echo "  arena        and that is phase 20's check, undisturbed and unamended.  zhostonly reads the host region from host_winch_pending to musl_suspend's last brace, and this phase writes NOTHING in it: host_alloc and host_free have sat BELOW that brace since phase 35 put them beside main.  Neither \`malloc\`, \`free\`, \`realloc\`, \`max_align_t\` nor \`alignof\` is in that tool's vocabulary, so it needed no new word and no new exception -- the phase moves memory, not a syscall"
 
 # --- 10. <stdlib.h>, measured and declined ---------------------------------------------------
 if ! cmp -s "$tmp/cstdlib" "$tmp/new"; then

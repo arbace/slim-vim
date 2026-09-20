@@ -22,6 +22,6 @@ work=${1:?usage: whim31-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nofnamemod.py "$f"
+tools/st.sh nofnamemod "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim31-check.sh.

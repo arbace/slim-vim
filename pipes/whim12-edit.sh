@@ -38,18 +38,18 @@
 # and did_set_encoding() dereferences p_tenc.  'fileencodings' keeps its row
 # and loses its content instead.  'fileencoding' and 'bomb' are PV_BUF.  A row
 # is what INITIALISES its global; an option is only inert when nothing reads
-# that global any more, and tools/dropoptions.py now checks exactly that.
+# that global any more, and `dropoptions` now checks exactly that.
 set -eu
 
 work=${1:?usage: whim12-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/noenc.py "$f"
+tools/st.sh noenc "$f"
 
 # No sweep here.  One stood here, and the lines after it were written for swept text,
 # but this phase and every stage it has run in reproduce their boundaries without
 # it (WHIM-PLAN.md 2c; pipes/whim.stages) -- the stage's one sweep does its work.
-python3 tools/dropoptions.py "$f" --strict charconvert
+tools/st.sh dropoptions "$f" --strict charconvert
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim12-check.sh.

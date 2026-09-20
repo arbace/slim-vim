@@ -141,8 +141,8 @@ t = in_function(t, 'op_colon', colon)
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-python3 tools/dropoptions.py "$f" suffixes fileignorecase autocompletedelay verbosefile debug
-python3 tools/dropoptions.py "$f" --local formatprg equalprg
+tools/st.sh dropoptions "$f" suffixes fileignorecase autocompletedelay verbosefile debug
+tools/st.sh dropoptions "$f" --local formatprg equalprg
 
 tools/sweep.sh "$f"
 # get_varp()'s "local if set" case for 'equalprg' is written &curbuf->b_p_ep, without
@@ -159,6 +159,6 @@ if n != 1:
 open(path, 'w', errors='surrogateescape').write(t)
 print("  nosixopts    get_varp no longer resolves 'equalprg' per buffer")
 PY
-python3 tools/droplocal.py "$f" b_p_fp b_p_ep
+tools/st.sh droplocal "$f" b_p_fp b_p_ep
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim60-check.sh.

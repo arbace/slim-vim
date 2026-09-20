@@ -45,7 +45,7 @@
 # THE ROW FLOOR.  `cmdnames[]` goes 111 -> 105 rows, and
 # `tools/create_cmdidxs.py`'s `names()` REFUSES a table of fewer than 100 -- a regex
 # that stops matching otherwise yields a plausible all-zero index, so the floor is
-# deliberate.  `tools/zexcmds.py` enumerates the table through it, so crossing the
+# deliberate.  ``zexcmds`` enumerates the table through it, so crossing the
 # floor would stop zero's command sweep rather than give a wrong answer.  After this
 # phase the margin is FIVE ROWS.  ZERO-PLAN.md 3a: the `:edit` phase is the one that
 # spends it, and it is the phase that must lower the floor.
@@ -59,7 +59,7 @@
 # index was invisible to the build and DWARF was the only witness.  `cmdnames[]` is
 # DESIGNATED: a row lands at its own enumerator whatever the numbering is, the
 # `static_assert` on the row count catches a dropped pair, and every one of the 105
-# names is dispatched by tools/zexcmds.py in the declared delta.  Three checks the
+# names is dispatched by `zexcmds` in the declared delta.  Three checks the
 # build cannot dodge, and none of them needs the values.
 #
 # NOT tools/create_cmdidxs.py --check, for pipes/zero2-edit.sh's reason: the derived
@@ -69,7 +69,7 @@
 #
 # THE INPUT BINARY IS BUILT HERE, before the edit, from the boundary's own makefile
 # flags, exactly as pipes/zero2-edit.sh, zero4-edit.sh and zero5-edit.sh do it.  It
-# is not decoration: THE CORPUS CANNOT SEE WRITING.  `tools/zcases.py`'s `cmd_write`
+# is not decoration: THE CORPUS CANNOT SEE WRITING.  ``zcases``'s `cmd_write`
 # types `:write` with no file name and has only ever recorded `E32: No file name`,
 # so every screen the baselines hold is of an editor that failed to write.  The only
 # evidence that this phase removed writing rather than one error message is a probe

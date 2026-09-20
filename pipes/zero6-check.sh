@@ -40,7 +40,7 @@
 #    (ZERO-PLAN.md 3a).
 #
 # 3. THE PROBES, on BOTH binaries, because THE CORPUS CANNOT SEE WRITING.  Every
-#    one of tools/zcases.py's 102 cases types its own text and never names a file:
+#    one of `zcases`'s 102 cases types its own text and never names a file:
 #    `cmd_write` types `:write` with no file name, so the baseline it is compared
 #    against records `E32: No file name` -- an editor that FAILED to write.  A
 #    declared delta of "cmd_write and zz_key moved" is therefore consistent with a
@@ -64,7 +64,7 @@
 #    ARGUMENT and phase 5 already made that an unknown option, so it never reaches
 #    the `:wq` -- measured identically on a phase 5 and a phase 6 tree.
 #
-# A record is built the way tools/zcases.py builds one and scrubbed the same way
+# A record is built the way `zcases` builds one and scrubbed the same way
 # (tools/zrec.py), with one section added: the files the run left behind.
 # tools/zstream.py's session() throws its directory away, which is the one thing a
 # phase about writing files cannot do, so the runner is here.
@@ -141,7 +141,7 @@ for lit, want in (('"write"', 1), ('E32: No file name', 1)):
                     % (lit, k, want))
 
 # The three option globals that lose their last readers keep their rows: the
-# options phase is what removes a row, and tools/orphanopts.py refuses a global
+# options phase is what removes a row, and `orphanopts` refuses a global
 # whose row has gone (tools/zerodelta.sh runs it).
 for opt in ('p_fs', 'p_write', 'p_wa'):
     k = count(new, opt)
@@ -296,7 +296,7 @@ def record(binary, args, keys, timeout=10):
 
 
 def typed(seed, *keys):
-    """tools/zcases.py's shape: type the seed under 'paste', then the real keys."""
+    """zcases's shape: type the seed under 'paste', then the real keys."""
     return (['+set paste'], [b'i' + seed + ESC, b':set nopaste' + CR] + list(keys) + [QUIT])
 
 

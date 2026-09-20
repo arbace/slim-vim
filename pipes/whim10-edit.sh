@@ -34,14 +34,14 @@ work=${1:?usage: whim10-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/notags.py "$f"
-python3 tools/retire.py "$f" tag tags tNext tfirst tjump tlast tnext tprevious \
+tools/st.sh notags "$f"
+tools/st.sh retire "$f" tag tags tNext tfirst tjump tlast tnext tprevious \
     trewind tselect stag stjump stselect ltag pop
 # Six of the eight.  'tags' and 'tagcase' are PV_BOTH -- buffer-local -- and
 # their rows also initialise their globals, so removing them leaves p_tags and
 # p_tc NULL and the editor segfaults before the first keystroke.  They stay,
 # inert, until a phase removes the buffer-local fields properly.
-python3 tools/dropoptions.py "$f" tagbsearch taglength tagrelative \
+tools/st.sh dropoptions "$f" tagbsearch taglength tagrelative \
     tagstack tagsecure showfulltag
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim10-check.sh.

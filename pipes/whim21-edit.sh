@@ -45,8 +45,8 @@ work=${1:?usage: whim21-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/norecover.py "$f"
-python3 tools/nomemfile.py "$f"
+tools/st.sh norecover "$f"
+tools/st.sh nomemfile "$f"
 
 tools/sweep.sh "$f"
 # The post-condition, asked after the sweep.
@@ -64,6 +64,6 @@ echo "  recovery     nothing reads a swap file, and nothing asks the wall clock"
 # The rows go after the sweep: --strict refuses a row whose global anything
 # still reads, and before the sweep the readers this phase orphaned are still
 # there.  A check asked one step too early gets the wrong answer.
-python3 tools/dropoptions.py "$f" --strict directory maxmem maxmemtot
+tools/st.sh dropoptions "$f" --strict directory maxmem maxmemtot
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim21-check.sh.

@@ -35,7 +35,7 @@
 #               The thirteen are never written out: phase 28 renamed one of them and a
 #               list here would already be stale.
 #   CANON       tools/canon.sh is a NO-OP on the output.
-#   HOST        tools/zhostonly.py, unchanged: `time` is not in its vocabulary and this
+#   HOST        `zhostonly`, unchanged: `time` is not in its vocabulary and this
 #               phase deliberately does not add it -- see THE TOOL THIS PHASE DOES NOT
 #               EDIT below.
 #   SYMBOLS     `nm -u` is THE SAME SET -- 17 names, `comm` empty in both directions --
@@ -108,7 +108,7 @@
 # instrumented pair measures.
 #
 # THE TOOL THIS PHASE DOES NOT EDIT, and it is a decision rather than an oversight.
-# `tools/zhostonly.py` asserts that the core names none of the host's vocabulary, and
+# ``zhostonly`` asserts that the core names none of the host's vocabulary, and
 # `gettimeofday` joined that vocabulary at phase 28 for exactly this shape of reason.
 # `time` is NOT added here.  Adding it would re-key phases 20, 21, 25, 26 and 27, whose
 # checks run the tool on their own output, and every one of those boundaries has the core
@@ -247,7 +247,7 @@ fail = []
 
 
 def strip_strings(line):
-    """tools/zhostonly.py's, and for the same reason: two NGETTEXT strings in this file
+    """zhostonly's, and for the same reason: two NGETTEXT strings in this file
     say "%ld line %sed %d time", and a count that read those as calls would be counting
     English rather than code."""
     out = []
@@ -519,7 +519,7 @@ echo "  wallclock    tools/canon.sh is a NO-OP on the output: host_time's declar
 # --- 5. the host's vocabulary is still the host's ---------------------------------------------
 # UNCHANGED BY THIS PHASE, deliberately -- see the header.  It is run so that nothing
 # ELSE in its vocabulary moved when a function crossed the line.
-python3 tools/zhostonly.py "$f"
+tools/st.sh zhostonly "$f"
 
 # --- 6. the symbols, and the binary ------------------------------------------------------------
 wait $pid_new || { echo "  wallclock    the output did not build with '$cflags' '$ldflags'"; exit 1; }
@@ -558,9 +558,9 @@ tools/zrecord.sh "$state/old" "$state/old.c" "$tmp/REC.old" >/dev/null 2>&1 &
 pid_ro=$!
 tools/zrecord.sh "$tmp/new" "$f" "$tmp/REC.new" >/dev/null 2>&1 &
 pid_rn=$!
-python3 tools/zcases.py "$tmp/t_old" "$tmp/SC.told" >/dev/null 2>&1 &
+tools/st.sh zcases "$tmp/t_old" "$tmp/SC.told" >/dev/null 2>&1 &
 pid_ct=$!
-python3 tools/zcases.py "$tmp/t_new" "$tmp/SC.tnew" >/dev/null 2>&1 &
+tools/st.sh zcases "$tmp/t_new" "$tmp/SC.tnew" >/dev/null 2>&1 &
 pid_cn=$!
 
 python3 - "$tmp" "$state/old" <<'PY'

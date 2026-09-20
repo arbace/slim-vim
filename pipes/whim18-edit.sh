@@ -33,10 +33,10 @@ work=${1:?usage: whim18-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 # --- cut the entry points -------------------------------------------------
-python3 tools/nostartup.py "$f"
-python3 tools/dropoptions.py "$f" --strict exrc
-python3 tools/dropopts.py "$f" -y -Z -u
-python3 tools/nocmdopts.py "$f"
-python3 tools/dropoptions.py "$f" --strict viminfo viminfofile
+tools/st.sh nostartup "$f"
+tools/st.sh dropoptions "$f" --strict exrc
+tools/st.sh dropopts "$f" -y -Z -u
+tools/st.sh nocmdopts "$f"
+tools/st.sh dropoptions "$f" --strict viminfo viminfofile
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim18-check.sh.

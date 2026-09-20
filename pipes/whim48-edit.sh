@@ -14,7 +14,7 @@ set -eu
 work=${1:?usage: whim48-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 tools/retire.py "$f" noswapfile
+tools/st.sh retire "$f" noswapfile
 python3 - "$f" <<'EOF'
 import re
 import sys

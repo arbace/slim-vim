@@ -31,6 +31,6 @@ n=$(echo $names | wc -w)
 [ "$n" -gt 100 ] || { echo "  novar        found only $n rows without a variable -- the pattern stopped matching"; exit 1; }
 echo "  novar        $n options have no variable"
 # shellcheck disable=SC2086
-python3 tools/dropoptions.py "$f" $names
+tools/st.sh dropoptions "$f" $names
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim54-check.sh.

@@ -133,9 +133,9 @@ t = in_function(t, 'findmatchlimit', match)
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-python3 tools/dropoptions.py "$f" --local lisp lispwords
+tools/st.sh dropoptions "$f" --local lisp lispwords
 
 tools/sweep.sh "$f"
-python3 tools/droplocal.py "$f" b_p_lisp b_p_lw
+tools/st.sh droplocal "$f" b_p_lisp b_p_lw
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim57-check.sh.

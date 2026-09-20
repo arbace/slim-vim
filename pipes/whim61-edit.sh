@@ -119,6 +119,6 @@ t = sub(t, r'^[ \t]*need_maketitle = TRUE;\n', '', 'changes asking for a title u
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-python3 tools/dropoptions.py "$f" title titlelen titleold titlestring icon iconstring
+tools/st.sh dropoptions "$f" title titlelen titleold titlestring icon iconstring
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim61-check.sh.

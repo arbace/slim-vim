@@ -69,8 +69,8 @@ if [ -n "$ext" ]; then
 fi
 echo "  linkage      nm on the object still prints exactly main"
 
-# A table index the compiler cannot check.  See tools/nvidxcheck.py.
-python3 tools/nvidxcheck.py "$src"
+# A table index the compiler cannot check.  See nvidx.
+tools/st.sh nvidx "$src"
 
 sha=$(sha256sum "$src" | cut -c1-32)
 mkdir -p .cache/symbols
