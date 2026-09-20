@@ -43,7 +43,23 @@ for phase in "$@"; do
     # The heredoc, lifted out of the phase program.  Everything between the
     # line that opens it and the lone PY that closes it.
     awk "/<<'PY'\$/{f=1;next} f&&/^PY\$/{exit} f{print}" "$prog" > "$d/edit.py"
-    [ -s "$d/edit.py" ] || { echo "editcmp: $phase has no PY heredoc" >&2; rc=1; continue; }
+    # A PHASE ALREADY PORTED HAS NO HEREDOC LEFT, and that is not a failure:
+    # the swap is what removes it, so from then on the boundary gate is the
+    # only check there is.  It IS a failure if there is no Go edit either,
+    # because then nothing at all is being compared.
+    if [ ! -s "$d/edit.py" ]; then
+        # Tested as a FILE rather than by asking the binary, so this needs no
+        # change to cmd/slimtools/edit.go -- which is the other session's, and
+        # the one file a shared edit would collide on.
+        if [ -f "tools/go/internal/edit/$phase.go" ]; then
+            printf 'ported %-8s no heredoc left; `make %s` is its only gate now\n' \
+                "$phase" "$(echo "$phase" | sed 's/zero/zero-phase-/')"
+        else
+            echo "editcmp: $phase has neither a PY heredoc nor a Go edit" >&2
+            rc=1
+        fi
+        continue
+    fi
 
     # BOTH RUN FROM THE REPOSITORY ROOT, on an absolute path.  The heredoc does
     # `sys.path.insert(0, 'tools')` and then `import cutil`, which is relative

@@ -136,3 +136,61 @@ func (p ph) gone(text []byte, names ...string) error {
 	}
 	return nil
 }
+
+// mentions counts a name as a WHOLE WORD, which is how these blocks state
+// every invariant about an identifier.  `main_loop`, `main_errors`, `vim_main2`
+// and `domain` are different words from `main`, and \b does not match inside
+// them -- which is the whole reason the counts in these phases mean anything.
+func (p ph) mentions(text []byte, name string) int {
+	return len(regexp.MustCompile(`\b`+regexp.QuoteMeta(name)+`\b`).FindAll(text, -1))
+}
+
+// blankRuns counts runs of two blank lines.
+//
+// CLAUDE.md: no verification tier can see a blank line, so a phase that could
+// leave one states the count before and after and compares.  This is the
+// Python's exact rule -- an empty line whose predecessor is also empty -- and
+// not "paragraphs", so three blank lines count as two runs.
+func (p ph) blankRuns(text []byte) int {
+	lines := bytes.Split(text, []byte{'\n'})
+	n := 0
+	for i := 1; i < len(lines); i++ {
+		if len(lines[i]) == 0 && len(lines[i-1]) == 0 {
+			n++
+		}
+	}
+	return n
+}
+
+// assertOnce requires a literal to occur exactly once and changes nothing.
+// The heredocs use it to pin an anchor before cutting and again afterwards, so
+// it carries the phase's reason as well as its count.
+func (p ph) assertOnce(text []byte, s, what, why string) error {
+	k := bytes.Count(text, []byte(s))
+	if k != 1 {
+		return p.die("%s occurs %d times, expected 1 -- %s", what, k, why)
+	}
+	return nil
+}
+
+// lines is len(text.split('\n')), which is one more than the number of
+// newlines -- the Python's count, not "lines of content".
+func (p ph) lines(text []byte) int {
+	return bytes.Count(text, []byte{'\n'}) + 1
+}
+
+// sayf is say with a format, which several phases need for a count they have
+// just computed.
+func (p ph) sayf(format string, a ...any) { p.say(fmt.Sprintf(format, a...)) }
+
+// swapOnce is assertOnce followed by one replacement, and it reports NOTHING.
+// Several heredocs define exactly this and then say one summarising line at
+// the end rather than one per edit -- so a driver that printed here would add
+// lines the Python does not have, and ORDER IS OUTPUT covers absence as well
+// as order.
+func (p ph) swapOnce(text []byte, old, new, what, why string) ([]byte, error) {
+	if err := p.assertOnce(text, old, what, why); err != nil {
+		return nil, err
+	}
+	return bytes.Replace(text, []byte(old), []byte(new), 1), nil
+}
