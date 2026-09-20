@@ -39,7 +39,7 @@ type tool struct {
 // before they report.
 var order = []string{
 	"blankruns", "joinparens", "splitheads", "brace", "onestmt", "onedecl", "forcomma",
-	"canon", "parse", "difftest",
+	"canon", "deadprotos", "typereach", "parse", "difftest",
 }
 
 var tools = map[string]tool{
@@ -51,6 +51,8 @@ var tools = map[string]tool{
 	"forcomma":   {runForcomma, "forcomma <file> [--check]"},
 	"brace":      {runBrace, "brace <file>"},
 	"canon":      {runCanon, "canon <file> [--once]"},
+	"deadprotos": {runDeadprotos, "deadprotos <file>"},
+	"typereach":  {runTypereach, "typereach <file> [--delete]"},
 	"parse":      {runParse, "parse <file.c>"},
 	"difftest":   {runDifftest, "difftest <tool> <file>..."},
 }

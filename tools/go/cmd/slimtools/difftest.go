@@ -54,6 +54,9 @@ var specs = map[string]spec{
 	// order, to a fixpoint or once; --once is what sweep.sh uses, and is
 	// compared here because that is the path that actually runs.
 	"canon": {script: "tools/canon.sh", runner: "sh", args: []string{"--once"}},
+
+	"deadprotos": {script: "tools/deadprotos.py"},
+	"typereach":  {script: "tools/typereach.py", args: []string{"--delete"}},
 }
 
 func runDifftest(args []string) int {
