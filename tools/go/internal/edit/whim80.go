@@ -663,7 +663,17 @@ func indexOf(s []string, v string) int {
 	return -1
 }
 
-func contains(s []string, v string) bool { return indexOf(s, v) >= 0 }
+// contains is GENERIC because two sessions wrote one each and they collided:
+// whim80's over []string and zero25's over []int.  One generic definition is
+// the merge, and neither call site changed.
+func contains[T comparable](s []T, v T) bool {
+	for _, x := range s {
+		if x == v {
+			return true
+		}
+	}
+	return false
+}
 
 func sameSet(a, b []string) bool {
 	x := append([]string{}, a...)
