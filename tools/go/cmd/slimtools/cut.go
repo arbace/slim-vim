@@ -456,3 +456,9 @@ func runOnebuffer(args []string) int {
 		return cut.OneBuffer(t, w)
 	})
 }
+
+func runNocindent(args []string) int {
+	return oneFile(args, "nocindent", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoCindent(t, w)
+	})
+}
