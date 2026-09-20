@@ -9,6 +9,42 @@ That rule is not stylistic: a helper module whose top level read `sys.argv` and
 rewrote the source once made an importing pass report "0 changed" when what had
 actually happened was an import crash.
 
+## go/ — the toolset, in one binary
+
+`tools/go/` is this toolset rewritten in Go, built into one `slimtools`
+binary by **`gobuild.sh`**, which is content-keyed the way the memoize is:
+the key is every `.go` file plus `go.mod`, `go.sum` and the cc/v4 patch, so
+a build is skipped when nothing that decides the output has moved.
+
+**Two entry points are already Go and the rest is still Python.**
+`tools/sweep.sh` and `tools/canon.sh` are now four-line wrappers onto
+`slimtools`; every phase program in `pipes/` calls them by the same path
+with the same arguments and cannot tell the difference. That is the whole
+cutover -- 264 phase programs were not edited, and the two shell scripts
+name their Go sources in comments so that **`implhash.sh` still hashes the
+implementation into every phase's key**. `implhash` greps for paths and
+does not know what a comment is, which is the mechanism the Python
+`import` comments already use for `cutil.py` and `macros.py`.
+
+**It is verified against the pipelines and not against itself.**
+`make whim-verify` reproduces all 13 recorded boundaries with Go driving
+the sweep, and `make zero-verify` 45 of 46 -- where the one failure was
+shown to be the harness's and not the sweep's by two measurements: the
+failing unit's output tree digests **equal to the recorded boundary**, and
+a control run with the Python sweep restored that scores **the same 45 of
+46 on a different unit**. Three runs have now failed three different
+units, by the two mechanisms `CLAUDE.md` already documents as open --
+`zpty.py`'s stall under load, and the `undo_redo` record whose cursor
+column is derived from a scrubbed string's length.
+
+**cc/v4 is pinned and patched, not vendored.** `go.mod` pins
+`modernc.org/cc/v4` at a released version and `patches/cc-v4-c23.patch`
+adds what this tree's C needs; `gobuild.sh` materialises the patched fork
+under `.cache/`. The parser has **no role in the sweep** and is not used
+there: by the time a sweep runs, six deleting tools have cut the text with
+no compile in between, so a parser would fail on it. It belongs to the
+phase edits, whose input is a boundary that compiled.
+
 ## The shared library
 
 - **`cutil.py`** — blank literals preserving offsets, blank comments only (a

@@ -1,66 +1,44 @@
 #!/bin/sh
-# Run every canonicaliser to a joint fixpoint.
+# The canonicalisers, in their order, once or to a fixpoint.
 #
-# Usage: tools/canon.sh <file>        (paths are relative to the repository root)
+# Usage: tools/canon.sh <file> [--once]
 #
-# The seven passes are not independent, and running each once is not enough --
-# which is SLIM-GOAL.md rule 9, and it cost two whole runs to learn.  Bracing ran
-# before macro expansion, expansion pasted in `for` headers of its own, and
-# 1,558 unbraced bodies sat in a file whose documentation said every body was
-# braced.  Within this phase the same thing happens on a smaller scale: the
-# comma hoist puts an initialiser on a new line, which re-shapes the line and
-# gives splitheads and brace something new to find, and onestmt splits one
-# label off a `case A: case B: case C:` line per pass, so it needs five rounds
-# on its own.
+# THE WORK IS NOW GO.  This file is the entry point; the passes are
+# tools/go/internal/canon/canon.go, which runs them in the same order with the
+# same twenty-round ceiling and the same output lines.  Compared before the
+# swap: 502 of 502 slim inputs identical, 494 of them exercising it, and one
+# --once round over a 4.7 MB file went from 3.577s to 0.314s with byte-
+# identical output.
 #
-# So: loop until the file stops changing.  That is stronger than "run each tool
-# once and check it reports zero", and it does not depend on parsing seven
-# different tools' output.  Each is idempotent and cheap, so a fixpoint costs
-# seconds and is a check rather than a change once the file is settled.
+# The order is load-bearing and lives with the code: brace after joinparens and
+# splitheads, so a head is a whole line ending in ')' and a body starts on the
+# next; forcomma after brace, because hoisting a statement in front of a `for`
+# is only safe once every body is a brace block.  One pass is not enough, which
+# is why there is a fixpoint: forcomma's hoist gives splitheads and brace
+# something new to find, and onestmt splits one label off a
+# `case A: case B: case C:` line per pass, so that line alone needs five.
 #
-# Phase 9 calls this too: macro expansion re-breaks exactly what Phase 7 fixed.
+# Exceeding twenty rounds is a hard failure and not a number to raise: two
+# passes undoing each other is a bug in one of them.
+#
+# --once runs them a single time, for a caller with a fixpoint of its own:
+# tools/sweep.sh loops until a whole round changes nothing and canon is part of
+# that round, so proving canon settled separately would prove it twice.
+#
+# Named here so tools/implhash.sh still hashes them into every phase's key --
+# implhash greps for paths and does not know what a comment is, which is the
+# same mechanism the Python `import` comments use:
+#
+#   tools/go/internal/canon/canon.go       tools/go/internal/canon/blankruns.go
+#   tools/go/internal/canon/joinparens.go  tools/go/internal/canon/splitheads.go
+#   tools/go/internal/canon/brace.go       tools/go/internal/canon/onestmt.go
+#   tools/go/internal/canon/onedecl.go     tools/go/internal/canon/forcomma.go
+#   tools/go/internal/cutil/blank.go       tools/go/internal/cutil/match.go
 set -eu
 
-file=${1:?usage: canon.sh <file>}
-here=$(dirname "$0")
-
-# --once runs the seven passes a single time instead of to a fixpoint.  It is
-# for a caller that has a fixpoint of its own: sweep.sh loops until a whole
-# round changes nothing, and canon is part of that round, so proving canon has
-# settled separately proves it twice.  A caller with no such loop must not use
-# it -- one pass is not enough, which is the whole point of the paragraph above.
-once=no
+file=${1:?usage: canon.sh <file> [--once]}
+bin=$(tools/gobuild.sh)
 if [ "${2:-}" = --once ]; then
-    once=yes
+    exec "./$bin" canon "$file" --once
 fi
-
-round=0
-while :; do
-    round=$((round + 1))
-    before=$(sha256sum "$file" | cut -d' ' -f1)
-
-    python3 "$here/blankruns.py"  "$file" >/dev/null
-    python3 "$here/joinparens.py" "$file" >/dev/null
-    python3 "$here/splitheads.py" "$file" >/dev/null
-    python3 "$here/brace.py"      "$file" >/dev/null
-    python3 "$here/onestmt.py"    "$file" >/dev/null
-    python3 "$here/onedecl.py"    "$file" >/dev/null
-    python3 "$here/forcomma.py"   "$file" >/dev/null
-
-    after=$(sha256sum "$file" | cut -d' ' -f1)
-    [ "$once" = yes ] && break
-    [ "$before" = "$after" ] && break
-
-    if [ "$round" -ge 20 ]; then
-        echo "  canon        NOT CONVERGING after $round rounds -- two passes are"
-        echo "               undoing each other; that is a bug in one of them,"
-        echo "               not a reason to raise the limit."
-        exit 1
-    fi
-done
-
-if [ "$once" = yes ]; then
-    [ "$before" = "$after" ] && echo "canon settled" || echo "canon changed it"
-else
-    echo "  canon        fixpoint after $round round$([ "$round" = 1 ] || echo s)"
-fi
+exec "./$bin" canon "$file"
