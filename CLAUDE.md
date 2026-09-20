@@ -68,18 +68,18 @@ it is the only one.
 
 ## Layout
 
-Six hundred and forty-two tracked files once all three pipelines have run
+Six hundred and fifty-eight tracked files once all three pipelines have run
 (`git ls-files`): nineteen at the root, 268 under `pipes/` — the phase programs,
 twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and eighty-seven for
 `zero.mk`'s forty-six, and each staged pipeline's stage manifest and declared delta — and
-355 under `tools/`. Those 355 are three things and it is worth keeping them apart:
-**175** are the passes, the harnesses, the canonicalisers and cutters the
-phases call, the memoize driver, a `README.md`, and the data a pass cannot derive
-(`renames.txt`, `patches/` and `templates/`); **130** are `tools/go/`, the
-toolset the sweep and the canonicalisers actually run, which `tools/implhash.sh`
-hashes as a directory; and **50** are `tools/gocmp/`, the comparisons that
-produced the Go port's numbers against the Python each replaces, named by no
-phase program and in no key. Four of the nineteen are products
+371 under `tools/`. Those 371 are three things and it is worth keeping them apart:
+**177** are the passes, the harnesses, the canonicalisers and cutters, the
+memoize driver, a `README.md`, and the data a pass cannot derive
+(`renames.txt`, `patches/` and `templates/`) — slim still runs all of them and
+whim and zero run none; **137** are `tools/go/`, the toolset whim and zero
+actually run, which `tools/implhash.sh` hashes as a directory; and **57** are
+`tools/gocmp/`, the comparisons that produced the Go port's numbers against the
+Python each replaces, named by no phase program and in no key. Four of the nineteen are products
 (`slim-vim.c`, `whim-vim.c`, `zero-vim.c`, `LICENSE`), three are records
 (`upstream.sha`, `slim.sha`, `whim.sha`), and the other twelve — `WHIM-PLAN.md`
 and `.gitignore` among them — `tools/` and `pipes/` are the seed.
@@ -1057,19 +1057,64 @@ between the two pipelines' recordings.
   `PHASE_LIST` written into `tools/pipeline.sh`, because `pipeline.sh` is in every
   whim split key (above) and a zero phase added there would re-key all of whim.
 
-**The sweep and the canonicalisers are Go, and so is every whim/zero cutter.**
-`tools/sweep.sh` and `tools/canon.sh` are four-line wrappers onto one
-`slimtools` binary built from `tools/go/` by `tools/gobuild.sh`; the 264 phase
-programs call them by the same paths with the same arguments and were not
-edited. All 57 cutters the whim and zero pipelines call have a Go counterpart in
-`tools/go/internal/cut/`, though nothing runs them yet; the nineteen slim-only
-ones have none, the slim pipeline being out of scope for that work. **The Python
-tools are all still here and still work** — nothing was deleted, and the three
-files a phase reaches that changed are the two wrappers and `implhash.sh`.
-`tools/README.md` has the detail, including the six cutters that depend on a
-lookaround RE2 does not have and what replaces each, and `tools/gocmp/` is every
-comparison that produced the port's numbers, run against the Python each
-replaces.
+**Whim and zero run the Go toolset, and slim does not.** `grep 'python3 tools/'`
+over every whim and zero phase program returns **nothing**: all **87** distinct
+tools those two pipelines name have a Go counterpart and run from it, through
+one `slimtools` binary built from `tools/go/` by `tools/gobuild.sh`. Slim is
+deliberately out of scope and keeps its Python — its nineteen slim-only cutters,
+the deliberate 797-line Phase 1 patch, and the agent tier that can still fall
+through to `claude -p`. **The Python tools are all still here and still work**;
+nothing was deleted, and slim still runs them.
+
+**Three wrappers, and a swap is one token per call site.** `tools/sweep.sh`,
+`tools/canon.sh` and `tools/st.sh` are the only files a phase reaches that run
+Go, and `python3 tools/nomouse.py f.c` became `tools/st.sh nomouse f.c`. The
+wrapper exists because **a phase names a PATH and that path is what implhash
+hashes**: running the binary directly names `gobuild.sh` and not the
+implementation, since the builder says `find tools/go` and `cd tools/go` and
+neither carries the trailing slash the directory rule needs. It costs nothing —
+`gobuild.sh` warm is 16 ms against 20 ms for `python3` to import `cutil.py`
+alone, so the wrapper is cheaper than what it replaces before the subcommand
+runs.
+
+**231 call sites, and the boundary is the gate.** 144 whim cutter sites across 52
+tools, 86 in zero (`zmemline` 19, `zhostonly` 19, `zcases` 17, `ztermcheck` 10,
+`orphanopts` 9), and the four shell tools on every phase's path —
+`tools/zrecord.sh`'s six recording parts, `zerodelta.sh`'s three,
+`whimdelta.sh`'s four, `phasecheck.sh`'s one. A swap costs **exactly one phase**:
+the boundary comes out byte-identical, so nothing downstream re-runs. And the
+cutters are faster — whim's thirteen units are 1,080 s of phases against 1,293 s
+with the Python.
+
+**`tools/zrecord.sh` was swapped last and on four conditions, not on agreement**,
+because it is the instrument. Equivalence (122 files byte-identical), the frozen
+`.reference/zero-baselines` reproduced, determinism over three runs — **and the
+one that matters: `do_addsub()` returning FAIL moves 11 of 102 screen cases on
+the Go recorder, which is what this file records for the Python.** A recorder
+that passed the other three and moved **0** of 102 would have agreed with the
+Python *by being blind in the same places*, and nothing in the other three could
+have shown it. That is zero phase 33's argument about the terminal table,
+arriving at a change of recorder.
+
+**What is NOT ported is the inline Python**, and it is the larger half: **225
+heredocs, 34,284 lines**, 76 in edit parts (18,472 lines) and 147 in checks
+(15,779). Classified, there is **no collapsing idiom** — 94 are bespoke drivers
+over `cutil`, 60 are bespoke regex programs, and exactly **one** of 225 is the
+simple "assert a literal occurs once and replace it" shape. So that port is
+authorship and not a swap. Two things decide how it should go: a check part is
+an argument that executes and 12,429 lines of `pipes/` is that argument, which
+Go would move into `//` comments above three times the code; and **Go's RE2 has
+neither lookaround nor backreferences**, where 24 heredocs use the first and 20
+the second, concentrated in zero 13–24. Six of the 57 cutters already needed a
+hand-written scanner for exactly this.
+
+`tools/README.md` has the detail, including those six cutters and what replaces
+each, and `tools/gocmp/` is every comparison that produced the port's numbers,
+run against the Python each replaces — with `cuttable.sh` refusing **per tool**
+rather than reporting a total, because the aggregate "57 cutters, 32,595
+comparisons, 0 differences" was true while concealing that **ten of the
+fifty-five cut nothing at all** and every one of their 482 comparisons was two
+implementations agreeing that an anchor refuses.
 
 **The Go toolchain is now a hard dependency of every pipeline**, where `python3`
 and `gcc` were enough before: no Go, no sweep. `modernc.org/cc/v4@v4.29.7` is
@@ -1342,17 +1387,26 @@ is *expected* to lag its boundary, and such a target would be disabled within a 
 && make whim-repass` is the sequential run, and the one that *produces*
 boundaries rather than checks them: record from a cold pass, then verify. Do it
 before a push, and whenever a
-**shared** tool changes — `sweep.sh`, `canon.sh`, **everything under
-`tools/go/`**, `phasecheck.sh`, `whimdelta.sh` — though those are in every
-phase's implhash, so everything re-runs then anyway. **The Python `deadsweep.py`,
-`typereach.py`, `funcreach.py`, `deadfields.py`, `deadenums.py` and `cutil.py`
-are no longer on that list, and the reason is not that they were deleted**: they
-are all still here and still run standalone, but since the cutover no phase
-reaches them, so editing one changes no pipeline and moves no key. Their Go
-counterparts under `tools/go/internal/` are what a phase runs, and they are
-hashed as a directory rather than as a list of files — see `tools/implhash.sh`,
-where a list of 18 of 128 named files is the mistake that rule exists to
-prevent.
+**shared** tool changes — `sweep.sh`, `canon.sh`, `st.sh`, **everything under
+`tools/go/`**, `phasecheck.sh`, `whimdelta.sh`, and **`cutil.py`** — though those
+are in every phase's implhash, so everything re-runs then anyway.
+**`deadsweep.py`, `typereach.py`, `funcreach.py`, `deadfields.py` and
+`deadenums.py` came off that list and the reason is not that they were
+deleted**: they are all still here and slim still runs them, but no whim or zero
+phase reaches them any more, so editing one moves no key in those two pipelines.
+Their Go counterparts under `tools/go/internal/` are what a phase runs, and they
+are hashed **as a directory** rather than as a list of files — see
+`tools/implhash.sh`, where a list of 18 of 128 named files is the mistake that
+rule exists to prevent.
+
+**`cutil.py` stayed on the list and that is the interesting one.** Nothing runs
+it as a *program* any more, and it would be natural to strike it for the same
+reason as the five above — but **52 whim and zero phase files `import` it from a
+heredoc**, so it still produces the tree, and it moves 40 of 59 unit keys. The
+five came off because no phase reaches them; `cutil.py` did not, because a
+heredoc reaches it by a route a call-site sweep does not see. **When a tool
+stops being CALLED, check whether it is still IMPORTED before taking it off
+this list.**
 `tools/zhostonly.py` is deliberately **not** in that list: it is named by zero phase
 checks and by nothing else, so it enters no whim or slim key at all. Adding it moved
 none — measured as 107 whim and slim keys and 20 existing zero unit keys, all identical
@@ -1922,6 +1976,42 @@ comment is — the same mechanism that re-keyed zero phases 2 and 4 when they na
 (slim 1, 5, 6, 9; all 12 whim stages; whim edit 80; 13 zero units), no boundary
 moves, and `slim-verify` 12 of 12, `whim-verify` 13 of 13 and `zero-verify` 20 of 20
 all pass. **Do not delete those comments**; each says so in place.
+
+**And that fix reached the six importers in `tools/` and none of the 118 in
+`pipes/`, where the same hazard was live and larger.** The 225 heredocs import
+the same modules, and **113 of the 118 importing phase files named none of
+them** — so the convention was applied where it was discovered and nowhere else.
+Measured before the repair: **editing `tools/cutil.py` moved 2 of 59 whim and
+zero unit keys**, and 52 phase files import it. `cutil.py` blanks literals
+preserving offsets, which is to say **it produces the tree**, and this file
+already lists it in the shared-tool gate. A change to it would have changed what
+52 phases produce, moved no key in 57 of 59 units, and let a warm repass replay
+the old boundaries and report success. After: `cutil.py` moves **40 of 59**,
+`create_cmdidxs.py` 32, `zstream.py` 31, and the remaining-hole count is 0 by
+the same enumeration that found them.
+
+**The rule is a program now, because as a habit it failed twice in one hour.**
+Swapping a tool to Go, the correct cleanup — *stop naming a tool the phase no
+longer RUNS* — deleted the comment in a phase that still **imports** the module,
+first for `create_cmdidxs` and then, one command after writing the distinction
+down, for `termcheck`, which `tools/ztermcheck.py` imports to replace its
+`ask()`. So: **stop naming a tool you stopped running; keep naming one you still
+import**, and `tools/importpaths.py` checks it — `--fix` repairs, and it is
+proven able to fail (delete one comment from `zero12-check.sh` and it names the
+file and exits 1). It found a hole in **slim** that nobody was looking for,
+`pipes/slim2.sh` importing `keepset`, which is the argument for a checker over
+an audit: **a checker checks what you were not thinking about; an audit checks
+what you were.** It is named by no phase program, so it enters no key.
+
+**A generated file with no `--check` is a claim and not a fact**, and that is the
+same hazard one level over. `tools/go/internal/harness/muslctype.go` carries a
+230-line C driver **generated** from `tools/muslctype.py`; the commit that added
+it said regenerating is how it is checked, and nothing regenerated. An edit to
+the Python driver would have left the Go copy stale, the Go would have gone on
+compiling, and the comparison would have gone on passing **because both sides
+would have been testing the old driver against itself**.
+`tools/gocmp/genmuslctype.py --check` regenerates into memory and compares, and
+it caught its own file stale on its first run, inside the session that wrote it.
 
 **The product is `slim-vim`, and that name was checked rather than assumed.**
 It matches none of the prefixes above and falls through to plain vim: run side
