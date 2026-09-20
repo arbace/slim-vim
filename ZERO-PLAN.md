@@ -26,6 +26,12 @@ still draws a screen and still edits text.
 | how it is tested | 67 file-based cases, 111 Ex commands by exit status, 5 pty scenarios | **102 keystroke cases, 111 Ex commands by the message they print, 27 invocations, 5 pty scenarios** |
 | what a test run costs | 1.2 s (file) + 20 s (pty) | **0.53 s** for 102 cases (measured on a patched binary; 6.4 s until the tty warnings go) |
 
+**This table is the forecast it was written as, and the pipeline is forty-six phases
+past it.** What actually happened is in `ZERO-GOAL.md`, one *What zero-vim is after
+phase N* block per phase; the current one reads 78,666 lines, 1,734 functions, 14
+undefined symbols and a 760,424-byte binary, and argv is `+{command}` alone. §4 below is
+where this document says which of its own rows landed and which were wrong.
+
 **The harness is the hard part and it is solved.** Not with a pty: with a
 keystroke file on stdin, the escape-sequence stream on stdout, and a screen
 rebuilt from that stream. 102 cases, **eight consecutive runs byte-identical
@@ -403,6 +409,15 @@ Three recordings, replacing today's `behaviour/`, `ref-exsweep.txt` and
     ref-term.txt       the terminal table                     (pty)
     ptycheck.txt       the five pty scenarios that stay       (pty)
 ```
+
+**As built it is `ref-pty.txt` rather than `ptycheck.txt`, and it is six directories and
+files rather than five**: zero phase 40 added `memline/`, sixteen cases that build
+buffers of 200 to 25,000 lines in the editor, because everything above records a corpus
+that allocates **exactly one data block per case** and therefore cannot see the text
+layer as a tree at all. `zero.mk`'s `zero-baselines-check` names the shape and not merely
+the directory, which is why it noticed. **Adding a part cost four phase checks their
+arithmetic** — 9, 13, 30 and 34 pinned the record count as an equality and 25, 35, 36 and
+37 as a floor, and only the equalities broke; all four are computed now.
 
 Recorded, as today, **from the frozen `whim-vim.c` input** built with whim's own
 compile line, three times, requiring the three runs to be identical — `ZERO-GOAL.md`
@@ -999,7 +1014,14 @@ function at all — asserted on the cut compiled to an **object**, because a bar
 is invisible to the warning check the boundary otherwise relies on. What the charter
 still asks for after that is the **text
 representation**, from lines to a tree — and §4d, added afterwards, is that same move
-measured from the porter's end. **Two phases have landed that are in no part of this
+measured from the porter's end. **That move is now largely made**, as zero phases 40 to
+45, and §4d is rewritten below from measurement rather than left as a forecast: the
+memline is a counted tree of nodes holding line records, with no pages, no blocks and no
+memfile, and the three constructs §4d called untranslatable are gone. **What is left of
+the charter's line is the *outer* shape** — the tree is still an array-of-children B-tree
+in one flat node type rather than the recursive structure a port would write, and a port
+still has to be told what `bhdr_T`'s tag means. **Two phases have landed that are in no
+part of this
 plan**, and they are named here so the plan is not read as the whole account: 38 cut
 `builtin_terminals[]` from ten names to `xterm-256color` and `debug`, and 39 removed
 `-T {term}`, so `+{command}` is the whole command line and nothing outside the process
@@ -1025,7 +1047,15 @@ first of the two has since been built, which is why its bullet is struck through
   symbol leaves when its last *caller* leaves the **file** and both callers moved to the
   other side of a boundary inside one translation unit. What the core no longer does is
   *name* either one; the bullet predicted a symbol count and what it bought was a place.
-  The undo message is still the one nondeterminism the corpus has to scrub (§2e).
+  The undo message is still the one nondeterminism the corpus has to scrub (§2e) — **and
+  the scrub does not close it**, which zero phase 40 measured: the leak is arithmetic on
+  the scrubbed text's *width*, an undo reporting its age and the editor then positioning
+  the cursor to clear the line, so `0 seconds ago` emits `\033[24;40H\033[K` and
+  `1 second ago` emits `\033[24;39H`. Phase 40's own records count `\x1b[?25h` redraws
+  instead of digesting the stream, and carry a clock control as the evidence; the other
+  106 records still digest, and closing that is expensive rather than hard — the
+  `--- stream` line is named in **eighty files**, forty-seven times in zero phase 12's
+  check alone.
 
 ### 4a. The surviving libc, by reason
 
@@ -1095,6 +1125,20 @@ Almost nothing, and the residue is nameable:
 * **`exit`/`_exit` and the signal set.** whim's Phase 26 argued five signals are
   the minimum; a core that does not own the process wants none of them, and that is
   the host's business rather than a filesystem question.
+* **The swap file's BOOKKEEPING outlived the swap file by twenty-nine phases**, and
+  that is the residue this section did not name because no tool could see it. Every
+  syscall went at 6 to 13 and the memline went on keeping a header block with the
+  editor's version and the buffer's name, a translation table for blocks not yet
+  written out, a three-valued dirtiness and a record of where each block's lines used
+  to be — **all of it written and none of it read**, which is exactly the shape
+  `tools/deadfields.py` cannot report (it matches a field named nowhere outside its
+  own type) and gcc has no warning for. Zero phase 42 took it, naming every field
+  itself, and measured the negative half as phase 9's kind — four markers on the
+  negative-block island fire in **0 of 252 records** against a control of identical
+  shape firing 2,141 times — and the block-zero half as phase 12's, three markers
+  firing in 227, 214 and 227 records with two full recordings byte-identical anyway.
+  **The lesson generalises past this phase: an invariant asserted over `nm -u` and
+  over the source's *calls* says nothing about state that is merely maintained.**
 
 ### 4c. Toward the host boundary — a sketch, not a plan
 
@@ -1395,59 +1439,75 @@ check all assume one product per pipeline.
 
 §4c's rule is *the core is optimised for transpilation, not for performance*, and the
 question that rule implies has been asked of the cut `make editor.c` writes: **which
-constructs in the 77,678 lines would a JVM port have to be told about, rather than
-translate?** Three answers, and they are of very different sizes. **Every count below was
-re-measured on the phase 39 core and not one of them has moved** — 34, 45, 14, three and
-65 — which is itself worth knowing: the phases since this section was written have
-taken the terminal, the command line, two libc names and six degenerate unions, and have
-not touched the memline or the regexp stack at all.
+constructs in the 76,687 lines would a JVM port have to be told about, rather than
+translate?** Three answers, and they are of very different sizes.
 
-**The memline page is the one that would THROW rather than compute a wrong answer, and
-it is already scheduled.** `ZERO-GOAL.md`'s charter says the text moves from lines to a
-tree; this is the same work seen from the porter's end, which is worth knowing because
-it means the hard case has a plan and not merely a warning. Four measurements, on the
-cut:
+**THE LARGEST OF THE THREE IS GONE, AS ZERO PHASES 43, 44 AND 45.** When this section
+was written the memline page was 34 + 45 + 14 mentions of three constructs a JVM cannot
+express at all, and it dominated every other finding by an order of magnitude. Measured
+on the phase 45 core, each of those counts is now **zero**:
 
-* `struct data_block`'s last member is `unsigned db_index[1]`, **declared length 1 and
-  indexed to the block's line count** — 34 mentions in the core, `dp->db_index[idx]`,
-  `[db_idx + 1]`, `[i + 1]`, `[lnum - ml_locked_low]`. `struct pointer_block`'s
-  `PTR_EN pb_pointer[1]` is the same idiom, 45 mentions. On a JVM a member array has the
-  length it was given and index 40 of a 1-element array is an exception, not a value.
-* Its entries are **byte offsets into the same block, read back as interior pointers**:
-  **fourteen** of the shape `(char_u *)dp + start`, `(char *)dp + dp->db_txt_start`,
-  `(char *)dp_left + dp_left->db_txt_start`. A JVM object has no interior address at
-  all, so these are not translatable-but-wrong; they are untranslatable as written.
-* The **top bit of an offset is a flag**: `DB_MARKED` is
-  `((unsigned)1 << ((sizeof(unsigned) * 8) - 1))`, masked off at every read and or-ed in
-  at every write. That one is merely arithmetic and ports fine — it is listed because a
-  port that changed the offset's width would silently lose it.
-* The **padding is part of the layout**. `db_id` is a `short_u` followed by two bytes of
-  padding, and the page-count arithmetic reads the result back:
-  `(space_needed + offsetof(DATA_BL, db_index) + page_size - 1) / page_size`, where
-  `offsetof` is **24** of a **32**-byte struct — `short_u` + two bytes of padding + three
-  `unsigned` + an 8-aligned `linenr_T`, computed from the declaration and confirmed
-  against the arithmetic. The core spells it `__builtin_offsetof`, phase 26 having made
-  the macro its own, and there are **nine** uses of it above the boundary.
+| | phase 39 core | phase 45 core |
+| --- | --- | --- |
+| `db_index[1]`, declared length 1 and indexed to the line count | 34 | **0** |
+| `pb_pointer[1]`, the same idiom | 45 | **0** |
+| interior pointers of the shape `(char_u *)dp + start` | 14 | **0** |
+| `DB_MARKED`, the top bit of an offset stolen as a flag | 17 expressions | **0**, a real field |
+| `memfile` / `mf_*` | the whole layer | **0** |
+| `__builtin_offsetof` above the boundary | 9 | **6** |
+| right-shift operators | 65 | **59** |
 
-  **But it is no longer a disk format, and that is the correction this bullet most
-  needed.** There is no file to write a page to — zero phases 6 to 13 took every one —
-  and the memfile is now purely in memory: `mf_open()` takes no name and sets
-  `mf_page_size` from a constant, `mf_alloc_bhdr()` gets every page from `alloc()`,
-  `mf_sync()` clears the dirty flag and returns `FAIL`, and `mf_write`, `mf_read`,
-  `mf_release`, `mf_fd` and `ml_recover` have **0 mentions in `zero-vim.c`**.
-  `ml_open()` still stamps `b0_magic_long` into a block zero nothing reads back. So
-  `DATA_BL` is an **internal layout with no compatibility constraint on it**: the
-  arithmetic above is what the code does today and not a format a port has to honour,
-  and the lines→tree move is free to choose any representation it likes. That is the
-  opposite of `slim-vim.c`, where `tools/deadfields.py` **refuses while `ml_recover()`
-  exists** precisely because block zero and the memfile's pages are a disk format there.
+**The rewrite was allowed at all because `DATA_BL` had stopped being a disk format**,
+which is the correction this bullet most needed before it could be acted on. There was no
+file to write a page to — zero phases 6 to 13 took every one — so the layout carried no
+compatibility constraint and the lines→tree move was free to choose any representation it
+liked. That is the **opposite** of `slim-vim.c`, where `tools/deadfields.py` refuses while
+`ml_recover()` exists precisely because block zero and the memfile's pages *are* a disk
+format there.
 
-**One other construct has the same shape and is much smaller**: the regexp backtracking
-stack builds typed pointers into a byte buffer at a computed byte offset,
-`rp = (regitem_T *)((char *)regstack.ga_data + regstack.ga_len);`, at **three** sites. It
-is a growarray used as a stack of variable-sized records, and a port has to give it a
-representation of its own exactly as the memline page does — but three sites against the
-memline's 34 + 45 + 14 is a different order of work.
+What replaced them is five struct definitions a port can read straight off:
+
+```c
+struct block_hdr     { short_u bh_id; };
+struct pointer_entry { bhdr_T *pe_block; linenr_T pe_line_count; };
+struct pointer_block { bhdr_T pb_hdr; short_u pb_count; PTR_EN pb_pointer[PB_COUNT_MAX]; };
+struct data_line     { char_u *dl_text; colnr_T dl_len; char dl_marked; };
+struct data_block    { bhdr_T db_hdr; linenr_T db_line_count; DATA_LN db_line[DB_LINE_MAX]; };
+```
+
+Every array has the length it was given, `PB_COUNT_MAX` is 255 and `DB_LINE_MAX` 64, a
+child is a **reference** and not an integer key into a side hash table, and a line's text
+is its own allocation whose lifetime is the process's. **Three `static_assert`s hold the
+arithmetic in place**, including `PB_COUNT_MAX == (4096 - 8) / sizeof(PTR_EN)`, which
+fails to compile if anything narrows the entry.
+
+**What a port still has to be told about the memline is one thing and it is small**: the
+node is **tagged, not subclassed**. `bhdr_T` is the first member of both node types, so
+`(PTR_BL *)hp` and `(bhdr_T *)pp` are the same address and `bh_id` says which it is, at
+**23** cast sites in the core. On a JVM that is two classes and a common supertype, or a
+sealed pair, and the cast becomes a type test — a translation the porter has to *choose*
+rather than one the C forces. That is the difference from what was here before, where
+there was no translation to choose at all.
+
+**Four smaller instances of the `[1]` idiom survive, and they are a different and much
+easier shape.** `bt_regprog_T.program[1]`, `buffblock_T.b_str[1]`, `hlname_T.hn_key[1]`
+and `msgchunk_T.sb_text[1]` are each a trailing `char_u` array allocated with
+`alloc(__builtin_offsetof(T, member) + len + 1)` — six `offsetof` sites between them.
+**None of them reads an offset back as an interior pointer and none steals a bit**, so
+each is a plain "struct plus a variable-length byte string", which on a JVM is a field
+holding a `byte[]`. **One of the four does do a `container_of`**, and that is the piece
+to name rather than let a reader discover: `hlname_T` is recovered from a pointer to its
+`hn_key` member by subtracting the `offsetof`, at two sites — `hi_key -
+__builtin_offsetof(hlname_T, hn_key)` — which a JVM has no expression for at all and
+which a port turns into a back-reference or an index.
+
+**And one construct is unchanged and is now the largest of its kind left**: the regexp
+backtracking stack builds typed pointers into a byte buffer at a computed byte offset,
+`rp = (regitem_T *)((char *)regstack.ga_data + regstack.ga_len);`, at **three** sites
+that build one and one more that compares against it. It is a growarray used as a stack
+of **variable-sized** records, and a port has to give it a representation of its own
+exactly as the memline page needed one. Three sites is a different order of work from the
+memline's 93, and nothing in the pipeline has touched it.
 
 **Two porter notes that are the opposite finding**, recorded because each looks like a
 hazard and measures as nearly none:
@@ -1462,6 +1522,15 @@ hazard and measures as nearly none:
   which is `long`. So Java's `>>` versus `>>>` decides three expressions in the whole
   core, and in each the `& 0xFF` or `& (MHT_GROWTH_FACTOR - 1)` makes the two agree
   anyway.
+
+  **Re-measured on the phase 45 core it is 59 and TWO**, and the one signed shift that
+  went is the memline's: zero phase 43 deleted `mf_hash_grow()` with the hash table, so
+  the only signed shifts left are `blend_cterm_colors()`'s pair, both masked with
+  `& 0xFF`. **All six of the shifts that went belong to the swap file and the memfile** —
+  three in the memfile hash, taken by phase 43, and three in `long_to_char()`, taken with
+  block zero by phase 42 — which is the shape of every finding in this section: the
+  constructs a port has to be told about were concentrated in the layer the pipeline was
+  always going to rewrite.
 * **`%` is NOT**, and a Clojure port must use `quot` and `rem` rather than `/` and
   `mod`. C's `%` takes the sign of its left operand; Clojure's `mod` is the floored
   modulus and is never negative for a positive divisor. `ex_history()` relies on the C
@@ -1533,7 +1602,13 @@ that crosses it). The rest stand as recommendations.
 10. **The five pty scenarios.** Recommendation: **keep them**, and reduce them to
     what only a terminal shows: the window size from `TIOCGWINSZ`, raw mode
     entered and restored, and one arrow-key scenario as a second opinion on
-    `nvidxcheck.py`.
+    `nvidxcheck.py`. **As built it is four and now five**, and the fifth is the
+    counter-example to the reduction: `sel_arrows` presses a **shifted** arrow, which no
+    harness in any of the three pipelines had ever done, and it is the only thing that
+    can see `keymodel=startsel` — a compiled-in default that had never worked in any
+    build, because `set_options_default()` runs no callback and `km_startsel` exists
+    nowhere but `did_set_keymodel()`. **A scenario set reduced to what a terminal shows
+    is still only as strong as the keys it presses.**
 11. **Do the corpus's seeds use `+set paste` or a typed `:set paste`?**
     Recommendation: **`+set paste` on the command line** for the option setup and a
     typed `:set nopaste` before the real editing — it works (measured), it keeps
