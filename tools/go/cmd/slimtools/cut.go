@@ -444,3 +444,9 @@ func runNobackup(args []string) int {
 		return cut.NoBackup(t, w)
 	})
 }
+
+func runNosession(args []string) int {
+	return oneFile(args, "nosession", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoSession(t, w)
+	})
+}
