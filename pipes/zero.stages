@@ -101,7 +101,13 @@ stage       43
 # strongest form there is -- see below.
 stage       44
 # 45 is a stage of one, as every zero phase is.  `apart 44 45` is written below and was
-# measured in one direction; there is NO `need 45`, and that was measured too.
+# measured in one direction, and `need 45 swept` IS required -- the first `need` in this
+# pipeline that is about blank lines, declared below with its measurement.  This comment
+# said the opposite until it was noticed: it was copied from phase 44's two lines above,
+# which correctly say there is no `need 44`, and not corrected.  Nothing running could
+# have caught that -- the manifest is read by tools/stages.sh and tools/packages.sh and
+# NAMED BY NO PHASE PROGRAM, so tools/implhash.sh never hashes it and a wrong line here
+# is never a failing run.  A reader is the only guard this file has.
 stage       45
 
 # `apart 43 44` IS THE NAME-PARTITION FORM OF `apart 36 37`, AND IT IS SHARPER.
