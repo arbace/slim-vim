@@ -92,6 +92,30 @@ func (e ed) subCount(seg []byte, pattern, what string, count int) ([]byte, error
 	return re.ReplaceAll(seg, nil), nil
 }
 
+// subCountRepl replaces a pattern `count` times with a replacement that may
+// expand $1.
+func (e ed) subCountRepl(seg []byte, pattern, repl, what string, count int) ([]byte, error) {
+	re := regexp.MustCompile(pattern)
+	n := len(re.FindAll(seg, -1))
+	if n != count {
+		return nil, fmt.Errorf("%s: %s -- matched %d times, expected %d",
+			e.tool, what, n, count)
+	}
+	e.say(what)
+	return re.ReplaceAll(seg, []byte(repl)), nil
+}
+
+// dropIfUncounted is dropIf without the count, for a caller whose Python
+// passes straight to cutil.drop_if and reports its ValueError.
+func (e ed) dropIfUncounted(seg []byte, pattern, what string) ([]byte, error) {
+	out, err := cutil.DropIf(seg, "(?m)"+pattern, 1)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %s -- %v", e.tool, what, err)
+	}
+	e.say(what)
+	return out, nil
+}
+
 // inFunction applies an edit to ONE function's text and splices it back, so a
 // pattern that would match elsewhere in the file cannot.
 func (e ed) inFunction(text []byte, name string, edit func([]byte) ([]byte, error)) ([]byte, error) {

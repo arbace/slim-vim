@@ -414,3 +414,9 @@ func runNolocale(args []string) int {
 		return cut.NoLocale(t, w)
 	})
 }
+
+func runNowinsizes(args []string) int {
+	return oneFile(args, "nowinsizes", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoWinSizes(t, w)
+	})
+}
