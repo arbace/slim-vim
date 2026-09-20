@@ -240,6 +240,66 @@ func runStages(args []string) int {
 	return 2
 }
 
+// runMemo is tools/memo.sh: one unit, through the three tiers.
+func runMemo(args []string) int {
+	if len(args) < 3 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools memo <unit> <work-dir> <build-dir> [pipeline]")
+		return 1
+	}
+	name := "slim"
+	if len(args) > 3 {
+		name = args[3]
+	}
+	p, err := pipeline.Get(name)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	if err := memo.Memo(p, args[0], args[1], args[2], os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
+// runMemokey prints the key a unit would be looked up under.  memo.sh has no
+// such mode; this exists so the key can be compared against the shell's
+// without running a phase, which is what makes it testable at all.
+func runMemokey(args []string) int {
+	if len(args) < 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools memokey <unit> <build-dir> [pipeline]")
+		return 1
+	}
+	name := "slim"
+	if len(args) > 2 {
+		name = args[2]
+	}
+	p, err := pipeline.Get(name)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	k, err := memo.MemoKey(p, args[0], args[1])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	fmt.Println(k)
+	return 0
+}
+
+// runSnapshot is tools/snapshot.sh.
+func runSnapshot(args []string) int {
+	if len(args) != 3 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools snapshot <dir> <out.tar> <out.sha256>")
+		return 1
+	}
+	if err := memo.Snapshot(args[0], args[1], args[2], os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
 // runParts is tools/phaserun.sh --parts: the programs a unit runs, in order.
 func runParts(args []string) int {
 	if len(args) != 2 {

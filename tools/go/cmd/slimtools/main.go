@@ -41,7 +41,8 @@ var order = []string{
 	"blankruns", "joinparens", "splitheads", "brace", "onestmt", "onedecl", "forcomma",
 	"sweep", "canon",
 	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
-	"phaserun", "implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx",
+	"memo", "memokey", "phaserun", "snapshot",
+	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx",
 	"treedigest", "phasename", "restore", "stages",
 	"parse", "difftest",
 }
@@ -73,6 +74,9 @@ var tools = map[string]tool{
 	"phasename":  {runPhasename, "phasename <phase> [pipeline]"},
 	"restore":    {runRestore, "restore <in.tar> <dir>"},
 	"stages":     {runStages, "stages <pipeline> [--of N | --check]"},
+	"memo":       {runMemo, "memo <unit> <work-dir> <build-dir> [pipeline]"},
+	"snapshot":   {runSnapshot, "snapshot <dir> <out.tar> <out.sha256>"},
+	"memokey":    {runMemokey, "memokey <unit> <build-dir> [pipeline]"},
 	"parse":      {runParse, "parse <file.c>"},
 	"difftest":   {runDifftest, "difftest <tool> <file>..."},
 }
