@@ -432,3 +432,9 @@ func runNofenc(args []string) int {
 		return cut.NoFenc(t, w)
 	})
 }
+
+func runNoident(args []string) int {
+	return oneFile(args, "noident", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoIdent(t, w)
+	})
+}
