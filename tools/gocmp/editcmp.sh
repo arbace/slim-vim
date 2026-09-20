@@ -94,7 +94,13 @@ prepare() {
 run() {
     p=$1; out=$2
     rm -rf "$tmp/w" "$tmp/s"; cp -a "$tmp/base" "$tmp/w"; cp -a "$tmp/basestate" "$tmp/s"
-    sh "$p" "$tmp/w" "$tmp/s" > "$out" 2>&1; echo "$?" > "$out.rc"
+    # `cmd; echo $?` does NOT capture a refusal under `set -e`: the shell exits
+    # on cmd before the echo runs, so this script claimed to compare exit status
+    # and aborted with no output instead -- its own silent-failure shape, found
+    # by whim65 legitimately refusing.  `|| rc=$?` is what keeps the status.
+    rc=0
+    sh "$p" "$tmp/w" "$tmp/s" > "$out" 2>&1 || rc=$?
+    echo "$rc" > "$out.rc"
     cp "$tmp/w/$PSOURCE" "$out.c"
 }
 

@@ -332,3 +332,34 @@ func (e *E) Refuse(format string, a ...interface{}) { e.die(format, a...) }
 func (e *E) Mentions(name string) int {
 	return len(regexp.MustCompile(`\b`+regexp.QuoteMeta(name)+`\b`).FindAll(e.text, -1))
 }
+
+// Lines deletes n whole lines matching the pattern, which is Cut with the
+// indentation and the newline supplied -- `^[ \t]*<pattern>\n`.  Most of what
+// these phases remove is a statement on a line of its own, and writing that
+// wrapper at every call site is where a missing `^` or a missing `\n` turns a
+// line deletion into a text deletion that leaves a blank behind.
+func (e *E) Lines(pattern string, n int, what string) {
+	e.Cut(`(?m)^[ \t]*`+pattern+`\n`, n, what)
+}
+
+// The *Many variants annotate the report with the count ONLY when there is more
+// than one -- "remembering the first blank typed (2)", but plain when n is 1.
+//
+// That is a THIRD convention, after whim60's never and whim62's always, and all
+// three are in the phases as written.  They are kept apart rather than
+// harmonised because the report is what a port has to reproduce: choosing one
+// spelling for all of them would be a change to every phase log in the tree,
+// made silently, and invisible to every boundary.
+func (e *E) FoldNeverMany(pattern string, n int, what string) {
+	e.repeatSay(pattern, n, what, cutil.FoldNever, n > 1)
+}
+
+// FoldAlwaysMany is FoldNeverMany for the other arm.
+func (e *E) FoldAlwaysMany(pattern string, n int, what string) {
+	e.repeatSay(pattern, n, what, cutil.FoldAlways, n > 1)
+}
+
+// DropIfMany is FoldNeverMany for a test that is now always true.
+func (e *E) DropIfMany(pattern string, n int, what string) {
+	e.repeatSay(pattern, n, what, cutil.DropIf, n > 1)
+}
