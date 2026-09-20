@@ -136,6 +136,23 @@ the only part of the 225 heredocs that DOES collapse: `CountIs`, `Sub`, `Cut`, `
 `FoldNever`/`FoldAlways`/`DropIf` and their counted forms, `InFunction`,
 `Splice`, `DropBlocks`.  Errors accumulate and halt, as `sys.exit` did.
 
+**Two harnesses that agree about results while disagreeing about METHOD inspect
+the union of what either one looks at, and neither author chose that union.**
+That last clause is the load-bearing one: the coverage cannot be reproduced by
+one careful person deciding to be thorough, which is what makes it an argument
+for two implementations rather than for a longer checklist.
+
+It is not a slogan here, it is what happened.  The edit port ran with two
+`editcmp` scripts written independently.  One **lifted the heredoc** out of the
+phase program and ran it, and was therefore forced to think about the state
+directory -- which is how zero 26, 27, 43, 44 and 45 came to have the files they
+hand their checks compared as well as the tree.  The other **ran the whole phase
+program at a revision**, and was therefore forced to think about the shell either
+side of the heredoc -- which is how zero 12's two heredocs, and the position of a
+heredoc within its program, came to be covered.  Each found a real defect in the
+other's half; neither would have looked there alone.  All 74 ports were run
+through both.
+
 **Three things a CHECK comparison must get right**, found while one check was
 ported end to end as a probe (`tools/gocmp/checkcmp.sh` on the other session's
 branch, deliberately unmerged -- see below).  Each would have made the
@@ -153,6 +170,15 @@ comparison pass while proving nothing.
   makes the driver print a line the phase never wrote -- and only on FAILURE, so
   a port checked against the passing report alone can never see it.  It returns
   a bare sentinel; the report is what the phase said and nothing else.
+
+**A `git bundle` is recoverable only if its PREREQUISITES are reachable.**
+`git bundle verify` says the file is intact and says nothing about that.  The
+bundle of this work -- `git bundle create <f> origin/main..HEAD`, 417,166 bytes
+-- names two prerequisites, and both were checked with `git merge-base
+--is-ancestor` to be ancestors of `origin/main`.  **That** is the claim worth
+making: anyone who can clone the remote can apply it and get every commit, with
+no dependency on the machine that wrote it.  An incremental bundle whose basis
+is a local-only commit verifies exactly as cleanly and is worth nothing.
 
 **And the probe is not merged, which is measured rather than squeamish.**
 `implhash.sh` hashes `tools/go` as a directory with no name filter, so a new
