@@ -287,6 +287,56 @@ func runMemokey(args []string) int {
 	return 0
 }
 
+// runVerifypass is tools/verifypass.sh.
+func runVerifypass(args []string) int {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools verifypass <pipeline> [unit...]")
+		return 1
+	}
+	p, err := pipeline.Get(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	units := args[1:]
+	if len(units) == 0 {
+		units, err = memo.Units(p)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+	}
+	jobs := 0
+	if s := os.Getenv("JOBS"); s != "" {
+		jobs, _ = strconv.Atoi(s)
+	}
+	if err := memo.VerifyPass(p, units, jobs, os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
+// runSpecpass is tools/specpass.sh.
+func runSpecpass(args []string) int {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools specpass <pipeline>")
+		return 1
+	}
+	p, err := pipeline.Get(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	jobs := 0
+	if s := os.Getenv("JOBS"); s != "" {
+		jobs, _ = strconv.Atoi(s)
+	}
+	if err := memo.SpecPass(p, jobs, os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
 // runSnapshot is tools/snapshot.sh.
 func runSnapshot(args []string) int {
 	if len(args) != 3 {

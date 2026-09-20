@@ -41,8 +41,8 @@ var order = []string{
 	"blankruns", "joinparens", "splitheads", "brace", "onestmt", "onedecl", "forcomma",
 	"sweep", "canon",
 	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
-	"memo", "memokey", "phaserun", "snapshot",
-	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx",
+	"memo", "memokey", "phaserun", "snapshot", "verifypass", "specpass",
+	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx", "orphanopts",
 	"treedigest", "phasename", "restore", "stages", "whimdelta", "declared",
 	"parse", "difftest",
 }
@@ -69,6 +69,7 @@ var tools = map[string]tool{
 	"oracle":     {runOracle, "oracle <phase> <build-dir> <oracle-dir> [pipeline]"},
 	"phasecheck": {runPhasecheck, "phasecheck <work-dir> <source> <before-dir>"},
 	"nvidx":      {runNvidx, "nvidx <file>"},
+	"orphanopts": {runOrphanopts, "orphanopts <file>"},
 	"phaserun":   {runPhaserun, "phaserun <pipeline> <unit> <work-dir>"},
 	"treedigest": {runTreedigest, "treedigest <work-dir>"},
 	"phasename":  {runPhasename, "phasename <phase> [pipeline]"},
@@ -79,6 +80,8 @@ var tools = map[string]tool{
 	"memo":       {runMemo, "memo <unit> <work-dir> <build-dir> [pipeline]"},
 	"snapshot":   {runSnapshot, "snapshot <dir> <out.tar> <out.sha256>"},
 	"memokey":    {runMemokey, "memokey <unit> <build-dir> [pipeline]"},
+	"verifypass": {runVerifypass, "verifypass <pipeline> [unit...]"},
+	"specpass":   {runSpecpass, "specpass <pipeline>"},
 	"parse":      {runParse, "parse <file.c>"},
 	"difftest":   {runDifftest, "difftest <tool> <file>..."},
 }
