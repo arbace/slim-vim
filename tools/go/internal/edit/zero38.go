@@ -11,7 +11,7 @@ import (
 	"slimvim.local/tools/internal/cutil"
 )
 
-func init() { phases["zero38"] = Zero38 }
+func init() { register("zero38", Zero38) }
 
 // THE ONLY THING WRITTEN DOWN IN THIS PHASE.  Everything else is computed from
 // it and from the source: which rows go, which capability tables die, which

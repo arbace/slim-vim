@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-func init() { phases["zero18"] = Zero18 }
+func init() { register("zero18", Zero18) }
 
 // head is upstream's #ifdef'ed signature with the conditional gone: the name
 // sits on a line of its own because there was a directive between it and the

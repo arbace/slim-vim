@@ -31,12 +31,29 @@ import (
 // A Func is one phase's edit: it takes the tree and returns it rewritten.
 type Func func(text []byte, w io.Writer) ([]byte, error)
 
-var phases = map[string]Func{
-	"whim55": Whim55,
+// An ArgFunc is a Func that is handed the phase program's remaining arguments.
+type ArgFunc func(text []byte, w io.Writer, args []string) ([]byte, error)
+
+// phases is populated by each phase file's init(), NOT by a literal here, and
+// that is a working arrangement rather than a style: two sessions port whim and
+// zero in parallel, and a shared map literal is the one file they would both
+// have to edit for every phase.  register() makes each phase's registration
+// live beside its code, so the packages never collide.
+var phases = map[string]ArgFunc{}
+
+func register(name string, f Func) {
+	registerArgs(name, func(t []byte, w io.Writer, _ []string) ([]byte, error) { return f(t, w) })
+}
+
+func registerArgs(name string, f ArgFunc) {
+	if _, dup := phases[name]; dup {
+		panic("edit: " + name + " registered twice")
+	}
+	phases[name] = f
 }
 
 // Lookup returns the edit for a phase, and whether there is one.
-func Lookup(phase string) (Func, bool) {
+func Lookup(phase string) (ArgFunc, bool) {
 	f, ok := phases[phase]
 	return f, ok
 }

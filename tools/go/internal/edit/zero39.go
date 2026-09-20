@@ -12,7 +12,7 @@ import (
 	"slimvim.local/tools/internal/cutil"
 )
 
-func init() { phases["zero39"] = Zero39 }
+func init() { register("zero39", Zero39) }
 
 var (
 	z39SwitchC   = regexp.MustCompile(`\bswitch \(c\)`)

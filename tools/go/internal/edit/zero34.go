@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func init() { phases["zero34"] = Zero34 }
+func init() { register("zero34", Zero34) }
 
 var (
 	zero34Directive = regexp.MustCompile(`^ *#`)

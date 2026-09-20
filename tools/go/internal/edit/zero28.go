@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func init() { phases["zero28"] = Zero28 }
+func init() { register("zero28", Zero28) }
 
 var (
 	zero28Inc   = regexp.MustCompile(`^#include <([A-Za-z0-9_/.]+)>$`)

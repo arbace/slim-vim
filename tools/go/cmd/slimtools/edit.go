@@ -9,8 +9,8 @@ import (
 )
 
 func runEdit(args []string) int {
-	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "usage: slimtools edit <phase> <file>\n  phases: %s\n",
+	if len(args) < 2 {
+		fmt.Fprintf(os.Stderr, "usage: slimtools edit <phase> <file> [args...]\n  phases: %s\n",
 			strings.Join(edit.Names(), " "))
 		return 1
 	}
@@ -20,7 +20,8 @@ func runEdit(args []string) int {
 			args[0], strings.Join(edit.Names(), " "))
 		return 1
 	}
-	return oneFile(args[1:], "edit "+args[0], func(t []byte, w *os.File) ([]byte, error) {
-		return f(t, w)
+	rest := args[2:]
+	return oneFile(args[1:2], "edit "+args[0], func(t []byte, w *os.File) ([]byte, error) {
+		return f(t, w, rest)
 	})
 }

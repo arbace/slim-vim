@@ -5,7 +5,7 @@ import (
 	"regexp"
 )
 
-func init() { phases["zero2"] = Zero2 }
+func init() { register("zero2", Zero2) }
 
 // Zero2 stops the core diagnosing its own terminal.
 //

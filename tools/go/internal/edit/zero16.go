@@ -12,7 +12,7 @@ import (
 	"slimvim.local/tools/internal/cutil"
 )
 
-func init() { phases["zero16"] = Zero16 }
+func init() { register("zero16", Zero16) }
 
 var zero16Inc = regexp.MustCompile(`^#include <([A-Za-z0-9_/.]+)>$`)
 var zero16StructStat = regexp.MustCompile(`\bstruct\s+stat\b`)

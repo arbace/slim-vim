@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func init() { phases["zero17"] = Zero17 }
+func init() { register("zero17", Zero17) }
 
 var zero17ExitCall = regexp.MustCompile(`(?m)^\s*exit\(`)
 

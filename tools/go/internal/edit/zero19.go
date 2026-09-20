@@ -6,7 +6,7 @@ import (
 	"regexp"
 )
 
-func init() { phases["zero19"] = Zero19 }
+func init() { register("zero19", Zero19) }
 
 var zero19ExitCall = regexp.MustCompile(`(?m)^\s*exit\(`)
 
