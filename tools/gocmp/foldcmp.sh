@@ -33,7 +33,7 @@ open(path, 'w', encoding='utf-8', errors='surrogateescape').write(s)
     rm -f "$a" "$b"
 }
 
-W=${GOCMP_CORPUS:-.cache/gocorpus}/wz
+W=${GOCMP_CORPUS:-.gocorpus}/wz
 # Real patterns, from tools/noabbr.py.
 try never "$W/whim-q0.c" '^[ \t]*if \(echeck_abbr\(ESC \+ ABBR_OFF\)\)$' 1
 try never "$W/whim-q0.c" '^[ \t]*if \(ccheck_abbr\(c \+ ABBR_OFF\)\)$' 1

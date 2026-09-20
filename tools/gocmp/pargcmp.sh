@@ -30,7 +30,7 @@ esac
 
 for inv in "$@"; do
     label=${inv%%|*}; args=${inv#*|}
-    for src in ${GOCMP_CORPUS:-.cache/gocorpus}/*/*.c; do
+    for src in ${GOCMP_CORPUS:-.gocorpus}/*/*.c; do
         printf '%s|%s|%s\n' "$label" "$src" "$args"
     done
 done | xargs -d '\n' -P "$(nproc)" -n 1 sh ${GOCMP:-tools/gocmp}/pargone.sh

@@ -46,6 +46,16 @@ zero/
 # measured with GOPROXY=off, so `make clean-cache` needs no network.
 .cache/
 
+# The corpus the Go tools are compared against: every boundary's .c, the output
+# of every split phase's edit, and slim's per-file sources.  DELIBERATELY NOT
+# UNDER .cache/, where it used to live -- `make clean-cache` is `rm -rf .cache`
+# and destroyed it during a routine cold pass, which was correct, because the
+# stanza above promises that deleting .cache/ costs only recompute time.  This
+# does not have that property: rebuilding it needs a full set of boundaries in
+# .build-whim, .build-zero and .build-slim, and --unswept re-runs every split
+# phase's edit program.  Built by tools/gocorpus.sh, read by tools/gocmp/.
+.gocorpus/
+
 # The transient insight log, folded into SLIM-GOAL.md and CLAUDE.md and then deleted.
 PROGRESS.md
 

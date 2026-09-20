@@ -14,7 +14,7 @@
 # sees, not a boundary.
 set -eu
 cd /root/slim-vim/.claude/worktrees/go-tools
-out=${GOCMP_CORPUS:-.cache/gocorpus}/phases
+out=${GOCMP_CORPUS:-.gocorpus}/phases
 mkdir -p "$out"
 
 for unit in "$@"; do
@@ -28,7 +28,7 @@ for unit in "$@"; do
     # corpus is not that: unswept/whim42.c has already been through phase
     # 42's own edit, so starting there makes phase 42 refuse with
     # "the :hide modifier -- matched 0 times".
-    src=${GOCMP_CORPUS:-.cache/gocorpus}/wz/whim-q$((first - 1)).c
+    src=${GOCMP_CORPUS:-.gocorpus}/wz/whim-q$((first - 1)).c
     [ -f "$src" ] || { echo "phasecorpus: no unswept input for stage $unit ($src)"; rm -rf "$work"; continue; }
     cp "$src" "$work/whim-vim.c"
 

@@ -3,7 +3,7 @@
 # root, with the boundaries of a pass already in .build-whim, .build-zero and
 # .build-slim.
 #
-# Usage: tools/gocorpus.sh <outdir> [--unswept]
+# Usage: tools/gocorpus.sh [outdir] [--unswept]      (default .gocorpus)
 #
 # Three corpora, and the reason there are three is the whole lesson of this
 # harness:
@@ -33,14 +33,31 @@
 #                     that only ever ran on whim/zero text would have most of
 #                     its code unexecuted by every test.
 #
-# Nothing here is written into the repository; the output directory is yours.
+# WHERE THE OUTPUT GOES, and it is not a matter of taste.  The default was
+# .cache/gocorpus, and `make clean-cache` is `rm -rf .cache`: a routine cold
+# pass destroyed the entire corpus the Go port is judged against, correctly,
+# because .cache/ documents itself as a place where throwing something away
+# costs only the time to recompute.  An evidence corpus does not have that
+# property -- rebuilding needs a full set of boundaries under .build-whim,
+# .build-zero and .build-slim, and --unswept needs every split phase's edit
+# program to run.  .gocorpus/ is gitignored and no clean target reaches it.
+#
+# REBUILDING IS IDEMPOTENT, which it was not: the copies were made into
+# whatever was already there, so a corpus built against one set of boundaries
+# and rebuilt against a shorter one kept the files of phases that no longer
+# exist, and every harness then compared against a tree nothing produced.  The
+# three subdirectories this script owns are emptied first -- by name, never the
+# output directory itself, so pointing this at a populated directory by mistake
+# cannot delete anything it did not write.
 set -eu
 
-out=${1:?usage: tools/gocorpus.sh <outdir> [--unswept]}
+out=${1:-.gocorpus}
 unswept=${2:-}
+case $out in --*) echo "gocorpus: first argument is the output directory" >&2; exit 1 ;; esac
 
 [ -d tools ] && [ -d pipes ] || { echo "gocorpus: run me from the repository root" >&2; exit 1; }
 
+for d in wz slim unswept; do rm -rf "$out/$d"; done
 mkdir -p "$out/wz" "$out/slim"
 
 # One .c per whim and zero boundary, named for the boundary so a failure names

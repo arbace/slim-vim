@@ -4,7 +4,7 @@
 set -eu
 cd /root/slim-vim/.claude/worktrees/go-tools
 bin=$(sh tools/gobuild.sh)
-src=${GOCMP_CORPUS:-.cache/gocorpus}/wz/zero-r45.c
+src=${GOCMP_CORPUS:-.gocorpus}/wz/zero-r45.c
 
 run() {   # run <mutation> <side>
     w=$(mktemp -d); b=$(mktemp -d)

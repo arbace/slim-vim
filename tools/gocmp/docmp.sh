@@ -23,7 +23,7 @@ try() {   # try <input.c> <args...>
     rm -f "$a" "$b"
 }
 
-W=${GOCMP_CORPUS:-.cache/gocorpus}/wz
+W=${GOCMP_CORPUS:-.gocorpus}/wz
 # Real invocations, against a boundary where the rows still exist.
 try "$W/whim-q0.c" --strict fileencodings termencoding
 try "$W/whim-q0.c" --strict mouse mousefocus mousehide

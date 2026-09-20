@@ -18,7 +18,7 @@ export BIN OUT
 trap 'rm -rf "$OUT"' EXIT
 
 for tool in "$@"; do
-    for src in ${GOCMP_CORPUS:-.cache/gocorpus}/*/*.c; do
+    for src in ${GOCMP_CORPUS:-.gocorpus}/*/*.c; do
         printf '%s\n%s\n' "$tool" "$src"
     done
 done | xargs -P "$(nproc)" -n 2 sh ${GOCMP:-tools/gocmp}/pcutone.sh

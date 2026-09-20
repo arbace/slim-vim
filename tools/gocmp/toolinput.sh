@@ -15,7 +15,7 @@
 # BEFORE the tool, and a multi-line invocation only ever extends further down.
 set -eu
 cd /root/slim-vim/.claude/worktrees/go-tools
-out=${GOCMP_CORPUS:-.cache/gocorpus}/phases
+out=${GOCMP_CORPUS:-.gocorpus}/phases
 mkdir -p "$out"
 
 for tool in "$@"; do

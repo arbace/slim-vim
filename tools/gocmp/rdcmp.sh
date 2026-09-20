@@ -21,7 +21,7 @@ try() {   # try <tool> <input.c> <args...>
     rm -f "$a" "$b"
 }
 
-W=${GOCMP_CORPUS:-.cache/gocorpus}/wz
+W=${GOCMP_CORPUS:-.gocorpus}/wz
 try retire "$W/whim-q0.c" gui gvim
 try retire "$W/whim-q0.c" shell terminal
 try retire "$W/whim-q0.c" no-such-command-9x
