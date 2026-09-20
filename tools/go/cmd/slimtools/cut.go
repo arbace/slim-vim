@@ -510,3 +510,15 @@ func runNoconv(args []string) int {
 		return cut.NoConv(t, w)
 	})
 }
+
+func runNoenc(args []string) int {
+	return oneFile(args, "noenc", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoEnc(t, w)
+	})
+}
+
+func runUtf8only(args []string) int {
+	return oneFile(args, "utf8only", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.Utf8Only(t, w)
+	})
+}
