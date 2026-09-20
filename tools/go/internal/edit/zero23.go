@@ -26,47 +26,6 @@ var (
 const zero23Typedef = "typedef typeof(sizeof(0)) usize;"
 const zero23Anchor = "#include <termios.h>\n\n"
 
-// zero23Literals is a SCANNER and not a regex.
-//
-// This file has no preprocessor and no comments, so a string or character
-// literal is exactly a quote, the escaped bytes to the matching quote, and
-// nothing may cross a newline -- which is asserted, so a scanner that lost its
-// place refuses rather than masking half the file.
-func zero23Literals(p ph, t []byte) ([][2]int, error) {
-	var out [][2]int
-	i, n := 0, len(t)
-	for i < n {
-		c := t[i]
-		if c == '"' || c == '\'' {
-			j := i + 1
-			for j < n {
-				if t[j] == '\\' {
-					j += 2
-					continue
-				}
-				if t[j] == c || t[j] == '\n' {
-					break
-				}
-				j++
-			}
-			if j >= n || t[j] != c {
-				kind := "character"
-				if c == '"' {
-					kind = "string"
-				}
-				return nil, p.die("an unterminated %s literal at line %d -- the scanner has lost its "+
-					"place and every span after it would be wrong",
-					kind, bytes.Count(t[:i], []byte{'\n'})+1)
-			}
-			out = append(out, [2]int{i, j + 1})
-			i = j + 1
-		} else {
-			i++
-		}
-	}
-	return out, nil
-}
-
 // Zero23 gives the core two names the language supplies instead of a header:
 // NULL becomes nullptr and size_t becomes usize.
 func Zero23(text []byte, w io.Writer) ([]byte, error) {
@@ -90,7 +49,7 @@ func Zero23(text []byte, w io.Writer) ([]byte, error) {
 		"`usize` and `nullptr` at zero mentions")
 
 	// ---- 1. the literals, which are the one thing here that can go wrong -
-	spans, err := zero23Literals(p, text)
+	spans, err := literalSpans(p, text)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +199,7 @@ func Zero23(text []byte, w io.Writer) ([]byte, error) {
 			return nil, p.die("`%s` has %d mentions after the cut, expected %d", c.name, k, c.want)
 		}
 	}
-	after, err := zero23Literals(p, text)
+	after, err := literalSpans(p, text)
 	if err != nil {
 		return nil, err
 	}
