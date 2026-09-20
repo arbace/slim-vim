@@ -1052,6 +1052,31 @@ between the two pipelines' recordings.
   `PHASE_LIST` written into `tools/pipeline.sh`, because `pipeline.sh` is in every
   whim split key (above) and a zero phase added there would re-key all of whim.
 
+**The sweep and the canonicalisers are Go, and so is every whim/zero cutter.**
+`tools/sweep.sh` and `tools/canon.sh` are four-line wrappers onto one
+`slimtools` binary built from `tools/go/`; the 264 phase programs call them by
+the same paths with the same arguments and were not edited. Both wrappers name
+their Go sources in comments, so `implhash.sh` still hashes the implementation
+into every phase's key -- `implhash` greps for paths and does not know what a
+comment is, which is the mechanism the Python `import` comments already use.
+All 57 cutters the whim and zero pipelines call have a Go counterpart in
+`tools/go/internal/cut/`; the nineteen slim-only ones do not, the slim pipeline
+being out of scope for that work. **The Python tools are all still here and
+still work** -- nothing was deleted, and the two wrappers are the only files a
+phase reaches that changed. `tools/README.md` has the detail, including the six
+cutters that depend on a lookaround RE2 does not have and what replaces each.
+
+**It was gated the way this section asks.** `make slim-verify` 12 of 12,
+`make whim-verify` 13 of 13 and `make zero-verify` 45 of 46 -- the one zero
+failure being the harness's and not the sweep's, shown two ways: the failing
+unit's output tree digests EQUAL to the recorded boundary, and a control run
+with the Python sweep restored scoring the same 45 of 46 on a different unit.
+Three runs have failed three different units by the two mechanisms this file
+already documents as open. Speed is a wash where the work is not the sweep:
+zero's 46 units are 3,723 s of phases with Go against 3,744 s with Python,
+because zero's phases are gcc and recordings. The sweep itself went from
+15.675 s to 8.353 s on zero42's unswept output.
+
 **`tools/` is shared, and a change to it is gated.** A tool a whim or slim phase
 names must leave `make whim-verify` and `make slim-verify` passing, and should move
 no whim or slim key: compare `tools/implhash.sh` for every whim unit, every whim
