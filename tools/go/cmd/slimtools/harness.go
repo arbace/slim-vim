@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"slimvim.local/tools/internal/harness"
@@ -168,6 +169,52 @@ func runZmemline(args []string) int {
 		return 1
 	}
 	if err := harness.ZMemline(args[0], args[1], os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
+// runZcompare is tools/zcompare.py.
+func runZcompare(args []string) int {
+	if len(args) == 3 && args[0] == "--declared" {
+		n, err := strconv.Atoi(args[2])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "usage: slimtools zcompare --declared <delta> <phase>")
+			return 1
+		}
+		_, own, err := harness.ZDeclared(args[1], n)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+		for _, s := range own {
+			fmt.Println(s)
+		}
+		return 0
+	}
+	if len(args) != 4 {
+		fmt.Fprintln(os.Stderr,
+			"usage: slimtools zcompare <base> <new> <delta> <phase> | --declared <delta> <phase>")
+		return 1
+	}
+	n, err := strconv.Atoi(args[3])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	if err := harness.ZCompare(args[0], args[1], args[2], n, os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
+// runZrecord is tools/zrecord.sh.
+func runZrecord(args []string) int {
+	if len(args) != 3 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools zrecord <binary> <source> <outdir>")
+		return 1
+	}
+	if err := harness.ZRecord(args[0], args[1], args[2], os.Stdout); err != nil {
 		return 1
 	}
 	return 0
