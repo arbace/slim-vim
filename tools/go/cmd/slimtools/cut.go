@@ -312,3 +312,21 @@ func runNoarglist(args []string) int {
 		return cut.NoArgList(t, w)
 	})
 }
+
+func runNoinertopts(args []string) int {
+	return oneFile(args, "noinertopts", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoInertOpts(t, w)
+	})
+}
+
+func runNofencs(args []string) int {
+	return oneFile(args, "nofencs", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoFencs(t, w)
+	})
+}
+
+func runNocmdopts(args []string) int {
+	return oneFile(args, "nocmdopts", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoCmdOpts(t, w)
+	})
+}
