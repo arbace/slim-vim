@@ -1274,10 +1274,17 @@ is *expected* to lag its boundary, and such a target would be disabled within a 
 && make whim-repass` is the sequential run, and the one that *produces*
 boundaries rather than checks them: record from a cold pass, then verify. Do it
 before a push, and whenever a
-**shared** tool changes — `sweep.sh`, `canon.sh`, `deadsweep.py`,
-`typereach.py`, `funcreach.py`, `deadfields.py`, `deadenums.py`,
-`phasecheck.sh`, `whimdelta.sh`, `cutil.py` —
-though those are in every phase's implhash, so everything re-runs then anyway.
+**shared** tool changes — `sweep.sh`, `canon.sh`, **everything under
+`tools/go/`**, `phasecheck.sh`, `whimdelta.sh` — though those are in every
+phase's implhash, so everything re-runs then anyway. **The Python `deadsweep.py`,
+`typereach.py`, `funcreach.py`, `deadfields.py`, `deadenums.py` and `cutil.py`
+are no longer on that list, and the reason is not that they were deleted**: they
+are all still here and still run standalone, but since the cutover no phase
+reaches them, so editing one changes no pipeline and moves no key. Their Go
+counterparts under `tools/go/internal/` are what a phase runs, and they are
+hashed as a directory rather than as a list of files — see `tools/implhash.sh`,
+where a list of 18 of 128 named files is the mistake that rule exists to
+prevent.
 `tools/zhostonly.py` is deliberately **not** in that list: it is named by zero phase
 checks and by nothing else, so it enters no whim or slim key at all. Adding it moved
 none — measured as 107 whim and slim keys and 20 existing zero unit keys, all identical
