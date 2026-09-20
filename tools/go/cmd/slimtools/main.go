@@ -42,7 +42,7 @@ var order = []string{
 	"sweep", "canon",
 	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
 	"memo", "memokey", "phaserun", "snapshot", "verifypass", "specpass",
-	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx", "orphanopts",
+	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx", "orphanopts", "exsweep", "cmdnames", "behaviour",
 	"treedigest", "phasename", "restore", "stages", "whimdelta", "declared",
 	"parse", "difftest",
 }
@@ -70,6 +70,9 @@ var tools = map[string]tool{
 	"phasecheck": {runPhasecheck, "phasecheck <work-dir> <source> <before-dir>"},
 	"nvidx":      {runNvidx, "nvidx <file>"},
 	"orphanopts": {runOrphanopts, "orphanopts <file>"},
+	"exsweep":    {runExsweep, "exsweep <vim-binary> <table> <outfile>"},
+	"cmdnames":   {runCmdnames, "cmdnames <file>"},
+	"behaviour":  {runBehaviour, "behaviour <vim-binary> <outdir>"},
 	"phaserun":   {runPhaserun, "phaserun <pipeline> <unit> <work-dir>"},
 	"treedigest": {runTreedigest, "treedigest <work-dir>"},
 	"phasename":  {runPhasename, "phasename <phase> [pipeline]"},
