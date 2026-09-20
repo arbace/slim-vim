@@ -45,6 +45,12 @@ func CommandNames(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	return CommandNamesIn(data, path)
+}
+
+// CommandNamesIn is CommandNames over text already in hand, for a phase edit
+// that holds the tree and not a path.  `path` is only what the refusal names.
+func CommandNamesIn(data []byte, path string) ([]string, error) {
 	for _, try := range []struct {
 		re     *regexp.Regexp
 		halves bool
