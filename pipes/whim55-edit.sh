@@ -32,17 +32,7 @@ set -eu
 work=${1:?usage: whim55-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 - "$f" <<'PY'
-import sys
-path = sys.argv[1]
-t = open(path, errors='surrogateescape').read()
-old = ' || p == (char_u *)&p_cdpath)'
-if t.count(old) != 1:
-    sys.exit('  unusedopts   the cdpath completion test occurs %d times, expected 1' % t.count(old))
-t = t.replace(old, ')')
-open(path, 'w', errors='surrogateescape').write(t)
-print("  unusedopts   'cdpath' is no longer completed as a directory list")
-PY
+tools/st.sh edit whim55 "$f"
 
 tools/st.sh dropoptions "$f" autocompletetimeout cdhome cdpath completetimeout imcmdline secure \
     shellcmdflag shelltemp shellxescape shellxquote ttybuiltin warn xtermcodes \

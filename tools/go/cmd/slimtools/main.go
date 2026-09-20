@@ -42,7 +42,7 @@ var order = []string{
 	"sweep", "canon",
 	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
 	"memo", "memokey", "phaserun", "snapshot", "verifypass", "specpass",
-	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx", "orphanopts", "exsweep", "cmdnames", "cmdidxs", "muslctype", "muslcase", "starcheck", "termrestore", "complcheck", "clicheck", "behaviour", "termcheck", "zscreen", "zhostonly", "zargv", "zexcmds", "zcases", "ztermcheck", "zpty", "zmemline", "zcompare", "zrecord", "dropoptions", "retire", "droplocal", "nointro", "noargv0", "noglob", "noequiclass", "nowild", "nostat", "nofnamemod", "notags", "nofind", "noterm", "noshellout", "noruntime", "noabbr", "dropopts", "nostartup", "nohome", "nocmdargs", "noinert", "noarglist", "noinertopts", "nofencs", "nocmdopts", "nobuflist", "nofloat", "keepbytes", "oneoptset", "optreaders", "noowner", "nogetenv", "nochdir", "nosignals", "noswap", "norecover", "noucmd", "nonfa", "nolocale", "nowinsizes", "nocompl", "nofenc", "noident", "nobackup", "nosession", "onebuffer", "nocindent", "nowildmenu", "nomouse", "notabs", "nomemfile", "nocomplkeys", "lfonly", "nowindows", "noconv", "noenc", "utf8only", "fold",
+	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx", "orphanopts", "exsweep", "cmdnames", "cmdidxs", "muslctype", "muslcase", "starcheck", "termrestore", "complcheck", "clicheck", "behaviour", "termcheck", "zscreen", "zhostonly", "zargv", "zexcmds", "zcases", "ztermcheck", "zpty", "zmemline", "zcompare", "zrecord", "dropoptions", "retire", "droplocal", "nointro", "noargv0", "noglob", "noequiclass", "nowild", "nostat", "nofnamemod", "notags", "nofind", "noterm", "noshellout", "noruntime", "noabbr", "dropopts", "nostartup", "nohome", "nocmdargs", "noinert", "noarglist", "noinertopts", "nofencs", "nocmdopts", "nobuflist", "nofloat", "keepbytes", "oneoptset", "optreaders", "noowner", "nogetenv", "nochdir", "nosignals", "noswap", "norecover", "noucmd", "nonfa", "nolocale", "nowinsizes", "nocompl", "nofenc", "noident", "nobackup", "nosession", "onebuffer", "nocindent", "nowildmenu", "nomouse", "notabs", "nomemfile", "nocomplkeys", "lfonly", "nowindows", "noconv", "noenc", "utf8only", "fold", "edit",
 	"treedigest", "phasename", "restore", "stages", "whimdelta", "declared",
 	"parse", "difftest",
 }
@@ -105,6 +105,7 @@ var tools = map[string]tool{
 	"nofind":      {runNofind, "nofind <file>"},
 	"noterm":      {runNoterm, "noterm <file>"},
 	"noshellout":  {runNoshellout, "noshellout <file>"},
+	"edit":        {runEdit, "edit <phase> <file>"},
 	"noruntime":   {runNoruntime, "noruntime <file>"},
 	"noabbr":      {runNoabbr, "noabbr <file>"},
 	"dropopts":    {runDropopts, "dropopts <file> <-x|--long>..."},
