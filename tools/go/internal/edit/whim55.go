@@ -21,3 +21,5 @@ func Whim55(text []byte, w io.Writer) ([]byte, error) {
 	fmt.Fprintln(w, "  unusedopts   'cdpath' is no longer completed as a directory list")
 	return out, nil
 }
+
+func init() { register("whim55", Whim55) }
