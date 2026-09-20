@@ -220,3 +220,21 @@ func runNofnamemod(args []string) int {
 		return cut.NoFnameMod(t, w)
 	})
 }
+
+func runNotags(args []string) int {
+	return oneFile(args, "notags", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoTags(t, w)
+	})
+}
+
+func runNofind(args []string) int {
+	return oneFile(args, "nofind", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoFind(t, w)
+	})
+}
+
+func runNoterm(args []string) int {
+	return oneFile(args, "noterm", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoTerm(t, w)
+	})
+}
