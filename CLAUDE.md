@@ -2287,7 +2287,13 @@ re-checked the invariant after the phase that broke it. **The canonicalizers
 are cheap and idempotent — re-run them all to a fixpoint at the end**:
 `splitheads.py`, `brace.py`, `joinparens.py`, `onestmt.py`, `onedecl.py`,
 `untab.py` and `undowhile.py` are each a no-op on this file now, and that is a
-check worth keeping, not just a fact.
+check worth keeping, not just a fact. **That list is not `canon.sh`'s**, and
+the difference is where the run of two blank lines below went unnoticed:
+`canon.sh` runs `blankruns.py`, `joinparens.py`, `splitheads.py`, `brace.py`,
+`onestmt.py`, `onedecl.py` and `forcomma.py`, in that order, while `untab.py`
+is nobody's and `undowhile.py` is `pipes/slim9.sh`'s directly. `forcomma.py` is
+a no-op here too — it finds three `for` init clauses with a top-level comma and
+declines all three — and `blankruns.py` is the one that is **not**.
 
 **No parenthesised group spans a line break.** Every condition is on one line,
 and so is every argument list — of a call, a declaration or a definition. A
@@ -2322,10 +2328,16 @@ command string in `trigger_undo_ftplugin()`, and one inside the default
 
 Upstream is `noet`, so anything imported from there needs expanding first.
 
-**The paragraphing was never lost.** 17,193 blank lines, 9.5% of the file and
+**The paragraphing was never lost.** 17,194 blank lines, 9.5% of the file and
 **5.31 per function** — the density of a build that kept its comments. Every
-function is separated from the next, every declaration block from its body, no
-run of two blank lines anywhere and none after an opening brace.
+function is separated from the next, every declaration block from its body, and
+none follows an opening brace. **There is one run of two blank lines**, at line
+41,086, between `static struct cmdname cmdnames[];` and the `end ex_cmds.h`
+banner. Phase 10 deleted the declaration that stood between them and `canon.sh`
+runs in phases 7 and 9 only, so nothing re-canonicalises after it — which is
+the lesson above arriving one phase later than it is told. Whim's first stage
+takes it: `blankruns.py` collapses the run, and every whim and zero boundary
+from q12 on has none.
 
 That is a consequence of how the comments were removed, and it is the one thing
 here much cheaper to get right than to fix afterwards. Each comment became **one
