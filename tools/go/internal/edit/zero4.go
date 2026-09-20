@@ -147,7 +147,7 @@ func Zero4(text []byte, w io.Writer) ([]byte, error) {
 	}
 
 	// ---- 0. the invariants the cut rests on -----------------------------------
-	for _, name := range sortedKeys2(z4Before) {
+	for _, name := range sortedKeys(z4Before) {
 		if k := mentions(text, name); k != z4Before[name] {
 			return nil, p.die("%s has %d mentions, expected %d -- the anchors below were counted "+
 				"against a different file", name, k, z4Before[name])
@@ -414,7 +414,7 @@ func Zero4(text []byte, w io.Writer) ([]byte, error) {
 	}
 
 	// ---- 7. what is left is exactly what the sweep can take -------------------
-	for _, name := range sortedKeys2(z4After) {
+	for _, name := range sortedKeys(z4After) {
 		k := mentions(text, name)
 		if k != z4After[name] {
 			why := "more went than was meant to"

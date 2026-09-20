@@ -222,7 +222,7 @@ func Zero10(text []byte, w io.Writer) ([]byte, error) {
 	}
 
 	// ---- 0. the shape every anchor below was counted against ------------------
-	for _, name := range sortedKeys2(z10Before) {
+	for _, name := range sortedKeys(z10Before) {
 		if k := mentions(text, name); k != z10Before[name] {
 			return nil, p.die("%s has %d mentions, expected %d -- the anchors below were counted "+
 				"against a different file", name, k, z10Before[name])
@@ -507,7 +507,7 @@ func Zero10(text []byte, w io.Writer) ([]byte, error) {
 		"eval_vars or buflist_name_nr -- none of which has a caller the sweep can "+
 		"reach", len(offs), writes)
 
-	for _, name := range sortedKeys2(z10After) {
+	for _, name := range sortedKeys(z10After) {
 		if k := mentions(text, name); k != z10After[name] {
 			return nil, p.die("%s has %d mentions after the cut, expected %d", name, k, z10After[name])
 		}

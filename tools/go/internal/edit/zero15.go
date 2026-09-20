@@ -92,7 +92,7 @@ func Zero15(text []byte, w io.Writer, args []string) ([]byte, error) {
 	}
 
 	// ---- 0. the shape every anchor below was counted against ------------------
-	for _, name := range sortedKeys2(z15Before) {
+	for _, name := range sortedKeys(z15Before) {
 		if k := zCalls(text, name); k != z15Before[name] {
 			return nil, p.die("%s is called %d times, expected %d -- the anchors below were counted "+
 				"against a different file", name, k, z15Before[name])

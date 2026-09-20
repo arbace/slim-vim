@@ -73,7 +73,7 @@ func Zero8(text []byte, w io.Writer) ([]byte, error) {
 	if err != nil || len(names) != z8RowsBefore {
 		return nil, p.die("create_cmdidxs names() does not read %d rows out of this table", z8RowsBefore)
 	}
-	for _, name := range sortedKeys2(z8Before) {
+	for _, name := range sortedKeys(z8Before) {
 		if k := mentions(text, name); k != z8Before[name] {
 			return nil, p.die("%s has %d mentions, expected %d -- the anchors below were counted "+
 				"against a different file", name, k, z8Before[name])

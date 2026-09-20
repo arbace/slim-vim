@@ -83,7 +83,7 @@ func Zero12(text []byte, w io.Writer) ([]byte, error) {
 	}
 
 	// ---- 0. the shape every anchor below was counted against ------------------
-	for _, name := range sortedKeys2(z12Before) {
+	for _, name := range sortedKeys(z12Before) {
 		if k := mentions(text, name); k != z12Before[name] {
 			return nil, p.die("%s has %d mentions, expected %d -- the anchors below were counted "+
 				"against a different file", name, k, z12Before[name])
@@ -245,7 +245,7 @@ func Zero12Rows(text []byte, w io.Writer) ([]byte, error) {
 	mentions := func(name string) int {
 		return len(regexp.MustCompile(`\b`+name+`\b`).FindAll(text, -1))
 	}
-	for _, name := range sortedKeys2(z12After) {
+	for _, name := range sortedKeys(z12After) {
 		if k := mentions(name); k != z12After[name] {
 			return nil, p.die("%s has %d mentions after the cut, expected %d", name, k, z12After[name])
 		}

@@ -62,7 +62,7 @@ func Zero14(text []byte, w io.Writer) ([]byte, error) {
 	}
 
 	// ---- 0. the shape every anchor below was counted against ------------------
-	for _, name := range sortedKeys2(z14Before) {
+	for _, name := range sortedKeys(z14Before) {
 		if k := mentions(t, name); k != z14Before[name] {
 			return nil, p.die("%s has %d mentions, expected %d -- the anchors below were counted "+
 				"against a different file", name, k, z14Before[name])
@@ -174,7 +174,7 @@ func Zero14(text []byte, w io.Writer) ([]byte, error) {
 	}
 
 	// ---- E. what the sweep is handed, as counts rather than as trust ----------
-	for _, name := range sortedKeys2(z14After) {
+	for _, name := range sortedKeys(z14After) {
 		if k := mentions(t, name); k != z14After[name] {
 			return nil, p.die("%s has %d mentions after the cut, expected %d", name, k, z14After[name])
 		}

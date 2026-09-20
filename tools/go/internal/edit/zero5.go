@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -92,7 +91,7 @@ func Zero5(text []byte, w io.Writer) ([]byte, error) {
 	line := func(body string) string { return `(?m)^[ \t]*` + regexp.QuoteMeta(body) + `$` }
 
 	// ---- 0. the invariants the cut rests on -----------------------------------
-	for _, name := range sortedKeys2(z5Before) {
+	for _, name := range sortedKeys(z5Before) {
 		if k := mentions(text, name); k != z5Before[name] {
 			return nil, p.die("%s has %d mentions, expected %d -- the anchors below were counted "+
 				"against a different file", name, k, z5Before[name])
@@ -214,7 +213,7 @@ func Zero5(text []byte, w io.Writer) ([]byte, error) {
 	}
 
 	// ---- 4. what is left is exactly what the sweep can take -------------------
-	for _, name := range sortedKeys2(z5After) {
+	for _, name := range sortedKeys(z5After) {
 		k := mentions(text, name)
 		if k != z5After[name] {
 			why := "more went than was meant to"
@@ -245,14 +244,5 @@ func z5Lines(s string) []string {
 		out = append(out, s[:i+1])
 		s = s[i+1:]
 	}
-	return out
-}
-
-func sortedKeys2(m map[string]int) []string {
-	out := make([]string, 0, len(m))
-	for k := range m {
-		out = append(out, k)
-	}
-	sort.Strings(out)
 	return out
 }

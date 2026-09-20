@@ -58,7 +58,7 @@ func Zero9(text []byte, w io.Writer) ([]byte, error) {
 			"`(void)open_buffer(FALSE, eap, readfile_flags);`, which anchor 4 would not "+
 			"rewrite.  This phase needs swept text", k)
 	}
-	for _, name := range sortedKeys2(z9Before) {
+	for _, name := range sortedKeys(z9Before) {
 		if k := mentions(text, name); k != z9Before[name] {
 			return nil, p.die("%s has %d mentions, expected %d -- the anchors below were counted "+
 				"against a different file", name, k, z9Before[name])
@@ -124,7 +124,7 @@ func Zero9(text []byte, w io.Writer) ([]byte, error) {
 		"the two ml_ guards can never hold -- left for a later tidy, not folded here",
 		strings.Count(string(body), "\n"))
 
-	for _, name := range sortedKeys2(z9After) {
+	for _, name := range sortedKeys(z9After) {
 		if k := mentions(text, name); k != z9After[name] {
 			return nil, p.die("%s has %d mentions after the cut, expected %d", name, k, z9After[name])
 		}
