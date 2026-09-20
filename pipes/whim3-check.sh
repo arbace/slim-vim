@@ -36,7 +36,7 @@ tools/phasebuild.sh "$work" "$before_lines"
 
 # --- what an invocation can say ----------------------------------------------
 own_checks() {
-    python3 tools/clicheck.py "$work/whim-vim"
+    tools/st.sh clicheck "$work/whim-vim"
 }
 # The declared delta is not checked here: tools/phaserun.sh checks the stage's, once,
 # after every check in the stage has passed.

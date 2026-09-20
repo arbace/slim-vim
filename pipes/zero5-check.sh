@@ -40,7 +40,7 @@
 #                    spellings and an unknown terminal name, the options that were
 #                    already unknown, an ordinary keystroke edit, and a pty session.
 #
-# 4. THE INSTRUMENT SWAP, which this phase is the cause of.  tools/termcheck.py is
+# 4. THE INSTRUMENT SWAP, which this phase is the cause of.  termcheck is
 #    whim's, and it asks its question with a file argument.  From this boundary on
 #    that is an unknown option and all nineteen of its rows read `(none)` -- so
 #    zero's recording now uses `ztermcheck`, which is termcheck.py with its
@@ -386,7 +386,7 @@ print('  %-12s pty: the file argument edited by the old binary and refused by th
 PY
 
 # --- 8. the instrument this phase broke, and the one that replaced it --------------
-# tools/termcheck.py asks its question with a file argument, so from this boundary
+# termcheck asks its question with a file argument, so from this boundary
 # it records nineteen empty rows.  `ztermcheck` is the same tool with its
 # ask() replaced; it must record the BASELINE from the binary this phase was handed,
 # which is what makes the swap a change of instrument and not of recording.
@@ -396,9 +396,9 @@ cmp -s "$base" "$tmp/term-old" || {
     echo "  noargv       ztermcheck does not record the baseline from the input binary:"
     diff "$base" "$tmp/term-old" | head -5 | sed 's/^/               /'
     exit 1; }
-python3 tools/termcheck.py "$bin" "$tmp/term-file" >/dev/null
+tools/st.sh termcheck "$bin" "$tmp/term-file" >/dev/null
 if ! grep -q '(none)' "$tmp/term-file"; then
-    echo "  noargv       tools/termcheck.py still works on this binary -- then the file"
+    echo "  noargv       termcheck still works on this binary -- then the file"
     echo "               argument was not removed, and zrecord.sh need not have changed"
     exit 1
 fi

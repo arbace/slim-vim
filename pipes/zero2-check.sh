@@ -189,7 +189,7 @@ done
 echo "  nottywarn    --ttyfail is mainerr'd, '--', +cmd and -T unchanged on both binaries"
 
 # 5d.  a real terminal, where nothing here was ever reached: the same session under
-# both binaries.  tools/termcheck.py drives 19 of these in the declared delta; this
+# both binaries.  termcheck drives 19 of these in the declared delta; this
 # one is the before-and-after the delta cannot give, because it has no old binary.
 python3 - "$state/old" "$bin" <<'PY'
 import os, re, sys, tempfile
@@ -215,7 +215,7 @@ def one(binary):
                                   term='xterm', cwd=d, settle=0.6, env=env)
     s = text.decode('utf-8', 'replace')
     # The two answers land among the '~' filler and the cursor keeps moving through
-    # them, so take the name and nothing after it, as tools/termcheck.py does.
+    # them, so take the name and nothing after it, as termcheck does.
     got = sorted(set(re.findall(r'term=[\w.-]+', s)))
     return status, open(os.path.join(d, 'f.txt')).read(), got, '-typed' in s
 
@@ -228,7 +228,7 @@ if old != new:
     sys.exit('  %-12s the pty session moved: %r -> %r' % ('nottywarn', old, new))
 # The `term=` answer is not printed: the ruler follows it on the same screen line,
 # so what comes back is 'term=xterm-256color2,14All' and reads like a terminal name
-# that does not exist.  tools/termcheck.py's rows have the same artifact.  What it is
+# that does not exist.  termcheck's rows have the same artifact.  What it is
 # here for is the comparison, which is exact.
 print('  %-12s pty: status 0, the typed text on screen and in the file, the same '
       'term answer either side' % 'nottywarn')

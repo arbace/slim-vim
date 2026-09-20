@@ -13,7 +13,7 @@
 # minus the output's; which capability tables die follows from that; what a refused
 # name leaves the terminal as is MEASURED from the new binary, by asking it with no
 # `+set term=` at all; and the nineteen rows are however many
-# `tools/termcheck.py` names.  So the rules stay true of a file this check has never
+# `termcheck` names.  So the rules stay true of a file this check has never
 # seen, which is what makes them rules.
 #
 # WHAT IS CLAIMED, in nine parts:
@@ -533,6 +533,10 @@ import re
 import sys
 import tempfile
 sys.path.insert(0, 'tools')
+# tools/termcheck.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import termcheck
 # tools/ptyrun.py -- named as a PATH so tools/implhash.sh hashes it into this
 # phase's key.  implhash greps for paths and an `import` names a module, so
@@ -544,7 +548,7 @@ src, wasp, nowp, binary, gone = sys.argv[1:6]
 GONE = gone.split()
 was, now = open(wasp).read().splitlines(), open(nowp).read().splitlines()
 if len(was) != len(now) or len(was) != len(termcheck.TERMS):
-    sys.exit('the two recordings hold %d and %d rows and tools/termcheck.py names %d'
+    sys.exit('the two recordings hold %d and %d rows and termcheck names %d'
              % (len(was), len(now), len(termcheck.TERMS)))
 
 d = tempfile.mkdtemp(prefix='ztermcheck-')
@@ -646,7 +650,7 @@ sed 's/^/  ablefail     /' "$tmp/able"
 # The `xterm` row was not one name.  find_builtin_term() carried a special case that
 # handed that row's table to every name vim_is_xterm() accepts, so deleting the row
 # deletes the family -- and not one of those names is among the nineteen
-# tools/termcheck.py asks about.  So the phase owes probes, and the names are read
+# termcheck asks about.  So the phase owes probes, and the names are read
 # out of vim_is_xterm()'s own prefix list in the source this phase was HANDED rather
 # than written here.  Each must resolve on the old binary and be refused on the new.
 if ! python3 - "$state/old.c" "$state/old" "$new" > "$tmp/family" 2>&1 <<'PY'
@@ -698,7 +702,7 @@ print('the `xterm` row was the whole xterm FAMILY, not one name: %d prefixes rea
       "out of vim_is_xterm() in the source this phase was handed -- %s -- every one "
       'of them resolved on the binary the phase was handed and every one is E522 '
       'here.  %s is the one vim_is_xterm() already excluded, and it was E522 either '
-      'way.  None of these names is among the nineteen tools/termcheck.py asks '
+      'way.  None of these names is among the nineteen termcheck asks '
       'about, which is why the phase owes these probes'
       % (len(names), ' '.join(names), ' '.join(skip) or '(none)'))
 PY

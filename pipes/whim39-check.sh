@@ -33,7 +33,7 @@ tools/phasecheck.sh "$work" "$f" "$state/symbols"
 
 tools/phasebuild.sh "$work" "$before_lines"
 
-# -o and -O must now be what any unknown option is.  tools/clicheck.py still
+# -o and -O must now be what any unknown option is.  clicheck still
 # lists them as accepted, and runs in Phase 3 where they are; this is the check
 # at the phase that removes them, in clicheck's terms.
 for o in -o -O -o2; do

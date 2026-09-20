@@ -37,9 +37,9 @@ tools/phasebuild.sh "$work" "$before_lines"
 
 # THE CHECK THIS PHASE EXISTS FOR, and it needs a pty: `normal_search()` wants a
 # screen, so silent Ex mode measures something that is not the feature.  See
-# tools/starcheck.py, which also records what the Ex-mode version got wrong.
+# starcheck, which also records what the Ex-mode version got wrong.
 own_checks() {
-    if python3 tools/starcheck.py "$work/whim-vim"; then
+    if tools/st.sh starcheck "$work/whim-vim"; then
         echo "  ident        * still finds the next whole word, and skips foobar"
     else
         echo "  ident        * no longer searches -- it is the half this phase keeps"

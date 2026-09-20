@@ -11,7 +11,7 @@
 # a harness that cannot see a phase must be fixed BEFORE the phase, never after.
 #
 # WHAT WAS WRONG WITH THE OLD QUESTION.  ``ztermcheck`` put the name it was
-# asking about in `$TERM`, which is `tools/termcheck.py`'s question and whim's.  But
+# asking about in `$TERM`, which is `termcheck`'s question and whim's.  But
 # whim phase 19 removed the `getenv("TERM")` from `termcapinit()` -- "the terminal is
 # what the build says" -- and left a compiled `"xterm-256color"` in its place.  So
 # every row of `.reference/zero-baselines/ref-term.txt` read
@@ -31,7 +31,7 @@
 # one facility ZERO-PLAN.md decision 8 promises to survive every phase.  It is NOT
 # `-T {term}`: measured, a `-T` harness records nothing but `(none)` against a binary
 # with no `-T`, which is precisely the failure the tool's own docstring exists to
-# prevent, and `-T` is being abandoned.  `tools/termcheck.py` is imported and
+# prevent, and `-T` is being abandoned.  `termcheck` is imported and
 # untouched -- it is named by tools/whimdelta.sh and tools/verify.sh and its bytes
 # are in every whim stage's key (ZERO-GOAL.md rule 9).
 #
@@ -54,7 +54,7 @@
 # exits 1 naming ref-term.txt; with it, 31 s.
 #
 # NOTHING HERE IS A NUMBER THAT WAS OBSERVED.  The table has as many rows as
-# `tools/termcheck.py` has names; which of them resolve is read out of
+# `termcheck` has names; which of them resolve is read out of
 # `builtin_terminals[]` in the source the phase was handed; and what a REFUSED name
 # leaves the terminal as is measured from the binary, by asking it with no
 # `+set term=` at all.  So the rules below stay true of the phase that deletes eight
@@ -102,6 +102,10 @@ if [ -f "$base/ref-term.txt" ]; then
     if ! python3 - "$base/ref-term.txt" <<'PY'
 import sys
 sys.path.insert(0, 'tools')
+# tools/termcheck.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import termcheck
 rows = open(sys.argv[1]).read().splitlines()
 bad = [r for r in rows if not r.startswith(":set term='")]
@@ -169,7 +173,7 @@ if ! python3 - "$f" "$tmp/term" "$bin" > "$tmp/rule" 2>&1 <<'PY'
 
 Three rules, each read out of something other than this file:
 
-  * one row per name tools/termcheck.py asks about, in that order;
+  * one row per name termcheck asks about, in that order;
   * a name that builtin_terminals[] lists resolves TO ITSELF -- `term=<name>` and no
     error, which is the only thing that says the name reached a table;
   * any other name is refused with an E<digits> code AND leaves the terminal at the
@@ -215,7 +219,7 @@ if not default:
 rows = open(rec).read().splitlines()
 asked = [r[r.index("'") + 1:r.rindex("'")] for r in rows]
 if asked != list(termcheck.TERMS):
-    sys.exit('the table asks about %r, and tools/termcheck.py names %r'
+    sys.exit('the table asks about %r, and termcheck names %r'
              % (asked, list(termcheck.TERMS)))
 
 bad = []

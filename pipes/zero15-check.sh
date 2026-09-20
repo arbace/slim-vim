@@ -17,12 +17,12 @@
 # answer.  So there is no must-differ probe, every behavioural probe is a
 # MUST-NOT-DIFFER, and the weight of the evidence sits on equivalence instead:
 #
-#   tools/muslcase.py --verify   re-derives all 1,114,112 codepoints from THIS
+#   muslcase --verify   re-derives all 1,114,112 codepoints from THIS
 #                                MACHINE'S libc through ctypes and compares them
 #                                with the 187 + 171 rows the phase shipped.  The
 #                                table is checked against the only authority there
 #                                is, not remembered.
-#   tools/muslctype.py --verify  slices the seventeen functions OUT OF THE SOURCE
+#   muslctype --verify  slices the seventeen functions OUT OF THE SOURCE
 #                                THIS PHASE PRODUCED, compiles them with -Wall
 #                                -Wextra and runs them beside libc's.
 #
@@ -230,8 +230,8 @@ print('  %-12s nothing <ctype.h> or <wctype.h> provides is called anywhere and '
 PY
 
 # --- 2. the two equivalence tools, which are the weight of this phase's evidence -------
-python3 tools/muslcase.py --verify "$f"
-python3 tools/muslctype.py --verify "$f"
+tools/st.sh muslcase --verify "$f"
+tools/st.sh muslctype --verify "$f"
 
 # --- 3. the header contract, in both directions ---------------------------------------
 # A check that can only pass is not a check: the SAME deletion is applied to the
@@ -502,7 +502,7 @@ print('  %-12s fourteen probe sessions byte-identical either side and each doing
 print('  %-12s and :undolist, read out of the raw stream because the Press-ENTER '
       'redraw wipes it: %s either side.  `uh_seq` is `++b_u_seq_last`, one assignment '
       'in the file, so no two keys can be equal and the stable insertion sort and '
-      'musl\'s smoothsort cannot disagree -- which tools/muslctype.py proves the '
+      'musl\'s smoothsort cannot disagree -- which muslctype proves the '
       'other way, by showing they DO disagree on three equal keys'
       % ('', ' '.join(oo)))
 PY

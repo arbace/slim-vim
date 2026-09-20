@@ -552,6 +552,10 @@ import re
 import sys
 import tempfile
 sys.path.insert(0, 'tools')
+# tools/termcheck.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import termcheck
 # tools/ptyrun.py -- named as a PATH so tools/implhash.sh hashes it into this
 # phase's key.  implhash greps for paths and an `import` names a module, so
@@ -571,7 +575,7 @@ def ask(binary, name):
 
 
 # A name no row of the table carries, found rather than written: the last row of
-# tools/termcheck.py's list that the new binary refuses.
+# termcheck's list that the new binary refuses.
 with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
     answers = dict(zip(termcheck.TERMS,
                        ex.map(lambda t: ask(new, t), termcheck.TERMS)))

@@ -21,7 +21,7 @@
 #                 Perturbing one produced row must break it, so it is proven able to
 #                 fail.
 #   THE AUTHORITY the musl half is re-derived from THIS MACHINE'S libc through ctypes
-#                 (tools/muslcase.py's `libc()`), not read out of the table the phase
+#                 (muslcase's `libc()`), not read out of the table the phase
 #                 deleted.  So the check does not trust the bytes phase 15 shipped
 #                 either.
 #   THE RULE      nothing this phase changes on the DEFAULT arm may go un-probed, and
@@ -95,7 +95,7 @@ sys.path.insert(0, 'tools')
 # without this line an edit to it changes what this phase produces and moves
 # no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import create_cmdidxs
-import muslcase                      # tools/muslcase.py -- for libc() and nothing else
+import muslcase                      # muslcase -- for libc() and nothing else
 
 TAG = 'casemap'
 new = open(sys.argv[1], errors='surrogateescape').read()

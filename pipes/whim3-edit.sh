@@ -33,7 +33,7 @@
 #
 # THE DELTA, cumulative against slim-vim's baselines: helpclose from phase 1,
 # and now intro and version.  No harness passes an option, so the evidence for
-# the command line is tools/clicheck.py, which runs every one the parser has --
+# the command line is clicheck, which runs every one the parser has --
 # the dropped ones must be unknown and the rest must still do what they say.
 set -eu
 

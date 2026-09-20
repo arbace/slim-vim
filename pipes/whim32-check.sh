@@ -48,7 +48,7 @@ tools/phasebuild.sh "$work" "$before_lines"
 # absent, and insert mode must still insert -- a completion check that only
 # proves completion is gone also passes on a binary that cannot type.
 own_checks() {
-    if python3 tools/complcheck.py "$work/whim-vim"; then
+    if tools/st.sh complcheck "$work/whim-vim"; then
         echo "  compl        insert mode still inserts; CTRL-X CTRL-N completes nothing"
     else
         echo "  compl        insert mode or CTRL-X CTRL-N is not behaving as declared"

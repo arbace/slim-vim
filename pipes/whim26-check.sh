@@ -50,7 +50,7 @@ tools/phasebuild.sh "$work" "$before_lines"
 # on a pty, and require the terminal to come back cooked.  A wedged terminal is
 # the failure this phase is keeping a handler FOR.
 own_checks() {
-    if python3 tools/termrestore.py "$work/whim-vim"; then
+    if tools/st.sh termrestore "$work/whim-vim"; then
         echo "  terminal     SIGTERM still puts the terminal back"
     else
         echo "  terminal     SIGTERM left the terminal raw -- the deathtrap is what"
