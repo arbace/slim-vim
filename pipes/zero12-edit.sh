@@ -11,7 +11,7 @@
 #
 # WHICH ROWS GO IS COMPUTED, NOT LISTED.  The edit walks `options[]`, finds each
 # row's `(char_u *)&p_xx` and counts readers of that global outside the row, with
-# tools/dropoptions.py --strict's own exclusions -- another row, the row's `var`
+# `dropoptions --strict`'s own exclusions -- another row, the row's `var`
 # field, the variable's own declaration, and taking the address, which is an
 # identity test and not a dereference.  Exactly SEVEN of the 114 rows have no
 # reader, and the program requires that set rather than naming six of them:
@@ -28,7 +28,7 @@
 # decision 5 keeps it: the state it reports lives in `b_changed`, not in `p_mod`, so
 # `:set modified?` answers correctly and the row is not a lie.  A computation that
 # took "no reader" as the criterion would delete it, which is why the seven are
-# computed and the six are chosen.  tools/dropoptions.py refuses it anyway, on the
+# computed and the six are chosen.  `dropoptions` refuses it anyway, on the
 # PV_ guard.
 #
 # `'paste'` IS EXEMPT FOR EVER, and this is the comment that says so -- ZERO-PLAN.md
@@ -41,7 +41,7 @@
 #
 # FOUR PARTS.  A and B are the tools' work; C is the only live code here.
 #
-#   A  the four clean rows, `dropoptions.py --strict prompt undoreload write
+#   A  the four clean rows, `dropoptions --strict prompt undoreload write
 #      writeany`.  The sweep then takes the four globals as -Wunused-variable.
 #   B  `'fsync'`, which --strict alone REFUSES -- not on a reader but on the PV_
 #      guard, because the row is what initialises the global ('tagcase' taught that
@@ -162,7 +162,7 @@ say('change_warning 7 (a definition and six calls, and no prototype), '
     'were counted against')
 
 # ---- 1. WHICH ROWS HAVE NO READER, COMPUTED --------------------------------------
-# tools/dropoptions.py --strict's own test, run here over EVERY row, so that the six
+# `dropoptions --strict`'s own test, run here over EVERY row, so that the six
 # this phase drops are a chosen subset of a computed set and not a list.  The
 # exclusions are that tool's and for its reasons: another row of options[] is not a
 # read, nor is the row's own `var` field, nor the variable's declaration -- which is
@@ -217,7 +217,7 @@ if got != WANT:
         % (' '.join('%s(%s)' % kv for kv in sorted(got.items())),
            ' '.join('%s(%s)' % kv for kv in sorted(WANT.items()))))
 say('seven of the 114 rows have no reader of their own global, computed with '
-    "dropoptions.py --strict's own test: fsync modified prompt readonly undoreload "
+    "dropoptions --strict's own test: fsync modified prompt readonly undoreload "
     'write writeany')
 say("and 'modified' is the one that STAYS -- ZERO-PLAN.md decision 5: the state it "
     'reports lives in b_changed and not in p_mod, so the row is not a lie.  A '
@@ -313,18 +313,18 @@ PY
 # --strict is the guard: it refuses a row while anything still reads its global,
 # because the row is what INITIALISES that global.  The sweep takes the four
 # variables afterwards as -Wunused-variable.
-python3 tools/dropoptions.py "$f" --strict prompt undoreload write writeany
+tools/st.sh dropoptions "$f" --strict prompt undoreload write writeany
 
 # ---- B. 'fsync', where --strict alone is NOT the guard --------------------------------
 # The row is PV_BOTH + PV_BUF + BV_FS, so dropoptions stops on the PV_ guard before
 # the reader test is ever reached, and its message talks about a segfault at startup
 # rather than about readers.  droplocal.py is the other half and goes first.
-python3 tools/droplocal.py "$f" b_p_fs
-python3 tools/dropoptions.py "$f" --strict --local fsync
+tools/st.sh droplocal "$f" b_p_fs
+tools/st.sh dropoptions "$f" --strict --local fsync
 
 # ---- C5. 'readonly': the row, then the field -------------------------------------------
-python3 tools/dropoptions.py "$f" --strict --local readonly
-python3 tools/droplocal.py "$f" b_p_ro
+tools/st.sh dropoptions "$f" --strict --local readonly
+tools/st.sh droplocal "$f" b_p_ro
 
 python3 - "$f" <<'PY'
 TAG = 'noopts'
