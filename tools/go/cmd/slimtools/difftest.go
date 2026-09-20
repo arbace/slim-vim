@@ -59,7 +59,7 @@ func runDifftest(args []string) int {
 
 	inputs := args[1:]
 	results := make([]string, len(inputs))
-	var agreed, differed int
+	var agreed, differed, worked int
 	var mu sync.Mutex
 
 	sem := make(chan struct{}, runtime.NumCPU())
@@ -70,9 +70,12 @@ func runDifftest(args []string) int {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			why := compare(self, name, sp, in)
+			why, changed := compare(self, name, sp, in)
 			mu.Lock()
 			defer mu.Unlock()
+			if changed {
+				worked++
+			}
 			if why == "" {
 				agreed++
 			} else {
@@ -90,32 +93,45 @@ func runDifftest(args []string) int {
 			fmt.Println(r)
 		}
 	}
-	fmt.Printf("difftest %s: %d agreed, %d differed, of %d\n", name, agreed, differed, len(inputs))
+	// worked is the number of inputs the PYTHON tool actually changed, and it
+	// is reported because agreement on an input neither side touches is not
+	// evidence.  Measured the hard way: the first run of this harness agreed
+	// on 59 of 59 boundaries, and a deliberately broken build still agreed on
+	// 58 of them -- every recorded boundary is the sweep's OUTPUT, already
+	// canonical, so a canonicaliser finds nothing there.  A run whose exercised
+	// count is 0 has proven nothing, and says so rather than printing a score.
+	fmt.Printf("difftest %s: %d agreed, %d differed, of %d -- %d exercised the tool\n",
+		name, agreed, differed, len(inputs), worked)
+	if worked == 0 {
+		fmt.Printf("difftest %s: VACUOUS -- the tool changed nothing on any input\n", name)
+	}
 	if differed != 0 {
 		return 1
 	}
 	return 0
 }
 
-// compare runs both implementations on their own copy of one input and
-// returns "" when they agree, or a description of the first difference.
-func compare(self, name string, sp spec, in string) string {
+// compare runs both implementations on their own copy of one input.  It
+// returns "" when they agree, or a description of the first difference, and
+// whether the Python side changed the file at all -- which is what says
+// whether this case was evidence or merely agreement about doing nothing.
+func compare(self, name string, sp spec, in string) (string, bool) {
 	dir, err := os.MkdirTemp("", "difftest.")
 	if err != nil {
-		return fmt.Sprintf("mkdtemp: %v", err)
+		return fmt.Sprintf("mkdtemp: %v", err), false
 	}
 	defer os.RemoveAll(dir)
 
 	src, err := os.ReadFile(in)
 	if err != nil {
-		return fmt.Sprintf("read: %v", err)
+		return fmt.Sprintf("read: %v", err), false
 	}
 	base := filepath.Base(in)
 	pyFile := filepath.Join(dir, "py."+base)
 	goFile := filepath.Join(dir, "go."+base)
 	for _, f := range []string{pyFile, goFile} {
 		if err := os.WriteFile(f, src, 0o644); err != nil {
-			return fmt.Sprintf("write: %v", err)
+			return fmt.Sprintf("write: %v", err), false
 		}
 	}
 
@@ -124,25 +140,26 @@ func compare(self, name string, sp spec, in string) string {
 
 	pyBytes, err := os.ReadFile(pyFile)
 	if err != nil {
-		return fmt.Sprintf("read back python: %v", err)
+		return fmt.Sprintf("read back python: %v", err), false
 	}
 	goBytes, err := os.ReadFile(goFile)
 	if err != nil {
-		return fmt.Sprintf("read back go: %v", err)
+		return fmt.Sprintf("read back go: %v", err), false
 	}
+	changed := !bytes.Equal(src, pyBytes)
 
 	if !bytes.Equal(pyBytes, goBytes) {
 		return fmt.Sprintf("FILE differs: python %d bytes, go %d bytes%s",
-			len(pyBytes), len(goBytes), firstDiff(pyBytes, goBytes))
+			len(pyBytes), len(goBytes), firstDiff(pyBytes, goBytes)), changed
 	}
 	if lastLine(pyOut) != lastLine(goOut) {
 		return fmt.Sprintf("STDOUT differs:\n      python: %s\n      go:     %s",
-			lastLine(pyOut), lastLine(goOut))
+			lastLine(pyOut), lastLine(goOut)), changed
 	}
 	if pyCode != goCode {
-		return fmt.Sprintf("EXIT differs: python %d, go %d", pyCode, goCode)
+		return fmt.Sprintf("EXIT differs: python %d, go %d", pyCode, goCode), changed
 	}
-	return ""
+	return "", changed
 }
 
 func run(bin string, args []string) (string, int) {
