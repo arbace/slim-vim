@@ -78,6 +78,33 @@ the Go refuses with one line. Those two cannot agree textually, and a harness
 that called them equal would be lying; what is required of them instead is the
 property that matters, that both exit non-zero and neither writes the file.
 
+## Two more these encode, learned the same day
+
+**A difference that is only punctuation is still a difference a diff refuses.**
+Python's `%r` is single-quoted and Go's `%q` is double, so `starcheck`'s
+complaint differed in nothing but the shape of a quote — and the temptation is
+to loosen the comparison to accept it, which gives up the only evidence a
+one-bit probe has. `harness.pyRepr` is Python's `repr` instead. The same shape
+in the other session's lane: a backtick is inert in a `#` comment and
+*executes* inside a double-quoted shell string, and several of those sat in
+`die "…"` strings on error paths, which evaluate only when a check is already
+failing.
+
+**Correct-for-what-it-was-given stops being correct when a second caller
+arrives.** That `pyRepr` already existed in `termcheck.go` as
+`"'" + s + "'"` — right for terminal names, none of which needs escaping, and
+wrong the moment a probe passed it a buffer. There was nothing to notice
+before the second caller: the function had no bug, it had a scope nobody had
+written down. The fix is one definition, and the check that it changed nothing
+is `termcheck` byte-identical on the same binary, 19 rows.
+
+**A generated file needs a `--check`, or "regenerating is how it is checked" is
+a claim and not a fact.** `genmuslctype.py --check` regenerates into memory and
+compares. It caught its own file stale within the session that added it: an
+`ErrReported` edit went into the generated Go and not into the generator, and
+without the check an edit to `tools/muslctype.py` would have left the Go copy
+behind while both sides went on testing the old driver against itself.
+
 ## What is not here
 
 Some of these are one-off debugging scripts from a single afternoon, kept rather
