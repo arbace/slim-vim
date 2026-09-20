@@ -31,17 +31,7 @@ f="$work/whim-vim.c"
 # --- first: prove there is nothing to cut ---------------------------------
 # If a menu or spell command ever acquires a real handler again, this phase is
 # no longer the whole story and should say so rather than quietly do half of it.
-live=$(python3 - "$f" <<'PY'
-import re, sys
-rows = dict((m.group(2), m.group(3)) for m in re.finditer(
-    r'\[CMD_(\w+)\] = \{\(char_u \*\)"([^"]*)", sizeof\([^)]*\) - 1,\s*(\w+)\s*,',
-    open(sys.argv[1], errors='surrogateescape').read()))
-names = ('menu amenu nmenu vmenu imenu cmenu omenu xmenu smenu tmenu unmenu '
-         'menutranslate emenu popup tunmenu tlmenu spell spellgood spellwrong '
-         'spellrare spellundo spelldump spellinfo spellrepall mkspell').split()
-print(' '.join(n for n in names if rows.get(n, 'ex_ni') != 'ex_ni'))
-PY
-)
+live=$(tools/st.sh query whim2 "$f")
 if [ -n "$live" ]; then
     echo "  commands     still implemented, so this phase is incomplete: $live"
     exit 1

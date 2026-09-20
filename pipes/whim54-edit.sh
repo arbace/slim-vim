@@ -20,13 +20,7 @@ f="$work/whim-vim.c"
 # And a row's flags can wrap onto a second line -- 'diffopt', 'foldmarker',
 # 'guifont', 'guifontwide', 'breakindentopt' and 'undodir' -- so the flag list
 # allows whitespace; a first version without it left those six behind.
-names=$(python3 - "$f" <<'PY'
-import re, sys
-t = open(sys.argv[1], errors='surrogateescape').read()
-rows = re.findall(r'^[ \t]*\{"(\w+)",\s*(?:"\w*"|NULL),\s*P_[\w|\s]+,\s*\(char_u ?\*\)NULL,\s*PV_NONE,', t, re.M)
-print(' '.join(rows))
-PY
-)
+names=$(tools/st.sh query whim54 "$f")
 n=$(echo $names | wc -w)
 [ "$n" -gt 100 ] || { echo "  novar        found only $n rows without a variable -- the pattern stopped matching"; exit 1; }
 echo "  novar        $n options have no variable"

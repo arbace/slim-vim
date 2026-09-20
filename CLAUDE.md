@@ -1096,17 +1096,29 @@ Python *by being blind in the same places*, and nothing in the other three could
 have shown it. That is zero phase 33's argument about the terminal table,
 arriving at a change of recorder.
 
-**What is NOT ported is the inline Python**, and it is the larger half: **225
-heredocs, 34,284 lines**, 76 in edit parts (18,472 lines) and 147 in checks
-(15,779). Classified, there is **no collapsing idiom** — 94 are bespoke drivers
-over `cutil`, 60 are bespoke regex programs, and exactly **one** of 225 is the
-simple "assert a literal occurs once and replace it" shape. So that port is
-authorship and not a swap. Two things decide how it should go: a check part is
-an argument that executes and 12,429 lines of `pipes/` is that argument, which
-Go would move into `//` comments above three times the code; and **Go's RE2 has
-neither lookaround nor backreferences**, where 24 heredocs use the first and 20
-the second, concentrated in zero 13–24. Six of the 57 cutters already needed a
-hand-written scanner for exactly this.
+**The inline Python was the larger half, and whim's edits are now out of it.**
+At the cutover there were **225 heredocs, 34,284 lines**, 76 in edit parts
+(18,472 lines) and 147 in checks (15,779). Classified, there is **no collapsing
+idiom** — 94 are bespoke drivers over `cutil`, 60 are bespoke regex programs, and
+exactly **one** of 225 is the simple "assert a literal occurs once and replace
+it" shape. So that port is authorship and not a swap.
+
+**Every whim edit part is Go**: `grep -l 'python3 -' pipes/whim*-edit.sh` is
+empty, 34 heredocs across 31 files and 5,340 lines gone, each one a
+`tools/st.sh edit whim<N> "$f"` onto `tools/go/internal/edit/`. What is left is
+**191 heredocs, 28,828 lines** — 42 zero edit parts (13,016 lines; zero 12 holds
+two, which is why 42 and not 41), 145 zero checks and two whim checks (15,779
+between them), and two whole-phase zero programs.
+
+**The checks are deliberately staying Python**, which is a decision and not a
+backlog: a check part is an argument that executes, 12,429 lines of `pipes/` is
+that argument, and Go would move it into `//` comments above three times the
+code. **Go's RE2 has neither lookaround nor backreferences**, where 24 heredocs
+use the first and 20 the second, concentrated in zero 13–24 — and that is also
+where the remaining edit work is hardest. Six of the 57 cutters already needed a
+hand-written scanner for exactly this; per `tools/gocmp/re2size.py` only zero 35
+and 36 need one among the edit parts, 30 of zero's 32 edit-part lookarounds
+being the local kind a byte test replaces.
 
 `tools/README.md` has the detail, including those six cutters and what replaces
 each, and `tools/gocmp/` is every comparison that produced the port's numbers,

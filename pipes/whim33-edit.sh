@@ -41,31 +41,6 @@ tools/st.sh retire "$f" shell gui gvim cdo cfdo ldo lfdo vim9cmd \
     digraphs redrawtabpanel colorscheme
 
 # --- ex_listdo's questions about commands that no longer reach it ---------------
-python3 - "$f" <<'EOF'
-import re
-import sys
-sys.path.insert(0, 'tools')
-# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
-# phase's key.  implhash greps for paths and an `import` names a module, so
-# without this line an edit to it changes what this phase produces and moves
-# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
-import cutil
-path = sys.argv[1]
-text = open(path, errors='surrogateescape').read()
-a, z = cutil.find_definition(text, 'ex_listdo')
-body = text[a:z]
-for what, pattern in (
-    ('the winfixbuf refusal for :ldo and :lfdo',
-     r'^[ \t]*if \(\(eap->cmdidx == CMD_ldo \|\| eap->cmdidx == CMD_lfdo\) && !eap->forceit\)$'),
-    ('the quickfix commands answering not implemented',
-     r'^[ \t]*if \(eap->cmdidx == CMD_cdo \|\| eap->cmdidx == CMD_ldo \|\| eap->cmdidx == CMD_cfdo \|\| eap->cmdidx == CMD_lfdo\)$'),
-):
-    try:
-        body = cutil.fold_never(body, pattern, 1, re.M)
-    except ValueError as e:
-        sys.exit('whim33: %s -- %s' % (what, e))
-    print('  listdo       %s: gone' % what)
-open(path, 'w', errors='surrogateescape').write(text[:a] + body + text[z:])
-EOF
+tools/st.sh edit whim33 "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim33-check.sh.

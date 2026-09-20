@@ -56,6 +56,45 @@ then does `.replace(r'\ ', r'\s*')` to widen it, and without the escape
 there is nothing to find. And Python's `%r` is single-quoted where Go's
 `%q` is double, which is `cutil.PyRepr`.
 
+### internal/edit — one phase's own transformation
+
+A cutter in `internal/cut/` is a rule several phases share.  `internal/edit/`
+is the other kind: the `python3 - "$f" <<'PY'` blocks that were inside a phase
+program, run for one boundary and nowhere else.  **Every whim edit part is
+here** -- 34 heredocs across 31 files, reached as `tools/st.sh edit whim<N>
+"$f"` through one registry rather than 34 subcommands.  `registerArgs()` and
+`slimtools edit <phase> <file> [args...]` are for the one phase that writes a
+second file: whim80 hands its check the prefix table at `$state/words`.
+
+`driver.go` is the scaffolding those 34 share, and it is the only part of the
+225 heredocs that DOES collapse: `CountIs`, `Sub`, `Cut`, `Lines`, `Literal`,
+`FoldNever`/`FoldAlways`/`DropIf` and their counted forms, `InFunction`,
+`Splice`, `DropBlocks`.  Errors accumulate and halt, as `sys.exit` did.
+
+**`FoldNeverCount` and `FoldNeverN` are not the same port**, and choosing wrong
+costs two blank lines in 74,000 lines with no other symptom.  `*Count` hands the
+count straight to `cutil.FoldNever`, which folds the FIRST match n times over --
+the port of `cutil.fold_never(t, pat, n, re.M)`.  `*N` splits the text at the
+LAST match and folds the tail, so cutil's blank-line tidy, which asks whether
+the text BEFORE the fold ends in two newlines, cannot see the head.  Measured on
+whim79.  `*Many` and `*Repeat` differ again, in whether the report carries the
+count, because three phases spell that three ways and the report is what a port
+must reproduce.
+
+**`BodyOf` is the DEFINITION and not the body**, parameter list included.
+whim79 asks whether `wc_use_keyname` mentions `wcp`, and `long *wcp` is in its
+signature, so the whole-definition form can never pass.  The heredocs' `body_of`
+slices from `{\n` to the last `}`, which `whim79.go`'s `innerBody` reproduces.
+
+**A port must be faithful to warts.**  whim80 holds `tab_start` from step 1 and
+asserts against it after eight acts have moved the text underneath; the Go keeps
+the stale index rather than recomputing it, because recomputing asserts
+something else.
+
+`tools/gocmp/editcmp.sh` is what gates these, and `tools/gocmp/genlits.py`
+extracts a heredoc's multi-line literals as Go constants rather than letting
+anyone retype a block of C whose blank lines a filtered read does not show.
+
 **ORDER IS OUTPUT.** Every cutter prints a line as each edit succeeds, so
 the sequence of calls IS the sequence of lines. Go invites grouping edits
 of the same shape into a loop; two cutters were written that way and the

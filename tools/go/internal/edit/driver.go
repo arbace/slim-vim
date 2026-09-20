@@ -118,6 +118,45 @@ func (e *E) DropIf(pattern, what string) { e.fold(pattern, what, cutil.DropIf) }
 // where DropIf removes the test and its braces.
 func (e *E) FoldAlways(pattern, what string) { e.fold(pattern, what, cutil.FoldAlways) }
 
+// FoldNeverCount, FoldAlwaysCount and DropIfCount hand the COUNT to cutil,
+// which folds the first match n times over, and are not FoldNeverN: that one
+// splits the text at the LAST match and folds the tail, so the fold sees a
+// slice whose head has been cut away and cutil's blank-line tidy -- which asks
+// whether the text BEFORE the fold ends in two newlines -- cannot see it.
+// Measured on whim79, where the two shapes differ by two blank lines in a
+// 74,000-line tree and by nothing else.  A phase whose Python passes n straight
+// to cutil.fold_never must use these.
+func (e *E) FoldNeverCount(pattern string, n int, what string) {
+	e.foldN(pattern, n, what, cutil.FoldNever)
+}
+
+// FoldAlwaysCount is FoldNeverCount for the other arm.
+func (e *E) FoldAlwaysCount(pattern string, n int, what string) {
+	e.foldN(pattern, n, what, cutil.FoldAlways)
+}
+
+// DropIfCount is FoldNeverCount for a test that is now always true.
+func (e *E) DropIfCount(pattern string, n int, what string) {
+	e.foldN(pattern, n, what, cutil.DropIf)
+}
+
+func (e *E) foldN(pattern string, n int, what string, f func([]byte, string, int) ([]byte, error)) {
+	if e.err != nil {
+		return
+	}
+	e.CountIs(pattern, n, what)
+	if e.err != nil {
+		return
+	}
+	out, err := f(e.text, pattern, n)
+	if err != nil {
+		e.die("%s -- %v", what, err)
+		return
+	}
+	e.text = out
+	e.say(what)
+}
+
 func (e *E) fold(pattern, what string, f func([]byte, string, int) ([]byte, error)) {
 	if e.err != nil {
 		return
@@ -495,4 +534,13 @@ func (e *E) foldIn(fn, pattern, what string, n int, f func([]byte, string, int) 
 	if !e.Failed() {
 		e.say(what)
 	}
+}
+
+// BodyOf returns the text of a file-scope definition, or "" and false.
+func (e *E) BodyOf(name string) ([]byte, bool) {
+	a, z, ok := cutil.FindDefinition(e.text, cutil.Blank(e.text), name)
+	if !ok {
+		return nil, false
+	}
+	return e.text[a:z], true
 }
