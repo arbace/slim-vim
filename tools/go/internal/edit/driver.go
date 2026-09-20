@@ -409,3 +409,22 @@ func (e *E) Splice(from, to, with, what string) {
 	out = append(out, with...)
 	e.text = append(out, e.text[b:]...)
 }
+
+// Body replaces a function's whole body with the given text, which is BodyTrue
+// generalised -- see there for why the whole body and not an early return.
+func (e *E) Body(name, newBody, what string) {
+	e.InFunction(name, func(e *E) {
+		if e.Failed() {
+			return
+		}
+		i := indexFrom(e.text, []byte("{\n"), 0)
+		if i < 0 {
+			e.die("%s -- no body", name)
+			return
+		}
+		head := append([]byte{}, e.text[:i+2]...)
+		head = append(head, newBody...)
+		e.text = append(head, []byte("}\n")...)
+		e.say(what)
+	})
+}
