@@ -450,3 +450,9 @@ func runNosession(args []string) int {
 		return cut.NoSession(t, w)
 	})
 }
+
+func runOnebuffer(args []string) int {
+	return oneFile(args, "onebuffer", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.OneBuffer(t, w)
+	})
+}

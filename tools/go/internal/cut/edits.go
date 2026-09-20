@@ -14,6 +14,14 @@ import (
 //
 // The report column is the same in every tool -- two spaces, the name padded
 // to thirteen -- so it is written once here rather than per message.
+//
+// ORDER IS OUTPUT.  Every one of these prints a line as it succeeds, so the
+// sequence of calls IS the sequence of lines, and a Go port that groups edits
+// of the same shape into a loop -- which they invite, being four one-line
+// literal replacements in four different functions -- emits the same lines in
+// a different order and the comparison differs on every input that cuts.  It
+// happened twice: oneoptset's sixteen edits and onebuffer's four.  Follow the
+// Python's order even where it looks arbitrary.
 type ed struct {
 	tool string
 	w    io.Writer
