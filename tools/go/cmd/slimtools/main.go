@@ -43,7 +43,7 @@ var order = []string{
 	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
 	"memo", "memokey", "phaserun", "snapshot",
 	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx",
-	"treedigest", "phasename", "restore", "stages",
+	"treedigest", "phasename", "restore", "stages", "whimdelta", "declared",
 	"parse", "difftest",
 }
 
@@ -74,6 +74,8 @@ var tools = map[string]tool{
 	"phasename":  {runPhasename, "phasename <phase> [pipeline]"},
 	"restore":    {runRestore, "restore <in.tar> <dir>"},
 	"stages":     {runStages, "stages <pipeline> [--of N | --check]"},
+	"whimdelta":  {runWhimdelta, "whimdelta <binary> <source> --phase N"},
+	"declared":   {runDeclared, "declared <delta-file> <phase>"},
 	"memo":       {runMemo, "memo <unit> <work-dir> <build-dir> [pipeline]"},
 	"snapshot":   {runSnapshot, "snapshot <dir> <out.tar> <out.sha256>"},
 	"memokey":    {runMemokey, "memokey <unit> <build-dir> [pipeline]"},
