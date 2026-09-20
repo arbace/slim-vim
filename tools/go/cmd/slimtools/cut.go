@@ -294,3 +294,21 @@ func runNohome(args []string) int {
 		return cut.NoHome(t, w)
 	})
 }
+
+func runNocmdargs(args []string) int {
+	return oneFile(args, "nocmdargs", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoCmdArgs(t, w)
+	})
+}
+
+func runNoinert(args []string) int {
+	return oneFile(args, "noinert", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoInert(t, w)
+	})
+}
+
+func runNoarglist(args []string) int {
+	return oneFile(args, "noarglist", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoArgList(t, w)
+	})
+}
