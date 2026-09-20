@@ -68,13 +68,18 @@ it is the only one.
 
 ## Layout
 
-Four hundred and fifty-nine tracked files once all three pipelines have run
+Six hundred and forty-two tracked files once all three pipelines have run
 (`git ls-files`): nineteen at the root, 268 under `pipes/` — the phase programs,
 twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and eighty-seven for
 `zero.mk`'s forty-six, and each staged pipeline's stage manifest and declared delta — and
-172 under `tools/` — the passes, the harnesses, the canonicalisers and cutters the
-phases call, the memoize driver, a `README.md`, and the data a pass cannot derive:
-`renames.txt`, `patches/` and `templates/`. Four of the nineteen are products
+355 under `tools/`. Those 355 are three things and it is worth keeping them apart:
+**175** are the passes, the harnesses, the canonicalisers and cutters the
+phases call, the memoize driver, a `README.md`, and the data a pass cannot derive
+(`renames.txt`, `patches/` and `templates/`); **130** are `tools/go/`, the
+toolset the sweep and the canonicalisers actually run, which `tools/implhash.sh`
+hashes as a directory; and **50** are `tools/gocmp/`, the comparisons that
+produced the Go port's numbers against the Python each replaces, named by no
+phase program and in no key. Four of the nineteen are products
 (`slim-vim.c`, `whim-vim.c`, `zero-vim.c`, `LICENSE`), three are records
 (`upstream.sha`, `slim.sha`, `whim.sha`), and the other twelve — `WHIM-PLAN.md`
 and `.gitignore` among them — `tools/` and `pipes/` are the seed.
@@ -1054,28 +1059,91 @@ between the two pipelines' recordings.
 
 **The sweep and the canonicalisers are Go, and so is every whim/zero cutter.**
 `tools/sweep.sh` and `tools/canon.sh` are four-line wrappers onto one
-`slimtools` binary built from `tools/go/`; the 264 phase programs call them by
-the same paths with the same arguments and were not edited. Both wrappers name
-their Go sources in comments, so `implhash.sh` still hashes the implementation
-into every phase's key -- `implhash` greps for paths and does not know what a
-comment is, which is the mechanism the Python `import` comments already use.
-All 57 cutters the whim and zero pipelines call have a Go counterpart in
-`tools/go/internal/cut/`; the nineteen slim-only ones do not, the slim pipeline
-being out of scope for that work. **The Python tools are all still here and
-still work** -- nothing was deleted, and the two wrappers are the only files a
-phase reaches that changed. `tools/README.md` has the detail, including the six
-cutters that depend on a lookaround RE2 does not have and what replaces each.
+`slimtools` binary built from `tools/go/` by `tools/gobuild.sh`; the 264 phase
+programs call them by the same paths with the same arguments and were not
+edited. All 57 cutters the whim and zero pipelines call have a Go counterpart in
+`tools/go/internal/cut/`, though nothing runs them yet; the nineteen slim-only
+ones have none, the slim pipeline being out of scope for that work. **The Python
+tools are all still here and still work** — nothing was deleted, and the three
+files a phase reaches that changed are the two wrappers and `implhash.sh`.
+`tools/README.md` has the detail, including the six cutters that depend on a
+lookaround RE2 does not have and what replaces each, and `tools/gocmp/` is every
+comparison that produced the port's numbers, run against the Python each
+replaces.
 
-**It was gated the way this section asks.** `make slim-verify` 12 of 12,
-`make whim-verify` 13 of 13 and `make zero-verify` 45 of 46 -- the one zero
-failure being the harness's and not the sweep's, shown two ways: the failing
-unit's output tree digests EQUAL to the recorded boundary, and a control run
-with the Python sweep restored scoring the same 45 of 46 on a different unit.
-Three runs have failed three different units by the two mechanisms this file
-already documents as open. Speed is a wash where the work is not the sweep:
+**The Go toolchain is now a hard dependency of every pipeline**, where `python3`
+and `gcc` were enough before: no Go, no sweep. `modernc.org/cc/v4@v4.29.7` is
+pinned in `tools/go/go.mod` and patched by `tools/patches/cc-v4-c23.patch` for
+two C23 productions it lacks, and `gobuild.sh` composes them into `.cache/`
+rather than vendoring — a patched `vendor/` fails `go mod verify` and is silently
+overwritten by the next re-vendor. Measured: the module resolves from the local
+module cache with `GOPROXY=off`, so `make clean-cache` is safe on a machine with
+no network, but a fresh one needs a fetch.
+
+**The cutover's own claim about `implhash.sh` was false, and that is the whole
+reason the hasher now hashes a directory.** It was written as *the wrappers name
+their Go sources in comments, so implhash still hashes the implementation* —
+the `cutil.py`/`macros.py` mechanism above — and `deps()` matched
+`(py|sh|txt|mk|patch)` with no `go` in it. Measured on whim 13-41, each with the
+control that says the test can fail: editing `tools/go/internal/sweep/sweep.go`
+moved **nothing** where editing `tools/sweep.sh` moved `5167f167 → ce069cdc`,
+and over that same edit `gobuild.sh` built a **different binary**,
+`.cache/gobin/6299d7c16bab003e → 85d00b718029a8b7`. The implementation changed,
+the binary changed, and the memoize could not tell — which is this file's own
+hazard at the scale of the whole sweep. `tools/patches/cc-v4-c23.patch` was
+invisible for a *second* reason, and the two must not be confused: it is three
+hops from a phase program (program → `sweep.sh` → `gobuild.sh` → patch) and
+`deps()` is applied twice, so no change to the regex would have reached it. The
+wrappers name it directly now.
+
+**The fix hashes a DIRECTORY and not a list of files**, because `gobuild.sh`
+already defines the binary's identity as every file under `tools/go` plus
+`go.mod`, `go.sum` and the patch — so a computed traversal of that tree is
+*exact*, not an over-approximation. A curated list was the artifact that failed:
+the wrappers named 18 of 128 `.go` files, and four the sweep certainly reaches —
+`cutil/body.go`, `cutil/definition.go`, `cutil/split.go`, `canon/strings.go` —
+were in neither. It takes every file with no name filter, deliberately: a filter
+is another curated list and can drop a real dependency, where taking everything
+can only admit one that should not be there. The cost is stated rather than
+hidden — `internal/harness/` and `internal/cut/` are hashed too, so editing a
+dormant cutter re-runs every phase.
+
+**`tools/implhash.sh` hashes ITSELF into some keys and not others, and nobody
+chose that.** `deps()` returns any `tools/…` path a program's text names, and
+this file's own convention is to write such a path into a *comment* so the
+grep can see it — so a comment that merely **talks about** the hasher charges its
+bytes to that phase's key. `tools/termcheck.py`, `tools/pipeline.sh`,
+`tools/plant.py`, `tools/resolve.py`, `tools/canon.sh`, `tools/dropmacros.py`,
+`tools/expand.py` and `tools/toenum.py` each explain `implhash.sh` in prose, so
+slim 1, 5, 6 and 9 and zero 0, 3 and 33 all carry its bytes while whim 0 does
+not. Measured with a control: appending one comment line to `implhash.sh` moves
+slim 1 (`66e00026 → 5055d424`) and slim 9 (`c7cb0299 → 03ba6443`) and leaves whim
+0 at `ac6ae604` exactly. **The convention cannot distinguish "I depend on X" from
+"I am talking about X"**, which is the same blindness that makes it work at all.
+It is over-inclusive and therefore safe — an extra key costs CPU and never a
+wrong boundary — and it is left alone on purpose: making it uniform means hashing
+the hasher into every key, which is a decision about whether the memoize's own
+algorithm is part of the implementation it memoizes.
+
+**It was gated the way this section asks, and it does NOT meet the "should move
+no key" half.** `make slim-verify` 12 of 12 (347 s of phases in 113 s),
+`make whim-verify` 13 of 13 (1,293 s in 477 s) and `make zero-verify` **46 of
+46** — r32 and r41 failed under 64-way load and both reproduce their recorded
+digests alone, `00b6b2bf1584` in 50 s and `8b24aa615879` in 36 s against 121 s
+and 127 s, which is the `zpty.py` stall this file already documents. **143 of the
+153 keys move**, and they cannot not: `sweep.sh` and `canon.sh` are what the
+phase programs name. That is the shape adding zero had, and `create_cmdidxs.py`'s
+floor, and `orphanopts.py`'s. The ten that hold are whim 0, slim 0, 2, 3, 4, 8,
+10 and 11, and zero 1 and 40.
+
+**The sweep was checked against the one it replaces, and not only against the
+boundaries.** The pre-cutover Python `sweep.sh` and `canon.sh` out of the history,
+run on zero phase 42's real unswept output — 79,380 lines, three rounds, 86 lines
+removed, so not two no-ops agreeing — give **byte-identical output and a
+byte-identical report**, the skip cache's `passed this text already` entries
+included. 15.7 s against 8.6 s. Speed is a wash where the work is not the sweep:
 zero's 46 units are 3,723 s of phases with Go against 3,744 s with Python,
-because zero's phases are gcc and recordings. The sweep itself went from
-15.675 s to 8.353 s on zero42's unswept output.
+because zero's phases are gcc and recordings.
 
 **`tools/` is shared, and a change to it is gated.** A tool a whim or slim phase
 names must leave `make whim-verify` and `make slim-verify` passing, and should move
@@ -1885,6 +1953,31 @@ after**. A deadline is still there and it is the failure path: a wait that reach
 it writes a `stalled` section into the record, says so on stderr and exits 1,
 rather than returning a short capture silently.
 
+**And fourteen zero checks throw that message away, so the phase fails with
+nothing printed.** `tools/zrecord.sh` is started in the background as
+`… >/dev/null 2>&1 &` and collected later by a bare `wait $pid` under `set -eu`,
+so a stalled recording exits the check with rc 1 and no output at all. Measured:
+in one `make zero-verify`, r41 printed `zpty.py: NO REDRAW ENDED INSIDE THE
+DEADLINE` — its recording is in the foreground — while **r32 printed a successful
+assertion as its last line and then exited 1**, and the two failures are the same
+stall. The shape is in the checks of zero phases 21, 25, 26, 27, 28, 29, 30, 31,
+32, 34, 35, 36, 37 and 41. It is NOT the failure `verifypass.sh` was hardened
+against: these do fail, and the harness does say which unit and where its log is.
+What is lost is only the reason — but the reason is what tells a reader whether
+the phase is wrong or the machine was busy, so a whole verify can be spent
+looking for an assertion that never failed. **A check that backgrounds work must
+capture its output and print it when the `wait` refuses.** Not fixed here: it is
+fourteen phase programs and their keys, and it deserves a pass of its own.
+
+**The stall itself has a favourite scenario, which is worth knowing before
+blaming a phase.** `zpty.py`'s `sel_arrows` is the newest of the five — added with
+the `keymodel=startsel` repair — and it is the longest and the only one that
+presses a modified key. r41's stall was on it. Two units failing out of 46 under
+64-way load, both passing alone in less than half the time they took to fail, is
+the load and not the tree; the check is to re-run the unit by itself
+(`sh tools/verifypass.sh --one zero <N> <scratch>`, after `rm -rf` of that unit's
+directory and result, which it will not overwrite).
+
 **The Ex-command sweep dispatches all 600 command names, each from its own
 scratch directory.** `:mkvimrc`, `:mkexrc`, `:mksession`, `:mkview` and
 `:wviminfo` write into the cwd; run from the repository root they get committed
@@ -2296,11 +2389,15 @@ are cheap and idempotent — re-run them all to a fixpoint at the end**:
 `untab.py` and `undowhile.py` are each a no-op on this file now, and that is a
 check worth keeping, not just a fact. **That list is not `canon.sh`'s**, and
 the difference is where the run of two blank lines below went unnoticed:
-`canon.sh` runs `blankruns.py`, `joinparens.py`, `splitheads.py`, `brace.py`,
-`onestmt.py`, `onedecl.py` and `forcomma.py`, in that order, while `untab.py`
-is nobody's and `undowhile.py` is `pipes/slim9.sh`'s directly. `forcomma.py` is
-a no-op here too — it finds three `for` init clauses with a top-level comma and
-declines all three — and `blankruns.py` is the one that is **not**.
+`canon.sh` runs seven passes in a fixed order — `blankruns`, `joinparens`,
+`splitheads`, `brace`, `onestmt`, `onedecl`, `forcomma` — while `untab.py` is
+nobody's and `undowhile.py` is `pipes/slim9.sh`'s directly. Since the Go
+cutover those seven are `tools/go/internal/canon/` and **not** the `.py` files
+of the same names, which are still here and still run standalone; the list
+above is of the Python tools, and that is the point of the sentence rather
+than an oversight. `forcomma` is a no-op here too — it finds three `for` init
+clauses with a top-level comma and declines all three — and `blankruns` is the
+one that is **not**.
 
 **No parenthesised group spans a line break.** Every condition is on one line,
 and so is every argument list — of a call, a declaration or a definition. A
@@ -2343,7 +2440,7 @@ none follows an opening brace. **There is one run of two blank lines**, at line
 banner. Phase 10 deleted the declaration that stood between them and `canon.sh`
 runs in phases 7 and 9 only, so nothing re-canonicalises after it — which is
 the lesson above arriving one phase later than it is told. Whim's first stage
-takes it: `blankruns.py` collapses the run, and every whim and zero boundary
+takes it: `blankruns` collapses the run, and every whim and zero boundary
 from q12 on has none.
 
 That is a consequence of how the comments were removed, and it is the one thing

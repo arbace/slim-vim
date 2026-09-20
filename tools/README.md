@@ -224,13 +224,14 @@ nothing re-ran the pass that would have found them.
 `onedecl.py` · `undowhile.py`
 
 `canon.sh`'s own seven are a different set, in a fixed order that matters:
-`blankruns.py` · `joinparens.py` · `splitheads.py` · `brace.py` ·
-`onestmt.py` · `onedecl.py` · `forcomma.py`. `untab.py` is in no loop and
-`undowhile.py` is `pipes/slim9.sh`'s. Of the two this list omits, `forcomma.py`
-is a no-op on `slim-vim.c` and **`blankruns.py` is not** — it collapses the one
-run of two blank lines the file has, at line 41,086. So "each of these is
-currently a no-op" is true of the seven named above and is not true of every
-canonicaliser.
+`blankruns` · `joinparens` · `splitheads` · `brace` · `onestmt` · `onedecl` ·
+`forcomma` — and since the cutover those are `tools/go/internal/canon/`, not the
+`.py` files of the same names, which are still here and still run on their own.
+`untab.py` is in no loop and `undowhile.py` is `pipes/slim9.sh`'s. Of the two
+this list omits, `forcomma` is a no-op on `slim-vim.c` and **`blankruns` is
+not** — it collapses the one run of two blank lines the file has, at line
+41,086. So "each of these is currently a no-op" is true of the seven named above
+and is not true of every canonicaliser.
 
 `decomment.py` is the same kind of pass but is *not* a no-op — it would take
 the 245 banners with it. It is here for the rule it enforces, which nothing

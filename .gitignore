@@ -38,7 +38,12 @@ zero/
 
 # Tier 3 of the memoize: phase results, keyed by input digest and
 # implementation digest together.  Pure cache -- content-keyed, so it cannot go
-# stale, and deleting it costs only the time to recompute.
+# stale, and deleting it costs only the time to recompute.  Since the Go
+# cutover it also holds what tools/gobuild.sh composes: gobin/ (the slimtools
+# binary, keyed on every file under tools/go plus go.mod, go.sum and the cc/v4
+# patch) and gofork/ (the pinned cc/v4 module with that patch applied).  Both
+# are content-keyed the same way and rebuild from the local Go module cache,
+# measured with GOPROXY=off, so `make clean-cache` needs no network.
 .cache/
 
 # The transient insight log, folded into SLIM-GOAL.md and CLAUDE.md and then deleted.
