@@ -41,6 +41,7 @@ var order = []string{
 	"blankruns", "joinparens", "splitheads", "brace", "onestmt", "onedecl", "forcomma",
 	"sweep", "canon",
 	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
+	"implhash", "parts",
 	"parse", "difftest",
 }
 
@@ -60,6 +61,8 @@ var tools = map[string]tool{
 	"deadenums":  {runDeadenums, "deadenums <file> <enumvals.txt> [--delete|--verify]"},
 	"deadsweep":  {runDeadsweep, "deadsweep <file> [--keep <dir>]"},
 	"sweep":      {runSweep, "sweep <file.c>"},
+	"implhash":   {runImplhash, "implhash [--edit] <unit> [pipeline]"},
+	"parts":      {runParts, "parts <pipeline> <unit>"},
 	"parse":      {runParse, "parse <file.c>"},
 	"difftest":   {runDifftest, "difftest <tool> <file>..."},
 }
