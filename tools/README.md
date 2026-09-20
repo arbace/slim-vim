@@ -123,20 +123,45 @@ phase edits, whose input is a boundary that compiled.
   lock, in a child process, because a `copy2` in one thread and a `fork` in another
   make `execve` fail with `Text file busy` — 15 of 18 units of one loaded
   `make zero-verify`.
-- **`zcases.py`**, **`zexcmds.py`**, **`zargv.py`**, **`zpty.py`** — the four
-  corpora: 102 keystroke cases that type their own text under `'paste'`, every Ex
-  command name typed at `:` and recorded by the message it prints, every command
-  line the parser may see, and the four pty scenarios for what only a terminal
-  shows (the window size from `TIOCGWINSZ`, raw mode, the arrow keys in Normal
-  mode). `zpty.py` types the next key when the redraw before it has **ended** — one
+- **`zcases.py`**, **`zexcmds.py`**, **`zargv.py`**, **`zpty.py`**,
+  **`zmemline.py`** — the five corpora: 102 keystroke cases that type their own
+  text under `'paste'`, every Ex command name typed at `:` and recorded by the
+  message it prints, every command line the parser may see, the five pty scenarios
+  for what only a terminal shows (the window size from `TIOCGWINSZ`, raw mode, the
+  arrow keys in Normal mode and a **shifted** arrow, which is the one that found
+  `keymodel=startsel` had never worked), and sixteen memline cases of 200 to 25,000
+  lines. `zpty.py` types the next key when the redraw before it has **ended** — one
   more `\x1b[?25h` — and not when a clock says the editor has been quiet, and its
   child sets the window size before it execs: both were races, 16 of 60 runs under
-  load before and 0 of 60 after. **`zrecord.sh <binary> <source> <outdir>`** runs all four and
-  `ztermcheck.py` at once, in 5 s, and that is one *recording*.
-- **`ztermcheck.py`** — `termcheck.py` with one difference: it asks without a file
-  argument, because from zero phase 5 a file argument is an unknown option and the
-  original's nineteen rows all read `(none)`. It imports `termcheck.py` and replaces
-  its `ask()`, so the terminal list, the isolation and the format cannot drift;
+  load before and 0 of 60 after. **`zrecord.sh <binary> <source> <outdir>`** runs all
+  five and `ztermcheck.py` at once, in 5 s, and that is one *recording* — six parts
+  and 122 records.
+- **`zmemline.py`** is the sixth part and zero phase 40 is the reason it exists:
+  every one of the 102 screen cases allocates exactly **one** data block, so a
+  `zero-vim` with `pp->pb_pointer[idx].pe_line_count--` deleted from
+  `ml_find_line()`'s descent recorded all 102 byte for byte and forty phases had
+  been verified by a corpus that could not see the text layer at all. Its sixteen
+  cases are built **in the editor** — there is no file argument, no `:edit` and no
+  `:read` — and its depth is measured rather than intended: a data block splits in
+  16 of 16 and the **root** splits in 4, against 0 of 102 for all seven markers. A
+  memline record carries `stream N redraws` and no digest, because an undo's age
+  leaks into the column of the `\033[K` that clears it and hashing the scrubbed
+  stream would not close it; what replaces the digest is stronger — both clocks the
+  core can read replaced by runaway counters move 0 of 16 memline records against 9
+  of the 102 screen cases.
+- **`ztermcheck.py`** — `termcheck.py` asked twice differently, for two reasons a
+  phase apart. It asks **without a file argument**, because from zero phase 5 a file
+  argument is an unknown option and the original's nineteen rows all read `(none)`;
+  and since zero phase 33 it asks **`+set term={name}`** and not `$TERM`, because
+  whim phase 19 removed the `getenv("TERM")` the editor read that with, so all
+  nineteen rows answered `term=xterm-256color t_Co=256` — nineteen ways of recording
+  that the environment does nothing. That was measured and not suspected: a
+  prototype deleting eight of the ten built-in terminal names and three capability
+  tables passed `zcompare.py` declaring nothing at all. The new question reaches
+  `did_set_term()`, a refused name answers `E522` **and** the terminal the editor
+  stayed on, and with one row deleted from `builtin_terminals[]` the new table moves
+  1 of 19 where the old moved 0. It imports `termcheck.py` and replaces its `ask()`
+  and `one()`, so the terminal list, the isolation and the format cannot drift;
   `termcheck.py` is left alone because whim's and slim's keys read its bytes.
 - **`muslcase.py`**, **`muslctype.py`** — zero phase 15's two equivalence tools, and
   neither trusts the bytes the phase shipped. `muslcase.py --generate` writes musl's
