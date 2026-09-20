@@ -97,6 +97,45 @@ func runZhostonly(args []string) int {
 	return 0
 }
 
+// runZargv is tools/zargv.py.
+func runZargv(args []string) int {
+	if len(args) != 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools zargv <vim-binary> <outfile>")
+		return 1
+	}
+	if err := harness.ZArgv(args[0], args[1], os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+// runZexcmds is tools/zexcmds.py.
+func runZexcmds(args []string) int {
+	if len(args) != 3 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools zexcmds <vim-binary> <table> <outfile>")
+		return 1
+	}
+	if err := harness.ZExCmds(args[0], args[1], args[2], os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+// runZcases is tools/zcases.py.
+func runZcases(args []string) int {
+	if len(args) != 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools zcases <vim-binary> <outdir>")
+		return 1
+	}
+	if err := harness.ZCases(args[0], args[1], os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
 // runCmdnames is create_cmdidxs.names(): the Ex command table, in order.  It
 // is exposed so the parse can be compared against the Python's without
 // running the editor six hundred times.
