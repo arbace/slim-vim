@@ -360,3 +360,15 @@ func runOptreaders(args []string) int {
 		return cut.OptReaders(t, w)
 	})
 }
+
+func runNoowner(args []string) int {
+	return oneFile(args, "noowner", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoOwner(t, w)
+	})
+}
+
+func runNogetenv(args []string) int {
+	return oneFile(args, "nogetenv", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoGetEnv(t, w)
+	})
+}
