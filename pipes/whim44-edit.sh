@@ -20,29 +20,6 @@ work=${1:?usage: whim44-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
 tools/st.sh retire "$f" '!' sort uniq retab left center right
-python3 - "$f" <<'EOF'
-import re
-import sys
-sys.path.insert(0, 'tools')
-# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
-# phase's key.  implhash greps for paths and an `import` names a module, so
-# without this line an edit to it changes what this phase produces and moves
-# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
-import cutil
-path = sys.argv[1]
-t = open(path, errors='surrogateescape').read()
-t, n = re.subn(r"^([ \t]*\{'!', )nv_operator(, 0, 0\} ,)$", r"\1nv_error\2", t, flags=re.M)
-if n != 1:
-    sys.exit('whim44: the ! operator row -- matched %d times' % n)
-print("  filters      the ! operator's row points at nv_error")
-a, z = cutil.find_definition(t, 'set_context_by_cmdname')
-s, n = re.subn(r'^[ \t]*case CMD_retab:\n[ \t]*xp->xp_context = EXPAND_RETAB;\n[ \t]*xp->xp_pattern = arg;\n[ \t]*break;\n\n',
-               '', t[a:z], flags=re.M)
-if n != 1:
-    sys.exit('whim44: completion for :retab -- matched %d times' % n)
-t = t[:a] + s + t[z:]
-print('  filters      completion for :retab')
-open(path, 'w', errors='surrogateescape').write(t)
-EOF
+tools/st.sh edit whim44 "$f"
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim44-check.sh.
