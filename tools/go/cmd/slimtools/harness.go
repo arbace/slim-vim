@@ -340,3 +340,66 @@ func runMuslcase(args []string) int {
 	}
 	return 0
 }
+
+// runStarcheck is tools/starcheck.py: does `*` still find the next whole word?
+func runStarcheck(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools starcheck <vim-binary>")
+		return 1
+	}
+	if err := harness.StarCheck(args[0], os.Stdout); err != nil {
+		if err != harness.ErrReported {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		return 1
+	}
+	return 0
+}
+
+// runTermrestore is tools/termrestore.py: does a killed editor put the
+// terminal back?
+func runTermrestore(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools termrestore <vim-binary>")
+		return 1
+	}
+	if err := harness.TermRestore(args[0], os.Stdout); err != nil {
+		if err != harness.ErrReported {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		return 1
+	}
+	return 0
+}
+
+// runComplcheck is tools/complcheck.py: insert mode still inserts, and CTRL-X
+// CTRL-N no longer completes.
+func runComplcheck(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools complcheck <vim-binary>")
+		return 1
+	}
+	if err := harness.ComplCheck(args[0], os.Stdout); err != nil {
+		if err != harness.ErrReported {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		return 1
+	}
+	return 0
+}
+
+// runClicheck is tools/clicheck.py: every command-line option, the dropped ones
+// unknown and the kept ones doing what they say.
+func runClicheck(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools clicheck <vim-binary>")
+		return 1
+	}
+	if err := harness.CliCheck(args[0], os.Stdout); err != nil {
+		if err != harness.ErrReported {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		return 1
+	}
+	return 0
+}

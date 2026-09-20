@@ -109,8 +109,3 @@ func ask(bin string, env []string, t string, settle time.Duration) []string {
 	}
 	return got
 }
-
-// pyRepr is Python's repr() for these strings: single quotes, and nothing in
-// this list needs escaping.  The recorded baselines carry that spelling, so a
-// port that printed the bare name would move every row.
-func pyRepr(s string) string { return "'" + s + "'" }
