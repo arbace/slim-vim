@@ -65,6 +65,10 @@ type winsize struct {
 	rows, cols, x, y uint16
 }
 
+// unsafePointerOf lets another file in this package hand a winsize to ioctl
+// without importing unsafe itself.
+func unsafePointerOf(v *winsize) unsafe.Pointer { return unsafe.Pointer(v) }
+
 // Session runs the binary under a pty, types the keys, and returns the output
 // with ANSI sequences stripped, plus the wait status.
 //

@@ -136,6 +136,43 @@ func runZcases(args []string) int {
 	return 0
 }
 
+// runZtermcheck is tools/ztermcheck.py.
+func runZtermcheck(args []string) int {
+	if len(args) != 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools ztermcheck <vim-binary> <outfile>")
+		return 1
+	}
+	if err := harness.ZTermCheck(args[0], args[1], os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+// runZpty is tools/zpty.py.
+func runZpty(args []string) int {
+	if len(args) != 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools zpty <vim-binary> <outfile>")
+		return 1
+	}
+	if err := harness.ZPty(args[0], args[1], os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
+// runZmemline is tools/zmemline.py.
+func runZmemline(args []string) int {
+	if len(args) != 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools zmemline <vim-binary> <outdir>")
+		return 1
+	}
+	if err := harness.ZMemline(args[0], args[1], os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
 // runCmdnames is create_cmdidxs.names(): the Ex command table, in order.  It
 // is exposed so the parse can be compared against the Python's without
 // running the editor six hundred times.

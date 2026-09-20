@@ -42,7 +42,7 @@ var order = []string{
 	"sweep", "canon",
 	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
 	"memo", "memokey", "phaserun", "snapshot", "verifypass", "specpass",
-	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx", "orphanopts", "exsweep", "cmdnames", "behaviour", "termcheck", "zscreen", "zhostonly", "zargv", "zexcmds", "zcases",
+	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx", "orphanopts", "exsweep", "cmdnames", "behaviour", "termcheck", "zscreen", "zhostonly", "zargv", "zexcmds", "zcases", "ztermcheck", "zpty", "zmemline",
 	"treedigest", "phasename", "restore", "stages", "whimdelta", "declared",
 	"parse", "difftest",
 }
@@ -79,6 +79,9 @@ var tools = map[string]tool{
 	"zargv":      {runZargv, "zargv <vim-binary> <outfile>"},
 	"zexcmds":    {runZexcmds, "zexcmds <vim-binary> <table> <outfile>"},
 	"zcases":     {runZcases, "zcases <vim-binary> <outdir>"},
+	"ztermcheck": {runZtermcheck, "ztermcheck <vim-binary> <outfile>"},
+	"zpty":       {runZpty, "zpty <vim-binary> <outfile>"},
+	"zmemline":   {runZmemline, "zmemline <vim-binary> <outdir>"},
 	"phaserun":   {runPhaserun, "phaserun <pipeline> <unit> <work-dir>"},
 	"treedigest": {runTreedigest, "treedigest <work-dir>"},
 	"phasename":  {runPhasename, "phasename <phase> [pipeline]"},
