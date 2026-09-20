@@ -4,8 +4,19 @@ tools/muslctype.py by IMPORT rather than by transcription.
 The driver is 230 lines of C.  Retyping it into a Go literal is the one step of
 this port where a silent difference could hide -- a changed constant in the
 random walk, a dropped case in the edge table -- and neither the compile nor the
-comparison would name it.  So it is generated, and regenerating is how it is
-checked.
+comparison would name it.  So it is generated.
+
+--check IS WHAT MAKES THAT TRUE, and without it the previous sentence was a
+claim rather than a fact.  The commit that added this file said "regenerating is
+how it is checked" and nothing regenerated: an edit to tools/muslctype.py's
+driver would leave tools/go/internal/harness/muslctype.go stale, the Go would go
+on compiling and the comparison would go on passing, because both sides would be
+testing the OLD driver against itself.  That is the same shape as a tool reached
+by import naming no path -- the thing that actually changed is invisible to
+everything downstream of it.
+
+    python3 tools/gocmp/genmuslctype.py            rewrite the Go
+    python3 tools/gocmp/genmuslctype.py --check    require it to be current
 """
 import subprocess
 import sys
@@ -131,7 +142,7 @@ func MuslCtypeVerify(path string, out *os.File) error {
 			s = s[:2000]
 		}
 		fmt.Fprintln(out, s)
-		return fmt.Errorf("muslctype: the block does not compile clean")
+		return ErrReported
 	}
 	run := exec.Command(bin)
 	stdout, err := run.Output()
@@ -205,7 +216,7 @@ func MuslCtypeVerify(path string, out *os.File) error {
 		for _, line := range fail {
 			fmt.Fprintf(out, "  %%-12s %%s\\n", muslCtypeTag, strings.TrimSpace(strings.TrimPrefix(line, "  "+muslCtypeTag)))
 		}
-		return fmt.Errorf("muslctype: %%d checks failed", len(fail))
+		return ErrReported
 	}
 	fmt.Fprintf(out, "  %%-12s the block compiled OUT OF THE PRODUCED SOURCE agrees with libc: "+
 		"%%d int values (bounded -- all 2^32 were checked once, 0 disagreements, and "+
@@ -221,6 +232,15 @@ func MuslCtypeVerify(path string, out *os.File) error {
 def main():
     src = GO % {'START': lit('START'), 'END': lit('END'), 'MAIN': lit('MAIN')}
     p = pathlib.Path('tools/go/internal/harness/muslctype.go')
+    if '--check' in sys.argv[1:]:
+        if not p.exists():
+            sys.exit('%s does not exist; run this without --check' % p)
+        if p.read_text() != src:
+            sys.exit('%s is NOT what tools/muslctype.py generates -- the vendored\n'
+                     'C driver has moved and the Go copy is stale.  Re-run this '
+                     'without --check.' % p)
+        print('%s is current with tools/muslctype.py' % p)
+        return
     p.write_text(src)
     print('wrote %s (%d lines)' % (p, src.count('\n') + 1))
 

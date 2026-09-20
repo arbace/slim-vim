@@ -25,9 +25,14 @@
 #                the probe's OWN vacuity guard and must fail
 #   clicheck     slim-vim has every option, so all 30 dropped ones are wrong;
 #                whim-vim has had most of the kept ones removed by later
-#                phases.  Both must fail, and identically -- this is the one
-#                probe with no passing binary in the tree, and it is reported
-#                as such rather than papered over.
+#                phases.  The PASSING binary is q12's.
+#
+# THAT LAST ONE IS A GENERAL NOTE AND IT WAS FIRST GOT WRONG HERE.  This script
+# said clicheck had no passing binary in the tree, which was true of the three
+# PRODUCTS and false of the tree: a check runs on its STAGE's output, not its
+# phase's, and whim phase 3 lives in stage 1-12 -- so the tree it was written
+# against is .build-whim/q12.tar, which is on disk.  When a tool has no passing
+# product, look for its stage boundary before concluding there is none.
 set -eu
 
 [ -d tools ] && [ -d pipes ] || { echo "probecmp: run me from the repository root" >&2; exit 1; }
@@ -39,6 +44,19 @@ echo "building the three products" >&2
 SOURCE_DATE_EPOCH=0 gcc -O0 -static -s -o "$work/slim-vim" slim-vim.c
 SOURCE_DATE_EPOCH=0 gcc -O0 -static -s -o "$work/whim-vim" whim-vim.c
 SOURCE_DATE_EPOCH=0 gcc -O0 -fno-stack-protector -static -no-pie -s -o "$work/zero-vim" zero-vim.c
+
+# clicheck's passing binary is the output of the stage its phase lives in.  A
+# missing boundary is REPORTED and fails the run: silently dropping the arm is
+# how an unexercised half comes to look like a passing whole.
+q12=
+if [ -f .build-whim/q12.tar ]; then
+    mkdir -p "$work/q12"
+    tar xf .build-whim/q12.tar -C "$work/q12"
+    if [ -f "$work/q12/whim-vim.c" ]; then
+        SOURCE_DATE_EPOCH=0 gcc -O0 -static -s -o "$work/q12-vim" "$work/q12/whim-vim.c"
+        q12=$work/q12-vim
+    fi
+fi
 
 same=0; differ=0; passes=0; fails=0
 
@@ -65,6 +83,13 @@ one termrestore "$work/whim-vim" whim-vim
 one termrestore /bin/cat         cat
 one clicheck    "$work/slim-vim" slim-vim
 one clicheck    "$work/whim-vim" whim-vim
+if [ -n "$q12" ]; then
+    one clicheck "$q12" q12
+else
+    echo "  MISSING clicheck's passing binary: .build-whim/q12.tar is not here," >&2
+    echo "          so this run only ever saw clicheck refuse" >&2
+    differ=$((differ + 1))
+fi
 
 echo "probecmp: $same same, $differ differ -- $passes runs the Python passed, $fails it refused"
 [ "$differ" -eq 0 ] || exit 1
