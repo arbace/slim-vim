@@ -57,6 +57,8 @@ var specs = map[string]spec{
 
 	"deadprotos": {script: "tools/deadprotos.py"},
 	"typereach":  {script: "tools/typereach.py", args: []string{"--delete"}},
+	"funcreach":  {script: "tools/funcreach.py", args: []string{"--delete"}},
+	"deadfields": {script: "tools/deadfields.py", args: []string{"--delete"}},
 }
 
 func runDifftest(args []string) int {

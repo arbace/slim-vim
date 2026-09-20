@@ -96,6 +96,104 @@ func runTypereach(args []string) int {
 	return 0
 }
 
+// runFuncreach is tools/funcreach.py.
+//
+// Its <100-definition floor exits 1 with a message on stderr, and the sweep
+// carries on regardless: pass() runs the tool through a pipe to tail, so the
+// status is tail's and set -e never sees it.  That is a warning and not a
+// stop, and it is reproduced as one.
+func runFuncreach(args []string) int {
+	del := false
+	var files []string
+	for _, a := range args {
+		if strings.HasPrefix(a, "--") {
+			if a == "--delete" {
+				del = true
+			}
+			continue
+		}
+		files = append(files, a)
+	}
+	if len(files) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools funcreach <file> [--delete]")
+		return 1
+	}
+	text, err := os.ReadFile(files[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	defs, reachable, deadNames, deadLines := dead.FuncReach(text)
+	if len(defs) < dead.MinDefinitions {
+		fmt.Fprintf(os.Stderr, "funcreach: only %d definitions found, which cannot be right "+
+			"for this file -- the shape it matches has changed, and acting "+
+			"on the answer would delete most of the program\n", len(defs))
+		return 1
+	}
+	fmt.Printf("  funcreach    %d definitions, %d reachable, %d not (%d lines)\n",
+		len(defs), reachable, len(deadNames), deadLines)
+	if len(deadNames) > 0 && del {
+		if err := writeFile(files[0], dead.DeleteFuncs(text, defs, deadNames)); err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+		n := len(deadNames)
+		if n > 6 {
+			n = 6
+		}
+		tail := ""
+		if len(deadNames) > 6 {
+			tail = "..."
+		}
+		fmt.Printf("  funcreach    deleted: %s%s\n", strings.Join(deadNames[:n], ", "), tail)
+	}
+	return 0
+}
+
+// runDeadfields is tools/deadfields.py.
+//
+// Its exit polarity is the OPPOSITE of deadsweep's and is reproduced as it
+// stands: 0 when nothing was found, 1 when fields were.  Nothing depends on
+// either today, because pass() masks both, but a drop-in matches what it
+// replaces rather than what would be tidier.
+func runDeadfields(args []string) int {
+	del := false
+	var files []string
+	for _, a := range args {
+		if a == "--delete" {
+			del = true
+			continue
+		}
+		files = append(files, a)
+	}
+	if len(files) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools deadfields <file> [--delete]")
+		return 1
+	}
+	text, err := os.ReadFile(files[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	cands, refused := dead.DeadFields(text)
+	if refused {
+		fmt.Println("  deadfields   not while ml_recover() can read a swap file: " +
+			"a struct layout is still a disk format")
+		return 0
+	}
+	if del && len(cands) > 0 {
+		if err := writeFile(files[0], dead.DeleteFields(text, cands)); err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+	}
+	fmt.Printf("  deadfields   %d fields nothing outside a type names\n", len(cands))
+	if len(cands) == 0 {
+		return 0
+	}
+	return 1
+}
+
 // droppedTail is the Python's report suffix: the first four names, and an
 // ellipsis when there were more.
 func droppedTail(dropped [][]byte) string {
