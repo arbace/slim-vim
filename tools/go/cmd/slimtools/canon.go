@@ -54,6 +54,29 @@ func runOnedecl(args []string) int {
 	})
 }
 
+// runBrace is the one canonicaliser that prints TWO lines.  tools/sweep.sh
+// reads only the last -- `said=$("$@" | tail -1)` -- but a drop-in matches
+// what a program writes and not only what its caller happens to read.
+func runBrace(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools brace <file>")
+		return 1
+	}
+	src, err := os.ReadFile(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	out, doTerms, braced, nIn, nOut := canon.Brace(src)
+	fmt.Printf("%d do-terminating while lines identified\n", doTerms)
+	if err := writeFile(args[0], out); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	fmt.Printf("%d bodies braced; %d lines -> %d\n", braced, nIn, nOut)
+	return 0
+}
+
 // runForcomma is the one canonicaliser with a second argument.  --check
 // suppresses the write; nothing in tools/ or pipes/ passes it, and it is here
 // so the CLI is a drop-in rather than nearly one.

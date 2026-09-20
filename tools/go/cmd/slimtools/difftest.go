@@ -39,6 +39,7 @@ var specs = map[string]spec{
 	"onestmt":    {script: "tools/onestmt.py"},
 	"onedecl":    {script: "tools/onedecl.py"},
 	"forcomma":   {script: "tools/forcomma.py"},
+	"brace":      {script: "tools/brace.py"},
 }
 
 func runDifftest(args []string) int {

@@ -38,7 +38,7 @@ type tool struct {
 // Go-shaped version of the determinism trap the Python tools avoid by sorting
 // before they report.
 var order = []string{
-	"blankruns", "joinparens", "splitheads", "onestmt", "onedecl", "forcomma",
+	"blankruns", "joinparens", "splitheads", "brace", "onestmt", "onedecl", "forcomma",
 	"parse", "difftest",
 }
 
@@ -49,6 +49,7 @@ var tools = map[string]tool{
 	"onestmt":    {runOnestmt, "onestmt <file>"},
 	"onedecl":    {runOnedecl, "onedecl <file>"},
 	"forcomma":   {runForcomma, "forcomma <file> [--check]"},
+	"brace":      {runBrace, "brace <file>"},
 	"parse":      {runParse, "parse <file.c>"},
 	"difftest":   {runDifftest, "difftest <tool> <file>..."},
 }
