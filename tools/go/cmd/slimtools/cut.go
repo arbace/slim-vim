@@ -330,3 +330,15 @@ func runNocmdopts(args []string) int {
 		return cut.NoCmdOpts(t, w)
 	})
 }
+
+func runNobuflist(args []string) int {
+	return oneFile(args, "nobuflist", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoBufList(t, w)
+	})
+}
+
+func runNofloat(args []string) int {
+	return oneFile(args, "nofloat", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoFloat(t, w)
+	})
+}

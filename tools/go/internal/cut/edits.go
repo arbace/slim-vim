@@ -53,6 +53,16 @@ func (e ed) foldNever(seg []byte, pattern, what string) ([]byte, error) {
 	return out, nil
 }
 
+// foldAlways folds a condition that is now always true.
+func (e ed) foldAlways(seg []byte, pattern, what string) ([]byte, error) {
+	out, err := cutil.FoldAlways(seg, "(?m)"+pattern, 1)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %s -- %v", e.tool, what, err)
+	}
+	e.say(what)
+	return out, nil
+}
+
 // inFunction applies an edit to ONE function's text and splices it back, so a
 // pattern that would match elsewhere in the file cannot.
 func (e ed) inFunction(text []byte, name string, edit func([]byte) ([]byte, error)) ([]byte, error) {
