@@ -363,3 +363,49 @@ func (e *E) FoldAlwaysMany(pattern string, n int, what string) {
 func (e *E) DropIfMany(pattern string, n int, what string) {
 	e.repeatSay(pattern, n, what, cutil.DropIf, n > 1)
 }
+
+// BodyTrue replaces a function's WHOLE body with `return TRUE;`.
+//
+// Not a `return TRUE;` inserted at the top, which is the obvious shape and the
+// wrong one: leaving the old body behind leaves unreachable code that NO
+// WARNING NAMES.  gcc reports an unused local and says nothing about a loop
+// that can never run, so the sweep would strip the locals and keep the walk
+// over the window list -- dead code that looks deliberate.
+func (e *E) BodyTrue(name, what string) {
+	e.InFunction(name, func(e *E) {
+		if e.Failed() {
+			return
+		}
+		i := indexFrom(e.text, []byte("{\n"), 0)
+		if i < 0 {
+			e.die("%s -- no body", name)
+			return
+		}
+		head := append([]byte{}, e.text[:i+2]...)
+		e.text = append(head, []byte("    return TRUE;\n}\n")...)
+		e.say(what)
+	})
+}
+
+// Splice replaces everything between two literal anchors -- inclusive of the
+// first, exclusive of the second -- with the given text.
+//
+// TWO NARROW SPLICES ARE OFTEN RIGHT WHERE ONE WIDE ONE IS WRONG, which is
+// whim68's lesson: a single cut from aucmd_win[]'s search through `curbuf =
+// buf;` also swallows aco->save_curwin_id and aco->save_prevwin_id, which the
+// surviving else branch reads back through win_find_by_id() -- and it would
+// have COMPILED, restoring from uninitialised stack.
+func (e *E) Splice(from, to, with, what string) {
+	if e.err != nil {
+		return
+	}
+	a := indexFrom(e.text, []byte(from), 0)
+	b := indexFrom(e.text, []byte(to), 0)
+	if a < 0 || b < 0 || a >= b {
+		e.die("%s", what)
+		return
+	}
+	out := append([]byte{}, e.text[:a]...)
+	out = append(out, with...)
+	e.text = append(out, e.text[b:]...)
+}
