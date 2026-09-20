@@ -238,3 +238,41 @@ func runCmdnames(args []string) int {
 	}
 	return 0
 }
+
+// runCmdidxs is tools/create_cmdidxs.py.  No flag prints the generated block,
+// --check requires the file's block to match it, --update rewrites it.
+func runCmdidxs(args []string) int {
+	var path, mode string
+	for _, a := range args {
+		if strings.HasPrefix(a, "--") {
+			mode = a
+		} else if path == "" {
+			path = a
+		}
+	}
+	if path == "" {
+		fmt.Fprintln(os.Stderr, "usage: slimtools cmdidxs <file> [--check|--update]")
+		return 1
+	}
+	switch mode {
+	case "--check":
+		if err := harness.CheckCmdIdxs(path); err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			return 1
+		}
+		fmt.Printf("%s: ex_cmdidxs block reproduces byte for byte\n", path)
+	case "--update":
+		if err := harness.UpdateCmdIdxs(path); err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			return 1
+		}
+	default:
+		names, err := harness.CommandNames(path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			return 1
+		}
+		fmt.Print(harness.GenerateCmdIdxs(names))
+	}
+	return 0
+}

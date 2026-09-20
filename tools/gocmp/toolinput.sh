@@ -15,12 +15,20 @@
 # BEFORE the tool, and a multi-line invocation only ever extends further down.
 set -eu
 cd /root/slim-vim/.claude/worktrees/go-tools
-out=${GOCMP_CORPUS:-.cache/gocorpus}/phases
+out=${GOCMP_CORPUS:-.gocorpus}/phases
 mkdir -p "$out"
 
 for tool in "$@"; do
-    script=$(grep -rl "tools/$tool\.py" pipes/whim*-edit.sh pipes/zero*-edit.sh 2>/dev/null | head -1)
-    [ -n "$script" ] || { echo "toolinput: no edit script names tools/$tool.py"; continue; }
+    # A TOOL IS NAMED TWO WAYS NOW and this must match both, or it goes quiet.
+    # The cutover to `tools/st.sh <tool>` replaces the literal `tools/<tool>.py`
+    # at every swapped call site, so a locator that greps only for the Python
+    # path finds NO edit script for a swapped tool, prints one line, and
+    # continues -- after which that tool has no per-tool corpus and every
+    # comparison of it reports VACUOUS.  The harness would go quiet exactly
+    # where the porting work had already succeeded, which is the worst possible
+    # place for it to.
+    script=$(grep -rlE "tools/$tool\.py|tools/st\.sh +$tool\b" pipes/whim*-edit.sh pipes/zero*-edit.sh 2>/dev/null | head -1)
+    [ -n "$script" ] || { echo "toolinput: no edit script runs $tool"; continue; }
     base=$(basename "$script" -edit.sh)          # e.g. whim3
     n=${base#whim}; n=${n#zero}
     src=$out/$base-in.c
@@ -32,8 +40,8 @@ for tool in "$@"; do
     # then handed a tree that nocompl.py had not cut, where its docomplete
     # literal does not match.  Both implementations refused identically, which
     # is how it showed up as VACUOUS rather than as a difference.
-    line=$(grep -n "^[^#]*python3 tools/$tool\.py" "$script" | head -1 | cut -d: -f1)
-    [ -n "$line" ] || line=$(grep -n "tools/$tool\.py" "$script" | head -1 | cut -d: -f1)
+    line=$(grep -nE "^[^#]*(python3 +tools/$tool\.py|tools/st\.sh +$tool\b)" "$script" | head -1 | cut -d: -f1)
+    [ -n "$line" ] || line=$(grep -nE "tools/$tool\.py|tools/st\.sh +$tool\b" "$script" | head -1 | cut -d: -f1)
     work=$(mktemp -d); state=$(mktemp -d); trunc=$(mktemp)
     head -n $((line - 1)) "$script" > "$trunc"
     cp "$src" "$work/${base%%[0-9]*}-vim.c" 2>/dev/null || true

@@ -16,7 +16,7 @@ same=0; diff=0; cut=0; refused=0
 
 run() {   # run <label> <args...>
     label=$1; shift
-    for src in ${GOCMP_CORPUS:-.cache/gocorpus}/*/*.c; do
+    for src in ${GOCMP_CORPUS:-.gocorpus}/*/*.c; do
         a=$(mktemp); b=$(mktemp)
         cp "$src" "$a"; cp "$src" "$b"
         pa=$(python3 tools/dropopts.py "$a" "$@" 2>&1 || echo "EXIT$?")

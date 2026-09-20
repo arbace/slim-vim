@@ -23,7 +23,7 @@ bin=$(sh tools/gobuild.sh)
 same=0; diff=0; cut=0; refused=0; crash=0
 
 for tool in "$@"; do
-    for src in ${GOCMP_CORPUS:-.cache/gocorpus}/*/*.c; do
+    for src in ${GOCMP_CORPUS:-.gocorpus}/*/*.c; do
         a=$(mktemp); b=$(mktemp)
         cp "$src" "$a"; cp "$src" "$b"
         pa=$(python3 "tools/$tool.py" "$a" 2>&1 || echo "EXIT$?")

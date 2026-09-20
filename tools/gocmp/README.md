@@ -13,7 +13,18 @@ time a test changed.
 ## Build the corpus first
 
 The comparisons need C to run against, and the useful C is not one file but
-three populations. `$GOCMP_CORPUS` defaults to `.cache/gocorpus`.
+three populations. `$GOCMP_CORPUS` defaults to `.gocorpus`.
+
+**It is NOT under `.cache/`, and that is the whole of why this paragraph
+exists.** It was, and `make clean-cache` is `rm -rf .cache` -- so a routine
+cold pass destroyed every input these scripts are judged against, correctly and
+without a warning. `.cache/` documents itself as a place where "throwing it
+away costs only the time to recompute"; an evidence corpus does not have that
+property, because recomputing it needs a full set of boundaries in
+`.build-whim`, `.build-zero` and `.build-slim`, and `--unswept` needs the phase
+edit programs to run. `.gocorpus/` is gitignored and is reached by no `clean`
+target: not `clean`, which removes binaries, not `slim-clean`/`whim-clean`/
+`zero-clean`, which remove `.build-*`, and not `clean-cache`.
 
 ```sh
 sh tools/gocorpus.sh                    # recorded boundaries: whim-q*.c, zero-r*.c, slim
