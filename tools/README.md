@@ -136,6 +136,33 @@ the only part of the 225 heredocs that DOES collapse: `CountIs`, `Sub`, `Cut`, `
 `FoldNever`/`FoldAlways`/`DropIf` and their counted forms, `InFunction`,
 `Splice`, `DropBlocks`.  Errors accumulate and halt, as `sys.exit` did.
 
+**Three things a CHECK comparison must get right**, found while one check was
+ported end to end as a probe (`tools/gocmp/checkcmp.sh` on the other session's
+branch, deliberately unmerged -- see below).  Each would have made the
+comparison pass while proving nothing.
+
+- **`tools/phasecheck.sh` CONSUMES `$state/symbols`.**  Seed the control from
+  the pristine state directory, never from the one the pass has already used:
+  otherwise both sides refuse on a missing file and differ only in how `cp` and
+  Go each spell "no such file".
+- **`sed -i '200i\'` inserts NOTHING.**  The control silently became a second
+  copy of the pass and printed the whole success report.  That is *a harness
+  that diffs an output file it did not first delete* one door over; the working
+  form is `awk 'NR == 200 { print "" } { print }'`.
+- **THE REPORT IS THE MESSAGE.**  A `done()` that returns a *described* error
+  makes the driver print a line the phase never wrote -- and only on FAILURE, so
+  a port checked against the passing report alone can never see it.  It returns
+  a bare sentinel; the report is what the phase said and nothing else.
+
+**And the probe is not merged, which is measured rather than squeamish.**
+`implhash.sh` hashes `tools/go` as a directory with no name filter, so a new
+package under it re-keys phases that will never run it: sampled ten units with
+the probe present and absent, **6 of 10 move** -- zero 16, 27, 39, whim 13-41
+and 82, slim 9 -- and the four that hold are zero 0, whim 0, slim 0 and slim 1,
+whose programs name nothing reaching `tools/go`.  931 lines nothing executes
+would buy a full repass, ~4,950 s of phases.  `tools/gocmp/` is free; a package
+under `tools/go/` is not.
+
 **Three helpers went generic because two sessions wrote one each.**
 `contains` (whim80 over `[]string`, zero25 over `[]int`), `first` (whim80 over
 `[]string`, zero42 over `[]int`) and `sortedKeys` (whim79 over
