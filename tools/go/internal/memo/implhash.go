@@ -9,7 +9,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -33,6 +35,35 @@ import (
 // move no key.
 var depPath = regexp.MustCompile(`(tools|pipes)/[A-Za-z0-9_/-]+\.(py|sh|txt|mk|patch|go|mod|sum)`)
 
+// depDir is the other half of that rule and it was MISSING HERE, which is the
+// defect this comment exists to keep from recurring.
+//
+// A bare directory mention -- `tools/go/` -- expands to every file under it.
+// The two implementations of this key diverged at the cutover commit, where
+// tools/sweep.sh became a wrapper naming .go paths that this regexp matched
+// and the shell's did not, and the gap widened when the shell gained the
+// directory rule and this file did not follow.  Fifty-five of seventy-one unit
+// keys disagreed and nothing noticed, because nothing runs both.
+//
+// (?m) is load-bearing.  grep applies the pattern per LINE, so its `$` is end
+// of line; Go's default `$` is end of TEXT, which would match the directory at
+// the very end of a file and nowhere else.
+//
+// The trailing class is what keeps `tools/patches/x.patch` from being read as
+// a directory: the character after the final slash must not continue a path.
+// It also means a BARE `tools/` mention expands nothing, because the pattern
+// needs a second slash -- measured, `see tools/ for more` yields no match
+// while `and tools/go/ here` yields `tools/go/`.
+var depDir = regexp.MustCompile(`(?m)(tools|pipes)/[A-Za-z0-9_/-]*/([^A-Za-z0-9_/.-]|$)`)
+
+// deps returns the paths a program names: the direct matches, plus every file
+// under any directory it names.
+//
+// Files are emitted and directories never are, so a caller's regular-file
+// guard and its second level of indirection work unchanged.  Every caller
+// sorts what it gets, so the order within this function is not observable;
+// the directory half is sorted anyway to match the shell's `LC_ALL=C sort`
+// and keep the two texts comparable by eye.
 func deps(path string) []string {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -42,7 +73,47 @@ func deps(path string) []string {
 	for _, m := range depPath.FindAll(data, -1) {
 		out = append(out, string(m))
 	}
-	return out
+
+	var dirs []string
+	for _, m := range depDir.FindAll(data, -1) {
+		d := string(m)
+		// Drop the delimiter the pattern had to consume.  `sed 's#[^/]$##'`:
+		// the last byte goes unless it is the slash itself, which is the case
+		// where the directory ended the line.
+		if n := len(d); n > 0 && d[n-1] != '/' {
+			d = d[:n-1]
+		}
+		dirs = append(dirs, d)
+	}
+
+	var files []string
+	for _, d := range sortUnique(dirs) {
+		fi, err := os.Stat(d)
+		if err != nil || !fi.IsDir() {
+			continue
+		}
+		// `find <d> -type f`: regular files only, so a symlink or a socket
+		// under tools/go/ is skipped exactly as the shell skips it.
+		_ = filepath.WalkDir(d, func(p string, e fs.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if e.Type().IsRegular() {
+				files = append(files, p)
+			}
+			return nil
+		})
+	}
+	sort.Strings(files)
+	return append(out, files...)
+}
+
+// isFile is the shell's `[ -f "$d" ]`, which os.Stat alone is not: Stat
+// succeeds for a directory, and hashing one would read nothing and silently
+// widen the key's meaning.
+func isFile(path string) bool {
+	fi, err := os.Stat(path)
+	return err == nil && fi.Mode().IsRegular()
 }
 
 func sortUnique(in []string) []string {
@@ -138,12 +209,12 @@ func ImplHash(p pipeline.P, unit string, editOnly bool) (string, error) {
 		level1 = append(level1, "tools/phaserun.sh", "tools/sweep.sh", "tools/symbols.sh")
 	}
 	for _, d := range sortUnique(level1) {
-		if _, err := os.Stat(d); err != nil {
+		if !isFile(d) {
 			continue
 		}
 		cat(d)
 		for _, e := range sortUnique(deps(d)) {
-			if _, err := os.Stat(e); err == nil {
+			if isFile(e) {
 				cat(e)
 			}
 		}
