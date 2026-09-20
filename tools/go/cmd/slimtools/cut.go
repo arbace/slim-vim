@@ -372,3 +372,9 @@ func runNogetenv(args []string) int {
 		return cut.NoGetEnv(t, w)
 	})
 }
+
+func runNochdir(args []string) int {
+	return oneFile(args, "nochdir", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoChdir(t, w)
+	})
+}
