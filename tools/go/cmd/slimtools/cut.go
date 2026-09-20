@@ -468,3 +468,9 @@ func runNowildmenu(args []string) int {
 		return cut.NoWildMenu(t, w)
 	})
 }
+
+func runNomouse(args []string) int {
+	return oneFile(args, "nomouse", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoMouse(t, w)
+	})
+}
