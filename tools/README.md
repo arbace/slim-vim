@@ -117,16 +117,58 @@ Run on the three products: slim-vim.c 1,852 fields, 577 never read; whim-vim.c
 
 A cutter in `internal/cut/` is a rule several phases share.  `internal/edit/`
 is the other kind: the `python3 - "$f" <<'PY'` blocks that were inside a phase
-program, run for one boundary and nowhere else.  **Every whim edit part is
-here** -- 34 heredocs across 31 files, reached as `tools/st.sh edit whim<N>
-"$f"` through one registry rather than 34 subcommands.  `registerArgs()` and
-`slimtools edit <phase> <file> [args...]` are for the one phase that writes a
-second file: whim80 hands its check the prefix table at `$state/words`.
+program, run for one boundary and nowhere else.
 
-`driver.go` is the scaffolding those 34 share, and it is the only part of the
-225 heredocs that DOES collapse: `CountIs`, `Sub`, `Cut`, `Lines`, `Literal`,
+**Every whim and zero edit part is here**: `grep -l 'python3 -' pipes/*-edit.sh`
+is empty.  Each is reached as `tools/st.sh edit <phase> "$f"` through one
+registry rather than as seventy-odd subcommands.  `registerArgs()` and
+`slimtools edit <phase> <file> [args...]` are for the phases that hand their
+check a file -- whim80's prefix table at `$state/words`, zero41's
+`arena-bytes`, zero44's `gone` and `dbmax`, zero45's three -- and the argument
+list is passed UNTYPED, because zero26 wants `$state/minmax.txt` where the
+others want the directory and a typed `state string` would make it a special
+case on its first day.
+
+`driver.go` is the scaffolding the whim ports share -- `zdriver.go` is the
+zero ports' equivalent, and two drivers in one package is a merge and not a plan:
+`E` accumulates its error and halts, `ph` returns one.  Between them they are
+the only part of the 225 heredocs that DOES collapse: `CountIs`, `Sub`, `Cut`, `Lines`, `Literal`,
 `FoldNever`/`FoldAlways`/`DropIf` and their counted forms, `InFunction`,
 `Splice`, `DropBlocks`.  Errors accumulate and halt, as `sys.exit` did.
+
+**Three helpers went generic because two sessions wrote one each.**
+`contains` (whim80 over `[]string`, zero25 over `[]int`), `first` (whim80 over
+`[]string`, zero42 over `[]int`) and `sortedKeys` (whim79 over
+`map[string]string`, zero5 over `map[string]int`, zero27 over
+`map[string]bool`).  Each was written twice or three times independently, each
+merged into one generic definition, and **not one call site changed**.  All
+three exist for the same reason: a REPORT line is built from a map's keys or a
+slice's head, and ranging a Go map yields a different order every run -- which
+is a difference no boundary can see and `editcmp` catches at once.
+
+**Generate the C, and the rule is about RETYPING and not about newlines.**
+`genlits.py` only offers a literal with a `\n` in it, and whim80's thirteen
+sprintf sites, zero44's two single-line splices and zero20's 79 act arguments
+are one-liners -- 200-column ones.  They are lifted by an AST walk over the
+heredoc and emitted as Go tables in source order.  Four things that walk has to
+get right, each measured rather than foreseen:
+
+- **Descend only into MODULE-LEVEL statements.**  `cut()` is defined as
+  `sub(old, '', n, tag)`, so a walk of the whole tree picks the helper's own
+  body up as an extra act with a computed argument.
+- **Lift the `say()` calls with the acts, into the same table.**  Writing one
+  out by hand as well printed it twice; the tree was identical and only the
+  report showed it.
+- **A generated row that is itself computed must keep its verb.**  zero45's
+  fanout assert is `'... (%d - 8) ...' % page`; the generator evaluated it with
+  the 4,096 it saw, the Go formatted it again, and `%!(EXTRA int=4096)` landed
+  *inside the C* -- where it compiles, because it is in a string, and says
+  something false in a diagnostic nobody reads until it fires.
+- **Some acts are not calls at all.**  zero20 has two index splices --
+  `i = t.index(...); j = t.index(...); t = t[:i] + t[j:]` -- and no walk of
+  `Call` nodes will ever show them.  Grep the heredoc for `^t = t\[:` first.
+  Missing the second of zero20's showed up as one mention short at the very end,
+  `musl_wait_for_input has 2 mentions, expected 3`.
 
 **`FoldNeverCount` and `FoldNeverN` are not the same port**, and choosing wrong
 costs two blank lines in 74,000 lines with no other symptom.  `*Count` hands the

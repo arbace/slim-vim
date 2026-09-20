@@ -1096,29 +1096,58 @@ Python *by being blind in the same places*, and nothing in the other three could
 have shown it. That is zero phase 33's argument about the terminal table,
 arriving at a change of recorder.
 
-**The inline Python was the larger half, and whim's edits are now out of it.**
+**The inline Python was the larger half, and every EDIT is now out of it.**
 At the cutover there were **225 heredocs, 34,284 lines**, 76 in edit parts
 (18,472 lines) and 147 in checks (15,779). Classified, there is **no collapsing
 idiom** — 94 are bespoke drivers over `cutil`, 60 are bespoke regex programs, and
 exactly **one** of 225 is the simple "assert a literal occurs once and replace
-it" shape. So that port is authorship and not a swap.
+it" shape. So that port was authorship and not a swap.
 
-**Every whim edit part is Go**: `grep -l 'python3 -' pipes/whim*-edit.sh` is
-empty, 34 heredocs across 31 files and 5,340 lines gone, each one a
-`tools/st.sh edit whim<N> "$f"` onto `tools/go/internal/edit/`. What is left is
-**191 heredocs, 28,828 lines** — 42 zero edit parts (13,016 lines; zero 12 holds
-two, which is why 42 and not 41), 145 zero checks and two whim checks (15,779
-between them), and two whole-phase zero programs.
+**`grep -l 'python3 -' pipes/*-edit.sh` is empty.** Measured from `pipes/`, which
+is where a figure like this has to come from: whim has **82 edit parts**, 33 of
+which held a heredoc and now carry a `tools/st.sh edit whim<N> "$f"`, and 49 of
+which never held one and are shell; zero has **41 edit parts** and **all 41**
+carry one. "41 zero edits" is not the denominator anyone would guess from the
+phase count: zero has 46 phases, of which 0, 3, 33 and 40 change no source at all
+and 1 only adds a compile flag, so five have no edit part to port. What is left
+in `pipes/` is checks.
 
-**The checks are deliberately staying Python**, which is a decision and not a
-backlog: a check part is an argument that executes, 12,429 lines of `pipes/` is
-that argument, and Go would move it into `//` comments above three times the
-code. **Go's RE2 has neither lookaround nor backreferences**, where 24 heredocs
-use the first and 20 the second, concentrated in zero 13–24 — and that is also
-where the remaining edit work is hardest. Six of the 57 cutters already needed a
-hand-written scanner for exactly this; per `tools/gocmp/re2size.py` only zero 35
-and 36 need one among the edit parts, 30 of zero's 32 edit-part lookarounds
-being the local kind a byte test replaces.
+**THAT SENTENCE IS TRUE OF A TREE THAT IS NOT PUSHED.** It was measured at
+`7c90f54`, and `origin/main` is at `59372a7`; the push is refused by the
+session's permission tooling and thirty-one commits are local. Measured from a
+second worktree at the same moment, 54 edit parts there still hold a heredoc. A
+reader who checks this out and counts will not get the number above until the
+push lands — which is the one case where this file's own rule, *re-measure rather
+than reason*, is not enough on its own, and the commit has to be named.
+
+**The checks stay Python, and the three reasons this file used to give for that
+are all measurably wrong.** The decision may still be right; the argument was
+not, and the difference matters because the argument is what a later reader would
+act on.
+
+- *"A check part is an argument that executes, and 12,429 lines of `pipes/` is
+  that argument, which Go would move into `//` comments above three times the
+  code."* The prose is in the **shell**, not in the heredocs: the 44 check parts
+  are 4,991 comment lines against 7,942 of shell code (**38.6%**) and 1,663
+  against 12,649 of Python (**11.6%**). Porting the heredocs would not touch a
+  line of the shell. And porting one end to end — `zero16-check.sh`, 403 lines,
+  against 674 of Go — left the prose **unchanged**, 118 comment lines against
+  115, while the code went 244 → 513. The cost is **1.67× and all of it code**,
+  not three times the code in comments.
+- *"Go's RE2 has neither lookaround nor backreferences."* True, and almost
+  irrelevant here. `tools/gocmp/re2size.py` on the current tree: **166 check
+  heredocs, 21 lookarounds — 18 of them the LOCAL kind a byte test replaces, 3
+  anchored, and 2 real back-references inside a pattern.** Four check files need
+  more than a byte test.
+- *The tools a check imports.* Every one already has a Go package:
+  `zstream` (24 checks), `create_cmdidxs` (25), `zrec` (14), `zscreen` (10),
+  `cutil` (10), `ptyrun` (8), `funcreach`, `zhostonly`, `muslcase`.
+
+**What is genuinely left against it is size**: ~12,600 lines of check code, about
+21,000 of Go at the measured ratio, plus a second driver — a check reads a work
+tree, a state directory and the world, prints as it goes, returns a verdict and
+**collects** its failures rather than stopping at the first, so it cannot borrow
+`internal/edit`'s tree-in-tree-out signature.
 
 `tools/README.md` has the detail, including those six cutters and what replaces
 each, and `tools/gocmp/` is every comparison that produced the port's numbers,
