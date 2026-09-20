@@ -56,6 +56,63 @@ then does `.replace(r'\ ', r'\s*')` to widen it, and without the escape
 there is nothing to find. And Python's `%r` is single-quoted where Go's
 `%q` is double, which is `cutil.PyRepr`.
 
+### fieldref — the first thing cc/v4 answers that nothing else can
+
+`tools/st.sh fieldref <file.c>` parses a product with the patched cc/v4 and
+prints, for every struct member, how many times it is READ, how many times it
+is WRITTEN and how many times its address is taken -- resolved to the field of
+a SPECIFIC struct and not to a name.  It changes nothing.  That is the order
+this work was asked to go in: a verifier first, and an edit that trusts it
+afterwards.
+
+**It answers the two questions `deadfields.py` is blind to, and both are
+recorded in CLAUDE.md as things a phase had to compute by hand.**
+
+*A name two structs share.*  `deadfields.py` matches a field by NAME, so zero
+phase 39 -- removing `mparm_T.term` while `attr_entry.ae_u.term` has 32
+mentions in the same file -- had to earn the right to take the member by
+computing the partition itself.  Measured on r38, which is the tree that phase
+was handed:
+
+    <anonymous>.term          1   1   0     <- mparm_T's, written by the -T block
+    attr_entry.ae_u.term     32   0   0     <- the one that stays
+
+*A field that is WRITTEN and never read.*  `deadfields.py` matches "named
+nowhere outside a type definition", so a field only written is still named and
+the tool reports **0 fields** -- which is what it says on zero 42's and 43's
+input, where those phases remove nine members between them.  Measured on r41:
+
+    block0.b0_magic_char      0   1   0     eight of these
+    pointer_entry.pe_old_lnum 0   7   0     zero42's "7 writes and not one read"
+    memfile.mf_dirty          2   6   0     its two reads each guard a write of itself
+
+**AN ARRAY MEMBER IS NEVER A VALUE READ**, and getting that wrong is what made
+the first run disagree with the phase.  `b0p->b0_version` inside
+`musl_memmove((char *)(b0p->b0_version), ...)` decays to a pointer with no `&`
+written, and `b0p->b0_id[0] = x` reads the member only to index it.  Counting
+those as reads is correct C and answers the wrong question: it made zero42's
+eight write-only `struct block0` members look read.  They are counted in the
+address column instead.
+
+**It is proven able to fail, on the boundary each phase produced.**
+`pe_old_lnum`, `mf_dirty` and `b0_magic_char` each have a row at r41 and none
+at r42; and `memfile.mf_used_last` is **1 read at r41 and 0 at r42**, which is
+zero43's own sentence -- *phase 42 took ml_setflags(), which was the last thing
+that walked the used list backwards* -- arriving as a measurement.
+
+**A typedef'd anonymous struct keeps the `<anonymous>` label, and that is a
+measurement and not an omission.**  cc/v4's `Typedef()` is nil for `typedef
+struct { ... } mparm_T;`, and reading the name off the declaration fails in a
+way that is worse than the label: the type a `StructOrUnionSpecifier` reports
+and the type a member access's `ParentType` reports are two instances with
+different field signatures, so the declaration's copy gets the name and the
+accesses do not -- producing TWO rows for one field, `mparm_T.term 0 0 0`
+beside `<anonymous>.term 1 1 0`.  A row that claims a field nothing touches is
+a worse answer than a row with a dull name.
+
+Run on the three products: slim-vim.c 1,852 fields, 577 never read; whim-vim.c
+1,122 and 348; zero-vim.c 998 and 309.  Parsing a product costs about 0.7 s.
+
 ### internal/edit — one phase's own transformation
 
 A cutter in `internal/cut/` is a rule several phases share.  `internal/edit/`
