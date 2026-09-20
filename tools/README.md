@@ -16,8 +16,8 @@ binary by **`gobuild.sh`**, which is content-keyed the way the memoize is:
 the key is every `.go` file plus `go.mod`, `go.sum` and the cc/v4 patch, so
 a build is skipped when nothing that decides the output has moved.
 
-**Two entry points are already Go and the rest is still Python.**
-`tools/sweep.sh` and `tools/canon.sh` are now four-line wrappers onto
+**The sweep, the canonicalisers and every whim/zero cutter are Go.**
+`tools/sweep.sh` and `tools/canon.sh` are four-line wrappers onto
 `slimtools`; every phase program in `pipes/` calls them by the same path
 with the same arguments and cannot tell the difference. That is the whole
 cutover -- 264 phase programs were not edited, and the two shell scripts
@@ -25,6 +25,42 @@ name their Go sources in comments so that **`implhash.sh` still hashes the
 implementation into every phase's key**. `implhash` greps for paths and
 does not know what a comment is, which is the mechanism the Python
 `import` comments already use for `cutil.py` and `macros.py`.
+
+**All 57 cutters the whim and zero pipelines use have a Go counterpart**,
+in `tools/go/internal/cut/`, each compared against the Python it replaces
+on a corpus of recorded boundaries, per-phase edit inputs and per-tool
+inputs. The nineteen slim-only cutters are deliberately not ported: the
+slim pipeline was out of scope.
+
+**What RE2 cannot spell is the interesting part.** Go's regexp has no
+lookaround of either kind, by design -- it is what buys the linear-time
+guarantee -- and six cutters depend on one:
+
+| where | the Python | what replaces it |
+| --- | --- | --- |
+| `nocmdargs` | `(?=[ \t]*case 'T':\n)` | match the trailing context, put it back |
+| `noarglist`, `nowindows` | `^(?![ \t]*\[?CMD_)` | two tests over the lines |
+| `nobackup` | `(?<=[ ,])name(?=,)` | test the bytes either side |
+| `noconv` | `(?<![\w*])ptr\(` | test the preceding byte |
+| `utf8only` | `(?<![=!<>])(?:...)?=(?!=)` | a hand-written scanner |
+| `lfonly` | `(?=\n[ \t]*\{...)` | inline it -- the fold uses only the match's START |
+
+A capturing rewrite is NOT equivalent in general, which is why `nobackup`
+and `noconv` test bytes instead: a capture consumes its delimiters, so two
+matches sharing one would lose the second.
+
+**And two differences in the languages themselves.** Python's `re.escape`
+escapes a SPACE and Go's `QuoteMeta` does not -- irrelevant to matching,
+since `\ ` and a bare space are the same to a regex, but `nowinsizes`
+then does `.replace(r'\ ', r'\s*')` to widen it, and without the escape
+there is nothing to find. And Python's `%r` is single-quoted where Go's
+`%q` is double, which is `cutil.PyRepr`.
+
+**ORDER IS OUTPUT.** Every cutter prints a line as each edit succeeds, so
+the sequence of calls IS the sequence of lines. Go invites grouping edits
+of the same shape into a loop; two cutters were written that way and the
+comparison caught both, with byte-identical trees and differently-ordered
+reports.
 
 **It is verified against the pipelines and not against itself.**
 `make whim-verify` reproduces all 13 recorded boundaries with Go driving
