@@ -348,3 +348,15 @@ func runKeepbytes(args []string) int {
 		return cut.KeepBytes(t, w)
 	})
 }
+
+func runOneoptset(args []string) int {
+	return oneFile(args, "oneoptset", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.OneOptSet(t, w)
+	})
+}
+
+func runOptreaders(args []string) int {
+	return oneFile(args, "optreaders", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.OptReaders(t, w)
+	})
+}

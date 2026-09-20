@@ -63,6 +63,35 @@ func (e ed) foldAlways(seg []byte, pattern, what string) ([]byte, error) {
 	return out, nil
 }
 
+// dropIf deletes an `if` and the block it guards, after COUNTING it: the
+// primitive takes the first match, so a condition that occurs twice would have
+// the wrong one cut without this.
+func (e ed) dropIf(seg []byte, pattern, what string) ([]byte, error) {
+	n := len(regexp.MustCompile("(?m)"+pattern).FindAll(seg, -1))
+	if n != 1 {
+		return nil, fmt.Errorf("%s: %s -- the condition occurs %d times, expected 1",
+			e.tool, what, n)
+	}
+	out, err := cutil.DropIf(seg, "(?m)"+pattern, 1)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %s -- %v", e.tool, what, err)
+	}
+	e.say(what)
+	return out, nil
+}
+
+// subCount deletes a pattern that must match exactly `count` times.
+func (e ed) subCount(seg []byte, pattern, what string, count int) ([]byte, error) {
+	re := regexp.MustCompile("(?m)" + pattern)
+	n := len(re.FindAll(seg, -1))
+	if n != count {
+		return nil, fmt.Errorf("%s: %s -- matched %d times, expected %d",
+			e.tool, what, n, count)
+	}
+	e.say(what)
+	return re.ReplaceAll(seg, nil), nil
+}
+
 // inFunction applies an edit to ONE function's text and splices it back, so a
 // pattern that would match elsewhere in the file cannot.
 func (e ed) inFunction(text []byte, name string, edit func([]byte) ([]byte, error)) ([]byte, error) {
