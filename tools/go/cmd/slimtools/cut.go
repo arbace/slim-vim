@@ -378,3 +378,15 @@ func runNochdir(args []string) int {
 		return cut.NoChdir(t, w)
 	})
 }
+
+func runNosignals(args []string) int {
+	return oneFile(args, "nosignals", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoSignals(t, w)
+	})
+}
+
+func runNoswap(args []string) int {
+	return oneFile(args, "noswap", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoSwap(t, w)
+	})
+}
