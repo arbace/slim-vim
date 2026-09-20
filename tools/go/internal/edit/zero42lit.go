@@ -1,0 +1,52 @@
+package edit
+
+// The multi-line literals pipes/zero42-edit.sh matches on, EXTRACTED from the phase's
+// heredoc by tools/gocmp/genlits.py rather than retyped.  They carry BLANK
+// LINES, which a filtered read of a phase program does not show, and a
+// literal that is 90%% right matches nothing.  See that tool for the
+// measurement.
+const (
+	z42lit4  = "    if (hp-> bh_hashitem.mhi_key  != 1)\n    {\n        iemsg(e_didnt_get_block_nr_one);\n"
+	z42lit5  = "    if (hp-> bh_hashitem.mhi_key  != 0)\n    {\n        iemsg(e_didnt_get_block_nr_zero);\n"
+	z42lit6  = "    pp->pb_pointer[0].pe_bnum = 2;\n"
+	z42lit7  = "    pp->pb_pointer[0].pe_bnum = 1;\n"
+	z42lit8  = "    if (hp-> bh_hashitem.mhi_key  != 2)\n    {\n        iemsg(e_didnt_get_block_nr_two);\n"
+	z42lit9  = "    bnum = 1;\n    page_count = 1;\n"
+	z42lit10 = "    bnum = 0;\n    page_count = 1;\n"
+	z42lit11 = "                if (hp-> bh_hashitem.mhi_key  != 1)\n"
+	z42lit12 = "                if (hp-> bh_hashitem.mhi_key  != 0)\n"
+	z42lit13 = "        if (negative)\n        {\n            hp-> bh_hashitem.mhi_key  = mfp->mf_blocknr_min--;\n            mfp->mf_neg_count++;\n        }\n        else\n        {\n            hp-> bh_hashitem.mhi_key  = mfp->mf_blocknr_max;\n            mfp->mf_blocknr_max += page_count;\n        }\n"
+	z42lit14 = "        hp-> bh_hashitem.mhi_key  = mfp->mf_blocknr_max;\n        mfp->mf_blocknr_max += page_count;\n"
+	z42lit15 = "        buf->b_ml.ml_flags |= ML_LOCKED_DIRTY;\n        if (!(flags & ML_APPEND_NEW))\n        {\n            buf->b_ml.ml_flags |= ML_LOCKED_POS;\n        }\n"
+	z42lit16 = "        if (lines_moved || in_left)\n        {\n            buf->b_ml.ml_flags |= ML_LOCKED_DIRTY;\n        }\n        if (!(flags & ML_APPEND_NEW) && db_idx >= 0 && in_left)\n        {\n            buf->b_ml.ml_flags |= ML_LOCKED_POS;\n        }\n"
+	z42lit17 = "        mf_put(mfp, buf->b_ml.ml_locked, buf->b_ml.ml_flags & ML_LOCKED_DIRTY, buf->b_ml.ml_flags & ML_LOCKED_POS);\n"
+	z42lit18 = "        mf_put(buf->b_ml.ml_locked);\n"
+	z42lit19 = "mf_put(memfile_T   *mfp, bhdr_T      *hp, int         dirty, int         infile)\n{\n    int         flags;\n\n    flags = hp->bh_flags;\n\n    if ((flags & BH_LOCKED) == 0)\n    {\n        iemsg(e_block_was_not_locked);\n    }\n    flags &= ~BH_LOCKED;\n    if (dirty)\n    {\n        flags |= BH_DIRTY;\n        if (mfp->mf_dirty != MF_DIRTY_YES_NOSYNC)\n        {\n            mfp->mf_dirty = MF_DIRTY_YES;\n        }\n    }\n    hp->bh_flags = flags;\n    if (infile)\n    {\n        mf_trans_add(mfp, hp);\n    }\n}"
+	z42lit20 = "mf_put(bhdr_T *hp)\n{\n    if ((hp->bh_flags & BH_LOCKED) == 0)\n    {\n        iemsg(e_block_was_not_locked);\n    }\n    hp->bh_flags &= ~BH_LOCKED;\n}"
+	z42lit21 = "                if (bnum < 0)\n                {\n                    bnum2 = mf_trans_del(mfp, bnum);\n                    if (bnum != bnum2)\n                    {\n                        bnum = bnum2;\n                        pp->pb_pointer[idx].pe_bnum = bnum;\n                        dirty = TRUE;\n                    }\n                }\n\n"
+	z42lit22 = "    blocknr_T bnum2;\n"
+	z42lit23 = "static int  mf_trans_add(memfile_T *, bhdr_T *);\n"
+	z42lit24 = "    if (hp-> bh_hashitem.mhi_key  < 0)\n    {\n        vim_free(hp);\n        mfp->mf_neg_count--;\n    }\n    else\n    {\n        mf_ins_free(mfp, hp);\n    }\n"
+	z42lit25 = "    mf_ins_free(mfp, hp);\n"
+	z42lit26 = "    mf_hash_init(&mfp->mf_trans);\n"
+	z42lit27 = "    mfp->mf_blocknr_min = -1;\n"
+	z42lit28 = "    mfp->mf_neg_count = 0;\n"
+	z42lit29 = "    mf_hash_free_all(&mfp->mf_trans);\n"
+	z42lit30 = "    mf_hashtab_T mf_trans;\n"
+	z42lit31 = "    blocknr_T   mf_blocknr_min;\n"
+	z42lit32 = "    blocknr_T   mf_neg_count;\n"
+	z42lit33 = "    if (curbuf->b_ml.ml_mfp != nullptr)\n    {\n        curbuf->b_ml.ml_mfp->mf_dirty = MF_DIRTY_YES_NOSYNC;\n    }\n\n"
+	z42lit34 = "    if (curbuf->b_ml.ml_mfp != nullptr && curbuf->b_ml.ml_mfp->mf_dirty == MF_DIRTY_YES_NOSYNC)\n    {\n        curbuf->b_ml.ml_mfp->mf_dirty = MF_DIRTY_YES;\n    }\n\n"
+	z42lit35 = "    mfp->mf_used_last = nullptr;\n    mfp->mf_dirty = MF_DIRTY_NO;\n"
+	z42lit36 = "    mfp->mf_used_last = nullptr;\n"
+	z42lit37 = "    hp->bh_flags = BH_LOCKED | BH_DIRTY;\n    mfp->mf_dirty = MF_DIRTY_YES;\n"
+	z42lit38 = "    hp->bh_flags = BH_LOCKED;\n"
+	z42lit39 = "    mfdirty_T   mf_dirty;\n"
+	z42lit40 = "typedef enum {\n    MF_DIRTY_NO = 0,\n    MF_DIRTY_YES,\n    MF_DIRTY_YES_NOSYNC,\n} mfdirty_T;\n\n"
+	z42lit41 = "    linenr_T    pe_old_lnum;\n"
+	z42lit42 = "        if (db_idx < 0)\n        {\n            lnum_left = lnum + 1;\n            lnum_right = 0;\n        }\n        else\n        {\n            lnum_left = 0;\n            if (in_left)\n            {\n                lnum_right = lnum + 2;\n            }\n            else\n            {\n                lnum_right = lnum + 1;\n            }\n        }\n"
+	z42lit43 = "        linenr_T lnum_left;\n"
+	z42lit44 = "        linenr_T lnum_right;\n"
+	z42lit45 = "            lnum_left = 0;\n            lnum_right = 0;\n"
+	z42lit46 = "static int      mf_dont_release  = FALSE ;\n"
+)

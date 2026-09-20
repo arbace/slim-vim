@@ -222,7 +222,7 @@ func Zero22(text []byte, w io.Writer) ([]byte, error) {
 					mm[i] += pos
 				}
 			}
-			if mm[0] > 0 && zIsWordByte(t[mm[0]-1]) {
+			if mm[0] > 0 && isWordByte(t[mm[0]-1]) {
 				pos = mm[0] + 1
 				continue
 			}

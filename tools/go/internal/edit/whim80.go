@@ -698,7 +698,9 @@ func minus(a, b []string) []string {
 	return out
 }
 
-func first(s []string, n int) []string {
+// first is GENERIC for the same reason contains is: whim80 slices []string and
+// zero42 slices []int, and one definition is cheaper than two names.
+func first[T any](s []T, n int) []T {
 	if len(s) > n {
 		return s[:n]
 	}

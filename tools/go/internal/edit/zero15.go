@@ -62,7 +62,7 @@ var z15Dead = regexp.MustCompile(`(?m)^ *return utf_is(?:upper|lower)\(c\);\n *i
 func zCalls(t []byte, name string) int {
 	n := 0
 	for _, m := range zCallRe(name).FindAllIndex(t, -1) {
-		if m[0] > 0 && zIsWordByte(t[m[0]-1]) {
+		if m[0] > 0 && isWordByte(t[m[0]-1]) {
 			continue
 		}
 		n++
@@ -72,10 +72,6 @@ func zCalls(t []byte, name string) int {
 
 func zCallRe(name string) *regexp.Regexp {
 	return regexp.MustCompile(regexp.QuoteMeta(name) + `\s*\(`)
-}
-
-func zIsWordByte(c byte) bool {
-	return c == '_' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
 // Zero15 vendors the character classes, the two ato*, qsort and bsearch.
@@ -171,7 +167,7 @@ func Zero15(text []byte, w io.Writer, args []string) ([]byte, error) {
 	for _, r := range z15Rewrite {
 		var idx [][]int
 		for _, m := range zCallRe(r.name).FindAllStringIndex(body, -1) {
-			if m[0] > 0 && zIsWordByte(body[m[0]-1]) {
+			if m[0] > 0 && isWordByte(body[m[0]-1]) {
 				continue
 			}
 			idx = append(idx, m)
