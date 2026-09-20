@@ -135,7 +135,15 @@ echo "  noedit       seventeen functions, five enumerators, EX_ARGOPT, the read_
 python3 - "$f" "$state/old.c" <<'PY'
 import re, sys
 sys.path.insert(0, 'tools')
+# tools/create_cmdidxs.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import create_cmdidxs
+# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import cutil
 TAG = 'noedit'
 new = open(sys.argv[1], errors='surrogateescape').read()
@@ -668,6 +676,10 @@ PY
 python3 - "$state/old" "$bin" <<'PY'
 import os, sys, tempfile
 sys.path.insert(0, 'tools')
+# tools/ptyrun.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import ptyrun
 TAG = 'noedit'
 home = tempfile.mkdtemp(prefix='zero8-home-')

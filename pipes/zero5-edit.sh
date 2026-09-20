@@ -107,6 +107,10 @@ python3 - "$f" <<'PY'
 TAG = 'noargv'
 import re, sys
 sys.path.insert(0, 'tools')
+# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import cutil
 path = sys.argv[1]
 t = open(path, errors='surrogateescape').read()
@@ -336,7 +340,7 @@ say('every use of the six is gone; the field, three enumerators, read_stdin and 
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-# NOT tools/create_cmdidxs.py --check, for pipes/zero2-edit.sh's reason: the derived
+# NOT create_cmdidxs --check, for pipes/zero2-edit.sh's reason: the derived
 # first-two-letters index went with the command table whim reduced, and the tool
 # raises rather than reporting nothing.  Nothing here touches the command table.
 #

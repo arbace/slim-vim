@@ -99,6 +99,10 @@ python3 - "$f" "$state/old.c" "$tmp" <<'PY'
 import re
 import sys
 sys.path.insert(0, 'tools')
+# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import cutil
 
 TAG = 'terms'
@@ -530,6 +534,10 @@ import sys
 import tempfile
 sys.path.insert(0, 'tools')
 import termcheck
+# tools/ptyrun.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import ptyrun
 
 src, wasp, nowp, binary, gone = sys.argv[1:6]

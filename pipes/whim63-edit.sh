@@ -26,6 +26,10 @@ python3 - "$f" <<'PY'
 TAG = 'nojumplist'
 import re, sys
 sys.path.insert(0, 'tools')
+# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import cutil
 path = sys.argv[1]
 t = open(path, errors='surrogateescape').read()
@@ -139,6 +143,6 @@ t = in_function(t, 'win_free', lambda s: sub(s, r'^[ \t]*free_jumplist\(wp\);\n\
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-python3 tools/create_cmdidxs.py "$f" --check >/dev/null
+tools/st.sh cmdidxs "$f" --check >/dev/null
 
 # tools/phaserun.sh sweeps next, then runs pipes/whim63-check.sh.

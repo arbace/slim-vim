@@ -366,7 +366,7 @@ if hashes:
     fail.append('PART 1: %d line(s) of the cut begin with a `#`, at %s'
                 % (len(hashes), ' '.join(str(i + 1) for i in hashes[:4])))
 # PART 2, the floor.  70,000 against 78,358 today -- eight thousand lines of margin,
-# stated in the same shape and the same sentence as tools/create_cmdidxs.py's 80 and
+# stated in the same shape and the same sentence as create_cmdidxs's 80 and
 # `orphanopts`'s 80, and to be lowered only in the phase that crosses it.
 FLOOR = 70000
 if last < FLOOR:

@@ -229,6 +229,10 @@ if n_cast != 30:
 # THE SHAPE OF THE FILE.  Nothing here is a command, an option, a directive or a
 # normal-mode key, and the check says so rather than assuming it.
 sys.path.insert(0, 'tools')
+# tools/create_cmdidxs.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import create_cmdidxs
 rows = re.findall(r'^    \[CMD_\w+\] = \{.*$', new, re.M)
 if len(rows) != 98 or len(create_cmdidxs.names(sys.argv[1])) != 98:

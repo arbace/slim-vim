@@ -848,7 +848,7 @@ open(state + '/edit.c', 'w', errors='surrogateescape').write(t)
 open(state + '/boundary-in', 'w').write('%d\n' % (BOUNDARY + 1))
 PY
 
-# NOT tools/create_cmdidxs.py --check, for pipes/zero2-edit.sh's reason: the derived
+# NOT create_cmdidxs --check, for pipes/zero2-edit.sh's reason: the derived
 # first-two-letters index went with the command table whim's phase 80 reduced, and the
 # tool raises rather than reporting nothing.  Nothing here touches the command table.
 #

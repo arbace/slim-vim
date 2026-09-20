@@ -141,7 +141,15 @@ echo "  noname       sixty functions, twelve buf_T fields, CMD_file, EX_XFILE, r
 python3 - "$f" "$state/old.c" <<'PY'
 import re, sys
 sys.path.insert(0, 'tools')
+# tools/create_cmdidxs.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import create_cmdidxs
+# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import cutil
 TAG = 'noname'
 new = open(sys.argv[1], errors='surrogateescape').read()
@@ -398,6 +406,10 @@ import tempfile
 
 sys.path.insert(0, 'tools')
 import zrec
+# tools/zscreen.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import zscreen
 import zstream
 
@@ -618,6 +630,10 @@ PY
 python3 - "$state/old" "$bin" <<'PY'
 import os, re, sys, tempfile
 sys.path.insert(0, 'tools')
+# tools/ptyrun.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import ptyrun
 TAG = 'noname'
 home = tempfile.mkdtemp(prefix='zero10-home-')

@@ -115,7 +115,15 @@ echo "  nobyte       sixteen functions, read_stdin, read_fifo, check_readonly an
 python3 - "$f" "$state/old.c" <<'PY'
 import re, sys
 sys.path.insert(0, 'tools')
+# tools/create_cmdidxs.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import create_cmdidxs
+# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import cutil
 TAG = 'nobyte'
 new = open(sys.argv[1], errors='surrogateescape').read()
@@ -410,6 +418,10 @@ python3 - "$tmp/i/probe" "$tmp/i/ctl" <<'PY'
 import concurrent.futures
 import sys
 sys.path.insert(0, 'tools')
+# tools/zstream.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import zstream
 TAG = 'nobyte'
 ESC, CR = b'\x1b', b'\r'
@@ -492,6 +504,10 @@ import concurrent.futures
 import hashlib
 import sys
 sys.path.insert(0, 'tools')
+# tools/zrec.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import zrec
 import zstream
 TAG = 'nobyte'

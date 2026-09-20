@@ -43,7 +43,7 @@
 # function.
 #
 # THE ROW FLOOR.  `cmdnames[]` goes 111 -> 105 rows, and
-# `tools/create_cmdidxs.py`'s `names()` REFUSES a table of fewer than 100 -- a regex
+# `create_cmdidxs`'s `names()` REFUSES a table of fewer than 100 -- a regex
 # that stops matching otherwise yields a plausible all-zero index, so the floor is
 # deliberate.  ``zexcmds`` enumerates the table through it, so crossing the
 # floor would stop zero's command sweep rather than give a wrong answer.  After this
@@ -62,7 +62,7 @@
 # names is dispatched by `zexcmds` in the declared delta.  Three checks the
 # build cannot dodge, and none of them needs the values.
 #
-# NOT tools/create_cmdidxs.py --check, for pipes/zero2-edit.sh's reason: the derived
+# NOT create_cmdidxs --check, for pipes/zero2-edit.sh's reason: the derived
 # first-two-letters index went with the table whim reduced, and the tool raises
 # rather than reporting nothing.  Its `names()` is called, which is the part that
 # still means something here.
@@ -95,8 +95,20 @@ python3 - "$f" <<'PY'
 TAG = 'nowrite'
 import re, sys
 sys.path.insert(0, 'tools')
+# tools/create_cmdidxs.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import create_cmdidxs
+# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import cutil
+# tools/funcreach.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import funcreach
 path = sys.argv[1]
 t = open(path, errors='surrogateescape').read()

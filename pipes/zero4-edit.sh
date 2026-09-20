@@ -475,7 +475,7 @@ say('every use of all 21 is gone; eleven lone definitions and mch_input_isatty '
 open(path, 'w', errors='surrogateescape').write(t)
 PY
 
-# NOT tools/create_cmdidxs.py --check: the derived first-two-letters index went with
+# NOT create_cmdidxs --check: the derived first-two-letters index went with
 # the command table whim reduced, and there are no `ex_cmdidxs.h` banners left for it
 # to find -- it raises rather than reporting nothing (pipes/zero2-edit.sh says the
 # same).  Nothing here touches the command table.

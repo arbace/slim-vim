@@ -187,6 +187,10 @@ import re
 import sys
 
 sys.path.insert(0, 'tools')
+# tools/zstream.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import zstream
 
 # It is TRUE when `!msg_check_screen()` -- full_screen FALSE or screen_valid(FALSE)
@@ -494,12 +498,16 @@ tools/st.sh zhostonly "$f"
 python3 - "$f" <<'PY'
 import sys
 sys.path.insert(0, 'tools')
+# tools/create_cmdidxs.py -- named as a PATH so tools/implhash.sh hashes it into this
+# phase's key.  implhash greps for paths and an `import` names a module, so
+# without this line an edit to it changes what this phase produces and moves
+# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
 import create_cmdidxs
 n = len(create_cmdidxs.names(sys.argv[1]))
 if n != 98:
     sys.exit('  %-12s names() reads %d command rows and must read 98 -- this phase '
              'removes no Ex command' % ('msgfold', n))
-print('  %-12s tools/create_cmdidxs.py\'s names() reads 98 rows, orphanopts '
+print('  %-12s create_cmdidxs\'s names() reads 98 rows, orphanopts '
       'and nvidx pass, and neither floor is approached: this phase '
       'removes no command, no option row and no normal-mode row' % 'msgfold')
 PY
