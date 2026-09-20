@@ -486,3 +486,9 @@ func runNomemfile(args []string) int {
 		return cut.NoMemfile(t, w)
 	})
 }
+
+func runNocomplkeys(args []string) int {
+	return oneFile(args, "nocomplkeys", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoComplKeys(t, w)
+	})
+}
