@@ -50,11 +50,17 @@ func Stage(bin string) (string, error) {
 		return "", err
 	}
 	dst := filepath.Join(dir, "vim")
-	data, err := os.ReadFile(abs)
-	if err != nil {
+	// THE COPY HAPPENS IN A CHILD PROCESS, and that is the half a lock does
+	// not give.  Writing the file here would hold a write fd in THIS address
+	// space, and a goroutine forking at that instant inherits it until it
+	// execs -- which is the whole failure.  Handing the copy to cp means the
+	// fd exists only in cp, so there is nothing for anyone else to inherit,
+	// however late a caller asks to stage a second binary from inside a pool
+	// already forking the first.
+	if err := exec.Command("cp", abs, dst).Run(); err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(dst, data, 0o755); err != nil {
+	if err := os.Chmod(dst, 0o755); err != nil {
 		return "", err
 	}
 	staged[abs] = dst

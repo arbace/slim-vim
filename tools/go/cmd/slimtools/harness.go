@@ -33,6 +33,42 @@ func runBehaviour(args []string) int {
 	return 0
 }
 
+// runTermcheck is tools/termcheck.py.
+func runTermcheck(args []string) int {
+	if len(args) != 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools termcheck <vim-binary> <outfile>")
+		return 1
+	}
+	if err := harness.TermCheck(args[0], args[1], os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+// runZscreen rebuilds a screen from a captured escape stream and prints every
+// redraw.  tools/zscreen.py is a library with no CLI; this exists so the two
+// can be compared on the same bytes without running the editor.
+func runZscreen(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools zscreen <streamfile>")
+		return 1
+	}
+	data, err := os.ReadFile(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	s := harness.NewScreen(24, 80)
+	s.Feed(data)
+	for i, snap := range s.Snaps {
+		fmt.Printf("--- snap %d cursor=%d,%d bells=%d\n", i, snap.Y, snap.X, snap.Bells)
+		fmt.Println(snap.Text)
+	}
+	fmt.Printf("--- final cursor=%d,%d bells=%d snaps=%d\n", s.Y, s.X, s.Bells, len(s.Snaps))
+	return 0
+}
+
 // runCmdnames is create_cmdidxs.names(): the Ex command table, in order.  It
 // is exposed so the parse can be compared against the Python's without
 // running the editor six hundred times.
