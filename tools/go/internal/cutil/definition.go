@@ -110,3 +110,15 @@ func HasDefinition(s []byte, name string) bool {
 	_, _, ok := FindDefinition(s, Blank(s), name)
 	return ok
 }
+
+// DeleteDefinition removes a function definition by name.  Reports whether one
+// was there to remove, so a caller can refuse with its own words.
+func DeleteDefinition(s []byte, name string) ([]byte, bool) {
+	a, z, ok := FindDefinition(s, Blank(s), name)
+	if !ok {
+		return s, false
+	}
+	out := make([]byte, 0, len(s)-(z-a))
+	out = append(out, s[:a]...)
+	return append(out, s[z:]...), true
+}

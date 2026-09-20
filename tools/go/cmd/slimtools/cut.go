@@ -208,3 +208,15 @@ func runDropoptions(args []string) int {
 		len(names), strings.Join(names, ", "), whitelisted)
 	return 0
 }
+
+func runNostat(args []string) int {
+	return oneFile(args, "nostat", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoStat(t, w)
+	})
+}
+
+func runNofnamemod(args []string) int {
+	return oneFile(args, "nofnamemod", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoFnameMod(t, w)
+	})
+}

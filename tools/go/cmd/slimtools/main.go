@@ -42,7 +42,7 @@ var order = []string{
 	"sweep", "canon",
 	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
 	"memo", "memokey", "phaserun", "snapshot", "verifypass", "specpass",
-	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx", "orphanopts", "exsweep", "cmdnames", "behaviour", "termcheck", "zscreen", "zhostonly", "zargv", "zexcmds", "zcases", "ztermcheck", "zpty", "zmemline", "zcompare", "zrecord", "dropoptions", "retire", "droplocal", "nointro", "noargv0", "noglob", "noequiclass", "nowild", "fold",
+	"implhash", "parts", "symbols", "oracle", "phasecheck", "nvidx", "orphanopts", "exsweep", "cmdnames", "behaviour", "termcheck", "zscreen", "zhostonly", "zargv", "zexcmds", "zcases", "ztermcheck", "zpty", "zmemline", "zcompare", "zrecord", "dropoptions", "retire", "droplocal", "nointro", "noargv0", "noglob", "noequiclass", "nowild", "nostat", "nofnamemod", "fold",
 	"treedigest", "phasename", "restore", "stages", "whimdelta", "declared",
 	"parse", "difftest",
 }
@@ -92,6 +92,8 @@ var tools = map[string]tool{
 	"noglob":      {runNoglob, "noglob <file>"},
 	"noequiclass": {runNoequiclass, "noequiclass <file>"},
 	"nowild":      {runNowild, "nowild <file>"},
+	"nostat":      {runNostat, "nostat <file>"},
+	"nofnamemod":  {runNofnamemod, "nofnamemod <file>"},
 	"fold":        {runFold, "fold <always|never|dropif> <file> <pattern> <count>"},
 	"phaserun":    {runPhaserun, "phaserun <pipeline> <unit> <work-dir>"},
 	"treedigest":  {runTreedigest, "treedigest <work-dir>"},
