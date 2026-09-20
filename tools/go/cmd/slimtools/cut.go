@@ -462,3 +462,9 @@ func runNocindent(args []string) int {
 		return cut.NoCindent(t, w)
 	})
 }
+
+func runNowildmenu(args []string) int {
+	return oneFile(args, "nowildmenu", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoWildMenu(t, w)
+	})
+}
