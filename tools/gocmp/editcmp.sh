@@ -40,9 +40,20 @@ for phase in "$@"; do
     tar xf "$tar" -C "$d/py"
     tar xf "$tar" -C "$d/go"
 
-    # The heredoc, lifted out of the phase program.  Everything between the
-    # line that opens it and the lone PY that closes it.
-    awk "/<<'PY'\$/{f=1;next} f&&/^PY\$/{exit} f{print}" "$prog" > "$d/edit.py"
+    # EVERY heredoc, lifted out of the phase program, each to its own file and
+    # run in order.  `exit` on the first closing PY was wrong: pipes/zero12-edit.sh
+    # holds TWO, and a checker that took only the first would run the Python
+    # halfway and the Go all the way, reporting a difference that is the
+    # checker's.  A heredoc's POSITION in the phase program is part of the
+    # phase -- the other session hit the same shape in whim, where two heredocs
+    # stand after a dropoptions call and folding them into one would move the
+    # cut earlier.
+    awk -v out="$d" "
+        /<<'PY'\$/ { n++; f = 1; next }
+        f && /^PY\$/ { f = 0; next }
+        f { print > (out \"/edit\" n \".py\") }
+    " "$prog"
+    cat "$d"/edit*.py > "$d/edit.py" 2>/dev/null || true
     # A PHASE ALREADY PORTED HAS NO HEREDOC LEFT, and that is not a failure:
     # the swap is what removes it, so from then on the boundary gate is the
     # only check there is.  It IS a failure if there is no Go edit either,
@@ -65,7 +76,10 @@ for phase in "$@"; do
     # `sys.path.insert(0, 'tools')` and then `import cutil`, which is relative
     # to the CWD -- run it from a scratch directory and it dies in the import
     # rather than in the edit, which reads as a difference and is not one.
-    python3 "$d/edit.py" "$d/py/zero-vim.c" > "$d/py.out" 2>&1 && prc=0 || prc=$?
+    prc=0
+    for part in "$d"/edit[0-9]*.py; do
+        python3 "$part" "$d/py/zero-vim.c" >> "$d/py.out" 2>&1 || { prc=$?; break; }
+    done
     "$bin" edit "$phase" "$d/go/zero-vim.c" > "$d/go.out" 2>&1 && grc=0 || grc=$?
 
     if [ "$prc" != "$grc" ]; then
