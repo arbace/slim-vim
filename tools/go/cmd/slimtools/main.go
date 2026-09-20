@@ -41,7 +41,7 @@ var order = []string{
 	"blankruns", "joinparens", "splitheads", "brace", "onestmt", "onedecl", "forcomma",
 	"sweep", "canon",
 	"deadsweep", "deadprotos", "typereach", "funcreach", "deadfields", "deadenums",
-	"implhash", "parts",
+	"implhash", "parts", "symbols", "oracle",
 	"parse", "difftest",
 }
 
@@ -63,6 +63,8 @@ var tools = map[string]tool{
 	"sweep":      {runSweep, "sweep <file.c>"},
 	"implhash":   {runImplhash, "implhash [--edit] <unit> [pipeline]"},
 	"parts":      {runParts, "parts <pipeline> <unit>"},
+	"symbols":    {runSymbols, "symbols <file.c> <outdir>"},
+	"oracle":     {runOracle, "oracle <phase> <build-dir> <oracle-dir> [pipeline]"},
 	"parse":      {runParse, "parse <file.c>"},
 	"difftest":   {runDifftest, "difftest <tool> <file>..."},
 }

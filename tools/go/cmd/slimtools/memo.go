@@ -40,6 +40,40 @@ func runImplhash(args []string) int {
 	return 0
 }
 
+// runSymbols is tools/symbols.sh.
+func runSymbols(args []string) int {
+	if len(args) != 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools symbols <file.c> <outdir>")
+		return 1
+	}
+	if err := memo.Symbols(args[0], args[1]); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+// runOracle is tools/oracle.sh.
+func runOracle(args []string) int {
+	if len(args) < 3 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools oracle <phase> <build-dir> <oracle-dir> [pipeline]")
+		return 1
+	}
+	name := "slim"
+	if len(args) > 3 {
+		name = args[3]
+	}
+	p, err := pipeline.Get(name)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	if err := memo.Oracle(p, args[0], args[1], args[2], os.Stdout); err != nil {
+		return 1
+	}
+	return 0
+}
+
 // runParts is tools/phaserun.sh --parts: the programs a unit runs, in order.
 func runParts(args []string) int {
 	if len(args) != 2 {
