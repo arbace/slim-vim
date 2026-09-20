@@ -194,6 +194,134 @@ func runDeadfields(args []string) int {
 	return 1
 }
 
+// runDeadenums is tools/deadenums.py.
+//
+// The values are dumped ON FIRST NEED: --delete with no values file yet asks
+// whether anything is dead, and only then compiles with -g and writes the
+// file.  That is what lets every sweep round in every phase ask the question
+// in about a second, when most rounds find nothing and a dump costs a full
+// debug build.  A dump taken later in a sweep is still the ORIGINAL
+// numbering, because nothing before the first deletion can have moved an
+// enumerator, and the caller keeps one file for the whole sweep.
+func runDeadenums(args []string) int {
+	del, ver := false, false
+	var files []string
+	for _, a := range args {
+		switch a {
+		case "--delete":
+			del = true
+		case "--verify":
+			ver = true
+		default:
+			files = append(files, a)
+		}
+	}
+	if len(files) < 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools deadenums <file> <enumvals.txt> [--delete|--verify]")
+		return 1
+	}
+	path, valpath := files[0], files[1]
+
+	if ver {
+		moved, gone, err := dead.VerifyEnums(path, valpath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+		if len(moved) > 0 {
+			n := len(moved)
+			if n > 8 {
+				n = 8
+			}
+			fmt.Printf("  enumvals     %d surviving enumerators changed value: %s\n",
+				len(moved), strings.Join(moved[:n], " "))
+			return 1
+		}
+		fmt.Printf("  enumvals     %d enumerators gone, and not one survivor moved\n", gone)
+		return 0
+	}
+
+	text, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	vals := dead.LoadVals(valpath)
+	edits, st := dead.AnalyseEnums(text, vals)
+
+	if del && !fileExists(valpath) && (st.DeadTotal > 0 || st.Unpinnable > 0) {
+		// First need: the values of THIS text, before anything is deleted.
+		if err := dead.DumpVals(path, valpath); err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+		vals = dead.LoadVals(valpath)
+		edits, st = dead.AnalyseEnums(text, vals)
+	}
+
+	if del && len(edits) > 0 {
+		if err := writeFile(path, dead.ApplyEnumEdits(text, edits)); err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+	}
+
+	stuck, unpin := "", ""
+	if st.Stuck > 0 {
+		stuck = fmt.Sprintf("; %d in enums where every constant is dead and the type is in "+
+			"use, which cannot be expressed", st.Stuck)
+	}
+	if st.Unpinnable > 0 {
+		unpin = fmt.Sprintf("; %d kept before a survivor DWARF has no value for", st.Unpinnable)
+	}
+	fmt.Printf("  deadenums    %d enumerators nothing mentions, %d survivors pinned%s%s\n",
+		st.DeadTotal, st.Pinned, stuck, unpin)
+	if st.DeadTotal == 0 {
+		return 0
+	}
+	return 1
+}
+
+func fileExists(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
+}
+
+// runDeadsweep is tools/deadsweep.py.  It rewrites UNCONDITIONALLY and
+// normalises a missing trailing newline, and its exit status is 0 when it
+// deleted something and 1 when it did not -- the opposite of deadfields.
+func runDeadsweep(args []string) int {
+	keep := ""
+	var files []string
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--keep" && i+1 < len(args) {
+			keep = args[i+1]
+			i++
+			continue
+		}
+		files = append(files, args[i])
+	}
+	if len(files) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools deadsweep <file> [--keep <dir>]")
+		return 1
+	}
+	out, c, err := dead.DeadSweep(files[0], keep)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	if err := writeFile(files[0], out); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	fmt.Printf("prototypes %d, functions %d, variables %d, left alone %d -- %d lines removed\n",
+		c.Proto, c.Func, c.Var, c.Other, c.Lines)
+	if c.Proto+c.Func+c.Var != 0 {
+		return 0
+	}
+	return 1
+}
+
 // droppedTail is the Python's report suffix: the first four names, and an
 // ellipsis when there were more.
 func droppedTail(dropped [][]byte) string {

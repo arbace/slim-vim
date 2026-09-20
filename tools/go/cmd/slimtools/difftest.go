@@ -32,6 +32,11 @@ type spec struct {
 	runner string
 	// args, if non-nil, is appended after the file path for both sides.
 	args []string
+	// valsFile gives each side its OWN scratch path as a second positional
+	// argument.  deadenums writes the DWARF dump there on first need, so one
+	// shared path would let whichever side ran first decide the other's
+	// answer -- and the answer is exactly what is being compared.
+	valsFile bool
 }
 
 func (s spec) run() string {
@@ -59,6 +64,8 @@ var specs = map[string]spec{
 	"typereach":  {script: "tools/typereach.py", args: []string{"--delete"}},
 	"funcreach":  {script: "tools/funcreach.py", args: []string{"--delete"}},
 	"deadfields": {script: "tools/deadfields.py", args: []string{"--delete"}},
+	"deadenums":  {script: "tools/deadenums.py", args: []string{"--delete"}, valsFile: true},
+	"deadsweep":  {script: "tools/deadsweep.py"},
 }
 
 func runDifftest(args []string) int {
@@ -160,8 +167,14 @@ func compare(self, name string, sp spec, in string) (string, bool) {
 		}
 	}
 
-	pyOut, pyCode := run(sp.run(), append([]string{sp.script, pyFile}, sp.args...))
-	goOut, goCode := run(self, append([]string{name, goFile}, sp.args...))
+	pyArgs := []string{sp.script, pyFile}
+	goArgs := []string{name, goFile}
+	if sp.valsFile {
+		pyArgs = append(pyArgs, filepath.Join(dir, "py.vals"))
+		goArgs = append(goArgs, filepath.Join(dir, "go.vals"))
+	}
+	pyOut, pyCode := run(sp.run(), append(pyArgs, sp.args...))
+	goOut, goCode := run(self, append(goArgs, sp.args...))
 
 	pyBytes, err := os.ReadFile(pyFile)
 	if err != nil {
