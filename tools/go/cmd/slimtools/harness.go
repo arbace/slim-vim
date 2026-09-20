@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"slimvim.local/tools/internal/harness"
 )
@@ -66,6 +67,33 @@ func runZscreen(args []string) int {
 		fmt.Println(snap.Text)
 	}
 	fmt.Printf("--- final cursor=%d,%d bells=%d snaps=%d\n", s.Y, s.X, s.Bells, len(s.Snaps))
+	return 0
+}
+
+// runZhostonly is tools/zhostonly.py.
+func runZhostonly(args []string) int {
+	quiet := false
+	var files []string
+	for _, a := range args {
+		if a == "--quiet" {
+			quiet = true
+			continue
+		}
+		files = append(files, a)
+	}
+	if len(files) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools zhostonly <file> [--quiet]")
+		return 1
+	}
+	if err := harness.ZHostOnly(files[0], quiet, os.Stdout); err != nil {
+		// The findings go to stdout, as the Python's print does; only the
+		// three refusals that cannot proceed are an error message.
+		if strings.HasPrefix(err.Error(), "zhostonly: the host block") ||
+			strings.HasPrefix(err.Error(), "zhostonly: musl_suspend") {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		return 1
+	}
 	return 0
 }
 
