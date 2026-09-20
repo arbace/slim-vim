@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"slimvim.local/tools/internal/dead"
 	"slimvim.local/tools/internal/memo"
@@ -101,6 +102,81 @@ func runNvidx(args []string) int {
 	line, ok := dead.NvIdxCheck(data)
 	fmt.Println(line)
 	if !ok {
+		return 1
+	}
+	return 0
+}
+
+// runPhaserun is tools/phaserun.sh.
+func runPhaserun(args []string) int {
+	if len(args) == 2 && args[0] == "--parts" {
+		fmt.Fprintln(os.Stderr, "usage: slimtools phaserun <pipeline> <unit> <work-dir>")
+		return 1
+	}
+	if len(args) != 3 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools phaserun <pipeline> <unit> <work-dir>")
+		return 1
+	}
+	p, err := pipeline.Get(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	if err := memo.PhaseRun(p, args[1], args[2], os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+// runTreedigest is phaserun.sh's tree_digest: the digest of a work tree, which
+// is half of an edit's cache key.
+func runTreedigest(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools treedigest <work-dir>")
+		return 1
+	}
+	d, err := memo.TreeDigest(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	fmt.Println(d)
+	return 0
+}
+
+// runPhasename is tools/phasename.sh.
+func runPhasename(args []string) int {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools phasename <phase> [pipeline]")
+		return 1
+	}
+	name := "slim"
+	if len(args) > 1 {
+		name = args[1]
+	}
+	p, err := pipeline.Get(name)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	n, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	fmt.Println(memo.PhaseName(p, n))
+	return 0
+}
+
+// runRestore is tools/restore.sh.
+func runRestore(args []string) int {
+	if len(args) != 2 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools restore <in.tar> <dir>")
+		return 1
+	}
+	if err := memo.Restore(args[0], args[1]); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
 		return 1
 	}
 	return 0
