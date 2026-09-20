@@ -54,6 +54,55 @@ func runOnedecl(args []string) int {
 	})
 }
 
+// runCanon is tools/canon.sh: the seven passes, in its order, once or to a
+// fixpoint.  Its output lines are matched exactly, including the plural on
+// "round".
+func runCanon(args []string) int {
+	once := false
+	var files []string
+	for _, a := range args {
+		if a == "--once" {
+			once = true
+			continue
+		}
+		files = append(files, a)
+	}
+	if len(files) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools canon <file> [--once]")
+		return 1
+	}
+	src, err := os.ReadFile(files[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	out, rounds, changed, converged := canon.Fixpoint(src, once)
+	if err := writeFile(files[0], out); err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	if !converged {
+		fmt.Printf("  canon        NOT CONVERGING after %d rounds -- two passes are\n", rounds)
+		fmt.Println("               undoing each other; that is a bug in one of them,")
+		fmt.Println("               not a reason to raise the limit.")
+		return 1
+	}
+	if once {
+		if changed {
+			fmt.Println("canon changed it")
+		} else {
+			fmt.Println("canon settled")
+		}
+		return 0
+	}
+	s := "s"
+	if rounds == 1 {
+		s = ""
+	}
+	fmt.Printf("  canon        fixpoint after %d round%s\n", rounds, s)
+	return 0
+}
+
 // runBrace is the one canonicaliser that prints TWO lines.  tools/sweep.sh
 // reads only the last -- `said=$("$@" | tail -1)` -- but a drop-in matches
 // what a program writes and not only what its caller happens to read.

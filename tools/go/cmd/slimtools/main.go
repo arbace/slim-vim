@@ -39,7 +39,7 @@ type tool struct {
 // before they report.
 var order = []string{
 	"blankruns", "joinparens", "splitheads", "brace", "onestmt", "onedecl", "forcomma",
-	"parse", "difftest",
+	"canon", "parse", "difftest",
 }
 
 var tools = map[string]tool{
@@ -50,6 +50,7 @@ var tools = map[string]tool{
 	"onedecl":    {runOnedecl, "onedecl <file>"},
 	"forcomma":   {runForcomma, "forcomma <file> [--check]"},
 	"brace":      {runBrace, "brace <file>"},
+	"canon":      {runCanon, "canon <file> [--once]"},
 	"parse":      {runParse, "parse <file.c>"},
 	"difftest":   {runDifftest, "difftest <tool> <file>..."},
 }

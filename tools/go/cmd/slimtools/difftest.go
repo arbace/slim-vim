@@ -26,10 +26,19 @@ import (
 // output, and running twice over a corpus would measure already-transformed
 // text.
 type spec struct {
-	// script is the Python tool, relative to the repository root.
+	// script is the tool being replaced, relative to the repository root.
 	script string
+	// runner is what executes it: python3 for a .py, sh for a .sh.
+	runner string
 	// args, if non-nil, is appended after the file path for both sides.
 	args []string
+}
+
+func (s spec) run() string {
+	if s.runner != "" {
+		return s.runner
+	}
+	return "python3"
 }
 
 var specs = map[string]spec{
@@ -40,6 +49,11 @@ var specs = map[string]spec{
 	"onedecl":    {script: "tools/onedecl.py"},
 	"forcomma":   {script: "tools/forcomma.py"},
 	"brace":      {script: "tools/brace.py"},
+
+	// The driver, not a tool.  canon.sh runs the seven above in its own
+	// order, to a fixpoint or once; --once is what sweep.sh uses, and is
+	// compared here because that is the path that actually runs.
+	"canon": {script: "tools/canon.sh", runner: "sh", args: []string{"--once"}},
 }
 
 func runDifftest(args []string) int {
@@ -141,7 +155,7 @@ func compare(self, name string, sp spec, in string) (string, bool) {
 		}
 	}
 
-	pyOut, pyCode := run("python3", append([]string{sp.script, pyFile}, sp.args...))
+	pyOut, pyCode := run(sp.run(), append([]string{sp.script, pyFile}, sp.args...))
 	goOut, goCode := run(self, append([]string{name, goFile}, sp.args...))
 
 	pyBytes, err := os.ReadFile(pyFile)
