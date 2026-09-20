@@ -428,3 +428,71 @@ func (e *E) Body(name, newBody, what string) {
 		e.say(what)
 	})
 }
+
+// DropBlocks deletes a brace-matched block n times, anchored on the line that
+// opens it.
+//
+// Brace matching rather than a line pattern, because these bodies are
+// macro-expanded one-liners hundreds of characters wide -- transcribing them is
+// exactly what killed whim74's first attempt, and what genlits.py exists to
+// stop.
+func (e *E) DropBlocks(fn, anchorRe string, n int, what string) {
+	e.InFunction(fn, func(e *E) {
+		if e.Failed() {
+			return
+		}
+		rx := regexp.MustCompile(anchorRe)
+		if k := len(rx.FindAll(e.text, -1)); k != n {
+			e.die("%s -- the anchor matches %d times, expected %d", what, k, n)
+			return
+		}
+		for i := 0; i < n; i++ {
+			m := rx.FindIndex(e.text)
+			b := cutil.Blank(e.text)
+			k0 := lastNewlineBefore(e.text, m[0]) + 1
+			o := indexFrom(e.text, []byte("{"), m[0])
+			c := cutil.Match(b, o)
+			if c < 0 {
+				e.die("%s -- unbalanced block", what)
+				return
+			}
+			out := append([]byte{}, e.text[:k0]...)
+			e.text = append(out, e.text[indexFrom(e.text, []byte("\n"), c)+1:]...)
+		}
+	})
+	if !e.Failed() {
+		e.say(what)
+	}
+}
+
+// DropIfIn and FoldAlwaysIn are FoldNeverIn's twins: fold inside one function
+// and report after, which is the shape several phases spell by calling
+// in_function() around a bare cutil call and say()ing outside it.
+func (e *E) DropIfIn(fn, pattern, what string, n int) { e.foldIn(fn, pattern, what, n, cutil.DropIf) }
+
+// FoldAlwaysIn is DropIfIn's twin for the other arm.
+func (e *E) FoldAlwaysIn(fn, pattern, what string, n int) {
+	e.foldIn(fn, pattern, what, n, cutil.FoldAlways)
+}
+
+// FoldNeverIn2 is the exported spelling of foldNeverIn.
+func (e *E) FoldNeverIn2(fn, pattern, what string, n int) {
+	e.foldIn(fn, pattern, what, n, cutil.FoldNever)
+}
+
+func (e *E) foldIn(fn, pattern, what string, n int, f func([]byte, string, int) ([]byte, error)) {
+	e.InFunction(fn, func(e *E) {
+		if e.Failed() {
+			return
+		}
+		out, err := f(e.text, pattern, n)
+		if err != nil {
+			e.die("%s -- %v", what, err)
+			return
+		}
+		e.text = out
+	})
+	if !e.Failed() {
+		e.say(what)
+	}
+}

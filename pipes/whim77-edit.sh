@@ -40,65 +40,7 @@ set -eu
 work=${1:?usage: whim77-edit.sh <work-dir> <state-dir>}
 f="$work/whim-vim.c"
 
-python3 - "$f" <<'PY'
-TAG = 'nobufpat'
-import re, sys
-sys.path.insert(0, 'tools')
-# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
-# phase's key.  implhash greps for paths and an `import` names a module, so
-# without this line an edit to it changes what this phase produces and moves
-# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
-import cutil
-path = sys.argv[1]
-t = open(path, errors='surrogateescape').read()
-
-def die(msg):
-    sys.exit('  %-12s %s' % (TAG, msg))
-
-def say(what):
-    print('  %-12s %s' % (TAG, what))
-
-def in_function(text, name, edit):
-    span = cutil.find_definition(text, name)
-    if not span:
-        die('%s is not defined' % name)
-    a, z = span
-    return text[:a] + edit(text[a:z]) + text[z:]
-
-def fold_never(text, fn, pattern, what, n=1):
-    def edit(s):
-        try:
-            return cutil.fold_never(s, pattern, n, re.M)
-        except ValueError as e:
-            die('%s -- %s' % (what, e))
-    out = in_function(text, fn, edit)
-    say(what)
-    return out
-
-# THE INVARIANT: every command that can reach this block is not-implemented.  If an
-# upstream ever gives a LIVE handler to a command carrying EX_BUFNAME, the block
-# becomes reachable again and this phase would be deleting a working feature.  Assert
-# it rather than trust the survey.
-rows = re.findall(r'\[CMD_[a-zA-Z]+\] = \{\(char_u \*\)"([a-zA-Z]+)", [^,]+, *([a-z_]+)[^}]*EX_BUFNAME', t)
-if not rows:
-    die('no command carries EX_BUFNAME -- the block this phase removes is already gone')
-live = [name for name, fn in rows if fn not in ('ex_ni', 'ex_script_ni')]
-if live:
-    die('these EX_BUFNAME commands have a LIVE handler and still need the pattern '
-        'matching: %s' % ' '.join(live))
-say('confirmed: all %d EX_BUFNAME commands are ex_ni' % len(rows))
-
-# and the block really is the one check that does not consult `ni`
-if not re.search(r'^[ \t]*ni = \(! \(\(int\)\(ea\.cmdidx\) < 0\)  && \(cmdnames\[ea\.cmdidx\]\.cmd_func == ex_ni', t, re.M):
-    die('`ni` is no longer computed as "the handler is ex_ni"')
-
-# ---- the pre-dispatch matching ----------------------------------------------------
-t = fold_never(t, 'do_one_cmd',
-               r'^[ \t]*if \(\(ea\.argt & EX_BUFNAME\) && \*ea\.arg != NUL && ea\.addr_count == 0 && ! \(\(int\)\(ea\.cmdidx\) < 0\) \)$',
-               'naming a buffer by pattern for commands that cannot run')
-
-open(path, 'w', errors='surrogateescape').write(t)
-PY
+tools/st.sh edit whim77 "$f"
 
 tools/st.sh cmdidxs "$f" --check >/dev/null
 
