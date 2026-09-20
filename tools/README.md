@@ -183,9 +183,17 @@ is a local-only commit verifies exactly as cleanly and is worth nothing.
 **Check it on every REFRESH and not once**, because a refresh is exactly when
 the basis moves: `git bundle create` re-reads `origin/main..HEAD`, and a
 `git fetch` between two refreshes can put the basis somewhere a clone cannot
-reach.  It is one line -- `git merge-base --is-ancestor <prereq> origin/main`
-for each prerequisite `git bundle verify` prints -- and a stale verification is
-worth less than none.
+reach.  A stale verification is worth less than none.
+
+The one line, and the `sed` in it is load-bearing:
+
+    git bundle verify <f> | sed -n '/requires these/,$p' | grep -oE '^[0-9a-f]{40}' \
+        | while read r; do git merge-base --is-ancestor $r origin/main || echo "$r UNREACHABLE"; done
+
+`git bundle verify` prints the bundle's own HEAD *above* the prerequisite list,
+so a grep over the whole output tests the new work for reachability from the
+remote -- which it is not, by construction -- and reports a failure on a correct
+bundle.  Measured: it did, naming `a7fa6a3`, which is the head being bundled.
 
 **And the probe is not merged, which is measured rather than squeamish.**
 `implhash.sh` hashes `tools/go` as a directory with no name filter, so a new
