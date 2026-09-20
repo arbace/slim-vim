@@ -390,3 +390,27 @@ func runNoswap(args []string) int {
 		return cut.NoSwap(t, w)
 	})
 }
+
+func runNorecover(args []string) int {
+	return oneFile(args, "norecover", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoRecover(t, w)
+	})
+}
+
+func runNoucmd(args []string) int {
+	return oneFile(args, "noucmd", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoUcmd(t, w)
+	})
+}
+
+func runNonfa(args []string) int {
+	return oneFile(args, "nonfa", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoNfa(t, w)
+	})
+}
+
+func runNolocale(args []string) int {
+	return oneFile(args, "nolocale", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoLocale(t, w)
+	})
+}
