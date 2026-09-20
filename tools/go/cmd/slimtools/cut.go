@@ -474,3 +474,9 @@ func runNomouse(args []string) int {
 		return cut.NoMouse(t, w)
 	})
 }
+
+func runNotabs(args []string) int {
+	return oneFile(args, "notabs", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoTabs(t, w)
+	})
+}
