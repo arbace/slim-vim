@@ -15,6 +15,31 @@ import (
 // uses for cursor motion rather than for text.
 var ansi = regexp.MustCompile(`\x1b\[[0-9;?]*[a-zA-Z]|\x1b[()][0-9A-B]|\x1b[=>]|\x1b\][^\x07]*\x07|\r`)
 
+// ioctl runs one ioctl on a file WITHOUT disturbing Go's poller.
+//
+// os.File.Fd() is the obvious way and the wrong one: it puts the file into
+// BLOCKING mode and takes it out of the runtime's poller, after which
+// SetReadDeadline does nothing at all and a Read on a pty master the child
+// keeps open never returns.  Measured the hard way -- the first version of
+// this file hung every session instead of timing out.  SyscallConn.Control
+// hands over the descriptor without changing its mode.
+func ioctl(f *os.File, req uintptr, arg unsafe.Pointer) error {
+	c, err := f.SyscallConn()
+	if err != nil {
+		return err
+	}
+	var errno syscall.Errno
+	if err := c.Control(func(fd uintptr) {
+		_, _, errno = syscall.Syscall(syscall.SYS_IOCTL, fd, req, uintptr(arg))
+	}); err != nil {
+		return err
+	}
+	if errno != 0 {
+		return errno
+	}
+	return nil
+}
+
 // openPty opens a pseudo-terminal pair on Linux, with no third-party
 // dependency: /dev/ptmx, unlock, ask for the number, open the slave.
 func openPty() (master *os.File, slaveName string, err error) {
@@ -23,16 +48,14 @@ func openPty() (master *os.File, slaveName string, err error) {
 		return nil, "", err
 	}
 	var unlock int32
-	if _, _, e := syscall.Syscall(syscall.SYS_IOCTL, m.Fd(),
-		syscall.TIOCSPTLCK, uintptr(unsafe.Pointer(&unlock))); e != 0 {
+	if err := ioctl(m, syscall.TIOCSPTLCK, unsafe.Pointer(&unlock)); err != nil {
 		m.Close()
-		return nil, "", e
+		return nil, "", err
 	}
 	var n uint32
-	if _, _, e := syscall.Syscall(syscall.SYS_IOCTL, m.Fd(),
-		syscall.TIOCGPTN, uintptr(unsafe.Pointer(&n))); e != 0 {
+	if err := ioctl(m, syscall.TIOCGPTN, unsafe.Pointer(&n)); err != nil {
 		m.Close()
-		return nil, "", e
+		return nil, "", err
 	}
 	return m, fmt.Sprintf("/dev/pts/%d", n), nil
 }
@@ -76,8 +99,7 @@ func Session(binary string, args []string, keys [][]byte, term string,
 
 	if rows > 0 && cols > 0 {
 		ws := winsize{rows: uint16(rows), cols: uint16(cols)}
-		syscall.Syscall(syscall.SYS_IOCTL, slave.Fd(),
-			syscall.TIOCSWINSZ, uintptr(unsafe.Pointer(&ws)))
+		ioctl(slave, syscall.TIOCSWINSZ, unsafe.Pointer(&ws))
 	}
 
 	e := env
@@ -99,6 +121,14 @@ func Session(binary string, args []string, keys [][]byte, term string,
 	var out []byte
 	deadline := time.Now().Add(timeout)
 	buf := make([]byte, 65536)
+
+	// A read deadline that cannot be set is the difference between a session
+	// that times out and one that hangs for ever, so it is checked once and
+	// loudly rather than ignored per read.
+	if err := m.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
+		return nil, -1, fmt.Errorf("pty: the master takes no read deadline (%v) -- "+
+			"a session would hang rather than time out", err)
+	}
 
 	drain := func(until time.Time) {
 		for time.Now().Before(until) {
