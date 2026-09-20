@@ -71,18 +71,53 @@ if [ ! -d "$fork" ]; then
     # --forward so a re-run is not asked to apply an applied patch in reverse.
     patch -p1 -d "$tmp" --forward --silent < "$patch"
     # Rename last: a reader either sees a complete fork or no fork at all.
-    mv "$tmp" "$fork"
+    #
+    # AND ONLY IF IT IS STILL MISSING.  `mv a b` where b is a DIRECTORY that
+    # exists moves a INSIDE b, so two concurrent builders would leave
+    # $fork/$fork.tmp.NNN and the second one's patched copy where nothing looks
+    # for it.  The loser throws its copy away instead; the two are identical by
+    # construction, being the same pinned version and the same patch.
+    if [ -d "$fork" ]; then rm -rf "$tmp"; else mv "$tmp" "$fork" || rm -rf "$tmp"; fi
 fi
 
 # The generated modfile.  Go looks for the matching .sum beside it, so both are
 # written; the replace is a directory, whose contents go.sum cannot cover, which
 # is exactly why the patch is tracked and hashed into the key above.
-mkdir -p "$(dirname "$bin")"
-mod=.cache/gobin/$key/fork.mod
+# EVERY GENERATED FILE IS WRITTEN UNDER A PRIVATE NAME AND RENAMED, because
+# more than one of these runs at once.  tools/zrecord.sh starts six harnesses in
+# parallel and each calls tools/st.sh, which calls this; and tools/verifypass.sh
+# runs 64 units at a time.  Writing fork.mod and fork.sum at their final names
+# meant one builder truncating with `cp` what another was already reading.  Two
+# units of one cold `make zero-verify` failed that way, 44 of 46 passing around
+# them, and NEITHER MESSAGE NAMES CONCURRENCY -- which is why the two states
+# were reproduced by hand rather than guessed at, each giving its unit's message
+# byte for byte:
+#
+#   an EMPTY fork.mod                -> `fork.mod: missing module declaration`
+#                                       (r0, caught inside `cp go.mod`)
+#   fork.mod copied, fork.sum empty  -> `missing go.sum entry for module
+#                                       providing package modernc.org/cc/v4`
+#                                       (r1, caught between the two `cp`s)
+#
+# The window is the first few milliseconds of a `go build`, which reads both
+# files and then never looks again, so the race is not reproducible on demand --
+# 40 staggered cold builders did not fire it once.  The fix is structural for
+# exactly that reason: a retry would be tuned against something unmeasurable.
+d=.cache/gobin/$key
+tmp=$d/.tmp.$$
+rm -rf "$tmp"
+mkdir -p "$tmp"
+mod=$tmp/fork.mod
 cp tools/go/go.mod "$mod"
-cp tools/go/go.sum "${mod%.mod}.sum"
+cp tools/go/go.sum "$tmp/fork.sum"
 printf '\nreplace modernc.org/cc/v4 => %s\n' "$(cd "$fork" && pwd)" >> "$mod"
 
-(cd tools/go && go build -trimpath -modfile="$(cd ../.. && pwd)/$mod" -o "$(cd ../.. && pwd)/$bin" ./cmd/slimtools) >&2
+(cd tools/go && go build -trimpath -modfile="$(cd ../.. && pwd)/$mod" -o "$(cd ../.. && pwd)/$tmp/slimtools" ./cmd/slimtools) >&2
+
+# A rename within one directory is atomic, so a concurrent reader's `[ -x ]`
+# and its exec see either the old binary or the new one and never half of
+# either -- and a process already executing the old inode keeps it.
+mv -f "$tmp/slimtools" "$bin"
+rm -rf "$tmp"
 
 echo "$bin"

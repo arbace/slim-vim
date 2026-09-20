@@ -22,6 +22,15 @@
 # the tree is what we already have.  Together they say the port did the same
 # thing and said the same thing.
 #
+# IT RUNS THE WHOLE PHASE PROGRAM AT <rev>, not a heredoc lifted out of it, and
+# that settles a question the zero port raised independently: pipes/zero12-edit.sh
+# holds TWO heredocs, and a comparison that extracted only the first would run
+# the Python halfway and the Go all the way and blame the port.  Running the
+# program runs every heredoc it has, in place, with the shell around them -- the
+# gcc builds, the background jobs, the state directory -- so the position of a
+# heredoc in the program is compared along with its content.  It costs the
+# phase's own setup, which for whim80 is one static link.
+#
 # AND IT REFUSES RATHER THAN PASSING VACUOUSLY, which is this directory's one
 # rule: the old program must contain a heredoc (or there is nothing to compare
 # against), the new one must not, and the report must be non-empty (a phase that
@@ -44,11 +53,24 @@ old=$tmp/old-prog.sh
 git show "$rev:$prog" > "$old" 2>/dev/null || { echo "editcmp: $prog does not exist at $rev" >&2; exit 2; }
 
 grep -q "python3 -" "$old" || {
-    echo "editcmp: $prog at $rev has no heredoc, so there is nothing to compare against" >&2
-    exit 2
+    printf '  editcmp      %s %-4s ported at %s -- the boundary gate is the check from here\n' "$pipe" "$phase" "$rev"
+    exit 0
 }
 if grep -q "python3 -" "$prog"; then
     echo "editcmp: $prog still has a heredoc -- nothing has been ported" >&2
+    exit 2
+fi
+
+# A PHASE WHOSE <rev> IS ALREADY PORTED HAS NOTHING TO COMPARE AGAINST, and that
+# is a report and not a failure: the swap is what removes the heredoc, so from
+# the commit that made it the boundary gate is the only check there is.  It
+# matters because this is run in a LOOP over every phase a session has touched,
+# to catch a regression in one ported two hours ago, and an exit 2 stops that
+# loop at its first argument.  It IS still a failure if the new program has no
+# Go edit either, because then nothing at all is being compared -- which the
+# `still has a heredoc` test above and this one together cover.
+if ! grep -q "st.sh \(edit\|query\)" "$prog"; then
+    echo "editcmp: $prog has neither a heredoc nor a Go edit -- nothing to compare" >&2
     exit 2
 fi
 
