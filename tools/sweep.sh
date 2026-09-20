@@ -19,18 +19,20 @@
 # output, 79,380 lines: 15.675s became 8.353s and the output was identical.
 # What is left is gcc, which neither version can avoid.
 #
-# The tools it runs are these, and they are named here so that
-# tools/implhash.sh still hashes them into every phase's key -- implhash greps
-# for paths and does not know what a comment is, which is the same mechanism
-# the Python `import` comments use:
+# Named here so tools/implhash.sh hashes the implementation into every phase's
+# key -- implhash greps for paths and does not know what a comment is, the same
+# mechanism the Python `import` comments use.  THE DIRECTORY, NOT A LIST OF
+# FILES: a list is curated and drifts, and this one did -- it named 18 of 128
+# .go files, four of which the sweep reaches (cutil/body.go, cutil/definition.go,
+# cutil/split.go, canon/strings.go) were in no list, and `go` was not even in
+# implhash's extension alternation, so editing the sweep moved no key at all
+# while gobuild.sh built a different binary.  The patch is named too and must
+# be: implhash follows two levels, sweep.sh is level 1 and gobuild.sh level 2,
+# so the patch gobuild.sh names is level 3 and was never reached.
 #
-#   tools/go/internal/sweep/sweep.go     the loop, the skip cache, the ceiling
-#   tools/go/internal/sweep/tools.go     the seven members of a round
-#   tools/go/internal/dead/deadsweep.go  tools/go/internal/dead/deadprotos.go
-#   tools/go/internal/dead/typereach.go  tools/go/internal/dead/funcreach.go
-#   tools/go/internal/dead/deadfields.go tools/go/internal/dead/deadenums.go
-#   tools/go/internal/canon/canon.go     tools/go/internal/cutil/blank.go
-#   tools/enumvals.sh                    the DWARF dump deadenums asks for
+#   tools/go/                        every .go, go.mod and go.sum -- the binary
+#   tools/patches/cc-v4-c23.patch    what the fork is built with
+
 set -eu
 
 f=${1:?usage: sweep.sh <file.c>}

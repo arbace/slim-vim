@@ -35,8 +35,64 @@ fi
 
 [ -n "$progs" ] || { echo agent; exit 0; }
 
+# A program's dependencies are the paths it NAMES, and a DIRECTORY it names
+# expands to every file under it.
+#
+# THE DIRECTORY CASE IS THE FIX FOR A MEASURED HOLE, not a convenience.  The
+# extension list had no `go`, so when tools/sweep.sh and tools/canon.sh became
+# wrappers onto a Go binary the whole sweep fell out of every key.  Measured on
+# whim 13-41, each with the control that says the test can fail:
+#
+#   baseline                                   5167f16765693870
+#   edit tools/go/internal/sweep/sweep.go      5167f16765693870   does NOT move
+#   edit tools/sweep.sh            (control)   0686fde7f17aa479   moves
+#   edit tools/patches/cc-v4-c23.patch         5167f16765693870   does NOT move
+#   edit tools/gobuild.sh          (control)   752c38dcf30160fb   moves
+#
+# gobuild.sh built a different binary across the first edit, so the
+# implementation changed, the binary changed, and the memoize could not tell: a
+# warm repass would replay a boundary produced by a different sweep and report
+# success.  That is the `cutil.py`/`macros.py` hazard CLAUDE.md records, at the
+# scale of the whole sweep and the whole canonicaliser.
+#
+# The patch was invisible for a SECOND reason and it is worth separating: this
+# function is applied twice, so a program reaches its own names and theirs, and
+# no further.  sweep.sh is level 1 (driven() names it), gobuild.sh is level 2,
+# and the patch gobuild.sh names is level 3.  Naming the patch in the wrappers
+# themselves is what brings it to level 2; no change here would have.
+#
+# A LIST OF THE FILES THAT MATTER IS THE ARTIFACT THAT FAILED.  The wrappers
+# named 18 of 128 .go files, and four the sweep certainly reaches -- body.go,
+# definition.go, split.go, strings.go -- were in neither list.  So the rule is
+# the directory and not a curation of it: gobuild.sh already keys the binary on
+# go.mod, go.sum, the patch and every .go sorted, and expanding tools/go/ makes
+# this the same set.  Two computed traversals of one tree cannot drift; two
+# hand-maintained lists of it did.
+#
+# EVERY FILE UNDER THE DIRECTORY, with no name filter, and that is deliberate.
+# A filter is another curated list and can drop a real dependency, which makes
+# a wrong answer possible.  Taking everything can only admit a file that should
+# not be there -- an untracked build artifact under tools/go/ would enter the
+# key and make two checkouts of one commit disagree, which costs a rebuild and
+# never an incorrect boundary.  An over-inclusive key costs CPU; an
+# under-inclusive key costs correctness.  (`go build -trimpath -o .cache/...`
+# keeps output out of the tree; `go test` writing a binary in place would not.)
+#
+# The cost is deliberate and belongs in the open: internal/harness/ and
+# internal/cut/ are hashed too, though neither is wired into a pipeline today,
+# so editing a dormant cutter re-runs every phase.
 deps() {
-    grep -oE '(tools|pipes)/[A-Za-z0-9_/-]+\.(py|sh|txt|mk|patch)' "$1" 2>/dev/null || true
+    grep -oE '(tools|pipes)/[A-Za-z0-9_/-]+\.(py|sh|txt|mk|patch|go|mod|sum)' "$1" 2>/dev/null || true
+    # A bare directory mention: `tools/go/` matches, and `tools/patches/x.patch`
+    # does not, because the character after the slash must not continue a path.
+    # Files are emitted, never the directory, so the caller's `[ -f ]` guards
+    # and its second level keep working unchanged.
+    grep -oE '(tools|pipes)/[A-Za-z0-9_/-]*/([^A-Za-z0-9_/.-]|$)' "$1" 2>/dev/null |
+        sed 's#[^/]$##' | sort -u |
+        while read -r d; do
+            [ -d "$d" ] && find "$d" -type f
+        done | LC_ALL=C sort
+    true
 }
 
 # A split phase's implementation is both parts and what tools/phaserun.sh runs

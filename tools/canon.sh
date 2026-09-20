@@ -25,15 +25,20 @@
 # tools/sweep.sh loops until a whole round changes nothing and canon is part of
 # that round, so proving canon settled separately would prove it twice.
 #
-# Named here so tools/implhash.sh still hashes them into every phase's key --
-# implhash greps for paths and does not know what a comment is, which is the
-# same mechanism the Python `import` comments use:
+# Named here so tools/implhash.sh hashes the implementation into every phase's
+# key -- implhash greps for paths and does not know what a comment is, the same
+# mechanism the Python `import` comments use.  THE DIRECTORY, NOT A LIST OF
+# FILES: a list is curated and drifts, and this one did -- it named 18 of 128
+# .go files, four of which the sweep reaches (cutil/body.go, cutil/definition.go,
+# cutil/split.go, canon/strings.go) were in no list, and `go` was not even in
+# implhash's extension alternation, so editing the sweep moved no key at all
+# while gobuild.sh built a different binary.  The patch is named too and must
+# be: implhash follows two levels, sweep.sh is level 1 and gobuild.sh level 2,
+# so the patch gobuild.sh names is level 3 and was never reached.
 #
-#   tools/go/internal/canon/canon.go       tools/go/internal/canon/blankruns.go
-#   tools/go/internal/canon/joinparens.go  tools/go/internal/canon/splitheads.go
-#   tools/go/internal/canon/brace.go       tools/go/internal/canon/onestmt.go
-#   tools/go/internal/canon/onedecl.go     tools/go/internal/canon/forcomma.go
-#   tools/go/internal/cutil/blank.go       tools/go/internal/cutil/match.go
+#   tools/go/                        every .go, go.mod and go.sum -- the binary
+#   tools/patches/cc-v4-c23.patch    what the fork is built with
+
 set -eu
 
 file=${1:?usage: canon.sh <file> [--once]}
