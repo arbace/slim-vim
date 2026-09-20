@@ -182,6 +182,64 @@ func runRestore(args []string) int {
 	return 0
 }
 
+// runStages is tools/stages.sh.
+//
+//	slimtools stages <pipeline>            the schedule, checked first
+//	slimtools stages <pipeline> --check    the check alone
+//	slimtools stages <pipeline> --of N     the unit containing phase N
+func runStages(args []string) int {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: slimtools stages <pipeline> [--of N | --check]")
+		return 2
+	}
+	p, err := pipeline.Get(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+		return 1
+	}
+	mode := ""
+	if len(args) > 1 {
+		mode = args[1]
+	}
+	switch mode {
+	case "", "--check":
+		if err := memo.CheckStages(p, os.Stderr); err != nil {
+			return 1
+		}
+		if mode != "" {
+			return 0
+		}
+		us, err := memo.Units(p)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+		for _, u := range us {
+			fmt.Println(u)
+		}
+		return 0
+	case "--of":
+		if len(args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: slimtools stages <pipeline> --of N")
+			return 2
+		}
+		n, err := strconv.Atoi(args[2])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "slimtools: %v\n", err)
+			return 1
+		}
+		u, err := memo.UnitOf(p, n)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			return 1
+		}
+		fmt.Println(u)
+		return 0
+	}
+	fmt.Fprintln(os.Stderr, "usage: slimtools stages <pipeline> [--of N | --check]")
+	return 2
+}
+
 // runParts is tools/phaserun.sh --parts: the programs a unit runs, in order.
 func runParts(args []string) int {
 	if len(args) != 2 {
