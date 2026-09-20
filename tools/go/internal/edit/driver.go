@@ -253,6 +253,35 @@ func lastNewlineBefore(text []byte, i int) int {
 // next iteration -- which is the same reason CLAUDE.md gives for rewriting a
 // whole file in ONE pass rather than recomputing spans between two.
 func (e *E) FoldNeverN(pattern string, n int, what string) {
+	e.repeat(pattern, n, what, cutil.FoldNever)
+}
+
+// FoldAlwaysN is FoldNeverN for the other arm.
+func (e *E) FoldAlwaysN(pattern string, n int, what string) {
+	e.repeat(pattern, n, what, cutil.FoldAlways)
+}
+
+// FoldNeverRepeat and FoldAlwaysRepeat are FoldNeverN and FoldAlwaysN for the
+// phases that report the COUNT -- "writing a no-file buffer refused (3)".
+//
+// The difference is per phase and not per primitive: whim60's fold-several says
+// only what it did, whim62's says how many times.  Both are the heredoc's own
+// wording, and the report is the thing this port must reproduce, so the
+// distinction is kept rather than harmonised.
+func (e *E) FoldNeverRepeat(pattern string, n int, what string) {
+	e.repeatSay(pattern, n, what, cutil.FoldNever, true)
+}
+
+// FoldAlwaysRepeat is FoldNeverRepeat for the other arm.
+func (e *E) FoldAlwaysRepeat(pattern string, n int, what string) {
+	e.repeatSay(pattern, n, what, cutil.FoldAlways, true)
+}
+
+func (e *E) repeat(pattern string, n int, what string, f func([]byte, string, int) ([]byte, error)) {
+	e.repeatSay(pattern, n, what, f, false)
+}
+
+func (e *E) repeatSay(pattern string, n int, what string, f func([]byte, string, int) ([]byte, error), withCount bool) {
 	if e.err != nil {
 		return
 	}
@@ -270,12 +299,12 @@ func (e *E) FoldNeverN(pattern string, n int, what string) {
 		var out []byte
 		var err error
 		if len(ms) == 1 {
-			out, err = cutil.FoldNever(e.text, pattern, 1)
+			out, err = f(e.text, pattern, 1)
 		} else {
 			last := ms[len(ms)-1][0]
 			start := lastNewlineBefore(e.text, last) + 1
 			var tail []byte
-			tail, err = cutil.FoldNever(e.text[start:], pattern, 1)
+			tail, err = f(e.text[start:], pattern, 1)
 			if err == nil {
 				out = append(append([]byte{}, e.text[:start]...), tail...)
 			}
@@ -286,5 +315,20 @@ func (e *E) FoldNeverN(pattern string, n int, what string) {
 		}
 		e.text = out
 	}
-	e.say(what)
+	if withCount {
+		e.say(fmt.Sprintf("%s (%d)", what, n))
+	} else {
+		e.say(what)
+	}
+}
+
+// Refuse stops the edit with a message of the phase's own wording, for the
+// assertions that are not a count of a pattern -- "do_exedit mentions n 4 times
+// after the title went, expected 3 (declaration, readonlymode save and
+// restore)".  CountIs would say the right thing about the wrong subject.
+func (e *E) Refuse(format string, a ...interface{}) { e.die(format, a...) }
+
+// Mentions counts whole-word occurrences of a name in the tree as it stands.
+func (e *E) Mentions(name string) int {
+	return len(regexp.MustCompile(`\b`+regexp.QuoteMeta(name)+`\b`).FindAll(e.text, -1))
 }
