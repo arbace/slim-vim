@@ -480,3 +480,9 @@ func runNotabs(args []string) int {
 		return cut.NoTabs(t, w)
 	})
 }
+
+func runNomemfile(args []string) int {
+	return oneFile(args, "nomemfile", func(t []byte, w *os.File) ([]byte, error) {
+		return cut.NoMemfile(t, w)
+	})
+}
