@@ -276,3 +276,67 @@ func runCmdidxs(args []string) int {
 	}
 	return 0
 }
+
+// runMuslctype is tools/muslctype.py --verify: compile the vendored musl block
+// out of the source the phase produced and hold it to this machine's libc.
+func runMuslctype(args []string) int {
+	var path string
+	verify := false
+	for _, a := range args {
+		if a == "--verify" {
+			verify = true
+		} else if path == "" {
+			path = a
+		}
+	}
+	if path == "" || !verify {
+		fmt.Fprintln(os.Stderr, "usage: slimtools muslctype --verify <file.c>")
+		return 1
+	}
+	if err := harness.MuslCtypeVerify(path, os.Stdout); err != nil {
+		// A message that already starts with the two-space tag is the tool's
+		// own reporting line and is printed as it stands; anything else is an
+		// ordinary error.
+		if s := err.Error(); strings.HasPrefix(s, "  ") {
+			fmt.Fprintln(os.Stdout, s)
+		} else if err != harness.ErrReported {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		return 1
+	}
+	return 0
+}
+
+// runMuslcase is tools/muslcase.py: --generate writes the convertStruct tables
+// derived from this machine's libc, --verify holds a source's shipped tables
+// to it over every codepoint.
+func runMuslcase(args []string) int {
+	var path, mode string
+	for _, a := range args {
+		if strings.HasPrefix(a, "--") {
+			mode = a
+		} else if path == "" {
+			path = a
+		}
+	}
+	switch {
+	case mode == "--generate" && path == "":
+		text, err := harness.MuslCaseGenerate()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		fmt.Print(text)
+	case mode == "--verify" && path != "":
+		if err := harness.MuslCaseVerify(path, os.Stdout); err != nil {
+			if err != harness.ErrReported {
+				fmt.Fprintln(os.Stderr, err)
+			}
+			return 1
+		}
+	default:
+		fmt.Fprintln(os.Stderr, "usage: slimtools muslcase --generate | --verify <file.c>")
+		return 1
+	}
+	return 0
+}
