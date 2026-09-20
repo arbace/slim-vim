@@ -180,6 +180,13 @@ making: anyone who can clone the remote can apply it and get every commit, with
 no dependency on the machine that wrote it.  An incremental bundle whose basis
 is a local-only commit verifies exactly as cleanly and is worth nothing.
 
+**Check it on every REFRESH and not once**, because a refresh is exactly when
+the basis moves: `git bundle create` re-reads `origin/main..HEAD`, and a
+`git fetch` between two refreshes can put the basis somewhere a clone cannot
+reach.  It is one line -- `git merge-base --is-ancestor <prereq> origin/main`
+for each prerequisite `git bundle verify` prints -- and a stale verification is
+worth less than none.
+
 **And the probe is not merged, which is measured rather than squeamish.**
 `implhash.sh` hashes `tools/go` as a directory with no name filter, so a new
 package under it re-keys phases that will never run it: sampled ten units with

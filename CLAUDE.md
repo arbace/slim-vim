@@ -1143,6 +1143,17 @@ act on.
   `zstream` (24 checks), `create_cmdidxs` (25), `zrec` (14), `zscreen` (10),
   `cutil` (10), `ptyrun` (8), `funcreach`, `zhostonly`, `muslcase`.
 
+**EVERY VERIFY RECORDED ANYWHERE IN THIS FILE HAS BEEN RUN AGAINST A TREE
+SOMEBODY ASSEMBLED**, and that is a standing assumption rather than a defect.
+`make zero-verify`, `whim-verify` and `slim-verify` each reproduce every recorded
+boundary from the one before it, which is the strongest induction this tree has --
+but the tree they run in is a working copy, not a fresh clone, and the thirteen
+green runs behind the figures above were spread over two worktrees on one
+machine and share that single assumption.  **A clone of the remote, verified
+there, is the only thing that retires it**, and it cannot be done while
+`origin/main` lacks the work.  Nothing has ever been found this way; it is
+recorded because a reader is entitled to know which claim the numbers support.
+
 **What is genuinely left against it is size**: ~12,600 lines of check code, about
 21,000 of Go at the measured ratio, plus a second driver — a check reads a work
 tree, a state directory and the world, prints as it goes, returns a verdict and
