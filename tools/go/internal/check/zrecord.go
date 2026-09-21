@@ -61,7 +61,7 @@ func zRecord(binary string, args []string, keys [][]byte) zRec {
 // vimrc is found, and the session is its own so a stop signal cannot reach the
 // caller's shell.
 func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Duration) (string, map[string]int64) {
-	t, left, _ := zRun(binary, args, keys, timeout, true)
+	t, left, _, _ := zRun(binary, args, keys, timeout, true)
 	return t, left
 }
 
@@ -71,14 +71,24 @@ func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Dura
 // line before the cursor comes back -- which is where zscreen takes its
 // picture.  So those two live in the stream and in no snapshot.
 func zRecordStream(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string) {
-	t, _, out := zRun(binary, args, keys, timeout, false)
+	t, _, out, _ := zRun(binary, args, keys, timeout, false)
 	return t, out
 }
 
-func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, withFiles bool) (string, map[string]int64, string) {
+// zRecordSnaps is zRecordStream with the SNAPSHOT COUNT as well, which zero8
+// needs: its four keys stop drawing a message, and one redraw fewer is the
+// check where the bell is not -- the key beeps from the same place every other
+// unused g/[/] key does, so the bell is identical either side and only the
+// snapshot count moves.
+func zRecordSnaps(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string, int) {
+	t, _, out, n := zRun(binary, args, keys, timeout, false)
+	return t, out, n
+}
+
+func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, withFiles bool) (string, map[string]int64, string, int) {
 	vim, err := harness.Stage(binary)
 	if err != nil {
-		return "ERROR " + err.Error(), nil, ""
+		return "ERROR " + err.Error(), nil, "", 0
 	}
 	home, _ := os.MkdirTemp("", "zrun-home-")
 	defer os.RemoveAll(home)
@@ -110,7 +120,7 @@ func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, wi
 	harness.Setsid(c)
 	done := make(chan error, 1)
 	if err := c.Start(); err != nil {
-		return "ERROR " + err.Error(), nil, ""
+		return "ERROR " + err.Error(), nil, "", 0
 	}
 	go func() { done <- c.Wait() }()
 	select {
@@ -154,7 +164,7 @@ func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, wi
 		dd := s.Text
 		text += harness.Section(fmt.Sprintf("snap %d cursor=%d,%d bells=%d", i, s.Y, s.X, s.Bells), &dd)
 	}
-	return harness.Scrub(text), left, string(out)
+	return harness.Scrub(text), left, string(out), len(scr.Snaps)
 }
 
 // pyDict is Python's %r of a dict of name -> size, which is what the record
