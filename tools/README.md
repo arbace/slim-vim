@@ -860,3 +860,34 @@ byte-identical report**, the skip cache's `passed this text already` entries
 included. 15.7 s against 8.6 s. Speed is a wash where the work is not the sweep:
 zero's 46 units are 3,723 s of phases with Go against 3,744 s with Python,
 because zero's phases are gcc and recordings.
+
+## Where a harness loses the reason
+
+**Five things look alike in a report and are not, and they differ by WHERE the
+reason went.** Four are defects and the repairs are different; the fifth is a
+correct program that a document described wrongly, and a reader who lumps it in
+with the others goes looking for a bug that is not there.
+
+| what it is | where the reason goes | the repair | here |
+| --- | --- | --- | --- |
+| `zrecord.sh` backgrounded as `… >/dev/null 2>&1 &`, collected by a bare `wait` | discarded **before it is written** | capture it | **live**, in 14 zero checks |
+| `verifypass.sh` testing `if ! …` | collapsed to **one word** — SIGKILL, a torn script and an assertion failure all read the same | report the status, not the test | **repaired**, it takes `rc=$?` and prints it |
+| a driver piping each step through `tail -12` | written and then **thrown away** | keep all of it | the other session's `clonepass.sh`, reported against itself |
+| `git bundle verify` | **never computed** — it validates the header and the prerequisites and does not read the packfile | perform the recovery | external, and *Four checks that pass while doing nothing* in `CLAUDE.md` |
+| `pipes/slim1.sh`'s absent-baseline `exit 0` | **nowhere** | none | a correct program; the defect was the documentation |
+
+The first three are one sentence — **a harness that captures only the end of what
+it ran cannot report the reason for anything that happened in the middle** — and
+the fourth is a different failure wearing the same face, where there is no reason
+to lose because nothing looked. The taxonomy is the other session's; the
+`live`/`repaired` column is this tree measured rather than remembered.
+
+**The fifth is the one worth stating separately.** `pipes/slim1.sh` prints
+*"baselines absent — first pass, nothing to compare against. Record them from
+this binary before Phase 2"* and exits 0. It loses nothing, computes nothing and
+says precisely what it did and did not do. It is not a defective harness at all
+— `CLAUDE.md` claimed a pass records the baselines, and that sentence was wrong
+for as long as nothing could test it from outside a tree that had already run.
+**A correct refusal and a silent pass are told apart by what the program says,
+not by what a document says about it.**
+
