@@ -171,3 +171,31 @@ func contains(ss []string, v string) bool {
 	}
 	return false
 }
+
+// diffLines is `diff a b` reduced to the `<` and `>` lines the checks print.
+// It is a plain set difference in file order, not an LCS: every caller here is
+// reporting "these went and those arrived" about two sorted symbol lists or two
+// recordings, and the shape of the edit script is not what they say.
+func diffLines(a, b string) []string {
+	as, bs := strings.Split(a, "\n"), strings.Split(b, "\n")
+	inB := map[string]bool{}
+	for _, l := range bs {
+		inB[l] = true
+	}
+	inA := map[string]bool{}
+	for _, l := range as {
+		inA[l] = true
+	}
+	var out []string
+	for _, l := range as {
+		if l != "" && !inB[l] {
+			out = append(out, "< "+l)
+		}
+	}
+	for _, l := range bs {
+		if l != "" && !inA[l] {
+			out = append(out, "> "+l)
+		}
+	}
+	return out
+}
