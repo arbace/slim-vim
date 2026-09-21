@@ -222,6 +222,16 @@ so a grep over the whole output tests the new work for reachability from the
 remote -- which it is not, by construction -- and reports a failure on a correct
 bundle.  Measured: it did, naming `a7fa6a3`, which is the head being bundled.
 
+**And a bundle that recovers is RECOVERABLE and not DURABLE, which is the same
+distinction one level up.**  Everything above establishes that the file can be
+turned back into the work; none of it makes the file survive anything.  It is
+one file on one disk, in the repository it is a copy of, and the machine that
+loses the work tree loses it too.  What it retires is the risk of a lost work
+tree -- a botched `rebase`, a removed worktree, a bad `reset` -- and none of the
+risk of a lost machine, which only a push to a remote retires.  Saying so is
+the point: a backup whose scope is not stated is read as covering the failure
+the reader had in mind.
+
 **And the probe is not merged, which is measured rather than squeamish.**
 `implhash.sh` hashes `tools/go` as a directory with no name filter, so a new
 package under it re-keys phases that will never run it: sampled ten units with
