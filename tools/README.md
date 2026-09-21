@@ -1035,3 +1035,27 @@ produced and not merely unchanged. `zero.mk`'s own product guard is the
 content half of the same question and the two are worth having together —
 one asks *is it the right bytes*, the other *did anything write it*.
 
+**Four mechanisms were stated confidently in one day and the measurement
+disagreed with every one.** They are worth listing together, because the list
+says something the individual findings do not:
+
+| the confident claim | what measuring it said |
+| --- | --- |
+| a `grep` returning 0 is shell expansion, then a BRE dialect | neither — the shell's `grep` is a function dispatching to `ugrep` |
+| an `r39 FAILED` belongs to the run that just finished | it came from a different scratch that happened to be in view |
+| r44's two failures are one flake with two faces | two routes — the controls' corpus holds no pty scenario at all |
+| `( a; b ) &` discards `a`'s status, so one line cannot fix it | `set -eu` is inherited, the `wait` sees rc 1, and one line does fix it |
+
+**Every one was settled by running it and none by reasoning about it, and three
+of the four were caught by the other session rather than by their author.** That
+ratio is the argument for two sessions rather than one careful one, and it is a
+different argument from the two-harness rule above: that rule is about *coverage*
+neither author chose, and this is about **a claim's author being the worst placed
+person to test it** — not through carelessness, but because the reasoning that
+produced the claim is the reasoning available for checking it.
+
+The shape they share is that each confident claim was **true of something**: of a
+different shell's `grep`, of a real scratch, of a real flake, of a subshell
+without `set -e`. **A mechanism that fits is not a mechanism that ran**, and the
+distance between them is one command.
+

@@ -296,10 +296,18 @@ is why the first wears the wrong face. The build loop above checks every status
 and exits (`:514-516`); the recording loop below discards all of them —
 `for p in $pids; do wait "$p" || true; done` (`:523`) — so a control whose
 `zcases` or `zmemline` died under load leaves a short directory, `filecmp` reports
-it as differing, and the check says *poison moved a record*. **Two layers throw
-the status away and the second survives removing the first**: each control is
-`( zcases …; zmemline … ) &`, whose exit status is the last command's, so a dead
-`zcases` is invisible even with the `|| true` gone. That is
+it as differing, and the check says *poison moved a record*. **The `|| true` is the whole of it, and deleting that one
+line would close it** — which is worth stating because this file first claimed the
+opposite. Each control is `( zcases …; zmemline … ) &`, and a subshell's status
+*is* its last command's — but `pipes/zero44-check.sh:43` is **`set -eu`**, which a
+subshell inherits, so a dead `zcases` exits it at once carrying rc 1 and the
+`wait` sees it. Measured, four ways: with `set -eu` a failing **first** command
+gives the `wait` rc 1 and so does a failing second; **without** `set -e` the
+failing first gives rc 0, which is the case the wrong claim described and is not
+the case this file is in. **`set -e` changes what `( … ) &` means**, so a claim
+about the construct is not a claim about the line until the flags in force are
+known — *a count is a fact about a binary as much as about a file*, with a shell
+option in place of a `PATH`. That is
 *a harness that discards what it ran* and *a verdict true of both outcomes*
 meeting in six lines — the message is produced by the check's own shape and not
 by chance, which is the difference between a misleading symptom and a structural
