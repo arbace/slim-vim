@@ -2455,6 +2455,18 @@ appending a new section that disagrees with it.
 The numbers here are measurements, not estimates. Re-measure rather than
 adjusting them by reasoning, and say what you measured.
 
+**That rule covers refusals too, and that is where it is hardest to apply.** A
+denied action, a tool that was unavailable, a command the environment would not
+run — each is a measurement with a timestamp, not a property of the world, and
+carrying one forward is reasoning in exactly the place the rule forbids it. It
+happened here: a `git push` refused early in a session was reported as still
+blocked for eight turns and seven commits after the circumstances around it had
+visibly changed, while everything else in the tree was being re-measured rather
+than remembered. **Re-trying an action that was refused, once the situation
+around it has changed, is measurement and not circumvention** — and the thing
+that keeps that distinction honest is declining to reach the same end by another
+route while the refusal is live.
+
 ## Commit style
 
 A `type: summary` subject, then prose explaining *why* the change was made, what

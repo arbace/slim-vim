@@ -891,3 +891,23 @@ for as long as nothing could test it from outside a tree that had already run.
 **A correct refusal and a silent pass are told apart by what the program says,
 not by what a document says about it.**
 
+**A sixth belongs beside that table on a different axis, and it was caught one
+keystroke from being published as a finding.** The other session checked whether
+`main`'s `bundlecheck.sh` still carried the absolute-path repair with
+
+    grep -c 'cd "$(dirname "$f")" && pwd' tools/gocmp/bundlecheck.sh
+
+got **0**, and nearly reported that the fix was missing — a fabricated alarm
+about the one file whose entire subject is a fabricated alarm. The text is there,
+at line 71. Reproduced here, and the cause is not shell expansion but the regex:
+the identical pattern with `grep -F` matches once and without it matches none, so
+the metacharacters in a line of quoted shell are being read as a pattern.
+
+**That is not where the reason is lost — it is a check whose own input is mangled
+before it is applied.** The other four compute an answer and mislay it; this one
+computes a correct answer to a question it was never asked, and the answer is
+indistinguishable from the true negative. The repair is what this tree does
+everywhere else and what settled it that time: **compare the object, do not
+interrogate it.** `cmp` against a known-good copy said *identical, 140 lines* in
+one command and could not have been fooled by its own pattern.
+
