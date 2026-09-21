@@ -180,9 +180,10 @@ the staging tree.
 Nothing in it is part of the build; the build reads `slim-vim.c` and nothing else.
 
 Six things appear untracked, and `.gitignore` names them:
-`slim-vim`, which the build adds and `clean` removes; `.reference/`, the recorded
+`slim-vim`, which the build adds and `clean` removes; `.tmp/`, where every
+temporary goes — the `Makefile` exports `TMPDIR` there, so `mktemp`, Python's
+`tempfile` and `verifypass.sh`'s scratch roots never touch the shared `/tmp`; `.reference/`, the recorded
 baselines and phase digests beside the previous `slim-vim.c` (see below);
-`TRANSCRIPT.md`, which `/export` writes when the user asks it to;
 `upstream/`, the pristine vim tree a pass clones in, works on and deletes —
 8,581 files that must never reach a commit, and which do not exist between
 passes; `.build-slim/`, the phase boundaries a pass leaves behind — a tar and a

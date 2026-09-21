@@ -5,11 +5,6 @@ slim-vim
 # copy of what git already has -- not source.  See CLAUDE.md.
 .reference/
 
-# The exported session transcript, written by /export whenever CLAUDE.md is
-# updated.  Half a megabyte of conversation; the reasoning that matters is in
-# the commit messages.
-TRANSCRIPT.md
-
 # The pristine vim trees the makefile clones in for a pass and deletes after --
 # the fast path's, and the reference path's.  8,581 files that must never reach
 # a commit.  See SLIM-GOAL.md.
@@ -26,6 +21,9 @@ upstream-ref/
 # implementation digest together.  Pure cache -- content-keyed, so it cannot go
 # stale, and deleting it costs only the time to recompute.
 .cache/
+
+# Scratch space for work in this tree, kept out of the shared /tmp.
+.tmp/
 
 # The transient insight log, folded into SLIM-GOAL.md and CLAUDE.md and then deleted.
 PROGRESS.md

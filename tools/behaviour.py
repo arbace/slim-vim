@@ -19,6 +19,8 @@ _ARG, OUT = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
 _STAGE = tempfile.mkdtemp(prefix="behaviour-bin-")
 BIN = os.path.join(_STAGE, "vim")
 _HOME = tempfile.mkdtemp(prefix="behaviour-home-")
+import atexit
+atexit.register(shutil.rmtree, _HOME, True)
 # No -u NONE.  An empty $HOME, $VIM and $VIMRUNTIME are the isolation instead:
 # slim-vim finds no ~/.vimrc, system vimrc or runtime defaults in them, and
 # whim-vim, which has no -u from its Phase 18, looks for none of them anyway.

@@ -41,6 +41,12 @@
 # block and no object phase, and "make clean && make" is a real from-scratch
 # rebuild.
 
+# Every temporary a recipe makes -- mktemp, Python's tempfile, the harnesses'
+# scratch homes, verifypass's scratch roots -- goes in .tmp/ here, not the
+# shared /tmp.  Gitignored.
+export TMPDIR := $(CURDIR)/.tmp
+$(shell mkdir -p $(TMPDIR))
+
 CC      = gcc
 CFLAGS  = -O0
 LDFLAGS = -static -s
