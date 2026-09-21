@@ -2,10 +2,13 @@ package check
 
 import (
 	"bytes"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -203,3 +206,61 @@ func diffLines(a, b string) []string {
 // cutilRepr is Python's %r of a short string, for a refusal message that
 // quotes a needle.
 func cutilRepr(s string) string { return "'" + s + "'" }
+
+// walkFiles is `find <dir> -type f`, sorted, with paths relative to dir --
+// which is what `grep -rl ... | sed "s|$dir/||" | sort` produces.
+func walkFiles(dir string) []string {
+	var out []string
+	filepath.Walk(dir, func(p string, fi os.FileInfo, err error) error {
+		if err == nil && fi.Mode().IsRegular() {
+			r, _ := filepath.Rel(dir, p)
+			out = append(out, r)
+		}
+		return nil
+	})
+	sort.Strings(out)
+	return out
+}
+
+// marked splits a recording's files into those that hold the needle and those
+// that do not: `grep -rl` and `grep -rL` in one walk.
+func marked(dir, needle string) (with, without []string) {
+	for _, r := range walkFiles(dir) {
+		if strings.Contains(readFile(filepath.Join(dir, r)), needle) {
+			with = append(with, r)
+		} else {
+			without = append(without, r)
+		}
+	}
+	return
+}
+
+// diffRQ is `diff -rq a b` reduced to its lines, which is all any check here
+// prints of it.
+func diffRQ(a, b string) []string {
+	var out []string
+	fa, fb := walkFiles(a), walkFiles(b)
+	inB := map[string]bool{}
+	for _, f := range fb {
+		inB[f] = true
+	}
+	for _, f := range fa {
+		if !inB[f] {
+			out = append(out, fmt.Sprintf("Only in %s: %s", a, f))
+			continue
+		}
+		if readFile(filepath.Join(a, f)) != readFile(filepath.Join(b, f)) {
+			out = append(out, fmt.Sprintf("Files %s and %s differ", filepath.Join(a, f), filepath.Join(b, f)))
+		}
+	}
+	inA := map[string]bool{}
+	for _, f := range fa {
+		inA[f] = true
+	}
+	for _, f := range fb {
+		if !inA[f] {
+			out = append(out, fmt.Sprintf("Only in %s: %s", b, f))
+		}
+	}
+	return out
+}
