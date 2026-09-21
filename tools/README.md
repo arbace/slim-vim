@@ -1059,3 +1059,13 @@ different shell's `grep`, of a real scratch, of a real flake, of a subshell
 without `set -e`. **A mechanism that fits is not a mechanism that ran**, and the
 distance between them is one command.
 
+**The fit is what makes it dangerous.** Not one of the four was a guess. Each was
+a correct piece of knowledge applied to the wrong object, which is the failure
+that **feels like competence while it is happening** — there is no moment of
+doubt to notice, because the reasoning is sound and only its subject is wrong.
+That is also why the blank output matters more than it looks: both sessions'
+first attempt at the `set -e` measurement printed **nothing**, `set -e` having
+killed the probe at the non-zero `wait`, and a blank where a number belongs is
+the one result nobody is tempted to publish. The trap was hit twice and caught
+twice by the same property — it produced no plausible answer.
+
