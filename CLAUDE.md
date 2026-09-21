@@ -245,22 +245,52 @@ act on.
   `zstream` (24 checks), `create_cmdidxs` (25), `zrec` (14), `zscreen` (10),
   `cutil` (10), `ptyrun` (8), `funcreach`, `zhostonly`, `muslcase`.
 
-**EVERY VERIFY RECORDED ANYWHERE IN THIS FILE HAS BEEN RUN AGAINST A TREE
-SOMEBODY ASSEMBLED**, and that is a standing assumption rather than a defect.
-`make zero-verify`, `whim-verify` and `slim-verify` each reproduce every recorded
-boundary from the one before it, which is the strongest induction this tree has --
-but the tree they run in is a working copy, not a fresh clone, and the thirteen
-green runs behind the figures above were spread over two worktrees on one
-machine and share that single assumption.  **A clone of the remote, verified
-there, is the only thing that retires it.**  That was blocked while `origin/main`
-lacked the work and is not any more, so what is left is the cost rather than the
-possibility: a fresh clone has no `.reference/` and no `.build-*`, which is the
-normal starting state, so the three verifies have nothing to check against until
-a cold `slim-repass`, `whim-repass` and `zero-repass` have produced boundaries
-**there** — and boundaries carried over from a working copy would reintroduce
-precisely the assumption the exercise retires.  Nothing has ever been found this
-way; it is recorded because a reader is entitled to know which claim the numbers
-support, and it stays recorded until a clone has actually done it.
+**THE TRANSFORMATION IS EXTERNALLY VERIFIED AND THE INSTRUMENT THAT GUARDS IT IS
+NOT**, and a clone of the remote is what drew that line. Every verify recorded
+here used to run in a working copy somebody had assembled; on 2026-09-21 a clone
+holding no `.reference/` and no `.build-*` ran all three pipelines cold. All
+three links came back byte-identical and — the part a clean `git status` cannot
+say by itself — all three products were **produced**: `slim-vim.c` written
+05:02:16 against a p11 boundary of 05:02:15, `whim-vim.c` 05:19:33 against q82
+05:19:33, `zero-vim.c` 05:56:26 against r45 05:56:25. So
+**F(upstream@`1c63ea1db1ee`) → the committed `slim-vim.c` → `whim-vim.c` →
+`zero-vim.c`** holds on a machine that held neither the upstream history nor any
+prior pass, and only slim's left-hand side is a remote rather than a tracked
+file, which is why that link reaches furthest.
+
+**Seventy-one boundary digests are identical across two independently produced
+records** — slim 12, whim 13, zero 46, 0 differing — including zero's r45,
+`698924a46bfa`, reached by 45 phases in two trees that told each other nothing.
+**That retires *the clone only agrees with itself* and does not touch *both could
+be wrong the same way if a phase program is wrong*,** which no number of trees
+running the same programs can retire. `whim-record`'s thirteen digests agreeing
+are **not** a further thirteen: `whim.mk:189-196` is `cp`, so that is one
+measurement seen twice. **Before counting an agreement, ask by what route the two
+sides came to exist** — tracked, copied, or separately produced, and only the
+third is corroboration.
+
+**What a clone does not establish is that the harnesses would catch anything**,
+and there the pipelines differ four ways rather than being one story. Slim's
+Phase 1 harnesses **do not run and cannot fail** (the `exit 0` above). Whim's
+delta check runs its baseline-free half and **says** the other did not happen.
+Zero's runs **in full**, because `.reference/zero-baselines` *is* recorded — from
+`whim-vim.c`, a **tracked** input, so the input to that self-recording is
+external even though the recording is internal. And the boundary and product
+comparisons are real throughout. Only the first of those four is retired by
+keeping `.reference/baselines` across passes and proving each harness can fail,
+which is what this section already asks for and what no clone can substitute for.
+
+**The load flakiness reaches r44 as well as r32, r41 and r39 — and at r44 it does
+not look like itself.** The documented symptom is `zpty.py: NO REDRAW ENDED
+INSIDE THE DEADLINE`, which stops a reader at once. On one run r44 instead
+refused with *controls: poison moved a record … the measurement has changed and
+the reason written beside it is now wrong* — a substantive claim that something
+read a replaced line through a pointer it kept, contradicting phase 44's whole
+lifetime argument. Three solo runs at `JOBS=1` in that tree passed, and three in
+another tree gave two passes and one failure **that was the ordinary stall**. So
+the same flake wears two faces, and the dangerous one sends a reader to the
+memline arc rather than to the load average: *a verdict true of both outcomes*,
+arriving in the failure message of a check that is otherwise correct.
 
 **What is genuinely left against it is size**: ~12,600 lines of check code, about
 21,000 of Go at the measured ratio, plus a second driver — a check reads a work
