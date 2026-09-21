@@ -937,3 +937,30 @@ everywhere else and what settled it that time: **compare the object, do not
 interrogate it.** `cmp` against a known-good copy said *identical, 140 lines* in
 one command and could not have been fooled by its own pattern.
 
+**The rule, which is not about `grep`: when a count is the evidence, name the
+program.** `command grep`, or `-F`, or better a `cmp`, which cares about neither
+the dialect nor the `PATH`. Both sessions audited every figure they had published
+from a pattern, GNU against ugrep, on the same files — line counts, directive
+counts, `__DATE__` presence in all three products, the zero-heredoc check,
+`\bmain\b`, the edit-part counts, the fourteen backgrounded zero checks — and
+**every one agrees**. Exactly one pattern differed, the one already retracted.
+The two programs part company only where the pattern is metacharacter-heavy,
+which is the pattern somebody reaches for when asking whether **a line of shell**
+is present, and that is the question both sessions were asking when it bit.
+
+One figure was worth re-taking rather than re-confirming: the table above says 14
+zero checks background `zrecord.sh`, and a fixed-string count of the
+backgrounding idiom alone gives **15**. Both programs agree on both numbers; the
+fifteenth is `pipes/zero42-check.sh`, which backgrounds something else. **A
+disagreement between two counts is not always two answers to one question.**
+
+**And the second-order point, which is the two-harness rule arriving somewhere
+new: this was only findable because two sessions ran the same pattern in
+different contexts and refused to average the results.** One session alone has
+one number, believes it, and has nothing to reconcile. Keeping the contradiction
+unexplained across three exchanges is what preserved the evidence — the tidy move
+was to pick a story, and **both stories on offer were wrong**. The rule that
+falls out is narrower than "get two implementations" and more useful: *an
+unexplained disagreement is data; resolving it by choosing the likelier side
+destroys it.*
+
