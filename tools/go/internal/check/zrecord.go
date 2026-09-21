@@ -61,7 +61,7 @@ func zRecord(binary string, args []string, keys [][]byte) zRec {
 // vimrc is found, and the session is its own so a stop signal cannot reach the
 // caller's shell.
 func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Duration) (string, map[string]int64) {
-	t, left, _, _ := zRun(binary, args, keys, timeout, true)
+	t, left, _, _, _, _ := zRun(binary, args, keys, timeout, true)
 	return t, left
 }
 
@@ -71,7 +71,7 @@ func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Dura
 // line before the cursor comes back -- which is where zscreen takes its
 // picture.  So those two live in the stream and in no snapshot.
 func zRecordStream(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string) {
-	t, _, out, _ := zRun(binary, args, keys, timeout, false)
+	t, _, out, _, _, _ := zRun(binary, args, keys, timeout, false)
 	return t, out
 }
 
@@ -81,14 +81,24 @@ func zRecordStream(binary string, args []string, keys [][]byte, timeout time.Dur
 // unused g/[/] key does, so the bell is identical either side and only the
 // snapshot count moves.
 func zRecordSnaps(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string, int) {
-	t, _, out, n := zRun(binary, args, keys, timeout, false)
+	t, _, out, n, _, _ := zRun(binary, args, keys, timeout, false)
 	return t, out, n
 }
 
-func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, withFiles bool) (string, map[string]int64, string, int) {
+// zRecordFull adds the EXIT STATUS and the bell count, which zero11 needs
+// because its whole phase is a status: `:q` with nothing after it draws E37,
+// runs out of stdin and exits 1 on the binary that refuses, and exits 0 on the
+// one that quits.  No recording can see that -- every zcases case ends with a
+// trailing `:q!`, which quits both.
+func zRecordFull(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string, int, string, int) {
+	t, _, out, n, rc, bells := zRun(binary, args, keys, timeout, false)
+	return t, out, n, rc, bells
+}
+
+func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, withFiles bool) (string, map[string]int64, string, int, string, int) {
 	vim, err := harness.Stage(binary)
 	if err != nil {
-		return "ERROR " + err.Error(), nil, "", 0
+		return "ERROR " + err.Error(), nil, "", 0, "", 0
 	}
 	home, _ := os.MkdirTemp("", "zrun-home-")
 	defer os.RemoveAll(home)
@@ -120,7 +130,7 @@ func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, wi
 	harness.Setsid(c)
 	done := make(chan error, 1)
 	if err := c.Start(); err != nil {
-		return "ERROR " + err.Error(), nil, "", 0
+		return "ERROR " + err.Error(), nil, "", 0, "", 0
 	}
 	go func() { done <- c.Wait() }()
 	select {
@@ -164,7 +174,7 @@ func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, wi
 		dd := s.Text
 		text += harness.Section(fmt.Sprintf("snap %d cursor=%d,%d bells=%d", i, s.Y, s.X, s.Bells), &dd)
 	}
-	return harness.Scrub(text), left, string(out), len(scr.Snaps)
+	return harness.Scrub(text), left, string(out), len(scr.Snaps), rcText, scr.Bells
 }
 
 // pyDict is Python's %r of a dict of name -> size, which is what the record
