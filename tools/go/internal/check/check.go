@@ -1,27 +1,28 @@
-// Package check is a PROBE and not a decision.
+// Package check is one half of a phase, and from 2026-09-21 it is where every
+// whim and zero check goes.
 //
-// Every zero and whim check is still a shell program with Python heredocs in
-// it, and the recorded reason for leaving them there is that "a check part is
-// an argument that executes" -- 12,429 lines of pipes/ being that argument,
-// which Go would move into `//` comments above three times the code.  Three
-// measurements since say that reason is wrong on all three counts: the prose
-// is in the SHELL (38.6% comment) and not the heredocs (11.6%); every module a
-// check imports already has a Go package; and of 166 check heredocs only two
-// need a hand-written scanner, 18 of the 21 lookarounds being local to one
-// line.  What is actually left is size, about 12,600 lines.
+// The decision it records was made on measurements that contradicted the three
+// reasons this tree used to give for leaving the checks in Python.  The prose
+// lives in the SHELL and not in the heredocs -- 38.6% comment there against
+// 11.6% here -- so a port moves code and leaves the argument where it is.  Every
+// module a check imports already has a Go package.  And of 166 check heredocs
+// only two need a hand-written scanner, 18 of the 21 lookarounds being local to
+// one line and answered by a byte test.  What was actually left against it was
+// size, about 15,800 heredoc lines at a measured 1.67x, and the priorities set
+// were homogeneity and walltime rather than size.
 //
-// So one check is ported end to end here to find out what that costs, on the
-// phase where the answer is cleanest: zero16 changes no code, its binary is
-// byte-identical either side, and its argument is the shortest in the
-// pipeline.  Nothing calls this package.  pipes/zero16-check.sh is untouched
-// and is still what runs.
+// THE SHAPE IS NOT THE EDITS'.  An edit is a function from a tree to a tree, and
+// internal/edit's signature says so.  A check is not: it reads a work tree, a
+// state directory and the world, prints a report as it goes, and either says
+// nothing is wrong or exits non-zero.  It returns an error and writes its report
+// to w, and the error is the exit -- there is no tree to give back.
 //
-// THE SHAPE IS NOT THE EDITS'.  An edit is a function from a tree to a tree,
-// and internal/edit's signature says so.  A check is not: it reads a work
-// tree, a state directory and the world, prints a report as it goes, and
-// either says nothing is wrong or exits non-zero.  It returns an error and
-// writes its report to w, and the error is the exit -- there is no tree to
-// give back.
+// A CHECK COLLECTS RATHER THAN STOPS.  An edit halts at its first refusal
+// because every later act would run on text the earlier one did not produce.  A
+// check's assertions are mostly independent, and a reader who is told only the
+// first thing that is wrong has to run it again to learn the second.  So the
+// report is written as it goes and the refusals accumulate, which is what the
+// shell did with `fail=1` and is the one habit worth carrying over unchanged.
 package check
 
 import (

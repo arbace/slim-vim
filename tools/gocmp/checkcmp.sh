@@ -30,11 +30,13 @@ set -eu
 [ -d tools ] && [ -d pipes ] || { echo "checkcmp: run me from the repository root" >&2; exit 1; }
 [ -f .build-zero/r15.tar ] || { echo "checkcmp: .build-zero/r15.tar is not here" >&2; exit 1; }
 
-probe=$(mktemp -d)/checkprobe
-( cd tools/go && go build -o "$probe" ./cmd/checkprobe )
-
+# The Go side is reached the way a phase reaches it -- tools/st.sh, which names
+# tools/go/ so implhash hashes the implementation -- and NOT by building a
+# private binary.  It was a private `cmd/checkprobe` while this was a probe that
+# had to avoid touching the shared dispatch; now that `check` is a slimtools
+# subcommand, building a second entry point would gate something no phase runs.
 d=$(mktemp -d)
-trap 'rm -rf "$d" "$(dirname "$probe")"' EXIT
+trap 'rm -rf "$d"' EXIT
 mkdir -p "$d/work" "$d/state"
 tar xf .build-zero/r15.tar -C "$d/work"
 f=$d/work/zero-vim.c
@@ -57,7 +59,7 @@ for side in py go; do
 done
 
 sh pipes/zero16-check.sh "$d/py" "$d/pystate" > "$d/py.out" 2>&1 && prc=0 || prc=$?
-"$probe" zero16 "$d/go" "$d/gostate" > "$d/go.out" 2>&1 && grc=0 || grc=$?
+tools/st.sh check zero16 "$d/go" "$d/gostate" > "$d/go.out" 2>&1 && grc=0 || grc=$?
 
 rc=0
 printf '\nPASS   exit: python=%s go=%s (both must be 0)\n' "$prc" "$grc"
@@ -91,7 +93,7 @@ for side in py go; do
         mv "$d/ins" "$d/c$side/zero-vim.c"
 done
 sh pipes/zero16-check.sh "$d/cpy" "$d/cpystate" > "$d/cpy.out" 2>&1 && cprc=0 || cprc=$?
-"$probe" zero16 "$d/cgo" "$d/cgostate" > "$d/cgo.out" 2>&1 && cgrc=0 || cgrc=$?
+tools/st.sh check zero16 "$d/cgo" "$d/cgostate" > "$d/cgo.out" 2>&1 && cgrc=0 || cgrc=$?
 
 printf '\nCTL    exit: python=%s go=%s (both must be non-zero)\n' "$cprc" "$cgrc"
 [ "$cprc" != 0 ] && [ "$cgrc" != 0 ] || rc=1
