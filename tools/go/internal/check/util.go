@@ -199,3 +199,7 @@ func diffLines(a, b string) []string {
 	}
 	return out
 }
+
+// cutilRepr is Python's %r of a short string, for a refusal message that
+// quotes a needle.
+func cutilRepr(s string) string { return "'" + s + "'" }

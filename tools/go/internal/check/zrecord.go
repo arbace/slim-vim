@@ -61,9 +61,24 @@ func zRecord(binary string, args []string, keys [][]byte) zRec {
 // vimrc is found, and the session is its own so a stop signal cannot reach the
 // caller's shell.
 func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Duration) (string, map[string]int64) {
+	t, left, _ := zRun(binary, args, keys, timeout, true)
+	return t, left
+}
+
+// zRecordStream is the same runner with no `files` section and the raw STREAM
+// handed back beside the record.  zero7 needs it because E319 and :registers
+// are drawn, followed by a Press ENTER prompt, and the next redraw wipes the
+// line before the cursor comes back -- which is where zscreen takes its
+// picture.  So those two live in the stream and in no snapshot.
+func zRecordStream(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string) {
+	t, _, out := zRun(binary, args, keys, timeout, false)
+	return t, out
+}
+
+func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, withFiles bool) (string, map[string]int64, string) {
 	vim, err := harness.Stage(binary)
 	if err != nil {
-		return "ERROR " + err.Error(), nil
+		return "ERROR " + err.Error(), nil, ""
 	}
 	home, _ := os.MkdirTemp("", "zrun-home-")
 	defer os.RemoveAll(home)
@@ -95,7 +110,7 @@ func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Dura
 	harness.Setsid(c)
 	done := make(chan error, 1)
 	if err := c.Start(); err != nil {
-		return "ERROR " + err.Error(), nil
+		return "ERROR " + err.Error(), nil, ""
 	}
 	go func() { done <- c.Wait() }()
 	select {
@@ -128,7 +143,9 @@ func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Dura
 	}
 	text := harness.Section("exit "+rcText, nil)
 	text += harness.Section(fmt.Sprintf("bells %d", scr.Bells), nil)
-	text += harness.Section("files "+pyDict(left), nil)
+	if withFiles {
+		text += harness.Section("files "+pyDict(left), nil)
+	}
 	sum := sha256.Sum256(out)
 	text += harness.Section(fmt.Sprintf("stream %d sha=%s", len(out), hex.EncodeToString(sum[:])[:16]), nil)
 	e := strings.TrimRight(string(errb), "\n")
@@ -137,7 +154,7 @@ func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Dura
 		dd := s.Text
 		text += harness.Section(fmt.Sprintf("snap %d cursor=%d,%d bells=%d", i, s.Y, s.X, s.Bells), &dd)
 	}
-	return harness.Scrub(text), left
+	return harness.Scrub(text), left, string(out)
 }
 
 // pyDict is Python's %r of a dict of name -> size, which is what the record
