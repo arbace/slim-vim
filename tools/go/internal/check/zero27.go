@@ -849,18 +849,22 @@ func Zero27(w io.Writer, args []string) error {
 
 	// ---- 7. the recording did not move -----------------------------------
 	var wgR sync.WaitGroup
+	recErr := make([]error, 2)
 	wgR.Add(2)
 	go func() {
 		defer wgR.Done()
-		exec.Command("sh", "tools/zrecord.sh", filepath.Join(state, "old"),
-			filepath.Join(state, "old.c"), filepath.Join(tmp, "REC.old")).Run()
+		recErr[0] = recCmd("sh", "tools/zrecord.sh", filepath.Join(state, "old"),
+			filepath.Join(state, "old.c"), filepath.Join(tmp, "REC.old"))
 	}()
 	go func() {
 		defer wgR.Done()
-		exec.Command("sh", "tools/zrecord.sh", filepath.Join(tmp, "new"), f,
-			filepath.Join(tmp, "REC.new")).Run()
+		recErr[1] = recCmd("sh", "tools/zrecord.sh", filepath.Join(tmp, "new"), f,
+			filepath.Join(tmp, "REC.new"))
 	}()
 	wgR.Wait()
+	if recReport(w, recErr...) {
+		return harness.ErrReported
+	}
 	dq, _ := exec.Command("diff", "-rq", filepath.Join(tmp, "REC.old"),
 		filepath.Join(tmp, "REC.new")).CombinedOutput()
 	if len(dq) > 0 {

@@ -2,7 +2,6 @@ package check
 
 import (
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -23,12 +22,12 @@ func z13Evidence(r *rep, tmp, inst, old, bin string) error {
 		wg.Add(1)
 		go func(i int, n string) {
 			defer wg.Done()
-			errs[i] = exec.Command("sh", "tools/zrecord.sh", filepath.Join(inst, n),
-				filepath.Join(inst, n+".c"), filepath.Join(tmp, "REC."+n)).Run()
+			errs[i] = recCmd("sh", "tools/zrecord.sh", filepath.Join(inst, n),
+				filepath.Join(inst, n+".c"), filepath.Join(tmp, "REC."+n))
 		}(i, n)
 	}
 	wg.Wait()
-	if errs[0] != nil || errs[1] != nil {
+	if recReport(r.w, errs...) {
 		return stop("a harness failed on one of the two recordings")
 	}
 	total := len(walkFiles(filepath.Join(tmp, "REC.probe")))

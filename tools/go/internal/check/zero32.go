@@ -624,7 +624,7 @@ func Zero32(w io.Writer, args []string) error {
 		wgR.Add(1)
 		go func() {
 			defer wgR.Done()
-			recErr[k] = exec.Command("sh", "tools/zrecord.sh", x.bin, x.src, T(x.out)).Run()
+			recErr[k] = recCmd("sh", "tools/zrecord.sh", x.bin, x.src, T(x.out))
 		}()
 	}
 	for k, x := range []struct{ bin, out string }{{T("t_old"), "SC.told"}, {T("t_new"), "SC.tnew"}} {
@@ -632,7 +632,7 @@ func Zero32(w io.Writer, args []string) error {
 		wgC.Add(1)
 		go func() {
 			defer wgC.Done()
-			casErr[k] = exec.Command("sh", "tools/st.sh", "zcases", x.bin, T(x.out)).Run()
+			casErr[k] = recCmd("sh", "tools/st.sh", "zcases", x.bin, T(x.out))
 		}()
 	}
 
@@ -713,14 +713,10 @@ func Zero32(w io.Writer, args []string) error {
 		"make it true is a DIFFERENT program and the probe says so",
 		res["hoist"]["focus_twice"].show(), tn["focus_twice"].show())
 
-	// Collected by bare `wait $pid`s, as the shell does: a recording that fails
-	// ends the check with nothing printed.  One of the fifteen sites a later
-	// pass repairs; repairing it here would break report identity.
+	// A recording that fails says why, and ends the check: see recjob.go.
 	wgC.Wait()
-	for _, e := range casErr {
-		if e != nil {
-			return harness.ErrReported
-		}
+	if recReport(w, casErr...) {
+		return harness.ErrReported
 	}
 	if dl := diffRQ(T("SC.told"), T("SC.tnew")); len(dl) > 0 {
 		r.say("the two INSTRUMENTED 102-case recordings differ, so the clock is read a different number of " +
@@ -753,10 +749,8 @@ func Zero32(w io.Writer, args []string) error {
 		"not silent: it marks %d of 102 cases with %d reads in all, the two it does not being ctrl_c_clean and "+
 		"ctrl_c_changed, which exit before a key is looked up", marked, total)
 	wgR.Wait()
-	for _, e := range recErr {
-		if e != nil {
-			return harness.ErrReported
-		}
+	if recReport(w, recErr...) {
+		return harness.ErrReported
 	}
 	if dl := diffRQ(T("REC.old"), T("REC.new")); len(dl) > 0 {
 		r.say("the declared delta is NOTHING AT ALL and the two recordings differ:")

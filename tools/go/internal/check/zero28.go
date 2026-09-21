@@ -623,17 +623,18 @@ func Zero28(w io.Writer, args []string) error {
 		}
 	}
 	var wgR sync.WaitGroup
-	for _, x := range []struct{ bin, src, out string }{
+	recErr := make([]error, 4)
+	for k, x := range []struct{ bin, src, out string }{
 		{filepath.Join(state, "old"), filepath.Join(state, "old.c"), "REC.old"},
 		{filepath.Join(tmp, "new"), f, "REC.new"},
 		{filepath.Join(tmp, "ceil"), filepath.Join(tmp, "ceil.c"), "REC.ceil"},
 		{filepath.Join(tmp, "epoch"), filepath.Join(tmp, "epoch.c"), "REC.epoch"},
 	} {
-		x := x
+		k, x := k, x
 		wgR.Add(1)
 		go func() {
 			defer wgR.Done()
-			exec.Command("sh", "tools/zrecord.sh", x.bin, x.src, filepath.Join(tmp, x.out)).Run()
+			recErr[k] = recCmd("sh", "tools/zrecord.sh", x.bin, x.src, filepath.Join(tmp, x.out))
 		}()
 	}
 
@@ -759,6 +760,9 @@ func Zero28(w io.Writer, args []string) error {
 		res["epoch"]["1gs"].ms, res["epoch"]["2gs"].ms)
 
 	wgR.Wait()
+	if recReport(w, recErr...) {
+		return harness.ErrReported
+	}
 	for _, vv := range []string{"old", "ceil", "epoch"} {
 		dq, _ := exec.Command("diff", "-rq", filepath.Join(tmp, "REC."+vv),
 			filepath.Join(tmp, "REC.new")).CombinedOutput()

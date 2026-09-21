@@ -588,14 +588,12 @@ func Zero41(w io.Writer, args []string) error {
 		wgR.Add(1)
 		go func() {
 			defer wgR.Done()
-			recErr[k] = exec.Command("sh", "tools/zrecord.sh", x[1], x[2], T("REC-"+x[0])).Run()
+			recErr[k] = recCmd("sh", "tools/zrecord.sh", x[1], x[2], T("REC-"+x[0]))
 		}()
 	}
 	wgR.Wait()
-	for _, e := range recErr {
-		if e != nil {
-			return stop("a recording failed")
-		}
+	if recReport(w, recErr...) {
+		return harness.ErrReported
 	}
 	base := walkFiles(T("REC-new"))
 	if len(base) < 100 {

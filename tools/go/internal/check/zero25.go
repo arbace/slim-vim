@@ -621,15 +621,12 @@ func Zero25(w io.Writer, args []string) error {
 		wgR.Add(1)
 		go func(k int, name, b, s string) {
 			defer wgR.Done()
-			c := exec.Command("sh", "tools/zrecord.sh", b, s, filepath.Join(tmp, "REC-"+name))
-			recErr[k] = c.Run()
+			recErr[k] = recCmd("sh", "tools/zrecord.sh", b, s, filepath.Join(tmp, "REC-"+name))
 		}(k, x.name, x.bin, x.src)
 	}
 	wgR.Wait()
-	for _, e := range recErr {
-		if e != nil {
-			return stop("a recording failed")
-		}
+	if recReport(w, recErr...) {
+		return harness.ErrReported
 	}
 
 	base, err := recFiles(filepath.Join(tmp, "REC-new"))

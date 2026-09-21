@@ -651,24 +651,27 @@ func Zero30(w io.Writer, args []string) error {
 		wg.Add(1)
 		go func() { defer wg.Done(); z30SigTable(binOf(v), filepath.Join(tmp, "S."+v)) }()
 	}
-	// The five recordings go at the same time.  A bare `wait` in the shell
-	// returns 0 whatever they did, so their status is not looked at here
-	// either.
-	for _, x := range []struct{ bin, src, out string }{
+	// The five recordings go at the same time.  The shell's bare `wait`
+	// returned 0 whatever they did; a recording that fails now says why.
+	recErr := make([]error, 5)
+	for k, x := range []struct{ bin, src, out string }{
 		{oldBin, oldC, "REC.old"},
 		{filepath.Join(tmp, "new"), f, "REC.new"},
 		{filepath.Join(tmp, "i_pp"), filepath.Join(tmp, "i_pp.c"), "REC.i_pp"},
 		{filepath.Join(tmp, "i_ctl"), filepath.Join(tmp, "i_ctl.c"), "REC.i_ctl"},
 		{filepath.Join(tmp, "i_s3"), filepath.Join(tmp, "i_s3.c"), "REC.i_s3"},
 	} {
-		x := x
+		k, x := k, x
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			exec.Command("sh", "tools/zrecord.sh", x.bin, x.src, filepath.Join(tmp, x.out)).Run()
+			recErr[k] = recCmd("sh", "tools/zrecord.sh", x.bin, x.src, filepath.Join(tmp, x.out))
 		}()
 	}
 	wg.Wait()
+	if recReport(w, recErr...) {
+		return harness.ErrReported
+	}
 
 	pf := func(v string) string { return filepath.Join(tmp, "P."+v) }
 	sf := func(v string) string { return filepath.Join(tmp, "S."+v) }

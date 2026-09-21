@@ -311,18 +311,23 @@ the same event**: the controls' corpus is 102 `zcases` plus 16 `zmemline` and
 contains **no pty scenario at all**, so a
 `sel_arrows` stall cannot move a number computed over it.
 
-**And zero44's check cannot tell a dead recording from a moved record**, which
-is why the first wears the wrong face. It builds its controls and checks every
-build, then records each one and **discards both exit statuses** — the shell's
-`wait "$p" || true`, carried into `tools/go/internal/check/zero44.go` faithfully by
-the port, where the controls' goroutines run `zcases` and `zmemline` and ignore
-what they return. So a control whose recording died under load leaves a short
-directory, the comparison reports it as differing, and the check says *poison moved
-a record*. Checking those two statuses would close it. Whether a recording actually
-died in that run is **not** demonstrated: the scratch is deleted on success and the
-failing one does not say which of the 118 moved. It is a mechanism that fits, stated
-as that — *a harness that discards what it ran* and *a verdict true of both
-outcomes* meeting in one loop.
+**And zero44's check could not tell a dead recording from a moved record**, which
+is why the first wore the wrong face. It checked every control's build, then
+recorded each one and discarded both exit statuses — the shell's `wait "$p" || true`,
+carried into the Go port faithfully — so a control whose recording died under load
+left a short directory, the comparison counted the missing record as **moved**, and
+the check said *poison moved a record*. That verdict was true of both outcomes, and
+the same hole let a must-move control pass for nothing. **Now a record the baseline
+holds and a control does not refuses as an incomplete recording**, naming the
+record, the recorder and what it said — zero44 and zero45 both, and zero45's
+`fan` control, which must *lose* markers and so would have passed on an empty
+directory. Demonstrated rather than argued: with the `poison` control's memline
+recorder forced to die one record short, the check as it was printed *poison moved
+a record* and the check as it is prints *the poison control's memline recording is
+missing 1 records (mem_deep_jumps)* and the recorder's own last line. Whether a
+recording actually died in the run that first showed the symptom is still **not**
+demonstrated — the failing scratch did not survive — but it can no longer be
+reported as anything else.
 
 
 `tools/README.md` has the detail, including those six cutters and what replaces
@@ -1300,22 +1305,25 @@ after**. A deadline is still there and it is the failure path: a wait that reach
 it writes a `stalled` section into the record, says so on stderr and exits 1,
 rather than returning a short capture silently.
 
-**And fourteen zero checks throw that message away, so the phase fails with
-nothing printed** — their Go ports keep that shape faithfully, the port having been
-gated on reproducing the old report and not on improving it. `tools/zrecord.sh` is started in the background as
-`… >/dev/null 2>&1 &` and collected later by a bare `wait $pid` under `set -eu`,
-so a stalled recording exits the check with rc 1 and no output at all. Measured:
-in one `make zero-verify`, r41 printed `zpty.py: NO REDRAW ENDED INSIDE THE
-DEADLINE` — its recording is in the foreground — while **r32 printed a successful
-assertion as its last line and then exited 1**, and the two failures are the same
-stall. The shape is in the checks of zero phases 21, 25, 26, 27, 28, 29, 30, 31,
-32, 34, 35, 36, 37 and 41. It is NOT the failure `verifypass.sh` was hardened
-against: these do fail, and the harness does say which unit and where its log is.
-What is lost is only the reason — but the reason is what tells a reader whether
-the phase is wrong or the machine was busy, so a whole verify can be spent
-looking for an assertion that never failed. **A check that backgrounds work must
-capture its output and print it when the `wait` refuses.** Not fixed here: it is
-fourteen phase programs and their keys, and it deserves a pass of its own.
+**A recording that fails now says why.** Fourteen zero checks — 21, 25, 26, 27,
+28, 29, 30, 31, 32, 34, 35, 36, 37 and 41 — started `tools/zrecord.sh` in the
+background with its output thrown away and collected it with a bare `wait`, so a
+stalled recording exited the check with rc 1 and **no output at all**: in one `make
+zero-verify` r32 printed a successful assertion as its last line and then exited 1,
+the same stall that r41, whose recording was in the foreground, reported as
+`zpty.py: NO REDRAW ENDED INSIDE THE DEADLINE`. The reason is what tells a busy
+machine from a wrong phase, and a whole verify could be spent looking for an
+assertion that never failed. Every recording in the checks now runs through
+`tools/go/internal/check/recjob.go`, which keeps the recorder's output and, when it
+fails, prints which recording, its exit status and its last lines — the fourteen,
+plus the sites that ignored a failure outright (26, 27, 28, 30, zero34's `zcases`
+control, zero43's two) and the ones that refused with a reason-less message (zero9's
+and zero13's evidence, zero33's terminal tables, zero40's corpora). Demonstrated on
+zero29 with one recorder forced to stall: before, exit 1 with a success line last;
+after, `the recording into REC.new did not finish … exited 1.  It said: zpty.py: NO
+REDRAW ENDED INSIDE THE DEADLINE`. zero38 and zero39 already passed the recorder's
+stderr through and are unchanged. **The success path is untouched** — every change
+is on a failure path, and `make zero-verify` is 46 of 46 with them in place.
 
 **The stall itself has a favourite scenario, which is worth knowing before
 blaming a phase.** `zpty.py`'s `sel_arrows` is the newest of the five — added with

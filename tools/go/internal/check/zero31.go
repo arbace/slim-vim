@@ -765,21 +765,17 @@ func Zero31(w io.Writer, args []string) error {
 		wgR.Add(1)
 		go func() {
 			defer wgR.Done()
-			recErr[k] = exec.Command("sh", "tools/zrecord.sh", x.bin, x.src, T(x.out)).Run()
+			recErr[k] = recCmd("sh", "tools/zrecord.sh", x.bin, x.src, T(x.out))
 		}()
 	}
 	perr := z31Probes(r, oldBin, tmp)
 	if perr != nil {
 		return perr
 	}
-	// Collected by bare `wait $pid`s, as the shell does: a recording that
-	// fails ends the check with nothing printed.  One of the fifteen sites a
-	// later pass repairs; repairing it here would break report identity.
+	// A recording that fails says why, and ends the check: see recjob.go.
 	wgR.Wait()
-	for _, e := range recErr {
-		if e != nil {
-			return harness.ErrReported
-		}
+	if recReport(w, recErr...) {
+		return harness.ErrReported
 	}
 	if dl := diffRQ(T("REC.old"), T("REC.new")); len(dl) > 0 {
 		r.say("the declared delta is NOTHING AT ALL and the two recordings differ:")

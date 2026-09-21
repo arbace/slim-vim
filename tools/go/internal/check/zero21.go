@@ -300,14 +300,12 @@ func Zero21(w io.Writer, args []string) error {
 		wg.Add(1)
 		go func(i int, v [3]string) {
 			defer wg.Done()
-			errs[i] = exec.Command("sh", "tools/zrecord.sh", v[1], v[2], filepath.Join(tmp, "REC-"+v[0])).Run()
+			errs[i] = recCmd("sh", "tools/zrecord.sh", v[1], v[2], filepath.Join(tmp, "REC-"+v[0]))
 		}(i, v)
 	}
 	wg.Wait()
-	for _, e := range errs {
-		if e != nil {
-			return stop("a recording failed")
-		}
+	if recReport(w, errs...) {
+		return harness.ErrReported
 	}
 
 	// --- 7. the probes -------------------------------------------------------

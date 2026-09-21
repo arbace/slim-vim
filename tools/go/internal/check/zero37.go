@@ -767,18 +767,15 @@ func Zero37(w io.Writer, args []string) error {
 	wgR.Add(2)
 	go func() {
 		defer wgR.Done()
-		errRO = exec.Command("sh", "tools/zrecord.sh", oldBin, oldC, T("REC-old")).Run()
+		errRO = recCmd("sh", "tools/zrecord.sh", oldBin, oldC, T("REC-old"))
 	}()
 	go func() {
 		defer wgR.Done()
-		errRN = exec.Command("sh", "tools/zrecord.sh", T("new"), f, T("REC-new")).Run()
+		errRN = recCmd("sh", "tools/zrecord.sh", T("new"), f, T("REC-new"))
 	}()
 	wgR.Wait()
-	if errRO != nil {
-		return stop("the recording of the input failed")
-	}
-	if errRN != nil {
-		return stop("the recording of the output failed")
+	if recReport(w, errRO, errRN) {
+		return harness.ErrReported
 	}
 	base := walkFiles(T("REC-new"))
 	if len(base) < 100 {

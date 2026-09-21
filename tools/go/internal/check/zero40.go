@@ -196,7 +196,13 @@ func Zero40(w io.Writer, args []string) error {
 			return harness.ErrReported
 		}
 	}
-	quiet := func(args ...string) error { return exec.Command("tools/st.sh", args...).Run() }
+	// A corpus that did not finish says why (recjob.go) instead of ending the
+	// phase with nothing printed.
+	quiet := func(args ...string) error {
+		e := recCmd(append([]string{"tools/st.sh"}, args...)...)
+		recReport(w, e)
+		return e
+	}
 	for _, a := range [][]string{{"zmemline", T("probe", "zero-vim"), T("probe-mem")},
 		{"zcases", T("probe", "zero-vim"), T("probe-screen")},
 		{"zmemline", T("reprobe", "zero-vim"), T("reprobe-mem")}} {

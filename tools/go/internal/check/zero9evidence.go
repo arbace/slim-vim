@@ -2,7 +2,6 @@ package check
 
 import (
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -47,7 +46,7 @@ func z9Sessions() []struct {
 func z9Evidence(r *rep, tmp, inst, state, f, old, bin string) error {
 	stop := func(format string, a ...any) error { r.say(format, a...); return harness.ErrReported }
 	rec := func(binary, src, out string) error {
-		return exec.Command("sh", "tools/zrecord.sh", binary, src, out).Run()
+		return recCmd("sh", "tools/zrecord.sh", binary, src, out)
 	}
 	var wg sync.WaitGroup
 	errs := make([]error, 4)
@@ -65,10 +64,8 @@ func z9Evidence(r *rep, tmp, inst, state, f, old, bin string) error {
 		}(i, j)
 	}
 	wg.Wait()
-	for _, e := range errs {
-		if e != nil {
-			return stop("a harness failed on one of the four recordings")
-		}
+	if recReport(r.w, errs...) {
+		return stop("a harness failed on one of the four recordings")
 	}
 
 	probeWith, _ := marked(filepath.Join(tmp, "REC.probe"), z9Mark)

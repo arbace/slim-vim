@@ -170,8 +170,13 @@ func Zero33(w io.Writer, args []string) error {
 	(&rep{tag: "symbols", w: w}).say("`main` is still the only external symbol, over %d undefined", nu)
 
 	// --- 3. the new table means what it claims ------------------------------
+	// A table that did not finish says why (recjob.go); the boundary loop
+	// below collects its errors and reports them together, after the wait.
+	ztcQuiet := func(b, out string) error { return recCmd("tools/st.sh", "ztermcheck", b, out) }
 	ztc := func(b, out string) error {
-		return exec.Command("tools/st.sh", "ztermcheck", b, out).Run()
+		e := ztcQuiet(b, out)
+		recReport(w, e)
+		return e
 	}
 	if ztc(bin, T("term")) != nil {
 		return harness.ErrReported
@@ -225,16 +230,20 @@ func Zero33(w io.Writer, args []string) error {
 		}
 		sem := make(chan struct{}, 8)
 		var wg sync.WaitGroup
-		for _, r := range names {
+		rowErr := make([]error, len(names))
+		for i, r := range names {
 			wg.Add(1)
 			sem <- struct{}{}
-			go func(r string) {
+			go func(i int, r string) {
 				defer wg.Done()
-				ztc(T("bins/"+r), T("rows/"+r))
+				rowErr[i] = ztcQuiet(T("bins/"+r), T("rows/"+r))
 				<-sem
-			}(r)
+			}(i, r)
 		}
 		wg.Wait()
+		if recReport(w, rowErr...) {
+			return harness.ErrReported
+		}
 		if len(names) == 0 {
 			bd.say(".build-zero holds no boundary binary -- the table not rechecked across the pipeline")
 		} else {

@@ -701,23 +701,27 @@ static_assert(__builtin_offsetof(bt_regprog_T, program) == offsetof(bt_regprog_T
 	// zpty.py duly waits out its deadline and exits 1.  That is the harness
 	// behaving correctly on a deliberately broken editor.
 	var wgR sync.WaitGroup
+	recErr := make([]error, 3)
 	wgR.Add(3)
 	go func() {
 		defer wgR.Done()
-		exec.Command("sh", "tools/zrecord.sh", filepath.Join(state, "old"),
-			filepath.Join(state, "old.c"), filepath.Join(tmp, "REC.old")).Run()
+		recErr[0] = recCmd("sh", "tools/zrecord.sh", filepath.Join(state, "old"),
+			filepath.Join(state, "old.c"), filepath.Join(tmp, "REC.old"))
 	}()
 	go func() {
 		defer wgR.Done()
-		exec.Command("sh", "tools/zrecord.sh", filepath.Join(tmp, "new"), f,
-			filepath.Join(tmp, "REC.new")).Run()
+		recErr[1] = recCmd("sh", "tools/zrecord.sh", filepath.Join(tmp, "new"), f,
+			filepath.Join(tmp, "REC.new"))
 	}()
 	go func() {
 		defer wgR.Done()
-		exec.Command("sh", "tools/st.sh", "zcases", filepath.Join(tmp, "swap"),
-			filepath.Join(tmp, "SCR.swap")).Run()
+		recErr[2] = recCmd("sh", "tools/st.sh", "zcases", filepath.Join(tmp, "swap"),
+			filepath.Join(tmp, "SCR.swap"))
 	}()
 	wgR.Wait()
+	if recReport(w, recErr...) {
+		return harness.ErrReported
+	}
 
 	diffOut, _ := exec.Command("diff", "-rq", filepath.Join(tmp, "REC.old"),
 		filepath.Join(tmp, "REC.new")).CombinedOutput()

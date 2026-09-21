@@ -740,14 +740,22 @@ func Zero45(w io.Writer, args []string) error {
 	var wgF sync.WaitGroup
 	wgF.Add(1)
 	go func() { defer wgF.Done(); fanErr = exec.Command("make", "-C", T("fan")).Run() }()
+	// Each control's two recorders keep their output, so that a recording that
+	// died is told apart from a record that moved (recjob.go).
+	ctlJobs := map[string][]*recJob{}
 	for _, c := range every {
 		c := c
+		bin := filepath.Join(T("ctl"), c, "zero-vim")
+		js := []*recJob{
+			newRec("the "+c+" control's screen recording", "sh", "tools/st.sh", "zcases", bin, filepath.Join(T("ctl"), c, "screen")),
+			newRec("the "+c+" control's memline recording", "sh", "tools/st.sh", "zmemline", bin, filepath.Join(T("ctl"), c, "memline")),
+		}
+		ctlJobs[c] = js
 		wgC.Add(1)
 		go func() {
 			defer wgC.Done()
-			bin := filepath.Join(T("ctl"), c, "zero-vim")
-			exec.Command("sh", "tools/st.sh", "zcases", bin, filepath.Join(T("ctl"), c, "screen")).Run()
-			exec.Command("sh", "tools/st.sh", "zmemline", bin, filepath.Join(T("ctl"), c, "memline")).Run()
+			js[0].run()
+			js[1].run()
 		}()
 	}
 	wgF.Wait()
@@ -755,8 +763,29 @@ func Zero45(w io.Writer, args []string) error {
 		wgC.Wait()
 		return die("controls", "the instrumented fanout control did not build")
 	}
-	exec.Command("sh", "tools/st.sh", "zmemline", filepath.Join(T("fan"), "zero-vim"), T("fan-mem")).Run()
+	fanJob := newRec("the fanout control's memline recording", "sh", "tools/st.sh", "zmemline", filepath.Join(T("fan"), "zero-vim"), T("fan-mem")).run()
 	wgC.Wait()
+	// The fanout control must LOSE markers, so a fan-mem that is short because
+	// its recorder died would pass this for nothing.
+	if recRefuse(w, fanJob) {
+		return harness.ErrReported
+	}
+	// A RECORDING THAT DIED IS NOT A RECORD THAT MOVED.  A record the baseline
+	// holds and a control does not is what a recorder that died leaves, and the
+	// count below would take it for a move -- which reads "poison moved a
+	// record" off a busy machine, and passes a must-move control for nothing.
+	for _, c := range every {
+		for _, part := range []string{"screen", "memline"} {
+			if miss := missingRecords(filepath.Join(T("rec1"), part), filepath.Join(T("ctl"), c, part)); len(miss) > 0 {
+				fmt.Fprintf(w, "  %-12s the %s control's %s recording is missing %d records (%s), and counted they would be MOVED:\n",
+					"record", c, part, len(miss), strings.Join(head(miss, 3), " "))
+				if !recRefuse(w, ctlJobs[c]...) {
+					fmt.Fprintf(w, "               its recorders both exited 0, so the records were removed after they were written\n")
+				}
+				return harness.ErrReported
+			}
+		}
+	}
 	WHY := map[string]string{
 		"fanout": "PB_COUNT_MAX = 511, which is what an 8-byte PTR_EN would give: THE FANOUT IS INVISIBLE TO A RECORDING, " +
 			"and what it really costs is below",
@@ -814,6 +843,15 @@ func Zero45(w io.Writer, args []string) error {
 		}
 	}
 	if len(bad) > 0 {
+		// A blind control that moved because its recorder stalled has moved on the
+		// machine and not in the editor; say so beside the verdict.
+		for _, c := range bad {
+			for _, j := range ctlJobs[c] {
+				if j.failed() {
+					j.tell(w)
+				}
+			}
+		}
 		return die("controls", "%s moved a record, and each of those three is stated here as a thing the corpus CANNOT "+
 			"see -- the measurement has changed and the reason written beside it is now wrong", strings.Join(bad, " "))
 	}
@@ -867,8 +905,10 @@ func Zero45(w io.Writer, args []string) error {
 		return die("prediction", "phase 44's control did not build on the input")
 	}
 	ocb := filepath.Join(T("oldcap"), "zero-vim")
-	exec.Command("sh", "tools/st.sh", "zcases", ocb, filepath.Join(T("oldcap"), "screen")).Run()
-	exec.Command("sh", "tools/st.sh", "zmemline", ocb, filepath.Join(T("oldcap"), "memline")).Run()
+	if recReport(w, recCmd("sh", "tools/st.sh", "zcases", ocb, filepath.Join(T("oldcap"), "screen")),
+		recCmd("sh", "tools/st.sh", "zmemline", ocb, filepath.Join(T("oldcap"), "memline"))) {
+		return harness.ErrReported
+	}
 	oi, ti, ok := movedOf(T("rec0"), T("oldcap"))
 	if !ok {
 		return die("prediction", "%s recorded nothing at all", T("oldcap"))

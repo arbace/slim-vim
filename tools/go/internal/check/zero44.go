@@ -616,17 +616,41 @@ func Zero44(w io.Writer, args []string) error {
 			return die("controls", "a control did not build -- the break is wrong, not the corpus")
 		}
 	}
+	// Each control's two recorders keep their output, so that a recording that
+	// died is told apart from a record that moved (recjob.go).
+	ctlJobs := map[string][]*recJob{}
 	for _, c := range every {
 		c := c
+		bin := filepath.Join(T("ctl"), c, "zero-vim")
+		js := []*recJob{
+			newRec("the "+c+" control's screen recording", "sh", "tools/st.sh", "zcases", bin, filepath.Join(T("ctl"), c, "screen")),
+			newRec("the "+c+" control's memline recording", "sh", "tools/st.sh", "zmemline", bin, filepath.Join(T("ctl"), c, "memline")),
+		}
+		ctlJobs[c] = js
 		wgC.Add(1)
 		go func() {
 			defer wgC.Done()
-			bin := filepath.Join(T("ctl"), c, "zero-vim")
-			exec.Command("sh", "tools/st.sh", "zcases", bin, filepath.Join(T("ctl"), c, "screen")).Run()
-			exec.Command("sh", "tools/st.sh", "zmemline", bin, filepath.Join(T("ctl"), c, "memline")).Run()
+			js[0].run()
+			js[1].run()
 		}()
 	}
 	wgC.Wait()
+	// A RECORDING THAT DIED IS NOT A RECORD THAT MOVED.  A record the baseline
+	// holds and a control does not is what a recorder that died leaves, and the
+	// count below would take it for a move -- which reads "poison moved a
+	// record" off a busy machine, and passes a must-move control for nothing.
+	for _, c := range every {
+		for _, part := range []string{"screen", "memline"} {
+			if miss := missingRecords(filepath.Join(T("rec1"), part), filepath.Join(T("ctl"), c, part)); len(miss) > 0 {
+				fmt.Fprintf(w, "  %-12s the %s control's %s recording is missing %d records (%s), and counted they would be MOVED:\n",
+					"record", c, part, len(miss), strings.Join(head(miss, 3), " "))
+				if !recRefuse(w, ctlJobs[c]...) {
+					fmt.Fprintf(w, "               its recorders both exited 0, so the records were removed after they were written\n")
+				}
+				return harness.ErrReported
+			}
+		}
+	}
 	WHY := map[string]string{
 		"poison": "the text a record stops owning, overwritten the moment it is replaced: 0 of 118 is the lifetime rule " +
 			"measured, nothing reads a replaced line through a pointer it kept",
@@ -681,6 +705,15 @@ func Zero44(w io.Writer, args []string) error {
 		}
 	}
 	if len(bad) > 0 {
+		// A blind control that moved because its recorder stalled has moved on the
+		// machine and not in the editor; say so beside the verdict.
+		for _, c := range bad {
+			for _, j := range ctlJobs[c] {
+				if j.failed() {
+					j.tell(w)
+				}
+			}
+		}
 		return die("controls", "%s moved a record, and each of those three is stated here as a thing the corpus CANNOT "+
 			"see -- the measurement has changed and the reason written beside it is now wrong", strings.Join(bad, " "))
 	}

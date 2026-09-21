@@ -717,23 +717,20 @@ func Zero29(w io.Writer, args []string) error {
 	}
 
 	// --- 7. the recording did not move ----------------------------------------
-	// Backgrounded with its output thrown away and collected by a bare `wait`,
-	// exactly as the shell does: a recording that fails exits the check with
-	// nothing printed.  That is one of the fifteen sites a later pass repairs,
-	// and repairing it here would break report identity with the shell.
+	// A recording that fails says why, and ends the check: see recjob.go.
 	var wgR sync.WaitGroup
 	var errRO, errRN error
 	wgR.Add(2)
 	go func() {
 		defer wgR.Done()
-		errRO = exec.Command("sh", "tools/zrecord.sh", oldBin, oldC, filepath.Join(tmp, "REC.old")).Run()
+		errRO = recCmd("sh", "tools/zrecord.sh", oldBin, oldC, filepath.Join(tmp, "REC.old"))
 	}()
 	go func() {
 		defer wgR.Done()
-		errRN = exec.Command("sh", "tools/zrecord.sh", bin, f, filepath.Join(tmp, "REC.new")).Run()
+		errRN = recCmd("sh", "tools/zrecord.sh", bin, f, filepath.Join(tmp, "REC.new"))
 	}()
 	wgR.Wait()
-	if errRO != nil || errRN != nil {
+	if recReport(w, errRO, errRN) {
 		return harness.ErrReported
 	}
 	if dl := diffRQ(filepath.Join(tmp, "REC.old"), filepath.Join(tmp, "REC.new")); len(dl) > 0 {

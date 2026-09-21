@@ -609,7 +609,10 @@ func Zero43(w io.Writer, args []string) error {
 	corpus := func(binary, tag string) (map[string]ev5, error) {
 		out := T("mem-" + tag)
 		os.RemoveAll(out)
-		exec.Command("sh", "tools/st.sh", "zmemline", binary, out).Run()
+		if e := recCmd("sh", "tools/st.sh", "zmemline", binary, out); e != nil {
+			recReport(w, e)
+			return nil, harness.ErrReported
+		}
 		got := map[string]ev5{}
 		ents, _ := os.ReadDir(out)
 		var ns []string
@@ -707,15 +710,19 @@ func Zero43(w io.Writer, args []string) error {
 
 	// --- 6. two whole recordings -------------------------------------------------------
 	var wgR sync.WaitGroup
-	for _, x := range [][3]string{{"old", oldBin, oldC}, {"new", newBin, f}} {
-		x := x
+	recErr := make([]error, 2)
+	for k, x := range [][3]string{{"old", oldBin, oldC}, {"new", newBin, f}} {
+		k, x := k, x
 		wgR.Add(1)
 		go func() {
 			defer wgR.Done()
-			exec.Command("sh", "tools/zrecord.sh", x[1], x[2], T("rec-"+x[0])).Run()
+			recErr[k] = recCmd("sh", "tools/zrecord.sh", x[1], x[2], T("rec-"+x[0]))
 		}()
 	}
 	wgR.Wait()
+	if recReport(w, recErr...) {
+		return harness.ErrReported
+	}
 	if out, err := exec.Command("diff", "-r", T("rec-old"), T("rec-new")).Output(); err != nil {
 		s := string(out)
 		if len(s) > 3000 {
