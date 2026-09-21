@@ -775,3 +775,88 @@ The test is "does the process need it", not "does anything call it today".
 
 Gone for good: `rename.bat`, which was **upstream's** — a Win32 build helper
 that survived every pruning pass because Vim's own tree has a `tools/` too.
+
+## How the Go cutover went
+
+**This section is the cutover's own history and it was moved out of
+`CLAUDE.md`**, which is read in full at the start of every session and had no
+business carrying the measurements of a job that is finished.  What that file
+keeps is what still constrains work: that whim and zero run the Go toolset and
+slim does not, why the three wrappers exist, that the toolchain is a hard
+dependency, that `implhash.sh` hashes `tools/go` as a directory and hashes
+itself into some keys and not others, and the gate a change to a shared tool has
+to pass.  What is here is how it was done and what it cost.
+
+**231 call sites, and the boundary is the gate.** 144 whim cutter sites across 52
+tools, 86 in zero (`zmemline` 19, `zhostonly` 19, `zcases` 17, `ztermcheck` 10,
+`orphanopts` 9), and the four shell tools on every phase's path —
+`tools/zrecord.sh`'s six recording parts, `zerodelta.sh`'s three,
+`whimdelta.sh`'s four, `phasecheck.sh`'s one. A swap costs **exactly one phase**:
+the boundary comes out byte-identical, so nothing downstream re-runs. And the
+cutters are faster — whim's thirteen units are 1,080 s of phases against 1,293 s
+with the Python.
+
+**`tools/zrecord.sh` was swapped last and on four conditions, not on agreement**,
+because it is the instrument. Equivalence (122 files byte-identical), the frozen
+`.reference/zero-baselines` reproduced, determinism over three runs — **and the
+one that matters: `do_addsub()` returning FAIL moves 11 of 102 screen cases on
+the Go recorder, which is what this file records for the Python.** A recorder
+that passed the other three and moved **0** of 102 would have agreed with the
+Python *by being blind in the same places*, and nothing in the other three could
+have shown it. That is zero phase 33's argument about the terminal table,
+arriving at a change of recorder.
+
+**The inline Python was the larger half, and every EDIT is now out of it.**
+At the cutover there were **225 heredocs, 34,284 lines**, 76 in edit parts
+(18,472 lines) and 147 in checks (15,779). Classified, there is **no collapsing
+idiom** — 94 are bespoke drivers over `cutil`, 60 are bespoke regex programs, and
+exactly **one** of 225 is the simple "assert a literal occurs once and replace
+it" shape. So that port was authorship and not a swap.
+
+**`CLAUDE.md`'s "`grep -l 'python3 -' pipes/*-edit.sh` is empty" used to carry a
+caveat that it was true of a tree nobody could check, and the caveat is spent.**
+It was written at `7c90f54` against an `origin/main` of `59372a7`, with the push
+refused and thirty-one commits local,
+and it named the commit because that file's own rule — *re-measure rather than
+reason* — cannot help a reader whose checkout does not contain what was measured.
+The push landed at `15b2244`, `origin/main` is that commit, and the figures above
+are now a property of the remote: a reader who clones and counts gets them. **The
+lesson outlives the caveat**: a measurement of the working tree is a claim about
+a tree the reader may not have, and the only two honest forms are to name the
+commit or to wait for the push.
+
+**The cutover's own claim about `implhash.sh` was false, and that is the whole
+reason the hasher now hashes a directory.** It was written as *the wrappers name
+their Go sources in comments, so implhash still hashes the implementation* —
+the `cutil.py`/`macros.py` mechanism above — and `deps()` matched
+`(py|sh|txt|mk|patch)` with no `go` in it. Measured on whim 13-41, each with the
+control that says the test can fail: editing `tools/go/internal/sweep/sweep.go`
+moved **nothing** where editing `tools/sweep.sh` moved `5167f167 → ce069cdc`,
+and over that same edit `gobuild.sh` built a **different binary**,
+`.cache/gobin/6299d7c16bab003e → 85d00b718029a8b7`. The implementation changed,
+the binary changed, and the memoize could not tell — which is this file's own
+hazard at the scale of the whole sweep. `tools/patches/cc-v4-c23.patch` was
+invisible for a *second* reason, and the two must not be confused: it is three
+hops from a phase program (program → `sweep.sh` → `gobuild.sh` → patch) and
+`deps()` is applied twice, so no change to the regex would have reached it. The
+wrappers name it directly now.
+
+**The cutover was gated the way `CLAUDE.md`'s shared-tool rule asks, and it does
+NOT meet the "should move no key" half.** `make slim-verify` 12 of 12 (347 s of phases in 113 s),
+`make whim-verify` 13 of 13 (1,293 s in 477 s) and `make zero-verify` **46 of
+46** — r32 and r41 failed under 64-way load and both reproduce their recorded
+digests alone, `00b6b2bf1584` in 50 s and `8b24aa615879` in 36 s against 121 s
+and 127 s, which is the `zpty.py` stall this file already documents. **143 of the
+153 keys move**, and they cannot not: `sweep.sh` and `canon.sh` are what the
+phase programs name. That is the shape adding zero had, and `create_cmdidxs.py`'s
+floor, and `orphanopts.py`'s. The ten that hold are whim 0, slim 0, 2, 3, 4, 8,
+10 and 11, and zero 1 and 40.
+
+**The sweep was checked against the one it replaces, and not only against the
+boundaries.** The pre-cutover Python `sweep.sh` and `canon.sh` out of the history,
+run on zero phase 42's real unswept output — 79,380 lines, three rounds, 86 lines
+removed, so not two no-ops agreeing — give **byte-identical output and a
+byte-identical report**, the skip cache's `passed this text already` entries
+included. 15.7 s against 8.6 s. Speed is a wash where the work is not the sweep:
+zero's 46 units are 3,723 s of phases with Go against 3,744 s with Python,
+because zero's phases are gcc and recordings.
