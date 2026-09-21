@@ -1738,13 +1738,36 @@ a gcc compile of a 177,000-line file — and is where the next minute comes from
 The pass is sequential by nature; checking its twelve recorded boundaries is not,
 and `make slim-verify` does that in the 170 s of its slowest phase.
 
-**The last pass produced a binary byte-identical to the committed one** and a
-`slim-vim.c` differing by 49 lines, all of it Phase 8: a redundant `static` on
-definitions whose earlier prototype already gives them internal linkage, and
-one dead prototype kept. Neither changes the program — `-s` strips the symbol
-table, so the two compile to the same bytes — and the committed form is the
-better one, so it stands. Those 49 lines are Phase 8's real residue and the
-next thing to drive to zero.
+**A pass reproduces `slim-vim.c` byte for byte, and that is now measured from
+OUTSIDE.** This paragraph used to say the last pass produced a binary identical
+to the committed one and a `slim-vim.c` differing by **49 lines**, all of it
+Phase 8 — a redundant `static` on definitions whose earlier prototype already
+gives them internal linkage, and one dead prototype kept — and called those 49
+lines Phase 8's real residue. They are not there. A cold `make slim-repass` in a
+**clone of the remote**, holding no `.reference/` and no `.build-*`, produced a
+`slim-vim.c` byte-identical to the committed one and an empty
+`git status --porcelain`: phases 2..11 all *by program*, 321 s of phases, 333 s
+total. So the left-hand side is the upstream remote and the right-hand side is
+git, and **F(upstream@`1c63ea1db1ee`) = the committed editor** is a statement
+about a machine that held neither the upstream history nor any prior pass.
+
+**That run checked the one thing that would have made it vacuous**, which is this
+file's own *a "clean rebuild is byte-identical" check passes if the rebuild never
+happened*: an empty `git status` is exactly what a pass that skipped the file
+gives. The control is the product of a pipeline that had not run — the clone was
+made at 04:56:03, the p11 boundary landed at 05:02:15, `slim-vim.c` was rewritten
+at 05:02:16 and `whim-vim.c` was still 04:56:03. mtime distinguishes here, and
+slim's moved while whim's did not, so the product was **produced and then
+matched** rather than matching by not being touched.
+
+**The 49-line sentence had disagreed with the residue table above it for as long
+as it stood** — that table gives phases 2..8 a residue of 0 — and neither reading
+could be settled, because nothing could test either from outside a tree that had
+already run. **The same gap is why the timing is two figures and not one**: 411 s
+of phases from an empty cache here against 321 s in the clone on an idle machine.
+Both are measurements of different conditions, and the rule this file states —
+re-measure rather than adjust — means keeping both with their conditions rather
+than overwriting one.
 
 **A tier-2 failure is not an error, it is the construct working.** The pass
 falls through to tier 1, which produces an answer and a new patch; `make`

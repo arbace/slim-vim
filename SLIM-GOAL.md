@@ -454,7 +454,11 @@ all twelve boundaries matched their recordings.
 still running as an agent, and Phase 9's own program was synthesised from that
 run -- so the next pass has no agent in it at all and should come in under nine
 minutes, of which Phase 8 is two thirds. The binary came out byte-identical to
-the committed one; `slim-vim.c` differed by 49 lines, all of them Phase 8 noise.
+the committed one, and so did the source: a cold `slim-repass` in a **clone of
+the remote**, holding no `.reference/` and no `.build-*`, left `git status`
+empty. This document used to say `slim-vim.c` differed by 49 lines of Phase 8
+noise; it does not, and nothing could settle that either way until a pass ran
+somewhere that had never run one.
 
 **What is left is not writing programs but shrinking them.** `make slim-residue`
 scores it. Phase 9's synthesised diff has been taken from 33,670 lines to
