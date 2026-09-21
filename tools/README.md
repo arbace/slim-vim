@@ -832,6 +832,14 @@ idiom** — 94 are bespoke drivers over `cutil`, 60 are bespoke regex programs, 
 exactly **one** of 225 is the simple "assert a literal occurs once and replace
 it" shape. So that port was authorship and not a swap.
 
+**And the 147 in checks followed, so none of the 225 is left.** Every whim and
+zero check part is a dispatcher to `tools/go/internal/check/` — with the 78 whim
+checks that were plain shell ported too, so the two pipelines are Go throughout
+and not Go wherever there had been Python — each gated against the program it
+replaced before the switch; `CLAUDE.md` has how, the two stated exceptions, and
+the `make whim-verify` 13 of 13 and `make zero-verify` 46 of 46 run with every
+dispatcher in place.
+
 **`CLAUDE.md`'s "`grep -l 'python3 -' pipes/*-edit.sh` is empty" used to carry a
 caveat that it was true of a tree nobody could check, and the caveat is spent.**
 It was written at `7c90f54` against an `origin/main` of `59372a7`, with the push

@@ -68,16 +68,17 @@ it is the only one.
 
 ## Layout
 
-Six hundred and fifty-eight tracked files once all three pipelines have run
+Eight hundred and sixty-two tracked files once all three pipelines have run
 (`git ls-files`): nineteen at the root, 268 under `pipes/` — the phase programs,
 twelve for `slim.mk`, 165 files for `whim.mk`'s eighty-three phases and eighty-seven for
 `zero.mk`'s forty-six, and each staged pipeline's stage manifest and declared delta — and
-371 under `tools/`. Those 371 are three things and it is worth keeping them apart:
+575 under `tools/`. Those 575 are three things and it is worth keeping them apart:
 **177** are the passes, the harnesses, the canonicalisers and cutters, the
 memoize driver, a `README.md`, and the data a pass cannot derive
 (`renames.txt`, `patches/` and `templates/`) — slim still runs all of them and
-whim and zero run none; **137** are `tools/go/`, the toolset whim and zero
-actually run, which `tools/implhash.sh` hashes as a directory; and **57** are
+whim and zero run none; **333** are `tools/go/`, the toolset whim and zero
+actually run — their edits, sweeps, harnesses and, since the check port, every
+check — which `tools/implhash.sh` hashes as a directory; and **65** are
 `tools/gocmp/`, the comparisons that produced the Go port's numbers against the
 Python each replaces, named by no phase program and in no key. Four of the nineteen are products
 (`slim-vim.c`, `whim-vim.c`, `zero-vim.c`, `LICENSE`), three are records
@@ -220,30 +221,49 @@ and are shell; zero has **41 edit parts** and **all 41** carry one, 42 calls,
 zero 12 being the phase with two. "41 zero edits" is not the denominator anyone
 would guess from the phase count: zero has 46 phases, of which 0, 3, 33 and 40
 change no source at all and 1 only adds a compile flag, so five have no edit part
-to port. What is left in `pipes/` is checks.
+to port. The checks followed, below.
 
-**The checks stay Python, and the three reasons this file used to give for that
-are all measurably wrong.** The decision may still be right; the argument was
-not, and the difference matters because the argument is what a later reader would
-act on.
+**The checks are Go too, and no whim or zero phase program runs Python.**
+`grep -l python3 pipes/whim* pipes/zero*` finds only `pipes/whim.delta`, where
+`python3` is the name of an Ex command. All 123 check parts — whim's 82 and zero's
+41 — and the three whole-phase programs that held Python, `zero3.sh`, `zero33.sh`
+and `zero40.sh`, are now a **dispatcher**: the shell's header, which is where a
+check's argument always lived (4,991 comment lines against 1,663 in the heredocs,
+measured before the port), then `exec tools/st.sh check <phase> "$work" "$state"`.
+The bodies are `tools/go/internal/check/`, 74 files and 36,316 lines, one
+registered function per phase; the 78 whim checks that were plain shell are
+transcriptions over `whimsh.go`, which is the shell's primitives — and the one
+that matters is **`grep` without `-E`, a BASIC expression**, where `( ) { } | + ?`
+are literals that RE2 would read as operators, so `bre2re` translates rather than
+trusting the pattern.
 
-- *"A check part is an argument that executes, and 12,429 lines of `pipes/` is
-  that argument, which Go would move into `//` comments above three times the
-  code."* The prose is in the **shell**, not in the heredocs: the 44 check parts
-  are 4,991 comment lines against 7,942 of shell code (**38.6%**) and 1,663
-  against 12,649 of Python (**11.6%**). Porting the heredocs would not touch a
-  line of the shell. And porting one end to end — `zero16-check.sh`, 403 lines,
-  against 674 of Go — left the prose **unchanged**, 118 comment lines against
-  115, while the code went 244 → 513. The cost is **1.67× and all of it code**,
-  not three times the code in comments.
-- *"Go's RE2 has neither lookaround nor backreferences."* True, and almost
-  irrelevant here. `tools/gocmp/re2size.py` on the current tree: **166 check
-  heredocs, 21 lookarounds — 18 of them the LOCAL kind a byte test replaces, 3
-  anchored, and 2 real back-references inside a pattern.** Four check files need
-  more than a byte test.
-- *The tools a check imports.* Every one already has a Go package:
-  `zstream` (24 checks), `create_cmdidxs` (25), `zrec` (14), `zscreen` (10),
-  `cutil` (10), `ptyrun` (8), `funcreach`, `zhostonly`, `muslcase`.
+**Each port was gated against the program it replaces before any dispatcher
+existed**: the old check and the port run on the same prepared tree — for a whim
+check, the whole STAGE replayed as `phaserun.sh` does, since a check sees the text
+every edit in its stage leaves — and the report and exit status required
+identical, with a mask derived only from five runs of the OLD check where it
+varies itself. Two are not byte-identical and are stated rather than masked:
+zero20 prints a recovery time the Python measured on a `select(…, 0.05)` loop that
+overshoots each wait, 1.81 s against 1.80 s; and whim33's Python prints a
+`TypeError` traceback on its way to passing, because by the time it runs the sweep
+has taken the `ex_listdo` it unpacks. `tools/gocmp/refusalcmp.py` then compares
+what the two SAY, since a passing report reaches none of a check's refusals: 0
+missing across all of them.
+
+**A dispatcher names every `tools/` path its port runs, in a comment**, because
+`implhash.sh` finds a phase's dependencies by grepping its program for paths and
+a one-line `exec` would stop naming `zrecord.sh`, `phasecheck.sh`, `enumvals.sh`
+or `zerodelta.sh`. The paths are read out of the port's Go string literals, and the
+generator had to be widened to be right: matching only a path that was a whole
+literal missed zero3's `. tools/pipeline.sh whim` and the two data files zero15
+**reads**, `tools/musl-case.txt` and `tools/musl-ctype.txt` — found by comparing
+every dispatcher against the code lines of the shell it replaced. What a check no
+longer names is only Python its heredoc imported (`zstream.py`, `cutil.py`,
+`create_cmdidxs.py`, `ptyrun.py`…), whose Go replacements are in every key as
+`tools/go`, and `zerodelta.sh` where a shell only mentioned it in a closing comment.
+With every dispatcher in place, `make whim-verify` is 13 of 13 and `make
+zero-verify` 46 of 46, every recorded boundary reproduced, the second on its first
+run.
 
 **THE TRANSFORMATION IS EXTERNALLY VERIFIED AND THE INSTRUMENT THAT GUARDS IT IS
 NOT**, and a clone of the remote is what drew that line. Every verify recorded
@@ -288,38 +308,22 @@ read a replaced line through a pointer it kept, contradicting phase 44's whole
 lifetime argument. A run in another tree failed at `JOBS=1` with the ordinary
 `zpty.py: NO REDRAW ENDED INSIDE THE DEADLINE` on `sel_arrows`. **Those cannot be
 the same event**: the controls' corpus is 102 `zcases` plus 16 `zmemline` and
-contains **no pty scenario at all** (`pipes/zero44-check.sh:518-520`), so a
+contains **no pty scenario at all**, so a
 `sel_arrows` stall cannot move a number computed over it.
 
-**And `zero44-check.sh` cannot tell a dead recording from a moved record**, which
-is why the first wears the wrong face. The build loop above checks every status
-and exits (`:514-516`); the recording loop below discards all of them —
-`for p in $pids; do wait "$p" || true; done` (`:523`) — so a control whose
-`zcases` or `zmemline` died under load leaves a short directory, `filecmp` reports
-it as differing, and the check says *poison moved a record*. **The `|| true` is the whole of it, and deleting that one
-line would close it** — which is worth stating because this file first claimed the
-opposite. Each control is `( zcases …; zmemline … ) &`, and a subshell's status
-*is* its last command's — but `pipes/zero44-check.sh:43` is **`set -eu`**, which a
-subshell inherits, so a dead `zcases` exits it at once carrying rc 1 and the
-`wait` sees it. Measured, four ways: with `set -eu` a failing **first** command
-gives the `wait` rc 1 and so does a failing second; **without** `set -e` the
-failing first gives rc 0, which is the case the wrong claim described and is not
-the case this file is in. **`set -e` changes what `( … ) &` means**, so a claim
-about the construct is not a claim about the line until the flags in force are
-known — *a count is a fact about a binary as much as about a file*, with a shell
-option in place of a `PATH`. That is
-*a harness that discards what it ran* and *a verdict true of both outcomes*
-meeting in six lines — the message is produced by the check's own shape and not
-by chance, which is the difference between a misleading symptom and a structural
-one. Whether a recording actually died in that run is **not** demonstrated: the
-scratch is deleted on success and the failing one does not say which of the 118
-moved. It is a mechanism that fits, stated as that.
+**And zero44's check cannot tell a dead recording from a moved record**, which
+is why the first wears the wrong face. It builds its controls and checks every
+build, then records each one and **discards both exit statuses** — the shell's
+`wait "$p" || true`, carried into `tools/go/internal/check/zero44.go` faithfully by
+the port, where the controls' goroutines run `zcases` and `zmemline` and ignore
+what they return. So a control whose recording died under load leaves a short
+directory, the comparison reports it as differing, and the check says *poison moved
+a record*. Checking those two statuses would close it. Whether a recording actually
+died in that run is **not** demonstrated: the scratch is deleted on success and the
+failing one does not say which of the 118 moved. It is a mechanism that fits, stated
+as that — *a harness that discards what it ran* and *a verdict true of both
+outcomes* meeting in one loop.
 
-**What is genuinely left against it is size**: ~12,600 lines of check code, about
-21,000 of Go at the measured ratio, plus a second driver — a check reads a work
-tree, a state directory and the world, prints as it goes, returns a verdict and
-**collects** its failures rather than stopping at the first, so it cannot borrow
-`internal/edit`'s tree-in-tree-out signature.
 
 `tools/README.md` has the detail, including those six cutters and what replaces
 each, and `tools/gocmp/` is every comparison that produced the port's numbers,
@@ -1297,7 +1301,8 @@ it writes a `stalled` section into the record, says so on stderr and exits 1,
 rather than returning a short capture silently.
 
 **And fourteen zero checks throw that message away, so the phase fails with
-nothing printed.** `tools/zrecord.sh` is started in the background as
+nothing printed** — their Go ports keep that shape faithfully, the port having been
+gated on reproducing the old report and not on improving it. `tools/zrecord.sh` is started in the background as
 `… >/dev/null 2>&1 &` and collected later by a bare `wait $pid` under `set -eu`,
 so a stalled recording exits the check with rc 1 and no output at all. Measured:
 in one `make zero-verify`, r41 printed `zpty.py: NO REDRAW ENDED INSIDE THE
