@@ -870,7 +870,7 @@ with the others goes looking for a bug that is not there.
 
 | what it is | where the reason goes | the repair | here |
 | --- | --- | --- | --- |
-| `zrecord.sh` backgrounded as `… >/dev/null 2>&1 &`, collected by a bare `wait` | discarded **before it is written** | capture it | **live**, in 14 zero checks |
+| a recording harness backgrounded as `… >/dev/null 2>&1 &`, collected by a bare `wait` | discarded **before it is written** | capture it | **live**, in 15 zero checks |
 | `verifypass.sh` testing `if ! …` | collapsed to **one word** — SIGKILL, a torn script and an assertion failure all read the same | report the status, not the test | **repaired**, it takes `rc=$?` and prints it |
 | a driver piping each step through `tail -12` | written and then **thrown away** | keep all of it | the other session's `clonepass.sh`, reported against itself |
 | `git bundle verify` | **never computed** — it validates the header and the prerequisites and does not read the packfile | perform the recovery | external, and *Four checks that pass while doing nothing* in `CLAUDE.md` |
@@ -948,11 +948,29 @@ The two programs part company only where the pattern is metacharacter-heavy,
 which is the pattern somebody reaches for when asking whether **a line of shell**
 is present, and that is the question both sessions were asking when it bit.
 
-One figure was worth re-taking rather than re-confirming: the table above says 14
-zero checks background `zrecord.sh`, and a fixed-string count of the
-backgrounding idiom alone gives **15**. Both programs agree on both numbers; the
-fifteenth is `pipes/zero42-check.sh`, which backgrounds something else. **A
-disagreement between two counts is not always two answers to one question.**
+One figure was worth re-taking rather than re-confirming, and asking what the
+difference *was* changed which number the table should quote. Fourteen zero
+checks background `zrecord.sh`; a fixed-string count of the backgrounding idiom
+gives **15**. Both programs agree on both numbers. The fifteenth is
+`pipes/zero42-check.sh`, and it is not a different construct — it backgrounds the
+recording tools directly and discards their output **five times**, at lines 500,
+502, 504, 510 and 643, collecting them with the same bare `wait … || die`:
+
+```
+tools/st.sh zcases   "$tmp/probe" "$tmp/SC-probe"   >/dev/null 2>&1 &
+tools/st.sh zexcmds  "$tmp/probe" … "$tmp/ex-probe.txt" >/dev/null 2>&1 &
+tools/st.sh zargv    "$tmp/probe" "$tmp/argv-probe.txt" >/dev/null 2>&1 &
+tools/st.sh zmemline "$tmp/probe" "$tmp/ML-in"      >/dev/null 2>&1 &
+```
+
+**So the two counts answer two questions and the table wanted the other one.**
+`CLAUDE.md`'s sentence names `zrecord.sh`, and 14 is right for that sentence.
+This table is about a *shape*, and for the shape it is **15** — fourteen through
+`zrecord.sh` and one through five direct calls. A reader who repairs the fourteen
+and stops leaves the same defect standing in `zero42-check.sh`, which is the
+outcome the entry exists to prevent. **A disagreement between two counts is not
+always two answers to one question — and when it is, the cheap check is which
+question you are actually asking.**
 
 **And the second-order point, which is the two-harness rule arriving somewhere
 new: this was only findable because two sessions ran the same pattern in
