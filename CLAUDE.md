@@ -878,6 +878,37 @@ is this section's own rule below being obeyed. What was wrong is the sentence,
 not the code: a reader who believed a pass records them would think a fresh
 checkout was protected when the harnesses had not run at all.
 
+**`tools/whimdelta.sh` meets the same absence and answers it three ways better,
+which is what makes slim1's arm worth changing one day.** Its test is
+`[ ! -d "$base/behaviour" ]` and the arm is three lines: run `orphans`, print
+`delta   no slim baselines to compare against`, `exit $fail`. So it **says in the
+report** that half the check did not happen rather than exiting quietly; it still
+runs the half that **needs no baseline**; and it exits `$fail` rather than 0, so
+what does run can still refuse.
+
+Demonstrated rather than read, in a scratch root holding `tools/`, `pipes/`, a
+`whim-vim.c` and a binary built from it and **no `.reference/` at all**:
+
+```
+  orphanopts   5 non-pointer orphans read as 0: p_ai_nopaste p_et_nopaste …
+  orphanopts   every option pointer still has the row that sets it
+  delta        no slim baselines to compare against          rc=0
+```
+
+and the control that keeps that from being a message nobody can fail — the same
+command on a 200-line stub with no `options[]` in it:
+
+```
+orphanopts: options[] is not in this file
+  delta        no slim baselines to compare against          rc=1
+```
+
+**So a clone is three-valued and not two.** Slim Phase 1's harnesses do not run
+and *cannot* fail; whim's delta check runs its baseline-free half and announces
+that the other half did not happen, and can still refuse; and the boundary
+digests and the product comparisons are real throughout. The middle value is the
+one worth copying into `pipes/slim1.sh` if that arm is ever revisited.
+
 **`tools/verify.sh .reference/baselines` runs all of them concurrently and gives
 one verdict, in about 18 seconds** — eight of them the build. Use it after any
 change; add `--enums` for the DWARF check. It is proven to fail on a broken
