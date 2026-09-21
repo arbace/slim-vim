@@ -7,24 +7,16 @@
 # Runs after pipes/whim34-edit.sh and the sweep tools/phaserun.sh runs between
 # them, and reads nothing from the edit's shell -- only the work tree and the state
 # directory, as tools/phaserun.sh describes.
+
+# THE BODY IS GO: tools/go/internal/check/whimb.go, run through tools/st.sh.
+# The tools it runs, named as PATHS so tools/implhash.sh hashes them into
+# this phase's key -- a path the program does not name is a dependency no key
+# sees.  Do not delete these lines.
+#   tools/phasebuild.sh
+#   tools/phasecheck.sh
+#   tools/st.sh
 set -eu
 
 work=${1:?usage: whim34-check.sh <work-dir> <state-dir>}
 state=${2:?usage: whim34-check.sh <work-dir> <state-dir>}
-f="$work/whim-vim.c"
-before_lines=$(cat "$state/input-lines")
-
-# The post-condition, after the sweep that takes them.
-for g in check_abbr echeck_abbr ccheck_abbr ex_abbreviate ex_abclear; do
-    n=$(grep -cE -- "\\b$g\\b" "$f" || true)
-    if [ "$n" != 0 ]; then
-        echo "  abbr         $g still has $n mentions after the sweep"
-        grep -nE -- "\\b$g\\b" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
-        exit 1
-    fi
-done
-echo "  abbr         nothing defines, lists or expands an abbreviation"
-
-tools/phasecheck.sh "$work" "$f" "$state/symbols"
-
-tools/phasebuild.sh "$work" "$before_lines"
+exec tools/st.sh check whim34 "$work" "$state"

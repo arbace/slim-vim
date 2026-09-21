@@ -7,26 +7,16 @@
 # Runs after pipes/whim36-edit.sh and the sweep tools/phaserun.sh runs between
 # them, and reads nothing from the edit's shell -- only the work tree and the state
 # directory, as tools/phaserun.sh describes.
+
+# THE BODY IS GO: tools/go/internal/check/whimb.go, run through tools/st.sh.
+# The tools it runs, named as PATHS so tools/implhash.sh hashes them into
+# this phase's key -- a path the program does not name is a dependency no key
+# sees.  Do not delete these lines.
+#   tools/phasebuild.sh
+#   tools/phasecheck.sh
+#   tools/st.sh
 set -eu
 
 work=${1:?usage: whim36-check.sh <work-dir> <state-dir>}
 state=${2:?usage: whim36-check.sh <work-dir> <state-dir>}
-f="$work/whim-vim.c"
-before_lines=$(cat "$state/input-lines")
-
-# The post-condition, after the sweeps that take them.
-for g in ex_tabclose ex_tabnext ex_tabmove ex_tabonly ex_tabs ex_redrawtabline \
-         goto_tabpage goto_tabpage_lastused win_new_tabpage tabpage_close tabpage_move \
-         may_open_tabpage p_stal p_tpm p_tcl tcl_flags postponed_split_tab; do
-    n=$(grep -cE -- "\\b$g\\b" "$f" || true)
-    if [ "$n" != 0 ]; then
-        echo "  tabs         $g still has $n mentions after the sweep"
-        grep -nE -- "\\b$g\\b" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
-        exit 1
-    fi
-done
-echo "  tabs         nothing makes, reaches, moves, lists or draws a second tab page"
-
-tools/phasecheck.sh "$work" "$f" "$state/symbols"
-
-tools/phasebuild.sh "$work" "$before_lines"
+exec tools/st.sh check whim36 "$work" "$state"

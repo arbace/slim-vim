@@ -7,21 +7,16 @@
 # Runs after pipes/whim8-edit.sh and the sweep tools/phaserun.sh runs between
 # them, and reads nothing from the edit's shell -- only the work tree and the state
 # directory, as tools/phaserun.sh describes.
+
+# THE BODY IS GO: tools/go/internal/check/whima.go, run through tools/st.sh.
+# The tools it runs, named as PATHS so tools/implhash.sh hashes them into
+# this phase's key -- a path the program does not name is a dependency no key
+# sees.  Do not delete these lines.
+#   tools/phasebuild.sh
+#   tools/phasecheck.sh
+#   tools/st.sh
 set -eu
 
 work=${1:?usage: whim8-check.sh <work-dir> <state-dir>}
 state=${2:?usage: whim8-check.sh <work-dir> <state-dir>}
-f="$work/whim-vim.c"
-before_lines=$(cat "$state/input-lines")
-
-# This is the first whim phase whose point is the SYMBOL count, so it is
-# checked rather than reported.  A phase that shrank the source while leaving
-# the surface where it was would have cut in the wrong place, which is exactly
-# the mistake this one exists to avoid.
-tools/phasecheck.sh "$work" "$f" "$state/symbols"
-if [ "$(cat .cache/symbols/last/after)" -ge "$(cat .cache/symbols/last/before)" ]; then
-    echo "  symbols      this phase must lower the count"
-    exit 1
-fi
-
-tools/phasebuild.sh "$work" "$before_lines"
+exec tools/st.sh check whim8 "$work" "$state"

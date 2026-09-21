@@ -7,18 +7,16 @@
 # Runs after pipes/whim6-edit.sh and the sweep tools/phaserun.sh runs between
 # them, and reads nothing from the edit's shell -- only the work tree and the state
 # directory, as tools/phaserun.sh describes.
+
+# THE BODY IS GO: tools/go/internal/check/whimstd.go, run through tools/st.sh.
+# The tools it runs, named as PATHS so tools/implhash.sh hashes them into
+# this phase's key -- a path the program does not name is a dependency no key
+# sees.  Do not delete these lines.
+#   tools/phasebuild.sh
+#   tools/phasecheck.sh
+#   tools/st.sh
 set -eu
 
 work=${1:?usage: whim6-check.sh <work-dir> <state-dir>}
 state=${2:?usage: whim6-check.sh <work-dir> <state-dir>}
-f="$work/whim-vim.c"
-before_lines=$(cat "$state/input-lines")
-
-# SLIM-GOAL.md phase 7's invariant, checked again because this phase moved a
-# declaration: nowild.py reuses the slot the shell expander's prototype held,
-# and a declaration that loses its `static` hands external linkage to one
-# that never said so itself.  nm the OBJECT -- a static binary defines 1,400
-# symbols of its own and would bury the answer.
-tools/phasecheck.sh "$work" "$f" "$state/symbols"
-
-tools/phasebuild.sh "$work" "$before_lines"
+exec tools/st.sh check whim6 "$work" "$state"

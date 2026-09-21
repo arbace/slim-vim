@@ -7,42 +7,16 @@
 # Runs after pipes/whim33-edit.sh and the sweep tools/phaserun.sh runs between
 # them, and reads nothing from the edit's shell -- only the work tree and the state
 # directory, as tools/phaserun.sh describes.
+
+# THE BODY IS GO: tools/go/internal/check/whim33.go, run through tools/st.sh.
+# The tools it runs, named as PATHS so tools/implhash.sh hashes them into
+# this phase's key -- a path the program does not name is a dependency no key
+# sees.  Do not delete these lines.
+#   tools/phasebuild.sh
+#   tools/phasecheck.sh
+#   tools/st.sh
 set -eu
 
 work=${1:?usage: whim33-check.sh <work-dir> <state-dir>}
 state=${2:?usage: whim33-check.sh <work-dir> <state-dir>}
-f="$work/whim-vim.c"
-before_lines=$(cat "$state/input-lines")
-
-# The post-condition, asked after the sweep because it is the sweep that takes
-# the handlers: nothing that existed only to refuse is left, and ex_listdo no
-# longer names a quickfix command.
-for g in ex_shell ex_nogui ex_digraphs ex_redrawtabpanel ex_colorscheme load_colors; do
-    n=$(grep -cE -- "\\b$g\\b" "$f" || true)
-    if [ "$n" != 0 ]; then
-        echo "  deadcmds     $g still has $n mentions after the sweep"
-        grep -nE -- "\\b$g\\b" "$f" | head -3 | sed 's/^/               /' | cut -c1-100
-        exit 1
-    fi
-done
-if python3 - "$f" <<'EOF'
-import re, sys
-sys.path.insert(0, 'tools')
-# tools/cutil.py -- named as a PATH so tools/implhash.sh hashes it into this
-# phase's key.  implhash greps for paths and an `import` names a module, so
-# without this line an edit to it changes what this phase produces and moves
-# no key at all.  See CLAUDE.md on cutil.py and macros.py.  Do not delete it.
-import cutil
-text = open(sys.argv[1], errors='surrogateescape').read()
-a, z = cutil.find_definition(text, 'ex_listdo')
-sys.exit(0 if re.search(r'\bCMD_(cdo|cfdo|ldo|lfdo)\b', text[a:z]) else 1)
-EOF
-then
-    echo "  deadcmds     ex_listdo still tests for a quickfix command"
-    exit 1
-fi
-echo "  deadcmds     no handler that only refused is left, and ex_listdo asks nothing about quickfix"
-
-tools/phasecheck.sh "$work" "$f" "$state/symbols"
-
-tools/phasebuild.sh "$work" "$before_lines"
+exec tools/st.sh check whim33 "$work" "$state"
