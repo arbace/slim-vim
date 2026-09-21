@@ -963,6 +963,23 @@ tools/st.sh zargv    "$tmp/probe" "$tmp/argv-probe.txt" >/dev/null 2>&1 &
 tools/st.sh zmemline "$tmp/probe" "$tmp/ML-in"      >/dev/null 2>&1 &
 ```
 
+**And the fifteenth is the shape wearing a message that looks informative**, which
+makes it the worst of them to read. Its collection is not a bare `wait` but a
+`wait … || die` that names the harness:
+
+```
+wait $pid_sc || die "the screen corpus failed on the instrumented build"
+wait $pid_ex || die "the Ex sweep failed on the instrumented build"
+wait $pid_av || die "the argv sweep failed on the instrumented build"
+wait $pid_ml || die "phase 40's memline corpus failed on the instrumented build"
+```
+
+Each says **which** and never **why**, because the why went to `/dev/null`
+before the `wait` could reach it. A reader handed *the screen corpus failed on
+the instrumented build* has a sentence, a phase and no reason, and will go
+hunting the phase rather than the stall — so a message that names its subject is
+**more** misleading here than silence, not less.
+
 **So the two counts answer two questions and the table wanted the other one.**
 `CLAUDE.md`'s sentence names `zrecord.sh`, and 14 is right for that sentence.
 This table is about a *shape*, and for the shape it is **15** — fourteen through
