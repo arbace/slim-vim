@@ -899,12 +899,38 @@ keystroke from being published as a finding.** The other session checked whether
 
 got **0**, and nearly reported that the fix was missing — a fabricated alarm
 about the one file whose entire subject is a fabricated alarm. The text is there,
-at line 71. Reproduced here, and the cause is not shell expansion but the regex:
-the identical pattern with `grep -F` matches once and without it matches none, so
-the metacharacters in a line of quoted shell are being read as a pattern.
+at line 71.
 
-**That is not where the reason is lost — it is a check whose own input is mangled
-before it is applied.** The other four compute an answer and mislay it; this one
+**The cause took two wrong answers to find, and the second was published before
+it was checked.** It is not shell expansion: the single quotes hold and `printf`
+shows the pattern reaching the command byte for byte. It is not the BRE dialect
+either, which is what this file said first — that story came from `grep -F`
+matching and bare `grep` not, which was true and was not the reason. **The reason
+is that the two runs were not the same program.** In an interactive Claude Code
+shell `grep` is a shell *function* that dispatches to `ugrep`; a script, or
+`bash -c`, or `command grep`, gets GNU grep. Measured on the same pattern and the
+same file in one command:
+
+```
+function grep (ugrep)   0
+command grep (GNU)      1
+GNU grep -F             1
+```
+
+So the other session's in-script `1` was right all along and the `0` was an
+artifact of where it was typed. **The tool you believe you are running may not be
+the program that answers**, and a count is a fact about a binary as much as about
+a file.
+
+Everything this session measured with a bare `grep` was re-checked against
+`command grep` for that reason; the published edit-port figures are unaffected
+(0 heredocs, 31 whim files, 34 calls, 41 zero files under both), because a plain
+literal pattern is where the two agree. It is the metacharacter-heavy pattern
+that separates them, which is exactly the pattern somebody reaches for when
+checking whether a line of shell is present.
+
+**That is not where the reason is lost — it is a check answered by a program the
+caller did not think it was running.** The other four compute an answer and mislay it; this one
 computes a correct answer to a question it was never asked, and the answer is
 indistinguishable from the true negative. The repair is what this tree does
 everywhere else and what settled it that time: **compare the object, do not
