@@ -859,9 +859,24 @@ nothing runs at all.
 
 There is no upstream test suite in play. Four harnesses stand in for it, all in
 `tools/`; the baselines they are compared against are in `.reference/baselines/`,
-which **a pass records in Phase 1 and a fresh checkout does not have**. Until one
-has run there is nothing to compare against — the harnesses still run, they just
-have no older recording to disagree with.
+which **a fresh checkout does not have and NO PASS CREATES**.
+
+This file used to say a pass records them in Phase 1, and that is wrong — found
+by a cold `slim-repass` in a clone of the remote, whose whole `.reference/` is
+one entry, `slim-phases`, with no `baselines/` beside it. `pipes/slim1.sh` is
+explicit about it: `if [ ! -d "$base" ]`, print *"baselines absent — first pass,
+nothing to compare against. Record them from this binary before Phase 2"*, and
+**`exit 0`**. The four `check` calls below that line are never reached, and the
+instruction is addressed to a reader, which nothing in the tree performs. So on
+a fresh checkout the behavioural half of the verification **does not run**, and
+the phase cannot fail — which is not the same as passing, and is why this
+paragraph is worth reading before trusting a clean pass on a new machine.
+
+**That `exit 0` may well be right and is left alone deliberately.** It is Phase 1
+declining to manufacture a baseline that would immediately certify itself, which
+is this section's own rule below being obeyed. What was wrong is the sentence,
+not the code: a reader who believed a pass records them would think a fresh
+checkout was protected when the harnesses had not run at all.
 
 **`tools/verify.sh .reference/baselines` runs all of them concurrently and gives
 one verdict, in about 18 seconds** — eight of them the build. Use it after any
@@ -893,11 +908,13 @@ commit and an 8-second build, and the phase digests are a pass from an empty
 cache.
 
 **Never regenerate it from the current binary**, which would make the comparison
-self-fulfilling. A pass records it in Phase 1 either way, but the recording only
-proves something when there is an older one to compare it against first: the
-first pass in a fresh checkout is self-certifying on behaviour, and every pass
-after it is not. That is the whole reason to keep this directory across passes,
-and the reason it is the one thing worth copying if this tree is ever moved.
+self-fulfilling — and this file used to describe the consequence too generously,
+as *the first pass in a fresh checkout is self-certifying on behaviour*.
+Self-certifying would mean it recorded and then compared against its own
+recording. It does neither: Phase 1 takes the `exit 0` above and the harnesses
+never run, so a fresh checkout has **no** behavioural certification rather than a
+weak one. That is the whole reason to keep this directory across passes, and the
+reason it is the one thing worth copying if this tree is ever moved.
 
 **`zero-baselines/` is recorded from a binary, and that is not this mistake.** The
 mistake is a pipeline re-recording from its *own* current binary, which then agrees
