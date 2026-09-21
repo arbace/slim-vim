@@ -280,17 +280,32 @@ comparisons are real throughout. Only the first of those four is retired by
 keeping `.reference/baselines` across passes and proving each harness can fail,
 which is what this section already asks for and what no clone can substitute for.
 
-**The load flakiness reaches r44 as well as r32, r41 and r39 — and at r44 it does
-not look like itself.** The documented symptom is `zpty.py: NO REDRAW ENDED
-INSIDE THE DEADLINE`, which stops a reader at once. On one run r44 instead
+**The flakiness reaches r44 by TWO routes, which is not one flake with two
+faces**, and the second is a defect in the check rather than the machine. One run
 refused with *controls: poison moved a record … the measurement has changed and
 the reason written beside it is now wrong* — a substantive claim that something
 read a replaced line through a pointer it kept, contradicting phase 44's whole
-lifetime argument. Three solo runs at `JOBS=1` in that tree passed, and three in
-another tree gave two passes and one failure **that was the ordinary stall**. So
-the same flake wears two faces, and the dangerous one sends a reader to the
-memline arc rather than to the load average: *a verdict true of both outcomes*,
-arriving in the failure message of a check that is otherwise correct.
+lifetime argument. A run in another tree failed at `JOBS=1` with the ordinary
+`zpty.py: NO REDRAW ENDED INSIDE THE DEADLINE` on `sel_arrows`. **Those cannot be
+the same event**: the controls' corpus is 102 `zcases` plus 16 `zmemline` and
+contains **no pty scenario at all** (`pipes/zero44-check.sh:518-520`), so a
+`sel_arrows` stall cannot move a number computed over it.
+
+**And `zero44-check.sh` cannot tell a dead recording from a moved record**, which
+is why the first wears the wrong face. The build loop above checks every status
+and exits (`:514-516`); the recording loop below discards all of them —
+`for p in $pids; do wait "$p" || true; done` (`:523`) — so a control whose
+`zcases` or `zmemline` died under load leaves a short directory, `filecmp` reports
+it as differing, and the check says *poison moved a record*. **Two layers throw
+the status away and the second survives removing the first**: each control is
+`( zcases …; zmemline … ) &`, whose exit status is the last command's, so a dead
+`zcases` is invisible even with the `|| true` gone. That is
+*a harness that discards what it ran* and *a verdict true of both outcomes*
+meeting in six lines — the message is produced by the check's own shape and not
+by chance, which is the difference between a misleading symptom and a structural
+one. Whether a recording actually died in that run is **not** demonstrated: the
+scratch is deleted on success and the failing one does not say which of the 118
+moved. It is a mechanism that fits, stated as that.
 
 **What is genuinely left against it is size**: ~12,600 lines of check code, about
 21,000 of Go at the measured ratio, plus a second driver — a check reads a work
