@@ -2192,6 +2192,29 @@ Four checks that pass while doing nothing:
   the second is answered only by performing the recovery. A backup that verifies
   and cannot be read is the same shape as a rebuild that never happened.
 
+**And a fifth shape, which is worse than the four and was found in the tool
+written to answer the fourth.** `tools/gocmp/bundlecheck.sh` handed a relative
+bundle path to a `git -C <scratch> fetch`, which changes directory first, so the
+path resolved inside the scratch repository: the **real** bundle failed with
+`'…' does not appear to be a git repository` while a torn one and an empty one
+went on failing for the right reasons by accident. Two right out of three, with
+the only one that matters inverted — and a person running all three sees two
+correct refusals and one plausible failure, and concludes the bundle is bad
+rather than the script.
+
+**That is not a check that passes while doing nothing; it is a check whose false
+NEGATIVE is indistinguishable from the failure it exists to detect.** The four
+above say "okay" when they are wrong, so the wrong answer is legible as wrong
+once a reader knows to look. This one said *cannot be applied* about a perfect
+bundle, in the same words it uses for a torn one, and no reading of the output
+tells them apart. On a tool that only ever runs when something has already gone
+wrong, that is the failure mode care cannot recover from.
+
+**Both defects in that script were invisible until the run that exercised them**
+— the bundle one only appeared once the basis one was fixed, and its sibling
+only on the empty case — which is the argument for three cases and not one,
+especially on a tool nobody runs until they need it.
+
 And one thing no tier can see: **blank lines, indentation and paragraphing.** A
 pass that touches those needs a count of them as its own check.
 

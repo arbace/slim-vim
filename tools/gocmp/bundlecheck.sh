@@ -44,25 +44,32 @@
 set -eu
 
 f=${1:?usage: bundlecheck.sh <bundle> [basis-repo]}
-# THE BASIS IS MADE ABSOLUTE HERE, and the default is why.  It is handed to a
-# `git -C "$s/r" fetch`, which changes directory FIRST, so a relative `.`
-# resolves to the scratch repository -- which has no `refs/remotes/origin/main`
-# and never will.  Measured: every case, good and torn and empty alike, died
-# with `fatal: couldn't find remote ref refs/remotes/origin/main` at rc=128,
-# before the recovery it exists to perform, and git's message names the ref and
-# not the path.  It fails loudly rather than passing, so it is not one of the
-# four -- it is the other shape, a relative path handed to a command that
-# changes directory.
-basis=$(cd "${2:-.}" && pwd)
+basis=${2:-.}
 [ -f "$f" ] || { echo "bundlecheck: $f is not a file" >&2; exit 1; }
-# AND SO IS THE BUNDLE, for the same reason and with a worse symptom.  `$f` is
-# handed to the same `git -C "$s/r" fetch`, so a relative path resolves inside
-# the scratch repository: the REAL bundle then fails with `'…' does not appear
-# to be a git repository`, which is a plausible message and a wrong verdict.
-# The torn and empty cases still fail, for the right reasons and by accident, so
-# a run over all three reads as two right out of three with the one that matters
-# inverted.
+[ -d "$basis" ] || { echo "bundlecheck: $basis is not a directory" >&2; exit 1; }
+
+# BOTH PATHS ARE MADE ABSOLUTE HERE, and each was a real defect found by the
+# other session running this script rather than reading it.  Section 2 fetches
+# with `git -C "$s/r"`, which changes directory FIRST, so every relative path
+# handed to it resolves inside the scratch repository:
+#
+#   the basis   `${2:-.}` became `.` = the scratch repo, which has no
+#               refs/remotes/origin/main and never will.  ALL THREE cases then
+#               died at rc=128 before the recovery ran, with git naming the REF
+#               and not the path.  The default was never exercised here because
+#               every run passed the basis explicitly.
+#
+#   the bundle  the worse one, and invisible until the first was fixed: a
+#               relative bundle resolved inside the scratch repo too, so the
+#               REAL bundle failed with `does not appear to be a git
+#               repository` -- a plausible message and an INVERTED verdict --
+#               while torn and empty went on failing for the right reasons by
+#               accident.  Two right out of three, with the only one that
+#               matters wrong.  That is not a check that passes while doing
+#               nothing; it is a check whose false negative is indistinguisha-
+#               ble from the failure it exists to detect.
 f=$(cd "$(dirname "$f")" && pwd)/$(basename "$f")
+basis=$(cd "$basis" && pwd)
 
 s=$(mktemp -d)
 trap 'rm -rf "$s"' EXIT
@@ -99,10 +106,14 @@ done
 
 # --- 2. the real check: perform the recovery ---------------------------------
 git init -q "$s/r"
+# Refused with this script's own message rather than git's: git names the REF
+# it could not find and says nothing about the repository it looked in, which
+# is what made the relative-basis defect read as a missing branch.
 if ! git -C "$s/r" fetch -q "$basis" refs/remotes/origin/main:refs/heads/base 2>/dev/null; then
-    echo "  basis        $basis has no refs/remotes/origin/main, so there is no basis to"
-    echo "               seed from and this test would be vacuous" >&2
-    exit 2
+    echo "  basis        $basis has no refs/remotes/origin/main to seed from, so there"
+    echo "               is nothing to apply this bundle ON TOP OF and the test below"
+    echo "               would refuse whatever the bundle contained"
+    exit 1
 fi
 printf '  basis        %s, from the remote-tracking ref and not from a local main\n' \
     "$(git -C "$s/r" rev-parse --short base)"
