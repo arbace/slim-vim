@@ -245,6 +245,16 @@ risk of a lost machine, which only a push to a remote retires.  Saying so is
 the point: a backup whose scope is not stated is read as covering the failure
 the reader had in mind.
 
+**This particular bundle is retired, and the retirement has a test.**  The work
+it held was pushed at `15b2244`, so `git bundle create <f> origin/main..HEAD`
+now answers `fatal: Refusing to create empty bundle` -- which is the condition to
+check rather than a failure to work around: an incremental bundle is finished
+exactly when its range is empty.  A bundle FILE left lying about after that is
+the `.reference/` hazard in another shape, a snapshot that goes stale the moment
+the tree moves with nothing to say so, and the only safe readings of one are its
+own `verify` output and a recovery.  Everything above stands as the method; the
+numbers in it describe a file that has done its job.
+
 **And the probe is not merged, which is measured rather than squeamish.**
 `implhash.sh` hashes `tools/go` as a directory with no name filter, so a new
 package under it re-keys phases that will never run it: sampled ten units with

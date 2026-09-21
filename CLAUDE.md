@@ -1104,21 +1104,25 @@ exactly **one** of 225 is the simple "assert a literal occurs once and replace
 it" shape. So that port was authorship and not a swap.
 
 **`grep -l 'python3 -' pipes/*-edit.sh` is empty.** Measured from `pipes/`, which
-is where a figure like this has to come from: whim has **82 edit parts**, 33 of
-which held a heredoc and now carry a `tools/st.sh edit whim<N> "$f"`, and 49 of
-which never held one and are shell; zero has **41 edit parts** and **all 41**
-carry one. "41 zero edits" is not the denominator anyone would guess from the
-phase count: zero has 46 phases, of which 0, 3, 33 and 40 change no source at all
-and 1 only adds a compile flag, so five have no edit part to port. What is left
-in `pipes/` is checks.
+is where a figure like this has to come from: whim has **82 edit parts**, 31 of
+which held a heredoc and now carry a `tools/st.sh edit whim<N> "$f"` — **34
+calls**, because whim 56, 60 and 62 make two each — and 51 of which never held one
+and are shell; zero has **41 edit parts** and **all 41** carry one, 42 calls,
+zero 12 being the phase with two. "41 zero edits" is not the denominator anyone
+would guess from the phase count: zero has 46 phases, of which 0, 3, 33 and 40
+change no source at all and 1 only adds a compile flag, so five have no edit part
+to port. What is left in `pipes/` is checks.
 
-**THAT SENTENCE IS TRUE OF A TREE THAT IS NOT PUSHED.** It was measured at
-`7c90f54`, and `origin/main` is at `59372a7`; the push is refused by the
-session's permission tooling and thirty-one commits are local. Measured from a
-second worktree at the same moment, 54 edit parts there still hold a heredoc. A
-reader who checks this out and counts will not get the number above until the
-push lands — which is the one case where this file's own rule, *re-measure rather
-than reason*, is not enough on its own, and the commit has to be named.
+**That sentence used to carry a caveat that it was true of a tree nobody could
+check, and the caveat is spent.** It was written at `7c90f54` against an
+`origin/main` of `59372a7`, with the push refused and thirty-one commits local,
+and it named the commit because this file's own rule — *re-measure rather than
+reason* — cannot help a reader whose checkout does not contain what was measured.
+The push landed at `15b2244`, `origin/main` is that commit, and the figures above
+are now a property of the remote: a reader who clones and counts gets them. **The
+lesson outlives the caveat**: a measurement of the working tree is a claim about
+a tree the reader may not have, and the only two honest forms are to name the
+commit or to wait for the push.
 
 **The checks stay Python, and the three reasons this file used to give for that
 are all measurably wrong.** The decision may still be right; the argument was
@@ -1150,9 +1154,15 @@ boundary from the one before it, which is the strongest induction this tree has 
 but the tree they run in is a working copy, not a fresh clone, and the thirteen
 green runs behind the figures above were spread over two worktrees on one
 machine and share that single assumption.  **A clone of the remote, verified
-there, is the only thing that retires it**, and it cannot be done while
-`origin/main` lacks the work.  Nothing has ever been found this way; it is
-recorded because a reader is entitled to know which claim the numbers support.
+there, is the only thing that retires it.**  That was blocked while `origin/main`
+lacked the work and is not any more, so what is left is the cost rather than the
+possibility: a fresh clone has no `.reference/` and no `.build-*`, which is the
+normal starting state, so the three verifies have nothing to check against until
+a cold `slim-repass`, `whim-repass` and `zero-repass` have produced boundaries
+**there** — and boundaries carried over from a working copy would reintroduce
+precisely the assumption the exercise retires.  Nothing has ever been found this
+way; it is recorded because a reader is entitled to know which claim the numbers
+support, and it stays recorded until a clone has actually done it.
 
 **What is genuinely left against it is size**: ~12,600 lines of check code, about
 21,000 of Go at the measured ratio, plus a second driver — a check reads a work
