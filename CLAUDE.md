@@ -2175,7 +2175,7 @@ whitespace, so `(int);` and `(int) ;` differ textually and not in tokens.
 Collapsing whitespace is not enough either. A token-neutral change can still be
 wrong — check the *warnings* too.
 
-Three checks that pass while doing nothing:
+Four checks that pass while doing nothing:
 
 - **`objcopy -O binary --only-section=X f /dev/stdout` writes nothing and exits
   0.** Comparing two such streams reports every pair of binaries identical.
@@ -2184,6 +2184,13 @@ Three checks that pass while doing nothing:
   happened.** Check the elapsed time, or that the artifact was removed.
 - **A script that printed a success message has not necessarily written
   anything.** Re-read the file, or grep for the new text.
+- **`git bundle verify` never reads the packfile.** Measured on this tree's own
+  backup bundle truncated to 32 % of its length: it prints the identical ref
+  listing, says **`is okay`** and exits **0**, while `git fetch` of it dies with
+  `index-pack died`. The two questions differ by the entire payload — *is this a
+  well-formed bundle whose basis I have* against *can I get the work out* — and
+  the second is answered only by performing the recovery. A backup that verifies
+  and cannot be read is the same shape as a rebuild that never happened.
 
 And one thing no tier can see: **blank lines, indentation and paragraphing.** A
 pass that touches those needs a count of them as its own check.

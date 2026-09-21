@@ -180,6 +180,33 @@ making: anyone who can clone the remote can apply it and get every commit, with
 no dependency on the machine that wrote it.  An incremental bundle whose basis
 is a local-only commit verifies exactly as cleanly and is worth nothing.
 
+**AND THE PREREQUISITE CHECK IS NOT THE TEST.**  `git bundle verify` validates
+the header and the prerequisites and **never reads the packfile**: this tree's
+own bundle truncated to 32 % of its length verifies `is okay` and exits 0, and
+the reachability line below outputs nothing and exits 0 on it exactly as it does
+on the whole one -- while `git fetch` of it dies with `index-pack died`.  The
+cheap check stays, because it catches the basis moving and nothing else does;
+what it cannot do is certify recovery.  **Perform the recovery instead:**
+
+    s=$(mktemp -d); git init -q "$s"
+    git -C "$s" fetch -q <repo> refs/remotes/origin/main:refs/heads/base
+    git -C "$s" fetch "$f" HEAD && git -C "$s" archive FETCH_HEAD >/dev/null &&
+        echo "recovered $(git -C "$s" rev-list --count base..FETCH_HEAD) commits"
+
+Three things in that are load-bearing and each was measured.  **A FRESH
+repository per bundle**: with one scratch repo reused, a torn bundle fetched
+after a good one returns rc=0, reports all 39 commits and archives cleanly,
+because `FETCH_HEAD` resolves against the objects its predecessor left in the
+store -- *a harness that diffs an output file it did not first delete*, in a git
+object store.  **`archive` and not `rev-list`**: `rev-list --count` walks
+commits, so a pack missing only trees and blobs counts the same as a whole one;
+`archive` has to read them.  And **seed from the remote-tracking ref**, never
+from a local `main` that is ahead, or every bundle passes for the wrong reason.
+
+Measured on this tree at `e0d85df`: good (429,265 B) verify 0, fetch 0, archive
+ok, 39 commits, `fsck` clean; torn (140,000 B) verify **0**, fetch 1; empty
+verify 1, fetch 128.  **Refresh-and-re-test, not refresh-and-re-verify.**
+
 **Check it on every REFRESH and not once**, because a refresh is exactly when
 the basis moves: `git bundle create` re-reads `origin/main..HEAD`, and a
 `git fetch` between two refreshes can put the basis somewhere a clone cannot
