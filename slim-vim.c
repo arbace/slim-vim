@@ -6240,7 +6240,6 @@ static void list_version(void);
 static void maybe_intro_message(void);
 // ---------------- end version.pro ----------------
 // ---------------- begin vim9script.pro ----------------
-static int in_vim9script(void);
 static int vim9_comment_start(char_u *p);
 
 // ---------------- end vim9script.pro ----------------
@@ -7342,6 +7341,13 @@ static char e_invalid_format_string_single_percent_s[]  =  "E1577: Invalid forma
 static char e_completeopt_escape_cannot_be_used_with_nargs_underscore[]  =  "E1579: -completeopt=escape cannot be used with -nargs=_"  ;
 
 // ---------------- end errors.h ----------------
+
+    static inline int
+in_vim9script(void)
+{
+    return (current_sctx.sc_version == SCRIPT_VERSION_VIM9 || (cmdmod.cmod_flags & CMOD_VIM9CMD))
+                && !(cmdmod.cmod_flags & CMOD_LEGACY);
+}
 
 enum { ENC_8BIT = 0x01 };
 enum { ENC_DBCS = 0x02 };
@@ -15542,7 +15548,7 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
         }
         if (buf_sfname)
         {
-            sfname = buf->b_sfname;
+            sfname = buf->b_fname;
         }
         if (buf_fname_f)
         {
@@ -15550,7 +15556,7 @@ buf_write(buf_T           *buf, char_u          *fname, char_u          *sfname,
         }
         if (buf_fname_s)
         {
-            fname = buf->b_sfname;
+            fname = buf->b_fname;
         }
     }
 
@@ -19129,7 +19135,7 @@ win_linetabsize_cts(chartabsize_T *cts, colnr_T len)
     vimlong_T vcol = cts->cts_vcol;
     for ( ; *cts->cts_ptr != NUL && (len == MAXCOL || cts->cts_ptr < cts->cts_line + len);  cts->cts_ptr += (*mb_ptr2len)(cts->cts_ptr) )
     {
-        vcol += win_lbr_chartabsize(cts, NULL, NULL);
+            vcol += win_lbr_chartabsize(cts, NULL, NULL);
         if (vcol > MAXCOL)
         {
             cts->cts_vcol = MAXCOL;
@@ -19842,7 +19848,7 @@ getdigits(char_u **pp)
     long        retval;
 
     p = *pp;
-    retval = atol((char *)p);
+    retval = strtol((char *)p, NULL, 10);
     if (*p == '-')
     {
         ++p;
@@ -28720,7 +28726,6 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
     winlinevars_T       wlv;
 
     int         c = 0;
-    long        vcol_prev = -1;
     char_u      *line;
     char_u      *ptr;
     int         in_curline = wp == curwin && lnum == curwin->w_cursor.lnum;
@@ -28735,8 +28740,6 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
 
     int         skip_cells = 0;
     int         skipped_cells = 0;
-    int         fromcol_prev = -2;
-    int         noinvcur = FALSE;
     int         lnum_in_visual_area = FALSE;
     pos_T       pos;
     long        v;
@@ -28849,11 +28852,6 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                         }
                     }
                 }
-            }
-
-            if (!highlight_match && in_curline)
-            {
-                noinvcur = TRUE;
             }
 
             if (wlv.fromcol >= 0)
@@ -29025,24 +29023,9 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
 
     }
 
-    if (wlv.fromcol >= 0)
+    if (wlv.fromcol >= wlv.tocol)
     {
-        if (noinvcur)
-        {
-            if ((colnr_T)wlv.fromcol == wp->w_virtcol)
-            {
-                fromcol_prev = wlv.fromcol;
-                wlv.fromcol = -1;
-            }
-            else if ((colnr_T)wlv.fromcol < wp->w_virtcol)
-            {
-                fromcol_prev = wp->w_virtcol;
-            }
-        }
-        if (wlv.fromcol >= wlv.tocol)
-        {
-            wlv.fromcol = -1;
-        }
+        wlv.fromcol = -1;
     }
 
     if (number_only == 0)
@@ -29129,11 +29112,11 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
             int *area_attr_p =
                                                             &area_attr;
 
-            if (wlv.vcol == wlv.fromcol || (has_mbyte && wlv.vcol + 1 == wlv.fromcol && ((wlv.n_extra == 0 && (*mb_ptr2cells)(ptr) > 1) || (wlv.n_extra > 0 && wlv.p_extra != NULL && (*mb_ptr2cells)(wlv.p_extra) > 1))) || ((int)vcol_prev == fromcol_prev && vcol_prev < wlv.vcol && wlv.vcol < wlv.tocol))
+            if (wlv.vcol == wlv.fromcol || (has_mbyte && wlv.vcol + 1 == wlv.fromcol && ((wlv.n_extra == 0 && (*mb_ptr2cells)(ptr) > 1) || (wlv.n_extra > 0 && wlv.p_extra != NULL && (*mb_ptr2cells)(wlv.p_extra) > 1))))
             {
                 *area_attr_p = vi_attr;
             }
-            else if (*area_attr_p != 0 && (wlv.vcol == wlv.tocol || (noinvcur && (colnr_T)wlv.vcol == wp->w_virtcol)))
+            else if (*area_attr_p != 0 && wlv.vcol == wlv.tocol)
             {
                 *area_attr_p = 0;
             }
@@ -29174,7 +29157,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
             {
                 wlv.char_attr = hl_combine_attr(wlv.line_attr, search_attr);
             }
-            else if (wlv.line_attr != 0 && ((wlv.fromcol == -10 && wlv.tocol == MAXCOL) || wlv.vcol < wlv.fromcol || vcol_prev < fromcol_prev || wlv.vcol >= wlv.tocol))
+            else if (wlv.line_attr != 0 && ((wlv.fromcol == -10 && wlv.tocol == MAXCOL) || wlv.vcol < wlv.fromcol || wlv.vcol >= wlv.tocol))
             {
                 wlv.char_attr = wlv.line_attr;
                 attr_pri = FALSE;
@@ -29550,7 +29533,7 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
                         c = ' ';
                     }
                 }
-                else if (c == NUL && wlv.n_extra == 0 && (wp-> w_onebuf_opt.wo_list  || ((wlv.fromcol >= 0 || fromcol_prev >= 0) && wlv.tocol > wlv.vcol && VIsual_mode != Ctrl_V && ((wlv.col < wp->w_width)) && !(noinvcur && lnum == wp->w_cursor.lnum && (colnr_T)wlv.vcol == wp->w_virtcol))) && lcs_eol_one > 0)
+                else if (c == NUL && wlv.n_extra == 0 && (wp-> w_onebuf_opt.wo_list  || (wlv.fromcol >= 0 && wlv.tocol > wlv.vcol && VIsual_mode != Ctrl_V && ((wlv.col < wp->w_width)))) && lcs_eol_one > 0)
                 {
                     if (wlv.line_attr == 0)
                     {
@@ -29746,11 +29729,6 @@ win_line(win_T       *wp, linenr_T    lnum, int         startrow, int         en
             {
                 mb_utf8 = FALSE;
             }
-        }
-
-        if (wlv.draw_state ==  (   (   (WL_START + 1)    + 1)    + 1) )
-        {
-            vcol_prev = wlv.vcol;
         }
 
         if (wlv.draw_state <  (   (   (WL_START + 1)    + 1)    + 1)  || skip_cells <= 0)
@@ -30317,6 +30295,10 @@ borrow_stl_vsep_hl(void)
         {
             continue;
         }
+        if (left->w_width == 0)
+        {
+            continue;
+        }
         if (!stl_connected(left))
         {
             continue;
@@ -30364,6 +30346,15 @@ borrow_stl_vsep_hl(void)
         int dst_col =  ((left)->w_wincol + (left)->w_width) ;
         int src_col = (neighbour == curwin)
                                 ? neighbour->w_wincol :  ((left)->w_wincol + (left)->w_width)  - 1;
+
+        if (dst_col >= screen_Columns || src_col >= screen_Columns)
+        {
+            continue;
+        }
+        if (end > screen_Rows)
+        {
+            end = screen_Rows;
+        }
 
         for (int r = start; r < end; r++)
         {
@@ -34265,7 +34256,7 @@ replace_do_bs(int limit_col)
             for (i = 0; i < ins_len; ++i)
             {
                 vcol += chartabsize(p + i, vcol);
-                i += (*mb_ptr2len)(p) - 1;
+                i += (*mb_ptr2len)(p + i) - 1;
             }
             vcol -= start_vcol;
 
@@ -37453,7 +37444,8 @@ do_shell(char_u      *cmd, int         flags)
                 {
                     no_wait_return = FALSE;
                 }
-                wait_return(msg_silent == 0);
+                int redraw = msg_silent == 0 || swapping_screen();
+                wait_return(redraw);
                 no_wait_return = save_nwr;
             }
         }
@@ -57643,7 +57635,6 @@ find_file_in_path_option(char_u      *ptr, int         len, int         options,
         if (first == TRUE)
         {
             int         l;
-            int         NameBufflen;
             int         run;
             size_t      rel_fnamelen = 0;
             char_u      *suffix;
@@ -57672,20 +57663,19 @@ find_file_in_path_option(char_u      *ptr, int         len, int         options,
                     run = 2;
                 }
 
-                NameBufflen = l;
                 suffix = suffixes;
                 for (;;)
                 {
                     if (mch_getperm(NameBuff) >= 0 && (find_what == FINDFILE_BOTH || ((find_what == FINDFILE_DIR) == mch_isdir(NameBuff))))
                     {
-                        file_name = vim_strnsave(NameBuff, NameBufflen);
+                        file_name = vim_strnsave(NameBuff, simplify_filename(NameBuff));
                         goto theend;
                     }
                     if (*suffix == NUL)
                     {
                         break;
                     }
-                    NameBufflen = l + copy_option_part(&suffix, NameBuff + l,  PATH_MAX  - l, ",");
+                    copy_option_part(&suffix, NameBuff + l,  PATH_MAX  - l, ",");
                 }
             }
         }
@@ -59038,12 +59028,13 @@ has_match(char_u *needle, char_u *haystack)
     while (*n_ptr)
     {
         int n_char = mb_ptr2char(n_ptr);
+        int n_upper =  vim_toupper(n_char) ;
         int found = FALSE;
 
         while (*h_ptr)
         {
             int h_char = mb_ptr2char(h_ptr);
-            if (h_char == n_char || h_char ==  vim_toupper(n_char) )
+            if (h_char == n_char || h_char == n_upper)
             {
                 found = TRUE;
                 h_ptr += mb_ptr2len(h_ptr);
@@ -64929,17 +64920,12 @@ blend_cterm_colors(int popup_c,  long  popup_rgb, int under_c,  long  under_rgb,
 }
 
     static int
-hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg  __attribute__((unused)) )
+hl_blend_attr_common(int         char_attr, int         popup_attr, int         blend, int         blend_fg)
 {
     attrentry_T *char_aep = NULL;
     attrentry_T *popup_aep;
     attrentry_T new_en;
     attrentry_T tmp_en;
-
-    if (blend >= 100 && blend_fg)
-    {
-        return char_attr;
-    }
 
     if ( (t_colors > 1) )
     {
@@ -65038,87 +65024,20 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg  __attribut
 }
 
     static int
-hl_pum_blend_attr(int char_attr, int popup_attr, int blend  __attribute__((unused)) )
+hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg)
 {
-    attrentry_T *char_aep = NULL;
-    attrentry_T *popup_aep;
-    attrentry_T new_en;
-    attrentry_T tmp_en;
-
-    if ( (t_colors > 1) )
+    if (blend >= 100 && blend_fg)
     {
-        if (char_attr > HL_ALL)
-        {
-            char_aep = syn_cterm_attr2entry(char_attr);
-        }
-        if (char_aep != NULL)
-        {
-            new_en = *char_aep;
-        }
-        else
-        {
-              memset((&(new_en)), (0), (sizeof(new_en)))  ;
-            if (char_attr <= HL_ALL)
-            {
-                new_en.ae_attr = char_attr;
-            }
-        }
-
-        if (popup_attr <= HL_ALL)
-        {
-              memset((&(tmp_en)), (0), (sizeof(tmp_en)))  ;
-            tmp_en.ae_attr = popup_attr;
-            popup_aep = &tmp_en;
-
-            popup_aep->ae_u.cterm.bg_color = cterm_normal_bg_color;
-        }
-        else
-        {
-            popup_aep = syn_cterm_attr2entry(popup_attr);
-        }
-
-        if (popup_aep != NULL)
-        {
-             long  popup_bg_rgb =  (( long )0x1ffffff) ;
-            if ( ((popup_bg_rgb) ==  (( long )0x1ffffff)  || (popup_bg_rgb) ==  (( long )0x1fffffe) )  && popup_aep->ae_u.cterm.bg_color == 0)
-            {
-                popup_bg_rgb = fallback_bg_rgb;
-            }
-
-            {
-                int under_fg = (char_aep != NULL)
-                    ? char_aep->ae_u.cterm.fg_color : 0;
-                 long  under_fg_rgb =  (( long )0x1ffffff) ;
-                new_en.ae_u.cterm.fg_color = blend_cterm_colors(popup_aep->ae_u.cterm.bg_color, popup_bg_rgb, under_fg, under_fg_rgb, fallback_fg_rgb, blend);
-            }
-            {
-                int under_bg = (char_aep != NULL)
-                    ? char_aep->ae_u.cterm.bg_color : 0;
-                 long  under_bg_rgb =  (( long )0x1ffffff) ;
-                new_en.ae_u.cterm.bg_color = blend_cterm_colors(popup_aep->ae_u.cterm.bg_color, popup_bg_rgb, under_bg, under_bg_rgb, fallback_bg_rgb, blend);
-            }
-        }
-        return get_attr_entry(&cterm_attr_table, &new_en);
+        return char_attr;
     }
 
-    if (char_attr > HL_ALL)
-    {
-        char_aep = syn_term_attr2entry(char_attr);
-    }
-    if (char_aep != NULL)
-    {
-        new_en = *char_aep;
-    }
-    else
-    {
-          memset((&(new_en)), (0), (sizeof(new_en)))  ;
-        if (char_attr <= HL_ALL)
-        {
-            new_en.ae_attr = char_attr;
-        }
-    }
+    return hl_blend_attr_common(char_attr, popup_attr, blend, blend_fg);
+}
 
-    return get_attr_entry(&term_attr_table, &new_en);
+    static int
+hl_pum_blend_attr(int char_attr, int popup_attr, int blend)
+{
+    return hl_blend_attr_common(char_attr, popup_attr, blend, TRUE);
 }
 
     static int
@@ -75269,6 +75188,11 @@ makemap(FILE        *fd, buf_T       *buf)
 
             for ( ; mp; mp = mp->m_next)
             {
+                if (mp->m_simplified)
+                {
+                    continue;
+                }
+
                 if (mp->m_noremap ==  (-2) )
                 {
                     continue;
@@ -83727,6 +83651,11 @@ ml_setname(buf_T *buf)
             break;
         }
         fname = findswapname(buf, &dirp, mfp->mf_fname);
+        if (buf->b_ml.ml_mfp != mfp)
+        {
+            vim_free(fname);
+            return;
+        }
         if (dirp == NULL)
         {
             break;
@@ -95684,8 +95613,18 @@ comp_botline(win_T *wp)
     int         n;
     linenr_T    lnum;
     int         done;
+    int         i = 0;
+    int         use_cache;
 
     check_cursor_moved(wp);
+
+    use_cache = redrawing()
+                    && !wp->w_buffer->b_mod_set
+                    && dollar_vcol == -1
+                    && wp->w_skipcol == 0
+                    && wp->w_lines_valid > 0
+                    && wp->w_lines[0].wl_lnum <= wp->w_topline;
+
     if (wp->w_valid & VALID_CROW)
     {
         lnum = wp->w_cursor.lnum;
@@ -95697,10 +95636,41 @@ comp_botline(win_T *wp)
         done = 0;
     }
 
-    for ( ; lnum <= wp->w_buffer->b_ml.ml_line_count; ++lnum)
+    if (use_cache)
     {
+        while (i < wp->w_lines_valid && wp->w_lines[i].wl_lnum < lnum)
         {
-            n = plines_correct_topline(wp, lnum, TRUE);
+            ++i;
+        }
+    }
+
+    for ( ; lnum <= wp->w_buffer->b_ml.ml_line_count; ++i)
+    {
+        int     valid = FALSE;
+
+        if (use_cache && i < wp->w_lines_valid)
+        {
+            if (wp->w_lines[i].wl_lnum < lnum || !wp->w_lines[i].wl_valid)
+            {
+                continue;
+            }
+            if (wp->w_lines[i].wl_lnum == lnum)
+            {
+                valid = TRUE;
+            }
+            else
+            {
+                --i;
+            }
+        }
+
+        if (valid)
+        {
+            n = wp->w_lines[i].wl_size;
+        }
+        else
+        {
+                n = plines_correct_topline(wp, lnum, TRUE);
         }
         if (lnum == wp->w_cursor.lnum)
         {
@@ -95714,6 +95684,7 @@ comp_botline(win_T *wp)
             break;
         }
         done += n;
+        ++lnum;
     }
 
     wp->w_botline = lnum;
@@ -117788,9 +117759,10 @@ did_set_splitkeep(optset_T *args  __attribute__((unused)) )
      for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next)
      {
          for ((wp) = ((tp) == curtab)            ? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
-         {
+    {
         wp->w_prev_height = wp->w_height;
-         }
+        wp->w_prev_winrow = wp->w_winrow;
+    }
      }
     return did_set_opt_strings(p_spk, p_spk_values, FALSE);
 }
@@ -123117,7 +123089,7 @@ peekchr(void)
                 }
                 else
                 {
-                    if (has_mbyte)
+                    if (has_mbyte && c >= 0x80)
                     {
                         curchr = (*mb_ptr2char)(regparse + 1);
                     }
@@ -123130,7 +123102,7 @@ peekchr(void)
             }
 
         default:
-            if (has_mbyte)
+            if (has_mbyte && curchr >= 0x80)
             {
                 curchr = (*mb_ptr2char)(regparse);
             }
@@ -123154,7 +123126,14 @@ skipchr(void)
     {
         if (enc_utf8)
         {
-            prevchr_len += utf_ptr2len(regparse + prevchr_len);
+            if (regparse[prevchr_len] < 0x80)
+            {
+                ++prevchr_len;
+            }
+            else
+            {
+                prevchr_len += utf_ptr2len(regparse + prevchr_len);
+            }
         }
         else if (has_mbyte)
         {
@@ -123802,7 +123781,7 @@ cstrncmp(char_u *s1, char_u *s2, int *n)
         int n1 = *n;
         while (n1 > 0 && *p != NUL)
         {
-            n1 -= mb_ptr2len(s1);
+            n1 -= mb_ptr2len(p);
              p += (*mb_ptr2len)(p) ;
             n2++;
         }
@@ -128406,7 +128385,7 @@ regstack_push(regstate_T state, char_u *scan)
         emsg(_(e_pattern_uses_more_memory_than_maxmempattern));
         return NULL;
     }
-    if (ga_grow(&regstack, sizeof(regitem_T)) == FAIL)
+    if (  __builtin_expect(((((&regstack)->ga_maxlen - (&regstack)->ga_len < ((int)sizeof(regitem_T))) ? ga_grow_inner((&regstack), ((int)sizeof(regitem_T))) : OK) == FAIL), 0)  )
     {
         return NULL;
     }
@@ -129171,7 +129150,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                 }
                 if (i == backpos.ga_len)
                 {
-                    if (ga_grow(&backpos, 1) == FAIL)
+                    if (  __builtin_expect(((((&backpos)->ga_maxlen - (&backpos)->ga_len < (1)) ? ga_grow_inner((&backpos), (1)) : OK) == FAIL), 0)  )
                     {
                         status = RA_FAIL;
                     }
@@ -129478,7 +129457,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                         emsg(_(e_pattern_uses_more_memory_than_maxmempattern));
                         status = RA_FAIL;
                     }
-                    else if (ga_grow(&regstack, sizeof(regstar_T)) == FAIL)
+                    else if (  __builtin_expect(((((&regstack)->ga_maxlen - (&regstack)->ga_len < ((int)sizeof(regstar_T))) ? ga_grow_inner((&regstack), ((int)sizeof(regstar_T))) : OK) == FAIL), 0)  )
                     {
                         status = RA_FAIL;
                     }
@@ -129528,7 +129507,7 @@ regmatch(char_u      *scan, int         *timed_out  __attribute__((unused)) )
                 emsg(_(e_pattern_uses_more_memory_than_maxmempattern));
                 status = RA_FAIL;
             }
-            else if (ga_grow(&regstack, sizeof(regbehind_T)) == FAIL)
+            else if (  __builtin_expect(((((&regstack)->ga_maxlen - (&regstack)->ga_len < ((int)sizeof(regbehind_T))) ? ga_grow_inner((&regstack), ((int)sizeof(regbehind_T))) : OK) == FAIL), 0)  )
             {
                 status = RA_FAIL;
             }
@@ -130553,9 +130532,13 @@ static const int nfa_classcodes[] = {
 
 static int nfa_re_flags;
 static int *post_start;
+static int post_start_len;
 static int *post_end;
 static int *post_ptr;
 static int nfa_reg_parse_depth;
+
+enum { NFA_POSTFIX_KEEP = 10000 };
+enum { NFA_STACK_KEEP = 4000 };
 
 static int wants_nfa;
 
@@ -130584,13 +130567,19 @@ nfa_regcomp_start(char_u      *expr, int         re_flags)
 
     postfix_size = sizeof(int) * nstate_max;
 
-    post_start = alloc(postfix_size);
-    if (post_start == NULL)
+    if (post_start == NULL || post_start_len < nstate_max)
     {
-        return FAIL;
+        vim_free(post_start);
+        post_start = alloc(postfix_size);
+        if (post_start == NULL)
+        {
+            post_start_len = 0;
+            return FAIL;
+        }
+        post_start_len = nstate_max;
     }
     post_ptr = post_start;
-    post_end = post_start + nstate_max;
+    post_end = post_start + post_start_len;
     wants_nfa = FALSE;
     rex.nfa_has_zend = FALSE;
     rex.nfa_has_backref = FALSE;
@@ -130785,6 +130774,7 @@ realloc_post_list(void)
      memmove((char *)(new_start), (char *)(post_start), nstate_max * sizeof(int)) ;
     old_start = post_start;
     post_start = new_start;
+    post_start_len = new_max;
     post_ptr = new_start + (post_ptr - old_start);
     post_end = post_start + new_max;
     vim_free(old_start);
@@ -140122,6 +140112,9 @@ struct Frag
 };
 typedef struct Frag Frag_T;
 
+static Frag_T *nfa_stack;
+static int nfa_stack_len;
+
     static Frag_T
 frag(nfa_state_T *start, Ptrlist *out)
 {
@@ -140433,11 +140426,18 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
 
     if (nfa_calc_size == FALSE)
     {
-        stack =  (Frag_T *)alloc(sizeof(Frag_T) * (nstate + 1)) ;
-        if (stack == NULL)
+        if (nfa_stack == NULL || nfa_stack_len < nstate + 1)
         {
-            return NULL;
+            vim_free(nfa_stack);
+            nfa_stack =  (Frag_T *)alloc(sizeof(Frag_T) * (nstate + 1)) ;
+            if (nfa_stack == NULL)
+            {
+                nfa_stack_len = 0;
+                return NULL;
+            }
+            nfa_stack_len = nstate + 1;
         }
+        stack = nfa_stack;
         stackp = stack;
         stack_end = stack + (nstate + 1);
     }
@@ -140453,10 +140453,10 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             }
             e2 =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             e1 =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             patch(e1.out, e2.start);
              st_push((frag(e1.start, e2.out)), &stackp, stack_end) ;
             break;
@@ -140469,10 +140469,10 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             }
             e2 =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             e1 =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             s = alloc_state(NFA_SPLIT, e1.start, e2.start);
             if (s == NULL)
             {
@@ -140489,7 +140489,7 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             }
             e =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             s = alloc_state(NFA_SPLIT, e.start, NULL);
             if (s == NULL)
             {
@@ -140507,7 +140507,7 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             }
             e =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             s = alloc_state(NFA_SPLIT, NULL, e.start);
             if (s == NULL)
             {
@@ -140525,7 +140525,7 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             }
             e =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             s = alloc_state(NFA_SPLIT, e.start, NULL);
             if (s == NULL)
             {
@@ -140542,7 +140542,7 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             }
             e =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             s = alloc_state(NFA_SPLIT, NULL, e.start);
             if (s == NULL)
             {
@@ -140560,7 +140560,7 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             }
             e =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             s = alloc_state(NFA_END_COLL, NULL, NULL);
             if (s == NULL)
             {
@@ -140578,10 +140578,10 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             }
             e2 =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             e1 =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             e2.start->val = e2.start->c;
             e2.start->c = NFA_RANGE_MAX;
             e1.start->val = e1.start->c;
@@ -140621,7 +140621,7 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             {
                 e =  st_pop(&stackp, stack);
                 if (stackp < stack)
-                    {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                    {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
                 s = alloc_state(NFA_SPLIT, e.start, NULL);
                 if (s == NULL)
                 {
@@ -140689,7 +140689,7 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
             }
             e =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             s1 = alloc_state(end_state, NULL, NULL);
             if (s1 == NULL)
             {
@@ -140785,7 +140785,7 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
 
             e =  st_pop(&stackp, stack);
             if (stackp < stack)
-                {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+                {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
             s = alloc_state(mopen, e.start, NULL);
             if (s == NULL)
             {
@@ -140928,16 +140928,14 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
 
     e =  st_pop(&stackp, stack);
     if (stackp < stack)
-        {                                                           st_error(postfix, end, p);                              vim_free(stack);                                        return NULL;                                        } ;
+        {                                                           st_error(postfix, end, p);                              return NULL;                                        } ;
     if (stackp != stack)
     {
-        vim_free(stack);
          return (emsg((_(e_nfa_regexp_while_converting_from_postfix_to_nfa_too_many_stats_left_on_stack))), rc_did_emsg = TRUE, (void *)NULL) ;
     }
 
     if (istate >= nstate)
     {
-        vim_free(stack);
          return (emsg((_(e_nfa_regexp_not_enough_space_to_store_whole_nfa))), rc_did_emsg = TRUE, (void *)NULL) ;
     }
 
@@ -140950,7 +140948,6 @@ post2nfa(int *postfix, int *end, int nfa_calc_size)
     ret = e.start;
 
 theend:
-    vim_free(stack);
     return ret;
 
 }
@@ -141065,7 +141062,7 @@ typedef struct
 
 static int          nfa_match;
 
-static void copy_sub(regsub_T *to, regsub_T *from);
+static inline void copy_sub(regsub_T *to, regsub_T *from);
 static int pim_equal(nfa_pim_T *one, nfa_pim_T *two);
 
     static void
@@ -141091,7 +141088,7 @@ clear_sub(regsub_T *sub)
     sub->in_use = 0;
 }
 
-    static void
+    static inline void
 copy_sub(regsub_T *to, regsub_T *from)
 {
     to->in_use = from->in_use;
@@ -141102,12 +141099,26 @@ copy_sub(regsub_T *to, regsub_T *from)
 
     if ( (rex.reg_match == NULL) )
     {
-         memmove((char *)(&to->list.multi[0]), (char *)(&from->list.multi[0]), sizeof(struct multipos) * from->in_use) ;
+        if (from->in_use == 1)
+        {
+            to->list.multi[0] = from->list.multi[0];
+        }
+        else
+        {
+             memmove((char *)(&to->list.multi[0]), (char *)(&from->list.multi[0]), sizeof(struct multipos) * from->in_use) ;
+        }
         to->orig_start_col = from->orig_start_col;
     }
     else
     {
-         memmove((char *)(&to->list.line[0]), (char *)(&from->list.line[0]), sizeof(struct linepos) * from->in_use) ;
+        if (from->in_use == 1)
+        {
+            to->list.line[0] = from->list.line[0];
+        }
+        else
+        {
+             memmove((char *)(&to->list.line[0]), (char *)(&from->list.line[0]), sizeof(struct linepos) * from->in_use) ;
+        }
     }
 }
 
@@ -142421,6 +142432,66 @@ find_match_text(colnr_T *startcol, int regstart, char_u *match_text)
 }
 
     static int
+match_composing(nfa_state_T *sta, int curc, int clen)
+{
+    int         mc = curc;
+    int         len = 0;
+    int         cchars[MAX_MCO];
+    int         ccount = 0;
+    int         j;
+
+    if (utf_iscomposing(sta->c))
+    {
+        len += mb_char2len(mc);
+    }
+
+    if (rex.reg_icombine && len == 0)
+    {
+        return sta->c == curc ? OK : FAIL;
+    }
+
+    if (len == 0 && mc != sta->c)
+    {
+        return FAIL;
+    }
+
+    if (len == 0)
+    {
+        len += mb_char2len(mc);
+        sta = sta->out;
+    }
+
+    while (len < clen)
+    {
+        mc = mb_ptr2char(rex.input + len);
+        cchars[ccount++] = mc;
+        len += mb_char2len(mc);
+        if (ccount == MAX_MCO)
+        {
+            break;
+        }
+    }
+
+    while (sta->c != NFA_END_COMPOSING)
+    {
+        for (j = 0; j < ccount; ++j)
+        {
+            if (cchars[j] == sta->c)
+            {
+                break;
+            }
+        }
+        if (j == ccount)
+        {
+            return FAIL;
+        }
+        sta = sta->out;
+    }
+
+    return OK;
+}
+
+    static int
 nfa_close_delimiter_len(int oc, int cc, int with_nl)
 {
     int         level = 1;
@@ -142884,77 +142955,9 @@ nfa_regmatch(nfa_regprog_T       *prog, nfa_state_T         *start, regsubs_T   
 
             case NFA_COMPOSING:
             {
-                int         mc = curc;
-                int         len = 0;
                 nfa_state_T *end;
-                nfa_state_T *sta;
-                int         cchars[MAX_MCO];
-                int         ccount = 0;
-                int         j;
 
-                sta = t->state->out;
-                len = 0;
-                if (utf_iscomposing(sta->c))
-                {
-                    len += mb_char2len(mc);
-                }
-                if (rex.reg_icombine && len == 0)
-                {
-                    if (sta->c != curc)
-                    {
-                        result = FAIL;
-                    }
-                    else
-                    {
-                        result = OK;
-                    }
-                    while (sta->c != NFA_END_COMPOSING)
-                    {
-                        sta = sta->out;
-                    }
-                }
-
-                else if (len > 0 || mc == sta->c)
-                {
-                    if (len == 0)
-                    {
-                        len += mb_char2len(mc);
-                        sta = sta->out;
-                    }
-
-                    while (len < clen)
-                    {
-                        mc = mb_ptr2char(rex.input + len);
-                        cchars[ccount++] = mc;
-                        len += mb_char2len(mc);
-                        if (ccount == MAX_MCO)
-                        {
-                            break;
-                        }
-                    }
-
-                    result = OK;
-                    while (sta->c != NFA_END_COMPOSING)
-                    {
-                        for (j = 0; j < ccount; ++j)
-                        {
-                            if (cchars[j] == sta->c)
-                            {
-                                break;
-                            }
-                        }
-                        if (j == ccount)
-                        {
-                            result = FAIL;
-                            break;
-                        }
-                        sta = sta->out;
-                    }
-                }
-                else
-                {
-                    result = FAIL;
-                }
+                result = match_composing(t->state->out, curc, clen);
 
                 end = t->state->out1;
                  if (result)
@@ -142995,76 +142998,9 @@ nfa_regmatch(nfa_regprog_T       *prog, nfa_state_T         *start, regsubs_T   
                 {
                     if (state->c == NFA_COMPOSING)
                     {
-                        int         mc = curc;
-                        int         len = 0;
                         nfa_state_T *end;
-                        nfa_state_T *sta;
-                        int         cchars[MAX_MCO];
-                        int         ccount = 0;
-                        int         j;
 
-                        sta = t->state->out->out;
-                        len = 0;
-                        if (utf_iscomposing(sta->c))
-                        {
-                            len += mb_char2len(mc);
-                        }
-                        if (rex.reg_icombine && len == 0)
-                        {
-                            if (sta->c != curc)
-                            {
-                                result = FAIL;
-                            }
-                            else
-                            {
-                                result = OK;
-                            }
-                            while (sta->c != NFA_END_COMPOSING)
-                            {
-                                sta = sta->out;
-                            }
-                        }
-                        else if (len > 0 || mc == sta->c)
-                        {
-                            if (len == 0)
-                            {
-                                len += mb_char2len(mc);
-                                sta = sta->out;
-                            }
-
-                            while (len < clen)
-                            {
-                                mc = mb_ptr2char(rex.input + len);
-                                cchars[ccount++] = mc;
-                                len += mb_char2len(mc);
-                                if (ccount == MAX_MCO)
-                                {
-                                    break;
-                                }
-                            }
-
-                            result = OK;
-                            while (sta->c != NFA_END_COMPOSING)
-                            {
-                                for (j = 0; j < ccount; ++j)
-                                {
-                                    if (cchars[j] == sta->c)
-                                    {
-                                        break;
-                                    }
-                                }
-                                if (j == ccount)
-                                {
-                                    result = FAIL;
-                                    break;
-                                }
-                                sta = sta->out;
-                            }
-                        }
-                        else
-                        {
-                            result = FAIL;
-                        }
+                        result = match_composing(t->state->out->out, curc, clen);
 
                         if (t->state->out->out1 != NULL && t->state->out->out1->c == NFA_END_COMPOSING)
                         {
@@ -144081,9 +144017,19 @@ nfa_regcomp(char_u *expr, int re_flags)
     prog->pattern = vim_strsave(expr);
 
 out:
-     vim_free(post_start);
-     (post_start) = NULL;
+    if (post_start_len > NFA_POSTFIX_KEEP)
+    {
+         vim_free(post_start);
+         (post_start) = NULL;
+        post_start_len = 0;
+    }
     post_ptr = post_end = NULL;
+    if (nfa_stack_len > NFA_STACK_KEEP)
+    {
+         vim_free(nfa_stack);
+         (nfa_stack) = NULL;
+        nfa_stack_len = 0;
+    }
     state_ptr = NULL;
     return (regprog_T *)prog;
 
@@ -149788,7 +149734,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply, char *er
             {
                 fill_chars.stl = ' ';
                 fill_chars.stlnc = ' ';
-                fill_chars.vert = ' ';
+                fill_chars.vert = '|';
                 fill_chars.fold = '-';
                 fill_chars.foldopen = '-';
                 fill_chars.foldclosed = '+';
@@ -150057,7 +150003,7 @@ check_chars_options(void)
 
 // ==================== scriptfile.c ====================
 
-static int do_source_ext(char_u *fname, int check_other, int is_vimrc, int *ret_sid, exarg_T *eap, int clearvars);
+static int do_source_ext(char_u *fname, int check_other, int is_vimrc, int *ret_sid, exarg_T *eap, int clearvars, int dryrun);
 
     static void
 estack_init(void)
@@ -150576,6 +150522,7 @@ ExpandPackAddDir(char_u      *pat, int         *num_file, char_u      ***file)
 cmd_source(char_u *fname, exarg_T *eap)
 {
     int clearvars = FALSE;
+    int dryrun = FALSE;
 
     if (*fname != NUL &&  strncmp((char *)(fname), (char *)("++clear"), (7))  == 0)
     {
@@ -150586,6 +150533,11 @@ cmd_source(char_u *fname, exarg_T *eap)
             semsg(_(e_invalid_argument_str), eap->arg);
             return;
         }
+    }
+    else if ( strncmp((char *)(fname), (char *)("++dryrun"), (8))  == 0 && (fname[8] == NUL || fname[8] == ' '))
+    {
+        dryrun = TRUE;
+        fname = skipwhite(fname + 8);
     }
 
     if (*fname != NUL && eap != NULL && eap->addr_count > 0)
@@ -150602,7 +150554,7 @@ cmd_source(char_u *fname, exarg_T *eap)
         }
         else
         {
-            do_source_ext(NULL, FALSE, DOSO_NONE, NULL, eap, clearvars);
+            do_source_ext(NULL, FALSE, DOSO_NONE, NULL, eap, clearvars, dryrun);
         }
     }
     else if (eap != NULL && eap->forceit)
@@ -150610,7 +150562,7 @@ cmd_source(char_u *fname, exarg_T *eap)
         openscript(fname, global_busy || listcmd_busy || eap->nextcmd != NULL);
     }
 
-    else if (do_source(fname, FALSE, DOSO_NONE, NULL) == FAIL)
+    else if (do_source_ext(fname, FALSE, DOSO_NONE, NULL, NULL, FALSE, dryrun) == FAIL)
     {
         semsg(_(e_cant_open_file_str), fname);
     }
@@ -150697,7 +150649,7 @@ errret:
 }
 
     static int
-do_source_ext(char_u      *fname, int         check_other, int         is_vimrc, int         *ret_sid  __attribute__((unused)) , exarg_T     *eap, int         clearvars  __attribute__((unused)) )
+do_source_ext(char_u      *fname, int         check_other, int         is_vimrc, int         *ret_sid  __attribute__((unused)) , exarg_T     *eap, int         clearvars  __attribute__((unused)) , int         dryrun  __attribute__((unused)) )
 {
     source_cookie_T         cookie;
     char_u                  *p;
@@ -150705,6 +150657,7 @@ do_source_ext(char_u      *fname, int         check_other, int         is_vimrc,
     char_u                  *fname_exp = NULL;
     char_u                  *firstline = NULL;
     int                     retval = FAIL;
+    int                     source_autocmds = TRUE;
     sctx_T                  save_current_sctx;
     int                     save_sticky_cmdmod_flags = sticky_cmdmod_flags;
     int                     trigger_source_post = FALSE;
@@ -150737,7 +150690,7 @@ do_source_ext(char_u      *fname, int         check_other, int         is_vimrc,
         }
     }
 
-    if (has_autocmd(EVENT_SOURCECMD, fname_exp, NULL) && apply_autocmds(EVENT_SOURCECMD, fname_exp, fname_exp, FALSE, curbuf))
+    if (source_autocmds && has_autocmd(EVENT_SOURCECMD, fname_exp, NULL) && apply_autocmds(EVENT_SOURCECMD, fname_exp, fname_exp, FALSE, curbuf))
     {
         retval = OK;
         if (retval == OK)
@@ -150747,7 +150700,10 @@ do_source_ext(char_u      *fname, int         check_other, int         is_vimrc,
         goto theend;
     }
 
-    apply_autocmds(EVENT_SOURCEPRE, fname_exp, fname_exp, FALSE, curbuf);
+    if (source_autocmds)
+    {
+        apply_autocmds(EVENT_SOURCEPRE, fname_exp, fname_exp, FALSE, curbuf);
+    }
 
     if (!cookie.source_from_buf)
     {
@@ -150861,7 +150817,7 @@ do_source_ext(char_u      *fname, int         check_other, int         is_vimrc,
         verbose_leave();
     }
 
-    if (!got_int)
+    if (!got_int && source_autocmds)
     {
         trigger_source_post = TRUE;
     }
@@ -150896,7 +150852,7 @@ theend:
     static int
 do_source(char_u      *fname, int         check_other, int         is_vimrc, int         *ret_sid)
 {
-    return do_source_ext(fname, check_other, is_vimrc, ret_sid, NULL, FALSE);
+    return do_source_ext(fname, check_other, is_vimrc, ret_sid, NULL, FALSE, FALSE);
 }
 
     static char_u *
@@ -154376,17 +154332,11 @@ vim_strchr(char_u *string, int c)
     static char_u  *
 vim_strbyte(char_u *string, int c)
 {
-    char_u      *p = string;
-
-    while (*p != NUL)
+    if (c <= 0 || c > 255)
     {
-        if (*p == c)
-        {
-            return p;
-        }
-        ++p;
+        return NULL;
     }
-    return NULL;
+    return (char_u *)strchr((char *)string, c);
 }
 
     static char_u  *
@@ -158720,11 +158670,11 @@ expand_tags(int         tagnames, char_u      *pat, int         *num_file, char_
     }
     if (pat[0] == '/')
     {
-        ret = find_tags(pat + 1, num_file, file, TAG_REGEXP | extra_flag | TAG_VERBOSE | TAG_NO_TAGFUNC, TAG_MANY, curbuf->b_ffname);
+        ret = find_tags(pat + 1, num_file, file, TAG_REGEXP | extra_flag | TAG_VERBOSE, TAG_MANY, curbuf->b_ffname);
     }
     else
     {
-        ret = find_tags(pat, num_file, file, TAG_REGEXP | extra_flag | TAG_VERBOSE | TAG_NO_TAGFUNC | TAG_NOIC, TAG_MANY, curbuf->b_ffname);
+        ret = find_tags(pat, num_file, file, TAG_REGEXP | extra_flag | TAG_VERBOSE | TAG_NOIC, TAG_MANY, curbuf->b_ffname);
     }
     if (ret == OK && !tagnames)
     {
@@ -159297,9 +159247,17 @@ enum { TPR_UNDERLINE_RGB = 2 };
 enum { TPR_MOUSE = 3 };
 enum { TPR_KITTY = 4 };
 enum { TPR_DECRQM = 5 };
-enum { TPR_COUNT = 6 };
+enum { TPR_RGB = 6 };
+enum { TPR_COUNT = 7 };
 
 static termprop_T term_props[TPR_COUNT];
+
+    static void
+set_rgb_term_prop(void)
+{
+    term_props[TPR_RGB].tpr_status = t_colors == 0x1000000
+                                                       ? TPR_YES : TPR_UNKNOWN;
+}
 
     static void
 init_term_props(int all)
@@ -159318,6 +159276,8 @@ init_term_props(int all)
     term_props[TPR_KITTY].tpr_set_by_termresponse = FALSE;
     term_props[TPR_DECRQM].tpr_name = "decrqm";
     term_props[TPR_DECRQM].tpr_set_by_termresponse = TRUE;
+    term_props[TPR_RGB].tpr_name = "rgb";
+    term_props[TPR_RGB].tpr_set_by_termresponse = FALSE;
 
     for (i = 0; i < TPR_COUNT; ++i)
     {
@@ -159326,6 +159286,8 @@ init_term_props(int all)
             term_props[i].tpr_status = TPR_UNKNOWN;
         }
     }
+
+    set_rgb_term_prop();
 }
 
     static tcap_entry_T *
@@ -160328,6 +160290,7 @@ ttest(int pairs)
             }
         }
     }
+    set_rgb_term_prop();
 }
 
     static int
@@ -170212,6 +170175,91 @@ static char *(features[]) =
 
 static int included_patches[] =
 {
+    1122,
+    1121,
+    1120,
+    1119,
+    1118,
+    1117,
+    1116,
+    1115,
+    1114,
+    1113,
+    1112,
+    1111,
+    1110,
+    1109,
+    1108,
+    1107,
+    1106,
+    1105,
+    1104,
+    1103,
+    1102,
+    1101,
+    1100,
+    1099,
+    1098,
+    1097,
+    1096,
+    1095,
+    1094,
+    1093,
+    1092,
+    1091,
+    1090,
+    1089,
+    1088,
+    1087,
+    1086,
+    1085,
+    1084,
+    1083,
+    1082,
+    1081,
+    1080,
+    1079,
+    1078,
+    1077,
+    1076,
+    1075,
+    1074,
+    1073,
+    1072,
+    1071,
+    1070,
+    1069,
+    1068,
+    1067,
+    1066,
+    1065,
+    1064,
+    1063,
+    1062,
+    1061,
+    1060,
+    1059,
+    1058,
+    1057,
+    1056,
+    1055,
+    1054,
+    1053,
+    1052,
+    1051,
+    1050,
+    1049,
+    1048,
+    1047,
+    1046,
+    1045,
+    1044,
+    1043,
+    1042,
+    1041,
+    1040,
+    1039,
+    1038,
     1037,
     1036,
     1035,
@@ -171672,13 +171720,6 @@ ex_intro(exarg_T *eap  __attribute__((unused)) )
 }
 
 // ==================== vim9script.c ====================
-
-    static int
-in_vim9script(void)
-{
-    return (current_sctx.sc_version == SCRIPT_VERSION_VIM9 || (cmdmod.cmod_flags & CMOD_VIM9CMD))
-                && !(cmdmod.cmod_flags & CMOD_LEGACY);
-}
 
     static void
 ex_vim9script(exarg_T *eap  __attribute__((unused)) )
@@ -173198,16 +173239,7 @@ win_split_ins(int         size, int         flags, win_T       *new_wp, int     
 
         if (!do_equal && p_ea && size == 0 && *p_ead != 'v' && oldwin->w_frame->fr_parent != NULL)
         {
-            frp = oldwin->w_frame->fr_parent->fr_child;
-            while (frp != NULL)
-            {
-                if (frp->fr_win != oldwin && frp->fr_win != NULL && (frp->fr_win->w_width > new_size || frp->fr_win->w_width > oldwin->w_width - new_size - 1))
-                {
-                    do_equal = TRUE;
-                    break;
-                }
-                frp = frp->fr_next;
-            }
+            do_equal = TRUE;
         }
     }
     else
@@ -173295,16 +173327,7 @@ win_split_ins(int         size, int         flags, win_T       *new_wp, int     
 
         if (!do_equal && p_ea && size == 0 && *p_ead != 'h' && oldwin->w_frame->fr_parent != NULL)
         {
-            frp = oldwin->w_frame->fr_parent->fr_child;
-            while (frp != NULL)
-            {
-                if (frp->fr_win != oldwin && frp->fr_win != NULL && (frp->fr_win->w_height > new_size || frp->fr_win->w_height > oldwin_height - new_size - statusline_height(oldwin)))
-                {
-                    do_equal = TRUE;
-                    break;
-                }
-                frp = frp->fr_next;
-            }
+            do_equal = TRUE;
         }
     }
 

@@ -353,9 +353,10 @@ is an ordinary pass or one that needs thought:
   deliberate change: establish what moved against the *previous* binary before
   re-recording, and say in the commit which upstream patch caused it.
 
-At the time of writing the input is **9.2.1037**, the same patch level as the
-previous pass's input, so the delta is nil and this is the most ordinary case
-there is. Measuring it is two commands and 2 s:
+At the time of writing the input is **9.2.1122**, 85 patches past the previous
+pass's 9.2.1037. Every behaviour baseline held; one enumerator count moved
+(`TPR_COUNT`, from an added `TPR_RGB`); and the only phase that needed changing was
+Phase 6, for the header-defined function above. Measuring it is two commands and 2 s:
 `grep -oP '^\s+\K[0-9]+(?=,)' upstream/src/version.c | head -1`, and `cmp
 slim-vim.c .reference/slim-vim.c`.
 
@@ -1217,7 +1218,12 @@ There were four — `compl_match_array` and `compl_match_arraysize` in
 `cmdexpand.c` and `insexpand.c`, `sort_compare` in `ex_cmds.c` and `strings.c`,
 and the macro `GAP` in `option.c` and `term.c`. Ignore gcc's `.0`/`.1` suffixed
 names, which are function-local statics. **`nm` cannot see macros**, so the
-fourth is found only by the compiler's redefinition warning.
+fourth is found only by the compiler's redefinition warning. **And a function
+defined in a header is not a collision**: a `static inline` in `vim.h` is emitted
+as a local copy into every object that calls it at `-O0`, so `nm` finds it in
+each, but the merge pastes the header once. 9.2.1122 moved `in_vim9script()` into
+`vim.h` and `nm` found it in eight objects; a name that opens a line in a header
+and in no `.c` file is skipped, with a line saying so.
 
 **Which side to rename, and to what, is not deducible — keep the list.**
 `nm` says a name is defined twice; nothing says whether `cmdexpand.c` or

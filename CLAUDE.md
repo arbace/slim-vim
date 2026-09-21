@@ -10,10 +10,10 @@ and deleted.
 
 ## What this is
 
-Vim 9.2 (upstream patch level 1037) as **one translation unit**. That number
+Vim 9.2 (upstream patch level 1122) as **one translation unit**. That number
 moves: the input is cloned fresh, upstream keeps patching, and **Phase 1 is
 where this line gets updated** — from `version.c`, not from memory. `slim-vim.c` is
-180,847 lines and is the whole editor; one `gcc` invocation builds it in about
+180,870 lines and is the whole editor; one `gcc` invocation builds it in about
 8 seconds, into a standalone static binary.
 
 **`slim-vim.c` is produced, not edited into shape.** `SLIM-GOAL.md` is the process that
@@ -94,8 +94,10 @@ NOT**, and a clone of the remote is what drew that line. On 2026-09-21 a clone
 holding no `.reference/` and no `.build-*` ran the pass cold, and `slim-vim.c`
 came back byte-identical and — the part a clean `git status` cannot say by itself
 — **produced**: written 05:02:16 against a p11 boundary of 05:02:15. So
-**F(upstream@`1c63ea1db1ee`) = the committed `slim-vim.c`** holds on a machine
-that held neither the upstream history nor any prior pass. **Before counting an
+**F(upstream@`1c63ea1db1ee`) = the `slim-vim.c` committed then** held on a machine
+that held neither the upstream history nor any prior pass. The input has since moved
+to `076d0a22a20e` (patch 9.2.1122), and that pass was run and verified in this tree,
+not in a clone. **Before counting an
 agreement, ask by what route the two sides came to exist** — tracked, copied, or
 separately produced, and only the third is corroboration. What a clone does *not*
 establish is that the harnesses would catch anything: Phase 1's harnesses **do not
@@ -273,11 +275,11 @@ The four combinations, measured:
 
 | | unstripped | stripped |
 | --- | --- | --- |
-| dynamic | 2,198,472 | 1,986,312 |
-| static | 3,015,552 | **2,208,088** |
+| dynamic | 2,199,144 | 1,986,664 |
+| static | 3,012,128 | **2,204,344** |
 
-Static costs 817 KB and `-s` takes 807 KB of it back, so standalone is within
-10 KB of what the dynamic unstripped build cost.
+Static costs 813 KB and `-s` takes 808 KB of it back, so standalone is within
+6 KB of what the dynamic unstripped build cost.
 
 **`-s` breaks `nm`**, which is the check for what has external linkage. Build
 without it when you need symbols: `make LDFLAGS=-static`, or `make CFLAGS=-g
@@ -469,7 +471,9 @@ check took: **say in the report** that half the check did not happen, still run
 the half that needs no baseline, and exit with that half's status rather than 0.
 
 **`tools/verify.sh .reference/baselines` runs all of them concurrently and gives
-one verdict, in about 18 seconds** — eight of them the build. Use it after any
+one verdict, in about 18 seconds** — eight of them the build, which is `gcc`
+and deliberately not `make`: `make` probes upstream and, when it has moved, starts
+a whole pass that ends in an agent editing the documents — which one verify did. Use it after any
 change; add `--enums` for the DWARF check. It is proven to fail on a broken
 build, on a behaviour change and on a blank line landing in the generated
 command table.
@@ -825,7 +829,7 @@ initialiser or a static initialiser, and these do.
 `main()` is the only symbol with external linkage. `nm` on a build made without
 `-s` is the check — the shipped binary is stripped and `nm` says "no symbols" —
 and the only other globals are the C runtime's. Everything else is `static`:
-3,578 file-scope lines begin with the keyword, and 1,951 of those are prototypes
+3,581 file-scope lines begin with the keyword, and 1,951 of those are prototypes
 — what the dead-code sweep and Phase 10 left of the former `proto/*.pro` block
 near the top of the file.
 
@@ -871,8 +875,8 @@ one that is **not**.
 **No parenthesised group spans a line break.** Every condition is on one line,
 and so is every argument list — of a call, a declaration or a definition. A
 body's extent is brace matching and a condition's extent is one line, so a
-line-oriented tool never has to parse C. The trade is width: 2,468 lines are
-over 120 columns and 461 over 200, the longest 1,084. Nothing here wraps to a
+line-oriented tool never has to parse C. The trade is width: 2,469 lines are
+over 120 columns and 447 over 200, the longest 1,084. Nothing here wraps to a
 terminal.
 
 **One statement per line and one declarator per declaration**, so an
@@ -901,11 +905,11 @@ command string in `trigger_undo_ftplugin()`, and one inside the default
 
 Upstream is `noet`, so anything imported from there needs expanding first.
 
-**The paragraphing was never lost.** 17,194 blank lines, 9.5% of the file and
+**The paragraphing was never lost.** 17,199 blank lines, 9.5% of the file and
 **5.31 per function** — the density of a build that kept its comments. Every
 function is separated from the next, every declaration block from its body, and
 none follows an opening brace. **There is one run of two blank lines**, at line
-41,086, between `static struct cmdname cmdnames[];` and the `end ex_cmds.h`
+41,078, between `static struct cmdname cmdnames[];` and the `end ex_cmds.h`
 banner. Phase 10 deleted the declaration that stood between them and `canon.sh`
 runs in phases 7 and 9 only, so nothing re-canonicalises after it — which is
 the lesson above arriving one phase later than it is told. The whim pipeline's
@@ -1218,7 +1222,7 @@ tools/enumvals.sh slim-vim.c before.txt      # dump, make the change, dump again
 ```
 
 Dump before and after; every name present in both must have the same value.
-There are 2,858. That is a stronger check than the build, which is perfectly
+There are 2,861. That is a stronger check than the build, which is perfectly
 happy to renumber a table index.
 
 **Every sweep does this now.** `tools/deadenums.py` runs in slim's Phase 8
@@ -1462,9 +1466,14 @@ running. It has been run: the pass of 2026-09-10 reproduced `slim-vim.c` **byte 
 byte** against the previous one, and the binary with it,
 2,208,088 bytes. The `keymodel` repair then moved it by exactly the three lines it adds
 to `set_init_1()`, 180,844 → 180,847, with the binary the **same size and not the same
-bytes** — two stores at `-O0` are real instructions and alignment padding absorbs them. **That is the one place in this tree where `.reference/baselines/` is
-allowed to move**, and the whole difference was checked line by line before it was
-accepted: fifteen lines of `ref-pty.txt` and nothing else.
+bytes** — two stores at `-O0` are real instructions and alignment padding absorbs them.
+**`.reference/baselines/` has moved twice, and each time by one named cause.** The
+`keymodel` repair moved fifteen lines of `ref-pty.txt` and nothing else, checked line by
+line. Upstream 9.2.1122 moved one line of `enumerators.txt`: it added `TPR_RGB` to the
+terminal-property enum, so `TPR_COUNT` is 7 where it was 6 — the other 2,857 shared
+enumerators kept their values, and every behavioural baseline matched unchanged. That
+line was rewritten by the documents agent a runaway `make` started, not by a reviewed
+re-record, and kept afterwards because the value is upstream's.
 
 ### Import one thing from upstream by hand
 

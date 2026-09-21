@@ -30,6 +30,25 @@ for o in "$work"/objects/*.o; do
     nm --defined-only "$o" 2>/dev/null | awk '{print $NF}'
 done | grep -v '\.[0-9]*$' | sort | uniq -d > "$tmp/collisions"
 
+# A function DEFINED IN A HEADER is one definition after the merge, not a
+# collision.  A `static inline` in vim.h is emitted as a local copy into every
+# object that calls it at -O0, so nm sees it in each of them -- in_vim9script
+# (vim 9.2.1122, moved from vim9script.c into vim.h) was the first, in eight
+# objects.  The merge pastes the header once.  The test is textual and
+# exact for this tree's style, where a definition starts its line with the
+# name: the name opens a line in some header and in no .c file.
+: > "$tmp/real"
+while read -r name; do
+    [ -n "$name" ] || continue
+    if grep -q "^$name(" "$work"/*.h "$work"/proto/*.pro 2>/dev/null &&
+       ! grep -q "^$name(" "$work"/*.c 2>/dev/null; then
+        echo "  collisions   $name is defined in a header, which the merge pastes once -- not a collision"
+        continue
+    fi
+    echo "$name" >> "$tmp/real"
+done < "$tmp/collisions"
+mv "$tmp/real" "$tmp/collisions"
+
 missing=
 while read -r name; do
     [ -n "$name" ] || continue

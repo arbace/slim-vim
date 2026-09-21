@@ -23,7 +23,12 @@ fail=0
 
 # A build failure is the commonest failure and must be reported, not fall
 # through `set -e` and leave the script dying with no output at all.
-if ! make clean >/dev/null 2>&1 || ! make >"$tmp/build.log" 2>&1; then
+# The build is gcc on slim-vim.c and nothing else -- NOT `make`.  `make` asks
+# upstream for its head and, when it has moved, starts a whole pass that ends in
+# an agent editing the documents: one verify of a freshly produced slim-vim.c did
+# exactly that, and the agent re-recorded a baseline to make itself pass.  A
+# check must not be able to start the process it checks.
+if ! gcc -O0 -static -s -o "$tmp/slim-vim" slim-vim.c >"$tmp/build.log" 2>&1; then
     echo "  build        FAILED"
     [ -f "$tmp/build.log" ] && grep -E 'error|Error' "$tmp/build.log" | head -10 | sed 's/^/      /'
     rm -rf "$tmp"
@@ -42,16 +47,16 @@ run() {
 }
 
 check_behaviour() {
-    python3 tools/behaviour.py ./slim-vim "$tmp/t" >/dev/null && diff -rq "$base/behaviour" "$tmp/t"
+    python3 tools/behaviour.py "$tmp/slim-vim" "$tmp/t" >/dev/null && diff -rq "$base/behaviour" "$tmp/t"
 }
 check_exsweep() {
-    python3 tools/exsweep.py ./slim-vim slim-vim.c "$tmp/s" >/dev/null && diff "$base/ref-exsweep.txt" "$tmp/s"
+    python3 tools/exsweep.py "$tmp/slim-vim" slim-vim.c "$tmp/s" >/dev/null && diff "$base/ref-exsweep.txt" "$tmp/s"
 }
 check_pty() {
-    python3 tools/ptycheck.py ./slim-vim "$tmp/y" >/dev/null && diff "$base/ref-pty.txt" "$tmp/y"
+    python3 tools/ptycheck.py "$tmp/slim-vim" "$tmp/y" >/dev/null && diff "$base/ref-pty.txt" "$tmp/y"
 }
 check_term() {
-    python3 tools/termcheck.py ./slim-vim "$tmp/m" >/dev/null && diff "$base/ref-term.txt" "$tmp/m"
+    python3 tools/termcheck.py "$tmp/slim-vim" "$tmp/m" >/dev/null && diff "$base/ref-term.txt" "$tmp/m"
 }
 check_enums() {
     # Enumerators legitimately disappear when a dead type goes, so the set is
