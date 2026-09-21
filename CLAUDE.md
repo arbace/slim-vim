@@ -742,19 +742,6 @@ especially on a tool nobody runs until they need it.
 And one thing no tier can see: **blank lines, indentation and paragraphing.** A
 pass that touches those needs a count of them as its own check.
 
-**And the last row is the one the memline arc is about, where a control that moves
-nothing is the finding.** Phase 44 had to choose `DB_LINE_MAX` and the corpus cannot see
-the value at all — 32, 64, 128 and even 1 record all 118 cases byte for byte — so *the
-recording agrees* would have been **vacuous**, and the parameter was chosen by what the
-corpus **reaches** instead: 64, because 255, the value that exactly fills the page and
-wastes nothing, reaches no pointer-block split and would have blinded the instrument on
-the very phase that rewrites the tree. Phase 45's `fanout` control is the same shape
-carried to its conclusion: setting `PB_COUNT_MAX = 511` moves **0 of 118 records** and
-takes three tree markers from 1 to 0, so **narrowing `PTR_EN` would take the root split
-out of the corpus without moving one record** — which is why the file now carries a
-`static_assert` that refuses to compile instead of a paragraph asking a reader to
-remember.
-
 ## The shape of slim-vim.c
 
 ### One translation unit, one namespace
@@ -1187,13 +1174,6 @@ int whose writers have all gone, left constant with one reader, draws nothing in
 direction, and neither does a variable that is **write-only through several functions**,
 because taking its address counts as a use. It is `deadfields.py`'s shape in a local:
 no warning covers it, so it takes reading. The zero pipeline met it nine times.
-
-**The distinction that goes with it: unreachable *evidence* is not unreachable code.**
-Phase 42 surveyed `BH_LOCKED`, which looks exactly like `BH_DIRTY`'s twin, and left it —
-its one reader is `mf_put()`'s `e_block_was_not_locked` internal-error test, so a binary
-whose `mf_put()` **sets** the bit instead of clearing it draws all 102 screen cases
-identically. The recording says nothing because the reader is a test that then never
-fires, and that is not a licence to delete it.
 
 **Key on the warning option, never the sentence.** `'X' defined but not used` is
 emitted for both functions and variables, and only `[-Wunused-function]` versus
