@@ -999,3 +999,39 @@ falls out is narrower than "get two implementations" and more useful: *an
 unexplained disagreement is data; resolving it by choosing the likelier side
 destroys it.*
 
+## A verdict true of both outcomes
+
+**The four entries above are about where a REASON is lost. There is a fifth
+class that loses no reason at all**, and it was found three times in one hour by
+two sessions who had each just written the other's instance down.
+
+It computes a **true fact**, and the fact is compatible with both the success
+and the failure it exists to distinguish:
+
+| the check | the true fact | the two states it cannot separate |
+| --- | --- | --- |
+| `git bundle verify` on a truncated bundle | the header and prerequisites are sound | a recoverable bundle, and one whose packfile is gone |
+| a watcher reporting `last rNONE of 45` | there are no boundary files | a pass that failed at once, and a scratch directory that was deleted |
+| `settle.sh` reporting a product `clean` | the file does not differ from git | produced and matched, and **never produced at all** |
+
+The third is this repository's own *a "clean rebuild is byte-identical" check
+passes if the rebuild never happened*, arriving in the **report** rather than in
+the build — and the second was written into a watcher by the session that had
+just warned the other about the third.
+
+**The repair is the same in all three and it is not another check.** Make the
+instrument report the **state**, not the comparison. A watcher that says
+*deleted* / *exited* / *still running* cannot be read as a boundary count. A
+product check that says *written 05:19:33 against a boundary of 05:19:33* cannot
+be read as produced when nothing produced it — `<pipe>-pass` extracts the product
+from the last boundary's tar, so a product **older** than that boundary was never
+copied out. A bundle check that performs the recovery cannot be satisfied by a
+header. **None of the three adds an assertion; each adds a distinction the old
+output could not carry.**
+
+Applied to this tree as a check rather than as a story: `slim-vim.c` is at least
+as new as p11, `whim-vim.c` as q82 and `zero-vim.c` as r45, so all three were
+produced and not merely unchanged. `zero.mk`'s own product guard is the
+content half of the same question and the two are worth having together —
+one asks *is it the right bytes*, the other *did anything write it*.
+
