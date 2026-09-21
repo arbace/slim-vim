@@ -3,9 +3,9 @@
 #
 # Usage: tools/memo.sh <unit> <work-dir> <build-dir> [pipeline]
 #
-# A unit is a phase N, or a stage A-B of the whim pipeline (tools/stages.sh): its
-# input is the boundary before A, its result the boundary of B, and nothing in
-# between is a boundary.  A single phase is keyed exactly as it always was.
+# A unit is a phase N, or a stage A-B (tools/stages.sh): its input is the boundary
+# before A, its result the boundary of B, and nothing in between is a boundary.
+# Every slim unit is a single phase.
 #
 # A phase is a function of the tree handed to it, so it can be memoized -- and
 # there are three different things worth memoizing, at three different costs:

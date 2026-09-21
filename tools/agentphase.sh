@@ -1,7 +1,7 @@
 #!/bin/sh
 # Run ONE phase of a pipeline's goal document with an agent, and nothing else.
 #
-# Usage: tools/agentphase.sh <phase> <workdir> [slim|whim|zero]
+# Usage: tools/agentphase.sh <phase> <workdir> [pipeline]
 #
 # This is the fallback for a phase whose program is missing or failed.  Every
 # phase that grows one stops coming through here, and the day none of them does
@@ -34,10 +34,11 @@ work=${2:?}
 # happened while zero phase 3 was being written: a deliberate refusal, meant to
 # prove a check, cost four minutes of agent instead.
 #
-# NO_AGENT=1 refuses instead.  It is for a pipeline whose phases are all programs
-# and are meant to stay that way -- zero.mk sets it for every unit it runs, so a
-# zero phase that fails fails LOUDLY.  Unset, nothing changes: slim's phases still
-# fall through here, which is what the three tiers are for.
+# NO_AGENT=1 refuses instead: a phase that fails fails LOUDLY.  It was written for
+# the zero pipeline, whose phases are all programs (it moved to
+# github.com/arbace/go-whim, which has no agent tier at all).  Unset, nothing
+# changes: slim's phases still fall through here, which is what the three tiers
+# are for.
 if [ -n "${NO_AGENT:-}" ]; then
     echo "  tier 1       REFUSED: $PIPE phase $phase failed and NO_AGENT is set." >&2
     echo "               The program is meant to be the answer here, so its failure" >&2
@@ -124,121 +125,6 @@ text names a section you actually need, and never read it front to back.  Its
 numbers are measurements from previous passes: reproduce them where they are
 stated, and say so when yours differ.
 ORIENT_SLIM
-) ;;
-whim) ORIENT=$(cat <<ORIENT_WHIM
-WHERE THINGS ARE.  This is the orientation; do not go and rediscover it.
-
-  cwd                  the repository root.  Stay in it; use paths.
-  $work/               the tree you transform: whim-vim.c, the whole editor as one
-                       translation unit, and a Makefile.  It is exactly the tree
-                       phase $phase is handed.
-  building it          make -C $work        (gcc -O0 -static -s, a few seconds).
-                       NEVER cd into it and run make: the repository root has a
-                       makefile too, and a cd that does not stick builds THAT.
-  pipes/whimN-edit.sh  how every other phase does its cut, and
-  pipes/whimN-check.sh how it proves it.  A phase program is those two parts;
-                       tools/phaserun.sh runs a STAGE of them -- every edit in
-                       order, one tools/sweep.sh, every check -- as
-                       pipes/whim.stages lists.  Yours is one phase, alone.
-  pipes/whim.delta     what each phase declares it changes; the lines up to
-                       phase $phase are the whole difference from slim-vim that
-                       this phase's result must show.  Phase $phase's own line,
-                       if it has one, is the delta the phase text states.
-  tools/               run from the root, with paths into $work/.  They take file
-                       lists on the command line and do nothing at import.
-  .reference/baselines what slim-vim did, recorded.  tools/whimdelta.sh compares
-                       a binary with it.
-  $PBUILD/qN.tar       the tree at the end of each STAGE -- only stage ends are
-                       kept -- if you need to look.
-
-THE TOOLS.  All of them exist.  Do not read their source before running them,
-and do not write your own version of one:
-
-  sweep.sh <file.c>   delete what the cut left unreachable, all six kinds, to a
-                      fixpoint.  Your result must be swept: run it last.
-  cutil.py            blank literals, match braces, find_definition, and the
-                      fold_never / fold_always helpers every phase edit uses
-  dropoptions.py      remove option rows, --local, --strict
-  droplocal.py        remove a buffer- or window-local option's field
-  phasecheck.sh <work> <file.c> <symbols-before-dir>
-                      compiles silently, only main external, libc symbols
-  symbols.sh <file.c> <dir>   the libc symbol snapshot phasecheck compares with
-  whimdelta.sh <binary> <file.c> --phase N
-                      exactly the declared delta up to phase N moved, no more
-  behaviour.py exsweep.py termcheck.py   the three harnesses whimdelta runs
-
-VERIFICATION.  Rule 2 of WHIM-GOAL.md: the phase states its delta in advance and
-the harness shows exactly that set.  Before you finish, $work/whim-vim.c must be
-swept (tools/sweep.sh), compile with no warning, keep main as its only external
-symbol, and \`make -C $work\` must build $work/whim-vim, for which
-\`tools/whimdelta.sh $work/whim-vim $work/whim-vim.c --phase $phase\` passes.  If
-the phase text states a delta pipes/whim.delta does not have, say so in your
-final output rather than editing pipes/whim.delta.
-
-whim-vim.c carries no comments (rule 5): never write one into it.
-
-If you need a program that does not exist, write it into $PBUILD/newtools/ and say
-so in your final output, so it can be kept.
-
-The phase text below is complete and authoritative.  WHIM-GOAL.md describes every
-phase -- open it only for The rules or a section the phase text names, and never
-read it front to back.
-ORIENT_WHIM
-) ;;
-zero) ORIENT=$(cat <<ORIENT_ZERO
-WHERE THINGS ARE.  This is the orientation; do not go and rediscover it.
-
-  cwd                  the repository root.  Stay in it; use paths.
-  $work/               the tree you transform: zero-vim.c, the whole editor as one
-                       translation unit, and a Makefile.  It is exactly the tree
-                       phase $phase is handed.
-  building it          make -C $work        (gcc -O0 -fno-stack-protector -static
-                       -no-pie -s, a few seconds).  Both flags are zero's and
-                       deliberate, and $work/Makefile is where zero's flags live.
-                       NEVER cd into it and run make: the repository root has a
-                       makefile too, and a cd that does not stick builds THAT.
-  whim-vim.c           the pipeline's input, committed and immutable.  Never edit it.
-  pipes/zeroN-edit.sh  how a split zero phase does its cut, and
-  pipes/zeroN-check.sh how it proves it; pipes/whimN-*.sh are the worked examples.
-                       tools/phaserun.sh runs a STAGE of them as pipes/zero.stages
-                       lists.  Yours is one phase, alone.
-  pipes/zero.delta     what each phase declares it changes; the lines up to phase
-                       $phase are the whole difference from WHIM-VIM that this
-                       phase's result must show.
-  tools/               run from the root, with paths into $work/.
-  .reference/zero-baselines
-                       what whim-vim did, recorded by zero phase 0.
-                       tools/zerodelta.sh compares a binary with it.
-  $PBUILD/rN.tar       the tree at the end of each STAGE, if you need to look.
-
-THE TOOLS.  All of them exist.  Do not read their source before running them,
-and do not write your own version of one:
-
-  sweep.sh <file.c>   delete what the cut left unreachable, all six kinds, to a
-                      fixpoint.  Your result must be swept: run it last.
-  cutil.py            blank literals, match braces, find_definition, fold helpers
-  phasecheck.sh <work> <file.c> <symbols-before-dir>
-                      compiles silently, only main external, libc symbols
-  symbols.sh <file.c> <dir>   the libc symbol snapshot phasecheck compares with
-  zerodelta.sh <binary> <file.c> --phase N
-                      exactly the declared delta up to phase N moved, no more
-
-VERIFICATION.  Rule 2 of ZERO-GOAL.md: the phase states its delta in advance and
-the harness shows exactly that set.  Before you finish, $work/zero-vim.c must be
-swept (tools/sweep.sh), compile with no warning, keep main as its only external
-symbol, and \`make -C $work\` must build $work/zero-vim, for which
-\`tools/zerodelta.sh $work/zero-vim $work/zero-vim.c --phase $phase\` passes.  If
-the phase text states a delta pipes/zero.delta does not have, say so in your
-final output rather than editing pipes/zero.delta.
-
-zero-vim.c carries no comments (rule 7): never write one into it.
-
-If you need a program that does not exist, write it into $PBUILD/newtools/ and say
-so in your final output, so it can be kept.
-
-The phase text below is complete and authoritative.  ZERO-GOAL.md describes every
-phase -- open it only for The rules or a section the phase text names.
-ORIENT_ZERO
 ) ;;
 esac
 

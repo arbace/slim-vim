@@ -465,7 +465,7 @@ scores it. Phase 9's synthesised diff has been taken from 33,670 lines to
 **134** by replacing it with rules, and the phase from 943 seconds to 34; what
 remains there is what this document already says cannot be mechanical -- the 37
 fall-through attributes, the three `pum_set_*` functions, the version strings.
-Phase 1 is 797 lines of deliberate patch, which is the right answer for edits
+Phase 1 is 809 lines of deliberate patch, which is the right answer for edits
 the tree cannot state. Everything else computes what it does.
 
 **A pass is 411 seconds now**, and Phase 8 is the largest part of it at 153 s,
@@ -1676,7 +1676,8 @@ rather than a gap in the tooling: `options[]` and `nv_cmds[]` are measured with
 `sizeof()` by functions defined above them, and a tentative declaration of an
 array has no size. Trying it fails at exactly that `sizeof`.
 
-This was `WHIM-GOAL.md`'s phase 6, which was the wrong home for the same reason
+This was `WHIM-GOAL.md`'s phase 6 (that pipeline now lives in
+[arbace/go-whim](https://github.com/arbace/go-whim)), which was the wrong home for the same reason
 this phase once was: where a table sits is not a capability.
 
 **And that is the end of what ordering can buy.** The declarations left were

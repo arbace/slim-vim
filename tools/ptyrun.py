@@ -53,8 +53,8 @@ def stage(binary):
     256-way spin load and 0 in 20 under an oscillating 128-way one -- because what
     overlaps is the nineteen threads' startup, which a loaded machine spreads apart.
     None of the six moved a recording, because termcheck.py retries an empty answer at
-    a longer settle; the zero phase checks that call session() directly have no such
-    ladder, and an empty capture there is a failed check.
+    a longer settle; the zero phase checks that called session() directly had no such
+    ladder, and an empty capture there was a failed check.
 
     Two things make it safe, and neither is a retry.  **The copy happens once per
     binary**, under a lock, so nineteen sessions do not make nineteen windows.  And
@@ -64,13 +64,11 @@ def stage(binary):
     which a lock alone is not: a caller may stage a SECOND binary from inside a pool
     already forking the first.
 
-    **This is deliberately a copy of `tools/zstream.py`'s `stage()` and not a call
-    to it.**  They are the same eight lines for the same reason, and they are
-    duplicated because of the cache keys: `tools/implhash.sh` follows one level of
-    named paths, `pipes/slim1.sh` names `tools/termcheck.py` and `termcheck.py`
-    names this file, so importing zstream here would put a ZERO tool inside slim's
-    and whim's implementation keys and couple the two pipelines for ever.  Three
-    lines of duplication is the cheaper cost.  Fix both if either is wrong.
+    **The zero pipeline's `zstream.py` carried a copy of this `stage()`**, kept
+    apart for the cache keys: `tools/implhash.sh` follows one level of named paths,
+    `pipes/slim1.sh` names `tools/termcheck.py` and `termcheck.py` names this file,
+    so an import would have put a zero tool inside slim's implementation keys.  Both
+    pipelines now live in github.com/arbace/go-whim, in Go.
     """
     with _staging:
         vim = _staged.get(binary)

@@ -1,7 +1,7 @@
 #!/bin/sh
 # The scoreboard: how much of each phase is still a patch rather than a rule.
 #
-# Usage: tools/residue.sh [slim|whim]
+# Usage: tools/residue.sh [slim]
 #
 # Every phase has a tier-2 implementation somewhere on a line between two
 # extremes.  At one end it is a recorded diff -- correct, useless as an

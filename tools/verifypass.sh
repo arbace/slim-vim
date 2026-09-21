@@ -1,7 +1,7 @@
 #!/bin/sh
 # Check every recorded boundary of a pipeline at once, on as many CPUs as there are.
 #
-# Usage: tools/verifypass.sh slim|whim|zero [unit...]      (run from the repository root)
+# Usage: tools/verifypass.sh slim [unit...]      (run from the repository root)
 #        JOBS=n to run fewer at once than there are CPUs
 #        KEEP=1 to keep every phase's work and log even when all reproduce
 #
@@ -20,10 +20,8 @@
 # depended on where the phase ran.  A pass that always runs in the same place
 # could never have shown that.
 #
-# THE UNIT IS THE STAGE (tools/stages.sh).  For slim that is every phase; for whim it
-# is a run of phases sharing one sweep, and only its end is recorded, so each stage
-# runs on the recorded end of the stage before it.  Measured with twelve whim
-# stages: every boundary in 594 s of wall time, the length of stage 42-63.
+# THE UNIT IS THE STAGE (tools/stages.sh), which for slim is every phase.  (Stages of
+# several phases sharing one sweep were whim's, now in github.com/arbace/go-whim.)
 #
 # THE INDUCTION NEEDS ITS INPUTS TO BE THE RECORDED ONES, so each job first
 # digests the tar it was handed and requires the recording for the boundary
@@ -76,16 +74,6 @@ if [ "${1:-}" = "--one" ]; then
     ln -s "$scratch/.src/tools" "$d/tools"
     ln -s "$scratch/.src/pipes" "$d/pipes"
     ln -s "$root/.reference/baselines" "$d/.reference/baselines"
-    # The whim pipeline's declared input, which its phase 0 compares the seed
-    # against by name, and, for zero only, zero's.  Read-only, like everything else
-    # linked in.  Zero's baselines are linked only where they exist: zero phase 0
-    # compares a recording with them and never writes over them, and records into
-    # the scratch root's own .reference/ when there are none.
-    if [ -f "$root/slim-vim.c" ]; then ln -s "$root/slim-vim.c" "$d/slim-vim.c"; fi
-    if [ "$PIPE" = zero ]; then
-        if [ -f "$root/whim-vim.c" ]; then ln -s "$root/whim-vim.c" "$d/whim-vim.c"; fi
-        if [ -d "$root/.reference/zero-baselines" ]; then ln -s "$root/.reference/zero-baselines" "$d/.reference/zero-baselines"; fi
-    fi
     [ -n "$want" ] || { echo "$TAG$u UNRECORDED" > "$res"; exit 0; }
     start=$(date +%s)
     (
@@ -132,12 +120,11 @@ if [ "${1:-}" = "--one" ]; then
     exit 0
 fi
 
-pipe=${1:?usage: verifypass.sh slim|whim|zero [unit...]}
+pipe=${1:?usage: verifypass.sh slim [unit...]}
 shift
 jobs=${JOBS:-$(nproc)}
 . tools/pipeline.sh "$pipe"
-# The units are the pipeline's stages (tools/stages.sh): a phase for slim, a run of
-# phases sharing one sweep for whim, whose recorded boundaries are its stage ends.
+# The units are the pipeline's stages (tools/stages.sh): for slim, a phase each.
 # Named units may be any run whose two ends are recorded.
 UNITS=$(tools/stages.sh "$PIPE")
 if [ $# -gt 0 ]; then UNITS=$*; fi

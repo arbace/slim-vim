@@ -17,12 +17,13 @@ play was slim's and whim's 600 and 489.  The zero pipeline deletes rows: its
 phase 6 took the table 111 -> 105, phase 7 to 104, and phase 8 -- `:edit`,
 `:enew`, `:ex`, `:visual`, `:view` -- to 99, which the old floor refused with
 `no command table found in either shape` (names() tries both parsers with
-check=False, so the message is the lookup's and not the count's).  tools/zexcmds.py
-enumerates zero's whole Ex sweep through names(), so crossing the floor stops the
+check=False, so the message is the lookup's and not the count's).  zero's zexcmds.py
+enumerated its whole Ex sweep through names(), so crossing the floor stops the
 sweep and every check under it rather than giving a wrong answer.  Lowered here,
-in that phase's own commit, per ZERO-PLAN.md decision 8 -- never silently, and to
+in that phase's own commit, per zero's plan, decision 8 -- never silently, and to
 a number with room in it: 80 leaves 19 rows of margin below zero's 99, and the
-next row the plan removes is `:file`'s.
+next row the plan removed was `:file`'s.  Both pipelines, and the Go port of
+this file they run, now live in github.com/arbace/go-whim; the floor stays.
 """
 import re
 import sys

@@ -1,9 +1,10 @@
 """A small fixed pty scenario, recorded so two binaries can be compared.
 
 **A MODIFIED KEY IS A DIFFERENT KEY, and nothing here pressed one for forty
-phases.**  `arrows` presses the plain arrows, and so do `tools/zcases.py`'s
-`ins_arrows` and `nav_arrows` and `tools/zpty.py`'s `nav_arrows`; every other
-`\\x1b` in every harness of all three pipelines is a bare Escape.  A shifted
+phases.**  `arrows` presses the plain arrows, and so did the zero pipeline's `zcases.py`
+(`ins_arrows`, `nav_arrows`) and `zpty.py` (`nav_arrows`), now in
+github.com/arbace/go-whim; every other `\\x1b` in every harness of all three
+pipelines was a bare Escape.  A shifted
 arrow takes a different path entirely -- `ins_start_select()` in Insert mode
 and the `NV_SS`/`NV_SSS` arms of `normal_cmd()` in Normal mode, all three
 gated on `km_startsel` -- so a default that only those three read could be

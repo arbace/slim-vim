@@ -206,7 +206,7 @@ $(SLIMPHASES:%=slim-promote-%): slim-promote-%:
 
 # Record every boundary this run produced, as advisory.  What an agent pass
 # leaves behind for the programs that will replace it.
-# The twin of whim-tip; see the note there.  Adding a phase to the end of a
+# Adding a phase to the end of a
 # pipeline does not invalidate the ones before it, so only the new one runs.
 .PHONY: slim-tip
 slim-tip:

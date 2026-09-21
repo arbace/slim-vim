@@ -1,12 +1,5 @@
-# The three products' binaries.
+# The product's binary.
 slim-vim
-whim-vim
-zero-vim
-
-# The upper part of zero-vim.c on its own -- the core editor, cut at the first
-# #include, which is the boundary.  Produced by `make editor.c`, never edited; it
-# is a prefix of a tracked file and git already has every byte of it.
-editor.c
 
 # The frozen snapshot of this tree, plus the harness baselines.  Data, and a
 # copy of what git already has -- not source.  See CLAUDE.md.
@@ -28,33 +21,11 @@ upstream-ref/
 # -- converting a phase to a program means restoring the previous boundary and
 # comparing the next -- but it is data, not source, and a new pass discards it.
 .build-slim/
-.build-whim/
-.build-zero/
-
-# The whim pipeline's work directory: one file and a makefile, rebuilt from
-# slim-vim.c on demand and deleted with the build.  zero/ is the same, from whim-vim.c.
-whim/
-zero/
 
 # Tier 3 of the memoize: phase results, keyed by input digest and
 # implementation digest together.  Pure cache -- content-keyed, so it cannot go
-# stale, and deleting it costs only the time to recompute.  Since the Go
-# cutover it also holds what tools/gobuild.sh composes: gobin/ (the slimtools
-# binary, keyed on every file under tools/go plus go.mod, go.sum and the cc/v4
-# patch) and gofork/ (the pinned cc/v4 module with that patch applied).  Both
-# are content-keyed the same way and rebuild from the local Go module cache,
-# measured with GOPROXY=off, so `make clean-cache` needs no network.
+# stale, and deleting it costs only the time to recompute.
 .cache/
-
-# The corpus the Go tools are compared against: every boundary's .c, the output
-# of every split phase's edit, and slim's per-file sources.  DELIBERATELY NOT
-# UNDER .cache/, where it used to live -- `make clean-cache` is `rm -rf .cache`
-# and destroyed it during a routine cold pass, which was correct, because the
-# stanza above promises that deleting .cache/ costs only recompute time.  This
-# does not have that property: rebuilding it needs a full set of boundaries in
-# .build-whim, .build-zero and .build-slim, and --unswept re-runs every split
-# phase's edit program.  Built by tools/gocorpus.sh, read by tools/gocmp/.
-.gocorpus/
 
 # The transient insight log, folded into SLIM-GOAL.md and CLAUDE.md and then deleted.
 PROGRESS.md

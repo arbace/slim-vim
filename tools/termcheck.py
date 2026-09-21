@@ -42,12 +42,12 @@ def ask(t, settle):
     finally:
         # AND IT IS REMOVED.  This made a directory per pty session and left it:
         # measured, 182,319 were lying in /tmp -- 100,280 from here and 82,039
-        # from tools/ztermcheck.py -- and an ext4 directory that full answers
+        # from the zero pipeline's ztermcheck.py -- and an ext4 directory that full answers
         # `mkdir` with ENOSPC on a disk with 70 GB free.  It failed zero phase 9
         # mid-run, a phase that has nothing to do with terminals, which is how
         # this kind of leak is always found: somewhere else.  Zero's copy was
-        # fixed first; this is whim's and slim's, and it is why the count above
-        # has two halves.
+        # fixed first (whim and zero now live in github.com/arbace/go-whim); this
+        # is slim's, and it is why the count above has two halves.
         shutil.rmtree(d, ignore_errors=True)
     s = text.decode('utf-8', 'replace')
         # The screen is full of '~' filler and the two answers land on

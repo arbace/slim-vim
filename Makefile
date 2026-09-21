@@ -1,5 +1,10 @@
 # One product, and the process that produces it.
 #
+# slim-vim.c is also the INPUT of two further pipelines -- whim, which removes
+# capability on purpose, and zero, which turns the result into an embeddable
+# editor core.  They live in github.com/arbace/go-whim, with the Go toolset they
+# run, and fetch slim-vim.c from this repository at the commit its main points to.
+#
 # This makefile is not derived from upstream and is not a product of a pass --
 # it is part of the seed, alongside .gitignore, README.md, CLAUDE.md, SLIM-GOAL.md
 # and tools/, and it is what drives a pass.  A pass must never write over it.
@@ -44,8 +49,6 @@ UPSTREAM_URL    = https://github.com/arbace/vim
 UPSTREAM_BRANCH = regexp-delimiter-atoms
 
 include slim.mk
-include whim.mk
-include zero.mk
 
 # The default goal is the first target make sees, and `include` is where make
 # sees slim.mk's -- so without this line a bare `make` builds the first phase
@@ -104,16 +107,9 @@ slim-vim.c: force
 	rm -rf $(SLIMWORK); \
 	echo "$$live" > upstream.sha
 
-# Every product, because there are three.  The per-pipeline targets that remove a
-# pass's working state are slim-clean, whim-clean and zero-clean.
+# The product's binary.  slim-clean removes a pass's working state.
 clean:
-	rm -f slim-vim whim-vim zero-vim
-
-# Bytes to store and symbols to provide, for every pipeline side by side.  It
-# reports on all of them, so it is not any one's target.
-.PHONY: score
-score:
-	@ZEROCFLAGS='$(ZEROCFLAGS)' ZEROLDFLAGS='$(ZEROLDFLAGS)' tools/score.sh
+	rm -f slim-vim
 
 force: ;
 
