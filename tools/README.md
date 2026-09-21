@@ -264,6 +264,25 @@ whose programs name nothing reaching `tools/go`.  931 lines nothing executes
 would buy a full repass, ~4,950 s of phases.  `tools/gocmp/` is free; a package
 under `tools/go/` is not.
 
+**It was declined on that number and not on the label**, which is the outcome the
+commit was shaped for: the cost is its first line precisely so the merge could be
+refused by reading it. A do-not-merge honoured because somebody read the 6-of-10
+is worth more than one honoured because the commit said so.
+
+**And `worktree-zero-edits` uniquely holds ONE thing, which decides when it can be
+deleted.** All four of its commits read as *not on main*, and that is misleading
+for three: `tools/gocmp/bundlecheck.sh`'s content landed at `b447f61` (the file
+was taken, the commits were not) and `clonecheck.sh`'s at `5a891b5` (cherry-picked
+with `-x`). Only `02f9e42` is genuinely absent — verified as
+`tools/go/internal/check/` missing and `clonecheck.sh` `cmp`-identical. So the
+branch is the **only** place the check-port measurement exists: the 1.67×, the
+prose-unchanged figure, the 6-of-10 key movement and the `rep` driver. **It is
+deletable the moment the check-port decision is made and not before**, because
+deleting it earlier throws away the evidence the decision rests on while leaving
+the decision open. *"Not on main" is true of the commits and false of most of the
+content* — the same distinction as the four above, aimed at a future action
+rather than a past claim.
+
 **Three helpers went generic because two sessions wrote one each.**
 `contains` (whim80 over `[]string`, zero25 over `[]int`), `first` (whim80 over
 `[]string`, zero42 over `[]int`) and `sortedKeys` (whim79 over
