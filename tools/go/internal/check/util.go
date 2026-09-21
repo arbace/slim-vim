@@ -105,3 +105,69 @@ func hasLine(src []byte, line string) bool {
 	}
 	return false
 }
+
+// countWord is `grep -cw`: lines holding the name as a whole word.
+func countWord(src []byte, name string) int {
+	return len(regexp.MustCompile(`(?m)^.*\b`+regexp.QuoteMeta(name)+`\b.*$`).FindAll(src, -1))
+}
+
+// countLinesWith is `grep -cF`: lines holding the text literally.
+func countLinesWith(src []byte, text string) int {
+	n := 0
+	for _, l := range strings.Split(string(src), "\n") {
+		if strings.Contains(l, text) {
+			n++
+		}
+	}
+	return n
+}
+
+// countLines is `grep -c ''`, which counts LINES and not newlines: a file whose
+// last line has no newline still has that line.
+func countLines(src []byte) int {
+	s := string(src)
+	if s == "" {
+		return 0
+	}
+	n := strings.Count(s, "\n")
+	if !strings.HasSuffix(s, "\n") {
+		n++
+	}
+	return n
+}
+
+// hasLinePrefix is `grep -q '^literal'` where the literal holds regex
+// metacharacters -- `^getexline(` is an unclosed group to RE2 and an ordinary
+// prefix to grep.
+func hasLinePrefix(src []byte, prefix string) bool {
+	for _, l := range strings.Split(string(src), "\n") {
+		if strings.HasPrefix(l, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// comm23 is `comm -23`: what is in a and not in b, both already sorted.
+func comm23(a, b []string) []string {
+	in := map[string]bool{}
+	for _, v := range b {
+		in[v] = true
+	}
+	var out []string
+	for _, v := range a {
+		if !in[v] {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+func contains(ss []string, v string) bool {
+	for _, s := range ss {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}
