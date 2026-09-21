@@ -1069,3 +1069,16 @@ killed the probe at the non-zero `wait`, and a blank where a number belongs is
 the one result nobody is tempted to publish. The trap was hit twice and caught
 twice by the same property — it produced no plausible answer.
 
+**That generalises into a design rule, and it is the opposite of the usual
+instinct.** The outputs that get published are the plausible ones, so **a trap
+that yields no answer is self-limiting and a trap that yields a reasonable one is
+not**. All four mechanisms above were the second kind: a count, a scratch, a
+failure message and a shell semantics claim, each of them a sentence somebody
+would repeat. The usual thing asked of a tool is that it degrade gracefully —
+return something, carry on, do not make a fuss. **Every one of the four would
+have been worse under that instinct**, and the instruments that served best here
+were the ones that failed loudly and emptily: a probe that printed nothing, a
+`cmp` that cannot be fooled by its own pattern, a `stages.sh` that refuses before
+any check runs. Prefer an instrument that produces no answer to one that produces
+a defensible one.
+
