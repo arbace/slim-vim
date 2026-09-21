@@ -153,6 +153,19 @@ heredoc within its program, came to be covered.  Each found a real defect in the
 other's half; neither would have looked there alone.  All 74 ports were run
 through both.
 
+**CONVERGING THE TWO ENDS THE PROPERTY, and that trade is worth making with the
+eyes open.**  `tools/gocmp/bundlecheck.sh` had the same two-implementation shape
+for one exchange -- two 108-line scripts, each of which found a defect in the
+other -- and then one was taken whole, because two near-identical files diverging
+over comment wording is churn and not coverage.  The moment that happened, a
+second run of it stopped being corroboration: both sessions now execute the same
+code over the same file, and the only difference left is the directory it starts
+in.  Running it twice after that *looks* like continued verification and is
+repetition, which is the false-negative shape one level up -- a true verdict
+answering a question nobody asked.  So the rule for a converged tool is: a re-run
+is evidence when the TOOL, its BASIS or how the input is PRODUCED changes, and
+ritual when only the input has one more commit in it.
+
 **Three things a CHECK comparison must get right**, found while one check was
 ported end to end as a probe (`tools/gocmp/checkcmp.sh` on the other session's
 branch, deliberately unmerged -- see below).  Each would have made the
