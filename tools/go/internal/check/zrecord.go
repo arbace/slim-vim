@@ -61,8 +61,8 @@ func zRecord(binary string, args []string, keys [][]byte) zRec {
 // vimrc is found, and the session is its own so a stop signal cannot reach the
 // caller's shell.
 func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Duration) (string, map[string]int64) {
-	t, left, _, _, _, _ := zRun(binary, args, keys, timeout, true)
-	return t, left
+	x := zRun(binary, args, keys, timeout, true)
+	return x.text, x.files
 }
 
 // zRecordStream is the same runner with no `files` section and the raw STREAM
@@ -71,8 +71,8 @@ func zRecordFiles(binary string, args []string, keys [][]byte, timeout time.Dura
 // line before the cursor comes back -- which is where zscreen takes its
 // picture.  So those two live in the stream and in no snapshot.
 func zRecordStream(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string) {
-	t, _, out, _, _, _ := zRun(binary, args, keys, timeout, false)
-	return t, out
+	x := zRun(binary, args, keys, timeout, false)
+	return x.text, x.stream
 }
 
 // zRecordSnaps is zRecordStream with the SNAPSHOT COUNT as well, which zero8
@@ -81,8 +81,8 @@ func zRecordStream(binary string, args []string, keys [][]byte, timeout time.Dur
 // unused g/[/] key does, so the bell is identical either side and only the
 // snapshot count moves.
 func zRecordSnaps(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string, int) {
-	t, _, out, n, _, _ := zRun(binary, args, keys, timeout, false)
-	return t, out, n
+	x := zRun(binary, args, keys, timeout, false)
+	return x.text, x.stream, x.snaps
 }
 
 // zRecordFull adds the EXIT STATUS and the bell count, which zero11 needs
@@ -91,14 +91,37 @@ func zRecordSnaps(binary string, args []string, keys [][]byte, timeout time.Dura
 // one that quits.  No recording can see that -- every zcases case ends with a
 // trailing `:q!`, which quits both.
 func zRecordFull(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string, int, string, int) {
-	t, _, out, n, rc, bells := zRun(binary, args, keys, timeout, false)
-	return t, out, n, rc, bells
+	x := zRun(binary, args, keys, timeout, false)
+	return x.text, x.stream, x.snaps, x.rc, x.bells
 }
 
-func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, withFiles bool) (string, map[string]int64, string, int, string, int) {
+// zRecordTimed adds the ELAPSED TIME of the run alone -- not the staging --
+// which zero12 needs: change_warning() ends in ui_delay(1002L, TRUE), and a
+// second of wall clock is the clearest evidence there is that the warning was
+// really drawn and not merely a string in the binary.
+func zRecordTimed(binary string, args []string, keys [][]byte, timeout time.Duration) (string, string, int64) {
+	x := zRun(binary, args, keys, timeout, false)
+	return x.text, x.stream, x.ms
+}
+
+// zRes is everything one run can say.  It is a struct and not six positional
+// returns because five shapes of recorder had already made the tuple
+// unreadable, and each new check needs one more field rather than one more
+// arity.
+type zRes struct {
+	text   string
+	files  map[string]int64
+	stream string
+	snaps  int
+	rc     string
+	bells  int
+	ms     int64
+}
+
+func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, withFiles bool) zRes {
 	vim, err := harness.Stage(binary)
 	if err != nil {
-		return "ERROR " + err.Error(), nil, "", 0, "", 0
+		return zRes{text: "ERROR " + err.Error()}
 	}
 	home, _ := os.MkdirTemp("", "zrun-home-")
 	defer os.RemoveAll(home)
@@ -130,8 +153,9 @@ func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, wi
 	harness.Setsid(c)
 	done := make(chan error, 1)
 	if err := c.Start(); err != nil {
-		return "ERROR " + err.Error(), nil, "", 0, "", 0
+		return zRes{text: "ERROR " + err.Error()}
 	}
+	t0 := time.Now()
 	go func() { done <- c.Wait() }()
 	select {
 	case e := <-done:
@@ -147,6 +171,7 @@ func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, wi
 		rcText, out, errb = "timeout", nil, nil
 	}
 	in.Close()
+	ms := time.Since(t0).Milliseconds()
 
 	scr := harness.NewScreen(24, 80)
 	scr.Feed(out)
@@ -174,7 +199,7 @@ func zRun(binary string, args []string, keys [][]byte, timeout time.Duration, wi
 		dd := s.Text
 		text += harness.Section(fmt.Sprintf("snap %d cursor=%d,%d bells=%d", i, s.Y, s.X, s.Bells), &dd)
 	}
-	return harness.Scrub(text), left, string(out), len(scr.Snaps), rcText, scr.Bells
+	return zRes{harness.Scrub(text), left, string(out), len(scr.Snaps), rcText, scr.Bells, ms}
 }
 
 // pyDict is Python's %r of a dict of name -> size, which is what the record

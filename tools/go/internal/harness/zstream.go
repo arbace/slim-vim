@@ -82,7 +82,7 @@ func ZSession(binary string, keys [][]byte, term string, args []string,
 	select {
 	case werr := <-done:
 		if ee, ok := werr.(*exec.ExitError); ok {
-			code = ee.ExitCode()
+			code = PyReturnCode(ee)
 		} else if werr != nil {
 			code = -1
 		}

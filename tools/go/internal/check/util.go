@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"slimvim.local/tools/internal/harness"
 )
 
 // The small shell verbs a check reaches for, once each.  They are here rather
@@ -57,7 +59,7 @@ func pipeJoin(s string) string { return strings.ReplaceAll(s, "\n", "|") }
 func exitCode(err error) int {
 	var ee *exec.ExitError
 	if errorsAs(err, &ee) {
-		return ee.ExitCode()
+		return harness.PyReturnCode(ee)
 	}
 	return -1
 }

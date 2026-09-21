@@ -200,3 +200,24 @@ func minTime(a, b time.Time) time.Time {
 	}
 	return b
 }
+
+// OpenPty is openPty for a caller outside this package that drives a terminal
+// of its own -- a check whose probes signal, stop and resize the child and so
+// cannot be one Session.
+func OpenPty() (*os.File, string, error) { return openPty() }
+
+// SetWinsize is TIOCSWINSZ on f.  On a MASTER it resizes the terminal and the
+// kernel sends the foreground process group SIGWINCH, which is how a probe
+// resizes a running editor.
+func SetWinsize(f *os.File, rows, cols int) error {
+	ws := winsize{rows: uint16(rows), cols: uint16(cols)}
+	return ioctl(f, syscall.TIOCSWINSZ, unsafe.Pointer(&ws))
+}
+
+// Termios is TCGETS on f.  On a pty master Linux answers with the slave's
+// settings, which is what Python's termios.tcgetattr(master) reads too.
+func Termios(f *os.File) (syscall.Termios, error) {
+	var t syscall.Termios
+	err := ioctl(f, syscall.TCGETS, unsafe.Pointer(&t))
+	return t, err
+}
